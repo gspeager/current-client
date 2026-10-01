@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Plus, Tag, Upload, X } from 'lucide-react'
 import { RemoteService, TagService, type TagInfo, type TagMessageInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
+import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import './TagsPanel.scss'
@@ -18,7 +19,7 @@ function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
     error: loadError,
     reload: loadTags,
   } = useAsyncData(() => TagService.ListTags(repoPath), [repoPath])
-  const { confirm } = useDialogs()
+  const { confirm, signIn } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
   const error = loadError ?? actionError
   const [newName, setNewName] = useState('')
@@ -69,7 +70,7 @@ function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
         if (!remoteName) {
           throw new Error('No remote configured to push to.')
         }
-        return TagService.PushTag(repoPath, remoteName, name)
+        return withSignIn((auth) => TagService.PushTag(repoPath, remoteName, name, auth), signIn)
       })
       .catch((err: unknown) => setActionError(errorMessage(err)))
       .finally(() => setBusyName(null))

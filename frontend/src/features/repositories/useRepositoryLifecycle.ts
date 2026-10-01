@@ -155,11 +155,14 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
 
   const cloneRepository = () => {
     setRepoError(null)
-    cloneOp.run<string>(RepositoryService.CloneRepository(cloneUrl, cloneDest, cloneFolder.trim()), (path) => {
-      addTab(path)
-      refreshRecentRepos()
-      setCloneFolder(null)
-    })
+    cloneOp.run<string>(
+      (auth) => RepositoryService.CloneRepository(cloneUrl, cloneDest, cloneFolder.trim(), auth),
+      (path) => {
+        addTab(path)
+        refreshRecentRepos()
+        setCloneFolder(null)
+      },
+    )
   }
 
   return {

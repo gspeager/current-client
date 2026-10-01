@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type TagService struct{}
@@ -36,7 +37,11 @@ func (s *TagService) DeleteTag(repoPath, name string) error {
 	return git.DeleteTag(context.Background(), repoPath, name)
 }
 
-func (s *TagService) PushTag(ctx context.Context, repoPath, remote, name string) error {
+func (s *TagService) PushTag(ctx context.Context, repoPath, remote, name string, auth *gitexec.Credential) error {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
 	return git.PushTag(ctx, repoPath, remote, name)
 }
 

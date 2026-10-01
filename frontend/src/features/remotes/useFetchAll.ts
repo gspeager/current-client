@@ -5,7 +5,7 @@ export function useFetchAll(repoPath: string, onFetched?: () => void) {
   const { running, error, run, cancel } = useCancellableOperation()
 
   const fetchAll = () => {
-    run(RemoteService.FetchAll(repoPath), onFetched)
+    run((auth) => RemoteService.FetchAll(repoPath, auth), onFetched)
   }
 
   return { running, error, cancel, fetchAll }
