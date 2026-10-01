@@ -1,5 +1,6 @@
 import { createRef } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {
   GitService,
   HistoryService,
@@ -72,5 +73,23 @@ describe('CurrentClientApp embedding', () => {
         expect.objectContaining({ ref: 'feature/login' }),
       ),
     )
+  })
+
+  it('does not reload a tab that is visited again with no new commits', async () => {
+    stubStartup(['/repos/app'], '/repos/app')
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue([])
+    render(<CurrentClientApp />)
+    const historyTab = await screen.findByRole('button', { name: 'Branch Graph & History' })
+
+    await userEvent.click(historyTab)
+    await waitFor(() => expect(HistoryService.GetHistory).toHaveBeenCalled())
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const loads = vi.mocked(HistoryService.GetHistory).mock.calls.length
+
+    await userEvent.click(screen.getByRole('button', { name: 'Activity' }))
+    await userEvent.click(historyTab)
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(HistoryService.GetHistory).toHaveBeenCalledTimes(loads)
   })
 })

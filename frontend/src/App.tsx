@@ -5,6 +5,7 @@ import { GitService, HistoryService, PlatformService } from '@current-client-bin
 import ConflictBanner from './features/branches/ConflictBanner'
 import ContextualNudges from './features/remotes/ContextualNudges'
 import HeaderBar from './components/chrome/HeaderBar'
+import KeepAlive from './components/chrome/KeepAlive'
 import NavPane from './components/chrome/NavPane'
 import RepoSwitcher from './features/repositories/RepoSwitcher'
 import ResizeHandle from './components/chrome/ResizeHandle'
@@ -267,7 +268,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           {!navCollapsed && <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />}
 
           <main className="app-main">
-            {activeTab === 'working-copy' ? (
+            <KeepAlive active={activeTab === 'working-copy'}>
               <ChangesView
                 key={`${repo.repoPath}-${repoVersion}-${fileFocus}`}
                 repoPath={repo.repoPath}
@@ -281,7 +282,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                 onCommitDraftChange={(message) => remember({ commitDraft: message })}
                 showCommitTypePicker={conventionalCommitsOn}
               />
-            ) : activeTab === 'history' ? (
+            </KeepAlive>
+            <KeepAlive active={activeTab === 'history'}>
               <HistoryView
                 key={`${repo.repoPath}-${repoVersion}-${focus?.request ?? 0}`}
                 repoPath={repo.repoPath}
@@ -294,7 +296,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                 onTopShaChange={(sha) => remember({ historyTopSha: sha })}
                 onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
               />
-            ) : activeTab === 'changelog' ? (
+            </KeepAlive>
+            <KeepAlive active={activeTab === 'changelog'}>
               <ChangelogView
                 key={repo.repoPath}
                 repoPath={repo.repoPath}
@@ -303,7 +306,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                 onPrefsChange={settings.setChangelogPrefs}
                 onOpenCommit={openCommit}
               />
-            ) : (
+            </KeepAlive>
+            <KeepAlive active={activeTab === 'activity'}>
               <ActivityView
                 key={repo.repoPath}
                 repoPath={repo.repoPath}
@@ -311,7 +315,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                 dirty={dirty}
                 hasConflict={conflictState !== null}
               />
-            )}
+            </KeepAlive>
           </main>
         </div>
 
