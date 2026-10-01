@@ -1,0 +1,39 @@
+.branch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-full);
+  background: var(--surface-container);
+  color: var(--on-surface);
+  font: var(--data-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.branch-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.branch-pill-current {
+  color: var(--primary);
+}
+
+.branch-pill-bare {
+  height: auto;
+  padding: 0;
+  background: none;
+}
+
+.branch-pill-dirty {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--warning);
+}

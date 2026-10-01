@@ -1,0 +1,141 @@
+// Style patterns repeated across components, written once.
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Callers set the color.
+@mixin eyebrow {
+  font: var(--eyebrow);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+}
+
+@mixin disabled {
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+@mixin text-field {
+  height: var(--h-field);
+  padding: 0 var(--space-xs);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+@mixin primary-button {
+  height: var(--h-field);
+  padding: 0 var(--space-sm);
+  background: var(--primary-container);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-primary-container);
+  font: var(--ui-sm);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--glow-action);
+  }
+
+  @include disabled;
+}
+
+@mixin icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-row-tree);
+  height: var(--h-row-tree);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  @include disabled;
+}
+
+// A sidebar row's action buttons, overlaid on the row's right edge; the row
+// reveals them on hover by setting opacity: 1.
+@mixin row-actions {
+  position: absolute;
+  right: var(--space-xs);
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  opacity: 0;
+  background: var(--surface-container);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--h-row-tree);
+    height: 100%;
+    background: none;
+    border: none;
+    color: var(--outline);
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-high);
+      color: var(--on-surface);
+    }
+
+    @include disabled;
+  }
+}
+
+// Callers set the height.
+@mixin secondary-button {
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  @include disabled;
+}
+
+@mixin tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-high);
+    color: var(--on-surface);
+  }
+}

@@ -1,0 +1,82 @@
+@use '../../styles/patterns';
+
+.dialog-panel {
+  width: 400px;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.dialog-message {
+  margin: 0;
+  font: var(--ui-md);
+  color: var(--on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.dialog-input {
+  height: var(--h-field);
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-md);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.dialog-button {
+  height: var(--h-action);
+  padding: 0 var(--space-md);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-md);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-high);
+  }
+
+  @include patterns.disabled;
+}
+
+.dialog-button-primary {
+  background: var(--primary-container);
+  border-color: transparent;
+  color: var(--on-primary-container);
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: var(--primary-container);
+    box-shadow: var(--glow-action);
+  }
+}
+
+.dialog-button-destructive {
+  background: var(--error);
+  border-color: transparent;
+  color: var(--on-error);
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: var(--error);
+    opacity: 0.9;
+  }
+}

@@ -1,0 +1,100 @@
+@use '../../styles/patterns';
+
+.stash-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stash-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.stash-panel-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.stash-panel-add {
+  @include patterns.icon-button;
+}
+
+.stash-panel-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+
+  input {
+    @include patterns.text-field;
+  }
+
+  button {
+    @include patterns.primary-button;
+  }
+}
+
+.stash-panel-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.stash-panel-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.stash-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stash-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+
+  &:hover {
+    background: var(--surface-container);
+
+    .stash-row-actions {
+      opacity: 1;
+    }
+  }
+}
+
+.stash-row-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.stash-row-message {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--data-md);
+}
+
+.stash-row-time {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.stash-row-actions {
+  @include patterns.row-actions;
+}

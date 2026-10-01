@@ -1,0 +1,319 @@
+@use '../../styles/tokens/typography';
+@use '../../styles/patterns';
+
+.changelog-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.changelog-range,
+.changelog-output-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-field);
+}
+
+.changelog-label {
+  margin: 0;
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.changelog-count,
+.changelog-date {
+  color: var(--outline);
+  font: var(--data-sm);
+  @include typography.mono-numeric;
+}
+
+.changelog-hint,
+.changelog-notice {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.changelog-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.changelog-editor {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 2fr) 3fr;
+  gap: var(--space-lg);
+}
+
+.changelog-entries {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.changelog-entry-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.changelog-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.changelog-section-heading {
+  padding: var(--space-md) 0 var(--space-xs);
+}
+
+.changelog-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-row-table);
+  min-width: 0;
+}
+
+.changelog-entry-text {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--title-md);
+}
+
+.changelog-entry-scope {
+  color: var(--on-surface-variant);
+}
+
+.changelog-entry-sha {
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--outline);
+  font: var(--data-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.changelog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-md);
+}
+
+.changelog-filter-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.changelog-filter-menu-mono .checkbox-label {
+  font: var(--data-sm);
+}
+
+.changelog-filter {
+  position: relative;
+}
+
+.changelog-filter-toggle {
+  color: var(--outline);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.changelog-filter-menu {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  left: 0;
+  z-index: 10;
+  min-width: 200px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--space-xs) var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-modal);
+}
+
+.changelog-output {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.changelog-version {
+  width: 120px;
+  height: var(--h-field);
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.changelog-spacer {
+  flex: 1;
+}
+
+.changelog-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-field);
+  height: var(--h-field);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-high);
+  }
+
+  @include patterns.disabled;
+}
+
+.changelog-output-toolbar {
+  flex-wrap: wrap;
+
+  .split-button {
+    --split-button-height: var(--h-field);
+  }
+}
+
+.changelog-preview {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--title-md);
+  font-weight: 400;
+
+  h2,
+  h3 {
+    margin: var(--space-md) 0 var(--space-xs);
+    font: var(--title-md);
+  }
+
+  h2 {
+    font: var(--headline-sm);
+    letter-spacing: var(--headline-sm-tracking);
+  }
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: var(--space-lg);
+  }
+
+  code {
+    font: var(--code);
+  }
+}
+
+.changelog-markdown {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--code);
+  resize: none;
+}
+
+.changelog-version,
+.changelog-markdown {
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.changelog-explainer {
+  flex: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  color: var(--on-surface);
+  text-align: center;
+}
+
+.changelog-explainer-title {
+  margin: 0;
+  font: var(--headline-sm);
+  letter-spacing: var(--headline-sm-tracking);
+}
+
+.changelog-release-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md) 0 var(--space-xs);
+  border-top: var(--border-divider);
+  font: var(--label-md);
+  letter-spacing: var(--label-md-tracking);
+}
+
+// Shown while newer content is on its way; the old content stays readable.
+.changelog-stale {
+  opacity: 0.6;
+}
+
+.changelog-status {
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.changelog-guide-modal {
+  width: 640px;
+}
+
+.changelog-guide-body {
+  padding: var(--space-lg);
+  overflow-y: auto;
+}

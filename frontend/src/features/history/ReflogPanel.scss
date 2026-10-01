@@ -1,0 +1,103 @@
+@use '../../styles/patterns';
+
+.reflog-panel {
+  width: 720px;
+  height: 640px;
+}
+
+.reflog-error {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-xs) var(--space-md);
+  color: var(--error);
+  font: var(--ui-sm);
+}
+
+.reflog-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-xs);
+}
+
+.reflog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reflog-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius);
+
+  &:hover {
+    background: var(--surface-container);
+
+    .reflog-row-recover {
+      opacity: 1;
+    }
+  }
+}
+
+.reflog-row-selector {
+  flex-shrink: 0;
+  width: 88px;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.reflog-row-sha {
+  flex-shrink: 0;
+  color: var(--primary);
+  font: var(--data-sm);
+}
+
+.reflog-row-action {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--data-md);
+}
+
+.reflog-row-time {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.reflog-row-recover {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  opacity: 0;
+  background: var(--primary-container);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-primary-container);
+  font: var(--ui-xs);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--glow-action);
+  }
+
+  @include patterns.disabled;
+}
+
+.reflog-hint {
+  margin: var(--space-md);
+  color: var(--outline);
+  font: var(--ui-sm);
+}

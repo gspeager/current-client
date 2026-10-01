@@ -1,0 +1,20 @@
+.activity-view {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  align-items: start;
+  gap: var(--space-lg);
+}
+
+.activity-view-pair {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--space-lg);
+}
+
+.activity-view-pair > * {
+  flex: 1 1 360px;
+  min-width: 0;
+}

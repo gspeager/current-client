@@ -1,0 +1,64 @@
+# Native Linux build environment — no Zig, no cross-arch tooling.
+#
+# Trimmed from Dockerfile.cross: this image only ever builds for the
+# architecture it's running on, so plain gcc replaces Zig and there's no
+# macOS SDK or zcc wrapper scripts. Meant to run on a native x86_64 Linux
+# host — building AppImages under QEMU emulation fails with
+# "exec format error" (see build/linux/Taskfile.yml's create:appimage:docker
+# for the full explanation), which is why this needs real hardware rather
+# than the Mac mini's wails-cross image.
+#
+# Usage (from the repo root, on the Linux host):
+#   docker build -t current-client-linux-native -f build/docker/Dockerfile.linux-native .
+#   docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/app" current-client-linux-native
+#   docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/app" current-client-linux-native build
+#
+# --user avoids root-owned output in bin/ on the host; omit it if that
+# doesn't matter for your setup. Default command packages everything
+# (binary, .deb, .rpm, AppImage); pass "build" to skip packaging.
+
+# Debian 13 provides the GTK >= 4.14 API baseline used by the default Linux backend.
+FROM golang:1.26-trixie
+
+ARG WAILS_VERSION=v3.0.0-beta.23
+ARG NFPM_VERSION=v2.41.1
+
+# Install base tools, GCC, and GTK/WebKit dev packages.
+# dpkg-dev: linuxdeploy's GTK plugin shells out to dpkg-architecture, even
+# though the image itself doesn't build .deb archives with it (nfpm does
+# that without dpkg-deb). file: appimagetool needs it for magic-number
+# detection while assembling the AppImage.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl nodejs npm pkg-config gcc libc6-dev dpkg-dev file \
+    libgtk-3-dev libwebkit2gtk-4.1-dev \
+    libgtk-4-dev libwebkitgtk-6.0-dev \
+    && pkg-config --atleast-version=4.14 gtk4 \
+    && pkg-config --exists webkitgtk-6.0 \
+    && pkg-config --exists gtk+-3.0 \
+    && pkg-config --exists webkit2gtk-4.1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# wails3 CLI — provides the `wails3 task` runner used below, plus
+# `wails3 generate appimage`, which shells out to `ldd` (Linux-only).
+RUN go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+
+# nfpm — builds the .deb/.rpm packages without needing dpkg-deb/rpmbuild installed.
+RUN go install github.com/goreleaser/nfpm/v2/cmd/nfpm@${NFPM_VERSION}
+
+# Lets the AppImage tooling run without /dev/fuse granted to the container.
+ENV APPIMAGE_EXTRACT_AND_RUN=1
+
+# --user runs the container as an arbitrary host UID with no /etc/passwd
+# entry, so $HOME falls back to "/" (root-owned, unwritable) unless it's set
+# explicitly. Go's build cache, npm's cache and wails3's config all need a
+# writable $HOME.
+ENV HOME=/tmp
+
+# The base image's GOPATH (/go, including the module cache at /go/pkg/mod)
+# is root-owned from the installs above; make it writable by any UID rather
+# than relocating it, since wails3/nfpm are already on PATH via /go/bin.
+RUN chmod -R a+rwX /go
+
+WORKDIR /app
+ENTRYPOINT ["wails3", "task"]
+CMD ["package"]

@@ -1,0 +1,123 @@
+@use '../../styles/patterns';
+
+.tags-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tags-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.tags-panel-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.tags-panel-add {
+  @include patterns.icon-button;
+}
+
+.tags-panel-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+
+  input {
+    @include patterns.text-field;
+  }
+
+  button {
+    @include patterns.primary-button;
+  }
+}
+
+.tags-panel-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.tags-panel-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.tags-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tag-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+
+  &:hover {
+    background: var(--surface-container);
+
+    .tag-row-actions {
+      opacity: 1;
+    }
+  }
+}
+
+.tag-row-expandable {
+  cursor: pointer;
+}
+
+.tag-row-chevron,
+.tag-row-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.tag-row-name {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--data-md);
+}
+
+.tag-row-time {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.tag-row-actions {
+  @include patterns.row-actions;
+}
+
+.tag-row-message {
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) calc(var(--space-xs) + 14px + var(--space-xs));
+}
+
+.tag-row-message-subject {
+  margin: 0;
+  color: var(--on-surface);
+  font: var(--data-sm);
+  font-weight: 600;
+}
+
+.tag-row-message-body {
+  margin: var(--space-xs) 0 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  white-space: pre-wrap;
+}

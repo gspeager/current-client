@@ -1,0 +1,69 @@
+@use '../../styles/patterns';
+
+.conventional-guide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  color: var(--on-surface);
+  font: var(--title-md);
+  font-weight: 400;
+  text-align: center;
+
+  p {
+    margin: 0;
+  }
+}
+
+.conventional-guide-format {
+  font: var(--data-md);
+}
+
+.conventional-guide-examples {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: var(--data-sm);
+  color: var(--on-surface-variant);
+}
+
+.conventional-guide-mapping {
+  border-collapse: collapse;
+  font: var(--ui-sm);
+
+  th {
+    text-align: center;
+    @include patterns.eyebrow;
+    color: var(--outline);
+  }
+
+  th,
+  td {
+    height: var(--h-row-table);
+    padding: 0 var(--space-md);
+    border-bottom: var(--border-divider);
+  }
+
+  td:first-child {
+    font: var(--data-sm);
+  }
+}
+
+.conventional-guide-link {
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--primary);
+  font: var(--ui-md);
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}

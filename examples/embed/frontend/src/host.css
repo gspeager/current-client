@@ -1,0 +1,40 @@
+/* The host's own page and styles; Current Client's are scoped to its .current-client root. */
+body {
+  margin: 0;
+}
+
+.host-view {
+  min-height: 100vh;
+  padding: 16px 24px;
+  box-sizing: border-box;
+  background: #f7f7f5;
+  color: #1d1d1b;
+  font-family: system-ui, sans-serif;
+}
+
+.host-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.host-toggle {
+  display: inline-flex;
+  gap: 4px;
+
+  button {
+    padding: 2px 10px;
+    border: 1px solid #b9b9b4;
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  button[aria-pressed='true'] {
+    background: #1d1d1b;
+    color: #f7f7f5;
+  }
+}

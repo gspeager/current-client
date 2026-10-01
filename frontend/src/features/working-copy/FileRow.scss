@@ -1,0 +1,55 @@
+.file-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto 20px;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-table);
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+
+    .file-row-discard {
+      opacity: 1;
+    }
+  }
+}
+
+.file-row-selected {
+  background: var(--surface-container);
+  box-shadow: inset 2px 0 0 0 var(--primary);
+}
+
+.file-row-path {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--on-surface);
+  font: var(--data-md);
+  cursor: pointer;
+}
+
+.file-row-discard {
+  position: absolute;
+  right: var(--space-sm);
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 100%;
+  opacity: 0;
+  background: var(--surface-container);
+  border: none;
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--error);
+  }
+}

@@ -1,0 +1,36 @@
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  height: var(--h-status-bar);
+  padding: 0 var(--space-md);
+  background: var(--surface-lowest);
+  border-top: var(--border-structure);
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.status-bar-ready {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.status-bar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tertiary);
+}
+
+.status-bar-branch {
+  font: var(--data-sm);
+}
+
+.status-bar-spacer {
+  flex: 1;
+}
+
+.status-bar-repo-path {
+  font: var(--data-sm);
+}

@@ -1,0 +1,13 @@
+// design-system.md §6. --radius-full is only for branch/HEAD pills and counters.
+.current-client {
+  --radius-xs: 2px; // Status letter tiles, word-diff highlights
+  --radius-sm: 3px; // Keycaps, checkboxes, non-branch ref badges
+  --radius: 4px; // Buttons, inputs, rows, chips
+  --radius-md: 6px; // Nested cards
+  --radius-lg: 8px; // Panels, diff containers, modals
+  --radius-xl: 12px; // App window
+  --radius-full: 9999px; // Branch/HEAD pills, numeric counters — nothing else
+
+  --border-structure: 1px solid var(--outline-variant); // between panes, input borders
+  --border-divider: 1px solid var(--surface-highest); // dividers inside a panel
+}

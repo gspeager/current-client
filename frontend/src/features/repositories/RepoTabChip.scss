@@ -1,0 +1,80 @@
+@use '../../styles/patterns';
+
+.header-bar-tab {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  min-width: 0;
+  max-width: 220px;
+  padding: 0 var(--space-xs) 0 var(--space-sm);
+  border-radius: var(--radius);
+  color: var(--outline);
+  font: var(--data-md);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface-variant);
+  }
+}
+
+.header-bar-tab-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--outline-variant);
+}
+
+.header-bar-tab-dot-dirty {
+  background: var(--warning);
+}
+
+.header-bar-tab-dot-clean {
+  background: var(--tertiary);
+}
+
+.header-bar-tab-dot-unavailable {
+  background: var(--outline-variant);
+}
+
+.header-bar-tab-name {
+  min-width: 0;
+  @include patterns.truncate;
+}
+
+.header-bar-tab-sep {
+  flex-shrink: 0;
+  color: var(--outline-variant);
+}
+
+.header-bar-tab-branch {
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.header-bar-tab-meta {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  font: var(--data-sm);
+}
+
+.header-bar-tab-ahead {
+  flex-shrink: 0;
+  color: var(--tertiary);
+}
+
+.header-bar-tab-behind {
+  flex-shrink: 0;
+  color: var(--warning);
+}
+
+.header-bar-tab-close {
+  @include patterns.tab-close;
+}

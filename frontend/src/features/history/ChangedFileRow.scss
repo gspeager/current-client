@@ -1,0 +1,40 @@
+.changed-file-list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  background: var(--surface);
+  border-radius: var(--radius);
+
+  li:not(:last-child) {
+    border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 40%, transparent);
+  }
+}
+
+.changed-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-table);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.changed-file-selected {
+  background: var(--surface-container);
+  box-shadow: inset 2px 0 0 0 var(--primary);
+}
+
+.changed-file-path {
+  flex: 1;
+  font: var(--data-md);
+}

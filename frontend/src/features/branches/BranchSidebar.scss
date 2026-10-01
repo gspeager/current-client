@@ -1,0 +1,225 @@
+@use '../../styles/patterns';
+
+.branch-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.branch-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.branch-sidebar-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.branch-sidebar-add {
+  @include patterns.icon-button;
+}
+
+.branch-sidebar-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.branch-sidebar-new-kind {
+  @include patterns.text-field;
+}
+
+.branch-sidebar-new-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+
+  input {
+    flex: 1;
+    min-width: 0;
+    @include patterns.text-field;
+  }
+
+  button {
+    flex-shrink: 0;
+    height: var(--h-field);
+    padding: 0 var(--space-sm);
+    background: var(--primary-container);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--on-primary-container);
+    font: var(--ui-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      box-shadow: var(--glow-action);
+    }
+
+    @include patterns.disabled;
+  }
+}
+
+.branch-sidebar-new-prefix {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.branch-sidebar-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.branch-sidebar-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.branch-sidebar-deleted {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+
+  > span {
+    min-width: 0;
+    @include patterns.truncate;
+  }
+
+  button {
+    flex-shrink: 0;
+    height: var(--h-micro);
+    padding: 0 var(--space-sm);
+    background: none;
+    border: var(--border-structure);
+    border-radius: var(--radius);
+    color: var(--on-surface);
+    font: var(--ui-xs);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface-high);
+    }
+  }
+}
+
+.branch-sidebar-deleted-name {
+  font: var(--data-sm);
+}
+
+.branch-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.branch-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+
+    .branch-row-actions {
+      opacity: 1;
+    }
+  }
+
+  .branch-pill {
+    min-width: 0;
+  }
+}
+
+.branch-row-current {
+  cursor: default;
+}
+
+.branch-row-meta {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-right: var(--space-xs);
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.branch-row-ahead {
+  color: var(--tertiary);
+}
+
+.branch-row-behind {
+  color: var(--warning);
+}
+
+.branch-row-head {
+  flex-shrink: 0;
+  margin-left: var(--space-xs);
+  padding: 1px var(--space-xs);
+  background: var(--primary);
+  border-radius: var(--radius-xs);
+  color: var(--on-primary);
+  font: var(--eyebrow);
+  letter-spacing: var(--eyebrow-tracking);
+}
+
+.branch-row-actions {
+  @include patterns.row-actions;
+}
+
+.branch-overlap-mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--error);
+}
+
+.branch-sidebar-overlaps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: var(--h-micro);
+  }
+}
+
+.branch-sidebar-overlaps-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.branch-sidebar-overlaps-name {
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}

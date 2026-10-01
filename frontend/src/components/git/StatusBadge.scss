@@ -1,0 +1,11 @@
+.status-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  font: var(--label-md);
+  letter-spacing: var(--label-md-tracking);
+}

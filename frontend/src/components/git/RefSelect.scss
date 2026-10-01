@@ -1,0 +1,17 @@
+.ref-select {
+  min-width: 0;
+  max-width: 240px;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}

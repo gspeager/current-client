@@ -1,0 +1,115 @@
+.file-churn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-md);
+  background: var(--surface-low);
+  border: var(--border-structure);
+  border-radius: var(--radius-lg);
+  color: var(--on-surface);
+}
+
+.file-churn-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+}
+
+.file-churn-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-churn-title {
+  font: var(--title-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--on-surface);
+}
+
+.file-churn-subtitle {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.file-churn-badge {
+  flex-shrink: 0;
+  padding: 2px var(--space-sm);
+  background: var(--surface-container);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--outline);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
+
+.file-churn-body {
+  flex: 1;
+  padding: var(--space-md);
+}
+
+.file-churn-hint {
+  margin: var(--space-sm) 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.file-churn-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-churn-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.file-churn-extension {
+  flex: 0 0 36px;
+  font: var(--data-sm);
+  font-weight: 600;
+}
+
+.file-churn-path {
+  flex: 1 1 40%;
+  font: var(--data-md);
+}
+
+.file-churn-bar-wrap {
+  flex: 1;
+  min-width: 0;
+  height: 8px;
+  background: var(--surface-container);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.file-churn-bar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.file-churn-count {
+  flex-shrink: 0;
+  width: 24px;
+  text-align: right;
+  color: var(--outline);
+  font: var(--data-sm);
+}

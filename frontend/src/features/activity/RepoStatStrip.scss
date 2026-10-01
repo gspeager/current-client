@@ -1,0 +1,85 @@
+@use '../../styles/tokens/typography';
+@use '../../styles/patterns';
+
+.repo-stat-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xl);
+  padding: var(--space-lg) var(--space-xl);
+  background: var(--surface-low);
+  border: var(--border-structure);
+  border-radius: var(--radius-lg);
+}
+
+.repo-stat-strip-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-action);
+  height: var(--h-action);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  color: var(--primary);
+}
+
+.repo-stat-strip-group {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+}
+
+.repo-stat-strip-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 28px;
+  background: var(--outline-variant);
+}
+
+.repo-stat-strip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.repo-stat-strip-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.repo-stat-strip-value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--body-lg);
+  color: var(--on-surface);
+  @include typography.mono-numeric;
+}
+
+.repo-stat-strip-branch {
+  font-weight: 600;
+}
+
+.repo-stat-strip-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.repo-stat-strip-dot-dirty {
+  background: var(--warning);
+}
+
+.repo-stat-strip-dot-clean {
+  background: var(--tertiary);
+}
+
+.repo-stat-strip-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}

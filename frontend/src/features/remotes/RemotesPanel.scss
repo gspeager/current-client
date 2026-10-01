@@ -1,0 +1,118 @@
+@use '../../styles/patterns';
+
+.remotes-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.remotes-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.remotes-panel-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.remotes-panel-add {
+  @include patterns.icon-button;
+}
+
+.remotes-panel-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+
+  input {
+    @include patterns.text-field;
+  }
+
+  button {
+    @include patterns.primary-button;
+  }
+}
+
+.remotes-panel-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.remotes-panel-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.remotes-panel-fetch-all {
+  height: var(--h-micro);
+  padding: 0 var(--space-xs);
+  margin-bottom: 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--outline);
+  font: var(--ui-xs);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.remotes-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.remote-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+
+  &:hover {
+    background: var(--surface-container);
+
+    .remote-row-actions {
+      opacity: 1;
+    }
+  }
+}
+
+.remote-row-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.remote-row-name {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--data-md);
+}
+
+.remote-row-host {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.remote-row-actions {
+  @include patterns.row-actions;
+}

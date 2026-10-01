@@ -1,0 +1,13 @@
+// design-system.md §7. Cyan glows are functional only: focus, execution, HEAD.
+.current-client {
+  --elev-panel: none;
+  --elev-popover: 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --elev-modal: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  --elev-window: 0 28px 64px -24px rgba(0, 0, 0, 0.9);
+  --scrim: rgba(10, 14, 22, 0.5);
+
+  --focus-ring: 0 0 0 1px rgba(76, 215, 246, 0.3), inset 0 0 8px rgba(76, 215, 246, 0.12);
+  --glow-action: 0 0 12px rgba(76, 215, 246, 0.35);
+  --glow-node: 0 0 12px rgba(76, 215, 246, 0.5);
+  --keycap-shadow: 0 1px 0 0 var(--outline-variant);
+}

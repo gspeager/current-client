@@ -1,0 +1,80 @@
+@use '../../styles/patterns';
+
+// design-system.md §5.4 commit row grid contract.
+.commit-row {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr) 150px 116px;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  cursor: pointer;
+  color: var(--on-surface);
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.commit-row-selected {
+  background: var(--surface-container);
+  box-shadow: inset 2px 0 0 0 var(--primary);
+}
+
+// Appears instantly, then fades out over --dur-base.
+.commit-row-new {
+  background: color-mix(in srgb, var(--tertiary) 22%, transparent);
+  transition: background var(--dur-base) var(--ease);
+}
+
+.commit-row-graph {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  overflow: hidden;
+}
+
+.commit-row-commit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.commit-row-subject {
+  @include patterns.truncate;
+  font: var(--title-md);
+}
+
+.commit-row-author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.commit-row-author-name {
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.commit-row-hash {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.commit-row-sha {
+  color: var(--primary);
+  font: var(--data-sm);
+}
+
+.commit-row-time {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.commit-row-type {
+  color: var(--on-surface-variant);
+}

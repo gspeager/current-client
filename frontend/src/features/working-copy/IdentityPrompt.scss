@@ -1,0 +1,47 @@
+@use '../../styles/patterns';
+
+.identity-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+
+  input:not([type='checkbox']) {
+    @include patterns.text-field;
+  }
+
+  // Secondary styling: the composer's Commit button stays the pane's one primary action.
+  button {
+    height: var(--h-field);
+    background: none;
+    border: var(--border-structure);
+    border-radius: var(--radius);
+    color: var(--on-surface);
+    font: var(--ui-md);
+    cursor: pointer;
+
+    @include patterns.disabled;
+  }
+}
+
+.identity-prompt-title {
+  margin: 0;
+  color: var(--warning);
+  font: var(--ui-sm);
+}
+
+.identity-prompt-scope {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.identity-prompt-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}

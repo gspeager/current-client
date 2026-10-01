@@ -1,0 +1,36 @@
+@use '../../styles/patterns';
+
+.context-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 180px;
+  padding: var(--space-xs);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-modal);
+}
+
+.context-menu-item {
+  display: block;
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+
+  @include patterns.disabled;
+}
+
+.context-menu-item-destructive {
+  color: var(--error);
+}

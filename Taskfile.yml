@@ -1,0 +1,74 @@
+version: '3'
+
+vars:
+  APP_NAME: "current-client"
+  BIN_DIR: "bin"
+  PACKAGE_MANAGER: '{{.PACKAGE_MANAGER | default "npm"}}'
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  # Target OS for build/package/run. Defaults to the host OS, and is overridden
+  # by `wails3 build GOOS=...` (or the GOOS env var) for cross-compilation. The
+  # tasks below dispatch to the matching platform Taskfile via this variable.
+  GOOS: '{{.GOOS | default OS}}'
+  # The version shown in the app: build/config.yml's, unless VERSION=... is given.
+  # A leading v is dropped, so a tag works too.
+  VERSION:
+    sh: 'while IFS= read -r line; do case "$line" in "  version: "*) v=${line#*\"}; echo "${v%%\"*}"; break;; esac; done < build/config.yml'
+  VERSION_LDFLAGS: '-X github.com/gspeager/current-client/app.appVersion={{trimPrefix "v" .VERSION}}'
+
+includes:
+  common: ./build/Taskfile.yml
+  windows: ./build/windows/Taskfile.yml
+  darwin: ./build/darwin/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application
+    cmds:
+      - task: "{{.GOOS}}:build"
+
+  package:
+    summary: Packages a production build of the application
+    cmds:
+      - task: "{{.GOOS}}:package"
+
+  run:
+    summary: Runs the application
+    cmds:
+      - task: "{{.GOOS}}:run"
+
+  notices:
+    summary: Regenerates THIRD_PARTY_NOTICES from the Go modules and npm packages the app ships
+    cmds:
+      - node scripts/third-party-notices.mjs
+
+  notices:check:
+    summary: Fails if a shipped dependency has a license that cannot go out under Apache-2.0
+    cmds:
+      - node scripts/third-party-notices.mjs --check
+
+  api:check:
+    summary: Fails if an exported core/ API changed incompatibly since the newest tag (or TAG=...)
+    cmds:
+      - node scripts/api-check.mjs {{.TAG}}
+
+  release:checksums:
+    summary: Writes bin/SHA256SUMS over whatever release artifacts are present in bin/
+    cmds:
+      - node scripts/release-checksums.mjs
+
+  dev:
+    summary: Runs the application in development mode
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  install:msix:tools:
+    summary: Installs tools required for Windows MSIX packaging
+    cmds:
+      - task: windows:install:msix:tools
+
+  setup:docker:
+    summary: Builds Docker image for cross-compilation (~800MB download)
+    cmds:
+      - task: common:setup:docker
+

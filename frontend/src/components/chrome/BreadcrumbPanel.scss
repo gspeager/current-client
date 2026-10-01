@@ -1,0 +1,22 @@
+.breadcrumb-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  width: 380px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--surface-low);
+  border: var(--border-structure);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elev-popover);
+
+  .segmented-control {
+    align-self: stretch;
+  }
+
+  .segmented-control-option {
+    flex: 1;
+    justify-content: center;
+  }
+}

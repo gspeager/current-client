@@ -1,0 +1,83 @@
+@use '../../styles/patterns';
+
+.file-history-panel {
+  width: 1100px;
+  height: 760px;
+}
+
+.file-history-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.file-history-list {
+  width: 320px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: var(--space-xs);
+  border-right: var(--border-structure);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 2px var(--space-xs);
+  height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.file-history-row-selected {
+  background: var(--surface-container);
+  box-shadow: inset 2px 0 0 0 var(--primary);
+}
+
+.file-history-row-subject {
+  grid-column: 1 / 3;
+  @include patterns.truncate;
+  font: var(--title-sm);
+}
+
+.file-history-row-author {
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.file-history-row-sha {
+  color: var(--primary);
+  font: var(--data-sm);
+}
+
+.file-history-row-time {
+  grid-column: 1 / 3;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.file-history-diff {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.file-history-hint {
+  margin: var(--space-md);
+  color: var(--outline);
+  font: var(--ui-sm);
+}

@@ -1,0 +1,120 @@
+@use '../../styles/patterns';
+
+.changes-view {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.changes-files {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-right: var(--space-md);
+}
+
+.changes-diff-external-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  @include patterns.disabled;
+}
+
+.changes-error {
+  margin: 0 0 var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.changes-empty {
+  margin: 0;
+  padding: var(--space-sm);
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.changes-diff {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-left: var(--space-md);
+  overflow-y: auto;
+}
+
+.changes-diff-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-row-table);
+}
+
+.changes-diff-header-spacer {
+  flex: 1;
+}
+
+.changes-diff-path {
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--data-md);
+}
+
+.changes-diff-path-dir {
+  color: var(--outline);
+}
+
+.changes-diff-path-file {
+  color: var(--on-surface);
+  font-weight: 600;
+}
+
+.changes-diff-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  font: var(--data-sm);
+}
+
+.changes-diff-stat-added {
+  color: var(--tertiary);
+}
+
+.changes-diff-stat-removed {
+  color: var(--error);
+}
+
+.changes-diff-stat-hunks {
+  color: var(--outline);
+}
+
+.changes-diff-staged-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--tertiary);
+  border-radius: var(--radius);
+  color: var(--tertiary);
+  font: var(--ui-xs);
+  font-weight: 600;
+}

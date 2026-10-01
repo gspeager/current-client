@@ -1,0 +1,123 @@
+.language-breakdown {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-md);
+  background: var(--surface-low);
+  border: var(--border-structure);
+  border-radius: var(--radius-lg);
+  color: var(--on-surface);
+}
+
+.language-breakdown-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-action);
+  padding: 0 var(--space-md);
+}
+
+.language-breakdown-title {
+  flex: 1;
+  font: var(--title-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--on-surface);
+}
+
+.language-breakdown-total {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.language-breakdown-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+}
+
+.language-breakdown-hint {
+  margin: var(--space-sm) 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.language-breakdown-stacked-bar {
+  flex-shrink: 0;
+  display: flex;
+  height: 10px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--surface-container);
+}
+
+.language-breakdown-segment {
+  height: 100%;
+}
+
+.language-breakdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.language-breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.language-breakdown-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.language-breakdown-extension {
+  flex: 1;
+  min-width: 0;
+  color: var(--on-surface);
+  font: var(--data-md);
+}
+
+.language-breakdown-count {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.language-breakdown-percent {
+  flex-shrink: 0;
+  width: 48px;
+  text-align: right;
+  color: var(--on-surface);
+  font: var(--data-sm);
+  font-weight: 600;
+}
+
+.language-breakdown-footer {
+  flex-shrink: 0;
+  padding: 0 var(--space-md) var(--space-md);
+  color: var(--outline);
+  font: var(--ui-sm);
+
+  strong {
+    color: var(--on-surface);
+    font-weight: 600;
+  }
+}

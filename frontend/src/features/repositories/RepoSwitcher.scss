@@ -1,0 +1,256 @@
+@use '../../styles/patterns';
+
+.repo-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  font: var(--ui-sm);
+  color: var(--on-surface);
+}
+
+.repo-switcher-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.repo-switcher-actions {
+  display: flex;
+  gap: var(--space-sm);
+
+  button {
+    flex: 1;
+  }
+}
+
+.repo-switcher-primary {
+  height: var(--h-action);
+  padding: 0 var(--space-sm);
+  background: var(--primary-container);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-primary-container);
+  font: var(--ui-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--glow-action);
+  }
+
+  @include patterns.disabled;
+}
+
+.repo-switcher-secondary {
+  height: var(--h-action);
+  @include patterns.secondary-button;
+}
+
+.repo-switcher-clone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+
+  input {
+    height: var(--h-field);
+    padding: 0 var(--space-sm);
+    background: var(--surface);
+    border: var(--border-structure);
+    border-radius: var(--radius);
+    color: var(--on-surface);
+    font: var(--data-md);
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: var(--focus-ring);
+    }
+
+    &::placeholder {
+      color: var(--outline);
+    }
+  }
+
+  .repo-switcher-secondary {
+    text-align: center;
+  }
+}
+
+.repo-switcher-clone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+
+  button {
+    flex: 1 1 160px;
+  }
+}
+
+.repo-switcher-recent {
+  container-type: inline-size;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.repo-switcher-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.repo-switcher-loading {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.repo-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 2px;
+
+  @container (min-width: 480px) {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+.repo-card-wrap {
+  position: relative;
+  display: flex;
+
+  // Always shown for a repository that no longer exists, since that's the one to clean up.
+  &:hover .repo-card-remove,
+  &:focus-within .repo-card-remove,
+  &:has(.repo-card:disabled) .repo-card-remove {
+    opacity: 1;
+  }
+}
+
+.repo-card-remove {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  opacity: 0;
+
+  &:hover {
+    background: var(--surface-highest);
+    color: var(--on-surface);
+  }
+}
+
+.repo-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--surface-container);
+  border: var(--border-structure);
+  border-radius: var(--radius-lg);
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-high);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.repo-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  // Leaves room for the remove button.
+  padding-right: var(--h-chip);
+}
+
+.repo-card-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.repo-card-dot-dirty {
+  background: var(--warning);
+}
+
+.repo-card-dot-clean {
+  background: var(--tertiary);
+}
+
+.repo-card-name {
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--title-sm);
+}
+
+.repo-card-path {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.repo-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.repo-card-branch {
+  min-width: 0;
+  @include patterns.truncate;
+}
+
+.repo-card-ahead {
+  flex-shrink: 0;
+  color: var(--tertiary);
+}
+
+.repo-card-behind {
+  flex-shrink: 0;
+  color: var(--warning);
+}
+
+.repo-card-unavailable {
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.repo-card-sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
+}
+
+.repo-card-sparkline-bar {
+  flex: 1;
+  min-height: 2px;
+  background: var(--primary);
+  border-radius: 1px;
+  opacity: 0.7;
+}

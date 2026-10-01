@@ -1,0 +1,110 @@
+@use '../../styles/patterns';
+
+// --split-button-height lets a denser toolbar use a shorter control height.
+.split-button {
+  --split-button-height: var(--h-action);
+  position: relative;
+  display: flex;
+}
+
+.split-button-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  flex: 1;
+  height: var(--split-button-height);
+  padding: 0 var(--space-md);
+  background: var(--primary-container);
+  border: none;
+  border-radius: var(--radius) 0 0 var(--radius);
+  color: var(--on-primary-container);
+  font: var(--ui-md);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--glow-action);
+  }
+
+  @include patterns.disabled;
+}
+
+.split-button-more > summary {
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.split-button-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--split-button-height);
+  height: var(--split-button-height);
+  background: var(--primary-container);
+  border-left: 1px solid color-mix(in srgb, var(--on-primary-container) 25%, transparent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--on-primary-container);
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: var(--glow-action);
+  }
+}
+
+.split-button-menu {
+  position: absolute;
+  z-index: 10;
+  min-width: 100%;
+  padding: var(--space-xs);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-modal);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  button {
+    width: 100%;
+    height: var(--h-row-tree);
+    padding: 0 var(--space-sm);
+    background: none;
+    border: none;
+    border-radius: var(--radius-xs);
+    color: var(--on-surface);
+    font: var(--ui-sm);
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-container);
+    }
+
+    @include patterns.disabled;
+
+    &.split-button-menu-destructive {
+      color: var(--error);
+    }
+  }
+}
+
+.split-button-menu-above {
+  right: 0;
+  bottom: calc(100% + var(--space-xs));
+}
+
+.split-button-menu-below {
+  right: 0;
+  top: calc(100% + var(--space-xs));
+}
+
+.split-button-menu-divider {
+  height: 1px;
+  margin: var(--space-xs) 0;
+  background: var(--outline-variant);
+}

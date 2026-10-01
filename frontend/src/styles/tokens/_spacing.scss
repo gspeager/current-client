@@ -1,0 +1,26 @@
+// design-system.md §5.
+.current-client {
+  // §5.1 4px base scale
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+
+  // §5.2 Control heights — seven, fixed. Don't add an eighth.
+  --h-micro: 20px; // Hunk actions, inline chips
+  --h-chip: 22px; // Segmented options, header icon buttons
+  --h-row-tree: 26px; // Branch/tree rows, status bar
+  --h-row-table: 28px; // File rows, commit-detail rows, hunk headers
+  --h-field: 30px; // Inputs, filter dropdowns
+  --h-action: 32px; // Primary actions
+  --h-commit-row: 38px; // History rows, toolbars — CommitGraph.rowHeight must match
+
+  --h-title-bar: 44px;
+  --h-repo-tab-bar: 40px;
+  --h-tab-bar: 34px;
+  --h-status-bar: 26px;
+
+  // §5.3 Panes: defaults only; panes are user-resizable.
+  --palette-width: 640px;
+}

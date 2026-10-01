@@ -1,0 +1,4 @@
+frontend/bindings/
+# Link to Current Client's frontend/src, made by scripts/link-current-client.mjs.
+frontend/current-client
+bin/

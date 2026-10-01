@@ -1,0 +1,185 @@
+@use '../../styles/patterns';
+
+.settings-panel {
+  width: var(--palette-width);
+  max-height: 80vh;
+}
+
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.settings-group-title {
+  margin: 0;
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+// Rows in a group are separated by the in-panel divider from design-system.md §6.
+.settings-group-rows {
+  display: flex;
+  flex-direction: column;
+
+  > .settings-row + .settings-row {
+    border-top: 1px solid var(--surface-highest);
+  }
+}
+
+.settings-row {
+  display: grid;
+  // The control column takes what it needs, up to half the row, so a long path can't squeeze the label.
+  grid-template-columns: minmax(0, 1fr) fit-content(50%);
+  align-items: center;
+  column-gap: var(--space-lg);
+  row-gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+
+  > .settings-error {
+    grid-column: 1 / -1;
+  }
+}
+
+.settings-row-stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.settings-row-label {
+  color: var(--on-surface);
+  font: var(--ui-md);
+}
+
+.settings-row-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+  min-width: 0;
+
+  .settings-row-stacked & {
+    align-items: stretch;
+  }
+}
+
+.settings-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.settings-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.settings-field {
+  height: var(--h-field);
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  height: var(--h-field);
+  @include patterns.secondary-button;
+}
+
+.settings-button-small {
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  font: var(--ui-xs);
+}
+
+.settings-path {
+  max-width: 100%;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.settings-path-unset {
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.settings-identity-fields {
+  display: flex;
+  gap: var(--space-sm);
+
+  .settings-field {
+    flex: 1;
+    min-width: 0;
+    font: var(--data-sm);
+  }
+}
+
+.settings-lane-swatches {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.settings-lane-swatch {
+  width: var(--space-lg);
+  height: var(--space-sm);
+  border-radius: var(--radius-xs);
+}
+
+.settings-identity-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    height: var(--h-row-table);
+  }
+}
+
+.settings-identity-swatch {
+  flex-shrink: 0;
+  width: var(--space-md);
+  height: var(--space-md);
+  border-radius: 50%; // Same circle as the identity badge it previews.
+}
+
+.settings-identity-key {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}

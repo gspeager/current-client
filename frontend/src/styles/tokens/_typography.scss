@@ -1,0 +1,31 @@
+// design-system.md §2.2. Each token is a `font` shorthand; tracked styles add a `-tracking` property.
+.current-client {
+  --headline-lg: 600 32px/40px var(--font-chrome);
+  --headline-lg-tracking: -0.02em;
+  --headline-md: 600 20px/28px var(--font-chrome);
+  --headline-md-tracking: -0.015em;
+  --headline-sm: 600 16px/24px var(--font-chrome);
+  --headline-sm-tracking: -0.01em;
+  --title-md: 500 14px/20px var(--font-chrome);
+  --title-sm: 600 11.5px/16px var(--font-chrome);
+  --ui-md: 500 12px/16px var(--font-chrome);
+  --ui-sm: 400 11px/16px var(--font-chrome);
+  --ui-xs: 400 10.5px/14px var(--font-chrome);
+  --eyebrow: 600 9.5px/12px var(--font-chrome);
+  --eyebrow-tracking: 0.1em;
+
+  --body-lg: 400 14px/22px var(--font-mono);
+  --body-md: 400 13px/20px var(--font-mono);
+  --code: 400 12px/20px var(--font-mono);
+  --data-md: 400 11.5px/16px var(--font-mono);
+  --data-sm: 400 10.5px/14px var(--font-mono);
+  --label-md: 500 12px/16px var(--font-mono);
+  --label-md-tracking: 0.02em;
+  --kbd: 600 10px/12px var(--font-mono);
+  --kbd-tracking: 0.04em;
+}
+
+// `font` doesn't set font-variant-numeric, so mono tokens include this for aligned digits.
+@mixin mono-numeric {
+  font-variant-numeric: tabular-nums;
+}

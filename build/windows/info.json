@@ -1,0 +1,18 @@
+{
+	"fixed": {
+		"file_version": "0.1.0",
+		"product_version": "0.1.0"
+	},
+	"info": {
+		"0409": {
+			"FileVersion": "0.1.0",
+			"ProductVersion": "0.1.0",
+			"CompanyName": "Garrett Speager",
+			"FileDescription": "A privacy-first Git client",
+			"LegalCopyright": "Copyright 2026 Garrett Speager",
+			"ProductName": "Current Client",
+			"OriginalFilename": "current-client.exe",
+			"Comments": "Licensed under the Apache License 2.0"
+		}
+	}
+}

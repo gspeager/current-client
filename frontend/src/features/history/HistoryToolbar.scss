@@ -1,0 +1,115 @@
+.history-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: var(--border-structure);
+}
+
+.history-toolbar-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.history-toolbar-search-icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-sm);
+  transform: translateY(-50%);
+  color: var(--outline);
+  pointer-events: none;
+}
+
+.history-toolbar-search {
+  width: 100%;
+  height: var(--h-field);
+  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.history-toolbar-filter {
+  min-width: 0;
+  height: var(--h-field);
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.history-toolbar-author {
+  position: relative;
+  flex: 0 1 140px;
+  min-width: 90px;
+}
+
+.history-toolbar-author-icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-sm);
+  transform: translateY(-50%);
+  color: var(--outline);
+  pointer-events: none;
+}
+
+.history-toolbar-author-input {
+  width: 100%;
+  height: var(--h-field);
+  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+
+  &::placeholder {
+    color: var(--outline);
+  }
+}
+
+.history-toolbar-hide-merges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.history-toolbar-hide-merges-icon {
+  color: var(--outline);
+}
+
+.history-toolbar-copy-graph {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-field);
+  height: var(--h-field);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}

@@ -1,0 +1,56 @@
+// Everything is scoped to the .current-client root so Current Client can be embedded in another
+// app's page without its styles reaching outside it. :where() keeps each rule
+// at the specificity it had as a page-wide rule.
+.current-client {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--surface);
+  color: var(--on-surface);
+  font: var(--ui-md);
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  // App chrome isn't selectable; text inputs opt back in.
+  -webkit-user-select: none;
+  user-select: none;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+:where(.current-client) {
+  &,
+  * {
+    box-sizing: border-box;
+  }
+
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  // Focus ring for keyboard navigation only.
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  summary,
+  [role='button'],
+  [tabindex] {
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+  }
+
+  .search-match {
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
+    color: var(--on-surface);
+    border-radius: 2px;
+  }
+}

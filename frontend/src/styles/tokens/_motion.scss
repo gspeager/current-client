@@ -1,0 +1,7 @@
+// design-system.md §8. Nothing exceeds --dur-base or slides, scales, or fades in.
+.current-client {
+  --dur-instant: 60ms;
+  --dur-fast: 100ms;
+  --dur-base: 140ms;
+  --ease: cubic-bezier(0.2, 0, 0.3, 1);
+}

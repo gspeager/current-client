@@ -1,0 +1,15 @@
+@use '../../styles/patterns';
+
+// Truncates from the left so the filename stays visible. The inner span keeps
+// the path itself left-to-right, or rtl would reorder its punctuation.
+.path-text {
+  min-width: 0;
+  @include patterns.truncate;
+  direction: rtl;
+  text-align: left;
+}
+
+.path-text-inner {
+  unicode-bidi: embed;
+  direction: ltr;
+}

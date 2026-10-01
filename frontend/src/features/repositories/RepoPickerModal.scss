@@ -1,0 +1,9 @@
+.repo-picker-panel {
+  width: 780px;
+  max-height: 70vh;
+}
+
+.repo-picker-body {
+  overflow-y: auto;
+  padding: var(--space-lg);
+}

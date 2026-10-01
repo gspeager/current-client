@@ -1,0 +1,125 @@
+.commit-velocity {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-md);
+  background: var(--surface-low);
+  border: var(--border-structure);
+  border-radius: var(--radius-lg);
+  color: var(--on-surface);
+}
+
+.commit-velocity-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+}
+
+.commit-velocity-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.commit-velocity-title {
+  font: var(--title-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--on-surface);
+}
+
+.commit-velocity-subtitle {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.commit-velocity-badge {
+  flex-shrink: 0;
+  padding: 2px var(--space-sm);
+  background: color-mix(in srgb, var(--tertiary) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tertiary) 40%, transparent);
+  border-radius: var(--radius);
+  color: var(--tertiary);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
+
+.commit-velocity-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  padding: var(--space-lg) var(--space-md);
+}
+
+.commit-velocity-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.commit-velocity-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 96px;
+}
+
+.commit-velocity-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  height: 100%;
+}
+
+.commit-velocity-bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 2px 2px 0 0;
+  background: var(--tertiary);
+}
+
+.commit-velocity-week-label {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.commit-velocity-week-label-current {
+  color: var(--on-surface);
+  font-weight: 600;
+}
+
+.commit-velocity-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+}
+
+.commit-velocity-average {
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.commit-velocity-vs-average {
+  font: var(--ui-sm);
+  font-weight: 600;
+}
+
+.commit-velocity-vs-average-up {
+  color: var(--tertiary);
+}
+
+.commit-velocity-vs-average-down {
+  color: var(--warning);
+}

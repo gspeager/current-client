@@ -1,0 +1,10 @@
+// Page-level rules for Current Client as its own app; an app embedding Current Client owns its page.
+html,
+body {
+  margin: 0;
+  background: #0a0e16; // --surface-lowest, matching main.go's window background
+}
+
+#root {
+  display: contents;
+}

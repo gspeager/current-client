@@ -1,0 +1,103 @@
+# --- Go ---
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+# Go build/test artifacts
+/bin/
+/dist/
+vendor/
+
+# --- Wails ---
+# build/ holds tracked platform config (icons, NSIS/AppImage/Info.plist templates) —
+# only per-machine/generated artifacts inside it are ignored.
+.task/
+frontend/dist/
+frontend/bindings/
+build/linux/appimage/build/
+build/linux/appimage/current-client
+build/linux/appimage/current-client.png
+build/linux/current-client.desktop
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+# Mobile isn't a target platform for this project (Windows/macOS/Linux only) — the
+# Wails v3 default scaffold still generates it, so it's kept on disk but not committed.
+build/ios/
+build/android/
+
+# --- Node / React / TypeScript / Vite ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+dist/
+dist-ssr/
+*.local
+.vite/
+.turbo/
+
+# --- Editors / OS ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Logs ---
+*.log
+logs/
+
+# --- AI agent instructions and settings ---
+# Kept on each contributor's machine, never committed.
+# Claude Code
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+.mcp.json
+# AGENTS.md (Codex, Jules, Amp and others)
+AGENTS.md
+agents.md
+AGENT.md
+.codex/
+# GitHub Copilot
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+.github/chatmodes/
+.github/agents/
+# Cursor
+.cursorrules
+.cursor/
+.cursorignore
+.cursorindexingignore
+# Windsurf
+.windsurfrules
+.windsurf/
+# Gemini CLI
+GEMINI.md
+.gemini/
+# Cline / Roo
+.clinerules
+.clinerules/
+.roo/
+.roomodes
+# Aider
+CONVENTIONS.md
+.aider*
+# Continue
+.continue/
+# JetBrains Junie
+.junie/
+# Kiro
+.kiro/

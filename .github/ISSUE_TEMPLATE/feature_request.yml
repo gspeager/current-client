@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest something Current Client should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The task or problem, rather than a specific solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: This doesn't need any network connection other than Git talking to a repository's remotes (see CONTRIBUTING.md). If it does, I've explained why and how it would stay off by default.
+          required: true

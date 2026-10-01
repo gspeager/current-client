@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Current Client
+Comment=A privacy-first Git client
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/current-client %u
+Terminal=false
+Type=Application
+Icon=current-client
+Categories=Development;RevisionControl;
+StartupWMClass=current-client
+
+ 

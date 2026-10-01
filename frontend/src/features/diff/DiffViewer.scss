@@ -1,0 +1,325 @@
+@use '../../styles/tokens/typography';
+@use '../../styles/patterns';
+
+// Diff grid values from design-system.md §5.4, separate from the seven control heights.
+.diff-viewer {
+  --row-height: 20px;
+  --gutter-width: 40px;
+  --marker-width: 14px;
+
+  display: flex;
+  max-height: 60vh;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  font: var(--code);
+  @include typography.mono-numeric;
+}
+
+.diff-side-headers {
+  display: flex;
+  gap: 1px;
+  margin-bottom: 1px;
+}
+
+.diff-side-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: var(--surface-low);
+  font: var(--data-sm);
+}
+
+.diff-side-header-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.diff-side-header-dot-base {
+  background: var(--outline);
+}
+
+.diff-side-header-dot-target {
+  background: var(--tertiary);
+}
+
+.diff-side-header-label {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+}
+
+.diff-side-header-sha {
+  margin-left: var(--space-xs);
+  color: var(--on-surface-variant);
+}
+
+.diff-side-header-count {
+  flex-shrink: 0;
+}
+
+.diff-side-header-count-removed {
+  color: var(--error);
+}
+
+.diff-side-header-count-added {
+  color: var(--tertiary);
+}
+
+.diff-pane {
+  flex: 1;
+  overflow: auto;
+  // Lets the pane shrink below its content height.
+  min-height: 0;
+  // One hatch behind the whole pane avoids per-row seams; opaque rows cover it.
+  background: var(--diff-void);
+}
+
+.diff-pane-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+}
+
+.diff-empty-state {
+  margin: 0;
+  padding: var(--space-lg);
+  color: var(--outline);
+  font: var(--ui-sm);
+  text-align: center;
+}
+
+.diff-conflict-note {
+  margin: 0 0 var(--space-sm);
+  color: var(--error);
+  font: var(--ui-sm);
+}
+
+.diff-empty-state-action {
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.diff-hunk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  grid-column: 1 / -1;
+  gap: 8px;
+  height: var(--row-height);
+  line-height: var(--row-height);
+  padding: 0 8px;
+  color: var(--outline);
+  background: var(--surface-low);
+  white-space: pre;
+  overflow: hidden;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.diff-hunk-header-current {
+  box-shadow: inset 2px 0 0 0 var(--primary);
+}
+
+.diff-hunk-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+}
+
+.diff-stage-hunk {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--outline);
+  background: var(--outline-variant);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface-variant);
+  }
+}
+
+.diff-discard-hunk {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 18%, transparent);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--error) 28%, transparent);
+  }
+}
+
+@mixin tinted-row($color) {
+  background-color: var(--surface);
+  background-image: linear-gradient(
+    color-mix(in srgb, $color 9%, transparent),
+    color-mix(in srgb, $color 9%, transparent)
+  );
+  box-shadow: inset 2px 0 0 0 $color;
+
+  .diff-marker,
+  .diff-content {
+    color: $color;
+  }
+}
+
+.diff-row {
+  display: grid;
+  grid-template-columns: var(--gutter-width) var(--marker-width) minmax(0, 1fr);
+  min-height: var(--row-height);
+  line-height: var(--row-height);
+  white-space: pre-wrap;
+  background: var(--surface);
+
+  &-unified {
+    grid-template-columns: var(--gutter-width) var(--gutter-width) var(--marker-width) minmax(0, 1fr);
+  }
+
+  &-added {
+    // Opaque base under the translucent fill keeps the hatch from bleeding through.
+    background-color: var(--surface);
+    background-image: linear-gradient(var(--diff-add-fill), var(--diff-add-fill));
+    box-shadow: inset 2px 0 0 0 var(--diff-add-rule);
+
+    .diff-marker {
+      color: var(--diff-add-rule);
+    }
+
+    .diff-content {
+      color: var(--diff-add-ink);
+    }
+  }
+
+  &-removed {
+    background-color: var(--surface);
+    background-image: linear-gradient(var(--diff-del-fill), var(--diff-del-fill));
+    box-shadow: inset 2px 0 0 0 var(--diff-del-rule);
+
+    .diff-marker {
+      color: var(--diff-del-rule);
+    }
+
+    .diff-content {
+      color: var(--diff-del-ink);
+    }
+  }
+
+  // Reuses --secondary rather than adding a moved-line color.
+  &-moved {
+    @include tinted-row(var(--secondary));
+  }
+
+  // Our side is HEAD's version, so it takes HEAD's accent; markers use the
+  // conflict color from design-system.md.
+  &-conflict-ours {
+    @include tinted-row(var(--primary));
+  }
+
+  &-conflict-theirs {
+    @include tinted-row(var(--secondary));
+  }
+
+  &-conflict-marker {
+    @include tinted-row(var(--error));
+  }
+
+  &-empty {
+    background: none;
+  }
+
+  &-split-left {
+    border-right: 1px solid var(--outline-variant);
+  }
+}
+
+.diff-line-number {
+  text-align: right;
+  padding-right: 6px;
+  color: var(--code-linenum);
+  user-select: none;
+}
+
+.diff-marker {
+  text-align: center;
+  user-select: none;
+  color: var(--outline);
+}
+
+.diff-content {
+  padding-right: 8px;
+  overflow-wrap: anywhere;
+  color: var(--code-ink);
+}
+
+.token-keyword {
+  color: var(--code-keyword);
+}
+
+.token-string {
+  color: var(--code-string);
+}
+
+.token-type {
+  color: var(--code-type);
+}
+
+.token-comment {
+  color: var(--code-comment);
+}
+
+.diff-word-added {
+  background: var(--diff-add-word);
+  border-radius: var(--radius-xs);
+}
+
+.diff-word-removed {
+  background: var(--diff-del-word);
+  border-radius: var(--radius-xs);
+}
+
+.diff-collapsed {
+  display: block;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: var(--row-height);
+  line-height: var(--row-height);
+  padding: 0 8px;
+  border: none;
+  color: var(--outline);
+  background: var(--surface-low);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface-variant);
+  }
+}

@@ -1,0 +1,277 @@
+@use '../../styles/patterns';
+
+.commit-composer {
+  padding-top: var(--space-md);
+  border-top: var(--border-structure);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.commit-composer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.commit-composer-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.commit-composer-type {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.commit-composer-type-select,
+.commit-composer-type-scope {
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.commit-composer-type-scope {
+  width: 88px;
+
+  &:disabled {
+    opacity: 0.45;
+  }
+}
+
+.commit-composer-field {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+
+  &:focus-within {
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+.commit-composer-subject {
+  padding: var(--space-sm);
+  background: none;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 40%, transparent);
+  color: var(--on-surface);
+  font: var(--body-md);
+  font-weight: 600;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.commit-composer-body {
+  resize: vertical;
+  padding: var(--space-xs) var(--space-sm) var(--space-sm);
+  background: none;
+  border: none;
+  color: var(--outline);
+  font: var(--body-md);
+  width: 100%;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.commit-composer-body-wrap {
+  position: relative;
+  display: flex;
+}
+
+.commit-composer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.commit-composer-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.commit-composer-coauthors {
+  position: absolute;
+  right: var(--space-xs);
+  bottom: var(--space-xs);
+
+  > summary {
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+}
+
+.commit-composer-coauthors-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.commit-composer-coauthors-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  color: var(--on-primary-container);
+  font: var(--kbd);
+}
+
+.commit-composer-coauthors-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-xs));
+  z-index: 10;
+  min-width: 200px;
+  padding: var(--space-xs);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-modal);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.commit-composer-coauthors-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-xs);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.commit-composer-coauthors-empty {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.commit-composer-coauthor-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.commit-composer-coauthor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--h-micro);
+  padding: 0 var(--space-xs);
+  background: var(--surface-container);
+  border-radius: var(--radius-full);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--outline);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--error);
+    }
+  }
+}
+
+.commit-composer-counter-value {
+  color: var(--tertiary);
+}
+
+.commit-composer-counter-bar {
+  display: inline-block;
+  width: 60px;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--surface-highest);
+  overflow: hidden;
+}
+
+.commit-composer-counter-fill {
+  display: block;
+  height: 100%;
+  background: var(--tertiary);
+}
+
+.commit-composer-menu-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-xs);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.commit-composer-block-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.commit-composer-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}

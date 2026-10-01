@@ -1,0 +1,80 @@
+@use '../../styles/patterns';
+
+.conflict-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--diff-del-fill);
+  border-bottom: 1px solid var(--error);
+  color: var(--error);
+  font: var(--ui-sm);
+}
+
+.conflict-banner-icon {
+  flex-shrink: 0;
+}
+
+.conflict-banner-text {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  color: var(--on-surface);
+}
+
+.conflict-banner-file {
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  color: var(--error);
+  font: var(--data-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+  }
+}
+
+.conflict-banner-continue,
+.conflict-banner-abort {
+  flex-shrink: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  font-weight: 600;
+  cursor: pointer;
+
+  @include patterns.disabled;
+}
+
+.conflict-banner-continue {
+  background: var(--primary-container);
+  border: none;
+  color: var(--on-primary-container);
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--glow-action);
+  }
+}
+
+.conflict-banner-abort {
+  background: none;
+  border: 1px solid var(--error);
+  color: var(--error);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+  }
+}
+
+.conflict-banner-error {
+  flex-shrink: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}

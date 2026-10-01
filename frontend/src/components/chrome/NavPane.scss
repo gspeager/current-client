@@ -1,0 +1,173 @@
+@use '../../styles/patterns';
+
+.nav-pane {
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--surface-low);
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-pane-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.nav-pane-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-md);
+}
+
+.nav-pane-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.nav-pane-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  height: var(--h-micro);
+  margin-bottom: var(--space-xs);
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover .nav-pane-label {
+    color: var(--on-surface);
+  }
+}
+
+.nav-pane-section-chevron {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.nav-pane-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.nav-pane-row-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.nav-pane-row-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.nav-pane-error {
+  margin: 0;
+  padding: 0 var(--space-sm);
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.nav-pane-success {
+  margin: 0;
+  padding: 0 var(--space-sm);
+  color: var(--tertiary);
+  font: var(--ui-xs);
+}
+
+.nav-pane-fsck-issues {
+  padding: var(--space-xs) var(--space-sm);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border-radius: var(--radius-xs);
+  color: var(--warning);
+  font: var(--ui-xs);
+
+  p {
+    margin: 0;
+
+    & + p {
+      margin-top: 2px;
+    }
+  }
+}
+
+.nav-pane-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+
+  .nav-pane-section-toggle {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.nav-pane-collapse,
+.nav-pane-rail-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.nav-pane-collapse {
+  width: var(--h-chip);
+  height: var(--h-chip);
+  margin-bottom: var(--space-xs);
+}
+
+// Icon-only rail: one row-tree-sized button per action, centered in the column.
+.nav-pane-collapsed {
+  align-items: center;
+  gap: var(--space-xs);
+  width: calc(var(--h-row-tree) + 2 * var(--space-sm));
+  min-width: calc(var(--h-row-tree) + 2 * var(--space-sm));
+  padding: var(--space-md) 0;
+  overflow-y: auto;
+  border-right: var(--border-structure);
+}
+
+.nav-pane-rail-button {
+  width: var(--h-row-tree);
+  height: var(--h-row-tree);
+}
+
+.nav-pane-rail-divider {
+  width: var(--space-lg);
+  height: 1px;
+  margin: var(--space-xs) 0;
+  background: var(--surface-highest);
+}

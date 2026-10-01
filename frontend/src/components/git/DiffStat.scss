@@ -1,0 +1,43 @@
+.diff-stat {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--data-sm);
+}
+
+.diff-stat-added {
+  color: var(--tertiary);
+}
+
+.diff-stat-removed {
+  color: var(--error);
+}
+
+.diff-stat-binary {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.diff-stat-bar {
+  flex-shrink: 0;
+  display: flex;
+  width: 32px;
+  height: 4px;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  background: var(--surface-highest);
+}
+
+.diff-stat-bar-added {
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--tertiary);
+}
+
+.diff-stat-bar-removed {
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--error);
+}

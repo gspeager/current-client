@@ -1,0 +1,107 @@
+// design-system.md §3: dark theme, the default.
+.current-client {
+  // §3.1 Surfaces
+  --surface-lowest: #0a0e16;
+  --surface: #0f131c;
+  --surface-low: #181c24;
+  --surface-container: #1c2028;
+  --surface-high: #262a33;
+  --surface-highest: #31353e;
+
+  // §3.2 Ink
+  --on-surface: #dfe2ee;
+  --on-surface-variant: #bcc9cd;
+  --outline: #869397;
+  --outline-variant: #3d494c;
+
+  // §3.3 Accents
+  --primary: #4cd7f6;
+  --primary-hover: #acedff;
+  --primary-container: #06b6d4;
+  --inverse-primary: #00687a;
+  --secondary: #c0c1ff;
+  --tertiary: #4edea3;
+  --error: #ffb4ab;
+  --warning: #f2b45e;
+
+  // On-color ink for text/icons placed on top of a filled accent surface
+  --on-primary: #003640;
+  --on-primary-container: #00424f;
+  --on-secondary: #1000a9;
+  --on-tertiary: #003824;
+  --on-error: #690005;
+  --on-warning: #3d2600;
+
+  // §3.4 Branch topology lanes
+  --branch-main: #4cd7f6;
+  --branch-feature: #c0c1ff;
+  --branch-release: #4edea3;
+  --branch-hotfix: #ffb4ab;
+  --branch-experimental: #e3a6f0;
+  --branch-integration: #8fd0ff;
+
+  // Other lane palettes offered in Settings; the default one is the six above.
+  --lane-vivid-1: #00e5ff;
+  --lane-vivid-2: #855aff;
+  --lane-vivid-3: #00e676;
+  --lane-vivid-4: #ff1744;
+  --lane-vivid-5: #ff4081;
+  --lane-vivid-6: #2979ff;
+  --lane-muted-1: #7fa8b3;
+  --lane-muted-2: #9d95b8;
+  --lane-muted-3: #7fb894;
+  --lane-muted-4: #c98f8f;
+  --lane-muted-5: #b596b5;
+  --lane-muted-6: #84a3c2;
+
+  // Text on a lane color, such as a ref badge.
+  --on-lane: #0a0e16;
+
+  // Language colors (Activity charts): brand colors, lightened only where they
+  // would fall under 4.5:1 on --surface-low, since they also color text.
+  --lang-go: #00add8;
+  --lang-ts: #4386d0;
+  --lang-js: #f7df1e;
+  --lang-scss: #cf649a;
+  --lang-css: #9e6ecf;
+  --lang-html: #e4522d;
+  --lang-md: #4787c6;
+  --lang-py: #4388c3;
+  --lang-rb: #da5b55;
+  --lang-java: #b7761a;
+  --lang-c: #838383;
+  --lang-cpp: #f34b7d;
+  --lang-cs: #1b9a00;
+  --lang-rs: #dea584;
+  --lang-sh: #89e051;
+  --lang-swift: #f05138;
+  --lang-kt: #9069ff;
+  --lang-php: #7481b5;
+  --lang-other: #8a8f98;
+
+  // §3.5 Diff
+  --diff-add-fill: rgba(78, 222, 163, 0.09);
+  --diff-add-word: rgba(78, 222, 163, 0.24);
+  --diff-add-rule: #4edea3;
+  --diff-add-ink: #c3e4d6;
+  --diff-del-fill: rgba(255, 180, 171, 0.09);
+  --diff-del-word: rgba(255, 180, 171, 0.24);
+  --diff-del-rule: #ffb4ab;
+  --diff-del-ink: #e6c5c1;
+  --diff-del-ink-muted: #a08a86;
+  --diff-void: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(223, 226, 238, 0.025) 5px,
+    rgba(223, 226, 238, 0.025) 10px
+  );
+
+  // §3.6 Syntax — four roles, no rainbow
+  --code-ink: #bcc9cd;
+  --code-keyword: #c0c1ff;
+  --code-string: #4edea3;
+  --code-type: #4cd7f6;
+  --code-comment: #6f7d84;
+  --code-linenum: #3d494c;
+}

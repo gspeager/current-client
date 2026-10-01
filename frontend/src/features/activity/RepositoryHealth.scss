@@ -1,0 +1,131 @@
+.repo-health {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-md);
+  background: var(--surface-low);
+  border: var(--border-structure);
+  border-radius: var(--radius-lg);
+  color: var(--on-surface);
+}
+
+.repo-health-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-action);
+  padding: 0 var(--space-md);
+}
+
+.repo-health-title {
+  flex: 1;
+  font: var(--title-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--on-surface);
+}
+
+.repo-health-badge {
+  flex-shrink: 0;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
+
+.repo-health-badge-optimal {
+  background: color-mix(in srgb, var(--tertiary) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tertiary) 40%, transparent);
+  color: var(--tertiary);
+}
+
+.repo-health-badge-attention {
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+  color: var(--warning);
+}
+
+.repo-health-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.repo-health-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.repo-health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-md);
+}
+
+.repo-health-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.repo-health-row-title {
+  font: var(--data-md);
+  color: var(--on-surface);
+}
+
+.repo-health-row-subtitle {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.repo-health-value {
+  flex-shrink: 0;
+  font: var(--body-lg);
+}
+
+.repo-health-value-ok {
+  color: var(--tertiary);
+}
+
+.repo-health-value-warn {
+  color: var(--warning);
+}
+
+.repo-health-icon {
+  flex-shrink: 0;
+}
+
+.repo-health-icon-ok {
+  color: var(--tertiary);
+}
+
+.repo-health-icon-warn {
+  color: var(--warning);
+}
+
+.repo-health-gc {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  color: var(--outline);
+  font: var(--ui-xs);
+
+  code {
+    padding: 1px var(--space-xs);
+    background: var(--surface);
+    border: var(--border-structure);
+    border-radius: var(--radius-sm);
+    color: var(--on-surface);
+    font: var(--data-sm);
+  }
+}

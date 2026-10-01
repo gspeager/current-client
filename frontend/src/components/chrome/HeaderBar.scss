@@ -1,0 +1,207 @@
+@use '../../styles/patterns';
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-title-bar);
+  padding: 0 var(--space-md);
+  background: var(--surface-low);
+  border-bottom: var(--border-structure);
+  font: var(--ui-md);
+  color: var(--on-surface);
+
+  // Clears the macOS window buttons, which CurrentClientApp's data-platform flags and
+  // the hidden inset title bar in main.go places over the left of this row.
+  // 80px sits flush against the green button with no breathing room; add
+  // --space-md past that edge.
+  //
+  // padding-top nudges the row's vertical centering down to match the
+  // buttons: they're centered in the OS's 50px InvisibleTitleBarHeight
+  // (main.go), taller than this row's own 44px, so plain center alignment
+  // sits ~4px above them.
+  .current-client[data-platform='mac'] & {
+    padding-left: 92px;
+    padding-top: 8px;
+  }
+}
+
+.header-bar-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.header-bar-switcher {
+  position: relative;
+  flex-shrink: 0;
+
+  > summary {
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+}
+
+.header-bar-repo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  min-width: 0;
+  max-width: 320px;
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.header-bar-repo-close {
+  @include patterns.tab-close;
+}
+
+// Each half opens a different view, so only the hovered half highlights.
+.header-bar-repo-name,
+.header-bar-branch-target {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--space-xs);
+  margin: 0 calc(-1 * var(--space-xs));
+  border-radius: var(--radius-xs);
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.header-bar-repo-name {
+  @include patterns.truncate;
+  font: var(--data-md);
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.header-bar-repo-sep {
+  flex-shrink: 0;
+  font: var(--data-md);
+  color: var(--outline);
+}
+
+.header-bar-repo-chevron {
+  color: var(--outline);
+}
+
+.header-bar-breadcrumb-anchor {
+  position: fixed;
+  z-index: 10;
+}
+
+.header-bar-sync {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  font: var(--data-sm);
+  cursor: pointer;
+}
+
+.header-bar-sync-behind {
+  color: var(--warning);
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.header-bar-sync-ahead {
+  color: var(--tertiary);
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.header-bar-fetch-status {
+  flex-shrink: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  color: var(--outline);
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.header-bar-fetch-error {
+  color: var(--error);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
+
+.header-bar-quick-switch {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: var(--surface-container);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-high);
+    color: var(--on-surface);
+  }
+}
+
+.header-bar-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--h-row-tree);
+  height: var(--h-row-tree);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  @include patterns.disabled;
+}

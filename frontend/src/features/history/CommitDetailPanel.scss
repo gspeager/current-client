@@ -1,0 +1,230 @@
+@use '../../styles/patterns';
+
+.commit-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.commit-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.commit-detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.commit-detail-title-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.commit-detail-title {
+  flex: 1;
+  min-width: 0;
+  color: var(--on-surface);
+  font: var(--title-md);
+}
+
+.commit-detail-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.commit-detail-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.commit-detail-section-count {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.commit-detail-sha {
+  color: var(--primary);
+  font: var(--data-sm);
+}
+
+.commit-detail-copy-sha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.commit-detail-author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.commit-detail-author-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.commit-detail-author-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--on-surface);
+  font: var(--title-md);
+}
+
+.commit-detail-signature {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font: var(--ui-xs);
+}
+
+.commit-detail-signature-verified {
+  color: var(--tertiary);
+}
+
+.commit-detail-signature-unverified {
+  color: var(--warning);
+}
+
+.commit-detail-author-email {
+  @include patterns.truncate;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.commit-detail-color {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.commit-detail-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--surface);
+  border-radius: var(--radius);
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    color: var(--on-surface-variant);
+    font: var(--data-sm);
+    @include patterns.truncate;
+  }
+
+  > .commit-detail-coauthors {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}
+
+.commit-detail-parent-sha {
+  color: var(--primary);
+}
+
+.commit-detail-stat-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.commit-detail-subject {
+  margin: 0;
+  color: var(--on-surface);
+  font: var(--title-md);
+}
+
+.commit-detail-body {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--body-md);
+  white-space: pre-wrap;
+}
+
+.commit-detail-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.commit-detail-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.commit-detail-actions-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-top: var(--border-structure);
+}
+
+.commit-detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    height: var(--h-action);
+    padding: 0 var(--space-sm);
+    background: none;
+    border: var(--border-structure);
+    border-radius: var(--radius);
+    color: var(--on-surface-variant);
+    font: var(--ui-sm);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface-container);
+      color: var(--on-surface);
+    }
+  }
+}
+
+.commit-detail-diff {
+  overflow-x: auto;
+}
+
+.commit-detail-diff-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-xs);
+}

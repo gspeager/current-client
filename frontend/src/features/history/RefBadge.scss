@@ -1,0 +1,20 @@
+.ref-badge {
+  display: inline-block;
+  padding: 1px var(--space-xs);
+  border-radius: var(--radius-sm);
+  color: var(--on-lane);
+  font: var(--data-md);
+  white-space: nowrap;
+}
+
+.ref-badge-pill {
+  border-radius: var(--radius-full);
+}
+
+.ref-badge-clickable {
+  cursor: pointer;
+}
+
+.ref-badge-active {
+  box-shadow: 0 0 0 1.5px var(--on-surface);
+}

@@ -1,0 +1,32 @@
+.segmented-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-container);
+  border-radius: var(--radius);
+}
+
+.segmented-control-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  cursor: pointer;
+
+  &:hover:not(.segmented-control-option-active) {
+    color: var(--on-surface);
+  }
+}
+
+.segmented-control-option-active {
+  background: var(--surface-highest);
+  color: var(--on-surface);
+  font-weight: 600;
+}

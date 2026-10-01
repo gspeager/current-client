@@ -1,0 +1,115 @@
+// design-system.md §4: derived from dark, not inverted.
+.current-client[data-theme='light'] {
+  // §4.2 Mapping
+  --surface-lowest: #e6e9ef;
+  --surface: #ffffff;
+  --surface-low: #f4f6f9;
+  --surface-container: #eceff4;
+  --surface-high: #e2e6ec;
+  --surface-highest: #d3d9e1;
+
+  --on-surface: #131a22;
+  --on-surface-variant: #3f4a55;
+  --outline: #5b6672;
+  --outline-variant: #c3ccd6;
+
+  --primary: #00687a;
+  --primary-hover: #005263;
+  --secondary: #3f3fd0;
+  --tertiary: #096a4a;
+  --error: #b3261e;
+  --warning: #7a5000;
+
+  // App additions outside §4.2, derived the same way.
+  --primary-container: #00687a;
+  --on-primary-container: #ffffff;
+  --inverse-primary: #ffffff;
+  --on-primary: #ffffff;
+  --on-secondary: #ffffff;
+  --on-tertiary: #ffffff;
+  --on-error: #ffffff;
+  --on-warning: #ffffff;
+
+  // §4.3 Light lanes
+  --branch-main: #00687a;
+  --branch-feature: #3f3fd0;
+  --branch-release: #096a4a;
+  --branch-hotfix: #b3261e;
+  --branch-experimental: #8b3fa8;
+  --branch-integration: #1e6fb8;
+
+  // Same hue and saturation as dark, darkened to the light lanes' contrast
+  // (at least 4.2:1 on --surface-high).
+  --lane-vivid-1: #007785;
+  --lane-vivid-2: #7443ff;
+  --lane-vivid-3: #007b3f;
+  --lane-vivid-4: #d9002a;
+  --lane-vivid-5: #d60049;
+  --lane-vivid-6: #005dfa;
+  --lane-muted-1: #49717b;
+  --lane-muted-2: #6f6495;
+  --lane-muted-3: #417655;
+  --lane-muted-4: #a85151;
+  --lane-muted-5: #855e85;
+  --lane-muted-6: #496f94;
+
+  // White reaches 5.2:1 or more on every light lane; dark ink stays under 4:1.
+  --on-lane: #ffffff;
+
+  // Brand colors darkened only where they would fall under 4.5:1 on --surface-low.
+  --lang-go: #007a98;
+  --lang-ts: #2e72bc;
+  --lang-js: #7d6f04;
+  --lang-scss: #c33d81;
+  --lang-css: #663399;
+  --lang-html: #cd3e1a;
+  --lang-md: #3774b0;
+  --lang-py: #3572a5;
+  --lang-rb: #cc342d;
+  --lang-java: #9c6516;
+  --lang-c: #555555;
+  --lang-cpp: #de0f4c;
+  --lang-cs: #178300;
+  --lang-rs: #ab5c2e;
+  --lang-sh: #3f7f17;
+  --lang-swift: #d82b10;
+  --lang-kt: #794aff;
+  --lang-php: #4f5d95;
+  --lang-other: #6b707a;
+
+  // §4.3 Light diff
+  --diff-add-fill: rgba(9, 106, 74, 0.08);
+  --diff-add-word: rgba(9, 106, 74, 0.2);
+  --diff-add-rule: #096a4a;
+  --diff-add-ink: #11402f;
+  --diff-del-fill: rgba(179, 38, 30, 0.07);
+  --diff-del-word: rgba(179, 38, 30, 0.18);
+  --diff-del-rule: #b3261e;
+  --diff-del-ink: #5e1a16;
+  --diff-void: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(19, 26, 34, 0.025) 5px,
+    rgba(19, 26, 34, 0.025) 10px
+  );
+
+  // §4.3 Light syntax
+  --code-ink: #22303b;
+  --code-keyword: #3131c0;
+  --code-string: #096a4a;
+  --code-type: #00687a;
+  --code-comment: #6b7680;
+  --code-linenum: #a9b4c0;
+
+  // §4.4 Behavioural differences
+  --focus-ring: 0 0 0 2px var(--primary);
+  --glow-action: none;
+  --elev-panel: none;
+  --elev-popover: 0 8px 20px -6px rgba(19, 26, 34, 0.18);
+  --elev-modal: 0 20px 40px -16px rgba(19, 26, 34, 0.28);
+  --elev-window: 0 28px 64px -28px rgba(19, 26, 34, 0.35);
+
+  // Native scrollbars and form controls follow color-scheme.
+  color-scheme: light;
+}

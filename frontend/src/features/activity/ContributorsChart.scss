@@ -1,0 +1,150 @@
+@use '../../styles/patterns';
+
+.contributors-chart {
+  width: 100%;
+  max-height: 640px;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-md);
+  background: var(--surface-low);
+  border: var(--border-structure);
+  border-radius: var(--radius-lg);
+  color: var(--on-surface);
+}
+
+.contributors-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-action);
+  padding: 0 var(--space-md);
+}
+
+.contributors-header-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.contributors-title {
+  flex: 1;
+  font: var(--title-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--on-surface);
+}
+
+.contributors-date-filter {
+  flex-shrink: 0;
+  height: var(--h-field);
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.contributors-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+.contributors-donut-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.contributors-donut {
+  display: block;
+}
+
+.contributors-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.contributors-donut-value {
+  font: var(--headline-sm);
+  color: var(--on-surface);
+}
+
+.contributors-donut-caption {
+  @include patterns.eyebrow;
+}
+
+.contributors-list {
+  width: 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.contributors-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--surface-container);
+  border-radius: var(--radius-md);
+}
+
+.contributors-row-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.contributors-row-name {
+  @include patterns.truncate;
+  font: var(--data-md);
+  color: var(--on-surface);
+}
+
+.contributors-row-email {
+  @include patterns.truncate;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.contributors-row-stats {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.contributors-row-commits {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.contributors-row-share {
+  font: var(--ui-xs);
+}
+
+.contributors-hint {
+  margin: var(--space-md);
+  color: var(--outline);
+  font: var(--ui-sm);
+}

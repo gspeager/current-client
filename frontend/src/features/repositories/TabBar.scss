@@ -1,0 +1,9 @@
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  height: var(--h-tab-bar);
+  padding: 0 var(--space-md);
+  background: var(--surface-low);
+  border-bottom: var(--border-structure);
+}

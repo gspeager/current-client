@@ -1,0 +1,135 @@
+@use '../../styles/patterns';
+
+.bisect-wizard {
+  width: 420px;
+}
+
+.bisect-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.bisect-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.bisect-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.bisect-progress {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.bisect-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  color: var(--outline);
+  @include patterns.eyebrow;
+
+  input {
+    height: var(--h-field);
+    padding: 0 var(--space-sm);
+    background: var(--surface);
+    border: var(--border-structure);
+    border-radius: var(--radius);
+    color: var(--on-surface);
+    font: var(--data-sm);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+}
+
+.bisect-candidate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm);
+  background: var(--surface-container);
+  border-radius: var(--radius);
+}
+
+.bisect-candidate-sha {
+  color: var(--primary);
+  font: var(--data-sm);
+}
+
+.bisect-candidate-subject {
+  color: var(--on-surface);
+  font: var(--title-sm);
+}
+
+.bisect-candidate-meta {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.bisect-found {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--error);
+  font: var(--title-sm);
+}
+
+.bisect-actions {
+  display: flex;
+  gap: var(--space-sm);
+
+  button {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    height: var(--h-action);
+    padding: 0 var(--space-sm);
+    background: var(--surface-container);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--on-surface);
+    font: var(--ui-sm);
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-high);
+    }
+
+    @include patterns.disabled;
+  }
+
+  .bisect-good {
+    background: color-mix(in srgb, var(--tertiary) 18%, transparent);
+    color: var(--tertiary);
+  }
+
+  .bisect-bad {
+    background: color-mix(in srgb, var(--error) 18%, transparent);
+    color: var(--error);
+  }
+}
+
+.bisect-reset-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--outline);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--error);
+  }
+
+  @include patterns.disabled;
+}
