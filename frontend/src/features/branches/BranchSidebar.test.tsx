@@ -31,6 +31,21 @@ describe('BranchSidebar', () => {
     expect(onBranchChanged).toHaveBeenCalled()
   })
 
+  it('creates a branch with spaces turned into dashes, and shows the name first', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true)])
+    vi.mocked(BranchService.CreateBranch).mockResolvedValue()
+    vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
+    renderSidebar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New branch' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'new branch name' }), 'fix login bug')
+    expect(screen.getByRole('status')).toHaveTextContent('Will be created as fix-login-bug')
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    expect(BranchService.CreateBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
+    expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
+  })
+
   it('ignores a click on the current branch', async () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true)])
     renderSidebar()

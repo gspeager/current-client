@@ -41,11 +41,12 @@ function ConfirmDialog({ options, onSettle }: { options: ConfirmOptions; onSettl
 function PromptDialog({ options, onSettle }: { options: PromptOptions; onSettle: (value: string | null) => void }) {
   const [value, setValue] = useState(options.initialValue ?? '')
   const trimmed = value.trim()
-  const canSubmit = trimmed !== '' && trimmed !== options.initialValue
+  const result = options.transform ? options.transform(trimmed) : trimmed
+  const canSubmit = result !== '' && result !== options.initialValue
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (canSubmit) onSettle(trimmed)
+    if (canSubmit) onSettle(result)
   }
 
   return (
@@ -55,6 +56,11 @@ function PromptDialog({ options, onSettle }: { options: PromptOptions; onSettle:
           <span className="dialog-message">{options.label}</span>
           <input className="dialog-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
         </label>
+        {result !== '' && result !== trimmed && (
+          <p className="dialog-message" role="status">
+            Will be saved as <span className="dialog-result">{result}</span>
+          </p>
+        )}
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={() => onSettle(null)}>
             Cancel

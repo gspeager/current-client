@@ -73,6 +73,26 @@ describe('DialogProvider prompt', () => {
     expect(submit).toBeEnabled()
   })
 
+  it('shows and resolves the transformed value', async () => {
+    const result = renderWithDialogs().prompt({
+      ...rename,
+      initialValue: undefined,
+      transform: (v) => v.replace(/ /g, '-'),
+    })
+    const input = await screen.findByRole('textbox', { name: 'New branch name' })
+    await userEvent.type(input, 'my branch')
+    expect(screen.getByRole('status')).toHaveTextContent('Will be saved as my-branch')
+    await userEvent.type(input, '{Enter}')
+    await expect(result).resolves.toBe('my-branch')
+  })
+
+  it('disables submit when the transform leaves nothing', async () => {
+    renderWithDialogs().prompt({ ...rename, initialValue: undefined, transform: () => '' })
+    await userEvent.type(await screen.findByRole('textbox', { name: 'New branch name' }), '...')
+    expect(screen.getByRole('button', { name: 'Rename' })).toBeDisabled()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
   it('resolves null when cancelled', async () => {
     const result = renderWithDialogs().prompt(rename)
     await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }))

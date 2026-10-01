@@ -18,6 +18,11 @@
   overflow-wrap: anywhere;
 }
 
+.dialog-result {
+  font: var(--data-md);
+  color: var(--on-surface);
+}
+
 .dialog-field {
   display: flex;
   flex-direction: column;
