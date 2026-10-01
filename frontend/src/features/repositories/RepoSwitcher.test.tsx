@@ -51,3 +51,39 @@ describe('RepoSwitcher after a removal', () => {
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
   })
 })
+
+describe('RepoSwitcher clone', () => {
+  it('shows the folder the clone will create inside the chosen destination', () => {
+    vi.mocked(RepositoryService.GetRepoSummaries).mockResolvedValue([])
+    const repo = {
+      recentRepos: [],
+      cloneUrl: 'https://github.com/gspeager/current-client.git',
+      cloneDest: '/Users/dev/projects',
+      cloneFolder: 'current-client',
+      setCloneFolder: vi.fn(),
+      cloneRepository: vi.fn(),
+      cloneOp: { running: false, error: null },
+    } as unknown as ReturnType<typeof useRepositoryLifecycle>
+    render(<RepoSwitcher repo={repo} />)
+
+    expect(screen.getByRole('textbox', { name: 'folder name' })).toHaveValue('current-client')
+    expect(screen.getByText('Clones into').parentElement).toHaveTextContent('/Users/dev/projects/current-client')
+    expect(screen.getByRole('button', { name: 'Clone repository' })).toBeEnabled()
+  })
+
+  it('cannot clone without a folder name', () => {
+    vi.mocked(RepositoryService.GetRepoSummaries).mockResolvedValue([])
+    const repo = {
+      recentRepos: [],
+      cloneUrl: 'https://example.com/',
+      cloneDest: '/Users/dev/projects',
+      cloneFolder: '',
+      setCloneFolder: vi.fn(),
+      cloneOp: { running: false, error: null },
+    } as unknown as ReturnType<typeof useRepositoryLifecycle>
+    render(<RepoSwitcher repo={repo} />)
+
+    expect(screen.queryByText('Clones into')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clone repository' })).toBeDisabled()
+  })
+})

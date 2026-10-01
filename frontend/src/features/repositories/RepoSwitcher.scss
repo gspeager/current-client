@@ -82,9 +82,27 @@
   flex-wrap: wrap;
   gap: var(--space-sm);
 
-  button {
+  button,
+  input {
     flex: 1 1 160px;
+    min-width: 0;
   }
+}
+
+.repo-switcher-clone-target {
+  display: flex;
+  gap: var(--space-xs);
+  min-width: 0;
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+  white-space: nowrap;
+}
+
+.repo-switcher-clone-path {
+  min-width: 0;
+  color: var(--on-surface);
+  font: var(--data-sm);
 }
 
 .repo-switcher-recent {

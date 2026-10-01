@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { RepositoryService } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
+import { joinPath } from '../../lib/paths'
 import { useAsyncData } from '../../lib/useAsyncData'
 import type { useRepositoryLifecycle } from './useRepositoryLifecycle'
 import './RepoSwitcher.scss'
@@ -54,11 +55,25 @@ function RepoSwitcher({ repo }: RepoSwitcherProps) {
           <button type="button" className="repo-switcher-secondary" onClick={repo.chooseCloneDestination}>
             {repo.cloneDest || 'Choose destination'}
           </button>
+          <input
+            aria-label="folder name"
+            placeholder="Folder name"
+            value={repo.cloneFolder}
+            onChange={(e) => repo.setCloneFolder(e.target.value)}
+          />
+        </div>
+        {repo.cloneDest && repo.cloneFolder.trim() && (
+          <p className="repo-switcher-clone-target">
+            <span>Clones into</span>
+            <PathText path={joinPath(repo.cloneDest, repo.cloneFolder.trim())} className="repo-switcher-clone-path" />
+          </p>
+        )}
+        <div className="repo-switcher-clone-actions">
           <button
             type="button"
             className="repo-switcher-secondary"
             onClick={repo.cloneRepository}
-            disabled={!repo.cloneUrl || !repo.cloneDest || repo.cloneOp.running}
+            disabled={!repo.cloneUrl || !repo.cloneDest || !repo.cloneFolder.trim() || repo.cloneOp.running}
           >
             {repo.cloneOp.running ? 'Cloning…' : 'Clone repository'}
           </button>

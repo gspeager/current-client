@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { RepositoryService, type RepoSummaryInfo } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { errorMessage } from '../../lib/errors'
+import { cloneFolderName } from './cloneFolderName'
 
 // initialRepoPath, when given, is focused instead of the saved focused tab.
 export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
@@ -9,6 +10,9 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
   const [repoError, setRepoError] = useState<string | null>(null)
   const [cloneUrl, setCloneUrl] = useState('')
   const [cloneDest, setCloneDest] = useState('')
+  // null follows the URL; set once the user types their own folder name.
+  const [cloneFolderOverride, setCloneFolder] = useState<string | null>(null)
+  const cloneFolder = cloneFolderOverride ?? cloneFolderName(cloneUrl)
   const [recentRepos, setRecentRepos] = useState<string[]>([])
   const [tabs, setTabs] = useState<string[]>([])
   const [tabSummaries, setTabSummaries] = useState<Record<string, RepoSummaryInfo>>({})
@@ -151,9 +155,10 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
 
   const cloneRepository = () => {
     setRepoError(null)
-    cloneOp.run<string>(RepositoryService.CloneRepository(cloneUrl, cloneDest), (path) => {
+    cloneOp.run<string>(RepositoryService.CloneRepository(cloneUrl, cloneDest, cloneFolder.trim()), (path) => {
       addTab(path)
       refreshRecentRepos()
+      setCloneFolder(null)
     })
   }
 
@@ -163,6 +168,8 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     cloneUrl,
     setCloneUrl,
     cloneDest,
+    cloneFolder,
+    setCloneFolder,
     recentRepos,
     cloneOp,
     openRepository,
