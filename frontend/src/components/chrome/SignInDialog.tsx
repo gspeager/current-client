@@ -20,7 +20,7 @@ function SignInDialog({ options, onSettle }: { options: SignInOptions; onSettle:
       <form className="dialog-body" onSubmit={submit}>
         <p className="dialog-message" role={options.rejected ? 'alert' : undefined}>
           {options.rejected
-            ? 'The remote didn’t accept that username and password. Check them and try again.'
+            ? 'The remote didn’t accept that username and password.'
             : 'Git needs a username and password for this remote.'}
         </p>
         <label className="dialog-field">
@@ -44,13 +44,14 @@ function SignInDialog({ options, onSettle }: { options: SignInOptions; onSettle:
           />
         </label>
         <p className="dialog-note">
-          GitHub, GitLab and Bitbucket need a personal access token here, not your account password.
+          GitHub needs a personal access token here, not the account password. So do other hosts, including self-hosted
+          GitLab, when the account uses two-factor sign-in or single sign-on.
         </p>
         {helper !== null && (
           <p className="dialog-note">
             {helper
-              ? `Git will save this with its ${helper} credential helper, so you won’t be asked again.`
-              : 'No Git credential helper is set up, so this is used once and not saved. Install Git Credential Manager to have Git remember it.'}
+              ? `Git saves this with its ${helper} credential helper, so it isn’t asked for again.`
+              : 'No Git credential helper is set up, so this is used once and not saved. Git Credential Manager can remember it.'}
           </p>
         )}
         <div className="dialog-actions">
