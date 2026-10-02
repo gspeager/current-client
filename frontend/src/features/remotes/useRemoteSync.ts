@@ -12,7 +12,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
 
   const pull = () => {
     if (!repoPath) return
-    pullOp.run(RemoteService.Pull(repoPath), onSynced)
+    pullOp.run((auth) => RemoteService.Pull(repoPath, auth), onSynced)
   }
 
   const pushSettingUpstream = async (path: string) => {
@@ -29,7 +29,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
         confirmLabel: 'Push',
       })
       if (!confirmed) return
-      void pushOp.run(RemoteService.PushSetUpstream(path, remoteName, status.current), onSynced)
+      void pushOp.run((auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth), onSynced)
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
     }
@@ -37,11 +37,15 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
 
   const push = () => {
     if (!repoPath) return
-    void pushOp.run(RemoteService.Push(repoPath), onSynced, (message) => {
-      if (message !== NO_UPSTREAM) return false
-      void pushSettingUpstream(repoPath)
-      return true
-    })
+    void pushOp.run(
+      (auth) => RemoteService.Push(repoPath, auth),
+      onSynced,
+      (message) => {
+        if (message !== NO_UPSTREAM) return false
+        void pushSettingUpstream(repoPath)
+        return true
+      },
+    )
   }
 
   const forcePush = async () => {
@@ -61,7 +65,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
         destructive: true,
       })
       if (!confirmed) return
-      void pushOp.run(RemoteService.ForcePush(repoPath, remoteName, status.current), onSynced)
+      void pushOp.run((auth) => RemoteService.ForcePush(repoPath, remoteName, status.current, auth), onSynced)
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
     }

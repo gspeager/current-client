@@ -6,6 +6,9 @@ import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { useRemoteSync } from './useRemoteSync'
 
 const REPO = '/repos/app'
+const NEEDS_CREDENTIALS =
+  'This remote needs credentials. Set up a credential helper, such as Git Credential Manager, for it.'
+const AUTH_FAILED = 'Authentication failed. Check the credentials Git uses for this remote.'
 
 function wrapper({ children }: { children: ReactNode }) {
   return <DialogProvider>{children}</DialogProvider>
@@ -35,7 +38,7 @@ describe('useRemoteSync', () => {
 
     await act(async () => result.current.push())
 
-    expect(RemoteService.Push).toHaveBeenCalledWith(REPO)
+    expect(RemoteService.Push).toHaveBeenCalledWith(REPO, null)
     expect(onSynced).toHaveBeenCalled()
     expect(result.current.pushOp.error).toBeNull()
   })
@@ -53,8 +56,52 @@ describe('useRemoteSync', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Push' }))
 
     await vi.waitFor(() => expect(onSynced).toHaveBeenCalled())
-    expect(RemoteService.PushSetUpstream).toHaveBeenCalledWith(REPO, 'origin', 'feature')
+    expect(RemoteService.PushSetUpstream).toHaveBeenCalledWith(REPO, 'origin', 'feature', null)
     expect(result.current.pushOp.error).toBeNull()
+  })
+
+  it('asks the user to sign in when the remote needs credentials, then retries with them', async () => {
+    vi.mocked(RemoteService.Push)
+      .mockRejectedValueOnce(new Error(NEEDS_CREDENTIALS))
+      .mockRejectedValueOnce(new Error(AUTH_FAILED))
+      .mockResolvedValueOnce()
+    vi.mocked(RemoteService.CredentialHelper).mockResolvedValue('osxkeychain')
+    const onSynced = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
+
+    act(() => result.current.push())
+    let dialog = await screen.findByRole('dialog', { name: 'Sign in to remote' })
+    expect(await within(dialog).findByText(/osxkeychain credential helper/)).toBeInTheDocument()
+    await userEvent.type(within(dialog).getByLabelText('Username'), 'alice')
+    await userEvent.type(within(dialog).getByLabelText('Password or token'), 'wrong{Enter}')
+
+    dialog = await screen.findByRole('dialog', { name: 'Sign in to remote' })
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('didn’t accept')
+    await userEvent.type(within(dialog).getByLabelText('Username'), 'alice')
+    await userEvent.type(within(dialog).getByLabelText('Password or token'), 'ghp_token{Enter}')
+
+    await vi.waitFor(() => expect(onSynced).toHaveBeenCalled())
+    expect(vi.mocked(RemoteService.Push).mock.calls).toEqual([
+      [REPO, null],
+      [REPO, { username: 'alice', password: 'wrong' }],
+      [REPO, { username: 'alice', password: 'ghp_token' }],
+    ])
+    expect(result.current.pushOp.error).toBeNull()
+  })
+
+  it('reports the original error when sign-in is cancelled', async () => {
+    vi.mocked(RemoteService.Push).mockRejectedValue(new Error(NEEDS_CREDENTIALS))
+    vi.mocked(RemoteService.CredentialHelper).mockResolvedValue('')
+    const { result } = renderHook(() => useRemoteSync(REPO, vi.fn()), { wrapper })
+
+    act(() => result.current.push())
+    const dialog = await screen.findByRole('dialog', { name: 'Sign in to remote' })
+    expect(await within(dialog).findByText(/used once and not saved/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    await vi.waitFor(() => expect(result.current.pushOp.error).toBe(NEEDS_CREDENTIALS))
+    expect(RemoteService.Push).toHaveBeenCalledTimes(1)
+    expect(result.current.pushOp.running).toBe(false)
   })
 
   it('stops a push when cancelled, without reporting an error', async () => {

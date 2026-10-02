@@ -2,12 +2,15 @@ import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
 import { DialogContext, type ConfirmOptions, type Dialogs, type PromptOptions } from '../../lib/useDialogs'
+import type { SignIn, SignInOptions } from '../../lib/signIn'
 import Modal from './Modal'
+import SignInDialog from './SignInDialog'
 import './DialogProvider.scss'
 
 type Request =
   | { kind: 'confirm'; options: ConfirmOptions; resolve: (confirmed: boolean) => void }
   | { kind: 'prompt'; options: PromptOptions; resolve: (value: string | null) => void }
+  | { kind: 'signIn'; options: SignInOptions; resolve: (value: SignIn | null) => void }
 
 function ConfirmDialog({ options, onSettle }: { options: ConfirmOptions; onSettle: (confirmed: boolean) => void }) {
   const { element } = useCurrentClientRoot()
@@ -81,6 +84,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     () => ({
       confirm: (options) => new Promise((resolve) => setRequest({ kind: 'confirm', options, resolve })),
       prompt: (options) => new Promise((resolve) => setRequest({ kind: 'prompt', options, resolve })),
+      signIn: (options) => new Promise((resolve) => setRequest({ kind: 'signIn', options, resolve })),
     }),
     [],
   )
@@ -99,6 +103,15 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       )}
       {request?.kind === 'prompt' && (
         <PromptDialog
+          options={request.options}
+          onSettle={(value) => {
+            request.resolve(value)
+            setRequest(null)
+          }}
+        />
+      )}
+      {request?.kind === 'signIn' && (
+        <SignInDialog
           options={request.options}
           onSettle={(value) => {
             request.resolve(value)

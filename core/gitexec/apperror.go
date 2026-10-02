@@ -22,6 +22,12 @@ const (
 	stdoutStream
 )
 
+// The frontend offers to sign in when it sees one of these.
+const (
+	credentialsNeededMessage = "This remote needs credentials. Set up a credential helper, such as Git Credential Manager, for it."
+	authFailedMessage        = "Authentication failed. Check the credentials Git uses for this remote."
+)
+
 // First match wins.
 var knownErrorPatterns = []struct {
 	stream     outputStream
@@ -32,11 +38,11 @@ var knownErrorPatterns = []struct {
 	{stderrStream, []string{"unknown revision or path not in the working tree", "bad revision"}, "That reference doesn't exist."},
 	// Network failures, most specific first: an SSH passphrase failure also
 	// ends in "Permission denied (publickey)".
-	{stderrStream, []string{"terminal prompts disabled", "could not read Username", "could not read Password"}, "This remote needs credentials. Set up a credential helper, such as Git Credential Manager, for it."},
+	{stderrStream, []string{"terminal prompts disabled", "could not read Username", "could not read Password"}, credentialsNeededMessage},
 	{stderrStream, []string{"read_passphrase", "incorrect passphrase"}, "The SSH key needs its passphrase. Load the key into an SSH agent first."},
 	{stderrStream, []string{"Host key verification failed"}, "This remote's SSH host key isn't trusted yet. Connect to it once from a terminal to add it to known_hosts."},
 	{stderrStream, []string{"Permission denied (publickey"}, "The remote rejected the SSH key. Check that the key is loaded in an SSH agent and added to the remote."},
-	{stderrStream, []string{"Authentication failed"}, "Authentication failed. Check the credentials Git uses for this remote."},
+	{stderrStream, []string{"Authentication failed"}, authFailedMessage},
 	{stderrStream, []string{"SSL certificate problem", "server certificate verification failed"}, "The remote's HTTPS certificate isn't trusted. Point Git's http.sslCAInfo at the certificate for this server."},
 	{stderrStream, []string{"Repository not found", "fatal: repository '", "does not appear to be a git repository"}, "The remote repository doesn't exist, or access to it is denied."},
 	{stderrStream, []string{"The requested URL returned error: 403"}, "Access to this remote was denied."},

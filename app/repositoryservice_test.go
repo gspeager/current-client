@@ -31,7 +31,7 @@ func TestCloneRepositoryCreatesFolderInsideParent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := (&RepositoryService{}).CloneRepository(context.Background(), source, parent, "widgets")
+	got, err := (&RepositoryService{}).CloneRepository(context.Background(), source, parent, "widgets", nil)
 	if err != nil {
 		t.Fatalf("CloneRepository: %v", err)
 	}
@@ -45,14 +45,14 @@ func TestCloneRepositoryCreatesFolderInsideParent(t *testing.T) {
 		t.Errorf("parent folder became a repository: %v", err)
 	}
 
-	if _, err := (&RepositoryService{}).CloneRepository(context.Background(), source, parent, "widgets"); err == nil {
+	if _, err := (&RepositoryService{}).CloneRepository(context.Background(), source, parent, "widgets", nil); err == nil {
 		t.Error("expected cloning into an existing, non-empty folder to fail")
 	}
 }
 
 func TestCloneRepositoryRejectsFolderNamesThatLeaveParent(t *testing.T) {
 	for _, name := range []string{"", ".", "..", "a/b", `a\b`} {
-		if _, err := (&RepositoryService{}).CloneRepository(context.Background(), "https://example.invalid/r.git", t.TempDir(), name); err == nil {
+		if _, err := (&RepositoryService{}).CloneRepository(context.Background(), "https://example.invalid/r.git", t.TempDir(), name, nil); err == nil {
 			t.Errorf("folder name %q: expected an error", name)
 		}
 	}

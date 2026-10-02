@@ -43,10 +43,10 @@ Download your platform's file from the [latest release](../../releases/latest). 
 
 Current Client uses Git's own authentication and never shows Git's terminal prompts:
 
-- **HTTPS:** use a credential helper. Git Credential Manager ships with Git for Windows and shows its own sign-in window.
+- **HTTPS:** when Git has no credentials for a remote, Current Client asks for a username and password or access token and hands them to Git for that operation. If it works, Git saves them with your credential helper (macOS Keychain, Git Credential Manager, `store`…) like any other sign-in; with no helper set up they're used once and forgotten. Git Credential Manager ships with Git for Windows and shows its own sign-in window instead.
 - **SSH:** load your key into an SSH agent, and connect to a new host once from a terminal so it's in `known_hosts`.
 
-Without those, a remote that needs a password or a host-key answer fails straight away with an explanation instead of waiting. Fetch, pull, push and clone can be cancelled while they run.
+Without those, a remote that needs an SSH passphrase or a host-key answer fails straight away with an explanation instead of waiting. Fetch, pull, push and clone can be cancelled while they run.
 
 ## Reporting a problem
 
