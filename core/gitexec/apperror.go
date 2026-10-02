@@ -49,6 +49,8 @@ var knownErrorPatterns = []struct {
 	{stderrStream, []string{"Aborting commit due to empty commit message"}, "Commit message can't be empty."},
 	// `git commit` with nothing staged reports this on stdout, not stderr.
 	{stdoutStream, []string{"nothing to commit"}, "Nothing is staged to commit."},
+	{stderrStream, []string{"is not a valid branch name"}, "That isn't a valid branch name. Branch names can't contain spaces or any of ~ ^ : ? * [ \\."},
+	{stderrStream, []string{"a branch named"}, "A branch with that name already exists."},
 	{stderrStream, []string{"is not fully merged"}, "This branch has unmerged changes."},
 	{stderrStream, []string{"no tracking information"}, "This branch has no upstream to pull from."},
 	{stderrStream, []string{"has no upstream branch"}, "This branch has no upstream configured."},

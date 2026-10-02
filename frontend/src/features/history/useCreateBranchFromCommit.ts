@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BranchService } from '@current-client-bindings/app'
+import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useDialogs } from '../../lib/useDialogs'
 
@@ -12,6 +13,7 @@ export function useCreateBranchFromCommit(repoPath: string, onBranchChanged?: ()
       title: 'New branch',
       label: `Branch name (from ${sha.slice(0, 7)})`,
       confirmLabel: 'Create',
+      transform: toBranchName,
     })
     if (!name) return
     setBranchError(null)

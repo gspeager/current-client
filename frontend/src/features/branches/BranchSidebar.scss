@@ -71,6 +71,18 @@
   font: var(--data-sm);
 }
 
+.branch-sidebar-new-result {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+  overflow-wrap: anywhere;
+}
+
+.branch-sidebar-new-result-name {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
 .branch-sidebar-hint {
   margin: 0;
   color: var(--outline);

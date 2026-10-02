@@ -12,11 +12,14 @@ export interface PromptOptions {
   label: string
   confirmLabel: string
   initialValue?: string
+  // Normalizes the typed value; when that changes it, the dialog shows the
+  // result before it's confirmed.
+  transform?: (value: string) => string
 }
 
 export interface Dialogs {
   confirm: (options: ConfirmOptions) => Promise<boolean>
-  // Resolves with the trimmed value, or null when cancelled.
+  // Resolves with the trimmed (and transformed) value, or null when cancelled.
   prompt: (options: PromptOptions) => Promise<string | null>
 }
 
