@@ -2,12 +2,15 @@ import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
 import { DialogContext, type ConfirmOptions, type Dialogs, type PromptOptions } from '../../lib/useDialogs'
+import type { SignIn, SignInOptions } from '../../lib/signIn'
 import Modal from './Modal'
+import SignInDialog from './SignInDialog'
 import './DialogProvider.scss'
 
 type Request =
   | { kind: 'confirm'; options: ConfirmOptions; resolve: (confirmed: boolean) => void }
   | { kind: 'prompt'; options: PromptOptions; resolve: (value: string | null) => void }
+  | { kind: 'signIn'; options: SignInOptions; resolve: (value: SignIn | null) => void }
 
 function ConfirmDialog({ options, onSettle }: { options: ConfirmOptions; onSettle: (confirmed: boolean) => void }) {
   const { element } = useCurrentClientRoot()
@@ -41,11 +44,12 @@ function ConfirmDialog({ options, onSettle }: { options: ConfirmOptions; onSettl
 function PromptDialog({ options, onSettle }: { options: PromptOptions; onSettle: (value: string | null) => void }) {
   const [value, setValue] = useState(options.initialValue ?? '')
   const trimmed = value.trim()
-  const canSubmit = trimmed !== '' && trimmed !== options.initialValue
+  const result = options.transform ? options.transform(trimmed) : trimmed
+  const canSubmit = result !== '' && result !== options.initialValue
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (canSubmit) onSettle(trimmed)
+    if (canSubmit) onSettle(result)
   }
 
   return (
@@ -55,6 +59,11 @@ function PromptDialog({ options, onSettle }: { options: PromptOptions; onSettle:
           <span className="dialog-message">{options.label}</span>
           <input className="dialog-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
         </label>
+        {result !== '' && result !== trimmed && (
+          <p className="dialog-message" role="status">
+            Will be saved as <span className="dialog-result">{result}</span>
+          </p>
+        )}
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={() => onSettle(null)}>
             Cancel
@@ -75,6 +84,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     () => ({
       confirm: (options) => new Promise((resolve) => setRequest({ kind: 'confirm', options, resolve })),
       prompt: (options) => new Promise((resolve) => setRequest({ kind: 'prompt', options, resolve })),
+      signIn: (options) => new Promise((resolve) => setRequest({ kind: 'signIn', options, resolve })),
     }),
     [],
   )
@@ -93,6 +103,15 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       )}
       {request?.kind === 'prompt' && (
         <PromptDialog
+          options={request.options}
+          onSettle={(value) => {
+            request.resolve(value)
+            setRequest(null)
+          }}
+        />
+      )}
+      {request?.kind === 'signIn' && (
+        <SignInDialog
           options={request.options}
           onSettle={(value) => {
             request.resolve(value)

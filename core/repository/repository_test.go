@@ -150,7 +150,12 @@ func assertAppError(t *testing.T, err error) {
 }
 
 func TestOpenSubfolderOpensTheWholeRepository(t *testing.T) {
-	dir := t.TempDir()
+	// Resolved, since Git reports the real top-level path: macOS's temp dir is
+	// under /var, a symlink to /private/var.
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	gittest.Run(t, "", "init", dir)
 	sub := filepath.Join(dir, "src", "app")
 	if err := os.MkdirAll(sub, 0o755); err != nil {

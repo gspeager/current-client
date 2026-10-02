@@ -7,7 +7,7 @@ export function useAutoFetch(repoPath: string | null, intervalMinutes: number, o
     if (!repoPath || intervalMinutes <= 0) return
     const id = window.setInterval(
       () => {
-        RemoteService.FetchAll(repoPath)
+        RemoteService.FetchAll(repoPath, null)
           .then(onFetched)
           .catch(() => undefined) // a background fetch failing silently is fine — the next interval tries again
       },

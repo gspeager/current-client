@@ -19,6 +19,16 @@ func TestWrapResultKnownFailures(t *testing.T) {
 			wantMsg: "Not a Git repository.",
 		},
 		{
+			name:    "invalid branch name",
+			stderr:  "fatal: 'a b' is not a valid branch name\nhint: See 'git help check-ref-format'",
+			wantMsg: "That isn't a valid branch name. Branch names can't contain spaces or any of ~ ^ : ? * [ \\.",
+		},
+		{
+			name:    "branch exists",
+			stderr:  "fatal: a branch named 'main' already exists",
+			wantMsg: "A branch with that name already exists.",
+		},
+		{
 			name:    "bad ref",
 			stderr:  "fatal: ambiguous argument 'badref': unknown revision or path not in the working tree.",
 			wantMsg: "That reference doesn't exist.",

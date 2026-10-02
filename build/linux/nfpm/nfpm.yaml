@@ -6,7 +6,7 @@
 name: "current-client"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.1.0"
+version: "0.1.1"
 section: "default"
 priority: "extra"
 maintainer: "Garrett Speager <gspeager@gmail.com>"

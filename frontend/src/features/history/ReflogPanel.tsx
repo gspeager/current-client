@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { GitBranchPlus } from 'lucide-react'
 import { BranchService, ReflogService, type ReflogEntryInfo } from '@current-client-bindings/app'
+import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -31,6 +32,7 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
       title: 'Recover commit',
       label: `Branch name for ${entry.sha.slice(0, 7)} ("${entry.subject}")`,
       confirmLabel: 'Create branch',
+      transform: toBranchName,
     })
     if (!name) return
     setRecoverError(null)

@@ -9,6 +9,7 @@ import {
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
+import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
@@ -46,6 +47,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   const [newBranchName, setNewBranchName] = useState('')
   const [newBranchKind, setNewBranchKind] = useState<NewBranchKind>('branch')
   const [showNewBranch, setShowNewBranch] = useState(false)
+  const newBranch = toBranchName(newBranchName)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<{ name: string; tip: string } | null>(null)
@@ -64,10 +66,8 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
     setActionError(null)
     const create =
       newBranchKind === 'branch'
-        ? BranchService.CreateBranch(repoPath, newBranchName).then(() =>
-            BranchService.CheckoutBranch(repoPath, newBranchName),
-          )
-        : GitFlowService.StartBranch(repoPath, newBranchKind, newBranchName)
+        ? BranchService.CreateBranch(repoPath, newBranch).then(() => BranchService.CheckoutBranch(repoPath, newBranch))
+        : GitFlowService.StartBranch(repoPath, newBranchKind, newBranch)
     create
       .then(() => {
         setNewBranchName('')
@@ -85,6 +85,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       label: 'New branch name',
       initialValue: oldName,
       confirmLabel: 'Rename',
+      transform: toBranchName,
     })
     if (!newName) return
     setActionError(null)
@@ -214,10 +215,19 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
               onChange={(e) => setNewBranchName(e.target.value)}
               autoFocus
             />
-            <button type="button" onClick={createBranch} disabled={newBranchName.trim() === ''}>
+            <button type="button" onClick={createBranch} disabled={newBranch === ''}>
               Create
             </button>
           </div>
+          {newBranch !== '' && newBranch !== newBranchName.trim() && (
+            <p className="branch-sidebar-new-result" role="status">
+              Will be created as{' '}
+              <span className="branch-sidebar-new-result-name">
+                {newBranchKind === 'branch' ? '' : `${newBranchKind}/`}
+                {newBranch}
+              </span>
+            </p>
+          )}
         </div>
       )}
 

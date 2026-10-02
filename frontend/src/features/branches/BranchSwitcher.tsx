@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Cloud, GitBranchPlus, RefreshCw, Search, X } from 'lucide-react'
 import { BranchService, StatusService } from '@current-client-bindings/app'
 import { localNameFor } from './branches'
+import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
@@ -53,7 +54,12 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched }: BranchSwitcher
   }
 
   const newBranchFromHead = async () => {
-    const name = await prompt({ title: 'New branch', label: 'Branch name (from HEAD)', confirmLabel: 'Create' })
+    const name = await prompt({
+      title: 'New branch',
+      label: 'Branch name (from HEAD)',
+      confirmLabel: 'Create',
+      transform: toBranchName,
+    })
     if (!name) return
     setActionError(null)
     BranchService.CreateBranch(repoPath, name)

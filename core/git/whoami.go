@@ -53,3 +53,9 @@ func configValue(ctx context.Context, repoPath string, args ...string) string {
 	}
 	return strings.TrimSpace(result.Stdout)
 }
+
+// CredentialHelper returns the credential helper Git will store sign-ins with
+// (the last one configured), or "" if there is none.
+func CredentialHelper(ctx context.Context, repoPath string) string {
+	return configValue(ctx, repoPath, "credential.helper")
+}

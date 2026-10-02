@@ -53,7 +53,14 @@ func NewExecutor(binary string) *Executor {
 }
 
 func (e *Executor) Run(ctx context.Context, cmd Command) (Result, error) {
-	c := exec.CommandContext(ctx, e.binary, cmd.Args...)
+	args := cmd.Args
+	var credEnv []string
+	if cred, ok := credentialFrom(ctx); ok {
+		var credArgs []string
+		credArgs, credEnv = credentialArgs(cred)
+		args = append(credArgs, args...)
+	}
+	c := exec.CommandContext(ctx, e.binary, args...)
 	c.Dir = cmd.Dir
 	c.Stdin = cmd.Stdin
 	detachFromTerminal(c)
@@ -64,6 +71,7 @@ func (e *Executor) Run(ctx context.Context, cmd Command) (Result, error) {
 	// than left running until someone presses Cancel.
 	env = append(env, "GIT_HTTP_LOW_SPEED_LIMIT=1000", "GIT_HTTP_LOW_SPEED_TIME=60")
 	env = append(env, cmd.Env...)
+	env = append(env, credEnv...)
 	// Last so it wins: output must stay English for the parsers.
 	c.Env = append(env, "LC_ALL=C")
 

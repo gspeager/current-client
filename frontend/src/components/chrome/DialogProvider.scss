@@ -18,6 +18,17 @@
   overflow-wrap: anywhere;
 }
 
+.dialog-result {
+  font: var(--data-md);
+  color: var(--on-surface);
+}
+
+.dialog-note {
+  margin: 0;
+  font: var(--ui-sm);
+  color: var(--outline);
+}
+
 .dialog-field {
   display: flex;
   flex-direction: column;

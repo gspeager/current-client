@@ -1,0 +1,9 @@
+// The wrapper adds no box of its own, so the view lays out as a direct child of
+// its container.
+.keep-alive {
+  display: contents;
+
+  &[hidden] {
+    display: none;
+  }
+}

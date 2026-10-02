@@ -60,7 +60,12 @@ func TestExecutorRunFailingCommandReportsExitCodeNotError(t *testing.T) {
 }
 
 func TestExecutorRunRespectsWorkingDirectory(t *testing.T) {
-	dir := t.TempDir()
+	// Resolved, since the child reports its real cwd: macOS's temp dir is under
+	// /var, a symlink to /private/var.
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	var script string
 	if runtime.GOOS == "windows" {
 		script = "cd"

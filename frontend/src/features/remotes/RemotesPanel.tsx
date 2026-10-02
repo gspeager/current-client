@@ -77,12 +77,12 @@ function RemotesPanel({ repoPath, onFetched }: RemotesPanelProps) {
 
   const fetchRemote = (name: string) => {
     setFetchingRemote(name)
-    fetchOp.run(RemoteService.Fetch(repoPath, name), onFetched).finally(() => setFetchingRemote(null))
+    fetchOp.run((auth) => RemoteService.Fetch(repoPath, name, auth), onFetched).finally(() => setFetchingRemote(null))
   }
 
   const fetchAll = () => {
     setFetchingRemote('*')
-    fetchOp.run(RemoteService.FetchAll(repoPath), onFetched).finally(() => setFetchingRemote(null))
+    fetchOp.run((auth) => RemoteService.FetchAll(repoPath, auth), onFetched).finally(() => setFetchingRemote(null))
   }
 
   return (
