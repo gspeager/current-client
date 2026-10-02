@@ -1,4 +1,4 @@
-import { baseName } from './paths'
+import { baseName, joinPath } from './paths'
 
 describe('baseName', () => {
   it('returns the last path segment for either separator', () => {
@@ -12,5 +12,17 @@ describe('baseName', () => {
 
   it('returns a bare name unchanged', () => {
     expect(baseName('README.md')).toBe('README.md')
+  })
+})
+
+describe('joinPath', () => {
+  it('joins with the separator the parent uses', () => {
+    expect(joinPath('/Users/dev/projects', 'app')).toBe('/Users/dev/projects/app')
+    expect(joinPath('C:\\projects', 'app')).toBe('C:\\projects\\app')
+  })
+
+  it('does not double a trailing separator', () => {
+    expect(joinPath('/', 'app')).toBe('/app')
+    expect(joinPath('C:\\', 'app')).toBe('C:\\app')
   })
 })
