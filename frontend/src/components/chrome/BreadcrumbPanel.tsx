@@ -14,9 +14,18 @@ interface BreadcrumbPanelProps {
   onViewChange: (view: PanelView) => void
   onBranchChanged?: () => void
   onFetched?: () => void
+  pruneOnFetch?: boolean
 }
 
-function BreadcrumbPanel({ repoPath, repo, view, onViewChange, onBranchChanged, onFetched }: BreadcrumbPanelProps) {
+function BreadcrumbPanel({
+  repoPath,
+  repo,
+  view,
+  onViewChange,
+  onBranchChanged,
+  onFetched,
+  pruneOnFetch,
+}: BreadcrumbPanelProps) {
   return (
     <div className="breadcrumb-panel">
       <SegmentedControl
@@ -30,7 +39,12 @@ function BreadcrumbPanel({ repoPath, repo, view, onViewChange, onBranchChanged, 
       {view === 'repo' ? (
         <RepoSwitcher repo={repo} />
       ) : (
-        <BranchSwitcher repoPath={repoPath} onBranchChanged={onBranchChanged} onFetched={onFetched} />
+        <BranchSwitcher
+          repoPath={repoPath}
+          onBranchChanged={onBranchChanged}
+          onFetched={onFetched}
+          pruneOnFetch={pruneOnFetch}
+        />
       )}
     </div>
   )

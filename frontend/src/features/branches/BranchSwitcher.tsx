@@ -8,14 +8,17 @@ import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { useFetchAll } from '../remotes/useFetchAll'
 import BranchPill from '../../components/git/BranchPill'
+import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
 import './BranchSwitcher.scss'
 
 interface BranchSwitcherProps {
   repoPath: string
   onBranchChanged?: () => void
   onFetched?: () => void
+  pruneOnFetch?: boolean
 }
 
 function loadSwitcher(repoPath: string) {
@@ -31,7 +34,7 @@ function loadSwitcher(repoPath: string) {
   ]).then(([local, remote, ahead, dirtyCount]) => ({ local, remote, ahead, dirtyCount }))
 }
 
-function BranchSwitcher({ repoPath, onBranchChanged, onFetched }: BranchSwitcherProps) {
+function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = false }: BranchSwitcherProps) {
   const { branchColor } = useLaneColors()
   const [filter, setFilter] = useState('')
   const { data, error: loadError, reload: load } = useAsyncData(() => loadSwitcher(repoPath), [repoPath])
@@ -71,8 +74,18 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched }: BranchSwitcher
       .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
-  const fetchAllOp = useFetchAll(repoPath, () => {
-    onFetched?.()
+  const fetchAllOp = useFetchAll(
+    repoPath,
+    () => {
+      onFetched?.()
+      load()
+    },
+    pruneOnFetch,
+  )
+
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
+    onBranchChanged?.()
     load()
   })
 
@@ -97,6 +110,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched }: BranchSwitcher
 
       {error && <p className="branch-switcher-error">{error}</p>}
       {fetchAllOp.error && <p className="branch-switcher-error">Could not fetch: {fetchAllOp.error}</p>}
+      {deleteRemote.error && <p className="branch-switcher-error">Could not delete on remote: {deleteRemote.error}</p>}
 
       {current && (
         <div className="branch-switcher-section">
@@ -149,6 +163,22 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched }: BranchSwitcher
               key={name}
               className="branch-switcher-row branch-switcher-row-remote"
               onClick={() => checkoutBranch(localNameFor(name))}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                setContextMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  items: [
+                    { label: 'Checkout', onClick: () => checkoutBranch(localNameFor(name)) },
+                    {
+                      label: 'Delete on remote…',
+                      onClick: () => void deleteRemote.deleteRemoteBranch(name),
+                      destructive: true,
+                      disabled: deleteRemote.running,
+                    },
+                  ],
+                })
+              }}
             >
               <Cloud size={14} strokeWidth={1.5} className="branch-switcher-remote-icon" />
               <span className="branch-switcher-remote-name">{name}</span>
@@ -168,6 +198,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched }: BranchSwitcher
           {fetchAllOp.running ? 'Fetching… (cancel)' : 'Fetch all'}
         </button>
       </div>
+      {contextMenu && <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />}
     </div>
   )
 }

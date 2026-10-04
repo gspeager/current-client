@@ -42,3 +42,30 @@ func TestPushRejectsWhenNoUpstreamConfigured(t *testing.T) {
 		t.Fatal("expected an error pushing with no upstream configured")
 	}
 }
+
+func TestDeleteRemoteBranchRemovesBranchAndTrackingRef(t *testing.T) {
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "push", "-u", "origin", "main")
+	gittest.Run(t, dir, "push", "origin", "main:feature")
+	gittest.Run(t, dir, "tag", "feature")
+	gittest.Run(t, dir, "push", "origin", "refs/tags/feature")
+	gittest.Run(t, dir, "fetch", "origin")
+
+	if err := DeleteRemoteBranch(context.Background(), dir, "origin", "feature"); err != nil {
+		t.Fatalf("DeleteRemoteBranch: %v", err)
+	}
+
+	if out := gittest.Run(t, "", "--git-dir", remoteDir, "branch", "--list", "feature"); out != "" {
+		t.Fatalf("feature still on the remote: %q", out)
+	}
+	if out := gittest.Run(t, dir, "branch", "-r", "--list", "origin/feature"); out != "" {
+		t.Fatalf("origin/feature still listed locally: %q", out)
+	}
+	if out := gittest.Run(t, "", "--git-dir", remoteDir, "tag", "--list", "feature"); out != "feature" {
+		t.Fatalf("the remote's feature tag was deleted too: %q", out)
+	}
+}
