@@ -43,6 +43,25 @@ describe('useRemoteSync', () => {
     expect(result.current.pushOp.error).toBeNull()
   })
 
+  it('force-pushes to the upstream it names, after confirming', async () => {
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({
+      current: 'feature',
+      upstream: 'team/origin/feat-x',
+    } as BranchStatusInfo)
+    vi.mocked(RemoteService.ForcePush).mockResolvedValue()
+    const onSynced = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
+
+    act(() => void result.current.forcePush())
+    const dialog = await screen.findByRole('alertdialog', { name: 'Force-push' })
+    expect(dialog).toHaveTextContent('Force-push feature to team/origin/feat-x?')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Force-push' }))
+
+    await vi.waitFor(() => expect(onSynced).toHaveBeenCalled())
+    // The backend resolves the remote and branch from the upstream itself.
+    expect(RemoteService.ForcePush).toHaveBeenCalledWith(REPO, null)
+  })
+
   it('pulls with rebase and reports the sync', async () => {
     vi.mocked(RemoteService.PullRebase).mockResolvedValue()
     const onSynced = vi.fn()
