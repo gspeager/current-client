@@ -96,7 +96,16 @@ function CompareModal({ repoPath, initialFromRef, initialToRef, onClose }: Compa
               <div className="compare-diff-toolbar">
                 <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
-              <DiffViewer diff={diff} path={selectedPath} viewMode={viewMode} />
+              <DiffViewer
+                diff={diff}
+                path={selectedPath}
+                viewMode={viewMode}
+                images={{
+                  repoPath,
+                  before: { kind: 'commit', rev: fromRef },
+                  after: { kind: 'commit', rev: toRef },
+                }}
+              />
             </>
           ) : (
             <p className="compare-hint">Loading diff…</p>

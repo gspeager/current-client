@@ -71,7 +71,7 @@ function DiffViewer({
     })
   }
 
-  const image = images && imageMimeType(path) ? <ImageDiff {...images} path={path} /> : null
+  const image = images && imageMimeType(path) ? <ImageDiff {...images} path={path} refreshKey={diff} /> : null
   if (image && (diff.binary || diff.tooLarge)) return image
   // SVG is text to Git, so it can be read either way.
   const imageToggle = image && (

@@ -16,6 +16,8 @@ type ImageDiffMode = 'side' | 'swipe' | 'onion'
 
 interface ImageDiffProps extends ImageSources {
   path: string
+  // Reloads the images in place when it changes, such as after the file changes on disk.
+  refreshKey?: unknown
 }
 
 function formatSize(bytes: number): string {
@@ -54,7 +56,7 @@ function ImageVersion({ label, content, src }: { label: string; content: FileCon
   )
 }
 
-function ImageDiff({ repoPath, path, before, after }: ImageDiffProps) {
+function ImageDiff({ repoPath, path, before, after, refreshKey }: ImageDiffProps) {
   const [mode, setMode] = useState<ImageDiffMode>('side')
   const [position, setPosition] = useState(50)
   const { data, error } = useAsyncData(
@@ -66,6 +68,7 @@ function ImageDiff({ repoPath, path, before, after }: ImageDiffProps) {
     // Callers build before/after inline, so compare their fields rather than the objects.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [repoPath, path, before.kind, before.rev, after.kind, after.rev],
+    { refreshKey },
   )
 
   if (error) return <p className="diff-empty-state">Could not load the images: {error}</p>

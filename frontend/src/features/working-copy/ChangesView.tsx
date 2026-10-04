@@ -223,6 +223,11 @@ function ChangesView({
                 onUnstageHunk={showsStaged ? unstageHunk : undefined}
                 onDiscardHunk={discardHunk}
                 onForceLoad={() => setForcedPath(selectedPath)}
+                images={{
+                  repoPath,
+                  before: showsStaged ? { kind: 'commit', rev: 'HEAD' } : { kind: 'index', rev: '' },
+                  after: showsStaged ? { kind: 'index', rev: '' } : { kind: 'worktree', rev: '' },
+                }}
               />
             ) : (
               <p className="changes-empty">Loading diff…</p>
