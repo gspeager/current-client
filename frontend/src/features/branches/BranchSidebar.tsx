@@ -57,6 +57,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   })
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<{ name: string; tip: string } | null>(null)
+  const [squashed, setSquashed] = useState<string | null>(null)
 
   const checkoutBranch = (name: string) => {
     setActionError(null)
@@ -100,9 +101,14 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
-  const mergeBranch = (name: string) => {
+  // mode is '' (fast-forward when possible), 'no-ff' or 'squash'.
+  const mergeBranch = (name: string, mode = '') => {
     setActionError(null)
-    BranchService.MergeBranch(repoPath, name)
+    setSquashed(null)
+    BranchService.MergeBranch(repoPath, name, mode)
+      .then(() => {
+        if (mode === 'squash') setSquashed(name)
+      })
       .catch((err: unknown) => setActionError(errorMessage(err)))
       .finally(() => {
         // A failed merge leaves conflicts the banner must pick up.
@@ -173,6 +179,12 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       items: [
         { label: 'Checkout', onClick: () => checkoutBranch(b.name), disabled: b.current },
         { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
+        {
+          label: 'Merge into current (no fast-forward)',
+          onClick: () => mergeBranch(b.name, 'no-ff'),
+          disabled: b.current,
+        },
+        { label: 'Squash into current', onClick: () => mergeBranch(b.name, 'squash'), disabled: b.current },
         ...(b.current && defaultBranch && defaultBranch !== b.name
           ? [{ label: `Merge ${defaultBranch} into current`, onClick: () => mergeDefaultBranch(defaultBranch) }]
           : []),
@@ -257,6 +269,11 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
           <button type="button" onClick={() => restoreDeleted(deleted)}>
             Undo
           </button>
+        </p>
+      )}
+      {squashed && (
+        <p className="branch-sidebar-notice" role="status">
+          Changes from {squashed} are staged. Commit them to finish the squash.
         </p>
       )}
       {branches === null ? (

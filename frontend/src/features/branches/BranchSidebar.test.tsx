@@ -95,8 +95,37 @@ describe('BranchSidebar', () => {
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
     await user.click(await screen.findByRole('button', { name: 'Merge main into current' }))
 
-    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main')
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main', '')
     await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+  })
+
+  it('merges with a merge commit when fast-forward is turned off', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('feature')])
+    vi.mocked(BranchService.MergeBranch).mockResolvedValue()
+    const onBranchChanged = renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
+    await user.click(await screen.findByRole('button', { name: 'Merge into current (no fast-forward)' }))
+
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'feature', 'no-ff')
+    await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('squashes a branch and says to commit the staged changes', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('feature')])
+    vi.mocked(BranchService.MergeBranch).mockResolvedValue()
+    renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
+    await user.click(await screen.findByRole('button', { name: 'Squash into current' }))
+
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'feature', 'squash')
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Changes from feature are staged. Commit them to finish the squash.',
+    )
   })
 
   it("deletes a branch's upstream on the remote after confirming", async () => {
@@ -154,7 +183,7 @@ describe('BranchSidebar', () => {
     expect(dialog).toHaveTextContent('main is 3 commits behind origin/main.')
     await user.click(within(dialog).getByRole('button', { name: 'Merge anyway' }))
 
-    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main')
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main', '')
   })
 
   it('does not merge a stale default branch when the warning is cancelled', async () => {
