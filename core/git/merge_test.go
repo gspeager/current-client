@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -109,5 +110,35 @@ func TestMergeBranchModeSquashStagesWithoutCommitting(t *testing.T) {
 	}
 	if staged := gittest.Run(t, dir, "diff", "--cached", "--name-only"); staged != "a.txt\nb.txt" {
 		t.Fatalf("staged = %q, want both of feature's files", staged)
+	}
+}
+
+func TestSquashedSubjectsListsSquashedCommitsUntilCommitted(t *testing.T) {
+	ctx := context.Background()
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "checkout", "-q", "-b", "feature")
+	gittest.CommitFile(t, dir, "a.txt", "a", "feat: first thing\n\nWith a body.")
+	gittest.CommitFile(t, dir, "b.txt", "b", "fix: second thing")
+	gittest.Run(t, dir, "checkout", "-q", "main")
+
+	if got, err := SquashedSubjects(ctx, dir); err != nil || got != nil {
+		t.Fatalf("before squashing = %v, %v; want nil", got, err)
+	}
+	if err := MergeBranchMode(ctx, dir, "feature", MergeSquash); err != nil {
+		t.Fatalf("MergeBranchMode: %v", err)
+	}
+
+	got, err := SquashedSubjects(ctx, dir)
+	if err != nil {
+		t.Fatalf("SquashedSubjects: %v", err)
+	}
+	if want := []string{"fix: second thing", "feat: first thing"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+
+	gittest.Run(t, dir, "commit", "-q", "-m", "feat: squashed")
+	if got, err := SquashedSubjects(ctx, dir); err != nil || got != nil {
+		t.Fatalf("after committing = %v, %v; want nil", got, err)
 	}
 }

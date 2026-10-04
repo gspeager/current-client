@@ -1,6 +1,12 @@
 package git
 
-import "context"
+import (
+	"context"
+	"errors"
+	"os"
+	"path/filepath"
+	"strings"
+)
 
 type MergeMode string
 
@@ -28,4 +34,36 @@ func MergeBranchMode(ctx context.Context, repoPath, branch string, mode MergeMod
 	}
 	_, err := runResult(ctx, repoPath, append(args, branch)...)
 	return err
+}
+
+// SquashedSubjects lists the subjects of the commits a pending squash merge
+// staged, newest first, read from Git's SQUASH_MSG. It's nil when no squash is
+// pending; committing or resetting removes the file.
+func SquashedSubjects(ctx context.Context, repoPath string) ([]string, error) {
+	dir, err := GitDir(ctx, repoPath)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "SQUASH_MSG"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	// Each commit is "commit <sha>", header lines, a blank line, then its
+	// message indented by four spaces.
+	var subjects []string
+	awaitingSubject := false
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimRight(line, "\r")
+		switch {
+		case strings.HasPrefix(line, "commit "):
+			awaitingSubject = true
+		case awaitingSubject && strings.HasPrefix(line, "    "):
+			subjects = append(subjects, strings.TrimSpace(line))
+			awaitingSubject = false
+		}
+	}
+	return subjects, nil
 }

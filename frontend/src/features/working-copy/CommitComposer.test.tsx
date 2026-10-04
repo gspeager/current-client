@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { IdentityService, type CurrentUserInfo } from '@current-client-bindings/app'
+import { CommitService, IdentityService, type CurrentUserInfo } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import CommitComposer from './CommitComposer'
 
@@ -103,5 +103,36 @@ describe('CommitComposer type picker', () => {
     renderComposer()
 
     expect(screen.queryByRole('combobox', { name: 'Commit type' })).toBeNull()
+  })
+})
+
+describe('CommitComposer after a squash merge', () => {
+  it('starts the description with the squashed commits and leaves the summary to write', async () => {
+    vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada Lovelace', 'ada@example.com'))
+    vi.mocked(CommitService.GetSquashedSubjects).mockResolvedValue(['fix: second thing', 'feat: first thing'])
+    const onMessageChange = vi.fn()
+    render(
+      <DialogProvider>
+        <CommitComposer repoPath={REPO} stagedCount={2} onCommitted={vi.fn()} onMessageChange={onMessageChange} />
+      </DialogProvider>,
+    )
+
+    await vi.waitFor(() =>
+      expect(screen.getByPlaceholderText('Description')).toHaveValue('- fix: second thing\n- feat: first thing'),
+    )
+    expect(screen.getByPlaceholderText('Summary')).toHaveValue('')
+    expect(onMessageChange).toHaveBeenCalledWith('\n\n- fix: second thing\n- feat: first thing')
+  })
+
+  it('keeps a draft that was already there', async () => {
+    vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada Lovelace', 'ada@example.com'))
+    render(
+      <DialogProvider>
+        <CommitComposer repoPath={REPO} stagedCount={2} onCommitted={vi.fn()} initialMessage="feat: my own words" />
+      </DialogProvider>,
+    )
+
+    expect(await screen.findByDisplayValue('feat: my own words')).toBeInTheDocument()
+    expect(CommitService.GetSquashedSubjects).not.toHaveBeenCalled()
   })
 })
