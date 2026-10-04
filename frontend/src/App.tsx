@@ -262,6 +262,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             workingTree={workingTree}
             onBranchChanged={onBranchChanged}
             onFetched={onFetched}
+            pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
             onOpenHeadCommit={openCommit}
             width={navWidth.width}
             collapsed={navCollapsed}
