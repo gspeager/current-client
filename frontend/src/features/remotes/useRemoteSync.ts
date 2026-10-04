@@ -57,7 +57,6 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
         pushOp.setError('No upstream configured to force-push to.')
         return
       }
-      const remoteName = status.upstream.split('/')[0]
       const confirmed = await confirm({
         title: 'Force-push',
         message: `Force-push ${status.current} to ${status.upstream}? This rewrites remote history and can discard commits other people have pushed.`,
@@ -65,7 +64,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
         destructive: true,
       })
       if (!confirmed) return
-      void pushOp.run((auth) => RemoteService.ForcePush(repoPath, remoteName, status.current, auth), onSynced)
+      void pushOp.run((auth) => RemoteService.ForcePush(repoPath, auth), onSynced)
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
     }

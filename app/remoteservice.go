@@ -110,10 +110,11 @@ func (s *RemoteService) PushSetUpstream(ctx context.Context, repoPath, remote, b
 	return git.PushSetUpstream(ctx, repoPath, remote, branch)
 }
 
-func (s *RemoteService) ForcePush(ctx context.Context, repoPath, remote, branch string, auth *gitexec.Credential) error {
+// ForcePush force-pushes the current branch to its configured upstream.
+func (s *RemoteService) ForcePush(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
 	ctx, err := withAuth(ctx, auth)
 	if err != nil {
 		return err
 	}
-	return git.ForcePush(ctx, repoPath, remote, branch)
+	return git.ForcePushUpstream(ctx, repoPath)
 }

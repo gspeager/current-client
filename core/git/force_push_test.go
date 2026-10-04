@@ -65,3 +65,69 @@ func TestForcePushRejectsWhenRemoteMovedUnexpectedly(t *testing.T) {
 		t.Fatal("expected --force-with-lease to reject a remote that moved since the last known state")
 	}
 }
+
+// Local "feature" tracks "feat-x" on a remote named "team/origin", and the
+// remote also has an unrelated "feature" that must not be touched.
+func TestForcePushUpstreamUpdatesTheConfiguredUpstream(t *testing.T) {
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "team/origin", remoteDir)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "A")
+	base := gittest.Run(t, dir, "rev-parse", "HEAD")
+	gittest.Run(t, dir, "push", "team/origin", "main", "main:feat-x", "main:feature")
+	gittest.Run(t, dir, "fetch", "-q", "team/origin")
+	gittest.Run(t, dir, "checkout", "-q", "-b", "feature", "--track", "team/origin/feat-x")
+	gittest.CommitFile(t, dir, "file.txt", "v2", "B")
+	gittest.Run(t, dir, "push", "-q", "team/origin", "HEAD:feat-x")
+	gittest.Run(t, dir, "reset", "-q", "--hard", base)
+	gittest.CommitFile(t, dir, "file.txt", "v3", "C (rewrites B)")
+	rewritten := gittest.Run(t, dir, "rev-parse", "HEAD")
+
+	if err := ForcePushUpstream(context.Background(), dir); err != nil {
+		t.Fatalf("ForcePushUpstream: %v", err)
+	}
+
+	if got := gittest.Run(t, "", "--git-dir", remoteDir, "rev-parse", "feat-x"); got != rewritten {
+		t.Fatalf("remote feat-x = %q, want the rewritten %q", got, rewritten)
+	}
+	if got := gittest.Run(t, "", "--git-dir", remoteDir, "rev-parse", "feature"); got != base {
+		t.Fatalf("remote feature = %q, want it untouched at %q", got, base)
+	}
+}
+
+func TestForcePushUpstreamRefusesWithoutUpstream(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "A")
+
+	err := ForcePushUpstream(context.Background(), dir)
+	if err == nil || err.Error() != "No upstream configured to force-push to." {
+		t.Fatalf("err = %v, want the no-upstream message", err)
+	}
+}
+
+func TestForcePushUpstreamRejectsWhenUpstreamMovedSinceFetch(t *testing.T) {
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "A")
+	gittest.Run(t, dir, "push", "-u", "origin", "main:feat-x")
+	gittest.Run(t, dir, "branch", "-q", "--set-upstream-to=origin/feat-x")
+
+	clone := t.TempDir()
+	gittest.Run(t, "", "clone", "-q", "-b", "feat-x", remoteDir, clone)
+	gittest.Run(t, clone, "config", "user.email", "test@example.com")
+	gittest.Run(t, clone, "config", "user.name", "Test")
+	gittest.CommitFile(t, clone, "theirs.txt", "theirs", "someone else's work")
+	gittest.Run(t, clone, "push", "-q", "origin", "feat-x")
+	theirs := gittest.Run(t, clone, "rev-parse", "HEAD")
+
+	gittest.CommitFile(t, dir, "file.txt", "v2", "mine")
+	if err := ForcePushUpstream(context.Background(), dir); err == nil {
+		t.Fatal("force push overwrote work it hadn't fetched")
+	}
+	if got := gittest.Run(t, "", "--git-dir", remoteDir, "rev-parse", "feat-x"); got != theirs {
+		t.Fatalf("remote feat-x = %q, want their commit %q kept", got, theirs)
+	}
+}
