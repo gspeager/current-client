@@ -9,6 +9,7 @@ import {
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
+import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
@@ -49,8 +50,14 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   const [showNewBranch, setShowNewBranch] = useState(false)
   const newBranch = toBranchName(newBranchName)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  // Refreshes the graph too, which still shows the deleted remote branch.
+  const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
+    loadBranches()
+    onBranchChanged?.()
+  })
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<{ name: string; tip: string } | null>(null)
+  const [squashed, setSquashed] = useState<string | null>(null)
 
   const checkoutBranch = (name: string) => {
     setActionError(null)
@@ -94,9 +101,14 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
-  const mergeBranch = (name: string) => {
+  // mode is '' (fast-forward when possible), 'no-ff' or 'squash'.
+  const mergeBranch = (name: string, mode = '') => {
     setActionError(null)
-    BranchService.MergeBranch(repoPath, name)
+    setSquashed(null)
+    BranchService.MergeBranch(repoPath, name, mode)
+      .then(() => {
+        if (mode === 'squash') setSquashed(name)
+      })
       .catch((err: unknown) => setActionError(errorMessage(err)))
       .finally(() => {
         // A failed merge leaves conflicts the banner must pick up.
@@ -167,6 +179,12 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       items: [
         { label: 'Checkout', onClick: () => checkoutBranch(b.name), disabled: b.current },
         { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
+        {
+          label: 'Merge into current (no fast-forward)',
+          onClick: () => mergeBranch(b.name, 'no-ff'),
+          disabled: b.current,
+        },
+        { label: 'Squash into current', onClick: () => mergeBranch(b.name, 'squash'), disabled: b.current },
         ...(b.current && defaultBranch && defaultBranch !== b.name
           ? [{ label: `Merge ${defaultBranch} into current`, onClick: () => mergeDefaultBranch(defaultBranch) }]
           : []),
@@ -174,6 +192,16 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
         { label: 'Rename…', onClick: () => renameBranch(b.name) },
         { label: 'Delete', onClick: () => deleteBranch(b.name, false), destructive: true, disabled: b.current },
+        ...(b.upstream
+          ? [
+              {
+                label: `Delete ${b.upstream} on remote…`,
+                onClick: () => void deleteRemote.deleteRemoteBranch(b.upstream),
+                destructive: true,
+                disabled: deleteRemote.running,
+              },
+            ]
+          : []),
       ],
     })
   }
@@ -232,6 +260,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       )}
 
       {error && <p className="branch-sidebar-error">{error}</p>}
+      {deleteRemote.error && <p className="branch-sidebar-error">Could not delete on remote: {deleteRemote.error}</p>}
       {deleted && (
         <p className="branch-sidebar-deleted" role="status">
           <span>
@@ -240,6 +269,11 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
           <button type="button" onClick={() => restoreDeleted(deleted)}>
             Undo
           </button>
+        </p>
+      )}
+      {squashed && (
+        <p className="branch-sidebar-notice" role="status">
+          Changes from {squashed} are staged. Commit them to finish the squash.
         </p>
       )}
       {branches === null ? (

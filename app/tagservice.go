@@ -45,6 +45,14 @@ func (s *TagService) PushTag(ctx context.Context, repoPath, remote, name string,
 	return git.PushTag(ctx, repoPath, remote, name)
 }
 
+func (s *TagService) DeleteRemoteTag(ctx context.Context, repoPath, remote, name string, auth *gitexec.Credential) error {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
+	return git.DeleteRemoteTag(ctx, repoPath, remote, name)
+}
+
 func (s *TagService) GetTagMessage(repoPath, name string) (TagMessageInfo, error) {
 	subject, body, err := git.TagMessage(context.Background(), repoPath, name)
 	return TagMessageInfo{Subject: subject, Body: body}, err

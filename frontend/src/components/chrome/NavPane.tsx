@@ -42,6 +42,7 @@ interface NavPaneProps {
   workingTree: ReturnType<typeof useWorkingTree>
   onBranchChanged: () => void
   onFetched: () => void
+  pruneOnFetch?: boolean
   onOpenHeadCommit: (sha: string) => void
   width: number
   collapsed: boolean
@@ -63,6 +64,7 @@ function NavPane({
   workingTree,
   onBranchChanged,
   onFetched,
+  pruneOnFetch,
   onOpenHeadCommit,
   width,
   collapsed,
@@ -322,7 +324,7 @@ function NavPane({
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('remotes')}>
-          <RemotesPanel repoPath={repoPath} onFetched={onFetched} />
+          <RemotesPanel repoPath={repoPath} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
         </section>
       </div>
 
