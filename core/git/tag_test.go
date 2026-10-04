@@ -180,3 +180,28 @@ func TestTagsInRange(t *testing.T) {
 		t.Errorf("after v0.1.0 = %s, want v0.2.0", got)
 	}
 }
+
+func TestDeleteRemoteTagKeepsLocalTagAndSameNamedBranch(t *testing.T) {
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "push", "-u", "origin", "main")
+	gittest.Run(t, dir, "tag", "v1.0")
+	gittest.Run(t, dir, "push", "origin", "refs/tags/v1.0", "main:refs/heads/v1.0")
+
+	if err := DeleteRemoteTag(context.Background(), dir, "origin", "v1.0"); err != nil {
+		t.Fatalf("DeleteRemoteTag: %v", err)
+	}
+
+	if out := gittest.Run(t, "", "--git-dir", remoteDir, "tag", "--list", "v1.0"); out != "" {
+		t.Fatalf("v1.0 still tagged on the remote: %q", out)
+	}
+	if out := gittest.Run(t, "", "--git-dir", remoteDir, "branch", "--list", "v1.0"); out == "" {
+		t.Fatal("the remote's v1.0 branch was deleted too")
+	}
+	if out := gittest.Run(t, dir, "tag", "--list", "v1.0"); out != "v1.0" {
+		t.Fatalf("local v1.0 tag = %q, want it kept", out)
+	}
+}

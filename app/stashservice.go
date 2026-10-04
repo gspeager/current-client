@@ -40,3 +40,16 @@ func (s *StashService) StashPop(repoPath string, index int) error {
 func (s *StashService) StashDrop(repoPath string, index int) error {
 	return git.StashDrop(context.Background(), repoPath, index)
 }
+
+func (s *StashService) GetChangedFiles(repoPath string, index int) ([]ChangedFile, error) {
+	ctx := context.Background()
+	files, err := git.StashChangedFiles(ctx, repoPath, index)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := git.StashNumstat(ctx, repoPath, index)
+	if err != nil {
+		return nil, err
+	}
+	return withLineCounts(files, stats), nil
+}

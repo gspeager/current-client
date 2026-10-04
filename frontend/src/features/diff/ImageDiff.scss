@@ -1,0 +1,68 @@
+.image-diff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+}
+
+.image-diff-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.image-diff-slider {
+  width: 200px;
+  accent-color: var(--outline);
+}
+
+.image-diff-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.image-diff-version {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  margin: 0;
+}
+
+.image-diff-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.image-diff-meta {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.image-diff-note {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+// Both versions share one grid cell, so the overlay lines up with what's under it.
+.image-diff-stack {
+  display: grid;
+  justify-items: start;
+
+  > .image-diff-image {
+    grid-area: 1 / 1;
+  }
+}
+
+.image-diff-image {
+  max-width: 100%;
+  height: auto;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  background: var(--surface-container);
+}
