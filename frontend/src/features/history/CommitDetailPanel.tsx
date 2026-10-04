@@ -183,7 +183,16 @@ function CommitDetailPanel({
                 <div className="commit-detail-diff-toolbar">
                   <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
                 </div>
-                <DiffViewer diff={fileDiff} path={selectedFilePath} viewMode={viewMode} />
+                <DiffViewer
+                  diff={fileDiff}
+                  path={selectedFilePath}
+                  viewMode={viewMode}
+                  images={{
+                    repoPath,
+                    before: { kind: 'commit', rev: diffBaseFor(commit.parentShas) },
+                    after: { kind: 'commit', rev: commit.sha },
+                  }}
+                />
               </>
             ) : (
               <p className="commit-detail-hint">Loading diff…</p>

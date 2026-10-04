@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { DiffService, StatusService, type FileStatus } from '@current-client-bindings/app'
+import { DiffService, FileContent, FileDiff, StatusService, type FileStatus } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { isStagedStatus, isUnstagedStatus } from './fileStatus'
 import { giveElementsLayout } from '../../test/bindings'
@@ -110,6 +110,25 @@ describe('ChangesView staging', () => {
 
     rerender(changesView(workingTreeFor([file('src/app.ts')])))
     expect(DiffService.GetWorkingTreeDiff).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows a changed image from the index and the working tree, and reloads it with the status', async () => {
+    // A new diff each time, as from the backend; the images reload when it changes.
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockImplementation(
+      () => Promise.resolve(new FileDiff({ binary: true })) as never,
+    )
+    vi.mocked(DiffService.GetFileContent).mockResolvedValue(new FileContent({ found: true, data: btoa('png') }))
+    const { rerender } = render(changesView(workingTreeFor([file('logo.png', { workBinary: true })])))
+
+    await userEvent.click(screen.getByRole('button', { name: 'logo.png' }))
+
+    expect(await screen.findByRole('img', { name: 'After' })).toBeInTheDocument()
+    expect(DiffService.GetFileContent).toHaveBeenCalledWith(REPO, 'logo.png', { kind: 'index', rev: '' })
+    expect(DiffService.GetFileContent).toHaveBeenCalledWith(REPO, 'logo.png', { kind: 'worktree', rev: '' })
+    expect(DiffService.GetFileContent).toHaveBeenCalledTimes(2)
+
+    rerender(changesView(workingTreeFor([file('logo.png', { workBinary: true })])))
+    await vi.waitFor(() => expect(DiffService.GetFileContent).toHaveBeenCalledTimes(4))
   })
 
   it('shows why an action failed', async () => {

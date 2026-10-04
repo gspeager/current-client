@@ -41,6 +41,11 @@ function CompareModal({ repoPath, initialFromRef, initialToRef, onClose }: Compa
         files={files}
         error={error}
         emptyHint="No differences between these refs."
+        images={{
+          repoPath,
+          before: { kind: 'commit', rev: fromRef },
+          after: { kind: 'commit', rev: toRef },
+        }}
         loadDiff={(file) => DiffService.GetRefDiff(repoPath, file.path, fromRef, toRef, false)}
       />
     </Modal>
