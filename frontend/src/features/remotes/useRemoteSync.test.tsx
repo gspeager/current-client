@@ -43,6 +43,18 @@ describe('useRemoteSync', () => {
     expect(result.current.pushOp.error).toBeNull()
   })
 
+  it('pulls with rebase and reports the sync', async () => {
+    vi.mocked(RemoteService.PullRebase).mockResolvedValue()
+    const onSynced = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
+
+    await act(async () => result.current.pullRebase())
+
+    await vi.waitFor(() => expect(onSynced).toHaveBeenCalled())
+    expect(RemoteService.PullRebase).toHaveBeenCalledWith(REPO, null)
+    expect(RemoteService.Pull).not.toHaveBeenCalled()
+  })
+
   it('sets the upstream after confirming when the branch has none', async () => {
     vi.mocked(RemoteService.Push).mockRejectedValue(new Error('This branch has no upstream configured.'))
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'feature' } as BranchStatusInfo)
