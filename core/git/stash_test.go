@@ -156,3 +156,57 @@ func TestStashDropRemovesStash(t *testing.T) {
 		t.Fatalf("got %+v, want only the older stash (\"first\") to remain after dropping index 0", stashes)
 	}
 }
+
+func TestStashChangedFilesListsTrackedAndUntracked(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "tracked.txt", "one\n", "initial")
+	gittest.WriteFile(t, dir, "tracked.txt", "one\ntwo\n")
+	gittest.WriteFile(t, dir, "new.txt", "a\nb\nc\n")
+	ctx := context.Background()
+	if err := StashSave(ctx, dir, "wip", true); err != nil {
+		t.Fatalf("StashSave: %v", err)
+	}
+
+	files, err := StashChangedFiles(ctx, dir, 0)
+	if err != nil {
+		t.Fatalf("StashChangedFiles: %v", err)
+	}
+	want := []ChangedFile{{Status: "M", Path: "tracked.txt"}, {Status: "?", Path: "new.txt"}}
+	if !reflect.DeepEqual(files, want) {
+		t.Fatalf("got %+v, want %+v", files, want)
+	}
+
+	stats, err := StashNumstat(ctx, dir, 0)
+	if err != nil {
+		t.Fatalf("StashNumstat: %v", err)
+	}
+	added := map[string]int{}
+	for _, s := range stats {
+		added[s.Path] = s.Added
+	}
+	if added["tracked.txt"] != 1 || added["new.txt"] != 3 {
+		t.Fatalf("added lines = %v, want tracked.txt 1 and new.txt 3", added)
+	}
+}
+
+func TestStashChangedFilesWithoutUntracked(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "tracked.txt", "one\n", "initial")
+	gittest.WriteFile(t, dir, "tracked.txt", "two\n")
+	ctx := context.Background()
+	if err := StashSave(ctx, dir, "", false); err != nil {
+		t.Fatalf("StashSave: %v", err)
+	}
+
+	ref, err := stashUntrackedRef(ctx, dir, 0)
+	if err != nil || ref != "" {
+		t.Fatalf("stashUntrackedRef = %q, %v; want no untracked commit", ref, err)
+	}
+	files, err := StashChangedFiles(ctx, dir, 0)
+	if err != nil {
+		t.Fatalf("StashChangedFiles: %v", err)
+	}
+	if want := []ChangedFile{{Status: "M", Path: "tracked.txt"}}; !reflect.DeepEqual(files, want) {
+		t.Fatalf("got %+v, want %+v", files, want)
+	}
+}

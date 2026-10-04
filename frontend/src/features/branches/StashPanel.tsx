@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { ArrowDownToLine, Download, Package, PackagePlus, X } from 'lucide-react'
-import { StashService } from '@current-client-bindings/app'
+import { ArrowDownToLine, Download, Eye, Package, PackagePlus, X } from 'lucide-react'
+import { StashService, type StashInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import StashModal from './StashModal'
 import './StashPanel.scss'
 
 interface StashPanelProps {
@@ -27,6 +28,7 @@ function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
   const [includeUntracked, setIncludeUntracked] = useState(false)
   const [showNewStash, setShowNewStash] = useState(false)
   const [busyIndex, setBusyIndex] = useState<number | null>(null)
+  const [shownStash, setShownStash] = useState<StashInfo | null>(null)
 
   const saveStash = () => {
     setActionError(null)
@@ -125,6 +127,14 @@ function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
               <span className="stash-row-actions">
                 <button
                   type="button"
+                  onClick={() => setShownStash(s)}
+                  aria-label={`Show changes in stash: ${s.message}`}
+                  title="Show changes"
+                >
+                  <Eye size={16} strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
                   onClick={() => applyStash(s.index)}
                   disabled={busyIndex !== null}
                   aria-label={`Apply stash: ${s.message}`}
@@ -155,6 +165,7 @@ function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
           ))}
         </ul>
       )}
+      {shownStash && <StashModal repoPath={repoPath} stash={shownStash} onClose={() => setShownStash(null)} />}
     </div>
   )
 }

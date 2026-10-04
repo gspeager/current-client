@@ -18,6 +18,7 @@ interface BranchSwitcherProps {
   repoPath: string
   onBranchChanged?: () => void
   onFetched?: () => void
+  pruneOnFetch?: boolean
 }
 
 function loadSwitcher(repoPath: string) {
@@ -33,7 +34,7 @@ function loadSwitcher(repoPath: string) {
   ]).then(([local, remote, ahead, dirtyCount]) => ({ local, remote, ahead, dirtyCount }))
 }
 
-function BranchSwitcher({ repoPath, onBranchChanged, onFetched }: BranchSwitcherProps) {
+function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = false }: BranchSwitcherProps) {
   const { branchColor } = useLaneColors()
   const [filter, setFilter] = useState('')
   const { data, error: loadError, reload: load } = useAsyncData(() => loadSwitcher(repoPath), [repoPath])
@@ -73,10 +74,14 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched }: BranchSwitcher
       .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
-  const fetchAllOp = useFetchAll(repoPath, () => {
-    onFetched?.()
-    load()
-  })
+  const fetchAllOp = useFetchAll(
+    repoPath,
+    () => {
+      onFetched?.()
+      load()
+    },
+    pruneOnFetch,
+  )
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
