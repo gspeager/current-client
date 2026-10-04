@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { FileCode, Image } from 'lucide-react'
 import type { FileDiff } from '@current-client-bindings/app'
+import SegmentedControl from '../../components/controls/SegmentedControl'
+import ImageDiff, { type ImageSources } from './ImageDiff'
+import { imageMimeType } from './imageFiles'
 import { buildDisplayRows, diffStats } from './diffRows'
 import DiffPane, { type HunkActions } from './DiffPane'
 import './DiffViewer.scss'
@@ -21,9 +25,21 @@ interface DiffViewerProps extends HunkActions {
   baseSide?: DiffSideLabel
   targetSide?: DiffSideLabel
   onForceLoad?: () => void
+  // Where to read the two versions of an image from; without it images show as binary.
+  images?: ImageSources
 }
 
-function DiffViewer({ diff, path, viewMode, baseSide, targetSide, onForceLoad, ...hunkActions }: DiffViewerProps) {
+function DiffViewer({
+  diff,
+  path,
+  viewMode,
+  baseSide,
+  targetSide,
+  onForceLoad,
+  images,
+  ...hunkActions
+}: DiffViewerProps) {
+  const [showImage, setShowImage] = useState(true)
   const paneRef = useRef<HTMLDivElement>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
@@ -55,6 +71,30 @@ function DiffViewer({ diff, path, viewMode, baseSide, targetSide, onForceLoad, .
     })
   }
 
+  const image = images && imageMimeType(path) ? <ImageDiff {...images} path={path} /> : null
+  if (image && (diff.binary || diff.tooLarge)) return image
+  // SVG is text to Git, so it can be read either way.
+  const imageToggle = image && (
+    <div className="diff-image-toggle">
+      <SegmentedControl
+        value={showImage ? 'image' : 'text'}
+        onChange={(value) => setShowImage(value === 'image')}
+        options={[
+          { value: 'image', label: 'Image', icon: Image },
+          { value: 'text', label: 'Text', icon: FileCode },
+        ]}
+      />
+    </div>
+  )
+  if (image && showImage) {
+    return (
+      <div>
+        {imageToggle}
+        {image}
+      </div>
+    )
+  }
+
   if (diff.tooLarge) {
     return (
       <p className="diff-empty-state">
@@ -83,6 +123,7 @@ function DiffViewer({ diff, path, viewMode, baseSide, targetSide, onForceLoad, .
 
   return (
     <div>
+      {imageToggle}
       {diff.conflicted && (
         <p className="diff-conflict-note">Conflicted. Edit the marked sections to resolve, then stage the file.</p>
       )}
