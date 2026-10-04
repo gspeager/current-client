@@ -19,6 +19,7 @@ type Settings struct {
 	AutoFetchIntervalMinutes    int                   `json:"autoFetchIntervalMinutes"`
 	LaneColorTheme              string                `json:"laneColorTheme"`
 	NavCollapsed                bool                  `json:"navCollapsed"`
+	PruneOnFetch                bool                  `json:"pruneOnFetch"`
 	DisableConventionalCommits  bool                  `json:"disableConventionalCommits"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
 }
@@ -46,6 +47,7 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		AutoFetchIntervalMinutes:    cfg.AutoFetchIntervalMinutes,
 		LaneColorTheme:              cfg.LaneColorTheme,
 		NavCollapsed:                cfg.NavCollapsed,
+		PruneOnFetch:                cfg.PruneOnFetch,
 		DisableConventionalCommits:  cfg.DisableConventionalCommits,
 		Changelog:                   changelogPrefs(cfg),
 	}, nil
@@ -104,6 +106,10 @@ func (s *SettingsService) SetLaneColorTheme(theme string) error {
 
 func (s *SettingsService) SetNavCollapsed(collapsed bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.NavCollapsed = collapsed })
+}
+
+func (s *SettingsService) SetPruneOnFetch(prune bool) error {
+	return updateConfig(func(cfg *config.Config) { cfg.PruneOnFetch = prune })
 }
 
 func (s *SettingsService) SetDisableConventionalCommits(disable bool) error {

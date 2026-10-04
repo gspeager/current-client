@@ -212,6 +212,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           repoPath={repo.repoPath}
           repoVersion={repoVersion}
           lastFetchedAt={lastFetchedAt}
+          pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
+          onPruneOnFetchChange={settings.setPruneOnFetch}
           repo={repo}
           dirty={dirty}
           onOpenSettings={() => setSettingsOpen(true)}

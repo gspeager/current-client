@@ -139,14 +139,23 @@
 
 .header-bar-fetch-status {
   flex-shrink: 0;
-  height: var(--h-chip);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
   font: var(--ui-xs);
   color: var(--outline);
   white-space: nowrap;
+}
+
+.header-bar-fetch {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  color: var(--on-surface-variant);
   cursor: pointer;
 
   &:hover:not(:disabled) {
@@ -154,8 +163,18 @@
     color: var(--on-surface);
   }
 
-  &:disabled {
-    cursor: default;
+  @include patterns.disabled;
+}
+
+.header-bar-fetch-prune {
+  flex-shrink: 0;
+
+  .checkbox {
+    gap: var(--space-xs);
+  }
+
+  .checkbox-label {
+    font: var(--ui-xs);
   }
 }
 
