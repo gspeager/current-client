@@ -172,6 +172,7 @@ function HeaderBar({
                     onViewChange={setPanelView}
                     onBranchChanged={onBranchChanged}
                     onFetched={onFetched}
+                    pruneOnFetch={pruneOnFetch}
                   />
                 </div>
               )}
