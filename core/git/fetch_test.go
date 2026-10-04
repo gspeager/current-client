@@ -85,6 +85,36 @@ func TestFetchAllUpdatesEveryRemote(t *testing.T) {
 	}
 }
 
+func TestFetchAllPruneDeletesGoneRemoteBranches(t *testing.T) {
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "push", "-u", "origin", "main")
+	gittest.Run(t, dir, "push", "origin", "main:feature")
+	gittest.Run(t, dir, "fetch", "origin")
+	gittest.Run(t, "", "--git-dir", remoteDir, "branch", "-D", "feature")
+
+	if err := FetchAll(context.Background(), dir); err != nil {
+		t.Fatalf("FetchAll: %v", err)
+	}
+	if out := gittest.Run(t, dir, "branch", "-r", "--list", "origin/feature"); out == "" {
+		t.Fatal("FetchAll removed origin/feature; only FetchAllPrune should")
+	}
+
+	if err := FetchAllPrune(context.Background(), dir); err != nil {
+		t.Fatalf("FetchAllPrune: %v", err)
+	}
+	if out := gittest.Run(t, dir, "branch", "-r", "--list", "origin/feature"); out != "" {
+		t.Fatalf("origin/feature still listed after FetchAllPrune: %q", out)
+	}
+	if out := gittest.Run(t, dir, "branch", "-r", "--list", "origin/main"); out == "" {
+		t.Fatal("FetchAllPrune removed origin/main, which still exists on the remote")
+	}
+}
+
 func TestLastFetchTimeNilBeforeAnyFetch(t *testing.T) {
 	dir := t.TempDir()
 	gittest.Run(t, dir, "init", "-b", "main")

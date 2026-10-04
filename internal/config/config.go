@@ -47,6 +47,9 @@ type Config struct {
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
 
+	// Whether the header's fetch also deletes remote-tracking branches gone from the remote.
+	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`
+
 	// Zero keeps the Changelog tab and commit type picker on.
 	DisableConventionalCommits bool `json:"disableConventionalCommits,omitempty"`
 

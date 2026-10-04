@@ -74,6 +74,14 @@ func (s *RemoteService) FetchAll(ctx context.Context, repoPath string, auth *git
 	return git.FetchAll(ctx, repoPath)
 }
 
+func (s *RemoteService) FetchAllPrune(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
+	return git.FetchAllPrune(ctx, repoPath)
+}
+
 func (s *RemoteService) LastFetchTime(repoPath string) (*time.Time, error) {
 	return git.LastFetchTime(context.Background(), repoPath)
 }

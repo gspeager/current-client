@@ -48,6 +48,8 @@ Current Client uses Git's own authentication and never shows Git's terminal prom
 
 Without those, a remote that needs an SSH passphrase or a host-key answer fails straight away with an explanation instead of waiting. Fetch, pull, push and clone can be cancelled while they run.
 
+**Fetch** in the header fetches every remote. Tick **Prune** next to it to also remove remote branches that were deleted on the remote; the choice is remembered.
+
 ## Reporting a problem
 
 Open an issue with the bug report template, and paste in the output of Settings → Diagnostics → **Copy diagnostics**: the app and Git versions, the OS and the last errors shown, with repository paths and your home folder hidden. Nothing is sent anywhere by the app.

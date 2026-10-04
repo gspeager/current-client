@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { System } from '@wailsio/runtime'
-import { ArrowDown, ArrowUp, ChevronDown, Plus, Settings, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, Plus, RefreshCw, Settings, X } from 'lucide-react'
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
+import Checkbox from '../forms/Checkbox'
 import FileHistoryPanel from '../../features/history/FileHistoryPanel'
 import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
@@ -24,6 +25,8 @@ interface HeaderBarProps {
   repoPath: string
   repoVersion: number
   lastFetchedAt: Date | null
+  pruneOnFetch: boolean
+  onPruneOnFetchChange: (prune: boolean) => void
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
   onOpenSettings: () => void
@@ -42,6 +45,8 @@ function HeaderBar({
   repoPath,
   repoVersion,
   lastFetchedAt,
+  pruneOnFetch,
+  onPruneOnFetchChange,
   repo,
   dirty,
   onOpenSettings,
@@ -57,7 +62,7 @@ function HeaderBar({
   const { branchColor } = useLaneColors()
   const currentUser = useCurrentUser(repoPath)
   const branchStatus = useBranchStatus(repoPath, repoVersion)
-  const fetchAllOp = useFetchAll(repoPath, onFetched)
+  const fetchAllOp = useFetchAll(repoPath, onFetched, pruneOnFetch)
   const [branchSwitcherOpen, setBranchSwitcherOpen] = useState(false)
   const [panelView, setPanelView] = useState<PanelView>('branch')
   const [quickSwitchOpen, setQuickSwitchOpen] = useState(false)
@@ -219,21 +224,31 @@ function HeaderBar({
         </button>
       )}
 
-      <button
-        type="button"
-        className="header-bar-fetch-status"
-        onClick={fetchAllOp.running ? fetchAllOp.cancel : fetchAllOp.fetchAll}
-        disabled={syncing}
-        title={fetchAllOp.running ? 'Cancel fetch' : 'Fetch all remotes'}
-      >
+      <span className="header-bar-fetch-status">
         {fetchAllOp.running
-          ? 'Fetching… (cancel)'
+          ? 'Fetching…'
           : syncing
             ? 'Syncing…'
             : lastFetchedAt
               ? `fetched ${relativeTime(lastFetchedAt)}`
               : 'Not fetched yet'}
+      </span>
+      <button
+        type="button"
+        className="header-bar-fetch"
+        onClick={fetchAllOp.running ? fetchAllOp.cancel : fetchAllOp.fetchAll}
+        disabled={syncing}
+        title={fetchAllOp.running ? 'Cancel fetch' : 'Fetch all remotes'}
+      >
+        <RefreshCw size={12} strokeWidth={1.5} />
+        {fetchAllOp.running ? 'Cancel' : 'Fetch'}
       </button>
+      <span
+        className="header-bar-fetch-prune"
+        title="Delete remote branches that are gone from the remote when fetching"
+      >
+        <Checkbox checked={pruneOnFetch} onChange={onPruneOnFetchChange} label="Prune" />
+      </span>
       {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
 
       <button type="button" className="header-bar-quick-switch" onClick={() => setQuickSwitchOpen(true)}>

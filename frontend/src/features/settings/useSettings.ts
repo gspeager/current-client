@@ -96,6 +96,11 @@ export function useSettings() {
     SettingsService.SetNavCollapsed(collapsed).catch((err: unknown) => setError(errorMessage(err)))
   }
 
+  const setPruneOnFetch = (prune: boolean) => {
+    setSettings((prev) => (prev ? { ...prev, pruneOnFetch: prune } : prev))
+    SettingsService.SetPruneOnFetch(prune).catch((err: unknown) => setError(errorMessage(err)))
+  }
+
   const setChangelogPrefs = (changelog: ChangelogPrefs) => {
     setSettings((prev) => (prev ? { ...prev, changelog } : prev))
     SettingsService.SetChangelogPrefs(changelog).catch((err: unknown) => setError(errorMessage(err)))
@@ -110,6 +115,7 @@ export function useSettings() {
     settings,
     error,
     setNavCollapsed,
+    setPruneOnFetch,
     setDisableConventionalCommits,
     setChangelogPrefs,
     setTheme,
