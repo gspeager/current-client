@@ -9,6 +9,7 @@ import {
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
+import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
@@ -49,6 +50,11 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   const [showNewBranch, setShowNewBranch] = useState(false)
   const newBranch = toBranchName(newBranchName)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  // Refreshes the graph too, which still shows the deleted remote branch.
+  const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
+    loadBranches()
+    onBranchChanged?.()
+  })
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<{ name: string; tip: string } | null>(null)
 
@@ -174,6 +180,16 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
         { label: 'Rename…', onClick: () => renameBranch(b.name) },
         { label: 'Delete', onClick: () => deleteBranch(b.name, false), destructive: true, disabled: b.current },
+        ...(b.upstream
+          ? [
+              {
+                label: `Delete ${b.upstream} on remote…`,
+                onClick: () => void deleteRemote.deleteRemoteBranch(b.upstream),
+                destructive: true,
+                disabled: deleteRemote.running,
+              },
+            ]
+          : []),
       ],
     })
   }
@@ -232,6 +248,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       )}
 
       {error && <p className="branch-sidebar-error">{error}</p>}
+      {deleteRemote.error && <p className="branch-sidebar-error">Could not delete on remote: {deleteRemote.error}</p>}
       {deleted && (
         <p className="branch-sidebar-deleted" role="status">
           <span>
