@@ -65,6 +65,12 @@ func PushTag(ctx context.Context, repoPath, remote, name string) error {
 	return err
 }
 
+// DeleteRemoteTag uses the full ref so a branch of the same name is never deleted instead.
+func DeleteRemoteTag(ctx context.Context, repoPath, remote, name string) error {
+	_, err := runResult(ctx, repoPath, "push", remote, "--delete", "refs/tags/"+name)
+	return err
+}
+
 func TagMessage(ctx context.Context, repoPath, name string) (subject, body string, err error) {
 	result, err := runResult(ctx, repoPath, "for-each-ref", "--format=%(contents:subject)%1e%(contents:body)", "refs/tags/"+name)
 	if err != nil {

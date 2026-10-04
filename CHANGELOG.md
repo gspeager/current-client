@@ -7,10 +7,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 ### Added
 
 - Pull with rebase: shift-click the header's Pull button, or choose **Pull (rebase)** in Quick Switch. Plain Pull still follows your `pull.rebase` setting. ([#21](https://github.com/gspeager/current-client/issues/21))
+- **Delete on remote** for a tag removes it from the remote it was pushed to, so it no longer comes back on the next fetch. ([#20](https://github.com/gspeager/current-client/issues/20))
+- **Delete on remote** removes a branch from its remote, from a branch's right-click menu or from a remote branch in the branch dropdown. ([#19](https://github.com/gspeager/current-client/issues/19))
+- **Show changes** on a stash lists the files it changed, with a diff for each, including untracked files it saved. ([#18](https://github.com/gspeager/current-client/issues/18))
 - A **Fetch** button next to "fetched … ago" in the header, and a **Prune** checkbox beside it that also removes remote branches deleted on the remote when you fetch. The checkbox is remembered. ([#14](https://github.com/gspeager/current-client/issues/14))
-
-### Fixed
-
 - On Windows the installer puts Current Client in `C:\Program Files\Current Client`, rather than in a folder named after the publisher. Installing over 0.1.1 or earlier removes the old `C:\Program Files\Garrett Speager\Current Client` folder. ([#15](https://github.com/gspeager/current-client/issues/15))
 
 ## [0.1.1] - 2026-10-01
