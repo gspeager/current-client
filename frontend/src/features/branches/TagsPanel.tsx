@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Plus, Tag, Upload, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, CloudOff, Plus, Tag, Upload, X } from 'lucide-react'
 import { RemoteService, TagService, type TagInfo, type TagMessageInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
@@ -61,17 +61,43 @@ function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
       .finally(() => setBusyName(null))
   }
 
+  // origin, or else the first remote.
+  const tagRemote = async () => {
+    const remotes = await RemoteService.List(repoPath)
+    const remoteName = remotes.find((r) => r.name === 'origin')?.name ?? remotes[0]?.name
+    if (!remoteName) {
+      throw new Error('No remote configured to push to.')
+    }
+    return remoteName
+  }
+
   const pushTag = (name: string) => {
     setActionError(null)
     setBusyName(name)
-    RemoteService.List(repoPath)
-      .then((remotes) => {
-        const remoteName = remotes.find((r) => r.name === 'origin')?.name ?? remotes[0]?.name
-        if (!remoteName) {
-          throw new Error('No remote configured to push to.')
-        }
-        return withSignIn((auth) => TagService.PushTag(repoPath, remoteName, name, auth), signIn)
-      })
+    tagRemote()
+      .then((remote) => withSignIn((auth) => TagService.PushTag(repoPath, remote, name, auth), signIn))
+      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .finally(() => setBusyName(null))
+  }
+
+  const deleteRemoteTag = async (name: string) => {
+    setActionError(null)
+    let remote: string
+    try {
+      remote = await tagRemote()
+    } catch (err) {
+      setActionError(errorMessage(err))
+      return
+    }
+    const confirmed = await confirm({
+      title: 'Delete tag on remote',
+      message: `Delete tag "${name}" on ${remote}? It's removed for everyone who uses ${remote}. The local tag is kept.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    })
+    if (!confirmed) return
+    setBusyName(name)
+    withSignIn((auth) => TagService.DeleteRemoteTag(repoPath, remote, name, auth), signIn)
       .catch((err: unknown) => setActionError(errorMessage(err)))
       .finally(() => setBusyName(null))
   }
@@ -165,6 +191,18 @@ function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
                     title="Push"
                   >
                     <Upload size={16} strokeWidth={1.75} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void deleteRemoteTag(t.name)
+                    }}
+                    disabled={busyName !== null}
+                    aria-label={`Delete tag ${t.name} on remote`}
+                    title="Delete on remote"
+                  >
+                    <CloudOff size={16} strokeWidth={1.75} />
                   </button>
                   <button
                     type="button"

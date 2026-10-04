@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, OverlapService, type BranchInfo } from '@current-client-bindings/app'
+import { BranchService, OverlapService, RemoteService, type BranchInfo } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchSidebar from './BranchSidebar'
 
@@ -126,6 +126,34 @@ describe('BranchSidebar', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Changes from feature are staged. Commit them to finish the squash.',
     )
+  })
+
+  it("deletes a branch's upstream on the remote after confirming", async () => {
+    const feature = { ...branch('feature/login'), upstream: 'origin/feature/login' }
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), feature])
+    vi.mocked(RemoteService.DeleteRemoteBranch).mockResolvedValue()
+    const onBranchChanged = renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
+    await user.click(await screen.findByRole('button', { name: 'Delete origin/feature/login on remote…' }))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete on remote' })
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+
+    await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+    expect(RemoteService.DeleteRemoteBranch).toHaveBeenCalledWith(REPO, 'origin/feature/login', null)
+    expect(BranchService.DeleteBranch).not.toHaveBeenCalled()
+  })
+
+  it('does not offer to delete on the remote for a branch with no upstream', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('spike')])
+    renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^spike/ }) })
+
+    expect(await screen.findByRole('button', { name: 'Rename…' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /on remote/ })).not.toBeInTheDocument()
   })
 
   it('does not offer to merge the default branch into itself', async () => {

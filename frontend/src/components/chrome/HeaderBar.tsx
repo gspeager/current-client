@@ -31,6 +31,7 @@ interface HeaderBarProps {
   dirty: boolean
   onOpenSettings: () => void
   onPull: () => void
+  onPullRebase: () => void
   onPush: () => void
   onForcePush: () => void
   onBranchChanged?: () => void
@@ -51,6 +52,7 @@ function HeaderBar({
   dirty,
   onOpenSettings,
   onPull,
+  onPullRebase,
   onPush,
   onForcePush,
   onBranchChanged,
@@ -172,6 +174,7 @@ function HeaderBar({
                     onViewChange={setPanelView}
                     onBranchChanged={onBranchChanged}
                     onFetched={onFetched}
+                    pruneOnFetch={pruneOnFetch}
                   />
                 </div>
               )}
@@ -204,8 +207,8 @@ function HeaderBar({
         <button
           type="button"
           className="header-bar-sync header-bar-sync-behind"
-          onClick={syncing ? undefined : onPull}
-          title="Pull"
+          onClick={syncing ? undefined : (e) => (e.shiftKey ? onPullRebase() : onPull())}
+          title="Pull (shift-click to rebase)"
         >
           <ArrowDown size={12} strokeWidth={1.5} />
           Pull {branchStatus.behind}
@@ -277,6 +280,7 @@ function HeaderBar({
           onBranchChanged={onBranchChanged}
           onOpenSettings={onOpenSettings}
           onPull={onPull}
+          onPullRebase={onPullRebase}
           onPush={onPush}
           onFetchAll={fetchAllOp.fetchAll}
           onOpenFile={setFileHistoryPath}
