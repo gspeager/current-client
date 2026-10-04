@@ -95,7 +95,7 @@ describe('BranchSidebar', () => {
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
     await user.click(await screen.findByRole('button', { name: 'Merge main into current' }))
 
-    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main')
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main', '')
     await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
   })
 
@@ -126,7 +126,7 @@ describe('BranchSidebar', () => {
     expect(dialog).toHaveTextContent('main is 3 commits behind origin/main.')
     await user.click(within(dialog).getByRole('button', { name: 'Merge anyway' }))
 
-    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main')
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main', '')
   })
 
   it('does not merge a stale default branch when the warning is cancelled', async () => {

@@ -96,7 +96,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
 
   const mergeBranch = (name: string) => {
     setActionError(null)
-    BranchService.MergeBranch(repoPath, name)
+    BranchService.MergeBranch(repoPath, name, '')
       .catch((err: unknown) => setActionError(errorMessage(err)))
       .finally(() => {
         // A failed merge leaves conflicts the banner must pick up.
