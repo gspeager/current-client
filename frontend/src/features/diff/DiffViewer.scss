@@ -323,3 +323,9 @@
     color: var(--on-surface-variant);
   }
 }
+
+.diff-image-toggle {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: var(--space-xs);
+}

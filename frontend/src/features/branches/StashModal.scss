@@ -1,0 +1,14 @@
+@use '../../styles/patterns';
+
+.stash-modal {
+  width: 1400px;
+  height: 85vh;
+}
+
+.stash-modal-message {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-md);
+}

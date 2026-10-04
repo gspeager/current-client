@@ -45,3 +45,11 @@ func ForcePushUpstream(ctx context.Context, repoPath string) error {
 	_, err = runResult(ctx, repoPath, "push", "--force-with-lease", remote, "HEAD:"+remoteRef)
 	return err
 }
+
+// DeleteRemoteBranch deletes branch on remote. The full ref keeps a tag of
+// the same name from being deleted instead; git drops the matching
+// remote-tracking branch itself.
+func DeleteRemoteBranch(ctx context.Context, repoPath, remote, branch string) error {
+	_, err := runResult(ctx, repoPath, "push", remote, "--delete", "refs/heads/"+branch)
+	return err
+}

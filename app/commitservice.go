@@ -16,6 +16,12 @@ func (s *CommitService) GetLastCommitMessage(repoPath string) (string, error) {
 	return git.LastCommitMessage(context.Background(), repoPath)
 }
 
+// GetSquashedSubjects lists the commits a pending squash merge staged, newest
+// first, or nothing when no squash is pending.
+func (s *CommitService) GetSquashedSubjects(repoPath string) ([]string, error) {
+	return git.SquashedSubjects(context.Background(), repoPath)
+}
+
 func (s *CommitService) GetGPGSignDefault(repoPath string) bool {
 	return git.GPGSignDefault(context.Background(), repoPath)
 }

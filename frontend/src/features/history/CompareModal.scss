@@ -1,5 +1,3 @@
-@use '../../styles/patterns';
-
 .compare-panel {
   width: 1400px;
   height: 85vh;
@@ -15,63 +13,4 @@
 .compare-refs-sep {
   flex-shrink: 0;
   color: var(--outline);
-}
-
-.compare-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-
-.compare-files {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  width: 320px;
-  min-height: 0;
-  padding: var(--space-md);
-  overflow-y: auto;
-  border-right: var(--border-structure);
-}
-
-.compare-files-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-sm);
-}
-
-.compare-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
-.compare-files-count {
-  color: var(--outline);
-  font: var(--data-sm);
-}
-
-.compare-diff {
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-md);
-  overflow: auto;
-}
-
-.compare-diff-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--space-xs);
-}
-
-.compare-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
-}
-
-.compare-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
 }

@@ -79,6 +79,18 @@ function CommitComposer({
     CommitService.GetGPGSignDefault(repoPath).then(setSign).catch(ignoreDecorativeFailure)
   }, [repoPath])
 
+  // After a squash merge, start the message with the squashed commits, unless a draft is already there.
+  useEffect(() => {
+    if (initialMessage !== '') return
+    CommitService.GetSquashedSubjects(repoPath)
+      .then((subjects) => {
+        if (subjects?.length) setMessage('', subjects.map((s) => `- ${s}`).join('\n'))
+      })
+      .catch(ignoreDecorativeFailure)
+    // Checked once when the composer opens; the draft takes over from there.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repoPath])
+
   const setMessage = (nextSubject: string, nextBody: string) => {
     setSubject(nextSubject)
     setBody(nextBody)

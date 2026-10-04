@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type BranchService struct{}
@@ -62,8 +63,13 @@ func (s *BranchService) DeleteBranch(repoPath, name string, force bool) (string,
 	return tip, git.DeleteBranch(ctx, repoPath, name, force)
 }
 
-func (s *BranchService) MergeBranch(repoPath, branch string) error {
-	return git.MergeBranch(context.Background(), repoPath, branch)
+// MergeBranch takes mode "" (fast-forward when possible), "no-ff" or "squash".
+func (s *BranchService) MergeBranch(repoPath, branch, mode string) error {
+	m := git.MergeMode(mode)
+	if m != git.MergeFastForward && m != git.MergeCommit && m != git.MergeSquash {
+		return &gitexec.AppError{Message: "Unknown merge option.", Detail: mode}
+	}
+	return git.MergeBranchMode(context.Background(), repoPath, branch, m)
 }
 
 func (s *BranchService) DefaultBranch(repoPath string) (string, error) {

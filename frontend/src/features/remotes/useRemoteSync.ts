@@ -15,6 +15,11 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
     pullOp.run((auth) => RemoteService.Pull(repoPath, auth), onSynced)
   }
 
+  const pullRebase = () => {
+    if (!repoPath) return
+    pullOp.run((auth) => RemoteService.PullRebase(repoPath, auth), onSynced)
+  }
+
   const pushSettingUpstream = async (path: string) => {
     try {
       const [status, remotes] = await Promise.all([BranchService.CurrentBranchStatus(path), RemoteService.List(path)])
@@ -70,5 +75,5 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
     }
   }
 
-  return { pull, push, forcePush, pullOp, pushOp }
+  return { pull, pullRebase, push, forcePush, pullOp, pushOp }
 }

@@ -10,6 +10,7 @@ import './RemotesPanel.scss'
 interface RemotesPanelProps {
   repoPath: string
   onFetched?: () => void
+  pruneOnFetch?: boolean
 }
 
 function hostLabel(url: string): string {
@@ -20,7 +21,7 @@ function hostLabel(url: string): string {
   return url
 }
 
-function RemotesPanel({ repoPath, onFetched }: RemotesPanelProps) {
+function RemotesPanel({ repoPath, onFetched, pruneOnFetch = false }: RemotesPanelProps) {
   const {
     data: remotes,
     error: loadError,
@@ -82,7 +83,8 @@ function RemotesPanel({ repoPath, onFetched }: RemotesPanelProps) {
 
   const fetchAll = () => {
     setFetchingRemote('*')
-    fetchOp.run((auth) => RemoteService.FetchAll(repoPath, auth), onFetched).finally(() => setFetchingRemote(null))
+    const fetch = pruneOnFetch ? RemoteService.FetchAllPrune : RemoteService.FetchAll
+    fetchOp.run((auth) => fetch(repoPath, auth), onFetched).finally(() => setFetchingRemote(null))
   }
 
   return (
