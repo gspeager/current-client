@@ -17,7 +17,13 @@ import {
   Terminal,
   type LucideIcon,
 } from 'lucide-react'
-import { BranchService, HistoryService, PlatformService, StatusService } from '@current-client-bindings/app'
+import {
+  BranchService,
+  HistoryService,
+  PlatformService,
+  RemoteService,
+  StatusService,
+} from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { highlightMatch } from '../../lib/highlightMatch'
 import { localNameFor } from '../../features/branches/branches'
@@ -48,6 +54,8 @@ interface QuickSwitchPaletteProps {
 
 interface BranchResult {
   name: string
+  // What checking it out uses: the local branch, or the one a remote branch would track as.
+  checkoutName: string
   remote: boolean
   current: boolean
 }
@@ -81,11 +89,23 @@ const MAX_COMMIT_RESULTS = 10
 const COMMIT_SEARCH_DEBOUNCE_MS = 200
 
 function loadBranchResults(repoPath: string): Promise<BranchResult[]> {
-  return Promise.all([BranchService.ListLocal(repoPath), BranchService.ListRemote(repoPath)])
-    .then(([local, remote]) => [
-      ...local.map((b) => ({ name: b.name, remote: false, current: b.current })),
-      ...remote.map((name) => ({ name, remote: true, current: false })),
-    ])
+  return Promise.all([
+    BranchService.ListLocal(repoPath),
+    BranchService.ListRemote(repoPath),
+    RemoteService.List(repoPath),
+  ])
+    .then(([local, remote, remotes]) => {
+      const remoteNames = remotes.map((r) => r.name)
+      return [
+        ...local.map((b) => ({ name: b.name, checkoutName: b.name, remote: false, current: b.current })),
+        ...remote.map((name) => ({
+          name,
+          checkoutName: localNameFor(name, remoteNames),
+          remote: true,
+          current: false,
+        })),
+      ]
+    })
     .catch(() => [])
 }
 
@@ -208,7 +228,7 @@ function QuickSwitchPalette({
       return
     }
     setError(null)
-    BranchService.CheckoutBranch(repoPath, branch.remote ? localNameFor(branch.name) : branch.name)
+    BranchService.CheckoutBranch(repoPath, branch.checkoutName)
       .then(() => runAndClose(() => onBranchChanged?.()))
       .catch((err: unknown) => setError(errorMessage(err)))
   }
