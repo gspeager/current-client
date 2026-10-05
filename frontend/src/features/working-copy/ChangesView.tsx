@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ExternalLink } from 'lucide-react'
+import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { DiffService, type LineSelection } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import Checkbox from '../../components/forms/Checkbox'
@@ -24,6 +24,9 @@ interface ChangesViewProps {
   onPushRequested?: () => void
   onBranchChanged?: () => void
   defaultIgnoreWhitespace?: boolean
+  // The diff takes the file list's space too while a file is open.
+  diffExpanded?: boolean
+  onDiffExpandedChange?: (expanded: boolean) => void
   initialSelectedPath?: string | null
   onSelectedPathChange?: (path: string | null) => void
   initialCommitDraft?: string
@@ -42,6 +45,8 @@ function ChangesView({
   onPushRequested,
   onBranchChanged,
   defaultIgnoreWhitespace = false,
+  diffExpanded = false,
+  onDiffExpandedChange,
   initialSelectedPath = null,
   onSelectedPathChange,
   initialCommitDraft = '',
@@ -155,9 +160,12 @@ function ChangesView({
   const stats = diff ? diffStats(diff) : null
   const { dir, file } = selectedPath ? splitDirFile(selectedPath) : { dir: '', file: '' }
 
+  // With nothing open there'd be nothing to show, so the file list always comes back.
+  const expanded = diffExpanded && selectedPath !== null
+
   return (
     <div className="changes-view">
-      <div className="changes-files" style={{ width: filesWidth.width, minWidth: filesWidth.width }}>
+      <div className="changes-files" style={{ width: filesWidth.width, minWidth: filesWidth.width }} hidden={expanded}>
         <WorkingTreeFileList
           repoPath={repoPath}
           workingTree={workingTree}
@@ -177,12 +185,28 @@ function ChangesView({
         />
       </div>
 
-      <ResizeHandle onDragStart={filesWidth.onDragStart} ariaLabel="Resize file list" />
+      {!expanded && <ResizeHandle onDragStart={filesWidth.onDragStart} ariaLabel="Resize file list" />}
 
       <div className="changes-diff">
         {selectedPath ? (
           <>
             <div className="changes-diff-header">
+              {onDiffExpandedChange && (
+                <button
+                  type="button"
+                  className="changes-diff-expand"
+                  onClick={() => onDiffExpandedChange(!expanded)}
+                  aria-label={expanded ? 'Show file list' : 'Expand diff'}
+                  title={expanded ? 'Show file list' : 'Expand diff'}
+                  aria-pressed={expanded}
+                >
+                  {expanded ? (
+                    <PanelLeftOpen size={14} strokeWidth={1.75} />
+                  ) : (
+                    <PanelLeftClose size={14} strokeWidth={1.75} />
+                  )}
+                </button>
+              )}
               <span className="changes-diff-path">
                 {dir && <span className="changes-diff-path-dir">{dir}</span>}
                 <span className="changes-diff-path-file">{file}</span>

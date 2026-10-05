@@ -281,6 +281,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                 onPushRequested={push}
                 onBranchChanged={onBranchChanged}
                 defaultIgnoreWhitespace={settings.settings?.diffIgnoreWhitespaceDefault ?? false}
+                diffExpanded={settings.settings?.diffExpanded ?? false}
+                onDiffExpandedChange={settings.setDiffExpanded}
                 initialSelectedPath={restored.selectedFilePath}
                 onSelectedPathChange={(path) => remember({ selectedFilePath: path })}
                 initialCommitDraft={restored.commitDraft}

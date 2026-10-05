@@ -307,6 +307,49 @@ describe('ChangesView submodules and Git LFS', () => {
   })
 })
 
+describe('ChangesView expanded diff', () => {
+  const textDiff = new FileDiff({ hunks: [{ header: '@@ -1 +1 @@', raw: 'raw', lines: [] }] })
+
+  function renderExpandable(diffExpanded: boolean) {
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue(textDiff)
+    const onDiffExpandedChange = vi.fn()
+    render(
+      <DialogProvider>
+        <ChangesView
+          repoPath={REPO}
+          workingTree={workingTreeFor([file('src/app.ts')])}
+          diffExpanded={diffExpanded}
+          onDiffExpandedChange={onDiffExpandedChange}
+        />
+      </DialogProvider>,
+    )
+    return onDiffExpandedChange
+  }
+
+  it('expands the diff from its header', async () => {
+    const onDiffExpandedChange = renderExpandable(false)
+
+    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Expand diff' }))
+
+    expect(onDiffExpandedChange).toHaveBeenCalledWith(true)
+  })
+
+  it('hides the file list while expanded, and brings it back from the header', async () => {
+    const onDiffExpandedChange = renderExpandable(true)
+    // Nothing open yet, so the file list shows.
+    expect(screen.getByRole('button', { name: 'src/app.ts' })).toBeVisible()
+
+    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
+
+    const show = await screen.findByRole('button', { name: 'Show file list' })
+    expect(screen.queryByRole('button', { name: 'src/app.ts' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('separator', { name: 'Resize file list' })).not.toBeInTheDocument()
+    await userEvent.click(show)
+    expect(onDiffExpandedChange).toHaveBeenCalledWith(false)
+  })
+})
+
 describe('ChangesView conflicts', () => {
   const conflictedFile = () => file('src/app.ts', { indexStatus: 'U', worktreeStatus: 'U', conflicted: true })
 
