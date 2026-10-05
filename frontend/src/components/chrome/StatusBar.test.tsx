@@ -12,4 +12,13 @@ describe('StatusBar', () => {
     expect(await screen.findByText('Current Client 0.1.0')).toBeInTheDocument()
     expect(screen.getByText('git 2.47.0')).toBeInTheDocument()
   })
+
+  it('says where HEAD is when it is detached', async () => {
+    vi.mocked(PlatformService.AppVersion).mockResolvedValue('0.1.0')
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'HEAD', detachedAt: 'abc1234' } as never)
+
+    render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" />)
+
+    expect(await screen.findByText('HEAD detached at abc1234')).toBeInTheDocument()
+  })
 })

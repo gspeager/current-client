@@ -137,7 +137,7 @@ function HeaderBar({
                     <span className="header-bar-repo-sep">|</span>
                     <span className="header-bar-branch-target" onClick={openPanel('branch')}>
                       <BranchPill
-                        name={branchStatus.current}
+                        name={branchStatus.detachedAt ? `HEAD ${branchStatus.detachedAt}` : branchStatus.current}
                         color={branchColor(branchStatus.current, true)}
                         current
                         bare
