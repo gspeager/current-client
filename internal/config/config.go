@@ -47,6 +47,9 @@ type Config struct {
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
 
+	// Working Copy's diff takes the file list's space too.
+	DiffExpanded bool `json:"diffExpanded,omitempty"`
+
 	// Whether the header's fetch also deletes remote-tracking branches gone from the remote.
 	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`
 

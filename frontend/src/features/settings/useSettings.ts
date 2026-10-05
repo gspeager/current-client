@@ -101,6 +101,11 @@ export function useSettings() {
     SettingsService.SetPruneOnFetch(prune).catch((err: unknown) => setError(errorMessage(err)))
   }
 
+  const setDiffExpanded = (expanded: boolean) => {
+    setSettings((prev) => (prev ? { ...prev, diffExpanded: expanded } : prev))
+    SettingsService.SetDiffExpanded(expanded).catch((err: unknown) => setError(errorMessage(err)))
+  }
+
   const setChangelogPrefs = (changelog: ChangelogPrefs) => {
     setSettings((prev) => (prev ? { ...prev, changelog } : prev))
     SettingsService.SetChangelogPrefs(changelog).catch((err: unknown) => setError(errorMessage(err)))
@@ -115,6 +120,7 @@ export function useSettings() {
     settings,
     error,
     setNavCollapsed,
+    setDiffExpanded,
     setPruneOnFetch,
     setDisableConventionalCommits,
     setChangelogPrefs,

@@ -13,8 +13,14 @@
   flex-direction: column;
   min-height: 0;
   padding-right: var(--space-md);
+
+  // Kept mounted while the diff is expanded, so its scroll and selection survive.
+  &[hidden] {
+    display: none;
+  }
 }
 
+.changes-diff-expand,
 .changes-diff-external-tool {
   display: inline-flex;
   align-items: center;
