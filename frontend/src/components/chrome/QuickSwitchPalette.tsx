@@ -49,6 +49,7 @@ interface QuickSwitchPaletteProps {
   onPush: () => void
   onFetchAll: () => void
   onOpenFile: (path: string) => void
+  onSearchFiles: () => void
   onOpenCommit: (sha: string, position: number) => void
 }
 
@@ -161,6 +162,7 @@ function QuickSwitchPalette({
   onPush,
   onFetchAll,
   onOpenFile,
+  onSearchFiles,
   onOpenCommit,
 }: QuickSwitchPaletteProps) {
   const { branchColor } = useLaneColors()
@@ -188,6 +190,7 @@ function QuickSwitchPalette({
   const commits = q ? (searchResults ?? []) : []
 
   const actions: Action[] = [
+    { id: 'search-files', label: 'Search in files', icon: Search, run: onSearchFiles },
     { id: 'fetch-all', label: 'Fetch all remotes', icon: Cloud, run: onFetchAll },
     { id: 'pull', label: 'Pull', icon: ArrowDown, run: onPull },
     { id: 'pull-rebase', label: 'Pull (rebase)', icon: ArrowDown, run: onPullRebase },
