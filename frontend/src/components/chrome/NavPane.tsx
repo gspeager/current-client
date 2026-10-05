@@ -28,6 +28,7 @@ import RemotesPanel from '../../features/remotes/RemotesPanel'
 import StashPanel from '../../features/branches/StashPanel'
 import TagsPanel from '../../features/branches/TagsPanel'
 import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
+import SubmodulesPanel from '../../features/submodules/SubmodulesPanel'
 import { errorMessage } from '../../lib/errors'
 import { undoConfirmOptions } from '../../features/history/undoPreview'
 import { useDialogs } from '../../lib/useDialogs'
@@ -46,7 +47,7 @@ interface NavPaneProps {
   onFetched: () => void
   pruneOnFetch?: boolean
   onOpenHeadCommit: (sha: string) => void
-  // Opens a repository (such as a worktree) as a tab.
+  // Opens a repository (such as a worktree or submodule) as a tab.
   onOpenRepository: (path: string) => void
   width: number
   collapsed: boolean
@@ -342,6 +343,12 @@ function NavPane({
             onWorktreesChanged={onBranchChanged}
           />
         </section>
+        <SubmodulesPanel
+          repoPath={repoPath}
+          refreshKey={repoVersion}
+          onOpenRepository={onOpenRepository}
+          onSubmodulesChanged={onBranchChanged}
+        />
       </div>
 
       <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />

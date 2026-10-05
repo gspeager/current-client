@@ -3,10 +3,15 @@ package app
 import (
 	"context"
 
+	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type GitService struct{}
+
+func (s *GitService) LFSInstalled() bool {
+	return git.LFSInstalled(context.Background())
+}
 
 func (s *GitService) GetGitVersion() (string, error) {
 	info, err := gitexec.DetectSupported(context.Background(), configOrDefault().GitExecutablePath)

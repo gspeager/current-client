@@ -28,6 +28,8 @@ function file(path: string, overrides: Partial<FileStatus> = {}): FileStatus {
     workAdded: 1,
     workRemoved: 1,
     workBinary: false,
+    submodule: null,
+    lfs: false,
     ...overrides,
   }
 }
@@ -285,6 +287,23 @@ describe('ChangesView stashing', () => {
       keepIndex: false,
       paths: ['src/b.ts'],
     })
+  })
+})
+
+describe('ChangesView submodules and Git LFS', () => {
+  it('labels a submodule entry', () => {
+    renderChanges([
+      file('vendor/lib', { submodule: { commitChanged: true, modified: false, untracked: false } }),
+      file('src/app.ts'),
+    ])
+
+    expect(screen.getAllByText('submodule')).toHaveLength(1)
+  })
+
+  it('labels a file stored in Git LFS', () => {
+    renderChanges([file('art/cover.psd', { lfs: true }), file('src/app.ts')])
+
+    expect(screen.getAllByText('LFS')).toHaveLength(1)
   })
 })
 

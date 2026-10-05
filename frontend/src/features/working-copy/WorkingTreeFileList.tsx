@@ -297,6 +297,7 @@ function WorkingTreeFileList({
         added={isStaged ? f.indexAdded : f.workAdded}
         removed={isStaged ? f.indexRemoved : f.workRemoved}
         binary={isStaged ? f.indexBinary : f.workBinary}
+        tag={f.submodule ? 'submodule' : f.lfs ? 'LFS' : undefined}
         onToggleChecked={() => (isStaged ? actions.unstage(f) : actions.stage(f))}
         onSelect={onFileRowClick(row.section, f)}
         onDiscard={row.section === 'unstaged' ? () => actions.discardFile(f) : undefined}

@@ -236,6 +236,7 @@ function ChangesView({
                 onDiscardHunk={discardHunk}
                 canDiscardLines={!showsStaged}
                 onForceLoad={() => setForcedPath(selectedPath)}
+                repoPath={repoPath}
                 images={{
                   repoPath,
                   before: showsStaged ? { kind: 'commit', rev: 'HEAD' } : { kind: 'index', rev: '' },
