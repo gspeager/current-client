@@ -2,6 +2,12 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [Unreleased]
+
+### Fixed
+
+- With **Wrap lines** off, long lines no longer run out of their row or into the other side of a split diff; the diff scrolls sideways instead.
+
 ## [0.2.0] - 2026-10-05
 
 ### Added

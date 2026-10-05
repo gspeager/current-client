@@ -438,7 +438,8 @@
 
 // Wrap lines off: each line keeps one row and the pane scrolls sideways. The
 // grid widens to the longest line, so split view's two sides scroll together
-// and stay row-aligned.
+// and stay row-aligned. The minimum has to be max-content: the pane's width is
+// fixed, so a max-content maximum never gets free space to grow into.
 .diff-viewer-nowrap {
   .diff-row {
     white-space: pre;
@@ -449,12 +450,12 @@
   }
 
   .diff-pane-split {
-    grid-template-columns: minmax(50%, max-content) minmax(50%, max-content);
+    grid-template-columns: minmax(max-content, 1fr) minmax(max-content, 1fr);
   }
 
   .diff-pane-unified {
     display: grid;
-    grid-template-columns: minmax(100%, max-content);
+    grid-template-columns: minmax(max-content, 1fr);
     align-content: start;
   }
 
