@@ -7,7 +7,7 @@ import BranchSidebar from './BranchSidebar'
 const REPO = '/repos/app'
 
 function branch(name: string, current = false): BranchInfo {
-  return { name, current, upstream: '', ahead: 0, behind: 0, lastCommitDate: '' }
+  return { name, current, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath: '' }
 }
 
 function renderSidebar(onBranchChanged = vi.fn()) {

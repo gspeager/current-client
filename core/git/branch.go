@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,11 +15,13 @@ type Branch struct {
 	Ahead          int
 	Behind         int
 	LastCommitDate string
+	// WorktreePath is the worktree the branch is checked out in, if any.
+	WorktreePath string
 }
 
 func ListBranches(ctx context.Context, repoPath string) ([]Branch, error) {
 	result, err := runResult(ctx, repoPath, "branch",
-		"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)")
+		"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)%09%(worktreepath)")
 	if err != nil {
 		return nil, err
 	}
@@ -31,8 +34,8 @@ func parseLocalBranches(output string) []Branch {
 		if line == "" {
 			continue
 		}
-		fields := strings.SplitN(line, "\t", 5)
-		if len(fields) != 5 {
+		fields := strings.SplitN(line, "\t", 6)
+		if len(fields) < 5 {
 			continue
 		}
 		ahead, behind := parseUpstreamTrack(fields[3])
@@ -44,6 +47,9 @@ func parseLocalBranches(output string) []Branch {
 			Behind:         behind,
 			LastCommitDate: fields[4],
 		})
+		if len(fields) == 6 && fields[5] != "" {
+			branches[len(branches)-1].WorktreePath = filepath.FromSlash(fields[5])
+		}
 	}
 	return branches
 }

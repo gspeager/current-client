@@ -9,7 +9,7 @@ const REPO = '/repos/app'
 describe('BranchSwitcher', () => {
   it('checks out a remote branch from a remote whose name contains a slash', async () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([
-      { name: 'main', current: true, upstream: '', ahead: 0, behind: 0, lastCommitDate: '' },
+      { name: 'main', current: true, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath: '' },
     ])
     vi.mocked(BranchService.ListRemote).mockResolvedValue(['team/origin/fix/login'])
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', ahead: 0 } as BranchStatusInfo)
