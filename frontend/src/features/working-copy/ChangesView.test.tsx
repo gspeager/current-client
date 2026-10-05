@@ -99,6 +99,36 @@ describe('ChangesView staging', () => {
     expect(DiffService.StageHunk).toHaveBeenCalledWith(REPO, 'src/app.ts', 'raw-hunk')
   })
 
+  it('stages just the selected lines of a hunk', async () => {
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue({
+      conflicted: false,
+      oldPath: 'src/app.ts',
+      newPath: 'src/app.ts',
+      binary: false,
+      tooLarge: false,
+      sizeBytes: 0,
+      hunks: [
+        {
+          header: '@@ -1,1 +1,2 @@',
+          raw: 'raw-hunk',
+          lines: [
+            { kind: 'added', oldLine: 0, newLine: 1, content: 'keep', moved: false },
+            { kind: 'added', oldLine: 0, newLine: 2, content: 'later', moved: false },
+          ],
+        },
+      ],
+    })
+    vi.mocked(DiffService.StageLines).mockResolvedValue()
+    renderChanges([file('src/app.ts')])
+
+    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Select added line 1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Stage 1 line' }))
+
+    expect(DiffService.StageLines).toHaveBeenCalledWith(REPO, 'src/app.ts', 'raw-hunk', { added: [1], removed: [] })
+    expect(DiffService.StageHunk).not.toHaveBeenCalled()
+  })
+
   it('reloads the open diff when the status refreshes', async () => {
     vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue({
       conflicted: false,

@@ -6,7 +6,7 @@ Current Client runs entirely on your machine and talks only to your repositories
 
 ## Features
 
-- Stage and unstage whole files or single hunks.
+- Stage and unstage whole files, single hunks or single lines.
 - Split and unified diffs, with word-level changes highlighted.
 - A commit graph with search across the full history, blame and file history.
 - Search across every file's contents, now or at any commit.
@@ -16,7 +16,7 @@ Current Client runs entirely on your machine and talks only to your repositories
 - An activity dashboard: commit calendar and velocity, contributors, file churn, languages, and stale branches or unpushed commits.
 - A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF.
 
-Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app, do a visual interactive rebase, stage single lines, or manage worktrees, submodules or Git LFS.
+Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app, do a visual interactive rebase, or manage worktrees, submodules or Git LFS.
 
 ## Install
 

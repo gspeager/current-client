@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileCode, Image } from 'lucide-react'
-import type { FileDiff } from '@current-client-bindings/app'
+import type { FileDiff, LineSelection } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
 import { buildDisplayRows, diffStats } from './diffRows'
-import DiffPane, { type HunkActions } from './DiffPane'
+import DiffPane, { lineKey, type HunkActions } from './DiffPane'
 import './DiffViewer.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 
@@ -43,11 +43,47 @@ function DiffViewer({
   const paneRef = useRef<HTMLDivElement>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
+  const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set())
+  const lastToggled = useRef<string | null>(null)
 
   useEffect(() => {
     setExpandedGroups(new Set())
     setCurrentHunkIndex(0)
+    setSelectedLines(new Set())
+    lastToggled.current = null
   }, [diff])
+
+  // Shift-click selects every changed line between the last one toggled and this one.
+  const toggleLine = (key: string, range: boolean) => {
+    const order = diff.hunks.flatMap((h) => h.lines.map(lineKey).filter((k): k is string => k !== null))
+    const from = lastToggled.current ? order.indexOf(lastToggled.current) : -1
+    const to = order.indexOf(key)
+    setSelectedLines((prev) => {
+      const next = new Set(prev)
+      if (range && from !== -1) {
+        for (const k of order.slice(Math.min(from, to), Math.max(from, to) + 1)) next.add(k)
+      } else if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+    lastToggled.current = key
+  }
+
+  const selectionByHunk = new Map<string, LineSelection>(
+    diff.hunks.map((h) => [
+      h.raw,
+      {
+        added: h.lines.filter((l) => selectedLines.has(`+${l.newLine}`) && l.kind === 'added').map((l) => l.newLine),
+        removed: h.lines
+          .filter((l) => selectedLines.has(`-${l.oldLine}`) && l.kind === 'removed')
+          .map((l) => l.oldLine),
+      },
+    ]),
+  )
+  const canSelectLines = !diff.conflicted && Boolean(hunkActions.onStageHunk ?? hunkActions.onUnstageHunk)
 
   useWindowKeydown((e) => {
     if (!e.altKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
@@ -153,6 +189,9 @@ function DiffViewer({
           onToggleGroup={toggleGroup}
           currentHunkIndex={currentHunkIndex}
           scrollRef={paneRef}
+          lineSelect={
+            canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
+          }
           {...(diff.conflicted ? {} : hunkActions)}
         />
       </div>

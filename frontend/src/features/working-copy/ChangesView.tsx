@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Check, ExternalLink } from 'lucide-react'
-import { DiffService } from '@current-client-bindings/app'
+import { DiffService, type LineSelection } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import Checkbox from '../../components/forms/Checkbox'
 import CommitComposer from './CommitComposer'
@@ -87,25 +87,37 @@ function ChangesView({
     { refreshKey: files },
   )
 
-  const hunkAction = (apply: (path: string, hunk: string) => Promise<void>) => (hunk: string) => {
-    if (selectedPath) actions.run(apply(selectedPath, hunk))
-  }
+  // With lines, only those lines of the hunk; otherwise the whole hunk.
+  const hunkAction =
+    (apply: (path: string, hunk: string, lines?: LineSelection) => Promise<void>) =>
+    (hunk: string, lines?: LineSelection) => {
+      if (selectedPath) actions.run(apply(selectedPath, hunk, lines))
+    }
 
-  const stageHunk = hunkAction((path, hunk) => DiffService.StageHunk(repoPath, path, hunk))
-  const unstageHunk = hunkAction((path, hunk) => DiffService.UnstageHunk(repoPath, path, hunk))
-  const applyDiscardHunk = hunkAction((path, hunk) =>
-    (showsStaged ? DiffService.DiscardStagedHunk : DiffService.DiscardHunk)(repoPath, path, hunk),
+  const stageHunk = hunkAction((path, hunk, lines) =>
+    lines ? DiffService.StageLines(repoPath, path, hunk, lines) : DiffService.StageHunk(repoPath, path, hunk),
   )
-  const discardHunk = async (hunk: string) => {
+  const unstageHunk = hunkAction((path, hunk, lines) =>
+    lines ? DiffService.UnstageLines(repoPath, path, hunk, lines) : DiffService.UnstageHunk(repoPath, path, hunk),
+  )
+  const applyDiscardHunk = hunkAction((path, hunk, lines) =>
+    lines
+      ? DiffService.DiscardLines(repoPath, path, hunk, lines)
+      : (showsStaged ? DiffService.DiscardStagedHunk : DiffService.DiscardHunk)(repoPath, path, hunk),
+  )
+  const discardHunk = async (hunk: string, lines?: LineSelection) => {
+    const count = lines ? lines.added.length + lines.removed.length : 0
     const confirmed = await confirm({
-      title: 'Discard hunk',
-      message: showsStaged
-        ? 'Discard this staged hunk from the index and the working tree? This cannot be undone.'
-        : 'Discard this hunk? This cannot be undone.',
+      title: count ? 'Discard lines' : 'Discard hunk',
+      message: count
+        ? `Discard ${count === 1 ? 'this line' : `these ${count} lines`}? This cannot be undone.`
+        : showsStaged
+          ? 'Discard this staged hunk from the index and the working tree? This cannot be undone.'
+          : 'Discard this hunk? This cannot be undone.',
       confirmLabel: 'Discard',
       destructive: true,
     })
-    if (confirmed) applyDiscardHunk(hunk)
+    if (confirmed) applyDiscardHunk(hunk, lines)
   }
 
   const openInExternalTool = () => {
@@ -222,6 +234,7 @@ function ChangesView({
                 onStageHunk={showsStaged ? undefined : stageHunk}
                 onUnstageHunk={showsStaged ? unstageHunk : undefined}
                 onDiscardHunk={discardHunk}
+                canDiscardLines={!showsStaged}
                 onForceLoad={() => setForcedPath(selectedPath)}
                 images={{
                   repoPath,
