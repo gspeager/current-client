@@ -12,7 +12,8 @@ interface ChangedFilesBrowserProps {
   error: string | null
   emptyHint: string
   loadDiff: (file: ChangedFile) => Promise<FileDiff>
-  images?: ImageSources
+  // Where to read a file's two versions for the image view.
+  images?: (file: ChangedFile) => ImageSources
 }
 
 // Remount it (with a key) when what it shows changes, so the selection resets.
@@ -63,7 +64,7 @@ function ChangedFilesBrowser({ files, error, emptyHint, loadDiff, images }: Chan
             <div className="changed-files-browser-toolbar">
               <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
             </div>
-            <DiffViewer diff={diff} path={selected.path} viewMode={viewMode} images={images} />
+            <DiffViewer diff={diff} path={selected.path} viewMode={viewMode} images={images?.(selected)} />
           </>
         ) : (
           <p className="changed-files-browser-hint">Loading diff…</p>
