@@ -23,6 +23,8 @@ type FileStatus struct {
 	WorkBinary     bool   `json:"workBinary"`
 	// Submodule is set for a submodule: what changed inside it.
 	Submodule *SubmoduleState `json:"submodule"`
+	// LFS is set when .gitattributes stores the file in Git LFS.
+	LFS bool `json:"lfs"`
 }
 
 type SubmoduleState struct {
@@ -49,6 +51,10 @@ func (s *StatusService) GetStatus(repoPath string) ([]FileStatus, error) {
 	}
 	workByPath := numstatByPath(workStats)
 	indexByPath := numstatByPath(indexStats)
+	lfs, err := git.LFSPaths(ctx, repoPath, mapSlice(statuses, func(st git.Status) string { return st.Path }))
+	if err != nil {
+		return nil, err
+	}
 
 	result := make([]FileStatus, len(statuses))
 	for i, st := range statuses {
@@ -58,6 +64,7 @@ func (s *StatusService) GetStatus(repoPath string) ([]FileStatus, error) {
 			IndexStatus:    string(st.IndexStatus),
 			WorktreeStatus: string(st.WorktreeStatus),
 			Conflicted:     st.Conflicted,
+			LFS:            lfs[st.Path],
 		}
 		if st.Submodule != nil {
 			state := SubmoduleState(*st.Submodule)

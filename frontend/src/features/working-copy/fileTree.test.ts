@@ -16,6 +16,7 @@ function file(path: string): FileStatus {
     workRemoved: 0,
     workBinary: false,
     submodule: null,
+    lfs: false,
   }
 }
 
