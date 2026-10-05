@@ -21,6 +21,14 @@ type FileStatus struct {
 	WorkAdded      int    `json:"workAdded"`
 	WorkRemoved    int    `json:"workRemoved"`
 	WorkBinary     bool   `json:"workBinary"`
+	// Submodule is set for a submodule: what changed inside it.
+	Submodule *SubmoduleState `json:"submodule"`
+}
+
+type SubmoduleState struct {
+	CommitChanged bool `json:"commitChanged"`
+	Modified      bool `json:"modified"`
+	Untracked     bool `json:"untracked"`
 }
 
 // GetStatus reports staged and unstaged line counts separately, since a
@@ -50,6 +58,10 @@ func (s *StatusService) GetStatus(repoPath string) ([]FileStatus, error) {
 			IndexStatus:    string(st.IndexStatus),
 			WorktreeStatus: string(st.WorktreeStatus),
 			Conflicted:     st.Conflicted,
+		}
+		if st.Submodule != nil {
+			state := SubmoduleState(*st.Submodule)
+			fs.Submodule = &state
 		}
 		if n, ok := workByPath[st.Path]; ok {
 			fs.WorkAdded, fs.WorkRemoved, fs.WorkBinary = n.Added, n.Removed, n.Binary

@@ -37,6 +37,7 @@ func Services() []application.Service {
 		application.NewService(&OverlapService{}),
 		application.NewService(&SearchService{}),
 		application.NewService(&WorktreeService{}),
+		application.NewService(&SubmoduleService{}),
 	}
 }
 

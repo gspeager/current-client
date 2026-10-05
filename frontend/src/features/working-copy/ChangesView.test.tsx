@@ -28,6 +28,7 @@ function file(path: string, overrides: Partial<FileStatus> = {}): FileStatus {
     workAdded: 1,
     workRemoved: 1,
     workBinary: false,
+    submodule: null,
     ...overrides,
   }
 }
