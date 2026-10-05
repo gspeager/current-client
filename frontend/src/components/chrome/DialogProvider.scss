@@ -29,6 +29,11 @@
   color: var(--outline);
 }
 
+.dialog-error {
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
 .dialog-field {
   display: flex;
   flex-direction: column;
