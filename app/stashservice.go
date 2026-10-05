@@ -25,8 +25,15 @@ func (s *StashService) ListStash(repoPath string) ([]StashInfo, error) {
 	}), nil
 }
 
-func (s *StashService) StashSave(repoPath, message string, includeUntracked bool) error {
-	return git.StashSave(context.Background(), repoPath, message, includeUntracked)
+type StashOptions struct {
+	Message          string   `json:"message"`
+	IncludeUntracked bool     `json:"includeUntracked"`
+	KeepIndex        bool     `json:"keepIndex"`
+	Paths            []string `json:"paths"`
+}
+
+func (s *StashService) StashSave(repoPath string, opts StashOptions) error {
+	return git.StashPush(context.Background(), repoPath, git.StashOptions(opts))
 }
 
 func (s *StashService) StashApply(repoPath string, index int) error {

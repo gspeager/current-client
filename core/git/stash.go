@@ -53,12 +53,31 @@ func parseStashList(output string) ([]Stash, error) {
 }
 
 func StashSave(ctx context.Context, repoPath, message string, includeUntracked bool) error {
+	return StashPush(ctx, repoPath, StashOptions{Message: message, IncludeUntracked: includeUntracked})
+}
+
+type StashOptions struct {
+	Message          string
+	IncludeUntracked bool
+	// KeepIndex leaves staged changes in place, stashing only the rest.
+	KeepIndex bool
+	// Paths limits the stash to these files; empty means every change.
+	Paths []string
+}
+
+func StashPush(ctx context.Context, repoPath string, opts StashOptions) error {
 	args := []string{"stash", "push"}
-	if includeUntracked {
+	if opts.IncludeUntracked {
 		args = append(args, "-u")
 	}
-	if message != "" {
-		args = append(args, "-m", message)
+	if opts.KeepIndex {
+		args = append(args, "--keep-index")
+	}
+	if opts.Message != "" {
+		args = append(args, "-m", opts.Message)
+	}
+	if len(opts.Paths) > 0 {
+		args = append(append(args, "--"), opts.Paths...)
 	}
 	_, err := runResult(ctx, repoPath, args...)
 	return err

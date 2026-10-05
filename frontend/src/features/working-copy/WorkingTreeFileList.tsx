@@ -199,6 +199,10 @@ function WorkingTreeFileList({
       },
       { label: `Copy ${paths.length} paths`, onClick: () => void navigator.clipboard.writeText(paths.join('\n')) },
     ]
+    if (section !== 'conflicted') {
+      const files = sectionFiles[section].filter((f) => effectiveSelectedPaths.has(f.path))
+      items.push({ label: `Stash ${paths.length} files`, onClick: () => actions.stashFiles(files) })
+    }
     if (section === 'unstaged') {
       items.push({ label: 'Discard', onClick: () => actions.discardPaths(paths), destructive: true })
     }
@@ -223,6 +227,9 @@ function WorkingTreeFileList({
       if (ext) {
         items.push({ label: `Add *.${ext} to .gitignore`, onClick: () => actions.addToGitignore(`*.${ext}`) })
       }
+    }
+    if (section !== 'conflicted') {
+      items.push({ label: 'Stash', onClick: () => actions.stashFiles([f]) })
     }
     if (section === 'unstaged') {
       items.push({ label: 'Discard', onClick: () => actions.discardFile(f), destructive: true })

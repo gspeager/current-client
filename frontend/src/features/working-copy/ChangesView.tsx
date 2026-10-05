@@ -49,7 +49,7 @@ function ChangesView({
   showCommitTypePicker = false,
 }: ChangesViewProps) {
   const { files, staged, unstaged, loadStatus } = workingTree
-  const actions = useWorkingTreeActions(repoPath, loadStatus)
+  const actions = useWorkingTreeActions(repoPath, loadStatus, onBranchChanged)
   const { confirm } = useDialogs()
   const [selectedPath, setSelectedPath] = useState<string | null>(initialSelectedPath)
   // A staged file's diff is HEAD→index; an unstaged file's is index→working tree.

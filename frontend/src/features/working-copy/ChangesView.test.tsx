@@ -1,6 +1,13 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { DiffService, FileContent, FileDiff, StatusService, type FileStatus } from '@current-client-bindings/app'
+import {
+  DiffService,
+  FileContent,
+  FileDiff,
+  StashService,
+  StatusService,
+  type FileStatus,
+} from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { isStagedStatus, isUnstagedStatus } from './fileStatus'
 import { giveElementsLayout } from '../../test/bindings'
@@ -195,6 +202,59 @@ describe('ChangesView multi-select', () => {
     await user.click(screen.getByRole('button', { name: 'Stage 2 files' }))
 
     expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/c.ts'])
+  })
+})
+
+describe('ChangesView stashing', () => {
+  function renderWithBranchChanged(files: FileStatus[]) {
+    const onBranchChanged = vi.fn()
+    render(
+      <DialogProvider>
+        <ChangesView repoPath={REPO} workingTree={workingTreeFor(files)} onBranchChanged={onBranchChanged} />
+      </DialogProvider>,
+    )
+    return onBranchChanged
+  }
+
+  it('stashes just the selected files, including untracked ones', async () => {
+    vi.mocked(StashService.StashSave).mockResolvedValue()
+    const onBranchChanged = renderWithBranchChanged([
+      file('src/a.ts'),
+      file('src/b.ts'),
+      file('notes.md', { worktreeStatus: '?' }),
+    ])
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'src/a.ts' }))
+    await user.keyboard('{Control>}')
+    await user.click(screen.getByRole('button', { name: 'notes.md' }))
+    await user.keyboard('{/Control}')
+    await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
+    await user.click(screen.getByRole('button', { name: 'Stash 2 files' }))
+
+    expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
+      message: '',
+      includeUntracked: true,
+      keepIndex: false,
+      paths: expect.arrayContaining(['src/a.ts', 'notes.md']),
+    })
+    await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+  })
+
+  it('stashes one tracked file without untracked files', async () => {
+    vi.mocked(StashService.StashSave).mockResolvedValue()
+    renderWithBranchChanged([file('src/a.ts'), file('src/b.ts')])
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/b.ts' }) })
+    await user.click(screen.getByRole('button', { name: 'Stash' }))
+
+    expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
+      message: '',
+      includeUntracked: false,
+      keepIndex: false,
+      paths: ['src/b.ts'],
+    })
   })
 })
 
