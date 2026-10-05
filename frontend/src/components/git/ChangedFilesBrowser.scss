@@ -43,7 +43,9 @@
 
 .changed-files-browser-toolbar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--space-md);
   margin-bottom: var(--space-xs);
 }
 

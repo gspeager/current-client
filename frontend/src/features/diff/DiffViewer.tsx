@@ -4,6 +4,7 @@ import type { FileDiff, LineSelection } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
+import { useDiffWrap } from './diffWrap'
 import LfsDiff from './LfsDiff'
 import { lfsPointerChange } from './lfsPointer'
 import SubmoduleDiff from './SubmoduleDiff'
@@ -47,6 +48,7 @@ function DiffViewer({
   ...hunkActions
 }: DiffViewerProps) {
   const [showImage, setShowImage] = useState(true)
+  const { wrap } = useDiffWrap()
   const paneRef = useRef<HTMLDivElement>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
@@ -192,7 +194,9 @@ function DiffViewer({
           </div>
         </div>
       )}
-      <div className={mode === 'split' ? 'diff-viewer' : 'diff-viewer diff-viewer-unified'}>
+      <div
+        className={`diff-viewer${mode === 'split' ? '' : ' diff-viewer-unified'}${wrap ? '' : ' diff-viewer-nowrap'}`}
+      >
         <DiffPane
           mode={mode}
           rows={buildDisplayRows(diff.hunks)}
