@@ -14,11 +14,23 @@ interface ChangedFilesBrowserProps {
   loadDiff: (file: ChangedFile) => Promise<FileDiff>
   // Where to read a file's two versions for the image view.
   images?: (file: ChangedFile) => ImageSources
+  // The file to show first, when the list is already loaded.
+  initialPath?: string
+  // Lets a submodule's change list the commits between its versions.
+  repoPath?: string
 }
 
 // Remount it (with a key) when what it shows changes, so the selection resets.
-function ChangedFilesBrowser({ files, error, emptyHint, loadDiff, images }: ChangedFilesBrowserProps) {
-  const [selected, setSelected] = useState<ChangedFile | null>(null)
+function ChangedFilesBrowser({
+  files,
+  error,
+  emptyHint,
+  loadDiff,
+  images,
+  initialPath,
+  repoPath,
+}: ChangedFilesBrowserProps) {
+  const [selected, setSelected] = useState<ChangedFile | null>(() => files?.find((f) => f.path === initialPath) ?? null)
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
   const { data: diff, error: diffError } = useAsyncData(
     () => (selected ? loadDiff(selected) : null),
@@ -64,7 +76,13 @@ function ChangedFilesBrowser({ files, error, emptyHint, loadDiff, images }: Chan
             <div className="changed-files-browser-toolbar">
               <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
             </div>
-            <DiffViewer diff={diff} path={selected.path} viewMode={viewMode} images={images?.(selected)} />
+            <DiffViewer
+              diff={diff}
+              path={selected.path}
+              viewMode={viewMode}
+              images={images?.(selected)}
+              repoPath={repoPath}
+            />
           </>
         ) : (
           <p className="changed-files-browser-hint">Loading diff…</p>
