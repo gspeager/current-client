@@ -19,10 +19,18 @@ function StashModal({ repoPath, stash, onClose }: StashModalProps) {
   )
 
   // Untracked files (status ?) live in the stash's parentless third parent.
-  const loadDiff = (file: ChangedFile) =>
-    file.status === '?'
-      ? DiffService.GetRefDiff(repoPath, file.path, EMPTY_TREE_SHA, `${ref}^3`, false)
-      : DiffService.GetRefDiff(repoPath, file.path, `${ref}^1`, ref, false)
+  const versions = (file: ChangedFile) =>
+    file.status === '?' ? { from: EMPTY_TREE_SHA, to: `${ref}^3` } : { from: `${ref}^1`, to: ref }
+
+  const loadDiff = (file: ChangedFile) => {
+    const { from, to } = versions(file)
+    return DiffService.GetRefDiff(repoPath, file.path, from, to, false)
+  }
+
+  const images = (file: ChangedFile) => {
+    const { from, to } = versions(file)
+    return { repoPath, before: { kind: 'commit', rev: from }, after: { kind: 'commit', rev: to } }
+  }
 
   return (
     <Modal
@@ -31,7 +39,13 @@ function StashModal({ repoPath, stash, onClose }: StashModalProps) {
       className="stash-modal"
       headerContent={<span className="stash-modal-message">{stash.message}</span>}
     >
-      <ChangedFilesBrowser files={files} error={error} emptyHint="This stash has no changes." loadDiff={loadDiff} />
+      <ChangedFilesBrowser
+        files={files}
+        error={error}
+        emptyHint="This stash has no changes."
+        loadDiff={loadDiff}
+        images={images}
+      />
     </Modal>
   )
 }
