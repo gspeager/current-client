@@ -329,3 +329,24 @@
   justify-content: flex-start;
   margin-bottom: var(--space-xs);
 }
+
+// A changed line's number selects it for the hunk's actions.
+.diff-line-select {
+  padding: 0 6px 0 0;
+  background: none;
+  border: none;
+  color: var(--code-linenum);
+  font: inherit;
+  line-height: inherit;
+  text-align: right;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+.diff-row-selected .diff-line-select {
+  background: var(--outline-variant);
+  color: var(--on-surface);
+}
