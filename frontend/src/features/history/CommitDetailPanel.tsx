@@ -187,6 +187,7 @@ function CommitDetailPanel({
                   diff={fileDiff}
                   path={selectedFilePath}
                   viewMode={viewMode}
+                  repoPath={repoPath}
                   images={{
                     repoPath,
                     before: { kind: 'commit', rev: diffBaseFor(commit.parentShas) },

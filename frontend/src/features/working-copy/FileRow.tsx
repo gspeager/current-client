@@ -21,6 +21,8 @@ interface FileRowProps {
   added?: number
   removed?: number
   binary?: boolean
+  // A short label for what kind of entry it is, such as "submodule".
+  tag?: string
 }
 
 function FileRow({
@@ -38,6 +40,7 @@ function FileRow({
   added = 0,
   removed = 0,
   binary = false,
+  tag,
 }: FileRowProps) {
   const rowStyle = indent > 0 ? { ...style, paddingLeft: `calc(var(--space-sm) + ${indent}px)` } : style
 
@@ -56,7 +59,10 @@ function FileRow({
       <button type="button" className="file-row-path" onClick={onSelect}>
         <PathText path={label} />
       </button>
-      <DiffStat added={added} removed={removed} binary={binary} />
+      <span className="file-row-stats">
+        {tag && <span className="file-row-tag">{tag}</span>}
+        <DiffStat added={added} removed={removed} binary={binary} />
+      </span>
       <StatusBadge status={status} />
       {onDiscard && (
         <button

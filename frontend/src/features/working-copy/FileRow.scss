@@ -53,3 +53,15 @@
     color: var(--error);
   }
 }
+
+.file-row-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.file-row-tag {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

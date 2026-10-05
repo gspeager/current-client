@@ -4,6 +4,8 @@ import type { FileDiff, LineSelection } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
+import SubmoduleDiff from './SubmoduleDiff'
+import { submoduleChange } from './submoduleChange'
 import { buildDisplayRows, diffStats } from './diffRows'
 import DiffPane, { lineKey, type HunkActions } from './DiffPane'
 import './DiffViewer.scss'
@@ -27,6 +29,8 @@ interface DiffViewerProps extends HunkActions {
   onForceLoad?: () => void
   // Where to read the two versions of an image from; without it images show as binary.
   images?: ImageSources
+  // Lets a submodule's change list the commits between its two versions.
+  repoPath?: string
 }
 
 function DiffViewer({
@@ -37,6 +41,7 @@ function DiffViewer({
   targetSide,
   onForceLoad,
   images,
+  repoPath,
   ...hunkActions
 }: DiffViewerProps) {
   const [showImage, setShowImage] = useState(true)
@@ -106,6 +111,9 @@ function DiffViewer({
       return next
     })
   }
+
+  const submodule = submoduleChange(diff)
+  if (submodule) return <SubmoduleDiff change={submodule} path={path} repoPath={repoPath} />
 
   const image = images && imageMimeType(path) ? <ImageDiff {...images} path={path} refreshKey={diff} /> : null
   if (image && (diff.binary || diff.tooLarge)) return image

@@ -71,6 +71,7 @@ function FileHistoryPanel({ repoPath, path, onClose }: FileHistoryPanelProps) {
               diff={diff}
               path={path}
               viewMode="unified"
+              repoPath={repoPath}
               images={
                 selectedCommit && {
                   repoPath,

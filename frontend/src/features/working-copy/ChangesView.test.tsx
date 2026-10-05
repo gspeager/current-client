@@ -289,6 +289,17 @@ describe('ChangesView stashing', () => {
   })
 })
 
+describe('ChangesView submodules', () => {
+  it('labels a submodule entry', () => {
+    renderChanges([
+      file('vendor/lib', { submodule: { commitChanged: true, modified: false, untracked: false } }),
+      file('src/app.ts'),
+    ])
+
+    expect(screen.getAllByText('submodule')).toHaveLength(1)
+  })
+})
+
 describe('ChangesView conflicts', () => {
   const conflictedFile = () => file('src/app.ts', { indexStatus: 'U', worktreeStatus: 'U', conflicted: true })
 
