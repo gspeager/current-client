@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Added
 
+- **Wrap lines** in the diff toolbar turns line wrapping off, so long lines stay on one row and the diff scrolls sideways. Remembered across the app. ([#57](https://github.com/gspeager/current-client/issues/57))
 - **Expand diff** in Working Copy hides the file list so the diff runs across to the sidebar, for reviewing long or wide changes. ([#56](https://github.com/gspeager/current-client/issues/56))
 - Clicking a changed file in a commit's details opens its diff in a large window, with the commit's other files beside it, instead of a cramped diff in the narrow pane. ([#58](https://github.com/gspeager/current-client/issues/58))
 - Submodules and Git LFS: a **Submodules** section (in repositories that have them) shows each one's state and can update or open them, and a changed submodule shows the commits it moved between instead of a commit hash. Files stored in Git LFS are labelled, show their size change instead of pointer text, and say when Git LFS isn't installed. ([#43](https://github.com/gspeager/current-client/issues/43))

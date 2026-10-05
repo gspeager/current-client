@@ -49,6 +49,8 @@ type Config struct {
 
 	// Working Copy's diff takes the file list's space too.
 	DiffExpanded bool `json:"diffExpanded,omitempty"`
+	// Zero keeps long diff lines wrapping, as they always have.
+	DiffNoWrap bool `json:"diffNoWrap,omitempty"`
 
 	// Whether the header's fetch also deletes remote-tracking branches gone from the remote.
 	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`

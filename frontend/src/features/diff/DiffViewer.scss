@@ -435,3 +435,31 @@
   color: var(--outline);
   font: var(--ui-sm);
 }
+
+// Wrap lines off: each line keeps one row and the pane scrolls sideways. The
+// grid widens to the longest line, so split view's two sides scroll together
+// and stay row-aligned.
+.diff-viewer-nowrap {
+  .diff-row {
+    white-space: pre;
+  }
+
+  .diff-content {
+    overflow-wrap: normal;
+  }
+
+  .diff-pane-split {
+    grid-template-columns: minmax(50%, max-content) minmax(50%, max-content);
+  }
+
+  .diff-pane-unified {
+    display: grid;
+    grid-template-columns: minmax(100%, max-content);
+    align-content: start;
+  }
+
+  // Keeps the hunk's buttons in view rather than at the far end of a wide row.
+  .diff-hunk-header {
+    justify-content: flex-start;
+  }
+}

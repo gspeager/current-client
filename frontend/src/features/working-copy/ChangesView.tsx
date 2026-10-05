@@ -5,6 +5,7 @@ import ResizeHandle from '../../components/chrome/ResizeHandle'
 import Checkbox from '../../components/forms/Checkbox'
 import CommitComposer from './CommitComposer'
 import DiffViewer from '../diff/DiffViewer'
+import { DiffWrapToggle } from '../diff/diffWrap'
 import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
@@ -225,6 +226,7 @@ function ChangesView({
 
               <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
               <Checkbox checked={ignoreWhitespace} onChange={setIgnoreWhitespace} label="Ignore whitespace" />
+              <DiffWrapToggle />
               <button
                 type="button"
                 className="changes-diff-external-tool"

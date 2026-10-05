@@ -106,6 +106,11 @@ export function useSettings() {
     SettingsService.SetDiffExpanded(expanded).catch((err: unknown) => setError(errorMessage(err)))
   }
 
+  const setDiffNoWrap = (noWrap: boolean) => {
+    setSettings((prev) => (prev ? { ...prev, diffNoWrap: noWrap } : prev))
+    SettingsService.SetDiffNoWrap(noWrap).catch((err: unknown) => setError(errorMessage(err)))
+  }
+
   const setChangelogPrefs = (changelog: ChangelogPrefs) => {
     setSettings((prev) => (prev ? { ...prev, changelog } : prev))
     SettingsService.SetChangelogPrefs(changelog).catch((err: unknown) => setError(errorMessage(err)))
@@ -121,6 +126,7 @@ export function useSettings() {
     error,
     setNavCollapsed,
     setDiffExpanded,
+    setDiffNoWrap,
     setPruneOnFetch,
     setDisableConventionalCommits,
     setChangelogPrefs,

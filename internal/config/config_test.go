@@ -27,6 +27,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		FocusedTab:                  "/b",
 		NavCollapsed:                true,
 		DiffExpanded:                true,
+		DiffNoWrap:                  true,
 		PruneOnFetch:                true,
 		DisableConventionalCommits:  true,
 		Changelog:                   &ChangelogPrefs{Types: []string{"feat"}, Dates: true, SplitByRelease: true},

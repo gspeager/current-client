@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ChangedFile, FileDiff } from '@current-client-bindings/app'
 import ChangedFileRow from '../../features/history/ChangedFileRow'
 import DiffViewer from '../../features/diff/DiffViewer'
+import { DiffWrapToggle } from '../../features/diff/diffWrap'
 import type { ImageSources } from '../../features/diff/ImageDiff'
 import DiffViewModeToggle, { type DiffViewMode } from '../../features/diff/DiffViewModeToggle'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -74,6 +75,7 @@ function ChangedFilesBrowser({
         ) : diff ? (
           <>
             <div className="changed-files-browser-toolbar">
+              <DiffWrapToggle />
               <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
             </div>
             <DiffViewer
