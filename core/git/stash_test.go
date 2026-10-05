@@ -210,3 +210,46 @@ func TestStashChangedFilesWithoutUntracked(t *testing.T) {
 		t.Fatalf("got %+v, want %+v", files, want)
 	}
 }
+
+func TestStashPushOnlySomePaths(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a1\n", "initial")
+	gittest.CommitFile(t, dir, "b.txt", "b1\n", "add b")
+	gittest.WriteFile(t, dir, "a.txt", "a2\n")
+	gittest.WriteFile(t, dir, "b.txt", "b2\n")
+	gittest.WriteFile(t, dir, "new.txt", "new\n")
+	gittest.WriteFile(t, dir, "other.txt", "other\n")
+
+	opts := StashOptions{Message: "part", IncludeUntracked: true, Paths: []string{"a.txt", "new.txt"}}
+	if err := StashPush(context.Background(), dir, opts); err != nil {
+		t.Fatalf("StashPush: %v", err)
+	}
+
+	if got := gittest.Run(t, dir, "status", "--porcelain"); got != "M b.txt\n?? other.txt" {
+		t.Fatalf("status after stashing a.txt and new.txt = %q, want only b.txt and other.txt left", got)
+	}
+	files, err := StashChangedFiles(context.Background(), dir, 0)
+	if err != nil {
+		t.Fatalf("StashChangedFiles: %v", err)
+	}
+	if want := []ChangedFile{{Status: "M", Path: "a.txt"}, {Status: "?", Path: "new.txt"}}; !reflect.DeepEqual(files, want) {
+		t.Fatalf("stash holds %+v, want %+v", files, want)
+	}
+}
+
+func TestStashPushKeepIndexLeavesStagedChanges(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a1\n", "initial")
+	gittest.CommitFile(t, dir, "b.txt", "b1\n", "add b")
+	gittest.WriteFile(t, dir, "a.txt", "a2\n")
+	gittest.Run(t, dir, "add", "a.txt")
+	gittest.WriteFile(t, dir, "b.txt", "b2\n")
+
+	if err := StashPush(context.Background(), dir, StashOptions{KeepIndex: true}); err != nil {
+		t.Fatalf("StashPush: %v", err)
+	}
+
+	if got := gittest.Run(t, dir, "status", "--porcelain"); got != "M  a.txt" {
+		t.Fatalf("status = %q, want only the staged a.txt left", got)
+	}
+}

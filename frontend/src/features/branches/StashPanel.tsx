@@ -26,16 +26,18 @@ function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
   const error = loadError ?? actionError
   const [newMessage, setNewMessage] = useState('')
   const [includeUntracked, setIncludeUntracked] = useState(false)
+  const [keepIndex, setKeepIndex] = useState(false)
   const [showNewStash, setShowNewStash] = useState(false)
   const [busyIndex, setBusyIndex] = useState<number | null>(null)
   const [shownStash, setShownStash] = useState<StashInfo | null>(null)
 
   const saveStash = () => {
     setActionError(null)
-    StashService.StashSave(repoPath, newMessage, includeUntracked)
+    StashService.StashSave(repoPath, { message: newMessage, includeUntracked, keepIndex, paths: [] })
       .then(() => {
         setNewMessage('')
         setIncludeUntracked(false)
+        setKeepIndex(false)
         setShowNewStash(false)
         loadStashes()
         onStashChanged?.()
@@ -106,6 +108,7 @@ function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
             autoFocus
           />
           <Checkbox checked={includeUntracked} onChange={setIncludeUntracked} label="Include untracked files" />
+          <Checkbox checked={keepIndex} onChange={setKeepIndex} label="Keep staged changes" />
           <button type="button" onClick={saveStash}>
             Stash
           </button>
