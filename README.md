@@ -12,11 +12,11 @@ Current Client runs entirely on your machine and talks only to your repositories
 - Search across every file's contents, now or at any commit.
 - Undo the last operation — a commit, amend, merge, pull, rebase, reset or branch switch — after a preview of what will move.
 - Conflict prediction: branches that would conflict with yours are marked, with the files, before you merge (Git 2.38 or newer).
-- Repository tabs, to keep several repositories open at once.
+- Repository tabs, to keep several repositories open at once, and worktrees for several branches of one.
 - An activity dashboard: commit calendar and velocity, contributors, file churn, languages, and stale branches or unpushed commits.
 - A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF.
 
-Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app, do a visual interactive rebase, or manage worktrees, submodules or Git LFS.
+Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app, do a visual interactive rebase, or manage submodules or Git LFS.
 
 ## Install
 

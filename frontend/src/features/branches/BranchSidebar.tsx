@@ -316,6 +316,11 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
               <BranchPill name={b.name} color={branchColor(b.name, b.current)} current={b.current} dirty={dirty} />
               {b.current && <span className="branch-row-head">HEAD</span>}
               <OverlapMark overlap={localOverlaps.get(b.name)} />
+              {!b.current && b.worktreePath && (
+                <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>
+                  worktree
+                </span>
+              )}
               <span className="branch-row-meta">
                 {b.ahead > 0 && <span className="branch-row-ahead">↑{b.ahead}</span>}
                 {b.behind > 0 && <span className="branch-row-behind">↓{b.behind}</span>}

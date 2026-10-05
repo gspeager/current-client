@@ -22,7 +22,7 @@ function results(result: SearchResult) {
 
 function renderSearch(onOpenFileHistory = vi.fn()) {
   vi.mocked(BranchService.ListLocal).mockResolvedValue([
-    { name: 'main', current: true, upstream: '', ahead: 0, behind: 0, lastCommitDate: '' },
+    { name: 'main', current: true, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath: '' },
   ])
   vi.mocked(BranchService.ListRemote).mockResolvedValue([])
   vi.mocked(TagService.ListTags).mockResolvedValue([])

@@ -265,6 +265,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             onFetched={onFetched}
             pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
             onOpenHeadCommit={openCommit}
+            onOpenRepository={repo.openRecent}
             width={navWidth.width}
             collapsed={navCollapsed}
             onCollapsedChange={settings.setNavCollapsed}

@@ -16,6 +16,7 @@ type BranchInfo struct {
 	Ahead          int    `json:"ahead"`
 	Behind         int    `json:"behind"`
 	LastCommitDate string `json:"lastCommitDate"`
+	WorktreePath   string `json:"worktreePath"`
 }
 
 type BranchStatusInfo struct {

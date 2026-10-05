@@ -25,6 +25,7 @@ function renderNav(collapsed: boolean, onCollapsedChange = vi.fn()) {
         workingTree={workingTree}
         onBranchChanged={vi.fn()}
         onFetched={vi.fn()}
+        onOpenRepository={vi.fn()}
         onOpenHeadCommit={vi.fn()}
         width={240}
         collapsed={isCollapsed}

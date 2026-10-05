@@ -58,6 +58,9 @@ var knownErrorPatterns = []struct {
 	{stderrStream, []string{"is not a valid branch name"}, "That isn't a valid branch name. Branch names can't contain spaces or any of ~ ^ : ? * [ \\."},
 	{stderrStream, []string{"a branch named"}, "A branch with that name already exists."},
 	{stderrStream, []string{"is not fully merged"}, "This branch has unmerged changes."},
+	{stderrStream, []string{"contains modified or untracked files"}, "This worktree has changes."},
+	// Git 2.42 changed "is already checked out at" to "is already used by worktree at".
+	{stderrStream, []string{"is already checked out at", "is already used by worktree at"}, "That branch is checked out in another worktree."},
 	{stderrStream, []string{"no tracking information"}, "This branch has no upstream to pull from."},
 	{stderrStream, []string{"has no upstream branch"}, "This branch has no upstream configured."},
 	{stderrStream, []string{"(stale info)"}, "Someone else pushed since your last fetch. Fetch and try again."},

@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Cloud,
   Code2,
+  FolderGit2,
   FolderOpen,
   GitBranch,
   History,
@@ -26,6 +27,7 @@ import HeadCommitPanel from '../../features/working-copy/HeadCommitPanel'
 import RemotesPanel from '../../features/remotes/RemotesPanel'
 import StashPanel from '../../features/branches/StashPanel'
 import TagsPanel from '../../features/branches/TagsPanel'
+import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
 import { errorMessage } from '../../lib/errors'
 import { undoConfirmOptions } from '../../features/history/undoPreview'
 import { useDialogs } from '../../lib/useDialogs'
@@ -34,7 +36,7 @@ import BisectWizard from '../../features/history/BisectWizard'
 import ReflogPanel from '../../features/history/ReflogPanel'
 import './NavPane.scss'
 
-type SectionId = 'maintenance' | 'branches' | 'stash' | 'tags' | 'remotes'
+type SectionId = 'maintenance' | 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 
 interface NavPaneProps {
   repoPath: string
@@ -44,6 +46,8 @@ interface NavPaneProps {
   onFetched: () => void
   pruneOnFetch?: boolean
   onOpenHeadCommit: (sha: string) => void
+  // Opens a repository (such as a worktree) as a tab.
+  onOpenRepository: (path: string) => void
   width: number
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
@@ -56,6 +60,7 @@ const SECTION_SHORTCUTS: { id: SectionId; label: string; icon: LucideIcon }[] = 
   { id: 'stash', label: 'Stash', icon: Package },
   { id: 'tags', label: 'Tags', icon: Tag },
   { id: 'remotes', label: 'Remotes', icon: Cloud },
+  { id: 'worktrees', label: 'Worktrees', icon: FolderGit2 },
 ]
 
 function NavPane({
@@ -66,6 +71,7 @@ function NavPane({
   onFetched,
   pruneOnFetch,
   onOpenHeadCommit,
+  onOpenRepository,
   width,
   collapsed,
   onCollapsedChange,
@@ -326,6 +332,15 @@ function NavPane({
 
         <section className="nav-pane-section" ref={sectionRef('remotes')}>
           <RemotesPanel repoPath={repoPath} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
+        </section>
+
+        <section className="nav-pane-section" ref={sectionRef('worktrees')}>
+          <WorktreesPanel
+            repoPath={repoPath}
+            refreshKey={repoVersion}
+            onOpenRepository={onOpenRepository}
+            onWorktreesChanged={onBranchChanged}
+          />
         </section>
       </div>
 

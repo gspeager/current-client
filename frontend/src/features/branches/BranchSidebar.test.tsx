@@ -7,7 +7,7 @@ import BranchSidebar from './BranchSidebar'
 const REPO = '/repos/app'
 
 function branch(name: string, current = false): BranchInfo {
-  return { name, current, upstream: '', ahead: 0, behind: 0, lastCommitDate: '' }
+  return { name, current, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath: '' }
 }
 
 function renderSidebar(onBranchChanged = vi.fn()) {
@@ -44,6 +44,18 @@ describe('BranchSidebar', () => {
 
     expect(BranchService.CreateBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
     expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
+  })
+
+  it('marks a branch checked out in another worktree', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([
+      branch('main', true),
+      { ...branch('review'), worktreePath: '/projects/app-review' },
+    ])
+    renderSidebar()
+
+    const marker = await screen.findByText('worktree')
+    expect(marker).toHaveAttribute('title', 'Checked out in the worktree at /projects/app-review')
+    expect(screen.getAllByText('worktree')).toHaveLength(1)
   })
 
   it('ignores a click on the current branch', async () => {

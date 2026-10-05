@@ -241,3 +241,10 @@
   color: var(--on-surface-variant);
   font: var(--data-sm);
 }
+
+// Git won't check out a branch that's already checked out in another worktree.
+.branch-row-worktree {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

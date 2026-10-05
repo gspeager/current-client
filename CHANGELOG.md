@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Added
 
+- Worktrees: a **Worktrees** section in the Nav Pane lists, adds, opens and removes worktrees, so several branches can be checked out at once in their own folders. The branch list marks branches checked out in another worktree. ([#42](https://github.com/gspeager/current-client/issues/42))
 - Stage, unstage or discard single lines: click the line numbers of the changes you want in a hunk, then use its **Stage lines** button. ([#41](https://github.com/gspeager/current-client/issues/41))
 - **Search in files** (⌘⇧F / Ctrl+Shift+F, or from Quick Switch) finds text across the working tree or any branch or tag, with match case, whole word and regular expression options. Clicking a match opens it in your editor. ([#40](https://github.com/gspeager/current-client/issues/40))
 - **Set upstream…** and **Unset upstream** in a branch's right-click menu, to choose or remove the remote branch it tracks without pushing. ([#38](https://github.com/gspeager/current-client/issues/38))
