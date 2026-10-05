@@ -46,6 +46,18 @@ describe('BranchSidebar', () => {
     expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
   })
 
+  it('marks a branch checked out in another worktree', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([
+      branch('main', true),
+      { ...branch('review'), worktreePath: '/projects/app-review' },
+    ])
+    renderSidebar()
+
+    const marker = await screen.findByText('worktree')
+    expect(marker).toHaveAttribute('title', 'Checked out in the worktree at /projects/app-review')
+    expect(screen.getAllByText('worktree')).toHaveLength(1)
+  })
+
   it('ignores a click on the current branch', async () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true)])
     renderSidebar()

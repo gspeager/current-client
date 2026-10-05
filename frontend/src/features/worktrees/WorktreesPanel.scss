@@ -1,0 +1,165 @@
+@use '../../styles/patterns';
+
+.worktrees-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.worktrees-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.worktrees-panel-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.worktrees-panel-add {
+  @include patterns.icon-button;
+}
+
+.worktrees-panel-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+
+  input,
+  select {
+    @include patterns.text-field;
+  }
+}
+
+.worktrees-panel-folder {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  color: var(--outline);
+}
+
+.worktrees-panel-folder-path {
+  flex: 1;
+  min-width: 0;
+  font: var(--data-sm);
+}
+
+.worktrees-panel-choose {
+  flex-shrink: 0;
+  height: var(--h-micro);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  cursor: pointer;
+}
+
+.worktrees-panel-create {
+  @include patterns.primary-button;
+}
+
+.worktrees-panel-created {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+
+  > span {
+    min-width: 0;
+    @include patterns.truncate;
+  }
+
+  button {
+    flex-shrink: 0;
+    height: var(--h-micro);
+    padding: 0 var(--space-xs);
+    background: none;
+    border: var(--border-structure);
+    border-radius: var(--radius);
+    color: var(--on-surface);
+    font: var(--ui-xs);
+    cursor: pointer;
+  }
+}
+
+.worktrees-panel-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.worktrees-panel-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.worktrees-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.worktree-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+
+  &:hover {
+    background: var(--surface-container);
+
+    .worktree-row-actions {
+      opacity: 1;
+    }
+  }
+}
+
+.worktree-row-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.worktree-row-name {
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--data-md);
+}
+
+.worktree-row-branch {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.worktree-row-badge {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.worktree-row-badge-missing {
+  color: var(--warning);
+}
+
+.worktree-row-actions {
+  @include patterns.row-actions;
+}
