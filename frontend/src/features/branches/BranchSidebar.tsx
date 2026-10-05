@@ -10,6 +10,7 @@ import {
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
+import SetUpstreamDialog from './SetUpstreamDialog'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
@@ -58,6 +59,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<{ name: string; tip: string } | null>(null)
   const [squashed, setSquashed] = useState<string | null>(null)
+  const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 
   const checkoutBranch = (name: string) => {
     setActionError(null)
@@ -163,6 +165,18 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       })
   }
 
+  const upstreamChanged = () => {
+    loadBranches()
+    onBranchChanged?.()
+  }
+
+  const unsetUpstream = (name: string) => {
+    setActionError(null)
+    BranchService.UnsetUpstream(repoPath, name)
+      .then(upstreamChanged)
+      .catch((err: unknown) => setActionError(errorMessage(err)))
+  }
+
   const restoreDeleted = (branch: { name: string; tip: string }) => {
     setActionError(null)
     setDeleted(null)
@@ -191,6 +205,8 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
         { label: 'Rebase current onto', onClick: () => rebaseOnto(b.name), disabled: b.current },
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
         { label: 'Rename…', onClick: () => renameBranch(b.name) },
+        { label: 'Set upstream…', onClick: () => setUpstreamFor(b) },
+        ...(b.upstream ? [{ label: 'Unset upstream', onClick: () => unsetUpstream(b.name) }] : []),
         { label: 'Delete', onClick: () => deleteBranch(b.name, false), destructive: true, disabled: b.current },
         ...(b.upstream
           ? [
@@ -352,6 +368,18 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
         </div>
       )}
 
+      {upstreamFor && (
+        <SetUpstreamDialog
+          repoPath={repoPath}
+          branch={upstreamFor.name}
+          upstream={upstreamFor.upstream}
+          onClose={() => setUpstreamFor(null)}
+          onSet={() => {
+            setUpstreamFor(null)
+            upstreamChanged()
+          }}
+        />
+      )}
       {contextMenu && <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />}
       {compareWith && (
         <CompareModal
