@@ -1,0 +1,14 @@
+@use '../../styles/patterns';
+
+.commit-files-panel {
+  width: 1400px;
+  height: 85vh;
+}
+
+.commit-files-subject {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
