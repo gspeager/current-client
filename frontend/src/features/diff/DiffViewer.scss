@@ -412,3 +412,26 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.lfs-diff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+}
+
+.lfs-diff-summary {
+  margin: 0;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.lfs-diff-sizes {
+  font: var(--data-sm);
+}
+
+.lfs-diff-note {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}

@@ -290,7 +290,7 @@ describe('ChangesView stashing', () => {
   })
 })
 
-describe('ChangesView submodules', () => {
+describe('ChangesView submodules and Git LFS', () => {
   it('labels a submodule entry', () => {
     renderChanges([
       file('vendor/lib', { submodule: { commitChanged: true, modified: false, untracked: false } }),
@@ -298,6 +298,12 @@ describe('ChangesView submodules', () => {
     ])
 
     expect(screen.getAllByText('submodule')).toHaveLength(1)
+  })
+
+  it('labels a file stored in Git LFS', () => {
+    renderChanges([file('art/cover.psd', { lfs: true }), file('src/app.ts')])
+
+    expect(screen.getAllByText('LFS')).toHaveLength(1)
   })
 })
 

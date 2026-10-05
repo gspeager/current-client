@@ -16,7 +16,7 @@ Current Client runs entirely on your machine and talks only to your repositories
 - An activity dashboard: commit calendar and velocity, contributors, file churn, languages, and stale branches or unpushed commits.
 - A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF.
 
-Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app, do a visual interactive rebase, or manage submodules or Git LFS.
+Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app or do a visual interactive rebase.
 
 ## Install
 

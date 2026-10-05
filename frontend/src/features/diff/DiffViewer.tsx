@@ -4,6 +4,8 @@ import type { FileDiff, LineSelection } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
+import LfsDiff from './LfsDiff'
+import { lfsPointerChange } from './lfsPointer'
 import SubmoduleDiff from './SubmoduleDiff'
 import { submoduleChange } from './submoduleChange'
 import { buildDisplayRows, diffStats } from './diffRows'
@@ -114,6 +116,8 @@ function DiffViewer({
 
   const submodule = submoduleChange(diff)
   if (submodule) return <SubmoduleDiff change={submodule} path={path} repoPath={repoPath} />
+  const lfs = lfsPointerChange(diff)
+  if (lfs) return <LfsDiff change={lfs} />
 
   const image = images && imageMimeType(path) ? <ImageDiff {...images} path={path} refreshKey={diff} /> : null
   if (image && (diff.binary || diff.tooLarge)) return image
