@@ -74,6 +74,25 @@ func (s *DiffService) DiscardStagedHunk(repoPath, path, hunkText string) error {
 	return diff.DiscardStagedHunk(context.Background(), repoPath, path, hunkText)
 }
 
+// LineSelection picks changed lines in a hunk: added lines by new line
+// number, removed lines by old line number.
+type LineSelection struct {
+	Added   []int `json:"added"`
+	Removed []int `json:"removed"`
+}
+
+func (s *DiffService) StageLines(repoPath, path, hunkText string, sel LineSelection) error {
+	return diff.StageLines(context.Background(), repoPath, path, hunkText, diff.LineSelection(sel))
+}
+
+func (s *DiffService) UnstageLines(repoPath, path, hunkText string, sel LineSelection) error {
+	return diff.UnstageLines(context.Background(), repoPath, path, hunkText, diff.LineSelection(sel))
+}
+
+func (s *DiffService) DiscardLines(repoPath, path, hunkText string, sel LineSelection) error {
+	return diff.DiscardLines(context.Background(), repoPath, path, hunkText, diff.LineSelection(sel))
+}
+
 func (s *DiffService) OpenInExternalTool(repoPath, path string, cached bool) error {
 	return diff.OpenInExternalTool(context.Background(), repoPath, path, cached)
 }
