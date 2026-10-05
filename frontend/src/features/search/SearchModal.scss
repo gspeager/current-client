@@ -1,0 +1,98 @@
+@use '../../styles/patterns';
+
+.search-panel {
+  width: 1000px;
+  height: 80vh;
+}
+
+.search-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-bottom: var(--border-structure);
+}
+
+.search-input {
+  @include patterns.text-field;
+}
+
+.search-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+
+  .ref-select {
+    margin-left: auto;
+  }
+}
+
+.search-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-md);
+}
+
+.search-hint,
+.search-summary {
+  margin: 0 0 var(--space-sm);
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.search-error {
+  margin: 0 0 var(--space-sm);
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.search-file {
+  margin-bottom: var(--space-md);
+}
+
+.search-file-path {
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: var(--on-surface);
+  font: var(--data-md);
+}
+
+.search-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-line {
+  display: flex;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-micro);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.search-line-number {
+  flex-shrink: 0;
+  min-width: 4ch;
+  color: var(--outline);
+  text-align: right;
+}
+
+.search-line-text {
+  min-width: 0;
+  white-space: pre;
+  @include patterns.truncate;
+}

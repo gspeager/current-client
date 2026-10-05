@@ -40,6 +40,10 @@ func (s *PlatformService) OpenInEditor(repoPath string) error {
 	return platform.OpenInEditor(repoPath, configOrDefault().EditorPath)
 }
 
+func (s *PlatformService) OpenFileInEditor(repoPath, path string, line int) error {
+	return platform.OpenFileInEditor(repoPath, path, line, configOrDefault().EditorPath)
+}
+
 // appVersion is set by the Taskfiles with -ldflags "-X github.com/gspeager/current-client/app.appVersion=<version>";
 // a plain go build leaves it as "dev".
 var appVersion = "dev"

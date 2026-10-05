@@ -18,6 +18,7 @@ import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
 import QuickSwitchPalette from './QuickSwitchPalette'
 import RepoPickerModal from '../../features/repositories/RepoPickerModal'
 import RepoTabChip from '../../features/repositories/RepoTabChip'
+import SearchModal from '../../features/search/SearchModal'
 import './HeaderBar.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 
@@ -69,6 +70,7 @@ function HeaderBar({
   const [panelView, setPanelView] = useState<PanelView>('branch')
   const [quickSwitchOpen, setQuickSwitchOpen] = useState(false)
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null)
@@ -109,6 +111,10 @@ function HeaderBar({
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault()
       setQuickSwitchOpen(true)
+    }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+      e.preventDefault()
+      setSearchOpen(true)
     }
   })
 
@@ -284,11 +290,22 @@ function HeaderBar({
           onPush={onPush}
           onFetchAll={fetchAllOp.fetchAll}
           onOpenFile={setFileHistoryPath}
+          onSearchFiles={() => setSearchOpen(true)}
           onOpenCommit={onOpenCommit}
         />
       )}
       {fileHistoryPath && (
         <FileHistoryPanel repoPath={repoPath} path={fileHistoryPath} onClose={() => setFileHistoryPath(null)} />
+      )}
+      {searchOpen && (
+        <SearchModal
+          repoPath={repoPath}
+          onClose={() => setSearchOpen(false)}
+          onOpenFileHistory={(path) => {
+            setSearchOpen(false)
+            setFileHistoryPath(path)
+          }}
+        />
       )}
       {pickerOpen && <RepoPickerModal repo={repo} onClose={() => setPickerOpen(false)} />}
     </header>
