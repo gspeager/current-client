@@ -12,15 +12,17 @@ import './StashPanel.scss'
 interface StashPanelProps {
   repoPath: string
   dirty: boolean
+  // Reloads the list when it changes, such as after a stash made from Working Copy.
+  refreshKey?: unknown
   onStashChanged?: () => void
 }
 
-function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
+function StashPanel({ repoPath, dirty, refreshKey, onStashChanged }: StashPanelProps) {
   const {
     data: stashes,
     error: loadError,
     reload: loadStashes,
-  } = useAsyncData(() => StashService.ListStash(repoPath), [repoPath])
+  } = useAsyncData(() => StashService.ListStash(repoPath), [repoPath], { refreshKey })
   const { confirm } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
   const error = loadError ?? actionError

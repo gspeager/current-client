@@ -315,6 +315,7 @@ function NavPane({
           <StashPanel
             repoPath={repoPath}
             dirty={(workingTree.files?.length ?? 0) > 0}
+            refreshKey={repoVersion}
             onStashChanged={onBranchChanged}
           />
         </section>
