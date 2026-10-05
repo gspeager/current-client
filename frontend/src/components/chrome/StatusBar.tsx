@@ -12,7 +12,13 @@ interface StatusBarProps {
 function StatusBar({ repoPath, repoVersion, gitVersion }: StatusBarProps) {
   const status = useBranchStatus(repoPath, repoVersion)
   const { data: appVersion } = useAsyncData(() => PlatformService.AppVersion(), [])
-  const branchLabel = status && (status.upstream ? `${status.current} → ${status.upstream}` : status.current)
+  const branchLabel =
+    status &&
+    (status.detachedAt
+      ? `HEAD detached at ${status.detachedAt}`
+      : status.upstream
+        ? `${status.current} → ${status.upstream}`
+        : status.current)
 
   return (
     <footer className="status-bar">

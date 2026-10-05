@@ -73,6 +73,12 @@ func CreateBranchAt(ctx context.Context, repoPath, name, startPoint string) erro
 	return err
 }
 
+// CheckoutCommit detaches HEAD at sha, for looking at an old version.
+func CheckoutCommit(ctx context.Context, repoPath, sha string) error {
+	_, err := runResult(ctx, repoPath, "switch", "--detach", sha)
+	return err
+}
+
 func CheckoutBranch(ctx context.Context, repoPath, name string) error {
 	_, err := runResult(ctx, repoPath, "checkout", name)
 	return err
@@ -97,6 +103,8 @@ type BranchStatus struct {
 	Upstream string
 	Ahead    int
 	Behind   int
+	// DetachedAt is HEAD's short SHA when HEAD is detached; Current is then "HEAD".
+	DetachedAt string
 }
 
 func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, error) {
@@ -105,6 +113,14 @@ func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, er
 		return BranchStatus{}, err
 	}
 	status := BranchStatus{Current: current}
+	if current == "HEAD" {
+		sha, err := runResult(ctx, repoPath, "rev-parse", "--short", "HEAD")
+		if err != nil {
+			return status, err
+		}
+		status.DetachedAt = strings.TrimSpace(sha.Stdout)
+		return status, nil
+	}
 
 	upstream, err := runResult(ctx, repoPath, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
 	if err != nil {

@@ -47,7 +47,7 @@ function CommitDetailPanel({
   onCreateBranchHere,
   onBranchChanged,
 }: CommitDetailPanelProps) {
-  const { cherryPick, revert, actionError } = useCommitActions(repoPath, onBranchChanged)
+  const { cherryPick, revert, checkoutCommit, actionError } = useCommitActions(repoPath, onBranchChanged)
   // A selection only counts for the commit it was made in.
   const [selection, setSelection] = useState<{ sha: string; path: string } | null>(null)
   const selectedFilePath = selection?.sha === commit.sha ? selection.path : null
@@ -209,6 +209,10 @@ function CommitDetailPanel({
           <button type="button" onClick={onCreateBranchHere}>
             <GitBranchPlus size={14} strokeWidth={1.75} />
             Branch here
+          </button>
+          <button type="button" onClick={() => void checkoutCommit(commit.sha)}>
+            <GitCommitVertical size={14} strokeWidth={1.75} />
+            Check out
           </button>
           <button type="button" onClick={() => cherryPick(commit.sha)}>
             <Cherry size={14} strokeWidth={1.75} />

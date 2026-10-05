@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/gspeager/current-client/core/internal/gittest"
@@ -399,5 +400,35 @@ func TestDefaultBranchReadsOriginHead(t *testing.T) {
 	}
 	if got != "trunk" {
 		t.Fatalf("DefaultBranch = %q, want trunk from origin/HEAD over a local main", got)
+	}
+}
+
+func TestCheckoutCommitDetachesHeadAndStatusSaysWhere(t *testing.T) {
+	ctx := context.Background()
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "first")
+	first := gittest.Run(t, dir, "rev-parse", "HEAD")
+	gittest.CommitFile(t, dir, "file.txt", "v2", "second")
+
+	if err := CheckoutCommit(ctx, dir, first); err != nil {
+		t.Fatalf("CheckoutCommit: %v", err)
+	}
+
+	if head := gittest.Run(t, dir, "rev-parse", "HEAD"); head != first {
+		t.Fatalf("HEAD = %q, want %q", head, first)
+	}
+	status, err := CurrentBranchStatus(ctx, dir)
+	if err != nil {
+		t.Fatalf("CurrentBranchStatus: %v", err)
+	}
+	if status.Current != "HEAD" || status.DetachedAt == "" || !strings.HasPrefix(first, status.DetachedAt) {
+		t.Fatalf("status = %+v, want detached at a short form of %q", status, first)
+	}
+
+	if err := CheckoutBranch(ctx, dir, "main"); err != nil {
+		t.Fatalf("CheckoutBranch: %v", err)
+	}
+	if status, _ := CurrentBranchStatus(ctx, dir); status.DetachedAt != "" || status.Current != "main" {
+		t.Fatalf("back on main, status = %+v", status)
 	}
 }

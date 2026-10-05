@@ -19,10 +19,11 @@ type BranchInfo struct {
 }
 
 type BranchStatusInfo struct {
-	Current  string `json:"current"`
-	Upstream string `json:"upstream"`
-	Ahead    int    `json:"ahead"`
-	Behind   int    `json:"behind"`
+	Current    string `json:"current"`
+	Upstream   string `json:"upstream"`
+	Ahead      int    `json:"ahead"`
+	Behind     int    `json:"behind"`
+	DetachedAt string `json:"detachedAt"`
 }
 
 func (s *BranchService) ListLocal(repoPath string) ([]BranchInfo, error) {
@@ -39,6 +40,10 @@ func (s *BranchService) ListRemote(repoPath string) ([]string, error) {
 
 func (s *BranchService) CreateBranch(repoPath, name string) error {
 	return git.CreateBranch(context.Background(), repoPath, name)
+}
+
+func (s *BranchService) CheckoutCommit(repoPath, sha string) error {
+	return git.CheckoutCommit(context.Background(), repoPath, sha)
 }
 
 func (s *BranchService) CheckoutBranch(repoPath, name string) error {
