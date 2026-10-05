@@ -84,6 +84,19 @@ func CheckoutBranch(ctx context.Context, repoPath, name string) error {
 	return err
 }
 
+// SetUpstream makes branch track remoteBranch, a remote-tracking branch such
+// as "origin/feature". The full ref keeps a local branch of the same name from
+// being picked instead.
+func SetUpstream(ctx context.Context, repoPath, branch, remoteBranch string) error {
+	_, err := runResult(ctx, repoPath, "branch", "--set-upstream-to=refs/remotes/"+remoteBranch, branch)
+	return err
+}
+
+func UnsetUpstream(ctx context.Context, repoPath, branch string) error {
+	_, err := runResult(ctx, repoPath, "branch", "--unset-upstream", branch)
+	return err
+}
+
 func RenameBranch(ctx context.Context, repoPath, oldName, newName string) error {
 	_, err := runResult(ctx, repoPath, "branch", "-m", oldName, newName)
 	return err

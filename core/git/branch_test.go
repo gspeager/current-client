@@ -432,3 +432,32 @@ func TestCheckoutCommitDetachesHeadAndStatusSaysWhere(t *testing.T) {
 		t.Fatalf("back on main, status = %+v", status)
 	}
 }
+
+func TestSetAndUnsetUpstream(t *testing.T) {
+	ctx := context.Background()
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "team/origin", remoteDir)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "push", "-q", "team/origin", "main", "main:feat-x")
+	gittest.Run(t, dir, "fetch", "-q", "team/origin")
+	gittest.Run(t, dir, "branch", "feature")
+
+	if err := SetUpstream(ctx, dir, "feature", "team/origin/feat-x"); err != nil {
+		t.Fatalf("SetUpstream: %v", err)
+	}
+	if got := gittest.Run(t, dir, "rev-parse", "--abbrev-ref", "feature@{upstream}"); got != "team/origin/feat-x" {
+		t.Fatalf("upstream = %q, want team/origin/feat-x", got)
+	}
+	if got := gittest.Run(t, dir, "config", "branch.feature.remote"); got != "team/origin" {
+		t.Fatalf("branch.feature.remote = %q, want team/origin", got)
+	}
+
+	if err := UnsetUpstream(ctx, dir, "feature"); err != nil {
+		t.Fatalf("UnsetUpstream: %v", err)
+	}
+	if out := gittest.Run(t, dir, "for-each-ref", "--format=%(upstream)", "refs/heads/feature"); out != "" {
+		t.Fatalf("upstream still set: %q", out)
+	}
+}

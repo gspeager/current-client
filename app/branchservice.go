@@ -54,6 +54,14 @@ func (s *BranchService) CreateBranchAt(repoPath, name, startPoint string) error 
 	return git.CreateBranchAt(context.Background(), repoPath, name, startPoint)
 }
 
+func (s *BranchService) SetUpstream(repoPath, branch, remoteBranch string) error {
+	return git.SetUpstream(context.Background(), repoPath, branch, remoteBranch)
+}
+
+func (s *BranchService) UnsetUpstream(repoPath, branch string) error {
+	return git.UnsetUpstream(context.Background(), repoPath, branch)
+}
+
 func (s *BranchService) RenameBranch(repoPath, oldName, newName string) error {
 	return git.RenameBranch(context.Background(), repoPath, oldName, newName)
 }
