@@ -61,6 +61,9 @@ var knownErrorPatterns = []struct {
 	{stderrStream, []string{"contains modified or untracked files"}, "This worktree has changes."},
 	// Git 2.42 changed "is already checked out at" to "is already used by worktree at".
 	{stderrStream, []string{"is already checked out at", "is already used by worktree at"}, "That branch is checked out in another worktree."},
+	// Checkout, merge, pull, cherry-pick and stash pop all refuse this way.
+	{stderrStream, []string{"Your local changes to the following files would be overwritten"}, "Uncommitted changes would be overwritten. Commit or stash them first."},
+	{stderrStream, []string{"untracked working tree files would be overwritten"}, "Untracked files would be overwritten. Move or delete them first."},
 	{stderrStream, []string{"no tracking information"}, "This branch has no upstream to pull from."},
 	{stderrStream, []string{"has no upstream branch"}, "This branch has no upstream configured."},
 	{stderrStream, []string{"(stale info)"}, "Someone else pushed since your last fetch. Fetch and try again."},
