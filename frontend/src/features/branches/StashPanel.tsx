@@ -1,39 +1,45 @@
 import { useState } from 'react'
-import { ArrowDownToLine, Download, Package, PackagePlus, X } from 'lucide-react'
-import { StashService } from '@current-client-bindings/app'
+import { ArrowDownToLine, Download, Eye, Package, PackagePlus, X } from 'lucide-react'
+import { StashService, type StashInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import StashModal from './StashModal'
 import './StashPanel.scss'
 
 interface StashPanelProps {
   repoPath: string
   dirty: boolean
+  // Reloads the list when it changes, such as after a stash made from Working Copy.
+  refreshKey?: unknown
   onStashChanged?: () => void
 }
 
-function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
+function StashPanel({ repoPath, dirty, refreshKey, onStashChanged }: StashPanelProps) {
   const {
     data: stashes,
     error: loadError,
     reload: loadStashes,
-  } = useAsyncData(() => StashService.ListStash(repoPath), [repoPath])
+  } = useAsyncData(() => StashService.ListStash(repoPath), [repoPath], { refreshKey })
   const { confirm } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
   const error = loadError ?? actionError
   const [newMessage, setNewMessage] = useState('')
   const [includeUntracked, setIncludeUntracked] = useState(false)
+  const [keepIndex, setKeepIndex] = useState(false)
   const [showNewStash, setShowNewStash] = useState(false)
   const [busyIndex, setBusyIndex] = useState<number | null>(null)
+  const [shownStash, setShownStash] = useState<StashInfo | null>(null)
 
   const saveStash = () => {
     setActionError(null)
-    StashService.StashSave(repoPath, newMessage, includeUntracked)
+    StashService.StashSave(repoPath, { message: newMessage, includeUntracked, keepIndex, paths: [] })
       .then(() => {
         setNewMessage('')
         setIncludeUntracked(false)
+        setKeepIndex(false)
         setShowNewStash(false)
         loadStashes()
         onStashChanged?.()
@@ -104,6 +110,7 @@ function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
             autoFocus
           />
           <Checkbox checked={includeUntracked} onChange={setIncludeUntracked} label="Include untracked files" />
+          <Checkbox checked={keepIndex} onChange={setKeepIndex} label="Keep staged changes" />
           <button type="button" onClick={saveStash}>
             Stash
           </button>
@@ -123,6 +130,14 @@ function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
               <span className="stash-row-message">{s.message}</span>
               <span className="stash-row-time">{relativeTime(new Date(s.date))}</span>
               <span className="stash-row-actions">
+                <button
+                  type="button"
+                  onClick={() => setShownStash(s)}
+                  aria-label={`Show changes in stash: ${s.message}`}
+                  title="Show changes"
+                >
+                  <Eye size={16} strokeWidth={1.75} />
+                </button>
                 <button
                   type="button"
                   onClick={() => applyStash(s.index)}
@@ -155,6 +170,7 @@ function StashPanel({ repoPath, dirty, onStashChanged }: StashPanelProps) {
           ))}
         </ul>
       )}
+      {shownStash && <StashModal repoPath={repoPath} stash={shownStash} onClose={() => setShownStash(null)} />}
     </div>
   )
 }

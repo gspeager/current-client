@@ -9,6 +9,8 @@ import {
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
+import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
+import SetUpstreamDialog from './SetUpstreamDialog'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
@@ -49,8 +51,15 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   const [showNewBranch, setShowNewBranch] = useState(false)
   const newBranch = toBranchName(newBranchName)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  // Refreshes the graph too, which still shows the deleted remote branch.
+  const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
+    loadBranches()
+    onBranchChanged?.()
+  })
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<{ name: string; tip: string } | null>(null)
+  const [squashed, setSquashed] = useState<string | null>(null)
+  const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 
   const checkoutBranch = (name: string) => {
     setActionError(null)
@@ -94,9 +103,14 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
-  const mergeBranch = (name: string) => {
+  // mode is '' (fast-forward when possible), 'no-ff' or 'squash'.
+  const mergeBranch = (name: string, mode = '') => {
     setActionError(null)
-    BranchService.MergeBranch(repoPath, name)
+    setSquashed(null)
+    BranchService.MergeBranch(repoPath, name, mode)
+      .then(() => {
+        if (mode === 'squash') setSquashed(name)
+      })
       .catch((err: unknown) => setActionError(errorMessage(err)))
       .finally(() => {
         // A failed merge leaves conflicts the banner must pick up.
@@ -151,6 +165,18 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       })
   }
 
+  const upstreamChanged = () => {
+    loadBranches()
+    onBranchChanged?.()
+  }
+
+  const unsetUpstream = (name: string) => {
+    setActionError(null)
+    BranchService.UnsetUpstream(repoPath, name)
+      .then(upstreamChanged)
+      .catch((err: unknown) => setActionError(errorMessage(err)))
+  }
+
   const restoreDeleted = (branch: { name: string; tip: string }) => {
     setActionError(null)
     setDeleted(null)
@@ -167,13 +193,31 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       items: [
         { label: 'Checkout', onClick: () => checkoutBranch(b.name), disabled: b.current },
         { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
+        {
+          label: 'Merge into current (no fast-forward)',
+          onClick: () => mergeBranch(b.name, 'no-ff'),
+          disabled: b.current,
+        },
+        { label: 'Squash into current', onClick: () => mergeBranch(b.name, 'squash'), disabled: b.current },
         ...(b.current && defaultBranch && defaultBranch !== b.name
           ? [{ label: `Merge ${defaultBranch} into current`, onClick: () => mergeDefaultBranch(defaultBranch) }]
           : []),
         { label: 'Rebase current onto', onClick: () => rebaseOnto(b.name), disabled: b.current },
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
         { label: 'Rename…', onClick: () => renameBranch(b.name) },
+        { label: 'Set upstream…', onClick: () => setUpstreamFor(b) },
+        ...(b.upstream ? [{ label: 'Unset upstream', onClick: () => unsetUpstream(b.name) }] : []),
         { label: 'Delete', onClick: () => deleteBranch(b.name, false), destructive: true, disabled: b.current },
+        ...(b.upstream
+          ? [
+              {
+                label: `Delete ${b.upstream} on remote…`,
+                onClick: () => void deleteRemote.deleteRemoteBranch(b.upstream),
+                destructive: true,
+                disabled: deleteRemote.running,
+              },
+            ]
+          : []),
       ],
     })
   }
@@ -232,6 +276,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       )}
 
       {error && <p className="branch-sidebar-error">{error}</p>}
+      {deleteRemote.error && <p className="branch-sidebar-error">Could not delete on remote: {deleteRemote.error}</p>}
       {deleted && (
         <p className="branch-sidebar-deleted" role="status">
           <span>
@@ -240,6 +285,11 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
           <button type="button" onClick={() => restoreDeleted(deleted)}>
             Undo
           </button>
+        </p>
+      )}
+      {squashed && (
+        <p className="branch-sidebar-notice" role="status">
+          Changes from {squashed} are staged. Commit them to finish the squash.
         </p>
       )}
       {branches === null ? (
@@ -266,6 +316,11 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
               <BranchPill name={b.name} color={branchColor(b.name, b.current)} current={b.current} dirty={dirty} />
               {b.current && <span className="branch-row-head">HEAD</span>}
               <OverlapMark overlap={localOverlaps.get(b.name)} />
+              {!b.current && b.worktreePath && (
+                <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>
+                  worktree
+                </span>
+              )}
               <span className="branch-row-meta">
                 {b.ahead > 0 && <span className="branch-row-ahead">↑{b.ahead}</span>}
                 {b.behind > 0 && <span className="branch-row-behind">↓{b.behind}</span>}
@@ -318,6 +373,18 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
         </div>
       )}
 
+      {upstreamFor && (
+        <SetUpstreamDialog
+          repoPath={repoPath}
+          branch={upstreamFor.name}
+          upstream={upstreamFor.upstream}
+          onClose={() => setUpstreamFor(null)}
+          onSet={() => {
+            setUpstreamFor(null)
+            upstreamChanged()
+          }}
+        />
+      )}
       {contextMenu && <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />}
       {compareWith && (
         <CompareModal

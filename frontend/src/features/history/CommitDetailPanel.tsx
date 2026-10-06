@@ -9,22 +9,14 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from 'lucide-react'
-import {
-  DiffService,
-  HistoryService,
-  type ChangedFile,
-  type IdentityInfo,
-  type CommitInfo,
-} from '@current-client-bindings/app'
-import { diffBaseFor } from '../diff/diffMapping'
+import { HistoryService, type ChangedFile, type IdentityInfo, type CommitInfo } from '@current-client-bindings/app'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCommitActions } from './useCommitActions'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useFileTools } from './useFileTools'
 import ChangedFileRow from './ChangedFileRow'
-import DiffViewer from '../diff/DiffViewer'
-import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
+import CommitFilesModal from './CommitFilesModal'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import './CommitDetailPanel.scss'
 
@@ -47,24 +39,16 @@ function CommitDetailPanel({
   onCreateBranchHere,
   onBranchChanged,
 }: CommitDetailPanelProps) {
-  const { cherryPick, revert, actionError } = useCommitActions(repoPath, onBranchChanged)
-  // A selection only counts for the commit it was made in.
-  const [selection, setSelection] = useState<{ sha: string; path: string } | null>(null)
-  const selectedFilePath = selection?.sha === commit.sha ? selection.path : null
-  const [viewMode, setViewMode] = useState<DiffViewMode>('split')
+  const { cherryPick, revert, checkoutCommit, actionError } = useCommitActions(repoPath, onBranchChanged)
+  // The file whose diff is open; only for the commit it was opened from.
+  const [opened, setOpened] = useState<{ sha: string; path: string } | null>(null)
+  const openedPath = opened?.sha === commit.sha ? opened.path : null
   const { copied: shaCopied, copy } = useCopyToClipboard()
   const fileTools = useFileTools(repoPath)
 
   const { data: changedFiles, error: changedFilesError } = useAsyncData(
     () => HistoryService.GetChangedFiles(repoPath, commit.sha),
     [repoPath, commit.sha],
-  )
-  const { data: fileDiff, error: fileDiffError } = useAsyncData(
-    () =>
-      selectedFilePath
-        ? DiffService.GetRefDiff(repoPath, selectedFilePath, diffBaseFor(commit.parentShas), commit.sha, false)
-        : null,
-    [repoPath, selectedFilePath, commit.sha, commit.parentShas],
   )
 
   const fileContextMenu = (f: ChangedFile) => (e: MouseEvent) => fileTools.openMenu(e, fileTools.pathItems(f.path))
@@ -166,29 +150,12 @@ function CommitDetailPanel({
               <ChangedFileRow
                 key={f.path}
                 file={f}
-                selected={selectedFilePath === f.path}
-                onSelect={() => setSelection({ sha: commit.sha, path: f.path })}
+                selected={openedPath === f.path}
+                onSelect={() => setOpened({ sha: commit.sha, path: f.path })}
                 onContextMenu={fileContextMenu(f)}
               />
             ))}
           </ul>
-        )}
-
-        {selectedFilePath && (
-          <div className="commit-detail-diff">
-            {fileDiffError ? (
-              <p className="commit-detail-error">Could not load diff: {fileDiffError}</p>
-            ) : fileDiff ? (
-              <>
-                <div className="commit-detail-diff-toolbar">
-                  <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
-                </div>
-                <DiffViewer diff={fileDiff} path={selectedFilePath} viewMode={viewMode} />
-              </>
-            ) : (
-              <p className="commit-detail-hint">Loading diff…</p>
-            )}
-          </div>
         )}
       </div>
 
@@ -200,6 +167,10 @@ function CommitDetailPanel({
           <button type="button" onClick={onCreateBranchHere}>
             <GitBranchPlus size={14} strokeWidth={1.75} />
             Branch here
+          </button>
+          <button type="button" onClick={() => void checkoutCommit(commit.sha)}>
+            <GitCommitVertical size={14} strokeWidth={1.75} />
+            Check out
           </button>
           <button type="button" onClick={() => cherryPick(commit.sha)}>
             <Cherry size={14} strokeWidth={1.75} />
@@ -214,6 +185,15 @@ function CommitDetailPanel({
       </div>
 
       {fileTools.overlays}
+      {openedPath && changedFiles && (
+        <CommitFilesModal
+          repoPath={repoPath}
+          commit={commit}
+          files={changedFiles}
+          initialPath={openedPath}
+          onClose={() => setOpened(null)}
+        />
+      )}
     </section>
   )
 }

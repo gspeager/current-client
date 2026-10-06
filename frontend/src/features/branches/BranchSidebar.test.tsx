@@ -1,13 +1,13 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, OverlapService, type BranchInfo } from '@current-client-bindings/app'
+import { BranchService, OverlapService, RemoteService, type BranchInfo } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchSidebar from './BranchSidebar'
 
 const REPO = '/repos/app'
 
 function branch(name: string, current = false): BranchInfo {
-  return { name, current, upstream: '', ahead: 0, behind: 0, lastCommitDate: '' }
+  return { name, current, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath: '' }
 }
 
 function renderSidebar(onBranchChanged = vi.fn()) {
@@ -44,6 +44,18 @@ describe('BranchSidebar', () => {
 
     expect(BranchService.CreateBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
     expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
+  })
+
+  it('marks a branch checked out in another worktree', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([
+      branch('main', true),
+      { ...branch('review'), worktreePath: '/projects/app-review' },
+    ])
+    renderSidebar()
+
+    const marker = await screen.findByText('worktree')
+    expect(marker).toHaveAttribute('title', 'Checked out in the worktree at /projects/app-review')
+    expect(screen.getAllByText('worktree')).toHaveLength(1)
   })
 
   it('ignores a click on the current branch', async () => {
@@ -95,8 +107,112 @@ describe('BranchSidebar', () => {
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
     await user.click(await screen.findByRole('button', { name: 'Merge main into current' }))
 
-    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main')
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main', '')
     await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+  })
+
+  it('merges with a merge commit when fast-forward is turned off', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('feature')])
+    vi.mocked(BranchService.MergeBranch).mockResolvedValue()
+    const onBranchChanged = renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
+    await user.click(await screen.findByRole('button', { name: 'Merge into current (no fast-forward)' }))
+
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'feature', 'no-ff')
+    await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('squashes a branch and says to commit the staged changes', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('feature')])
+    vi.mocked(BranchService.MergeBranch).mockResolvedValue()
+    renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
+    await user.click(await screen.findByRole('button', { name: 'Squash into current' }))
+
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'feature', 'squash')
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Changes from feature are staged. Commit them to finish the squash.',
+    )
+  })
+
+  it("deletes a branch's upstream on the remote after confirming", async () => {
+    const feature = { ...branch('feature/login'), upstream: 'origin/feature/login' }
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), feature])
+    vi.mocked(RemoteService.DeleteRemoteBranch).mockResolvedValue()
+    const onBranchChanged = renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
+    await user.click(await screen.findByRole('button', { name: 'Delete origin/feature/login on remote…' }))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete on remote' })
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+
+    await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+    expect(RemoteService.DeleteRemoteBranch).toHaveBeenCalledWith(REPO, 'origin/feature/login', null)
+    expect(BranchService.DeleteBranch).not.toHaveBeenCalled()
+  })
+
+  it('does not offer to delete on the remote for a branch with no upstream', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('spike')])
+    renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^spike/ }) })
+
+    expect(await screen.findByRole('button', { name: 'Rename…' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /on remote/ })).not.toBeInTheDocument()
+  })
+
+  it("sets a branch's upstream from the remote branches", async () => {
+    const feature = { ...branch('feature'), upstream: 'origin/feature' }
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), feature])
+    vi.mocked(BranchService.ListRemote).mockResolvedValue(['origin/feature', 'team/origin/feat-x'])
+    vi.mocked(BranchService.SetUpstream).mockResolvedValue()
+    const onBranchChanged = renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
+    await user.click(await screen.findByRole('button', { name: 'Set upstream…' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Set upstream' })
+    const select = await within(dialog).findByRole('combobox', { name: 'Upstream' })
+    await vi.waitFor(() => expect(select).toHaveValue('origin/feature'))
+    expect(within(dialog).getByRole('button', { name: 'Set upstream' })).toBeDisabled()
+    await user.selectOptions(select, 'team/origin/feat-x')
+    await user.click(within(dialog).getByRole('button', { name: 'Set upstream' }))
+
+    expect(BranchService.SetUpstream).toHaveBeenCalledWith(REPO, 'feature', 'team/origin/feat-x')
+    await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+    expect(screen.queryByRole('dialog', { name: 'Set upstream' })).not.toBeInTheDocument()
+  })
+
+  it("unsets a branch's upstream", async () => {
+    const feature = { ...branch('feature'), upstream: 'origin/feature' }
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), feature])
+    vi.mocked(BranchService.UnsetUpstream).mockResolvedValue()
+    const onBranchChanged = renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
+    await user.click(await screen.findByRole('button', { name: 'Unset upstream' }))
+
+    expect(BranchService.UnsetUpstream).toHaveBeenCalledWith(REPO, 'feature')
+    await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+  })
+
+  it('offers no Unset upstream for a branch without one', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('spike')])
+    renderSidebar()
+    const user = userEvent.setup()
+
+    await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^spike/ }) })
+
+    expect(await screen.findByRole('button', { name: 'Set upstream…' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Unset upstream' })).not.toBeInTheDocument()
   })
 
   it('does not offer to merge the default branch into itself', async () => {
@@ -126,7 +242,7 @@ describe('BranchSidebar', () => {
     expect(dialog).toHaveTextContent('main is 3 commits behind origin/main.')
     await user.click(within(dialog).getByRole('button', { name: 'Merge anyway' }))
 
-    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main')
+    expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main', '')
   })
 
   it('does not merge a stale default branch when the warning is cancelled', async () => {

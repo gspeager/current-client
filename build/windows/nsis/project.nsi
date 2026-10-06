@@ -37,7 +37,9 @@ OutFile "..\..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe"
 !if "${WAILS_INSTALL_SCOPE}" == "user"
     InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
 !else
-    InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}"
+    InstallDir "$PROGRAMFILES64\${INFO_PRODUCTNAME}"
+    # 0.1.1 and earlier installed under the publisher's name.
+    !define OLD_INSTDIR "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}"
 !endif
 ShowInstDetails show
 
@@ -53,6 +55,15 @@ Section
     SetOutPath $INSTDIR
     
     !insertmacro wails.files
+
+    # The uninstall entry written below points here now, so an old copy would be orphaned.
+    !ifdef OLD_INSTDIR
+        ${If} $INSTDIR != "${OLD_INSTDIR}"
+        ${AndIf} ${FileExists} "${OLD_INSTDIR}\${PRODUCT_EXECUTABLE}"
+            RMDir /r "${OLD_INSTDIR}"
+            RMDir "$PROGRAMFILES64\${INFO_COMPANYNAME}" # only if now empty
+        ${EndIf}
+    !endif
 
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"

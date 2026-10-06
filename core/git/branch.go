@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,11 +15,13 @@ type Branch struct {
 	Ahead          int
 	Behind         int
 	LastCommitDate string
+	// WorktreePath is the worktree the branch is checked out in, if any.
+	WorktreePath string
 }
 
 func ListBranches(ctx context.Context, repoPath string) ([]Branch, error) {
 	result, err := runResult(ctx, repoPath, "branch",
-		"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)")
+		"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)%09%(worktreepath)")
 	if err != nil {
 		return nil, err
 	}
@@ -31,8 +34,8 @@ func parseLocalBranches(output string) []Branch {
 		if line == "" {
 			continue
 		}
-		fields := strings.SplitN(line, "\t", 5)
-		if len(fields) != 5 {
+		fields := strings.SplitN(line, "\t", 6)
+		if len(fields) < 5 {
 			continue
 		}
 		ahead, behind := parseUpstreamTrack(fields[3])
@@ -44,6 +47,9 @@ func parseLocalBranches(output string) []Branch {
 			Behind:         behind,
 			LastCommitDate: fields[4],
 		})
+		if len(fields) == 6 && fields[5] != "" {
+			branches[len(branches)-1].WorktreePath = filepath.FromSlash(fields[5])
+		}
 	}
 	return branches
 }
@@ -73,8 +79,27 @@ func CreateBranchAt(ctx context.Context, repoPath, name, startPoint string) erro
 	return err
 }
 
+// CheckoutCommit detaches HEAD at sha, for looking at an old version.
+func CheckoutCommit(ctx context.Context, repoPath, sha string) error {
+	_, err := runResult(ctx, repoPath, "switch", "--detach", sha)
+	return err
+}
+
 func CheckoutBranch(ctx context.Context, repoPath, name string) error {
 	_, err := runResult(ctx, repoPath, "checkout", name)
+	return err
+}
+
+// SetUpstream makes branch track remoteBranch, a remote-tracking branch such
+// as "origin/feature". The full ref keeps a local branch of the same name from
+// being picked instead.
+func SetUpstream(ctx context.Context, repoPath, branch, remoteBranch string) error {
+	_, err := runResult(ctx, repoPath, "branch", "--set-upstream-to=refs/remotes/"+remoteBranch, branch)
+	return err
+}
+
+func UnsetUpstream(ctx context.Context, repoPath, branch string) error {
+	_, err := runResult(ctx, repoPath, "branch", "--unset-upstream", branch)
 	return err
 }
 
@@ -97,6 +122,8 @@ type BranchStatus struct {
 	Upstream string
 	Ahead    int
 	Behind   int
+	// DetachedAt is HEAD's short SHA when HEAD is detached; Current is then "HEAD".
+	DetachedAt string
 }
 
 func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, error) {
@@ -105,6 +132,14 @@ func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, er
 		return BranchStatus{}, err
 	}
 	status := BranchStatus{Current: current}
+	if current == "HEAD" {
+		sha, err := runResult(ctx, repoPath, "rev-parse", "--short", "HEAD")
+		if err != nil {
+			return status, err
+		}
+		status.DetachedAt = strings.TrimSpace(sha.Stdout)
+		return status, nil
+	}
 
 	upstream, err := runResult(ctx, repoPath, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
 	if err != nil {

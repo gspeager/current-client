@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type BranchService struct{}
@@ -15,13 +16,15 @@ type BranchInfo struct {
 	Ahead          int    `json:"ahead"`
 	Behind         int    `json:"behind"`
 	LastCommitDate string `json:"lastCommitDate"`
+	WorktreePath   string `json:"worktreePath"`
 }
 
 type BranchStatusInfo struct {
-	Current  string `json:"current"`
-	Upstream string `json:"upstream"`
-	Ahead    int    `json:"ahead"`
-	Behind   int    `json:"behind"`
+	Current    string `json:"current"`
+	Upstream   string `json:"upstream"`
+	Ahead      int    `json:"ahead"`
+	Behind     int    `json:"behind"`
+	DetachedAt string `json:"detachedAt"`
 }
 
 func (s *BranchService) ListLocal(repoPath string) ([]BranchInfo, error) {
@@ -40,12 +43,24 @@ func (s *BranchService) CreateBranch(repoPath, name string) error {
 	return git.CreateBranch(context.Background(), repoPath, name)
 }
 
+func (s *BranchService) CheckoutCommit(repoPath, sha string) error {
+	return git.CheckoutCommit(context.Background(), repoPath, sha)
+}
+
 func (s *BranchService) CheckoutBranch(repoPath, name string) error {
 	return git.CheckoutBranch(context.Background(), repoPath, name)
 }
 
 func (s *BranchService) CreateBranchAt(repoPath, name, startPoint string) error {
 	return git.CreateBranchAt(context.Background(), repoPath, name, startPoint)
+}
+
+func (s *BranchService) SetUpstream(repoPath, branch, remoteBranch string) error {
+	return git.SetUpstream(context.Background(), repoPath, branch, remoteBranch)
+}
+
+func (s *BranchService) UnsetUpstream(repoPath, branch string) error {
+	return git.UnsetUpstream(context.Background(), repoPath, branch)
 }
 
 func (s *BranchService) RenameBranch(repoPath, oldName, newName string) error {
@@ -62,8 +77,13 @@ func (s *BranchService) DeleteBranch(repoPath, name string, force bool) (string,
 	return tip, git.DeleteBranch(ctx, repoPath, name, force)
 }
 
-func (s *BranchService) MergeBranch(repoPath, branch string) error {
-	return git.MergeBranch(context.Background(), repoPath, branch)
+// MergeBranch takes mode "" (fast-forward when possible), "no-ff" or "squash".
+func (s *BranchService) MergeBranch(repoPath, branch, mode string) error {
+	m := git.MergeMode(mode)
+	if m != git.MergeFastForward && m != git.MergeCommit && m != git.MergeSquash {
+		return &gitexec.AppError{Message: "Unknown merge option.", Detail: mode}
+	}
+	return git.MergeBranchMode(context.Background(), repoPath, branch, m)
 }
 
 func (s *BranchService) DefaultBranch(repoPath string) (string, error) {

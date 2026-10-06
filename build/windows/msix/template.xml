@@ -17,7 +17,7 @@
         PackageDisplayName="Current Client"
         PublisherName="CN=Garrett Speager"
         PublisherDisplayName="Garrett Speager"
-        Version="0.1.1.0"
+        Version="0.2.0.0"
         PackageDescription="A privacy-first Git client">
         <Capabilities>
             <Capability Name="runFullTrust" />

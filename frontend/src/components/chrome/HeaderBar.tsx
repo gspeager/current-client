@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { System } from '@wailsio/runtime'
-import { ArrowDown, ArrowUp, ChevronDown, Plus, Settings, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, Plus, RefreshCw, Settings, X } from 'lucide-react'
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
+import Checkbox from '../forms/Checkbox'
 import FileHistoryPanel from '../../features/history/FileHistoryPanel'
 import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
@@ -17,6 +18,7 @@ import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
 import QuickSwitchPalette from './QuickSwitchPalette'
 import RepoPickerModal from '../../features/repositories/RepoPickerModal'
 import RepoTabChip from '../../features/repositories/RepoTabChip'
+import SearchModal from '../../features/search/SearchModal'
 import './HeaderBar.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 
@@ -24,10 +26,13 @@ interface HeaderBarProps {
   repoPath: string
   repoVersion: number
   lastFetchedAt: Date | null
+  pruneOnFetch: boolean
+  onPruneOnFetchChange: (prune: boolean) => void
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
   onOpenSettings: () => void
   onPull: () => void
+  onPullRebase: () => void
   onPush: () => void
   onForcePush: () => void
   onBranchChanged?: () => void
@@ -42,10 +47,13 @@ function HeaderBar({
   repoPath,
   repoVersion,
   lastFetchedAt,
+  pruneOnFetch,
+  onPruneOnFetchChange,
   repo,
   dirty,
   onOpenSettings,
   onPull,
+  onPullRebase,
   onPush,
   onForcePush,
   onBranchChanged,
@@ -57,11 +65,12 @@ function HeaderBar({
   const { branchColor } = useLaneColors()
   const currentUser = useCurrentUser(repoPath)
   const branchStatus = useBranchStatus(repoPath, repoVersion)
-  const fetchAllOp = useFetchAll(repoPath, onFetched)
+  const fetchAllOp = useFetchAll(repoPath, onFetched, pruneOnFetch)
   const [branchSwitcherOpen, setBranchSwitcherOpen] = useState(false)
   const [panelView, setPanelView] = useState<PanelView>('branch')
   const [quickSwitchOpen, setQuickSwitchOpen] = useState(false)
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null)
@@ -103,6 +112,10 @@ function HeaderBar({
       e.preventDefault()
       setQuickSwitchOpen(true)
     }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+      e.preventDefault()
+      setSearchOpen(true)
+    }
   })
 
   return (
@@ -130,7 +143,7 @@ function HeaderBar({
                     <span className="header-bar-repo-sep">|</span>
                     <span className="header-bar-branch-target" onClick={openPanel('branch')}>
                       <BranchPill
-                        name={branchStatus.current}
+                        name={branchStatus.detachedAt ? `HEAD ${branchStatus.detachedAt}` : branchStatus.current}
                         color={branchColor(branchStatus.current, true)}
                         current
                         bare
@@ -167,6 +180,7 @@ function HeaderBar({
                     onViewChange={setPanelView}
                     onBranchChanged={onBranchChanged}
                     onFetched={onFetched}
+                    pruneOnFetch={pruneOnFetch}
                   />
                 </div>
               )}
@@ -199,8 +213,8 @@ function HeaderBar({
         <button
           type="button"
           className="header-bar-sync header-bar-sync-behind"
-          onClick={syncing ? undefined : onPull}
-          title="Pull"
+          onClick={syncing ? undefined : (e) => (e.shiftKey ? onPullRebase() : onPull())}
+          title="Pull (shift-click to rebase)"
         >
           <ArrowDown size={12} strokeWidth={1.5} />
           Pull {branchStatus.behind}
@@ -219,21 +233,31 @@ function HeaderBar({
         </button>
       )}
 
-      <button
-        type="button"
-        className="header-bar-fetch-status"
-        onClick={fetchAllOp.running ? fetchAllOp.cancel : fetchAllOp.fetchAll}
-        disabled={syncing}
-        title={fetchAllOp.running ? 'Cancel fetch' : 'Fetch all remotes'}
-      >
+      <span className="header-bar-fetch-status">
         {fetchAllOp.running
-          ? 'Fetching… (cancel)'
+          ? 'Fetching…'
           : syncing
             ? 'Syncing…'
             : lastFetchedAt
               ? `fetched ${relativeTime(lastFetchedAt)}`
               : 'Not fetched yet'}
+      </span>
+      <button
+        type="button"
+        className="header-bar-fetch"
+        onClick={fetchAllOp.running ? fetchAllOp.cancel : fetchAllOp.fetchAll}
+        disabled={syncing}
+        title={fetchAllOp.running ? 'Cancel fetch' : 'Fetch all remotes'}
+      >
+        <RefreshCw size={12} strokeWidth={1.5} />
+        {fetchAllOp.running ? 'Cancel' : 'Fetch'}
       </button>
+      <span
+        className="header-bar-fetch-prune"
+        title="Delete remote branches that are gone from the remote when fetching"
+      >
+        <Checkbox checked={pruneOnFetch} onChange={onPruneOnFetchChange} label="Prune" />
+      </span>
       {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
 
       <button type="button" className="header-bar-quick-switch" onClick={() => setQuickSwitchOpen(true)}>
@@ -262,14 +286,26 @@ function HeaderBar({
           onBranchChanged={onBranchChanged}
           onOpenSettings={onOpenSettings}
           onPull={onPull}
+          onPullRebase={onPullRebase}
           onPush={onPush}
           onFetchAll={fetchAllOp.fetchAll}
           onOpenFile={setFileHistoryPath}
+          onSearchFiles={() => setSearchOpen(true)}
           onOpenCommit={onOpenCommit}
         />
       )}
       {fileHistoryPath && (
         <FileHistoryPanel repoPath={repoPath} path={fileHistoryPath} onClose={() => setFileHistoryPath(null)} />
+      )}
+      {searchOpen && (
+        <SearchModal
+          repoPath={repoPath}
+          onClose={() => setSearchOpen(false)}
+          onOpenFileHistory={(path) => {
+            setSearchOpen(false)
+            setFileHistoryPath(path)
+          }}
+        />
       )}
       {pickerOpen && <RepoPickerModal repo={repo} onClose={() => setPickerOpen(false)} />}
     </header>

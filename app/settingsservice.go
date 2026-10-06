@@ -19,6 +19,9 @@ type Settings struct {
 	AutoFetchIntervalMinutes    int                   `json:"autoFetchIntervalMinutes"`
 	LaneColorTheme              string                `json:"laneColorTheme"`
 	NavCollapsed                bool                  `json:"navCollapsed"`
+	DiffExpanded                bool                  `json:"diffExpanded"`
+	DiffNoWrap                  bool                  `json:"diffNoWrap"`
+	PruneOnFetch                bool                  `json:"pruneOnFetch"`
 	DisableConventionalCommits  bool                  `json:"disableConventionalCommits"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
 }
@@ -46,6 +49,9 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		AutoFetchIntervalMinutes:    cfg.AutoFetchIntervalMinutes,
 		LaneColorTheme:              cfg.LaneColorTheme,
 		NavCollapsed:                cfg.NavCollapsed,
+		DiffExpanded:                cfg.DiffExpanded,
+		DiffNoWrap:                  cfg.DiffNoWrap,
+		PruneOnFetch:                cfg.PruneOnFetch,
 		DisableConventionalCommits:  cfg.DisableConventionalCommits,
 		Changelog:                   changelogPrefs(cfg),
 	}, nil
@@ -104,6 +110,18 @@ func (s *SettingsService) SetLaneColorTheme(theme string) error {
 
 func (s *SettingsService) SetNavCollapsed(collapsed bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.NavCollapsed = collapsed })
+}
+
+func (s *SettingsService) SetPruneOnFetch(prune bool) error {
+	return updateConfig(func(cfg *config.Config) { cfg.PruneOnFetch = prune })
+}
+
+func (s *SettingsService) SetDiffExpanded(expanded bool) error {
+	return updateConfig(func(cfg *config.Config) { cfg.DiffExpanded = expanded })
+}
+
+func (s *SettingsService) SetDiffNoWrap(noWrap bool) error {
+	return updateConfig(func(cfg *config.Config) { cfg.DiffNoWrap = noWrap })
 }
 
 func (s *SettingsService) SetDisableConventionalCommits(disable bool) error {

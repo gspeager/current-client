@@ -12,6 +12,7 @@ import { errorMessage } from '../../lib/errors'
 import { identityKey } from './identityKey'
 import { suggestedPatchFilename } from '../../lib/patchFilename'
 import { useAsyncData } from '../../lib/useAsyncData'
+import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
@@ -66,6 +67,7 @@ function HistoryView({
   const [focusedSha, setFocusedSha] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [resetError, setResetError] = useState<string | null>(null)
+  const { checkoutCommit, actionError: checkoutError } = useCommitActions(repoPath, onBranchChanged)
   const [patchError, setPatchError] = useState<string | null>(null)
   const { copied: graphCopied, copy } = useCopyToClipboard()
   const [newShas, setNewShas] = useState<Set<string>>(new Set())
@@ -206,6 +208,7 @@ function HistoryView({
       y: e.clientY,
       items: [
         { label: 'Copy SHA', onClick: () => void navigator.clipboard.writeText(commit.sha) },
+        { label: 'Check out', onClick: () => void checkoutCommit(commit.sha) },
         { label: 'Branch here', onClick: () => createBranchFrom(commit.sha) },
         { label: 'Export patch…', onClick: () => exportPatch(commit.sha, commit.subject) },
         { label: 'Reset (soft) to here', onClick: () => resetTo(commit.sha, 'soft') },
@@ -233,6 +236,7 @@ function HistoryView({
 
         {branchError && <p className="history-error">Could not create branch: {branchError}</p>}
         {resetError && <p className="history-error">Could not reset: {resetError}</p>}
+        {checkoutError && <p className="history-error">Could not check out: {checkoutError}</p>}
         {patchError && <p className="history-error">Could not export patch: {patchError}</p>}
 
         <div ref={parentRef} className="history-scroll">

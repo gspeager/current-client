@@ -67,7 +67,19 @@ function FileHistoryPanel({ repoPath, path, onClose }: FileHistoryPanelProps) {
           ) : diffError ? (
             <p className="file-history-hint">Could not load diff: {diffError}</p>
           ) : diff ? (
-            <DiffViewer diff={diff} path={path} viewMode="unified" />
+            <DiffViewer
+              diff={diff}
+              path={path}
+              viewMode="unified"
+              repoPath={repoPath}
+              images={
+                selectedCommit && {
+                  repoPath,
+                  before: { kind: 'commit', rev: diffBaseFor(selectedCommit.parentShas) },
+                  after: { kind: 'commit', rev: selectedCommit.sha },
+                }
+              }
+            />
           ) : (
             <p className="file-history-hint">Loading diff…</p>
           )}

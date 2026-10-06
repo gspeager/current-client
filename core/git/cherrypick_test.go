@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gspeager/current-client/core/internal/gittest"
@@ -82,5 +83,48 @@ func TestRevertConflictLeavesConflictState(t *testing.T) {
 	}
 	if state.Operation != ConflictRevert {
 		t.Fatalf("Operation = %q, want %q", state.Operation, ConflictRevert)
+	}
+}
+
+// main gets a merge of "feature", which added feature.txt.
+func initMergedFeature(t *testing.T) (dir, merge string) {
+	dir = gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "base.txt", "v1", "initial")
+	gittest.Run(t, dir, "checkout", "-q", "-b", "feature")
+	gittest.CommitFile(t, dir, "feature.txt", "v1", "add feature")
+	gittest.Run(t, dir, "checkout", "-q", "main")
+	gittest.CommitFile(t, dir, "main.txt", "v1", "main work")
+	gittest.Run(t, dir, "merge", "--no-ff", "--no-edit", "feature")
+	return dir, gittest.Run(t, dir, "rev-parse", "HEAD")
+}
+
+func TestRevertUndoesAMergeCommit(t *testing.T) {
+	dir, merge := initMergedFeature(t)
+
+	if err := Revert(context.Background(), dir, merge); err != nil {
+		t.Fatalf("Revert: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "feature.txt")); !os.IsNotExist(err) {
+		t.Fatal("feature.txt still present after reverting the merge that brought it in")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "main.txt")); err != nil {
+		t.Fatalf("main.txt, from the merged-into branch, was removed: %v", err)
+	}
+}
+
+func TestCherryPickAppliesAMergeCommit(t *testing.T) {
+	dir, merge := initMergedFeature(t)
+	gittest.Run(t, dir, "checkout", "-q", "-b", "other", "main~1")
+
+	if err := CherryPick(context.Background(), dir, merge); err != nil {
+		t.Fatalf("CherryPick: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "feature.txt")); err != nil {
+		t.Fatalf("feature.txt missing after cherry-picking the merge: %v", err)
+	}
+	if parents := strings.Fields(gittest.Run(t, dir, "log", "-1", "--pretty=%P")); len(parents) != 1 {
+		t.Fatalf("cherry-picked commit has parents %v, want a single-parent commit", parents)
 	}
 }

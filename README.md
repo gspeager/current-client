@@ -6,22 +6,23 @@ Current Client runs entirely on your machine and talks only to your repositories
 
 ## Features
 
-- Stage and unstage whole files or single hunks.
+- Stage and unstage whole files, single hunks or single lines.
 - Split and unified diffs, with word-level changes highlighted.
 - A commit graph with search across the full history, blame and file history.
+- Search across every file's contents, now or at any commit.
 - Undo the last operation — a commit, amend, merge, pull, rebase, reset or branch switch — after a preview of what will move.
 - Conflict prediction: branches that would conflict with yours are marked, with the files, before you merge (Git 2.38 or newer).
-- Repository tabs, to keep several repositories open at once.
+- Repository tabs, to keep several repositories open at once, and worktrees for several branches of one.
 - An activity dashboard: commit calendar and velocity, contributors, file churn, languages, and stale branches or unpushed commits.
 - A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF.
 
-Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app, do a visual interactive rebase, stage single lines, or manage worktrees, submodules or Git LFS.
+Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app or do a visual interactive rebase.
 
 ## Install
 
 Download your platform's file from the [latest release](../../releases/latest). Current Client runs your installed Git, so you also need [Git](https://git-scm.com/downloads) 2.23 or newer.
 
-- **Windows:** run the `-setup.exe`. The installer isn't code-signed yet, so the first time you run it SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run anyway**.
+- **Windows:** run the `-setup.exe`. The installer isn't code-signed yet, so the first time you run it SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run anyway**. It installs to `C:\Program Files\Current Client`.
 - **macOS:** open the `.dmg` and drag Current Client to Applications. It's signed and notarized, so it opens without a warning.
 - **Linux:** install the `.deb` (Debian, Ubuntu) or `.rpm` (Fedora, openSUSE) with your package manager, which also installs GTK 4 and WebKitGTK 6.0:
 
@@ -47,6 +48,8 @@ Current Client uses Git's own authentication and never shows Git's terminal prom
 - **SSH:** load your key into an SSH agent, and connect to a new host once from a terminal so it's in `known_hosts`.
 
 Without those, a remote that needs an SSH passphrase or a host-key answer fails straight away with an explanation instead of waiting. Fetch, pull, push and clone can be cancelled while they run.
+
+**Fetch** in the header fetches every remote. Tick **Prune** next to it to also remove remote branches that were deleted on the remote; the choice is remembered.
 
 ## Reporting a problem
 

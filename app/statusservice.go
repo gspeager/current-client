@@ -21,6 +21,16 @@ type FileStatus struct {
 	WorkAdded      int    `json:"workAdded"`
 	WorkRemoved    int    `json:"workRemoved"`
 	WorkBinary     bool   `json:"workBinary"`
+	// Submodule is set for a submodule: what changed inside it.
+	Submodule *SubmoduleState `json:"submodule"`
+	// LFS is set when .gitattributes stores the file in Git LFS.
+	LFS bool `json:"lfs"`
+}
+
+type SubmoduleState struct {
+	CommitChanged bool `json:"commitChanged"`
+	Modified      bool `json:"modified"`
+	Untracked     bool `json:"untracked"`
 }
 
 // GetStatus reports staged and unstaged line counts separately, since a
@@ -41,6 +51,10 @@ func (s *StatusService) GetStatus(repoPath string) ([]FileStatus, error) {
 	}
 	workByPath := numstatByPath(workStats)
 	indexByPath := numstatByPath(indexStats)
+	lfs, err := git.LFSPaths(ctx, repoPath, mapSlice(statuses, func(st git.Status) string { return st.Path }))
+	if err != nil {
+		return nil, err
+	}
 
 	result := make([]FileStatus, len(statuses))
 	for i, st := range statuses {
@@ -50,6 +64,11 @@ func (s *StatusService) GetStatus(repoPath string) ([]FileStatus, error) {
 			IndexStatus:    string(st.IndexStatus),
 			WorktreeStatus: string(st.WorktreeStatus),
 			Conflicted:     st.Conflicted,
+			LFS:            lfs[st.Path],
+		}
+		if st.Submodule != nil {
+			state := SubmoduleState(*st.Submodule)
+			fs.Submodule = &state
 		}
 		if n, ok := workByPath[st.Path]; ok {
 			fs.WorkAdded, fs.WorkRemoved, fs.WorkBinary = n.Added, n.Removed, n.Binary

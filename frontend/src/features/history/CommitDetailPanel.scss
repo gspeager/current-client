@@ -15,6 +15,13 @@
   flex-direction: column;
   gap: var(--space-md);
   padding: var(--space-md);
+
+  // A flex item whose overflow isn't visible may shrink to nothing, so with a
+  // long description the changed files were squeezed out instead of the
+  // column scrolling. Nothing in the column shrinks; the column scrolls.
+  > * {
+    flex-shrink: 0;
+  }
 }
 
 .commit-detail-header {
@@ -217,14 +224,4 @@
       color: var(--on-surface);
     }
   }
-}
-
-.commit-detail-diff {
-  overflow-x: auto;
-}
-
-.commit-detail-diff-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--space-xs);
 }

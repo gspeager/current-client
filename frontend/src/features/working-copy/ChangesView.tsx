@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Check, ExternalLink } from 'lucide-react'
-import { DiffService } from '@current-client-bindings/app'
+import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { DiffService, type LineSelection } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import Checkbox from '../../components/forms/Checkbox'
 import CommitComposer from './CommitComposer'
 import DiffViewer from '../diff/DiffViewer'
+import { DiffWrapToggle } from '../diff/diffWrap'
 import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
@@ -24,6 +25,9 @@ interface ChangesViewProps {
   onPushRequested?: () => void
   onBranchChanged?: () => void
   defaultIgnoreWhitespace?: boolean
+  // The diff takes the file list's space too while a file is open.
+  diffExpanded?: boolean
+  onDiffExpandedChange?: (expanded: boolean) => void
   initialSelectedPath?: string | null
   onSelectedPathChange?: (path: string | null) => void
   initialCommitDraft?: string
@@ -42,6 +46,8 @@ function ChangesView({
   onPushRequested,
   onBranchChanged,
   defaultIgnoreWhitespace = false,
+  diffExpanded = false,
+  onDiffExpandedChange,
   initialSelectedPath = null,
   onSelectedPathChange,
   initialCommitDraft = '',
@@ -49,7 +55,7 @@ function ChangesView({
   showCommitTypePicker = false,
 }: ChangesViewProps) {
   const { files, staged, unstaged, loadStatus } = workingTree
-  const actions = useWorkingTreeActions(repoPath, loadStatus)
+  const actions = useWorkingTreeActions(repoPath, loadStatus, onBranchChanged)
   const { confirm } = useDialogs()
   const [selectedPath, setSelectedPath] = useState<string | null>(initialSelectedPath)
   // A staged file's diff is HEAD→index; an unstaged file's is index→working tree.
@@ -87,25 +93,37 @@ function ChangesView({
     { refreshKey: files },
   )
 
-  const hunkAction = (apply: (path: string, hunk: string) => Promise<void>) => (hunk: string) => {
-    if (selectedPath) actions.run(apply(selectedPath, hunk))
-  }
+  // With lines, only those lines of the hunk; otherwise the whole hunk.
+  const hunkAction =
+    (apply: (path: string, hunk: string, lines?: LineSelection) => Promise<void>) =>
+    (hunk: string, lines?: LineSelection) => {
+      if (selectedPath) actions.run(apply(selectedPath, hunk, lines))
+    }
 
-  const stageHunk = hunkAction((path, hunk) => DiffService.StageHunk(repoPath, path, hunk))
-  const unstageHunk = hunkAction((path, hunk) => DiffService.UnstageHunk(repoPath, path, hunk))
-  const applyDiscardHunk = hunkAction((path, hunk) =>
-    (showsStaged ? DiffService.DiscardStagedHunk : DiffService.DiscardHunk)(repoPath, path, hunk),
+  const stageHunk = hunkAction((path, hunk, lines) =>
+    lines ? DiffService.StageLines(repoPath, path, hunk, lines) : DiffService.StageHunk(repoPath, path, hunk),
   )
-  const discardHunk = async (hunk: string) => {
+  const unstageHunk = hunkAction((path, hunk, lines) =>
+    lines ? DiffService.UnstageLines(repoPath, path, hunk, lines) : DiffService.UnstageHunk(repoPath, path, hunk),
+  )
+  const applyDiscardHunk = hunkAction((path, hunk, lines) =>
+    lines
+      ? DiffService.DiscardLines(repoPath, path, hunk, lines)
+      : (showsStaged ? DiffService.DiscardStagedHunk : DiffService.DiscardHunk)(repoPath, path, hunk),
+  )
+  const discardHunk = async (hunk: string, lines?: LineSelection) => {
+    const count = lines ? lines.added.length + lines.removed.length : 0
     const confirmed = await confirm({
-      title: 'Discard hunk',
-      message: showsStaged
-        ? 'Discard this staged hunk from the index and the working tree? This cannot be undone.'
-        : 'Discard this hunk? This cannot be undone.',
+      title: count ? 'Discard lines' : 'Discard hunk',
+      message: count
+        ? `Discard ${count === 1 ? 'this line' : `these ${count} lines`}? This cannot be undone.`
+        : showsStaged
+          ? 'Discard this staged hunk from the index and the working tree? This cannot be undone.'
+          : 'Discard this hunk? This cannot be undone.',
       confirmLabel: 'Discard',
       destructive: true,
     })
-    if (confirmed) applyDiscardHunk(hunk)
+    if (confirmed) applyDiscardHunk(hunk, lines)
   }
 
   const openInExternalTool = () => {
@@ -143,9 +161,12 @@ function ChangesView({
   const stats = diff ? diffStats(diff) : null
   const { dir, file } = selectedPath ? splitDirFile(selectedPath) : { dir: '', file: '' }
 
+  // With nothing open there'd be nothing to show, so the file list always comes back.
+  const expanded = diffExpanded && selectedPath !== null
+
   return (
     <div className="changes-view">
-      <div className="changes-files" style={{ width: filesWidth.width, minWidth: filesWidth.width }}>
+      <div className="changes-files" style={{ width: filesWidth.width, minWidth: filesWidth.width }} hidden={expanded}>
         <WorkingTreeFileList
           repoPath={repoPath}
           workingTree={workingTree}
@@ -165,12 +186,28 @@ function ChangesView({
         />
       </div>
 
-      <ResizeHandle onDragStart={filesWidth.onDragStart} ariaLabel="Resize file list" />
+      {!expanded && <ResizeHandle onDragStart={filesWidth.onDragStart} ariaLabel="Resize file list" />}
 
       <div className="changes-diff">
         {selectedPath ? (
           <>
             <div className="changes-diff-header">
+              {onDiffExpandedChange && (
+                <button
+                  type="button"
+                  className="changes-diff-expand"
+                  onClick={() => onDiffExpandedChange(!expanded)}
+                  aria-label={expanded ? 'Show file list' : 'Expand diff'}
+                  title={expanded ? 'Show file list' : 'Expand diff'}
+                  aria-pressed={expanded}
+                >
+                  {expanded ? (
+                    <PanelLeftOpen size={14} strokeWidth={1.75} />
+                  ) : (
+                    <PanelLeftClose size={14} strokeWidth={1.75} />
+                  )}
+                </button>
+              )}
               <span className="changes-diff-path">
                 {dir && <span className="changes-diff-path-dir">{dir}</span>}
                 <span className="changes-diff-path-file">{file}</span>
@@ -189,6 +226,7 @@ function ChangesView({
 
               <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
               <Checkbox checked={ignoreWhitespace} onChange={setIgnoreWhitespace} label="Ignore whitespace" />
+              <DiffWrapToggle />
               <button
                 type="button"
                 className="changes-diff-external-tool"
@@ -222,7 +260,14 @@ function ChangesView({
                 onStageHunk={showsStaged ? undefined : stageHunk}
                 onUnstageHunk={showsStaged ? unstageHunk : undefined}
                 onDiscardHunk={discardHunk}
+                canDiscardLines={!showsStaged}
                 onForceLoad={() => setForcedPath(selectedPath)}
+                repoPath={repoPath}
+                images={{
+                  repoPath,
+                  before: showsStaged ? { kind: 'commit', rev: 'HEAD' } : { kind: 'index', rev: '' },
+                  after: showsStaged ? { kind: 'index', rev: '' } : { kind: 'worktree', rev: '' },
+                }}
               />
             ) : (
               <p className="changes-empty">Loading diff…</p>

@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { StatusService, type FileStatus } from '@current-client-bindings/app'
+import { StashService, StatusService, type FileStatus } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { useDialogs } from '../../lib/useDialogs'
 
-export function useWorkingTreeActions(repoPath: string, loadStatus: () => void) {
+// onStashed refreshes what a new stash changes beyond the working tree, such as the Stash panel.
+export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, onStashed?: () => void) {
   const { confirm } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -45,6 +46,16 @@ export function useWorkingTreeActions(repoPath: string, loadStatus: () => void) 
     addToGitignore: (pattern: string) => run(StatusService.AddToGitignore(repoPath, pattern)),
     discardFile,
     discardPaths,
+    // Untracked files are only stashed with -u, even when named.
+    stashFiles: (files: FileStatus[]) =>
+      run(
+        StashService.StashSave(repoPath, {
+          message: '',
+          includeUntracked: files.some((f) => f.worktreeStatus === '?'),
+          keepIndex: false,
+          paths: files.map((f) => f.path),
+        }).then(() => onStashed?.()),
+      ),
   }
 }
 

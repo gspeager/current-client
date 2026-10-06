@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
@@ -74,6 +75,14 @@ func (s *RemoteService) FetchAll(ctx context.Context, repoPath string, auth *git
 	return git.FetchAll(ctx, repoPath)
 }
 
+func (s *RemoteService) FetchAllPrune(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
+	return git.FetchAllPrune(ctx, repoPath)
+}
+
 func (s *RemoteService) LastFetchTime(repoPath string) (*time.Time, error) {
 	return git.LastFetchTime(context.Background(), repoPath)
 }
@@ -84,6 +93,14 @@ func (s *RemoteService) Pull(ctx context.Context, repoPath string, auth *gitexec
 		return err
 	}
 	return git.Pull(ctx, repoPath)
+}
+
+func (s *RemoteService) PullRebase(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
+	return git.PullRebase(ctx, repoPath)
 }
 
 func (s *RemoteService) Push(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
@@ -102,10 +119,41 @@ func (s *RemoteService) PushSetUpstream(ctx context.Context, repoPath, remote, b
 	return git.PushSetUpstream(ctx, repoPath, remote, branch)
 }
 
-func (s *RemoteService) ForcePush(ctx context.Context, repoPath, remote, branch string, auth *gitexec.Credential) error {
+// ForcePush force-pushes the current branch to its configured upstream.
+func (s *RemoteService) ForcePush(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
 	ctx, err := withAuth(ctx, auth)
 	if err != nil {
 		return err
 	}
-	return git.ForcePush(ctx, repoPath, remote, branch)
+	return git.ForcePushUpstream(ctx, repoPath)
+}
+
+// DeleteRemoteBranch takes a remote-tracking branch as the UI shows it, such
+// as "origin/feature".
+func (s *RemoteService) DeleteRemoteBranch(ctx context.Context, repoPath, remoteBranch string, auth *gitexec.Credential) error {
+	remotes, err := git.ListRemotes(ctx, repoPath)
+	if err != nil {
+		return err
+	}
+	remote, branch, ok := splitRemoteBranch(remotes, remoteBranch)
+	if !ok {
+		return &gitexec.AppError{Message: "That branch isn't on a configured remote.", Detail: remoteBranch}
+	}
+	ctx, err = withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
+	return git.DeleteRemoteBranch(ctx, repoPath, remote, branch)
+}
+
+// splitRemoteBranch matches the longest remote name, since remote names can
+// contain slashes ("team/origin/feature").
+func splitRemoteBranch(remotes []git.Remote, remoteBranch string) (remote, branch string, ok bool) {
+	for _, r := range remotes {
+		rest, found := strings.CutPrefix(remoteBranch, r.Name+"/")
+		if found && rest != "" && len(r.Name) > len(remote) {
+			remote, branch, ok = r.Name, rest, true
+		}
+	}
+	return remote, branch, ok
 }

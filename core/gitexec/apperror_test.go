@@ -139,6 +139,16 @@ func TestWrapResultKnownFailures(t *testing.T) {
 			wantMsg: "This branch has no upstream configured.",
 		},
 		{
+			name:    "checkout over uncommitted changes",
+			stderr:  "error: Your local changes to the following files would be overwritten by checkout:\n\tnotes.md\nPlease commit your changes or stash them before you switch branches.\nAborting",
+			wantMsg: "Uncommitted changes would be overwritten. Commit or stash them first.",
+		},
+		{
+			name:    "merge over untracked files",
+			stderr:  "error: The following untracked working tree files would be overwritten by merge:\n\tsquash.txt\nPlease move or remove them before you merge.\nAborting",
+			wantMsg: "Untracked files would be overwritten. Move or delete them first.",
+		},
+		{
 			name:    "pull no upstream",
 			stderr:  "There is no tracking information for the current branch.\nPlease specify which branch you want to merge with.",
 			wantMsg: "This branch has no upstream to pull from.",

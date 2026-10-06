@@ -237,3 +237,69 @@ describe('DiffViewer conflicted file', () => {
     expect(screen.queryByRole('button', { name: 'Discard' })).not.toBeInTheDocument()
   })
 })
+
+describe('DiffViewer line selection', () => {
+  const changed: FileDiff = {
+    ...diff,
+    hunks: [
+      {
+        header: '@@ -1,3 +1,4 @@',
+        raw: 'raw-changed',
+        lines: [
+          { kind: 'context', oldLine: 1, newLine: 1, content: 'one', moved: false },
+          { kind: 'removed', oldLine: 2, newLine: 0, content: 'two', moved: false },
+          { kind: 'added', oldLine: 0, newLine: 2, content: 'TWO', moved: false },
+          { kind: 'added', oldLine: 0, newLine: 3, content: 'extra', moved: false },
+          { kind: 'context', oldLine: 3, newLine: 4, content: 'three', moved: false },
+        ],
+      },
+    ],
+  }
+
+  it('stages only the selected lines, and shift-click selects a range', async () => {
+    const onStageHunk = vi.fn()
+    const onDiscardHunk = vi.fn()
+    render(
+      <DiffViewer
+        diff={changed}
+        path="a.ts"
+        viewMode="unified"
+        onStageHunk={onStageHunk}
+        onDiscardHunk={onDiscardHunk}
+        canDiscardLines
+      />,
+    )
+
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'Select added line 3' }))
+    expect(screen.getByRole('button', { name: 'Stage 1 line' })).toBeInTheDocument()
+
+    // From removed line 2 to added line 3 takes in added line 2 between them.
+    await user.click(screen.getByRole('button', { name: 'Select removed line 2' }))
+    await user.keyboard('{Shift>}')
+    await user.click(screen.getByRole('button', { name: 'Select added line 3' }))
+    await user.keyboard('{/Shift}')
+    await user.click(screen.getByRole('button', { name: 'Stage 3 lines' }))
+
+    expect(onStageHunk).toHaveBeenCalledWith('raw-changed', { added: [2, 3], removed: [2] })
+
+    await user.click(screen.getByRole('button', { name: 'Discard 3 lines' }))
+    expect(onDiscardHunk).toHaveBeenCalledWith('raw-changed', { added: [2, 3], removed: [2] })
+  })
+
+  it('offers no line discard where only whole hunks can be discarded', async () => {
+    render(<DiffViewer diff={changed} path="a.ts" viewMode="unified" onUnstageHunk={vi.fn()} onDiscardHunk={vi.fn()} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Select added line 3' }))
+
+    expect(screen.getByRole('button', { name: 'Unstage 1 line' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Discard/ })).not.toBeInTheDocument()
+  })
+
+  it('has no selectable lines without hunk actions', () => {
+    render(<DiffViewer diff={changed} path="a.ts" viewMode="unified" />)
+
+    expect(screen.queryByRole('button', { name: /Select line/ })).not.toBeInTheDocument()
+  })
+})

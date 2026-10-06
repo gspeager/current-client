@@ -6,7 +6,7 @@
 # host — building AppImages under QEMU emulation fails with
 # "exec format error" (see build/linux/Taskfile.yml's create:appimage:docker
 # for the full explanation), which is why this needs real hardware rather
-# than the Mac mini's wails-cross image.
+# than the wails-cross image.
 #
 # Usage (from the repo root, on the Linux host):
 #   docker build -t current-client-linux-native -f build/docker/Dockerfile.linux-native .

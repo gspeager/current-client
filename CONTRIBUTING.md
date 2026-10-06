@@ -86,7 +86,7 @@ All Git commands go through `core/gitexec`. Arguments are always passed as a lis
 
 ## Commits and pull requests
 
-- Branch from `develop` and open pull requests against `develop`. `main` only receives releases, merged from `develop`.
+- Branch from `develop` and open pull requests against `develop`. `main` only receives releases, merged from `develop` (see [RELEASING.md](RELEASING.md)).
 - Pull requests are squash-merged, and the title becomes the commit on `develop`, so write the title as one short line in [Conventional Commits](https://www.conventionalcommits.org) form (`feat(history): filter commits by type`, `fix: keep lane color after rebase`), with `!` for breaking changes. No phase or ticket numbers. Current Client builds its changelog from these. Commits inside the pull request can be informal.
 - Sign off every commit (`git commit -s`). This certifies the [Developer Certificate of Origin](https://developercertificate.org/): that you wrote the change or have the right to submit it under the project's license.
 - By contributing you agree your work is licensed under the [Apache License 2.0](LICENSE).

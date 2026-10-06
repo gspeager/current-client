@@ -1,0 +1,62 @@
+@use '../../styles/patterns';
+
+.changed-files-browser {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.changed-files-browser-files {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  min-height: 0;
+  padding: var(--space-md);
+  overflow-y: auto;
+  border-right: var(--border-structure);
+}
+
+.changed-files-browser-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.changed-files-browser-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.changed-files-browser-count {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.changed-files-browser-diff {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-md);
+  overflow: auto;
+}
+
+.changed-files-browser-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xs);
+}
+
+.changed-files-browser-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.changed-files-browser-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}

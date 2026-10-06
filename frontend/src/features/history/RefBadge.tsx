@@ -24,7 +24,7 @@ function RefBadge({ refInfo, color, onClick, active }: RefBadgeProps) {
     <span
       className={classes.join(' ')}
       onClick={handleClick}
-      title={onClick ? `Highlight ${refInfo.name}'s history in the graph` : undefined}
+      title={onClick ? `Highlight ${refInfo.name}'s history in the graph` : refInfo.name}
       style={{ background: color }}
     >
       {refInfo.name}

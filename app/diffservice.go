@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gspeager/current-client/core/diff"
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type DiffService struct{}
@@ -72,6 +74,25 @@ func (s *DiffService) DiscardStagedHunk(repoPath, path, hunkText string) error {
 	return diff.DiscardStagedHunk(context.Background(), repoPath, path, hunkText)
 }
 
+// LineSelection picks changed lines in a hunk: added lines by new line
+// number, removed lines by old line number.
+type LineSelection struct {
+	Added   []int `json:"added"`
+	Removed []int `json:"removed"`
+}
+
+func (s *DiffService) StageLines(repoPath, path, hunkText string, sel LineSelection) error {
+	return diff.StageLines(context.Background(), repoPath, path, hunkText, diff.LineSelection(sel))
+}
+
+func (s *DiffService) UnstageLines(repoPath, path, hunkText string, sel LineSelection) error {
+	return diff.UnstageLines(context.Background(), repoPath, path, hunkText, diff.LineSelection(sel))
+}
+
+func (s *DiffService) DiscardLines(repoPath, path, hunkText string, sel LineSelection) error {
+	return diff.DiscardLines(context.Background(), repoPath, path, hunkText, diff.LineSelection(sel))
+}
+
 func (s *DiffService) OpenInExternalTool(repoPath, path string, cached bool) error {
 	return diff.OpenInExternalTool(context.Background(), repoPath, path, cached)
 }
@@ -117,4 +138,40 @@ func lineKindString(k diff.LineKind) string {
 	default:
 		return "context"
 	}
+}
+
+// FileSource says which version of a file to read: Kind is "commit" (at Rev),
+// "index" or "worktree".
+type FileSource struct {
+	Kind string `json:"kind"`
+	Rev  string `json:"rev"`
+}
+
+type FileContent struct {
+	Found    bool   `json:"found"`
+	TooLarge bool   `json:"tooLarge"`
+	Data     []byte `json:"data"`
+}
+
+// Images are sent to the frontend whole, so very large ones are refused.
+const maxFileContentBytes = 20 << 20
+
+func (s *DiffService) GetFileContent(repoPath, path string, source FileSource) (FileContent, error) {
+	var data []byte
+	var found bool
+	var err error
+	switch source.Kind {
+	case "commit":
+		data, found, err = diff.ReadRevisionFile(context.Background(), repoPath, source.Rev, path, maxFileContentBytes)
+	case "index":
+		data, found, err = diff.ReadRevisionFile(context.Background(), repoPath, "", path, maxFileContentBytes)
+	case "worktree":
+		data, found, err = diff.ReadWorkingFile(repoPath, path, maxFileContentBytes)
+	default:
+		return FileContent{}, &gitexec.AppError{Message: "Unknown file version.", Detail: source.Kind}
+	}
+	if errors.Is(err, diff.ErrFileTooLarge) {
+		return FileContent{Found: true, TooLarge: true}, nil
+	}
+	return FileContent{Found: found, Data: data}, err
 }

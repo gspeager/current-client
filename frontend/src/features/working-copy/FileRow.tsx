@@ -14,6 +14,7 @@ interface FileRowProps {
   checkLabel?: string
   onToggleChecked: () => void
   onSelect: (e: MouseEvent) => void
+  onSelectMouseDown?: (e: MouseEvent) => void
   onDiscard?: () => void
   onContextMenu?: (e: MouseEvent) => void
   style?: CSSProperties
@@ -21,6 +22,8 @@ interface FileRowProps {
   added?: number
   removed?: number
   binary?: boolean
+  // A short label for what kind of entry it is, such as "submodule".
+  tag?: string
 }
 
 function FileRow({
@@ -31,6 +34,7 @@ function FileRow({
   checkLabel,
   onToggleChecked,
   onSelect,
+  onSelectMouseDown,
   onDiscard,
   onContextMenu,
   style,
@@ -38,6 +42,7 @@ function FileRow({
   added = 0,
   removed = 0,
   binary = false,
+  tag,
 }: FileRowProps) {
   const rowStyle = indent > 0 ? { ...style, paddingLeft: `calc(var(--space-sm) + ${indent}px)` } : style
 
@@ -53,10 +58,13 @@ function FileRow({
         onClick={(e) => e.stopPropagation()}
         ariaLabel={checkLabel ?? (checked ? `Unstage ${label}` : `Stage ${label}`)}
       />
-      <button type="button" className="file-row-path" onClick={onSelect}>
+      <button type="button" className="file-row-path" onClick={onSelect} onMouseDown={onSelectMouseDown}>
         <PathText path={label} />
       </button>
-      <DiffStat added={added} removed={removed} binary={binary} />
+      <span className="file-row-stats">
+        {tag && <span className="file-row-tag">{tag}</span>}
+        <DiffStat added={added} removed={removed} binary={binary} />
+      </span>
       <StatusBadge status={status} />
       {onDiscard && (
         <button

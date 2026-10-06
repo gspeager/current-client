@@ -25,8 +25,15 @@ func (s *StashService) ListStash(repoPath string) ([]StashInfo, error) {
 	}), nil
 }
 
-func (s *StashService) StashSave(repoPath, message string, includeUntracked bool) error {
-	return git.StashSave(context.Background(), repoPath, message, includeUntracked)
+type StashOptions struct {
+	Message          string   `json:"message"`
+	IncludeUntracked bool     `json:"includeUntracked"`
+	KeepIndex        bool     `json:"keepIndex"`
+	Paths            []string `json:"paths"`
+}
+
+func (s *StashService) StashSave(repoPath string, opts StashOptions) error {
+	return git.StashPush(context.Background(), repoPath, git.StashOptions(opts))
 }
 
 func (s *StashService) StashApply(repoPath string, index int) error {
@@ -39,4 +46,17 @@ func (s *StashService) StashPop(repoPath string, index int) error {
 
 func (s *StashService) StashDrop(repoPath string, index int) error {
 	return git.StashDrop(context.Background(), repoPath, index)
+}
+
+func (s *StashService) GetChangedFiles(repoPath string, index int) ([]ChangedFile, error) {
+	ctx := context.Background()
+	files, err := git.StashChangedFiles(ctx, repoPath, index)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := git.StashNumstat(ctx, repoPath, index)
+	if err != nil {
+		return nil, err
+	}
+	return withLineCounts(files, stats), nil
 }

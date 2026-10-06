@@ -1,3 +1,4 @@
+import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
@@ -72,7 +73,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
   const bumpRepoVersion = () => setRepoVersion((v) => v + 1)
-  const { pull, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, bumpRepoVersion)
+  const { pull, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, bumpRepoVersion)
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
@@ -207,120 +208,131 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
   return (
     <LaneThemeContext.Provider value={toLaneThemeName(settings.settings?.laneColorTheme)}>
-      <div className="app-shell">
-        <HeaderBar
-          repoPath={repo.repoPath}
-          repoVersion={repoVersion}
-          lastFetchedAt={lastFetchedAt}
-          repo={repo}
-          dirty={dirty}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onPull={pull}
-          onPush={push}
-          onForcePush={() => void forcePush()}
-          onBranchChanged={onBranchChanged}
-          onFetched={onFetched}
-          onOpenCommit={openCommit}
-          syncing={pullOp.running || pushOp.running}
-          accessory={headerAccessory}
-        />
-        <TabBar active={activeTab} onChange={changeTab} showChangelog={conventionalCommitsOn} />
-
-        {conflictState && (
-          <ConflictBanner
-            repoPath={repo.repoPath}
-            state={conflictState}
-            onResolved={onConflictResolved}
-            onOpenFile={openWorkingFile}
-          />
-        )}
-
-        <ContextualNudges repoPath={repo.repoPath} repoVersion={repoVersion} onPush={push} onPull={pull} />
-
-        {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
-
-        {pullOp.running && (
-          <p className="app-inline-notice">
-            Pulling… <button onClick={pullOp.cancel}>Cancel</button>
-          </p>
-        )}
-        {pushOp.running && (
-          <p className="app-inline-notice">
-            Pushing… <button onClick={pushOp.cancel}>Cancel</button>
-          </p>
-        )}
-        {pullOp.error && <p className="app-inline-error">Could not pull: {pullOp.error}</p>}
-        {pushOp.error && <p className="app-inline-error">Could not push: {pushOp.error}</p>}
-
-        <div className="app-body">
-          <NavPane
-            key={repo.repoPath}
+      <DiffWrapContext.Provider
+        value={{ wrap: !(settings.settings?.diffNoWrap ?? false), setWrap: (wrap) => settings.setDiffNoWrap(!wrap) }}
+      >
+        <div className="app-shell">
+          <HeaderBar
             repoPath={repo.repoPath}
             repoVersion={repoVersion}
-            workingTree={workingTree}
+            lastFetchedAt={lastFetchedAt}
+            pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
+            onPruneOnFetchChange={settings.setPruneOnFetch}
+            repo={repo}
+            dirty={dirty}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onPull={pull}
+            onPullRebase={pullRebase}
+            onPush={push}
+            onForcePush={() => void forcePush()}
             onBranchChanged={onBranchChanged}
             onFetched={onFetched}
-            onOpenHeadCommit={openCommit}
-            width={navWidth.width}
-            collapsed={navCollapsed}
-            onCollapsedChange={settings.setNavCollapsed}
+            onOpenCommit={openCommit}
+            syncing={pullOp.running || pushOp.running}
+            accessory={headerAccessory}
           />
-          {!navCollapsed && <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />}
+          <TabBar active={activeTab} onChange={changeTab} showChangelog={conventionalCommitsOn} />
 
-          <main className="app-main">
-            <KeepAlive active={activeTab === 'working-copy'}>
-              <ChangesView
-                key={`${repo.repoPath}-${repoVersion}-${fileFocus}`}
-                repoPath={repo.repoPath}
-                workingTree={workingTree}
-                onPushRequested={push}
-                onBranchChanged={onBranchChanged}
-                defaultIgnoreWhitespace={settings.settings?.diffIgnoreWhitespaceDefault ?? false}
-                initialSelectedPath={restored.selectedFilePath}
-                onSelectedPathChange={(path) => remember({ selectedFilePath: path })}
-                initialCommitDraft={restored.commitDraft}
-                onCommitDraftChange={(message) => remember({ commitDraft: message })}
-                showCommitTypePicker={conventionalCommitsOn}
-              />
-            </KeepAlive>
-            <KeepAlive active={activeTab === 'history'}>
-              <HistoryView
-                key={`${repo.repoPath}-${repoVersion}-${focus?.request ?? 0}`}
-                repoPath={repo.repoPath}
-                conventional={conventional ?? false}
-                initialSelectedSha={restored.selectedCommitSha}
-                initialLoadThrough={focus?.position ?? null}
-                initialRef={focus?.ref ?? null}
-                onBranchChanged={onBranchChanged}
-                previousTopSha={restored.historyTopSha}
-                onTopShaChange={(sha) => remember({ historyTopSha: sha })}
-                onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
-              />
-            </KeepAlive>
-            <KeepAlive active={activeTab === 'changelog'}>
-              <ChangelogView
-                key={repo.repoPath}
-                repoPath={repo.repoPath}
-                repoVersion={repoVersion}
-                prefs={settings.settings?.changelog ?? null}
-                onPrefsChange={settings.setChangelogPrefs}
-                onOpenCommit={openCommit}
-              />
-            </KeepAlive>
-            <KeepAlive active={activeTab === 'activity'}>
-              <ActivityView
-                key={repo.repoPath}
-                repoPath={repo.repoPath}
-                repoVersion={repoVersion}
-                dirty={dirty}
-                hasConflict={conflictState !== null}
-              />
-            </KeepAlive>
-          </main>
+          {conflictState && (
+            <ConflictBanner
+              repoPath={repo.repoPath}
+              state={conflictState}
+              onResolved={onConflictResolved}
+              onOpenFile={openWorkingFile}
+            />
+          )}
+
+          <ContextualNudges repoPath={repo.repoPath} repoVersion={repoVersion} onPush={push} onPull={pull} />
+
+          {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
+
+          {pullOp.running && (
+            <p className="app-inline-notice">
+              Pulling… <button onClick={pullOp.cancel}>Cancel</button>
+            </p>
+          )}
+          {pushOp.running && (
+            <p className="app-inline-notice">
+              Pushing… <button onClick={pushOp.cancel}>Cancel</button>
+            </p>
+          )}
+          {pullOp.error && <p className="app-inline-error">Could not pull: {pullOp.error}</p>}
+          {pushOp.error && <p className="app-inline-error">Could not push: {pushOp.error}</p>}
+
+          <div className="app-body">
+            <NavPane
+              key={repo.repoPath}
+              repoPath={repo.repoPath}
+              repoVersion={repoVersion}
+              workingTree={workingTree}
+              onBranchChanged={onBranchChanged}
+              onFetched={onFetched}
+              pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
+              onOpenHeadCommit={openCommit}
+              onOpenRepository={repo.openRecent}
+              width={navWidth.width}
+              collapsed={navCollapsed}
+              onCollapsedChange={settings.setNavCollapsed}
+            />
+            {!navCollapsed && <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />}
+
+            <main className="app-main">
+              <KeepAlive active={activeTab === 'working-copy'}>
+                <ChangesView
+                  key={`${repo.repoPath}-${repoVersion}-${fileFocus}`}
+                  repoPath={repo.repoPath}
+                  workingTree={workingTree}
+                  onPushRequested={push}
+                  onBranchChanged={onBranchChanged}
+                  defaultIgnoreWhitespace={settings.settings?.diffIgnoreWhitespaceDefault ?? false}
+                  diffExpanded={settings.settings?.diffExpanded ?? false}
+                  onDiffExpandedChange={settings.setDiffExpanded}
+                  initialSelectedPath={restored.selectedFilePath}
+                  onSelectedPathChange={(path) => remember({ selectedFilePath: path })}
+                  initialCommitDraft={restored.commitDraft}
+                  onCommitDraftChange={(message) => remember({ commitDraft: message })}
+                  showCommitTypePicker={conventionalCommitsOn}
+                />
+              </KeepAlive>
+              <KeepAlive active={activeTab === 'history'}>
+                <HistoryView
+                  key={`${repo.repoPath}-${repoVersion}-${focus?.request ?? 0}`}
+                  repoPath={repo.repoPath}
+                  conventional={conventional ?? false}
+                  initialSelectedSha={restored.selectedCommitSha}
+                  initialLoadThrough={focus?.position ?? null}
+                  initialRef={focus?.ref ?? null}
+                  onBranchChanged={onBranchChanged}
+                  previousTopSha={restored.historyTopSha}
+                  onTopShaChange={(sha) => remember({ historyTopSha: sha })}
+                  onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
+                />
+              </KeepAlive>
+              <KeepAlive active={activeTab === 'changelog'}>
+                <ChangelogView
+                  key={repo.repoPath}
+                  repoPath={repo.repoPath}
+                  repoVersion={repoVersion}
+                  prefs={settings.settings?.changelog ?? null}
+                  onPrefsChange={settings.setChangelogPrefs}
+                  onOpenCommit={openCommit}
+                />
+              </KeepAlive>
+              <KeepAlive active={activeTab === 'activity'}>
+                <ActivityView
+                  key={repo.repoPath}
+                  repoPath={repo.repoPath}
+                  repoVersion={repoVersion}
+                  dirty={dirty}
+                  hasConflict={conflictState !== null}
+                />
+              </KeepAlive>
+            </main>
+          </div>
+
+          <StatusBar repoPath={repo.repoPath} repoVersion={repoVersion} gitVersion={gitVersion} />
         </div>
-
-        <StatusBar repoPath={repo.repoPath} repoVersion={repoVersion} gitVersion={gitVersion} />
-      </div>
+      </DiffWrapContext.Provider>
     </LaneThemeContext.Provider>
   )
 }

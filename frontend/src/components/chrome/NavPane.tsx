@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Cloud,
   Code2,
+  FolderGit2,
   FolderOpen,
   GitBranch,
   History,
@@ -26,6 +27,8 @@ import HeadCommitPanel from '../../features/working-copy/HeadCommitPanel'
 import RemotesPanel from '../../features/remotes/RemotesPanel'
 import StashPanel from '../../features/branches/StashPanel'
 import TagsPanel from '../../features/branches/TagsPanel'
+import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
+import SubmodulesPanel from '../../features/submodules/SubmodulesPanel'
 import { errorMessage } from '../../lib/errors'
 import { undoConfirmOptions } from '../../features/history/undoPreview'
 import { useDialogs } from '../../lib/useDialogs'
@@ -34,7 +37,7 @@ import BisectWizard from '../../features/history/BisectWizard'
 import ReflogPanel from '../../features/history/ReflogPanel'
 import './NavPane.scss'
 
-type SectionId = 'maintenance' | 'branches' | 'stash' | 'tags' | 'remotes'
+type SectionId = 'maintenance' | 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 
 interface NavPaneProps {
   repoPath: string
@@ -42,7 +45,10 @@ interface NavPaneProps {
   workingTree: ReturnType<typeof useWorkingTree>
   onBranchChanged: () => void
   onFetched: () => void
+  pruneOnFetch?: boolean
   onOpenHeadCommit: (sha: string) => void
+  // Opens a repository (such as a worktree or submodule) as a tab.
+  onOpenRepository: (path: string) => void
   width: number
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
@@ -55,6 +61,7 @@ const SECTION_SHORTCUTS: { id: SectionId; label: string; icon: LucideIcon }[] = 
   { id: 'stash', label: 'Stash', icon: Package },
   { id: 'tags', label: 'Tags', icon: Tag },
   { id: 'remotes', label: 'Remotes', icon: Cloud },
+  { id: 'worktrees', label: 'Worktrees', icon: FolderGit2 },
 ]
 
 function NavPane({
@@ -63,7 +70,9 @@ function NavPane({
   workingTree,
   onBranchChanged,
   onFetched,
+  pruneOnFetch,
   onOpenHeadCommit,
+  onOpenRepository,
   width,
   collapsed,
   onCollapsedChange,
@@ -313,6 +322,7 @@ function NavPane({
           <StashPanel
             repoPath={repoPath}
             dirty={(workingTree.files?.length ?? 0) > 0}
+            refreshKey={repoVersion}
             onStashChanged={onBranchChanged}
           />
         </section>
@@ -322,8 +332,23 @@ function NavPane({
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('remotes')}>
-          <RemotesPanel repoPath={repoPath} onFetched={onFetched} />
+          <RemotesPanel repoPath={repoPath} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
         </section>
+
+        <section className="nav-pane-section" ref={sectionRef('worktrees')}>
+          <WorktreesPanel
+            repoPath={repoPath}
+            refreshKey={repoVersion}
+            onOpenRepository={onOpenRepository}
+            onWorktreesChanged={onBranchChanged}
+          />
+        </section>
+        <SubmodulesPanel
+          repoPath={repoPath}
+          refreshKey={repoVersion}
+          onOpenRepository={onOpenRepository}
+          onSubmodulesChanged={onBranchChanged}
+        />
       </div>
 
       <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />

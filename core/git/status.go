@@ -12,6 +12,22 @@ type Status struct {
 	IndexStatus    byte
 	WorktreeStatus byte
 	Conflicted     bool
+	Submodule      *SubmoduleStatus
+}
+
+// SubmoduleStatus is what changed inside a submodule, from porcelain v2's
+// "S<c><m><u>" field.
+type SubmoduleStatus struct {
+	CommitChanged bool
+	Modified      bool
+	Untracked     bool
+}
+
+func parseSubmoduleField(field string) *SubmoduleStatus {
+	if len(field) != 4 || field[0] != 'S' {
+		return nil
+	}
+	return &SubmoduleStatus{CommitChanged: field[1] == 'C', Modified: field[2] == 'M', Untracked: field[3] == 'U'}
 }
 
 func GetStatus(ctx context.Context, repoPath string) ([]Status, error) {
@@ -42,6 +58,7 @@ func ParseStatus(output string) ([]Status, error) {
 				Path:           fields[8],
 				IndexStatus:    fields[1][0],
 				WorktreeStatus: fields[1][1],
+				Submodule:      parseSubmoduleField(fields[2]),
 			})
 		case '2':
 			fields, err := splitStatusFields(record, 10)
@@ -57,6 +74,7 @@ func ParseStatus(output string) ([]Status, error) {
 				OrigPath:       records[i],
 				IndexStatus:    fields[1][0],
 				WorktreeStatus: fields[1][1],
+				Submodule:      parseSubmoduleField(fields[2]),
 			})
 		case 'u':
 			fields, err := splitStatusFields(record, 11)
@@ -68,6 +86,7 @@ func ParseStatus(output string) ([]Status, error) {
 				IndexStatus:    fields[1][0],
 				WorktreeStatus: fields[1][1],
 				Conflicted:     true,
+				Submodule:      parseSubmoduleField(fields[2]),
 			})
 		case '?', '!':
 			fields, err := splitStatusFields(record, 2)
