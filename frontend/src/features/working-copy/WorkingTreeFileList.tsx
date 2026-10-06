@@ -153,6 +153,17 @@ function WorkingTreeFileList({
     exportPatch.catch((err: unknown) => setPatchError(errorMessage(err))).finally(() => setPatchBusy(false))
   }
 
+  const toggleSelected = (section: WorkingTreeSection, path: string) => {
+    setSelectedPaths((prev) => {
+      const next = new Set(selectionSection === section ? prev : [])
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+    setSelectionSection(section)
+    setAnchorPath(path)
+  }
+
   const onFileRowClick = (section: WorkingTreeSection, f: FileStatus) => (e: MouseEvent) => {
     const path = f.path
     if (e.shiftKey && selectionSection === section && anchorPath) {
@@ -164,14 +175,7 @@ function WorkingTreeFileList({
         setSelectedPaths(new Set(paths.slice(start, end + 1)))
       }
     } else if (e.ctrlKey || e.metaKey) {
-      setSelectedPaths((prev) => {
-        const next = new Set(selectionSection === section ? prev : [])
-        if (next.has(path)) next.delete(path)
-        else next.add(path)
-        return next
-      })
-      setSelectionSection(section)
-      setAnchorPath(path)
+      toggleSelected(section, path)
     } else {
       setSelectedPaths(new Set([path]))
       setSelectionSection(section)
@@ -210,6 +214,13 @@ function WorkingTreeFileList({
   }
 
   const rowContextMenu = (f: FileStatus, section: WorkingTreeSection) => (e: MouseEvent) => {
+    // macOS turns Ctrl-click into a right-click (still on the left button);
+    // it selects here, as it does on Windows and Linux.
+    if (e.ctrlKey && e.button === 0) {
+      e.preventDefault()
+      toggleSelected(section, f.path)
+      return
+    }
     if (selectionSection === section && effectiveSelectedPaths.size > 1 && effectiveSelectedPaths.has(f.path)) {
       fileTools.openMenu(e, groupContextMenuItems(section))
       return

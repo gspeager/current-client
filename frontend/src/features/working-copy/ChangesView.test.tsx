@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   DiffService,
@@ -230,6 +230,21 @@ describe('ChangesView multi-select', () => {
     await user.keyboard('{Control>}')
     await user.click(screen.getByRole('button', { name: 'src/c.ts' }))
     await user.keyboard('{/Control}')
+    await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
+    await user.click(screen.getByRole('button', { name: 'Stage 2 files' }))
+
+    expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/c.ts'])
+  })
+
+  it("selects with macOS's ctrl-click, which arrives as a left-button context menu", async () => {
+    vi.mocked(StatusService.StageFiles).mockResolvedValue()
+    renderChanges(files)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'src/a.ts' }))
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'src/c.ts' }), { ctrlKey: true, button: 0 })
+    expect(screen.queryByRole('button', { name: 'Stage' })).not.toBeInTheDocument()
+
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
     await user.click(screen.getByRole('button', { name: 'Stage 2 files' }))
 
