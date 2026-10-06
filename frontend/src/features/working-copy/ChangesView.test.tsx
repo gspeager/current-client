@@ -236,13 +236,16 @@ describe('ChangesView multi-select', () => {
     expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/c.ts'])
   })
 
-  it("selects with macOS's ctrl-click, which arrives as a left-button context menu", async () => {
+  it("toggles once on macOS's ctrl-click, whatever events WebKit sends for it", async () => {
     vi.mocked(StatusService.StageFiles).mockResolvedValue()
     renderChanges(files)
     const user = userEvent.setup()
 
     await user.click(screen.getByRole('button', { name: 'src/a.ts' }))
-    fireEvent.contextMenu(screen.getByRole('button', { name: 'src/c.ts' }), { ctrlKey: true, button: 0 })
+    const c = screen.getByRole('button', { name: 'src/c.ts' })
+    fireEvent.mouseDown(c, { ctrlKey: true, button: 0 })
+    fireEvent.contextMenu(c, { ctrlKey: true, button: 0 })
+    fireEvent.click(c, { ctrlKey: true, button: 0 })
     expect(screen.queryByRole('button', { name: 'Stage' })).not.toBeInTheDocument()
 
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })

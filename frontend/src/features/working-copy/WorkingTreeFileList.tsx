@@ -172,7 +172,19 @@ function WorkingTreeFileList({
     setAnchorKey(key)
   }
 
+  // Ctrl/⌘-click toggles on mousedown, the one event it always fires once:
+  // macOS sends Ctrl-click as a context menu, and WebKit can follow that with
+  // a click, so both of those ignore it.
+  const isToggleClick = (e: MouseEvent) => e.button === 0 && (e.ctrlKey || e.metaKey)
+
+  const onFileRowMouseDown = (section: WorkingTreeSection, f: FileStatus) => (e: MouseEvent) => {
+    if (!isToggleClick(e)) return
+    e.preventDefault()
+    toggleSelected(section, f.path)
+  }
+
   const onFileRowClick = (section: WorkingTreeSection, f: FileStatus) => (e: MouseEvent) => {
+    if (isToggleClick(e)) return
     const path = f.path
     const key = rowKey(section, path)
     const keys = orderedRowKeys()
@@ -181,8 +193,6 @@ function WorkingTreeFileList({
       const clickIndex = keys.indexOf(key)
       const [start, end] = anchorIndex < clickIndex ? [anchorIndex, clickIndex] : [clickIndex, anchorIndex]
       setSelectedKeys(new Set(keys.slice(start, end + 1)))
-    } else if (e.ctrlKey || e.metaKey) {
-      toggleSelected(section, path)
     } else {
       setSelectedKeys(new Set([key]))
       setAnchorKey(key)
@@ -226,11 +236,8 @@ function WorkingTreeFileList({
   }
 
   const rowContextMenu = (f: FileStatus, section: WorkingTreeSection) => (e: MouseEvent) => {
-    // macOS turns Ctrl-click into a right-click (still on the left button);
-    // it selects here, as it does on Windows and Linux.
-    if (e.ctrlKey && e.button === 0) {
+    if (isToggleClick(e)) {
       e.preventDefault()
-      toggleSelected(section, f.path)
       return
     }
     if (selection.length > 1 && isSelected(section, f.path)) {
@@ -321,6 +328,7 @@ function WorkingTreeFileList({
         tag={f.submodule ? 'submodule' : f.lfs ? 'LFS' : undefined}
         onToggleChecked={() => (isStaged ? actions.unstage(f) : actions.stage(f))}
         onSelect={onFileRowClick(row.section, f)}
+        onSelectMouseDown={onFileRowMouseDown(row.section, f)}
         onDiscard={row.section === 'unstaged' ? () => actions.discardFile(f) : undefined}
         onContextMenu={rowContextMenu(f, row.section)}
       />
