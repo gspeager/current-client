@@ -4,9 +4,14 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
 - Working Copy's file selection can span Staged and Unstaged, so shift-click selects every file between two clicks and **Stash N files** stashes them together. Stage, Unstage and Discard still need a selection within one section. On macOS, Ctrl-click adds or removes a file, as ⌘-click does, instead of opening the right-click menu.
+
+### Fixed
+
+- Switching branches, merging, pulling or cherry-picking over uncommitted or untracked changes now says so and suggests committing or stashing first, instead of "Git command failed."
+- Merging or squashing a branch that's already merged says "Already up to date. Nothing to merge." instead of doing nothing, and a squash no longer claims to have staged changes.
 - Stashing only some files no longer also puts other staged files into the stash. They used to show up in the stash's changes and could stop it from popping once they had changed.
 - In Branch Graph & History, long branch and tag names no longer run over the author column. They shorten to fit, with the full name on hover, and the commit message stays visible.
 - With **Wrap lines** off, long lines no longer run out of their row or into the other side of a split diff. Each side of a split diff keeps half the width and has its own scroll bars, and scrolling one side scrolls the other; a unified diff scrolls sideways.

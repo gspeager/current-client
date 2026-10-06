@@ -2,12 +2,14 @@ package git
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/internal/gittest"
 )
 
@@ -89,6 +91,21 @@ func TestMergeBranchModeNoFastForwardRecordsMergeCommit(t *testing.T) {
 	featureHead := gittest.Run(t, dir, "rev-parse", "feature")
 	if len(parents) != 2 || parents[1] != featureHead {
 		t.Fatalf("HEAD parents = %v, want a merge commit whose second parent is feature %q", parents, featureHead)
+	}
+}
+
+func TestMergeBranchModeSaysWhenAlreadyUpToDate(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "branch", "merged")
+	gittest.CommitFile(t, dir, "file.txt", "v2", "ahead of merged")
+
+	for _, mode := range []MergeMode{MergeFastForward, MergeCommit, MergeSquash} {
+		err := MergeBranchMode(context.Background(), dir, "merged", mode)
+		var appErr *gitexec.AppError
+		if !errors.As(err, &appErr) || appErr.Message != "Already up to date. Nothing to merge." {
+			t.Fatalf("mode %q: err = %v, want the already up to date message", mode, err)
+		}
 	}
 }
 
