@@ -237,6 +237,64 @@ func TestStashPushOnlySomePaths(t *testing.T) {
 	}
 }
 
+func TestStashPushSomePathsLeavesOtherStagedFilesOut(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "notes.md", "one\n", "initial")
+	gittest.WriteFile(t, dir, "notes.md", "two\n")
+	gittest.WriteFile(t, dir, "staged.txt", "staged\n")
+	gittest.Run(t, dir, "add", "staged.txt")
+	ctx := context.Background()
+
+	if err := StashPush(ctx, dir, StashOptions{Paths: []string{"notes.md"}}); err != nil {
+		t.Fatalf("StashPush: %v", err)
+	}
+
+	if got := gittest.Run(t, dir, "status", "--porcelain"); got != "A  staged.txt" {
+		t.Fatalf("status = %q, want only the staged staged.txt left", got)
+	}
+	files, err := StashChangedFiles(ctx, dir, 0)
+	if err != nil {
+		t.Fatalf("StashChangedFiles: %v", err)
+	}
+	if want := []ChangedFile{{Status: "M", Path: "notes.md"}}; !reflect.DeepEqual(files, want) {
+		t.Fatalf("stash holds %+v, want %+v", files, want)
+	}
+
+	// Popping used to fail once a file stashed by mistake had changed.
+	gittest.Run(t, dir, "rm", "-q", "--cached", "staged.txt")
+	gittest.WriteFile(t, dir, "staged.txt", "changed\n")
+	if err := StashPop(ctx, dir, 0); err != nil {
+		t.Fatalf("StashPop: %v", err)
+	}
+	if got := gittest.Run(t, dir, "status", "--porcelain"); got != "M notes.md\n?? staged.txt" {
+		t.Fatalf("status after pop = %q", got)
+	}
+}
+
+func TestStashPushSomePathsTakesTheirStagedChanges(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a1\n", "initial")
+	gittest.WriteFile(t, dir, "a.txt", "a2\n")
+	gittest.WriteFile(t, dir, "new.txt", "new\n")
+	gittest.Run(t, dir, "add", "a.txt", "new.txt")
+	gittest.WriteFile(t, dir, "a.txt", "a3\n")
+	ctx := context.Background()
+
+	if err := StashPush(ctx, dir, StashOptions{Paths: []string{"a.txt", "new.txt"}}); err != nil {
+		t.Fatalf("StashPush: %v", err)
+	}
+
+	if got := gittest.Run(t, dir, "status", "--porcelain"); got != "" {
+		t.Fatalf("status = %q, want everything stashed", got)
+	}
+	if got := gittest.Run(t, dir, "diff", "--name-status", "stash@{0}^1", "stash@{0}^2"); got != "M\ta.txt\nA\tnew.txt" {
+		t.Fatalf("stash's staged changes = %q", got)
+	}
+	if got := gittest.Run(t, dir, "show", "stash@{0}:a.txt"); got != "a3" {
+		t.Fatalf("stashed a.txt = %q, want the working tree's a3", got)
+	}
+}
+
 func TestStashPushKeepIndexLeavesStagedChanges(t *testing.T) {
 	dir := gittest.InitRepo(t)
 	gittest.CommitFile(t, dir, "a.txt", "a1\n", "initial")
