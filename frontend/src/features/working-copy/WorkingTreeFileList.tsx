@@ -55,6 +55,11 @@ function fileExtension(path: string): string | null {
   return dot > 0 ? name.slice(dot + 1) : null
 }
 
+// A partially staged file is in both sections, so a selected row is keyed by both.
+function rowKey(section: WorkingTreeSection, path: string): string {
+  return `${section}:${path}`
+}
+
 function WorkingTreeFileList({
   repoPath,
   workingTree,
@@ -74,10 +79,9 @@ function WorkingTreeFileList({
   const fileTools = useFileTools(repoPath)
   const [patchError, setPatchError] = useState<string | null>(null)
   const [patchBusy, setPatchBusy] = useState(false)
-  // Multi-select for bulk actions; a selection never spans two sections.
-  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
-  const [selectionSection, setSelectionSection] = useState<WorkingTreeSection | null>(null)
-  const [anchorPath, setAnchorPath] = useState<string | null>(null)
+  // Multi-select for bulk actions, which can span sections.
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [anchorKey, setAnchorKey] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const toggleFolder = (section: WorkingTreeSection, path: string) => {
@@ -123,17 +127,21 @@ function WorkingTreeFileList({
     ]
   }, [hasConflicts, filtered, viewMode, collapsedFolders])
 
-  const orderedSectionPaths = (section: WorkingTreeSection): string[] =>
-    listRows
-      .filter((r): r is Extract<ListRow, { kind: 'file' }> => r.kind === 'file' && r.section === section)
-      .map((r) => r.file.path)
+  const orderedRowKeys = (): string[] =>
+    listRows.flatMap((r) => (r.kind === 'file' ? [rowKey(r.section, r.file.path)] : []))
 
-  // Drops selected paths that have since been staged, committed, or discarded.
-  const effectiveSelectedPaths = useMemo(() => {
-    if (!selectionSection) return new Set<string>()
-    const valid = new Set(sectionFiles[selectionSection].map((f) => f.path))
-    return new Set([...selectedPaths].filter((p) => valid.has(p)))
-  }, [selectedPaths, selectionSection, sectionFiles])
+  // Drops selected rows that have since been staged, committed, or discarded.
+  const selection = useMemo(
+    () =>
+      (['conflicted', 'staged', 'unstaged'] as const).flatMap((section) =>
+        sectionFiles[section]
+          .filter((file) => selectedKeys.has(rowKey(section, file.path)))
+          .map((file) => ({ section, file })),
+      ),
+    [selectedKeys, sectionFiles],
+  )
+  const isSelected = (section: WorkingTreeSection, path: string) =>
+    selection.some((s) => s.section === section && s.file.path === path)
 
   const rowVirtualizer = useVirtualizer({
     count: listRows.length,
@@ -153,29 +161,41 @@ function WorkingTreeFileList({
     exportPatch.catch((err: unknown) => setPatchError(errorMessage(err))).finally(() => setPatchBusy(false))
   }
 
+  const toggleSelected = (section: WorkingTreeSection, path: string) => {
+    const key = rowKey(section, path)
+    setSelectedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+    setAnchorKey(key)
+  }
+
+  // Ctrl/⌘-click toggles on mousedown, the one event it always fires once:
+  // macOS sends Ctrl-click as a context menu, and WebKit can follow that with
+  // a click, so both of those ignore it.
+  const isToggleClick = (e: MouseEvent) => e.button === 0 && (e.ctrlKey || e.metaKey)
+
+  const onFileRowMouseDown = (section: WorkingTreeSection, f: FileStatus) => (e: MouseEvent) => {
+    if (!isToggleClick(e)) return
+    e.preventDefault()
+    toggleSelected(section, f.path)
+  }
+
   const onFileRowClick = (section: WorkingTreeSection, f: FileStatus) => (e: MouseEvent) => {
+    if (isToggleClick(e)) return
     const path = f.path
-    if (e.shiftKey && selectionSection === section && anchorPath) {
-      const paths = orderedSectionPaths(section)
-      const anchorIndex = paths.indexOf(anchorPath)
-      const clickIndex = paths.indexOf(path)
-      if (anchorIndex !== -1 && clickIndex !== -1) {
-        const [start, end] = anchorIndex < clickIndex ? [anchorIndex, clickIndex] : [clickIndex, anchorIndex]
-        setSelectedPaths(new Set(paths.slice(start, end + 1)))
-      }
-    } else if (e.ctrlKey || e.metaKey) {
-      setSelectedPaths((prev) => {
-        const next = new Set(selectionSection === section ? prev : [])
-        if (next.has(path)) next.delete(path)
-        else next.add(path)
-        return next
-      })
-      setSelectionSection(section)
-      setAnchorPath(path)
+    const key = rowKey(section, path)
+    const keys = orderedRowKeys()
+    const anchorIndex = anchorKey ? keys.indexOf(anchorKey) : -1
+    if (e.shiftKey && anchorIndex !== -1) {
+      const clickIndex = keys.indexOf(key)
+      const [start, end] = anchorIndex < clickIndex ? [anchorIndex, clickIndex] : [clickIndex, anchorIndex]
+      setSelectedKeys(new Set(keys.slice(start, end + 1)))
     } else {
-      setSelectedPaths(new Set([path]))
-      setSelectionSection(section)
-      setAnchorPath(path)
+      setSelectedKeys(new Set([key]))
+      setAnchorKey(key)
     }
 
     if (section === 'staged' || f.worktreeStatus !== '?') {
@@ -183,24 +203,30 @@ function WorkingTreeFileList({
     }
   }
 
-  const groupContextMenuItems = (section: WorkingTreeSection): ContextMenuItem[] => {
-    const paths = [...effectiveSelectedPaths]
-    const items: ContextMenuItem[] = [
-      section === 'staged'
-        ? { label: `Unstage ${paths.length} files`, onClick: () => actions.unstagePaths(paths) }
-        : {
-            label: section === 'conflicted' ? `Mark ${paths.length} files resolved` : `Stage ${paths.length} files`,
-            onClick: () => actions.stagePaths(paths),
-          },
+  // Staging, unstaging and discarding only apply when the selection is all in one section.
+  const groupContextMenuItems = (): ContextMenuItem[] => {
+    const files = [...new Map(selection.map(({ file }) => [file.path, file])).values()]
+    const paths = files.map((f) => f.path)
+    const sections = new Set(selection.map((s) => s.section))
+    const section = sections.size === 1 ? selection[0].section : null
+    const items: ContextMenuItem[] = []
+    if (section === 'staged') {
+      items.push({ label: `Unstage ${paths.length} files`, onClick: () => actions.unstagePaths(paths) })
+    } else if (section) {
+      items.push({
+        label: section === 'conflicted' ? `Mark ${paths.length} files resolved` : `Stage ${paths.length} files`,
+        onClick: () => actions.stagePaths(paths),
+      })
+    }
+    items.push(
       {
         label: 'Export patch…',
         onClick: () =>
           runPatchExport(PatchService.ExportWorkingTreePaths(repoPath, paths, suggestedWorkingTreePatchFilename())),
       },
       { label: `Copy ${paths.length} paths`, onClick: () => void navigator.clipboard.writeText(paths.join('\n')) },
-    ]
-    if (section !== 'conflicted') {
-      const files = sectionFiles[section].filter((f) => effectiveSelectedPaths.has(f.path))
+    )
+    if (!sections.has('conflicted')) {
       items.push({ label: `Stash ${paths.length} files`, onClick: () => actions.stashFiles(files) })
     }
     if (section === 'unstaged') {
@@ -210,8 +236,12 @@ function WorkingTreeFileList({
   }
 
   const rowContextMenu = (f: FileStatus, section: WorkingTreeSection) => (e: MouseEvent) => {
-    if (selectionSection === section && effectiveSelectedPaths.size > 1 && effectiveSelectedPaths.has(f.path)) {
-      fileTools.openMenu(e, groupContextMenuItems(section))
+    if (isToggleClick(e)) {
+      e.preventDefault()
+      return
+    }
+    if (selection.length > 1 && isSelected(section, f.path)) {
+      fileTools.openMenu(e, groupContextMenuItems())
       return
     }
     const untracked = section === 'unstaged' && f.worktreeStatus === '?'
@@ -288,9 +318,7 @@ function WorkingTreeFileList({
         status={isStaged ? f.indexStatus : f.worktreeStatus}
         label={viewMode === 'tree' ? treeLabel(f) : label(f)}
         selected={
-          selectionSection === row.section
-            ? effectiveSelectedPaths.has(f.path)
-            : openPath === f.path && openSection === row.section
+          selection.length > 0 ? isSelected(row.section, f.path) : openPath === f.path && openSection === row.section
         }
         checked={isStaged}
         checkLabel={row.section === 'conflicted' ? `Mark ${label(f)} resolved` : undefined}
@@ -300,6 +328,7 @@ function WorkingTreeFileList({
         tag={f.submodule ? 'submodule' : f.lfs ? 'LFS' : undefined}
         onToggleChecked={() => (isStaged ? actions.unstage(f) : actions.stage(f))}
         onSelect={onFileRowClick(row.section, f)}
+        onSelectMouseDown={onFileRowMouseDown(row.section, f)}
         onDiscard={row.section === 'unstaged' ? () => actions.discardFile(f) : undefined}
         onContextMenu={rowContextMenu(f, row.section)}
       />

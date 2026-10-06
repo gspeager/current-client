@@ -4,6 +4,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- Working Copy's file selection can span Staged and Unstaged, so shift-click selects every file between two clicks and **Stash N files** stashes them together. Stage, Unstage and Discard still need a selection within one section. On macOS, Ctrl-click adds or removes a file, as ⌘-click does, instead of opening the right-click menu.
+
 ### Fixed
 
 - Switching branches, merging, pulling or cherry-picking over uncommitted or untracked changes now says so and suggests committing or stashing first, instead of "Git command failed."

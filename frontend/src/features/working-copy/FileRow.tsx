@@ -14,6 +14,7 @@ interface FileRowProps {
   checkLabel?: string
   onToggleChecked: () => void
   onSelect: (e: MouseEvent) => void
+  onSelectMouseDown?: (e: MouseEvent) => void
   onDiscard?: () => void
   onContextMenu?: (e: MouseEvent) => void
   style?: CSSProperties
@@ -33,6 +34,7 @@ function FileRow({
   checkLabel,
   onToggleChecked,
   onSelect,
+  onSelectMouseDown,
   onDiscard,
   onContextMenu,
   style,
@@ -56,7 +58,7 @@ function FileRow({
         onClick={(e) => e.stopPropagation()}
         ariaLabel={checkLabel ?? (checked ? `Unstage ${label}` : `Stage ${label}`)}
       />
-      <button type="button" className="file-row-path" onClick={onSelect}>
+      <button type="button" className="file-row-path" onClick={onSelect} onMouseDown={onSelectMouseDown}>
         <PathText path={label} />
       </button>
       <span className="file-row-stats">
