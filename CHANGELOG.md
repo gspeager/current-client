@@ -2,6 +2,12 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [Unreleased]
+
+### Fixed
+
+- In Branch Graph & History, long branch and tag names no longer run over the author column. They shorten to fit, with the full name on hover, and the commit message stays visible.
+
 ## [0.2.0] - 2026-10-05
 
 ### Added

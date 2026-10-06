@@ -40,7 +40,22 @@
   min-width: 0;
 }
 
+// Long ref names shorten rather than push the subject and the author column aside.
+.commit-row-refs {
+  display: flex;
+  flex: 0 1 auto;
+  gap: var(--space-xs);
+  min-width: 0;
+  max-width: 60%;
+
+  .ref-badge {
+    min-width: 0;
+    @include patterns.truncate;
+  }
+}
+
 .commit-row-subject {
+  flex: 1 1 0;
   @include patterns.truncate;
   font: var(--title-md);
 }
