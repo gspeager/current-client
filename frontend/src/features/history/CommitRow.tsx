@@ -74,15 +74,19 @@ function CommitRow({
       </div>
 
       <div className="commit-row-commit">
-        {refs?.map((r) => (
-          <RefBadge
-            key={`${r.kind}-${r.name}`}
-            refInfo={r}
-            color={laneColor(graphNode?.lane ?? 0)}
-            onClick={onFocusRef}
-            active={focusedSha === r.sha}
-          />
-        ))}
+        {refs && refs.length > 0 && (
+          <span className="commit-row-refs">
+            {refs.map((r) => (
+              <RefBadge
+                key={`${r.kind}-${r.name}`}
+                refInfo={r}
+                color={laneColor(graphNode?.lane ?? 0)}
+                onClick={onFocusRef}
+                active={focusedSha === r.sha}
+              />
+            ))}
+          </span>
+        )}
         <span className="commit-row-subject">
           {prefix && <span className="commit-row-type">{highlightMatch(prefix, searchQuery, 'search-match')}</span>}
           {highlightMatch(commit.subject.slice(prefix.length), searchQuery, 'search-match')}
