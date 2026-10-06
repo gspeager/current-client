@@ -1,5 +1,6 @@
-import { Fragment, type Key, type ReactNode, type RefObject } from 'react'
+import { Fragment, useLayoutEffect, useRef, type Key, type ReactNode, type RefObject } from 'react'
 import type { DiffLine, LineSelection } from '@current-client-bindings/app'
+import { useDiffWrap } from './diffWrap'
 import { unifiedRowsForPair, type DisplayRow, type PairedLine, type UnifiedRow } from './diffRows'
 import { languageForPath, tokenizeLine } from './syntaxHighlight'
 import { diffLineWords } from './wordDiff'
@@ -169,6 +170,37 @@ function HunkActionButtons({
   )
 }
 
+// Wrap lines off in split view: each side scrolls on its own and scrolling one
+// moves the other. Both take the wider side's width so they scroll the same
+// distance and their rows stay aligned.
+function SyncedSides({ left, right }: { left: ReactNode; right: ReactNode }) {
+  const leftRef = useRef<HTMLDivElement>(null)
+  const rightRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const contents = [leftRef.current!, rightRef.current!].map((side) => side.firstElementChild as HTMLElement)
+    contents.forEach((content) => (content.style.minWidth = ''))
+    const width = Math.max(...contents.map((content) => content.offsetWidth))
+    contents.forEach((content) => (content.style.minWidth = `max(100%, ${width}px)`))
+  })
+
+  const follow = (from: RefObject<HTMLDivElement>, to: RefObject<HTMLDivElement>) => () => {
+    to.current!.scrollTop = from.current!.scrollTop
+    to.current!.scrollLeft = from.current!.scrollLeft
+  }
+
+  return (
+    <>
+      <div className="diff-side" ref={leftRef} onScroll={follow(leftRef, rightRef)}>
+        <div className="diff-side-content">{left}</div>
+      </div>
+      <div className="diff-side" ref={rightRef} onScroll={follow(rightRef, leftRef)}>
+        <div className="diff-side-content">{right}</div>
+      </div>
+    </>
+  )
+}
+
 interface DiffPaneProps extends HunkActions {
   mode: 'split' | 'unified'
   rows: DisplayRow[]
@@ -181,7 +213,8 @@ interface DiffPaneProps extends HunkActions {
   lineSelect?: LineSelect & { byHunk: Map<string, LineSelection> }
 }
 
-// Split mode is one grid rather than two synced panes, so hunk headers can span both columns.
+// Split mode is one grid, so hunk headers can span both columns, unless lines
+// don't wrap and each side scrolls sideways on its own.
 function DiffPane({
   mode,
   rows,
@@ -193,45 +226,64 @@ function DiffPane({
   lineSelect,
   ...hunkActions
 }: DiffPaneProps) {
+  const { wrap } = useDiffWrap()
   const language = languageForPath(path)
-  const renderPair = (pair: PairedLine, key: Key): ReactNode[] =>
-    mode === 'split'
-      ? [
-          splitRow(pair, 'left', language, `${key}-l`, lineSelect),
-          splitRow(pair, 'right', language, `${key}-r`, lineSelect),
-        ]
-      : unifiedRowsForPair(pair).map((row, k) => unifiedRow(row, language, `${key}-${k}`, lineSelect))
+  const renderPair = (pair: PairedLine, key: Key, side?: Side): ReactNode[] =>
+    side
+      ? [splitRow(pair, side, language, key, lineSelect)]
+      : mode === 'split'
+        ? [
+            splitRow(pair, 'left', language, `${key}-l`, lineSelect),
+            splitRow(pair, 'right', language, `${key}-r`, lineSelect),
+          ]
+        : unifiedRowsForPair(pair).map((row, k) => unifiedRow(row, language, `${key}-${k}`, lineSelect))
 
-  let hunkIndex = -1
+  // With a side, renders just that side; the right one gets blank rows where
+  // the left has a hunk header or collapsed lines.
+  const renderRows = (side?: Side) => {
+    let hunkIndex = -1
+    return rows.flatMap<ReactNode>((row, i) => {
+      if ('header' in row) {
+        hunkIndex++
+        if (side === 'right') return <div key={i} className="diff-side-spacer" />
+        return (
+          <div
+            key={i}
+            className={
+              hunkIndex === currentHunkIndex ? 'diff-hunk-header diff-hunk-header-current' : 'diff-hunk-header'
+            }
+          >
+            <span>{row.header}</span>
+            <HunkActionButtons raw={row.raw} lines={lineSelect?.byHunk.get(row.raw)} {...hunkActions} />
+          </div>
+        )
+      }
+      if ('collapsed' in row) {
+        if (expandedGroups.has(i)) {
+          return row.collapsed.flatMap((pair, j) => renderPair(pair, `${i}-${j}`, side))
+        }
+        if (side === 'right') return <div key={i} className="diff-side-spacer" />
+        return (
+          <button key={i} type="button" className="diff-collapsed" onClick={() => onToggleGroup(i)}>
+            {row.collapsed.length} unchanged lines
+          </button>
+        )
+      }
+      return renderPair(row.pair, i, side)
+    })
+  }
+
+  if (mode === 'split' && !wrap) {
+    return (
+      <div className="diff-pane diff-pane-sides" ref={scrollRef}>
+        <SyncedSides left={renderRows('left')} right={renderRows('right')} />
+      </div>
+    )
+  }
+
   return (
     <div className={`diff-pane diff-pane-${mode}`} ref={scrollRef}>
-      {rows.flatMap<ReactNode>((row, i) => {
-        if ('header' in row) {
-          hunkIndex++
-          return (
-            <div
-              key={i}
-              className={
-                hunkIndex === currentHunkIndex ? 'diff-hunk-header diff-hunk-header-current' : 'diff-hunk-header'
-              }
-            >
-              <span>{row.header}</span>
-              <HunkActionButtons raw={row.raw} lines={lineSelect?.byHunk.get(row.raw)} {...hunkActions} />
-            </div>
-          )
-        }
-        if ('collapsed' in row) {
-          if (expandedGroups.has(i)) {
-            return row.collapsed.flatMap((pair, j) => renderPair(pair, `${i}-${j}`))
-          }
-          return (
-            <button key={i} type="button" className="diff-collapsed" onClick={() => onToggleGroup(i)}>
-              {row.collapsed.length} unchanged lines
-            </button>
-          )
-        }
-        return renderPair(row.pair, i)
-      })}
+      {renderRows()}
     </div>
   )
 }

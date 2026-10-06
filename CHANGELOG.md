@@ -7,6 +7,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 ### Fixed
 
 - In Branch Graph & History, long branch and tag names no longer run over the author column. They shorten to fit, with the full name on hover, and the commit message stays visible.
+- With **Wrap lines** off, long lines no longer run out of their row or into the other side of a split diff. Each side of a split diff keeps half the width and has its own scroll bars, and scrolling one side scrolls the other; a unified diff scrolls sideways.
 
 ## [0.2.0] - 2026-10-05
 
