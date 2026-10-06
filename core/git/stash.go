@@ -3,10 +3,14 @@ package git
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type Stash struct {
@@ -76,10 +80,48 @@ func StashPush(ctx context.Context, repoPath string, opts StashOptions) error {
 	if opts.Message != "" {
 		args = append(args, "-m", opts.Message)
 	}
-	if len(opts.Paths) > 0 {
-		args = append(append(args, "--"), opts.Paths...)
+	if len(opts.Paths) == 0 {
+		_, err := runResult(ctx, repoPath, args...)
+		return err
 	}
-	_, err := runResult(ctx, repoPath, args...)
+	return stashPaths(ctx, repoPath, append(append(args, "--"), opts.Paths...), opts)
+}
+
+// `git stash push -- <paths>` still saves the whole index, so files staged but
+// not chosen end up in the stash too, and can stop it popping later. Stashing
+// against a temporary index holding only HEAD plus the chosen paths' staged
+// changes leaves them out; the real index then drops those paths' staged
+// changes, as the stash did in the working tree. If the temporary index can't
+// be built (no commits yet, unresolved conflicts), the plain stash runs and
+// reports what's wrong.
+func stashPaths(ctx context.Context, repoPath string, args []string, opts StashOptions) error {
+	tmp, err := os.MkdirTemp("", "current-client-stash-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+	withIndex := func(args ...string) error {
+		_, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+			Dir:  repoPath,
+			Args: args,
+			Env:  []string{"GIT_INDEX_FILE=" + filepath.Join(tmp, "index")},
+		})
+		return err
+	}
+
+	staged, err := runResult(ctx, repoPath, "write-tree")
+	if err != nil || withIndex("read-tree", "HEAD") != nil ||
+		withIndex(append([]string{"reset", "-q", strings.TrimSpace(staged.Stdout), "--"}, opts.Paths...)...) != nil {
+		_, err := runResult(ctx, repoPath, args...)
+		return err
+	}
+	if err := withIndex(args...); err != nil {
+		return err
+	}
+	if opts.KeepIndex {
+		return nil
+	}
+	_, err = runResult(ctx, repoPath, append([]string{"reset", "-q", "--"}, opts.Paths...)...)
 	return err
 }
 
