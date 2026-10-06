@@ -263,6 +263,33 @@ describe('ChangesView stashing', () => {
     return onBranchChanged
   }
 
+  it('shift-click selects across staged and unstaged files to stash them together', async () => {
+    vi.mocked(StashService.StashSave).mockResolvedValue()
+    renderWithBranchChanged([
+      file('staged.txt', { indexStatus: 'A', worktreeStatus: '.' }),
+      file('notes.md'),
+      file('untracked.txt', { worktreeStatus: '?' }),
+    ])
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'staged.txt' }))
+    await user.keyboard('{Shift>}')
+    await user.click(screen.getByRole('button', { name: 'untracked.txt' }))
+    await user.keyboard('{/Shift}')
+    await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'notes.md' }) })
+
+    expect(screen.queryByRole('button', { name: /^(Stage|Unstage) 3 files$/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Discard' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Stash 3 files' }))
+
+    expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
+      message: '',
+      includeUntracked: true,
+      keepIndex: false,
+      paths: ['staged.txt', 'notes.md', 'untracked.txt'],
+    })
+  })
+
   it('stashes just the selected files, including untracked ones', async () => {
     vi.mocked(StashService.StashSave).mockResolvedValue()
     const onBranchChanged = renderWithBranchChanged([
