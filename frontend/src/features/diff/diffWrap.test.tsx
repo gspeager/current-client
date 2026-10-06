@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FileDiff } from '@current-client-bindings/app'
 import DiffViewer from './DiffViewer'
@@ -36,6 +36,20 @@ describe('diff word wrap', () => {
 
     expect(container.querySelector('.diff-viewer')).toHaveClass('diff-viewer-nowrap')
     expect(screen.getByRole('checkbox', { name: 'Wrap lines' })).not.toBeChecked()
+  })
+
+  it('scrolls the two sides of a split diff together when wrapping is off', () => {
+    const { container } = renderWithWrap(false)
+    const [left, right] = container.querySelectorAll<HTMLElement>('.diff-side')
+
+    left.scrollLeft = 120
+    left.scrollTop = 40
+    fireEvent.scroll(left)
+    expect([right.scrollLeft, right.scrollTop]).toEqual([120, 40])
+
+    right.scrollLeft = 10
+    fireEvent.scroll(right)
+    expect(left.scrollLeft).toBe(10)
   })
 
   it('saves the choice from the toggle', async () => {

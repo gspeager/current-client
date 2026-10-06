@@ -436,9 +436,11 @@
   font: var(--ui-sm);
 }
 
-// Wrap lines off: each line keeps one row and the pane scrolls sideways. The
-// grid widens to the longest line, so split view's two sides scroll together
-// and stay row-aligned.
+// Wrap lines off: each line keeps one row and scrolls sideways. Split view's
+// sides are separate scroll containers, kept in step by SyncedSides. Unified
+// view's grid widens to the longest line; its minimum has to be max-content,
+// since the pane's width is fixed and a max-content maximum never gets free
+// space to grow into.
 .diff-viewer-nowrap {
   .diff-row {
     white-space: pre;
@@ -448,13 +450,38 @@
     overflow-wrap: normal;
   }
 
-  .diff-pane-split {
-    grid-template-columns: minmax(50%, max-content) minmax(50%, max-content);
+  .diff-pane-sides {
+    display: flex;
+    overflow: hidden;
+  }
+
+  .diff-side {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: auto;
+
+    & + .diff-side {
+      border-left: 1px solid var(--outline-variant);
+    }
+  }
+
+  .diff-side-content {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .diff-side-spacer {
+    height: var(--row-height);
+    background: var(--surface-low);
+  }
+
+  .diff-row-split-left {
+    border-right: none;
   }
 
   .diff-pane-unified {
     display: grid;
-    grid-template-columns: minmax(100%, max-content);
+    grid-template-columns: minmax(max-content, 1fr);
     align-content: start;
   }
 
