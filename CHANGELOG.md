@@ -2,20 +2,6 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
-## [Unreleased]
-
-### Added
-
-- Working Copy's file selection can span Staged and Unstaged, so shift-click selects every file between two clicks and **Stash N files** stashes them together. Stage, Unstage and Discard still need a selection within one section. On macOS, Ctrl-click adds or removes a file, as ⌘-click does, instead of opening the right-click menu.
-
-### Fixed
-
-- Switching branches, merging, pulling or cherry-picking over uncommitted or untracked changes now says so and suggests committing or stashing first, instead of "Git command failed."
-- Merging or squashing a branch that's already merged says "Already up to date. Nothing to merge." instead of doing nothing, and a squash no longer claims to have staged changes.
-- Stashing only some files no longer also puts other staged files into the stash. They used to show up in the stash's changes and could stop it from popping once they had changed.
-- In Branch Graph & History, long branch and tag names no longer run over the author column. They shorten to fit, with the full name on hover, and the commit message stays visible.
-- With **Wrap lines** off, long lines no longer run out of their row or into the other side of a split diff. Each side of a split diff keeps half the width and has its own scroll bars, and scrolling one side scrolls the other; a unified diff scrolls sideways.
-
 ## [0.2.0] - 2026-10-05
 
 ### Added
@@ -27,9 +13,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - Changed images are shown as images instead of "Binary file changed": side by side, with a swipe slider, or as an onion skin. Works for PNG, JPEG, GIF, WebP, BMP, ICO, AVIF and SVG. ([#23](https://github.com/gspeager/current-client/issues/23))
 - Clicking a changed file in a commit's details opens its diff in a large window, with the commit's other files beside it, instead of a cramped diff in the narrow pane. ([#58](https://github.com/gspeager/current-client/issues/58))
 - **Expand diff** in Working Copy hides the file list so the diff runs across to the sidebar, for reviewing long or wide changes. ([#56](https://github.com/gspeager/current-client/issues/56))
-- **Wrap lines** in the diff toolbar turns line wrapping off, so long lines stay on one row and the diff scrolls sideways. Remembered across the app. ([#57](https://github.com/gspeager/current-client/issues/57))
+- **Wrap lines** in the diff toolbar turns line wrapping off, so long lines stay on one row and the diff scrolls sideways. In a split diff each side keeps half the width with its own scroll bars, and scrolling one side scrolls the other. Remembered across the app. ([#57](https://github.com/gspeager/current-client/issues/57))
 - **Show changes** on a stash lists the files it changed, with a diff for each, including untracked files it saved. ([#18](https://github.com/gspeager/current-client/issues/18))
-- Stash just some files: select them in Working Copy and choose **Stash** from the right-click menu. A new stash can also **Keep staged changes**, stashing only what isn't staged. ([#37](https://github.com/gspeager/current-client/issues/37))
+- Stash just some files: select them in Working Copy, across Staged and Unstaged (shift-click for a range, ⌘- or Ctrl-click for single files), and choose **Stash** from the right-click menu. Other staged files stay out of the stash. A new stash can also **Keep staged changes**, stashing only what isn't staged. ([#37](https://github.com/gspeager/current-client/issues/37))
 - Two more ways to merge a branch from its right-click menu: **Merge into current (no fast-forward)** always makes a merge commit, and **Squash into current** stages the branch's changes as one change for you to commit, with the squashed commits listed in the commit message to start from. ([#22](https://github.com/gspeager/current-client/issues/22))
 - Pull with rebase: shift-click the header's Pull button, or choose **Pull (rebase)** in Quick Switch. Plain Pull still follows your `pull.rebase` setting. ([#21](https://github.com/gspeager/current-client/issues/21))
 - **Check out** a commit from History to look at an old version. The header and status bar show `HEAD` and the commit while it's detached. ([#36](https://github.com/gspeager/current-client/issues/36))
@@ -43,6 +29,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - Force push now always updates the branch's own upstream. Before, a branch tracking a differently named remote branch (local `feature` tracking `origin/feat-x`) was force-pushed to `origin/feature` instead, and a remote with a `/` in its name wasn't found. ([#24](https://github.com/gspeager/current-client/issues/24))
 - **Revert** and **Cherry-pick** work on merge commits, using the changes the merge brought in, so a merged pull request can be backed out. They used to fail with Git's "no -m option was given" error. ([#35](https://github.com/gspeager/current-client/issues/35))
 - A commit with a long description no longer pushes its changed files out of reach in the Commit detail pane; the pane scrolls instead. ([#58](https://github.com/gspeager/current-client/issues/58))
+- Switching branches, merging, pulling or cherry-picking over uncommitted or untracked changes now says so and suggests committing or stashing first, instead of "Git command failed."
+- Merging a branch that's already merged says "Already up to date. Nothing to merge." instead of doing nothing.
+- In Branch Graph & History, long branch and tag names no longer run over the author column. They shorten to fit, with the full name on hover, and the commit message stays visible.
 - Checking out a remote branch from the branch dropdown or Quick Switch works when the remote's name contains a `/`, such as `team/origin`. ([#33](https://github.com/gspeager/current-client/issues/33))
 - On Windows the installer puts Current Client in `C:\Program Files\Current Client`, rather than in a folder named after the publisher. Installing over 0.1.1 or earlier removes the old `C:\Program Files\Garrett Speager\Current Client` folder. ([#15](https://github.com/gspeager/current-client/issues/15))
 
