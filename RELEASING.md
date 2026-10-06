@@ -22,7 +22,7 @@ Branch `release/x.y.z` from `develop`, then:
 
 Afterwards, `grep -rn "<old version>" build` should find nothing.
 
-**Add the changelog entry** to `CHANGELOG.md`: a `## [x.y.z] - YYYY-MM-DD` section in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) form, written for users, plus the `[x.y.z]:` link at the bottom. Fixes and features note themselves under `## [Unreleased]` as they merge; rename that heading to the version and fill in anything missing. The Changelog tab can draft it from the Conventional Commit titles since the last tag.
+**Add the changelog entry** to `CHANGELOG.md`: a `## [x.y.z] - YYYY-MM-DD` section in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) form, written for users, plus the `[x.y.z]:` link at the bottom. Pull requests don't touch `CHANGELOG.md`, so they never conflict over it; the whole section is written here. Draft it from the Conventional Commit titles since the last tag with the Changelog tab, then rewrite it for someone upgrading: take the wording from the squash commits' bodies, leave out fixes to features new in this release, and fold them into those features' entries.
 
 **Check the library API:** `wails3 task api:check` compares `core/` against the newest tag.
 
