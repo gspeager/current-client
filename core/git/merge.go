@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type MergeMode string
@@ -32,7 +34,10 @@ func MergeBranchMode(ctx context.Context, repoPath, branch string, mode MergeMod
 	case MergeSquash:
 		args = append(args, "--squash")
 	}
-	_, err := runResult(ctx, repoPath, append(args, branch)...)
+	result, err := runResult(ctx, repoPath, append(args, branch)...)
+	if err == nil && strings.Contains(result.Stdout, "Already up to date") {
+		return &gitexec.AppError{Message: "Already up to date. Nothing to merge.", Detail: branch}
+	}
 	return err
 }
 
