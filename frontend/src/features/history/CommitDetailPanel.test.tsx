@@ -79,4 +79,23 @@ describe('CommitDetailPanel', () => {
     // The narrow pane no longer shows a diff of its own.
     expect(screen.queryByText(diffLine('in src/app.ts'))).not.toBeInTheDocument()
   })
+
+  it("says a merge's files are compared with its first parent", async () => {
+    vi.mocked(HistoryService.GetChangedFiles).mockResolvedValue([new ChangedFile({ status: 'A', path: 'feature.ts' })])
+    const merge = new CommitInfo({ ...commit, parentShas: ['aaaaaaa1111', 'bbbbbbb2222'], body: '' })
+    render(
+      <DialogProvider>
+        <CommitDetailPanel
+          repoPath={REPO}
+          commit={merge}
+          colorError={null}
+          onColorChange={vi.fn()}
+          onCreateBranchHere={vi.fn()}
+        />
+      </DialogProvider>,
+    )
+
+    expect(await screen.findByRole('button', { name: /feature\.ts/ })).toBeInTheDocument()
+    expect(screen.getByText('Compared with the first parent, aaaaaaa.')).toBeInTheDocument()
+  })
 })

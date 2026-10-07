@@ -138,6 +138,9 @@ function CommitDetailPanel({
           <span className="commit-detail-label">Changed files</span>
           {changedFiles && <span className="commit-detail-section-count">{changedFiles.length} files</span>}
         </div>
+        {commit.parentShas.length > 1 && (
+          <p className="commit-detail-hint">Compared with the first parent, {commit.parentShas[0].slice(0, 7)}.</p>
+        )}
         {changedFilesError ? (
           <p className="commit-detail-error">Could not load changed files: {changedFilesError}</p>
         ) : changedFiles === null ? (
