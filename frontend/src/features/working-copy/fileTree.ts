@@ -21,7 +21,8 @@ interface TreeNode {
 }
 
 function insert(root: TreeNode, file: FileStatus): void {
-  const segments = file.path.split('/')
+  // A nested repository is listed as a folder, with a trailing slash.
+  const segments = file.path.replace(/\/$/, '').split('/')
   let node = root
   for (let i = 0; i < segments.length - 1; i++) {
     const segment = segments[i]

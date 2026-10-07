@@ -180,6 +180,41 @@ describe('ChangesView staging', () => {
   })
 })
 
+describe('ChangesView untracked files', () => {
+  it('shows a new file as added, without hunk actions', async () => {
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue(
+      new FileDiff({
+        newPath: 'notes.md',
+        hunks: [
+          {
+            header: '@@ -0,0 +1 @@',
+            raw: 'raw',
+            lines: [{ kind: 'added', oldLine: 0, newLine: 1, content: 'hello', moved: false }],
+          },
+        ],
+      }),
+    )
+    renderChanges([file('notes.md', { worktreeStatus: '?', workAdded: 0, workRemoved: 0 })])
+
+    await userEvent.click(screen.getByRole('button', { name: 'notes.md' }))
+
+    expect(await screen.findByText('Untracked')).toBeInTheDocument()
+    expect(DiffService.GetWorkingTreeDiff).toHaveBeenCalledWith(REPO, 'notes.md', false, false)
+    expect(screen.queryByRole('button', { name: 'Stage hunk' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Discard' })).not.toBeInTheDocument()
+  })
+
+  it('names a folder when deleting a nested repository', async () => {
+    renderChanges([file('vendor/tool/', { indexStatus: '?', worktreeStatus: '?' })])
+
+    await userEvent.click(screen.getByRole('button', { name: 'Discard vendor/tool/' }))
+
+    expect(await screen.findByRole('alertdialog', { name: 'Delete folder' })).toHaveTextContent(
+      'Delete vendor/tool/ and everything in it?',
+    )
+  })
+})
+
 describe('ChangesView discard', () => {
   it('discards only after confirming', async () => {
     vi.mocked(StatusService.DiscardFile).mockResolvedValue()

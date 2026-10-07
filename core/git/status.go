@@ -30,8 +30,9 @@ func parseSubmoduleField(field string) *SubmoduleStatus {
 	return &SubmoduleStatus{CommitChanged: field[1] == 'C', Modified: field[2] == 'M', Untracked: field[3] == 'U'}
 }
 
+// GetStatus lists each untracked file, rather than one entry for a new folder.
 func GetStatus(ctx context.Context, repoPath string) ([]Status, error) {
-	result, err := runResult(ctx, repoPath, "status", "--porcelain=v2", "-z")
+	result, err := runResult(ctx, repoPath, "status", "--porcelain=v2", "-z", "--untracked-files=all")
 	if err != nil {
 		return nil, err
 	}

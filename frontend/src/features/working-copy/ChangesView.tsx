@@ -68,6 +68,8 @@ function ChangesView({
   const headCommit = useHeadCommit(repoPath)
   const filesWidth = useResizableWidth('pane-width-changes-files', 318, 240, 640)
   const showsStaged = openSection === 'staged'
+  // A new file's diff is the whole file: it's staged or discarded as a file, not by hunk.
+  const untracked = !showsStaged && unstaged.some((f) => f.path === selectedPath && f.worktreeStatus === '?')
 
   const selectPath = (path: string | null) => {
     setSelectedPath(path)
@@ -254,13 +256,13 @@ function ChangesView({
                 baseSide={
                   showsStaged
                     ? { label: 'HEAD · working tree base', sha: headCommit?.sha.slice(0, 7) }
-                    : { label: 'Staged index' }
+                    : { label: untracked ? 'Untracked' : 'Staged index' }
                 }
                 targetSide={showsStaged ? { label: 'Staged index' } : { label: 'Working tree' }}
-                onStageHunk={showsStaged ? undefined : stageHunk}
+                onStageHunk={showsStaged || untracked ? undefined : stageHunk}
                 onUnstageHunk={showsStaged ? unstageHunk : undefined}
-                onDiscardHunk={discardHunk}
-                canDiscardLines={!showsStaged}
+                onDiscardHunk={untracked ? undefined : discardHunk}
+                canDiscardLines={!showsStaged && !untracked}
                 onForceLoad={() => setForcedPath(selectedPath)}
                 repoPath={repoPath}
                 images={{
