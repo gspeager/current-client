@@ -1,8 +1,10 @@
 package platform
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -33,9 +35,21 @@ func editorFileArgs(editor, dir, full string, line int) []string {
 	}
 }
 
+// editorOrDefault falls back to the code command inside VS Code's app bundle
+// on macOS, where it's often not on PATH.
 func editorOrDefault(editorPath string) string {
-	if editorPath == "" {
+	if editorPath != "" {
+		return editorPath
+	}
+	if _, err := exec.LookPath("code"); err == nil || runtime.GOOS != "darwin" {
 		return "code"
 	}
-	return editorPath
+	home, _ := os.UserHomeDir()
+	for _, apps := range []string{"/Applications", filepath.Join(home, "Applications")} {
+		bundled := filepath.Join(apps, "Visual Studio Code.app", "Contents", "Resources", "app", "bin", "code")
+		if _, err := os.Stat(bundled); err == nil {
+			return bundled
+		}
+	}
+	return "code"
 }
