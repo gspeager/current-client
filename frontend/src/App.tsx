@@ -19,7 +19,7 @@ import { useAutoFetch } from './features/remotes/useAutoFetch'
 import { useConflictState } from './features/branches/useConflictState'
 import { useFileWatcher } from './features/repositories/useFileWatcher'
 import { useLastFetchTime } from './features/remotes/useLastFetchTime'
-import { useRemoteSync } from './features/remotes/useRemoteSync'
+import { DIVERGED, useRemoteSync } from './features/remotes/useRemoteSync'
 import { useRepositoryLifecycle } from './features/repositories/useRepositoryLifecycle'
 import { useResizableWidth } from './lib/useResizableWidth'
 import { useSettings } from './features/settings/useSettings'
@@ -73,7 +73,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
   const bumpRepoVersion = () => setRepoVersion((v) => v + 1)
-  const { pull, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, bumpRepoVersion)
+  const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, bumpRepoVersion)
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
@@ -222,6 +222,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             dirty={dirty}
             onOpenSettings={() => setSettingsOpen(true)}
             onPull={pull}
+            onPullMerge={pullMerge}
             onPullRebase={pullRebase}
             onPush={push}
             onForcePush={() => void forcePush()}
@@ -256,7 +257,17 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               Pushing… <button onClick={pushOp.cancel}>Cancel</button>
             </p>
           )}
-          {pullOp.error && <p className="app-inline-error">Could not pull: {pullOp.error}</p>}
+          {pullOp.error && (
+            <p className="app-inline-error">
+              Could not pull: {pullOp.error}
+              {pullOp.error === DIVERGED && (
+                <>
+                  <button onClick={pullMerge}>Pull (merge)</button>
+                  <button onClick={pullRebase}>Pull (rebase)</button>
+                </>
+              )}
+            </p>
+          )}
           {pushOp.error && <p className="app-inline-error">Could not push: {pushOp.error}</p>}
 
           <div className="app-body">

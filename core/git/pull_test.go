@@ -92,3 +92,37 @@ func TestPullRebaseReplaysLocalCommitsOnUpstream(t *testing.T) {
 		t.Fatalf("HEAD subject = %q, want the local commit on top", subject)
 	}
 }
+
+func TestPullMergeMakesAMergeCommitEvenWhenPullRebases(t *testing.T) {
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	// A rebase setting must not win over an explicit --no-rebase.
+	gittest.Run(t, dir, "config", "pull.rebase", "true")
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "push", "-u", "origin", "main")
+
+	clone := t.TempDir()
+	gittest.Run(t, "", "clone", "-q", remoteDir, clone)
+	gittest.Run(t, clone, "config", "user.email", "test@example.com")
+	gittest.Run(t, clone, "config", "user.name", "Test")
+	gittest.WriteFile(t, clone, "theirs.txt", "theirs")
+	gittest.Run(t, clone, "add", "theirs.txt")
+	gittest.Run(t, clone, "commit", "-m", "from clone")
+	gittest.Run(t, clone, "push", "-q", "origin", "main")
+	upstreamSHA := gittest.Run(t, clone, "rev-parse", "HEAD")
+
+	gittest.CommitFile(t, dir, "mine.txt", "mine", "local work")
+	localSHA := gittest.Run(t, dir, "rev-parse", "HEAD")
+
+	if err := PullMerge(context.Background(), dir); err != nil {
+		t.Fatalf("PullMerge: %v", err)
+	}
+
+	parents := strings.Fields(gittest.Run(t, dir, "rev-list", "--parents", "-n", "1", "HEAD"))
+	if len(parents) != 3 || parents[1] != localSHA || parents[2] != upstreamSHA {
+		t.Fatalf("HEAD parents = %v, want a merge of %s and %s", parents[1:], localSHA, upstreamSHA)
+	}
+}

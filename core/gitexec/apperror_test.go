@@ -19,6 +19,16 @@ func TestWrapResultKnownFailures(t *testing.T) {
 			wantMsg: "Not a Git repository.",
 		},
 		{
+			name:    "pull with diverged branches and no pull.rebase",
+			stderr:  "hint: You have divergent branches and need to specify how to reconcile them.\nfatal: Need to specify how to reconcile divergent branches.",
+			wantMsg: "This branch and its upstream have diverged. Choose Pull (merge) or Pull (rebase).",
+		},
+		{
+			name:    "pull with rebase over local changes",
+			stderr:  "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.",
+			wantMsg: "Commit or stash changes before pulling with rebase.",
+		},
+		{
 			name:    "invalid branch name",
 			stderr:  "fatal: 'a b' is not a valid branch name\nhint: See 'git help check-ref-format'",
 			wantMsg: "That isn't a valid branch name. Branch names can't contain spaces or any of ~ ^ : ? * [ \\.",

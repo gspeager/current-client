@@ -121,6 +121,25 @@
   cursor: pointer;
 }
 
+.header-bar-sync-group {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  > .header-bar-sync:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.header-bar-sync-more {
+  padding: 0 var(--space-xs);
+  border-left: none;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+
+  @include patterns.disabled;
+}
+
 .header-bar-sync-behind {
   color: var(--warning);
 

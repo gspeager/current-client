@@ -37,7 +37,10 @@
   background: var(--surface-container);
   color: var(--on-surface-variant);
   font: var(--ui-sm);
+}
 
+.app-inline-notice,
+.app-inline-error {
   button {
     margin-left: var(--space-xs);
     background: none;

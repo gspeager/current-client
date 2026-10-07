@@ -45,6 +45,7 @@ interface QuickSwitchPaletteProps {
   onBranchChanged?: () => void
   onOpenSettings: () => void
   onPull: () => void
+  onPullMerge: () => void
   onPullRebase: () => void
   onPush: () => void
   onFetchAll: () => void
@@ -158,6 +159,7 @@ function QuickSwitchPalette({
   onBranchChanged,
   onOpenSettings,
   onPull,
+  onPullMerge,
   onPullRebase,
   onPush,
   onFetchAll,
@@ -193,6 +195,7 @@ function QuickSwitchPalette({
     { id: 'search-files', label: 'Search in files', icon: Search, run: onSearchFiles },
     { id: 'fetch-all', label: 'Fetch all remotes', icon: Cloud, run: onFetchAll },
     { id: 'pull', label: 'Pull', icon: ArrowDown, run: onPull },
+    { id: 'pull-merge', label: 'Pull (merge)', icon: ArrowDown, run: onPullMerge },
     { id: 'pull-rebase', label: 'Pull (rebase)', icon: ArrowDown, run: onPullRebase },
     { id: 'push', label: 'Push', icon: ArrowUp, run: onPush },
     { id: 'open-terminal', label: 'Open Terminal', icon: Terminal, run: () => PlatformService.OpenTerminal(repoPath) },
