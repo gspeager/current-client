@@ -30,6 +30,20 @@ func GitDir(ctx context.Context, repoPath string) (string, error) {
 	return dir, nil
 }
 
+// CommonDir resolves the .git directory a repository's refs live in, which
+// all its worktrees share; outside a worktree it's the same as GitDir.
+func CommonDir(ctx context.Context, repoPath string) (string, error) {
+	result, err := runResult(ctx, repoPath, "rev-parse", "--git-common-dir")
+	if err != nil {
+		return "", err
+	}
+	dir := strings.TrimSpace(result.Stdout)
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(repoPath, dir)
+	}
+	return dir, nil
+}
+
 // sinceMidnight formats a --since value with an explicit time: a bare
 // "YYYY-MM-DD" was observed (git 2.53) to sometimes exclude that whole day.
 func sinceMidnight(day time.Time) string {

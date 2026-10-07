@@ -145,6 +145,65 @@ func TestWatcherFiresOnExternalCommit(t *testing.T) {
 	}
 }
 
+func TestWatcherReportsRefChangesMadeOutsideTheApp(t *testing.T) {
+	dir := initWatchRepo(t)
+	var w Watcher
+	changed := startRecording(t, &w, dir)
+	defer w.Stop()
+
+	for _, args := range [][]string{
+		{"branch", "spike"},
+		{"tag", "v1.0"},
+		// A new folder under refs/heads, then a second branch inside it.
+		{"branch", "feature/one"},
+		{"branch", "feature/two"},
+		{"pack-refs", "--all"},
+	} {
+		runGitCommand(t, dir, args...)
+		fired, refChanged := waitForChange(t, changed, 5*time.Second)
+		if !fired || !refChanged {
+			t.Fatalf("git %v: fired=%v refChanged=%v, want a ref change", args, fired, refChanged)
+		}
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, "tracked.txt"), []byte("v2"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitCommand(t, dir, "stash")
+	if fired, refChanged := waitForChange(t, changed, 5*time.Second); !fired || !refChanged {
+		t.Fatalf("git stash: fired=%v refChanged=%v, want a ref change", fired, refChanged)
+	}
+}
+
+func TestWatcherKeepsWatchingHEADAfterGitReplacesIt(t *testing.T) {
+	dir := initWatchRepo(t)
+	var w Watcher
+	changed := startRecording(t, &w, dir)
+	defer w.Stop()
+
+	for i := range 3 {
+		runGitCommand(t, dir, "commit", "--allow-empty", "-m", "external commit")
+		if fired, refChanged := waitForChange(t, changed, 5*time.Second); !fired || !refChanged {
+			t.Fatalf("commit %d: fired=%v refChanged=%v, want every commit reported", i+1, fired, refChanged)
+		}
+	}
+}
+
+func TestWatcherInAWorktreeSeesBranchesMadeInTheMainRepository(t *testing.T) {
+	dir := initWatchRepo(t)
+	worktree := filepath.Join(t.TempDir(), "wt")
+	runGitCommand(t, dir, "worktree", "add", "-q", "-b", "side", worktree)
+	var w Watcher
+	changed := startRecording(t, &w, worktree)
+	defer w.Stop()
+
+	runGitCommand(t, dir, "branch", "made-elsewhere")
+
+	if fired, refChanged := waitForChange(t, changed, 5*time.Second); !fired || !refChanged {
+		t.Fatalf("fired=%v refChanged=%v, want the shared refs watched", fired, refChanged)
+	}
+}
+
 func TestWatcherStopPreventsFurtherCallbacks(t *testing.T) {
 	dir := initWatchRepo(t)
 	var w Watcher
