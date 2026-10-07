@@ -79,6 +79,7 @@ function NavPane({
 }: NavPaneProps) {
   const { confirm } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
+  const [actionNotice, setActionNotice] = useState<string | null>(null)
   const [reflogOpen, setReflogOpen] = useState(false)
   const [bisectOpen, setBisectOpen] = useState(false)
   const [fsckBusy, setFsckBusy] = useState(false)
@@ -102,6 +103,7 @@ function NavPane({
   // A failure from the rail expands the pane, so its message is visible.
   const run = (action: Promise<unknown>, failure: string) => {
     setActionError(null)
+    setActionNotice(null)
     action.catch((err: unknown) => {
       setActionError(`${failure}: ${errorMessage(err)}`)
       setWorkspaceOpen(true)
@@ -142,7 +144,13 @@ function NavPane({
     {
       label: 'Import Patch…',
       icon: Import,
-      onClick: () => run(PatchService.ImportPatch(repoPath).finally(onBranchChanged), 'Could not import patch'),
+      onClick: () =>
+        run(
+          PatchService.ImportPatch(repoPath)
+            .then((notice) => setActionNotice(notice || null))
+            .finally(onBranchChanged),
+          'Could not import patch',
+        ),
     },
   ]
 
@@ -271,6 +279,7 @@ function NavPane({
               </button>
             ))}
           {actionError && <p className="nav-pane-error">{actionError}</p>}
+          {actionNotice && <p className="nav-pane-success">{actionNotice}</p>}
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('maintenance')}>
