@@ -12,7 +12,8 @@ interface ChangedFilesBrowserProps {
   files: ChangedFile[] | null
   error: string | null
   emptyHint: string
-  loadDiff: (file: ChangedFile) => Promise<FileDiff>
+  // force loads a file over the large-file limit.
+  loadDiff: (file: ChangedFile, force: boolean) => Promise<FileDiff>
   // Where to read a file's two versions for the image view.
   images?: (file: ChangedFile) => ImageSources
   // The file to show first, when the list is already loaded.
@@ -33,11 +34,13 @@ function ChangedFilesBrowser({
 }: ChangedFilesBrowserProps) {
   const [selected, setSelected] = useState<ChangedFile | null>(() => files?.find((f) => f.path === initialPath) ?? null)
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
+  const [forcedPath, setForcedPath] = useState<string | null>(null)
+  const force = selected !== null && forcedPath === selected.path
   const { data: diff, error: diffError } = useAsyncData(
-    () => (selected ? loadDiff(selected) : null),
+    () => (selected ? loadDiff(selected, force) : null),
     // loadDiff is a new function every render; the key above covers what it depends on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selected],
+    [selected, force],
   )
 
   return (
@@ -84,6 +87,7 @@ function ChangedFilesBrowser({
               viewMode={viewMode}
               images={images?.(selected)}
               repoPath={repoPath}
+              onForceLoad={() => setForcedPath(selected.path)}
             />
           </>
         ) : (

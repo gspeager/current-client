@@ -28,7 +28,7 @@ function CommitFilesModal({ repoPath, commit, files, initialPath, onClose }: Com
         emptyHint="No file changes."
         initialPath={initialPath}
         repoPath={repoPath}
-        loadDiff={(file) => DiffService.GetRefDiff(repoPath, file.path, base, commit.sha, false)}
+        loadDiff={(file, force) => DiffService.GetRefDiff(repoPath, file.path, base, commit.sha, force, false)}
         images={() => ({
           repoPath,
           before: { kind: 'commit', rev: base },

@@ -53,11 +53,13 @@ function SettingsPanel({ settings, onClose }: SettingsPanelProps) {
   const choosePath =
     (pick: () => Promise<string>, save: (path: string) => Promise<void> | void, setError: (e: string | null) => void) =>
     () => {
-      pick().then((path) => {
-        if (!path) return
-        setError(null)
-        Promise.resolve(save(path)).catch((err: unknown) => setError(errorMessage(err)))
-      })
+      pick()
+        .then((path) => {
+          if (!path) return
+          setError(null)
+          return save(path)
+        })
+        .catch((err: unknown) => setError(errorMessage(err)))
     }
 
   const resetPath = (save: (path: string) => Promise<void>, setError: (e: string | null) => void) => () => {

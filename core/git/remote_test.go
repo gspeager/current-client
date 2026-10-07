@@ -24,6 +24,14 @@ func TestParseRemotes(t *testing.T) {
 	}
 }
 
+func TestParseRemotesKeepsSpacesInURLs(t *testing.T) {
+	got := parseRemotes("local\t/Users/me/My Repos/app.git (fetch)\nlocal\t/Users/me/My Repos/app.git (push)\n")
+	want := []Remote{{Name: "local", FetchURL: "/Users/me/My Repos/app.git", PushURL: "/Users/me/My Repos/app.git"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v, want %+v", got, want)
+	}
+}
+
 func TestParseRemotesEmpty(t *testing.T) {
 	got := parseRemotes("")
 	if len(got) != 0 {

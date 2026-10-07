@@ -15,6 +15,7 @@ import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import BranchPill from '../../components/git/BranchPill'
@@ -30,6 +31,7 @@ interface BranchSidebarProps {
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
 
 function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchSidebarProps) {
+  useClockTick()
   const { branchColor } = useLaneColors()
   const {
     data: branches,

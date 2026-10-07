@@ -22,9 +22,9 @@ function StashModal({ repoPath, stash, onClose }: StashModalProps) {
   const versions = (file: ChangedFile) =>
     file.status === '?' ? { from: EMPTY_TREE_SHA, to: `${ref}^3` } : { from: `${ref}^1`, to: ref }
 
-  const loadDiff = (file: ChangedFile) => {
+  const loadDiff = (file: ChangedFile, force: boolean) => {
     const { from, to } = versions(file)
-    return DiffService.GetRefDiff(repoPath, file.path, from, to, false)
+    return DiffService.GetRefDiff(repoPath, file.path, from, to, force, false)
   }
 
   const images = (file: ChangedFile) => {

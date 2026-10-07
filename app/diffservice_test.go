@@ -53,3 +53,42 @@ func TestGetFileContentReadsEachVersion(t *testing.T) {
 		t.Error("an unknown source kind was accepted")
 	}
 }
+
+func TestStagedAndCommitDiffsHoldBackALargeFileUntilForced(t *testing.T) {
+	dir := t.TempDir()
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-c", "user.name=T", "-c", "user.email=t@example.com"}, args...)...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q", "-b", "main")
+	git("commit", "-q", "--allow-empty", "-m", "initial")
+	big := make([]byte, 2<<20)
+	for i := range big {
+		big[i] = 'a' + byte(i%26)
+		if i%80 == 79 {
+			big[i] = '\n'
+		}
+	}
+	if err := os.WriteFile(filepath.Join(dir, "big.txt"), big, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	git("add", "big.txt")
+
+	s := &DiffService{}
+	staged, err := s.GetIndexDiff(dir, "big.txt", "", false, false)
+	if err != nil || !staged.TooLarge || staged.SizeBytes != int64(len(big)) {
+		t.Fatalf("staged = TooLarge %v, size %d, err %v; want it held back", staged.TooLarge, staged.SizeBytes, err)
+	}
+	if forced, err := s.GetIndexDiff(dir, "big.txt", "", true, false); err != nil || forced.TooLarge || len(forced.Hunks) == 0 {
+		t.Fatalf("forced staged diff = %+v, %v; want it loaded", forced.TooLarge, err)
+	}
+
+	git("commit", "-q", "-m", "add big")
+	if commit, err := s.GetRefDiff(dir, "big.txt", "HEAD~1", "HEAD", false, false); err != nil || !commit.TooLarge {
+		t.Fatalf("commit diff TooLarge = %v, %v; want it held back", commit.TooLarge, err)
+	}
+}

@@ -4,6 +4,7 @@ import { StashService, type StashInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import StashModal from './StashModal'
@@ -18,6 +19,7 @@ interface StashPanelProps {
 }
 
 function StashPanel({ repoPath, dirty, refreshKey, onStashChanged }: StashPanelProps) {
+  useClockTick()
   const {
     data: stashes,
     error: loadError,

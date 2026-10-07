@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, CloudOff, Plus, Tag, Upload, X } from 'lucid
 import { RemoteService, TagService, type TagInfo, type TagMessageInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
@@ -14,6 +15,7 @@ interface TagsPanelProps {
 }
 
 function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
+  useClockTick()
   const {
     data: tags,
     error: loadError,

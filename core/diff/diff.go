@@ -99,6 +99,13 @@ func GetIndexDiff(ctx context.Context, repoPath, path string, ignoreWhitespace b
 	return runDiff(ctx, repoPath, diffArgs([]string{"--cached"}, ignoreWhitespace, path))
 }
 
+// GetRenamedIndexDiff is GetIndexDiff for a staged rename: given both paths,
+// git pairs them and shows only what changed, rather than the whole file as new.
+func GetRenamedIndexDiff(ctx context.Context, repoPath, origPath, path string, ignoreWhitespace bool) (FileDiff, error) {
+	args := diffArgs([]string{"--cached", "-M"}, ignoreWhitespace, origPath)
+	return runDiff(ctx, repoPath, append(args, path))
+}
+
 // An empty toRef compares fromRef against the working tree, not a second ref.
 func GetRefDiff(ctx context.Context, repoPath, path, fromRef, toRef string, ignoreWhitespace bool) (FileDiff, error) {
 	refs := []string{fromRef}

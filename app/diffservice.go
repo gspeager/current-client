@@ -42,20 +42,55 @@ func (s *DiffService) GetWorkingTreeDiff(repoPath, path string, force, ignoreWhi
 	return toFileDiff(fd), nil
 }
 
-func (s *DiffService) GetIndexDiff(repoPath, path string, ignoreWhitespace bool) (FileDiff, error) {
-	fd, err := diff.GetIndexDiff(context.Background(), repoPath, path, ignoreWhitespace)
+// GetIndexDiff takes origPath for a staged rename, so the diff shows the edit
+// rather than the whole file as new. Like the working-tree diff, a large file
+// is only diffed when force is set.
+func (s *DiffService) GetIndexDiff(repoPath, path, origPath string, force, ignoreWhitespace bool) (FileDiff, error) {
+	ctx := context.Background()
+	if large, size := largestVersion(ctx, repoPath, path, force, ""); large {
+		return FileDiff{TooLarge: true, SizeBytes: size}, nil
+	}
+	var fd diff.FileDiff
+	var err error
+	if origPath != "" {
+		fd, err = diff.GetRenamedIndexDiff(ctx, repoPath, origPath, path, ignoreWhitespace)
+	} else {
+		fd, err = diff.GetIndexDiff(ctx, repoPath, path, ignoreWhitespace)
+	}
 	if err != nil {
 		return FileDiff{}, err
 	}
 	return toFileDiff(fd), nil
 }
 
-func (s *DiffService) GetRefDiff(repoPath, path, fromRef, toRef string, ignoreWhitespace bool) (FileDiff, error) {
-	fd, err := diff.GetRefDiff(context.Background(), repoPath, path, fromRef, toRef, ignoreWhitespace)
+func (s *DiffService) GetRefDiff(repoPath, path, fromRef, toRef string, force, ignoreWhitespace bool) (FileDiff, error) {
+	ctx := context.Background()
+	revs := []string{fromRef}
+	if toRef != "" {
+		revs = append(revs, toRef)
+	}
+	if large, size := largestVersion(ctx, repoPath, path, force, revs...); large {
+		return FileDiff{TooLarge: true, SizeBytes: size}, nil
+	}
+	fd, err := diff.GetRefDiff(ctx, repoPath, path, fromRef, toRef, ignoreWhitespace)
 	if err != nil {
 		return FileDiff{}, err
 	}
 	return toFileDiff(fd), nil
+}
+
+// largestVersion reports whether path is over diff.LargeFileThreshold at any
+// of revs ("" is the index), and its size there.
+func largestVersion(ctx context.Context, repoPath, path string, force bool, revs ...string) (bool, int64) {
+	if force {
+		return false, 0
+	}
+	for _, rev := range revs {
+		if size, found := diff.RevisionFileSize(ctx, repoPath, rev, path); found && size > diff.LargeFileThreshold {
+			return true, size
+		}
+	}
+	return false, 0
 }
 
 func (s *DiffService) StageHunk(repoPath, path, hunkText string) error {

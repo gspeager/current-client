@@ -34,15 +34,17 @@ func EditRemote(ctx context.Context, repoPath, name, url string) error {
 	return err
 }
 
+// Each line is "<name>\t<url> (fetch)" or "... (push)"; the URL can contain spaces.
 func parseRemotes(output string) []Remote {
 	byName := make(map[string]*Remote)
 	var order []string
 	for _, line := range strings.Split(output, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 3 {
+		name, rest, ok := strings.Cut(line, "\t")
+		cut := strings.LastIndex(rest, " (")
+		if !ok || cut < 0 {
 			continue
 		}
-		name, url, kind := fields[0], fields[1], strings.Trim(fields[2], "()")
+		url, kind := rest[:cut], strings.Trim(rest[cut+1:], "()")
 		r, ok := byName[name]
 		if !ok {
 			r = &Remote{Name: name}

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { HistoryService, type ChangedFile, type IdentityInfo, type CommitInfo } from '@current-client-bindings/app'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCommitActions } from './useCommitActions'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
@@ -39,6 +40,7 @@ function CommitDetailPanel({
   onCreateBranchHere,
   onBranchChanged,
 }: CommitDetailPanelProps) {
+  useClockTick()
   const { cherryPick, revert, checkoutCommit, actionError } = useCommitActions(repoPath, onBranchChanged)
   // The file whose diff is open; only for the commit it was opened from.
   const [opened, setOpened] = useState<{ sha: string; path: string } | null>(null)

@@ -4,6 +4,7 @@ import { BranchService, ReflogService, type ReflogEntryInfo } from '@current-cli
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import Modal from '../../components/chrome/Modal'
@@ -18,6 +19,7 @@ interface ReflogPanelProps {
 const REFLOG_LIMIT = 200
 
 function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
+  useClockTick()
   const { data: entries, error: loadError } = useAsyncData(
     () => ReflogService.GetReflog(repoPath, REFLOG_LIMIT),
     [repoPath],
