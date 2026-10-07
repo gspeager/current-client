@@ -273,6 +273,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`branch:${b.name}`}
                 value={`branch:${b.name}`}
+                aria-label={b.current ? `${b.name}, current branch` : b.remote ? `${b.name}, remote branch` : b.name}
                 className="quick-switch-row"
                 onSelect={() => checkout(b)}
               >
@@ -296,6 +297,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`repo:${r.path}`}
                 value={`repo:${r.path}`}
+                aria-label={`${baseName(r.path)}, ${r.uncommitted > 0 ? `${r.uncommitted} uncommitted` : 'clean'}${r.currentBranch ? `, ${r.currentBranch}` : ''}`}
                 className="quick-switch-row"
                 onSelect={() => runAndClose(() => repo.openRecent(r.path))}
               >
@@ -318,6 +320,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`file:${path}`}
                 value={`file:${path}`}
+                aria-label={`File history of ${path}`}
                 className="quick-switch-row"
                 onSelect={() => runAndClose(() => onOpenFile(path))}
               >
@@ -333,6 +336,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`commit:${c.sha}`}
                 value={`commit:${c.sha}`}
+                aria-label={`Commit ${c.sha.slice(0, 7)}: ${c.subject}`}
                 className="quick-switch-row"
                 onSelect={() => openCommit(c.sha)}
               >
@@ -351,6 +355,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`settings:${s.id}`}
                 value={`settings:${s.id}`}
+                aria-label={`Settings: ${s.label}`}
                 className="quick-switch-row"
                 onSelect={() => runAndClose(onOpenSettings)}
               >
@@ -366,6 +371,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`action:${a.id}`}
                 value={`action:${a.id}`}
+                aria-label={a.label}
                 className="quick-switch-row"
                 onSelect={() => runAndClose(a.run)}
               >

@@ -260,6 +260,21 @@ describe('BranchSidebar', () => {
     expect(BranchService.MergeBranch).not.toHaveBeenCalled()
   })
 
+  it('opens a branch menu from its More actions button and from Shift+F10', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('spike')])
+    renderSidebar()
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'More actions for spike' }))
+    expect(await screen.findByRole('button', { name: 'Checkout' })).toHaveFocus()
+    expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
+    await user.keyboard('{Escape}')
+
+    screen.getByRole('button', { name: /^main/ }).focus()
+    await user.keyboard('{Shift>}{F10}{/Shift}')
+    expect(await screen.findByRole('button', { name: 'Set upstream…' })).toBeInTheDocument()
+  })
+
   it('shows why branches could not load', async () => {
     vi.mocked(BranchService.ListLocal).mockRejectedValue(new Error('Git command failed.'))
     renderSidebar()

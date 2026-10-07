@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type KeyboardEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { BranchService, CommitService, PatchService, type CommitInfo } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
-import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
+import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import CommitDetailPanel from './CommitDetailPanel'
 import CommitRow from './CommitRow'
 import HistoryToolbar from './HistoryToolbar'
@@ -200,12 +200,12 @@ function HistoryView({
     )
   }
 
-  const commitContextMenu = (commit: CommitInfo) => (e: MouseEvent) => {
+  const commitContextMenu = (commit: CommitInfo) => (e: MouseEvent | KeyboardEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     selectSha(commit.sha)
     setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
+      ...menuAnchor(e),
       items: [
         { label: 'Copy SHA', onClick: () => void navigator.clipboard.writeText(commit.sha) },
         { label: 'Check out', onClick: () => void checkoutCommit(commit.sha) },
