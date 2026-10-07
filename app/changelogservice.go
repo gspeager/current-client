@@ -47,14 +47,27 @@ func toEntries(entries []ChangelogEntry) []changelog.Entry {
 	return mapSlice(entries, func(e ChangelogEntry) changelog.Entry { return changelog.Entry(e) })
 }
 
-// LatestTag is the default start of a changelog range; "" means there are no tags.
+// LatestTag is the default start of a changelog range; "" means there are no
+// tags, or no commits yet.
 func (s *ChangelogService) LatestTag(repoPath, ref string) (string, error) {
+	if !hasCommits(repoPath) {
+		return "", nil
+	}
 	return git.LatestTag(context.Background(), repoPath, ref)
+}
+
+func hasCommits(repoPath string) bool {
+	_, err := git.ResolveCommit(context.Background(), repoPath, "HEAD")
+	return err == nil
 }
 
 // since is a git --since value; empty means no time limit. split cuts the
 // range at every tag inside it.
+// Build returns no sections before the first commit.
 func (s *ChangelogService) Build(repoPath, from, to, since string, split bool) ([]ChangelogReleaseSection, error) {
+	if !hasCommits(repoPath) {
+		return []ChangelogReleaseSection{}, nil
+	}
 	sections, err := changelog.BuildReleases(context.Background(), repoPath, from, to, since, split)
 	if err != nil {
 		return nil, err

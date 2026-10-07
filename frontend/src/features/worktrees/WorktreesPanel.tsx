@@ -165,6 +165,8 @@ function WorktreesPanel({ repoPath, refreshKey, onOpenRepository, onWorktreesCha
       {error && <p className="worktrees-panel-error">{error}</p>}
       {worktrees === null ? (
         <p className="worktrees-panel-hint">Loading worktrees…</p>
+      ) : worktrees.length <= 1 ? (
+        <p className="worktrees-panel-hint">No other worktrees.</p>
       ) : (
         <ul className="worktrees-panel-list">
           {worktrees.map((w) => (

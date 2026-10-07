@@ -109,4 +109,12 @@ describe('WorktreesPanel', () => {
     expect(WorktreeService.Remove).toHaveBeenNthCalledWith(2, REPO, '/projects/app-review', true)
     await vi.waitFor(() => expect(onWorktreesChanged).toHaveBeenCalled())
   })
+
+  it('lists nothing while the repository is its only worktree', async () => {
+    renderPanel([worktree('/projects/app', { branch: 'main', main: true, current: true })])
+
+    expect(await screen.findByText('No other worktrees.')).toBeInTheDocument()
+    expect(screen.queryByText('current')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add worktree' })).toBeInTheDocument()
+  })
 })
