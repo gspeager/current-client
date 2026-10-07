@@ -15,7 +15,7 @@ type DayActivity struct {
 // with zero commits.
 func CommitActivity(ctx context.Context, repoPath string, days int) ([]DayActivity, error) {
 	start := time.Now().AddDate(0, 0, -days+1)
-	result, err := runResult(ctx, repoPath, "log", "--all", "--since="+sinceMidnight(start), "--format=%ad", "--date=short")
+	result, err := runResult(ctx, repoPath, "log", "--exclude=refs/stash", "--all", "--since="+sinceMidnight(start), "--format=%ad", "--date=short")
 	if err != nil {
 		return nil, err
 	}
