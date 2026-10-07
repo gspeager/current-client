@@ -127,7 +127,8 @@ type applyOptions struct {
 }
 
 func applyHunk(ctx context.Context, repoPath, path, hunkText string, opts applyOptions) error {
-	patch := "diff --git a/" + path + " b/" + path + "\n--- a/" + path + "\n+++ b/" + path + "\n" + hunkText
+	oldPath, newPath := patchPaths(ctx, repoPath, path, hunkText, opts)
+	patch := "diff --git a/" + path + " b/" + path + "\n--- " + oldPath + "\n+++ " + newPath + "\n" + hunkText
 
 	args := []string{"apply"}
 	if opts.cached {
@@ -147,6 +148,46 @@ func applyHunk(ctx context.Context, repoPath, path, hunkText string, opts applyO
 		Stdin: strings.NewReader(patch),
 	})
 	return err
+}
+
+// patchPaths names a side of the patch /dev/null when the file doesn't exist
+// there and the hunk leaves that side empty, so git apply adds or removes the
+// file instead of leaving an empty one behind (unstaging a new file's only
+// hunk, staging a deletion). An existing empty file keeps its name.
+func patchPaths(ctx context.Context, repoPath, path, hunkText string, opts applyOptions) (oldPath, newPath string) {
+	oldPath, newPath = "a/"+path, "b/"+path
+	m := hunkHeaderPattern.FindStringSubmatch(hunkText)
+	if m == nil {
+		return oldPath, newPath
+	}
+	// The hunk is HEAD→index for unstaging and discarding a staged hunk, and
+	// index→working tree otherwise.
+	headToIndex := opts.index || (opts.cached && opts.reverse)
+	if m[1] == "0" && m[2] == "0" {
+		exists := objectExists(ctx, repoPath, ":"+path)
+		if headToIndex {
+			exists = objectExists(ctx, repoPath, "HEAD:"+path)
+		}
+		if !exists {
+			oldPath = "/dev/null"
+		}
+	}
+	if m[3] == "0" && m[4] == "0" {
+		exists := objectExists(ctx, repoPath, ":"+path)
+		if !headToIndex {
+			_, err := os.Lstat(filepath.Join(repoPath, path))
+			exists = err == nil
+		}
+		if !exists {
+			newPath = "/dev/null"
+		}
+	}
+	return oldPath, newPath
+}
+
+func objectExists(ctx context.Context, repoPath, spec string) bool {
+	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "-e", spec}})
+	return err == nil && result.ExitCode == 0
 }
 
 var hunkHeaderPattern = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
