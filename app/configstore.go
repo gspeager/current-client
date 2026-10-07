@@ -1,13 +1,46 @@
 package app
 
-import "github.com/gspeager/current-client/internal/config"
+import (
+	"encoding/json"
+	"errors"
+	"os"
+	"sync"
+
+	"github.com/gspeager/current-client/internal/config"
+)
+
+// configMu serialises every read and read-modify-write of the settings file:
+// the frontend saves several settings at once, and an unlocked update could
+// overwrite another's change with what it read before it.
+var configMu sync.Mutex
+
+// brokenConfigPath is where an unreadable settings file was moved, until
+// SettingsService.TakeSettingsResetNotice reports it.
+var brokenConfigPath string
 
 func loadCurrentConfig() (config.Config, string, error) {
+	configMu.Lock()
+	defer configMu.Unlock()
+	return loadConfigLocked()
+}
+
+// loadConfigLocked moves a settings file that isn't valid JSON aside and
+// starts from defaults, rather than failing every later load and save.
+func loadConfigLocked() (config.Config, string, error) {
 	path, err := config.DefaultPath()
 	if err != nil {
 		return config.Config{}, "", err
 	}
 	cfg, err := config.Load(path)
+	var syntaxErr *json.SyntaxError
+	var typeErr *json.UnmarshalTypeError
+	if errors.As(err, &syntaxErr) || errors.As(err, &typeErr) {
+		broken := path + ".broken"
+		if os.Rename(path, broken) == nil {
+			brokenConfigPath = broken
+			return config.Default(), path, nil
+		}
+	}
 	if err != nil {
 		return config.Config{}, "", err
 	}
@@ -24,12 +57,24 @@ func configOrDefault() config.Config {
 	return cfg
 }
 
+// updateConfig saves nothing when update returns an error.
 func updateConfig(update func(*config.Config)) error {
-	cfg, path, err := loadCurrentConfig()
+	return updateConfigErr(func(cfg *config.Config) error {
+		update(cfg)
+		return nil
+	})
+}
+
+func updateConfigErr(update func(*config.Config) error) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+	cfg, path, err := loadConfigLocked()
 	if err != nil {
 		return err
 	}
-	update(&cfg)
+	if err := update(&cfg); err != nil {
+		return err
+	}
 	return config.Save(path, cfg)
 }
 

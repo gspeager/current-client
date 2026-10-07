@@ -159,6 +159,13 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     onBranchChanged()
   }
 
+  const resetNotice = settings.resetNotice && (
+    <p className="app-inline-error">
+      {settings.resetNotice}
+      <button onClick={settings.dismissResetNotice}>Dismiss</button>
+    </p>
+  )
+
   // Without a usable git nothing else works, so it takes over even with a repo open.
   if (!repo.repoPath || gitError) {
     return (
@@ -176,6 +183,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           </button>
         </div>
         <h1>Current Client</h1>
+        {resetNotice}
         {gitError ? (
           <>
             <p className="app-welcome-status app-welcome-status-error">{gitError}</p>
@@ -246,6 +254,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
           {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
 
+          {resetNotice}
           {pullOp.running && (
             <p className="app-inline-notice">
               Pulling… <button onClick={pullOp.cancel}>Cancel</button>

@@ -23,6 +23,7 @@ function applyTheme(root: HTMLElement, theme: string, titleBar: boolean) {
 export function useSettings() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [resetNotice, setResetNotice] = useState('')
   const { element: root, active } = useCurrentClientRoot()
   const theme = settings?.theme
 
@@ -30,6 +31,7 @@ export function useSettings() {
     SettingsService.GetSettings()
       .then(setSettings)
       .catch((err: unknown) => setError(errorMessage(err)))
+      .finally(() => SettingsService.TakeSettingsResetNotice().then(setResetNotice, () => undefined))
   }, [])
 
   // Applies the theme to the Current Client root and the window's title bar, and follows
@@ -124,6 +126,8 @@ export function useSettings() {
   return {
     settings,
     error,
+    resetNotice,
+    dismissResetNotice: () => setResetNotice(''),
     setNavCollapsed,
     setDiffExpanded,
     setDiffNoWrap,
