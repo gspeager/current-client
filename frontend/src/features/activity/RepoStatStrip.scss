@@ -1,12 +1,15 @@
 @use '../../styles/tokens/typography';
 @use '../../styles/patterns';
 
+// Stats wrap onto further rows when the card is too narrow, rather than a
+// centred row overflowing both edges.
 .repo-stat-strip {
   grid-column: 1 / -1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xl);
+  gap: var(--space-md) var(--space-xl);
   padding: var(--space-lg) var(--space-xl);
   background: var(--surface-low);
   border: var(--border-structure);
@@ -43,6 +46,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
 }
 
 .repo-stat-strip-label {
@@ -56,11 +60,18 @@
   gap: var(--space-xs);
   font: var(--body-lg);
   color: var(--on-surface);
+  white-space: nowrap;
   @include typography.mono-numeric;
 }
 
 .repo-stat-strip-branch {
+  max-width: 240px;
   font-weight: 600;
+}
+
+.repo-stat-strip-branch-name {
+  min-width: 0;
+  @include patterns.truncate;
 }
 
 .repo-stat-strip-dot {

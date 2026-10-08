@@ -48,4 +48,32 @@ describe('ActivityView', () => {
     const strip = within(container.querySelector<HTMLElement>('.repo-stat-strip')!)
     expect((await strip.findByText('Repository age')).nextElementSibling).toHaveTextContent('—')
   })
+
+  it('keeps a long branch name on one line, with the full name on hover', async () => {
+    const branch = 'feature/a-rather-long-branch-name-for-the-strip'
+    vi.mocked(DashboardService.GetRepoStats).mockResolvedValue({
+      totalCommits: 3,
+      contributorCount: 1,
+      fileCount: 1,
+      repoAgeDays: 2,
+      branchCount: 1,
+      tagCount: 0,
+      stashCount: 0,
+      currentBranch: branch,
+    })
+    vi.mocked(DashboardService.GetRepoDiskUsage).mockResolvedValue({
+      looseObjectCount: 0,
+      looseSizeKb: 0,
+      packCount: 0,
+      packedSizeKb: 0,
+      totalSizeKb: 12,
+    })
+    const { container } = render(
+      <ActivityView repoPath="/repos/app" repoVersion={0} dirty={false} hasConflict={false} />,
+    )
+
+    const name = await within(container.querySelector<HTMLElement>('.repo-stat-strip')!).findByText(branch)
+    expect(name).toHaveClass('repo-stat-strip-branch-name')
+    expect(name.parentElement).toHaveAttribute('title', branch)
+  })
 })
