@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/platform"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -44,6 +45,7 @@ func Services() []application.Service {
 // Startup applies saved settings before any service runs and returns the saved
 // window size, or zeros when there is none.
 func Startup() (width, height int) {
+	platform.UseLoginShellPath()
 	cfg, _, err := loadCurrentConfig()
 	if err != nil {
 		return 0, 0

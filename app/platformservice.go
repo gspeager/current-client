@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"os"
+	"os/exec"
 
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/internal/platform"
@@ -37,11 +40,24 @@ func (s *PlatformService) RevealInFileManager(repoPath string) error {
 }
 
 func (s *PlatformService) OpenInEditor(repoPath string) error {
-	return platform.OpenInEditor(repoPath, configOrDefault().EditorPath)
+	editorPath := configOrDefault().EditorPath
+	return editorError(platform.OpenInEditor(repoPath, editorPath), editorPath)
 }
 
 func (s *PlatformService) OpenFileInEditor(repoPath, path string, line int) error {
-	return platform.OpenFileInEditor(repoPath, path, line, configOrDefault().EditorPath)
+	editorPath := configOrDefault().EditorPath
+	return editorError(platform.OpenFileInEditor(repoPath, path, line, editorPath), editorPath)
+}
+
+// editorError explains a missing editor in place of Go's exec error.
+func editorError(err error, editorPath string) error {
+	if !errors.Is(err, exec.ErrNotFound) && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	if editorPath == "" {
+		return &gitexec.AppError{Message: "VS Code's code command isn't installed. Choose an editor in Settings.", Detail: err.Error()}
+	}
+	return &gitexec.AppError{Message: "The editor " + editorPath + " wasn't found. Choose another in Settings.", Detail: err.Error()}
 }
 
 // appVersion is set by the Taskfiles with -ldflags "-X github.com/gspeager/current-client/app.appVersion=<version>";
