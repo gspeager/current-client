@@ -4,6 +4,8 @@ import { errorMessage } from '../../lib/errors'
 import { useDialogs } from '../../lib/useDialogs'
 
 const NO_UPSTREAM = 'This branch has no upstream configured.'
+// Matches core/gitexec's divergedMessage.
+export const DIVERGED = 'This branch and its upstream have diverged. Choose Pull (merge) or Pull (rebase).'
 
 export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
   const { confirm } = useDialogs()
@@ -13,6 +15,11 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
   const pull = () => {
     if (!repoPath) return
     pullOp.run((auth) => RemoteService.Pull(repoPath, auth), onSynced)
+  }
+
+  const pullMerge = () => {
+    if (!repoPath) return
+    pullOp.run((auth) => RemoteService.PullMerge(repoPath, auth), onSynced)
   }
 
   const pullRebase = () => {
@@ -75,5 +82,5 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
     }
   }
 
-  return { pull, pullRebase, push, forcePush, pullOp, pushOp }
+  return { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp }
 }
