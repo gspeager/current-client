@@ -33,17 +33,25 @@ func (s *PatchService) ExportWorkingTreePaths(repoPath string, paths []string, s
 	return savePatch(patch, suggestedFilename)
 }
 
-func (s *PatchService) ImportPatch(repoPath string) error {
+// ImportPatch reports what it did, or "" when the dialog was cancelled.
+func (s *PatchService) ImportPatch(repoPath string) (string, error) {
 	path, err := application.Get().Dialog.OpenFile().
 		CanChooseFiles(true).
 		CanChooseDirectories(false).
 		SetTitle("Import Patch").
-		AddFilter("Patch files", "*.patch").
+		AddFilter("Patch files", "*.patch;*.diff").
 		PromptForSingleSelection()
 	if err != nil || path == "" {
-		return nil
+		return "", nil
 	}
-	return git.ApplyPatch(context.Background(), repoPath, path)
+	asCommits, err := git.ImportPatch(context.Background(), repoPath, path)
+	if err != nil {
+		return "", err
+	}
+	if asCommits {
+		return "Patch applied as commits.", nil
+	}
+	return "Patch applied to the working tree. Review and commit it in Working Copy.", nil
 }
 
 func savePatch(patch, suggestedFilename string) error {
