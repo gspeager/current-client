@@ -57,6 +57,19 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 	}, nil
 }
 
+// TakeSettingsResetNotice says, once, that the settings file couldn't be read
+// and was replaced with defaults; it's "" otherwise.
+func (s *SettingsService) TakeSettingsResetNotice() string {
+	configMu.Lock()
+	defer configMu.Unlock()
+	if brokenConfigPath == "" {
+		return ""
+	}
+	notice := "Settings couldn't be read, so they were reset. The old file was kept at " + brokenConfigPath + "."
+	brokenConfigPath = ""
+	return notice
+}
+
 func (s *SettingsService) SetTheme(theme string) error {
 	return updateConfig(func(cfg *config.Config) { cfg.Theme = normalizeTheme(theme) })
 }
