@@ -226,13 +226,13 @@ func TestWrapResultUnknownFailureNamesGitsReason(t *testing.T) {
 	}{
 		{
 			name:    "fatal line after hints",
-			stderr:  "hint: You have divergent branches and need to specify how to reconcile them.\nhint: invocation.\nfatal: Need to specify how to reconcile divergent branches.",
-			wantMsg: "Git command failed: Need to specify how to reconcile divergent branches.",
+			stderr:  "hint: Disable this message with \"git config advice.x false\"\nfatal: unable to write new index file",
+			wantMsg: "Git command failed: unable to write new index file",
 		},
 		{
 			name:    "first of several error lines",
-			stderr:  "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.",
-			wantMsg: "Git command failed: cannot pull with rebase: You have unstaged changes.",
+			stderr:  "error: unable to unlink old 'a.txt': Permission denied\nerror: unable to unlink old 'b.txt': Permission denied",
+			wantMsg: "Git command failed: unable to unlink old 'a.txt': Permission denied",
 		},
 		{
 			name:    "plain line",
