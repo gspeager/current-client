@@ -4,7 +4,6 @@ import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
 import { GitService, HistoryService, PlatformService } from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
-import ContextualNudges from './features/remotes/ContextualNudges'
 import HeaderBar from './components/chrome/HeaderBar'
 import KeepAlive from './components/chrome/KeepAlive'
 import NavPane from './components/chrome/NavPane'
@@ -252,8 +251,6 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               onOpenFile={openWorkingFile}
             />
           )}
-
-          <ContextualNudges repoPath={repo.repoPath} repoVersion={repoVersion} onPush={push} onPull={pull} />
 
           {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
 
