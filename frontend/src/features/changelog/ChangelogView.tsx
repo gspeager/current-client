@@ -68,6 +68,7 @@ function ChangelogView({ repoPath, repoVersion, prefs, onPrefsChange, onOpenComm
   const content = () => {
     if (error || tagError) return <p className="changelog-error">Could not build the changelog: {error ?? tagError}</p>
     if (!releases || !prefs) return <p className="changelog-hint">Loading commits…</p>
+    if (releases.length === 0) return <p className="changelog-hint">No commits yet.</p>
     const entries = releases.flatMap((r) => r.entries)
     if (entries.length === 0) return <p className="changelog-hint">No commits {range}.</p>
     if (entries.every((e) => !e.type)) return <Explainer range={range} />

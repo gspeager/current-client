@@ -17,6 +17,7 @@ import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
+import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useDialogs } from '../../lib/useDialogs'
 import BranchPill from '../../components/git/BranchPill'
 import './BranchSidebar.scss'
@@ -41,6 +42,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   const { data: defaultBranch } = useAsyncData(() => BranchService.DefaultBranch(repoPath), [repoPath], {
     refreshKey,
   })
+  const branchStatus = useBranchStatus(repoPath, refreshKey)
   const { data: overlapReport } = useAsyncData(() => OverlapService.Predict(repoPath), [repoPath], { refreshKey })
   const overlaps = overlapReport?.overlaps ?? []
   const localOverlaps = new Map(overlaps.filter((o) => !o.remote).map((o) => [o.branch, o]))
@@ -297,7 +299,9 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       {branches === null ? (
         <p className="branch-sidebar-hint">Loading branches…</p>
       ) : branches.length === 0 ? (
-        <p className="branch-sidebar-hint">No branches.</p>
+        <p className="branch-sidebar-hint">
+          {branchStatus?.current ? `No commits on ${branchStatus.current} yet.` : 'No branches.'}
+        </p>
       ) : (
         <ul className="branch-sidebar-list">
           {branches.map((b) => (

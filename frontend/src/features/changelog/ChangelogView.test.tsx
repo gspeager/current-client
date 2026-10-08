@@ -99,6 +99,12 @@ const markdown = () => screen.getByRole('textbox', { name: 'Changelog Markdown' 
 beforeEach(() => giveElementsLayout())
 
 describe('ChangelogView', () => {
+  it('says there are no commits yet in a new repository', async () => {
+    renderView([], vi.fn(), [])
+
+    expect(await screen.findByText('No commits yet.')).toBeInTheDocument()
+  })
+
   it('builds from the latest tag and groups commits by section', async () => {
     const onOpenCommit = vi.fn()
     renderView(typed, onOpenCommit)
