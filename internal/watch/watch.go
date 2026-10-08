@@ -3,7 +3,10 @@ package watch
 
 import (
 	"context"
+	"io/fs"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,8 +24,16 @@ type Watcher struct {
 	stopCh chan struct{}
 }
 
+// gitDirs are the repository's .git folders. In a worktree, HEAD lives in the
+// worktree's own git dir and refs in the common one.
+type gitDirs struct {
+	gitDir    string
+	commonDir string
+}
+
 // Start replaces any previous watch. onChange is debounced; refChanged reports
-// whether HEAD or its reflog moved, as opposed to only files being edited.
+// whether HEAD, a branch, a tag, a remote branch or the stash moved, as
+// opposed to only files being edited.
 func (w *Watcher) Start(repoPath string, onChange func(refChanged bool)) error {
 	w.Stop()
 
@@ -30,7 +41,8 @@ func (w *Watcher) Start(repoPath string, onChange func(refChanged bool)) error {
 	if err != nil {
 		return err
 	}
-	paths, err := watchPaths(repoPath)
+	dirs := findGitDirs(repoPath)
+	paths, err := watchPaths(repoPath, dirs)
 	if err != nil {
 		_ = fw.Close()
 		return err
@@ -39,15 +51,13 @@ func (w *Watcher) Start(repoPath string, onChange func(refChanged bool)) error {
 		_ = fw.Add(path)
 	}
 
-	headPath, reflogPath := refPaths(repoPath)
-
 	stopCh := make(chan struct{})
 	w.mu.Lock()
 	w.fw = fw
 	w.stopCh = stopCh
 	w.mu.Unlock()
 
-	go run(fw, stopCh, repoPath, headPath, reflogPath, onChange)
+	go run(fw, stopCh, repoPath, dirs, onChange)
 	return nil
 }
 
@@ -65,9 +75,9 @@ func (w *Watcher) Stop() {
 	}
 }
 
-func run(fw *fsnotify.Watcher, stopCh chan struct{}, repoPath, headPath, reflogPath string, onChange func(refChanged bool)) {
+func run(fw *fsnotify.Watcher, stopCh chan struct{}, repoPath string, dirs gitDirs, onChange func(refChanged bool)) {
 	var timer *time.Timer
-	var refChanged atomic.Bool
+	var refChanged, newDir atomic.Bool
 	for {
 		select {
 		case <-stopCh:
@@ -79,20 +89,31 @@ func run(fw *fsnotify.Watcher, stopCh chan struct{}, repoPath, headPath, reflogP
 			if !ok {
 				return
 			}
-			if event.Name == headPath || event.Name == reflogPath {
+			ref, inGitDir := dirs.classify(event.Name)
+			if inGitDir && !ref {
+				continue
+			}
+			if ref {
 				refChanged.Store(true)
+			}
+			if event.Has(fsnotify.Create) {
+				if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
+					newDir.Store(true)
+				}
 			}
 			if timer != nil {
 				timer.Stop()
 			}
+			// New folders are watched before onChange, so a change right after it isn't missed.
 			timer = time.AfterFunc(debounceDelay, func() {
-				onChange(refChanged.Swap(false))
-				// Pick up directories created since the last change.
-				if paths, err := watchPaths(repoPath); err == nil {
-					for path := range paths {
-						_ = fw.Add(path)
+				if newDir.Swap(false) {
+					if paths, err := watchPaths(repoPath, dirs); err == nil {
+						for path := range paths {
+							_ = fw.Add(path)
+						}
 					}
 				}
+				onChange(refChanged.Swap(false))
 			})
 		case _, ok := <-fw.Errors:
 			if !ok {
@@ -102,30 +123,66 @@ func run(fw *fsnotify.Watcher, stopCh chan struct{}, repoPath, headPath, reflogP
 	}
 }
 
-func refPaths(repoPath string) (headPath, reflogPath string) {
-	gitDir, err := git.GitDir(context.Background(), repoPath)
+func findGitDirs(repoPath string) gitDirs {
+	ctx := context.Background()
+	gitDir, err := git.GitDir(ctx, repoPath)
 	if err != nil {
-		return "", ""
+		return gitDirs{}
 	}
-	return filepath.Join(gitDir, "HEAD"), filepath.Join(gitDir, "logs", "HEAD")
+	commonDir := gitDir
+	if common, err := git.CommonDir(ctx, repoPath); err == nil {
+		commonDir = common
+	}
+	return gitDirs{gitDir: filepath.Clean(gitDir), commonDir: filepath.Clean(commonDir)}
 }
 
-// watchPaths watches HEAD and logs/HEAD rather than all of .git: status
-// rewrites .git/index, which would retrigger onChange in an endless loop.
-func watchPaths(repoPath string) (map[string]bool, error) {
-	ctx := context.Background()
-	trackedPaths, err := git.WatchedPaths(ctx, repoPath)
+// classify says whether a path is in a git folder, and if so whether it's a
+// ref: HEAD, its reflog, packed-refs or anything under refs/. Everything else
+// there, the index above all, is ignored; status rewrites the index, so
+// reacting to it would refresh forever.
+func (d gitDirs) classify(path string) (ref, inGitDir bool) {
+	if d.gitDir == "" {
+		return false, false
+	}
+	path = filepath.Clean(path)
+	switch path {
+	case filepath.Join(d.gitDir, "HEAD"),
+		filepath.Join(d.gitDir, "logs", "HEAD"),
+		filepath.Join(d.commonDir, "packed-refs"):
+		return true, true
+	}
+	if within(path, filepath.Join(d.commonDir, "refs")) {
+		return !strings.HasSuffix(path, ".lock"), true
+	}
+	return false, within(path, d.gitDir) || within(path, d.commonDir)
+}
+
+func within(path, dir string) bool {
+	return path == dir || strings.HasPrefix(path, dir+string(filepath.Separator))
+}
+
+// watchPaths watches folders rather than files: git replaces HEAD and refs by
+// renaming a lock file over them, which drops a watch on the file itself.
+func watchPaths(repoPath string, dirs gitDirs) (map[string]bool, error) {
+	trackedPaths, err := git.WatchedPaths(context.Background(), repoPath)
 	if err != nil {
 		return nil, err
 	}
 
 	paths := map[string]bool{repoPath: true}
-	if headPath, reflogPath := refPaths(repoPath); headPath != "" {
-		paths[headPath] = true
-		paths[reflogPath] = true
-	}
 	for _, p := range trackedPaths {
 		paths[filepath.Join(repoPath, filepath.Dir(p))] = true
+	}
+	if dirs.gitDir != "" {
+		paths[dirs.gitDir] = true
+		paths[filepath.Join(dirs.gitDir, "logs")] = true
+		paths[dirs.commonDir] = true
+		_ = filepath.WalkDir(filepath.Join(dirs.commonDir, "refs"), func(path string, entry fs.DirEntry, err error) error {
+			if err == nil && entry.IsDir() {
+				paths[path] = true
+			}
+			return nil
+		})
 	}
 	return paths, nil
 }

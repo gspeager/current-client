@@ -96,11 +96,13 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   }
 
   // Only ref moves bump repoVersion, since that remounts History and refetches Activity.
+  // A fetch from a terminal moves remote branches, so it also updates the fetch time.
   const onFileWatcherChanged = (refChanged: boolean) => {
     workingTree.loadStatus()
     reloadConflictState()
     if (refChanged) {
       bumpRepoVersion()
+      reloadLastFetchTime()
     }
   }
 
