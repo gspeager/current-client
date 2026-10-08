@@ -47,4 +47,12 @@ describe('buildFileTreeRows', () => {
     const rows = buildFileTreeRows([file('src/a.ts'), file('src/nested/b.ts')], (path) => path === 'src')
     expect(rows).toEqual([{ kind: 'folder', path: 'src', name: 'src', depth: 0 }])
   })
+
+  it('shows a nested repository listed with a trailing slash as one entry', () => {
+    const rows = buildFileTreeRows([file('vendor/tool/')], () => false)
+    expect(rows.map((r) => (r.kind === 'folder' ? `dir:${r.path}` : `file:${r.file.path}`))).toEqual([
+      'dir:vendor',
+      'file:vendor/tool/',
+    ])
+  })
 })

@@ -198,9 +198,7 @@ function WorkingTreeFileList({
       setAnchorKey(key)
     }
 
-    if (section === 'staged' || f.worktreeStatus !== '?') {
-      onOpen(path, section)
-    }
+    onOpen(path, section)
   }
 
   // Staging, unstaging and discarding only apply when the selection is all in one section.

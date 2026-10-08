@@ -656,3 +656,40 @@ func TestDiscardStagedHunkRefusesWhenLaterEditsOverlap(t *testing.T) {
 		t.Error("a failed discard changed the working tree or the index")
 	}
 }
+
+func TestWorkingTreeDiffShowsAnUntrackedFileAsAdded(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "committed.txt", "x\n", "initial")
+	if err := os.MkdirAll(filepath.Join(dir, "new dir"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gittest.WriteFile(t, dir, "new dir/f.txt", "a\nb\n")
+
+	fd, err := GetWorkingTreeDiff(context.Background(), dir, "new dir/f.txt", false, false)
+	if err != nil {
+		t.Fatalf("GetWorkingTreeDiff: %v", err)
+	}
+	if fd.NewPath != "new dir/f.txt" || len(fd.Hunks) != 1 {
+		t.Fatalf("diff = %+v, want one hunk for the new file", fd)
+	}
+	var added []string
+	for _, l := range fd.Hunks[0].Lines {
+		if l.Kind == LineAdded {
+			added = append(added, l.Content)
+		}
+	}
+	if strings.Join(added, ",") != "a,b" {
+		t.Fatalf("added lines = %q, want every line of the file", added)
+	}
+}
+
+func TestWorkingTreeDiffOfAnIgnoredFileIsEmpty(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, ".gitignore", "*.log\n", "initial")
+	gittest.WriteFile(t, dir, "debug.log", "noise\n")
+
+	fd, err := GetWorkingTreeDiff(context.Background(), dir, "debug.log", false, false)
+	if err != nil || len(fd.Hunks) != 0 {
+		t.Fatalf("diff = %+v, %v; want nothing for an ignored file", fd, err)
+	}
+}
