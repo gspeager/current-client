@@ -122,4 +122,7 @@ shasum -a 256 -c SHA256SUMS
 
 Create the GitHub release for the tag as a **draft**, paste the version's `CHANGELOG.md` section as the notes, attach the six packages and `SHA256SUMS`, and publish once everything is attached. Don't attach the bare binaries (`current-client`, `current-client-*.exe`).
 
-Finally, update the wiki for anything the release changes for users.
+Finally, update what users read about the release:
+
+- the wiki, for anything the release changes for users
+- the website's Current Client page, `current-client.html`: the version beside the name, on both **Download** buttons and in the footer; the release date under the hero; and **What's new**, which lists the release's main changes and links to the changelog
