@@ -2,6 +2,36 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [0.2.1] - 2026-10-08
+
+### Added
+
+- Branch, file and commit rows have a **More actions** button, and Shift+F10 opens a row's menu from the keyboard, so their actions no longer need a right-click. The menu moves with the arrow keys and hands focus back when it closes. Background repository tabs and Quick Switch rows can be reached and are named for screen readers. ([#83](https://github.com/gspeager/current-client/issues/83))
+- **Pull (merge)** and **Pull (rebase)** in a menu on the header's Pull button and in Quick Switch. ([#72](https://github.com/gspeager/current-client/issues/72))
+
+### Changed
+
+- Ahead and behind counts are shown on the header's Pull and Push buttons only. The banners that repeated them above every view are gone. ([#82](https://github.com/gspeager/current-client/issues/82))
+
+### Fixed
+
+- Pulling a branch that has diverged from its upstream says so and offers Pull (merge) or Pull (rebase), instead of "Git command failed." ([#72](https://github.com/gspeager/current-client/issues/72))
+- When Git fails for a reason the app doesn't recognise, the message and **Copy diagnostics** give Git's own reason instead of only "Git command failed." ([#74](https://github.com/gspeager/current-client/issues/74))
+- Branches, tags, fetches and stashes made outside the app, such as in a terminal, now refresh the sidebar, including in worktrees. ([#81](https://github.com/gspeager/current-client/issues/81))
+- Settings saved close together (open tabs, pane widths, toggles) no longer overwrite each other, and a crash while saving can't lose them. An unreadable settings file is set aside as `config.json.broken`, with a notice, instead of breaking every later save. ([#73](https://github.com/gspeager/current-client/issues/73))
+- A merge commit's details list the files and line counts it brought in, against its first parent, instead of "No file changes." ([#78](https://github.com/gspeager/current-client/issues/78))
+- Clicking an untracked file shows its contents, and a new folder lists each file in it instead of one row. ([#77](https://github.com/gspeager/current-client/issues/77))
+- Unstaging a new file's only hunk unstages the file, and staging a deleted file's only hunk stages the deletion. Both used to stage an empty file. ([#76](https://github.com/gspeager/current-client/issues/76))
+- **Import Patch** reads plain diffs, such as those from Working Copy's **Export patch**, as well as format-patch files. ([#75](https://github.com/gspeager/current-client/issues/75))
+- On macOS, opening the app from Finder no longer hides tools installed with Homebrew, such as Git LFS and credential helpers, or VS Code's `code` command. When no editor is found, **Open in Editor** says so instead of showing a raw error. ([#79](https://github.com/gspeager/current-client/issues/79))
+- Activity no longer counts stashes as commits in its activity, velocity, streak and file churn figures. ([#80](https://github.com/gspeager/current-client/issues/80))
+- Reflog dates each entry by when it happened, not by the date of the commit it points to. ([#71](https://github.com/gspeager/current-client/pull/71))
+- Relative times such as "5 minutes ago" keep updating, and "fetched … ago" updates after a pull. ([#84](https://github.com/gspeager/current-client/issues/84))
+- Very large files in staged, commit, compare and stash diffs wait for **Load anyway**, as unstaged ones already did. A staged rename diffs as an edit of the file. ([#84](https://github.com/gspeager/current-client/issues/84))
+- Remote URLs containing spaces are read correctly, and a file dialog that fails says so instead of acting as if it were cancelled. ([#84](https://github.com/gspeager/current-client/issues/84))
+- In a repository with no commits yet, Changelog, Activity and Branches say there are no commits yet, instead of "HEAD is not a commit", an age of Today and "No branches." Worktrees no longer lists the repository as its own only worktree. ([#85](https://github.com/gspeager/current-client/issues/85))
+- Activity's stat strip wraps onto more rows in a narrow window instead of running past its card, and a long branch name is shortened, with the full name on hover. ([#101](https://github.com/gspeager/current-client/issues/101))
+
 ## [0.2.0] - 2026-10-06
 
 ### Added
@@ -64,6 +94,7 @@ First public version.
 - A Changelog tab that writes Conventional Commits into `CHANGELOG.md`, or saves them as Markdown, HTML or PDF.
 - The Git layer as a Go library under `core/`, and an example of embedding the app in another Wails app.
 
+[0.2.1]: https://github.com/gspeager/current-client/releases/tag/v0.2.1
 [0.2.0]: https://github.com/gspeager/current-client/releases/tag/v0.2.0
 [0.1.1]: https://github.com/gspeager/current-client/releases/tag/v0.1.1
 [0.1.0]: https://github.com/gspeager/current-client/releases/tag/v0.1.0
