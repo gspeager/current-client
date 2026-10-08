@@ -85,7 +85,33 @@ func WrapResult(result Result) *AppError {
 			}
 		}
 	}
+	if reason := gitReason(stderr); reason != "" {
+		return &AppError{Message: "Git command failed: " + reason, Detail: stderr}
+	}
 	return &AppError{Message: "Git command failed.", Detail: stderr}
+}
+
+// gitReason is the line of an unrecognised failure that says why: the first
+// fatal: line, else the first error: line, else the first line that isn't a hint.
+func gitReason(stderr string) string {
+	var firstError, firstOther string
+	for _, line := range strings.Split(stderr, "\n") {
+		line = strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(line, "fatal: "):
+			return strings.TrimPrefix(line, "fatal: ")
+		case strings.HasPrefix(line, "error: "):
+			if firstError == "" {
+				firstError = strings.TrimPrefix(line, "error: ")
+			}
+		case line != "" && !strings.HasPrefix(line, "hint:") && firstOther == "":
+			firstOther = line
+		}
+	}
+	if firstError != "" {
+		return firstError
+	}
+	return firstOther
 }
 
 func WrapRunError(err error) *AppError {

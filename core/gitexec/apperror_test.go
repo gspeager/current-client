@@ -208,6 +208,42 @@ func TestWrapResultUnknownFailureFallsBackToGenericMessage(t *testing.T) {
 	}
 }
 
+func TestWrapResultUnknownFailureNamesGitsReason(t *testing.T) {
+	tests := []struct {
+		name    string
+		stderr  string
+		wantMsg string
+	}{
+		{
+			name:    "fatal line after hints",
+			stderr:  "hint: You have divergent branches and need to specify how to reconcile them.\nhint: invocation.\nfatal: Need to specify how to reconcile divergent branches.",
+			wantMsg: "Git command failed: Need to specify how to reconcile divergent branches.",
+		},
+		{
+			name:    "first of several error lines",
+			stderr:  "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.",
+			wantMsg: "Git command failed: cannot pull with rebase: You have unstaged changes.",
+		},
+		{
+			name:    "plain line",
+			stderr:  "some completely novel git error\nsecond line",
+			wantMsg: "Git command failed: some completely novel git error",
+		},
+		{
+			name:    "nothing on stderr",
+			stderr:  "",
+			wantMsg: "Git command failed.",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := WrapResult(Result{Stderr: tt.stderr}).Message; got != tt.wantMsg {
+				t.Fatalf("Message = %q, want %q", got, tt.wantMsg)
+			}
+		})
+	}
+}
+
 func TestWrapRunErrorClassifiesCancellation(t *testing.T) {
 	err := WrapRunError(context.Canceled)
 	if err.Message != "The operation was cancelled." {
