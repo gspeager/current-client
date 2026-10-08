@@ -69,7 +69,8 @@
 }
 
 // A sidebar row's action buttons, overlaid on the row's right edge; the row
-// reveals them on hover by setting opacity: 1.
+// reveals them on hover by setting opacity: 1, and keyboard focus inside them
+// reveals them too.
 @mixin row-actions {
   position: absolute;
   right: var(--space-xs);
@@ -80,6 +81,10 @@
   gap: var(--space-xs);
   opacity: 0;
   background: var(--surface-container);
+
+  &:focus-within {
+    opacity: 1;
+  }
 
   button {
     display: inline-flex;

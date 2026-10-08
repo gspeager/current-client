@@ -30,6 +30,7 @@ import { localNameFor } from '../../features/branches/branches'
 import { useLaneColors } from '../../lib/laneColor'
 import { baseName } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
@@ -45,6 +46,7 @@ interface QuickSwitchPaletteProps {
   onBranchChanged?: () => void
   onOpenSettings: () => void
   onPull: () => void
+  onPullMerge: () => void
   onPullRebase: () => void
   onPush: () => void
   onFetchAll: () => void
@@ -158,6 +160,7 @@ function QuickSwitchPalette({
   onBranchChanged,
   onOpenSettings,
   onPull,
+  onPullMerge,
   onPullRebase,
   onPush,
   onFetchAll,
@@ -165,6 +168,7 @@ function QuickSwitchPalette({
   onSearchFiles,
   onOpenCommit,
 }: QuickSwitchPaletteProps) {
+  useClockTick()
   const { branchColor } = useLaneColors()
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -193,6 +197,7 @@ function QuickSwitchPalette({
     { id: 'search-files', label: 'Search in files', icon: Search, run: onSearchFiles },
     { id: 'fetch-all', label: 'Fetch all remotes', icon: Cloud, run: onFetchAll },
     { id: 'pull', label: 'Pull', icon: ArrowDown, run: onPull },
+    { id: 'pull-merge', label: 'Pull (merge)', icon: ArrowDown, run: onPullMerge },
     { id: 'pull-rebase', label: 'Pull (rebase)', icon: ArrowDown, run: onPullRebase },
     { id: 'push', label: 'Push', icon: ArrowUp, run: onPush },
     { id: 'open-terminal', label: 'Open Terminal', icon: Terminal, run: () => PlatformService.OpenTerminal(repoPath) },
@@ -270,6 +275,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`branch:${b.name}`}
                 value={`branch:${b.name}`}
+                aria-label={b.current ? `${b.name}, current branch` : b.remote ? `${b.name}, remote branch` : b.name}
                 className="quick-switch-row"
                 onSelect={() => checkout(b)}
               >
@@ -293,6 +299,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`repo:${r.path}`}
                 value={`repo:${r.path}`}
+                aria-label={`${baseName(r.path)}, ${r.uncommitted > 0 ? `${r.uncommitted} uncommitted` : 'clean'}${r.currentBranch ? `, ${r.currentBranch}` : ''}`}
                 className="quick-switch-row"
                 onSelect={() => runAndClose(() => repo.openRecent(r.path))}
               >
@@ -315,6 +322,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`file:${path}`}
                 value={`file:${path}`}
+                aria-label={`File history of ${path}`}
                 className="quick-switch-row"
                 onSelect={() => runAndClose(() => onOpenFile(path))}
               >
@@ -330,6 +338,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`commit:${c.sha}`}
                 value={`commit:${c.sha}`}
+                aria-label={`Commit ${c.sha.slice(0, 7)}: ${c.subject}`}
                 className="quick-switch-row"
                 onSelect={() => openCommit(c.sha)}
               >
@@ -348,6 +357,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`settings:${s.id}`}
                 value={`settings:${s.id}`}
+                aria-label={`Settings: ${s.label}`}
                 className="quick-switch-row"
                 onSelect={() => runAndClose(onOpenSettings)}
               >
@@ -363,6 +373,7 @@ function QuickSwitchPalette({
               <Command.Item
                 key={`action:${a.id}`}
                 value={`action:${a.id}`}
+                aria-label={a.label}
                 className="quick-switch-row"
                 onSelect={() => runAndClose(a.run)}
               >

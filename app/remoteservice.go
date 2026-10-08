@@ -95,6 +95,14 @@ func (s *RemoteService) Pull(ctx context.Context, repoPath string, auth *gitexec
 	return git.Pull(ctx, repoPath)
 }
 
+func (s *RemoteService) PullMerge(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
+	return git.PullMerge(ctx, repoPath)
+}
+
 func (s *RemoteService) PullRebase(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
 	ctx, err := withAuth(ctx, auth)
 	if err != nil {

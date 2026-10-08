@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PlatformService, UndoService, type UndoPlanInfo } from '@current-client-bindings/app'
+import { PatchService, PlatformService, UndoService, type UndoPlanInfo } from '@current-client-bindings/app'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import { DialogProvider } from './DialogProvider'
 import NavPane from './NavPane'
@@ -123,5 +123,26 @@ describe('NavPane undo', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Undo last operation' }))
 
     expect(await screen.findByText('Could not undo: Nothing to undo.')).toBeInTheDocument()
+  })
+})
+
+describe('NavPane import patch', () => {
+  it('says how the patch was applied', async () => {
+    vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
+    renderNav(false)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Import Patch…' }))
+
+    expect(await screen.findByText('Patch applied to the working tree.')).toBeInTheDocument()
+  })
+
+  it('says nothing when the file dialog is cancelled', async () => {
+    vi.mocked(PatchService.ImportPatch).mockResolvedValue('')
+    renderNav(false)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Import Patch…' }))
+
+    await vi.waitFor(() => expect(PatchService.ImportPatch).toHaveBeenCalledWith(REPO))
+    expect(screen.queryByText(/Patch applied/)).not.toBeInTheDocument()
   })
 })

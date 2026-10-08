@@ -19,6 +19,16 @@ func TestWrapResultKnownFailures(t *testing.T) {
 			wantMsg: "Not a Git repository.",
 		},
 		{
+			name:    "pull with diverged branches and no pull.rebase",
+			stderr:  "hint: You have divergent branches and need to specify how to reconcile them.\nfatal: Need to specify how to reconcile divergent branches.",
+			wantMsg: "This branch and its upstream have diverged. Choose Pull (merge) or Pull (rebase).",
+		},
+		{
+			name:    "pull with rebase over local changes",
+			stderr:  "error: cannot pull with rebase: You have unstaged changes.\nerror: Please commit or stash them.",
+			wantMsg: "Commit or stash changes before pulling with rebase.",
+		},
+		{
 			name:    "invalid branch name",
 			stderr:  "fatal: 'a b' is not a valid branch name\nhint: See 'git help check-ref-format'",
 			wantMsg: "That isn't a valid branch name. Branch names can't contain spaces or any of ~ ^ : ? * [ \\.",
@@ -205,6 +215,42 @@ func TestWrapResultUnknownFailureFallsBackToGenericMessage(t *testing.T) {
 	}
 	if err.Detail != stderr {
 		t.Fatalf("expected raw detail preserved for unknown errors, got %q", err.Detail)
+	}
+}
+
+func TestWrapResultUnknownFailureNamesGitsReason(t *testing.T) {
+	tests := []struct {
+		name    string
+		stderr  string
+		wantMsg string
+	}{
+		{
+			name:    "fatal line after hints",
+			stderr:  "hint: Disable this message with \"git config advice.x false\"\nfatal: unable to write new index file",
+			wantMsg: "Git command failed: unable to write new index file",
+		},
+		{
+			name:    "first of several error lines",
+			stderr:  "error: unable to unlink old 'a.txt': Permission denied\nerror: unable to unlink old 'b.txt': Permission denied",
+			wantMsg: "Git command failed: unable to unlink old 'a.txt': Permission denied",
+		},
+		{
+			name:    "plain line",
+			stderr:  "some completely novel git error\nsecond line",
+			wantMsg: "Git command failed: some completely novel git error",
+		},
+		{
+			name:    "nothing on stderr",
+			stderr:  "",
+			wantMsg: "Git command failed.",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := WrapResult(Result{Stderr: tt.stderr}).Message; got != tt.wantMsg {
+				t.Fatalf("Message = %q, want %q", got, tt.wantMsg)
+			}
+		})
 	}
 }
 

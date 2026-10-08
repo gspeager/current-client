@@ -48,15 +48,11 @@ func (s *IdentityService) GetCurrentUser(repoPath string) CurrentUserInfo {
 }
 
 func (s *IdentityService) SetIdentityColor(name, email, color string) error {
-	cfg, path, err := loadCurrentConfig()
-	if err != nil {
+	return updateConfigErr(func(cfg *config.Config) error {
+		colors, err := identity.SetColor(cfg.IdentityColors, name, email, color)
+		cfg.IdentityColors = colors
 		return err
-	}
-	cfg.IdentityColors, err = identity.SetColor(cfg.IdentityColors, name, email, color)
-	if err != nil {
-		return err
-	}
-	return config.Save(path, cfg)
+	})
 }
 
 type GlobalUserInfo struct {

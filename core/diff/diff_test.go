@@ -656,3 +656,88 @@ func TestDiscardStagedHunkRefusesWhenLaterEditsOverlap(t *testing.T) {
 		t.Error("a failed discard changed the working tree or the index")
 	}
 }
+
+func TestWorkingTreeDiffShowsAnUntrackedFileAsAdded(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "committed.txt", "x\n", "initial")
+	if err := os.MkdirAll(filepath.Join(dir, "new dir"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gittest.WriteFile(t, dir, "new dir/f.txt", "a\nb\n")
+
+	fd, err := GetWorkingTreeDiff(context.Background(), dir, "new dir/f.txt", false, false)
+	if err != nil {
+		t.Fatalf("GetWorkingTreeDiff: %v", err)
+	}
+	if fd.NewPath != "new dir/f.txt" || len(fd.Hunks) != 1 {
+		t.Fatalf("diff = %+v, want one hunk for the new file", fd)
+	}
+	var added []string
+	for _, l := range fd.Hunks[0].Lines {
+		if l.Kind == LineAdded {
+			added = append(added, l.Content)
+		}
+	}
+	if strings.Join(added, ",") != "a,b" {
+		t.Fatalf("added lines = %q, want every line of the file", added)
+	}
+}
+
+func TestWorkingTreeDiffOfAnIgnoredFileIsEmpty(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, ".gitignore", "*.log\n", "initial")
+	gittest.WriteFile(t, dir, "debug.log", "noise\n")
+
+	fd, err := GetWorkingTreeDiff(context.Background(), dir, "debug.log", false, false)
+	if err != nil || len(fd.Hunks) != 0 {
+		t.Fatalf("diff = %+v, %v; want nothing for an ignored file", fd, err)
+	}
+}
+
+func TestRenamedIndexDiffShowsOnlyTheEdit(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	var content strings.Builder
+	for i := 1; i <= 20; i++ {
+		fmt.Fprintf(&content, "line %d\n", i)
+	}
+	gittest.CommitFile(t, dir, "old.txt", content.String(), "initial")
+	gittest.Run(t, dir, "mv", "old.txt", "new.txt")
+	gittest.WriteFile(t, dir, "new.txt", strings.Replace(content.String(), "line 10\n", "line ten\n", 1))
+	gittest.Run(t, dir, "add", "new.txt")
+
+	fd, err := GetRenamedIndexDiff(context.Background(), dir, "old.txt", "new.txt", false)
+	if err != nil {
+		t.Fatalf("GetRenamedIndexDiff: %v", err)
+	}
+	if fd.OldPath != "old.txt" || fd.NewPath != "new.txt" {
+		t.Fatalf("paths = %q → %q, want the rename", fd.OldPath, fd.NewPath)
+	}
+	added := 0
+	for _, h := range fd.Hunks {
+		for _, l := range h.Lines {
+			if l.Kind == LineAdded {
+				added++
+			}
+		}
+	}
+	if added != 1 {
+		t.Fatalf("added %d lines, want just the edited one", added)
+	}
+}
+
+func TestRevisionFileSize(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "f.txt", "12345", "initial")
+	gittest.WriteFile(t, dir, "f.txt", "1234567")
+	gittest.Run(t, dir, "add", "f.txt")
+
+	if size, found := RevisionFileSize(context.Background(), dir, "HEAD", "f.txt"); !found || size != 5 {
+		t.Errorf("HEAD size = %d, %v; want 5", size, found)
+	}
+	if size, found := RevisionFileSize(context.Background(), dir, "", "f.txt"); !found || size != 7 {
+		t.Errorf("index size = %d, %v; want 7", size, found)
+	}
+	if _, found := RevisionFileSize(context.Background(), dir, "HEAD", "missing.txt"); found {
+		t.Error("found a file that doesn't exist")
+	}
+}

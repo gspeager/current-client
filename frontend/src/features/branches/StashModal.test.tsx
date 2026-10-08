@@ -31,7 +31,7 @@ describe('StashModal', () => {
     await userEvent.click(await screen.findByRole('button', { name: /tracked\.txt/ }))
 
     await screen.findByText('Binary file changed.')
-    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'tracked.txt', 'stash@{1}^1', 'stash@{1}', false)
+    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'tracked.txt', 'stash@{1}^1', 'stash@{1}', false, false)
   })
 
   it('diffs an untracked file from the stash third parent', async () => {
@@ -40,7 +40,7 @@ describe('StashModal', () => {
     await userEvent.click(await screen.findByRole('button', { name: /new\.txt/ }))
 
     await screen.findByText('Binary file changed.')
-    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'new.txt', EMPTY_TREE_SHA, 'stash@{1}^3', false)
+    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'new.txt', EMPTY_TREE_SHA, 'stash@{1}^3', false, false)
   })
 
   it('shows a changed image from the commit the stash was made on and the stash', async () => {

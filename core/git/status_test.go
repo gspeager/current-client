@@ -2,6 +2,8 @@ package git
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/gspeager/current-client/core/internal/gittest"
@@ -93,6 +95,10 @@ func TestGetStatusRealRepo(t *testing.T) {
 	gittest.WriteFile(t, dir, "staged.txt", "new")
 	gittest.Run(t, dir, "add", "staged.txt") // staged addition
 	gittest.WriteFile(t, dir, "untracked.txt", "new")
+	if err := os.MkdirAll(filepath.Join(dir, "newdir"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gittest.WriteFile(t, dir, "newdir/inside.txt", "new")
 
 	statuses, err := GetStatus(context.Background(), dir)
 	if err != nil {
@@ -112,5 +118,8 @@ func TestGetStatusRealRepo(t *testing.T) {
 	}
 	if got := byPath["untracked.txt"]; got.WorktreeStatus != '?' {
 		t.Fatalf("untracked.txt = %+v, want untracked", got)
+	}
+	if got := byPath["newdir/inside.txt"]; got.WorktreeStatus != '?' {
+		t.Fatalf("statuses = %+v, want the file inside a new folder listed itself", statuses)
 	}
 }

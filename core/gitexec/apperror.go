@@ -28,6 +28,9 @@ const (
 	authFailedMessage        = "Authentication failed. Check the credentials Git uses for this remote."
 )
 
+// The frontend offers Pull (merge) and Pull (rebase) when it sees this.
+const divergedMessage = "This branch and its upstream have diverged. Choose Pull (merge) or Pull (rebase)."
+
 // First match wins.
 var knownErrorPatterns = []struct {
 	stream     outputStream
@@ -64,6 +67,8 @@ var knownErrorPatterns = []struct {
 	// Checkout, merge, pull, cherry-pick and stash pop all refuse this way.
 	{stderrStream, []string{"Your local changes to the following files would be overwritten"}, "Uncommitted changes would be overwritten. Commit or stash them first."},
 	{stderrStream, []string{"untracked working tree files would be overwritten"}, "Untracked files would be overwritten. Move or delete them first."},
+	{stderrStream, []string{"Need to specify how to reconcile divergent branches"}, divergedMessage},
+	{stderrStream, []string{"cannot pull with rebase"}, "Commit or stash changes before pulling with rebase."},
 	{stderrStream, []string{"no tracking information"}, "This branch has no upstream to pull from."},
 	{stderrStream, []string{"has no upstream branch"}, "This branch has no upstream configured."},
 	{stderrStream, []string{"(stale info)"}, "Someone else pushed since your last fetch. Fetch and try again."},
@@ -85,7 +90,33 @@ func WrapResult(result Result) *AppError {
 			}
 		}
 	}
+	if reason := gitReason(stderr); reason != "" {
+		return &AppError{Message: "Git command failed: " + reason, Detail: stderr}
+	}
 	return &AppError{Message: "Git command failed.", Detail: stderr}
+}
+
+// gitReason is the line of an unrecognised failure that says why: the first
+// fatal: line, else the first error: line, else the first line that isn't a hint.
+func gitReason(stderr string) string {
+	var firstError, firstOther string
+	for _, line := range strings.Split(stderr, "\n") {
+		line = strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(line, "fatal: "):
+			return strings.TrimPrefix(line, "fatal: ")
+		case strings.HasPrefix(line, "error: "):
+			if firstError == "" {
+				firstError = strings.TrimPrefix(line, "error: ")
+			}
+		case line != "" && !strings.HasPrefix(line, "hint:") && firstOther == "":
+			firstOther = line
+		}
+	}
+	if firstError != "" {
+		return firstError
+	}
+	return firstOther
 }
 
 func WrapRunError(err error) *AppError {

@@ -141,6 +141,62 @@ func TestDiffPatchForPathsEmptyReturnsEmpty(t *testing.T) {
 	}
 }
 
+func TestImportPatchAppliesAPlainDiffToTheWorkingTree(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1\n", "initial")
+	gittest.WriteFile(t, dir, "file.txt", "v2\n")
+	patch, err := DiffPatch(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("DiffPatch: %v", err)
+	}
+	patchPath := filepath.Join(t.TempDir(), "working-tree.patch")
+	if err := os.WriteFile(patchPath, []byte(patch), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gittest.Run(t, dir, "checkout", "--", "file.txt")
+	head := gittest.Run(t, dir, "rev-parse", "HEAD")
+
+	asCommits, err := ImportPatch(context.Background(), dir, patchPath)
+	if err != nil {
+		t.Fatalf("ImportPatch: %v", err)
+	}
+	if asCommits {
+		t.Error("asCommits = true, want a plain diff applied to the working tree")
+	}
+	if content, _ := os.ReadFile(filepath.Join(dir, "file.txt")); string(content) != "v2\n" {
+		t.Errorf("file.txt = %q, want the patched content", content)
+	}
+	if got := gittest.Run(t, dir, "rev-parse", "HEAD"); got != head {
+		t.Error("HEAD moved; a plain diff mustn't make a commit")
+	}
+}
+
+func TestImportPatchMakesCommitsFromAMailboxPatch(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1\n", "initial")
+	gittest.CommitFile(t, dir, "file.txt", "v2\n", "add v2 line")
+	patch, err := FormatPatch(context.Background(), dir, "HEAD")
+	if err != nil {
+		t.Fatalf("FormatPatch: %v", err)
+	}
+	patchPath := filepath.Join(t.TempDir(), "commit.patch")
+	if err := os.WriteFile(patchPath, []byte(patch), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gittest.Run(t, dir, "reset", "-q", "--hard", "HEAD~1")
+
+	asCommits, err := ImportPatch(context.Background(), dir, patchPath)
+	if err != nil {
+		t.Fatalf("ImportPatch: %v", err)
+	}
+	if !asCommits {
+		t.Error("asCommits = false, want git am to have made a commit")
+	}
+	if subject := gittest.Run(t, dir, "log", "-1", "--format=%s"); subject != "add v2 line" {
+		t.Errorf("HEAD subject = %q, want the patch's commit", subject)
+	}
+}
+
 func TestApplyPatchConflictLeavesConflictState(t *testing.T) {
 	dir, patchPath := initAmConflictRepo(t)
 

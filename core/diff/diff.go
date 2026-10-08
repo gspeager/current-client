@@ -64,11 +64,46 @@ func GetWorkingTreeDiff(ctx context.Context, repoPath, path string, force, ignor
 			return FileDiff{TooLarge: true, SizeBytes: info.Size()}, nil
 		}
 	}
-	return runDiff(ctx, repoPath, diffArgs(nil, ignoreWhitespace, path))
+	fd, err := runDiff(ctx, repoPath, diffArgs(nil, ignoreWhitespace, path))
+	if err != nil || len(fd.Hunks) > 0 || fd.Binary || !isUntracked(ctx, repoPath, path) {
+		return fd, err
+	}
+	return untrackedDiff(ctx, repoPath, path)
+}
+
+func isUntracked(ctx context.Context, repoPath, path string) bool {
+	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+		Dir:  repoPath,
+		Args: []string{"ls-files", "--others", "--exclude-standard", "--", path},
+	})
+	return err == nil && strings.TrimSpace(result.Stdout) != ""
+}
+
+// untrackedDiff shows a file git doesn't track yet as entirely added. git
+// diff --no-index exits 1 when there are differences, so that isn't failure.
+func untrackedDiff(ctx context.Context, repoPath, path string) (FileDiff, error) {
+	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+		Dir:  repoPath,
+		Args: []string{"diff", "--no-color", "--no-index", "--", "/dev/null", path},
+	})
+	if err != nil {
+		return FileDiff{}, gitexec.WrapRunError(err)
+	}
+	if result.ExitCode > 1 {
+		return FileDiff{}, gitexec.WrapResult(result)
+	}
+	return ParseUnifiedDiff(result.Stdout)
 }
 
 func GetIndexDiff(ctx context.Context, repoPath, path string, ignoreWhitespace bool) (FileDiff, error) {
 	return runDiff(ctx, repoPath, diffArgs([]string{"--cached"}, ignoreWhitespace, path))
+}
+
+// GetRenamedIndexDiff is GetIndexDiff for a staged rename: given both paths,
+// git pairs them and shows only what changed, rather than the whole file as new.
+func GetRenamedIndexDiff(ctx context.Context, repoPath, origPath, path string, ignoreWhitespace bool) (FileDiff, error) {
+	args := diffArgs([]string{"--cached", "-M"}, ignoreWhitespace, origPath)
+	return runDiff(ctx, repoPath, append(args, path))
 }
 
 // An empty toRef compares fromRef against the working tree, not a second ref.
@@ -127,7 +162,8 @@ type applyOptions struct {
 }
 
 func applyHunk(ctx context.Context, repoPath, path, hunkText string, opts applyOptions) error {
-	patch := "diff --git a/" + path + " b/" + path + "\n--- a/" + path + "\n+++ b/" + path + "\n" + hunkText
+	oldPath, newPath := patchPaths(ctx, repoPath, path, hunkText, opts)
+	patch := "diff --git a/" + path + " b/" + path + "\n--- " + oldPath + "\n+++ " + newPath + "\n" + hunkText
 
 	args := []string{"apply"}
 	if opts.cached {
@@ -147,6 +183,46 @@ func applyHunk(ctx context.Context, repoPath, path, hunkText string, opts applyO
 		Stdin: strings.NewReader(patch),
 	})
 	return err
+}
+
+// patchPaths names a side of the patch /dev/null when the file doesn't exist
+// there and the hunk leaves that side empty, so git apply adds or removes the
+// file instead of leaving an empty one behind (unstaging a new file's only
+// hunk, staging a deletion). An existing empty file keeps its name.
+func patchPaths(ctx context.Context, repoPath, path, hunkText string, opts applyOptions) (oldPath, newPath string) {
+	oldPath, newPath = "a/"+path, "b/"+path
+	m := hunkHeaderPattern.FindStringSubmatch(hunkText)
+	if m == nil {
+		return oldPath, newPath
+	}
+	// The hunk is HEAD→index for unstaging and discarding a staged hunk, and
+	// index→working tree otherwise.
+	headToIndex := opts.index || (opts.cached && opts.reverse)
+	if m[1] == "0" && m[2] == "0" {
+		exists := objectExists(ctx, repoPath, ":"+path)
+		if headToIndex {
+			exists = objectExists(ctx, repoPath, "HEAD:"+path)
+		}
+		if !exists {
+			oldPath = "/dev/null"
+		}
+	}
+	if m[3] == "0" && m[4] == "0" {
+		exists := objectExists(ctx, repoPath, ":"+path)
+		if !headToIndex {
+			_, err := os.Lstat(filepath.Join(repoPath, path))
+			exists = err == nil
+		}
+		if !exists {
+			newPath = "/dev/null"
+		}
+	}
+	return oldPath, newPath
+}
+
+func objectExists(ctx context.Context, repoPath, spec string) bool {
+	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "-e", spec}})
+	return err == nil && result.ExitCode == 0
 }
 
 var hunkHeaderPattern = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
@@ -356,7 +432,9 @@ func conflictMarkerRegion(content string) (conflictRegion, bool) {
 	return outsideConflict, false
 }
 
+// Git ends a path containing a space with a tab, to mark where it stops.
 func trimDiffPathPrefix(path string) string {
+	path = strings.TrimSuffix(path, "\t")
 	if path == "/dev/null" {
 		return ""
 	}

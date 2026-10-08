@@ -1,5 +1,6 @@
-import type { CSSProperties, MouseEvent } from 'react'
-import { X } from 'lucide-react'
+import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
+import { Ellipsis, X } from 'lucide-react'
+import { isMenuKey } from '../../components/controls/ContextMenu'
 import Checkbox from '../../components/forms/Checkbox'
 import DiffStat from '../../components/git/DiffStat'
 import PathText from '../../components/git/PathText'
@@ -16,7 +17,7 @@ interface FileRowProps {
   onSelect: (e: MouseEvent) => void
   onSelectMouseDown?: (e: MouseEvent) => void
   onDiscard?: () => void
-  onContextMenu?: (e: MouseEvent) => void
+  onContextMenu?: (e: MouseEvent | KeyboardEvent) => void
   style?: CSSProperties
   indent?: number
   added?: number
@@ -58,7 +59,13 @@ function FileRow({
         onClick={(e) => e.stopPropagation()}
         ariaLabel={checkLabel ?? (checked ? `Unstage ${label}` : `Stage ${label}`)}
       />
-      <button type="button" className="file-row-path" onClick={onSelect} onMouseDown={onSelectMouseDown}>
+      <button
+        type="button"
+        className="file-row-path"
+        onClick={onSelect}
+        onMouseDown={onSelectMouseDown}
+        onKeyDown={(e) => onContextMenu && isMenuKey(e) && onContextMenu(e)}
+      >
         <PathText path={label} />
       </button>
       <span className="file-row-stats">
@@ -66,16 +73,25 @@ function FileRow({
         <DiffStat added={added} removed={removed} binary={binary} />
       </span>
       <StatusBadge status={status} />
-      {onDiscard && (
-        <button
-          type="button"
-          className="file-row-discard"
-          onClick={onDiscard}
-          aria-label={`Discard ${label}`}
-          title="Discard"
-        >
-          <X size={14} strokeWidth={1.5} />
-        </button>
+      {(onContextMenu || onDiscard) && (
+        <span className="file-row-actions">
+          {onContextMenu && (
+            <button type="button" onClick={onContextMenu} aria-label={`More actions for ${label}`} title="More actions">
+              <Ellipsis size={14} strokeWidth={1.5} />
+            </button>
+          )}
+          {onDiscard && (
+            <button
+              type="button"
+              className="file-row-discard"
+              onClick={onDiscard}
+              aria-label={`Discard ${label}`}
+              title="Discard"
+            >
+              <X size={14} strokeWidth={1.5} />
+            </button>
+          )}
+        </span>
       )}
     </div>
   )

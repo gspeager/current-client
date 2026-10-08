@@ -10,7 +10,7 @@ info:
   description: "A privacy-first Git client"
   copyright: "Copyright 2026 Garrett Speager"
   comments: "Licensed under the Apache License 2.0"
-  version: "0.2.0"
+  version: "0.2.1"
 
 dev_mode:
   root_path: .

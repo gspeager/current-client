@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .file-row {
   position: relative;
   display: grid;
@@ -12,10 +14,15 @@
   &:hover {
     background: var(--surface-container);
 
-    .file-row-discard {
+    .file-row-actions {
       opacity: 1;
     }
   }
+}
+
+.file-row-actions {
+  @include patterns.row-actions;
+  right: var(--space-sm);
 }
 
 .file-row-selected {
@@ -34,24 +41,8 @@
   cursor: pointer;
 }
 
-.file-row-discard {
-  position: absolute;
-  right: var(--space-sm);
-  top: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 100%;
-  opacity: 0;
-  background: var(--surface-container);
-  border: none;
-  color: var(--outline);
-  cursor: pointer;
-
-  &:hover {
-    color: var(--error);
-  }
+.file-row-actions .file-row-discard:hover:not(:disabled) {
+  color: var(--error);
 }
 
 .file-row-stats {

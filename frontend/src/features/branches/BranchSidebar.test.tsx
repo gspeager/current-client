@@ -1,6 +1,12 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, OverlapService, RemoteService, type BranchInfo } from '@current-client-bindings/app'
+import {
+  BranchService,
+  OverlapService,
+  RemoteService,
+  type BranchInfo,
+  type BranchStatusInfo,
+} from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchSidebar from './BranchSidebar'
 
@@ -258,6 +264,29 @@ describe('BranchSidebar', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
     expect(BranchService.MergeBranch).not.toHaveBeenCalled()
+  })
+
+  it('opens a branch menu from its More actions button and from Shift+F10', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('spike')])
+    renderSidebar()
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'More actions for spike' }))
+    expect(await screen.findByRole('button', { name: 'Checkout' })).toHaveFocus()
+    expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
+    await user.keyboard('{Escape}')
+
+    screen.getByRole('button', { name: /^main/ }).focus()
+    await user.keyboard('{Shift>}{F10}{/Shift}')
+    expect(await screen.findByRole('button', { name: 'Set upstream…' })).toBeInTheDocument()
+  })
+
+  it('names the branch a new repository is on instead of saying it has none', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([])
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main' } as BranchStatusInfo)
+    renderSidebar()
+
+    expect(await screen.findByText('No commits on main yet.')).toBeInTheDocument()
   })
 
   it('shows why branches could not load', async () => {

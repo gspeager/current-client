@@ -75,3 +75,30 @@ func TestCommitActivityIncludesAllBranches(t *testing.T) {
 		t.Fatalf("got %+v, want a single day with both branches' commits counted", got)
 	}
 }
+
+func TestCommitActivityAndChurnLeaveOutStashes(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	todayStr := time.Now().Format("2006-01-02")
+	commitOnDate(t, dir, "main.txt", todayStr)
+	gittest.WriteFile(t, dir, "main.txt", "work in progress")
+	gittest.WriteFile(t, dir, "scratch.txt", "untracked")
+	gittest.Run(t, dir, "stash", "push", "-u")
+
+	activity, err := CommitActivity(context.Background(), dir, 1)
+	if err != nil {
+		t.Fatalf("CommitActivity: %v", err)
+	}
+	if len(activity) != 1 || activity[0].Commits != 1 {
+		t.Fatalf("activity = %+v, want only the one real commit", activity)
+	}
+
+	churn, err := ComputeFileChurn(context.Background(), dir, 1, 10)
+	if err != nil {
+		t.Fatalf("ComputeFileChurn: %v", err)
+	}
+	for _, c := range churn {
+		if c.Path == "scratch.txt" || c.Changes != 1 {
+			t.Fatalf("churn = %+v, want main.txt once and nothing from the stash", churn)
+		}
+	}
+}

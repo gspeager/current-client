@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -10,15 +11,15 @@ import (
 )
 
 func TestParseReflogFixture(t *testing.T) {
-	output := "sha1\x1fHEAD@{0}\x1freset: moving to sha1\x1f1000\x1fv2\x00" +
-		"sha2\x1fHEAD@{1}\x1fcommit: v3\x1f2000\x1fv3\x00"
+	output := "sha1\x1fHEAD@{2000}\x1freset: moving to sha1\x1fv2\x00" +
+		"sha2\x1fHEAD@{1000}\x1fcommit: v3\x1fv3\x00"
 	got, err := parseReflog(output)
 	if err != nil {
 		t.Fatalf("parseReflog: %v", err)
 	}
 	want := []ReflogEntry{
-		{SHA: "sha1", Selector: "HEAD@{0}", Action: "reset: moving to sha1", Date: time.Unix(1000, 0), Subject: "v2"},
-		{SHA: "sha2", Selector: "HEAD@{1}", Action: "commit: v3", Date: time.Unix(2000, 0), Subject: "v3"},
+		{SHA: "sha1", Selector: "HEAD@{0}", Action: "reset: moving to sha1", Date: time.Unix(2000, 0), Subject: "v2"},
+		{SHA: "sha2", Selector: "HEAD@{1}", Action: "commit: v3", Date: time.Unix(1000, 0), Subject: "v3"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v, want %+v", got, want)
@@ -69,5 +70,34 @@ func TestReflogRecoversCommitLostToHardReset(t *testing.T) {
 	recoveredHead := gittest.Run(t, dir, "rev-parse", "recovered")
 	if recoveredHead != v2SHA {
 		t.Fatalf("recovered branch HEAD = %q, want %q", recoveredHead, v2SHA)
+	}
+}
+
+// An entry is dated by when it happened, not by the commit it moved to: checking out an old
+// commit today is today's entry.
+func TestReflogDatesEntriesByWhenTheyHappened(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "v1")
+	gittest.Run(t, dir, "commit", "-q", "--amend", "--no-edit", "--date=2001-02-03T04:05:06Z")
+	old := gittest.Run(t, dir, "rev-parse", "HEAD")
+	gittest.CommitFile(t, dir, "file.txt", "v2", "v2")
+	before := time.Now().Add(-time.Minute)
+	gittest.Run(t, dir, "checkout", "-q", old)
+
+	entries, err := Reflog(context.Background(), dir, 0)
+	if err != nil {
+		t.Fatalf("Reflog: %v", err)
+	}
+	checkout := entries[0]
+	if checkout.SHA != old || checkout.Selector != "HEAD@{0}" || checkout.Date.Before(before) {
+		t.Fatalf("newest entry = %+v, want the checkout of %s dated now, not 2001", checkout, old)
+	}
+	for i, e := range entries {
+		if e.Selector != fmt.Sprintf("HEAD@{%d}", i) {
+			t.Errorf("entry %d's selector = %q", i, e.Selector)
+		}
+		if i > 0 && e.Date.After(entries[i-1].Date) {
+			t.Errorf("entry %d (%s) is newer than the one before it", i, e.Date)
+		}
 	}
 }

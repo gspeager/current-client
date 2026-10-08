@@ -1,12 +1,12 @@
 {
 	"fixed": {
-		"file_version": "0.2.0",
-		"product_version": "0.2.0"
+		"file_version": "0.2.1",
+		"product_version": "0.2.1"
 	},
 	"info": {
 		"0409": {
-			"FileVersion": "0.2.0",
-			"ProductVersion": "0.2.0",
+			"FileVersion": "0.2.1",
+			"ProductVersion": "0.2.1",
 			"CompanyName": "Garrett Speager",
 			"FileDescription": "A privacy-first Git client",
 			"LegalCopyright": "Copyright 2026 Garrett Speager",

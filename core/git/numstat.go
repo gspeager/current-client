@@ -34,7 +34,11 @@ func IndexNumstat(ctx context.Context, repoPath string) ([]NumstatEntry, error) 
 // CommitNumstat passes -M so a renamed-and-edited file counts as a small edit
 // rather than a full delete plus a full add.
 func CommitNumstat(ctx context.Context, repoPath, sha string) ([]NumstatEntry, error) {
-	result, err := runResult(ctx, repoPath, "diff-tree", "--no-commit-id", "-M", "--numstat", "-r", "-z", "--root", sha)
+	trees, err := commitTrees(ctx, repoPath, sha)
+	if err != nil {
+		return nil, err
+	}
+	result, err := runResult(ctx, repoPath, append([]string{"diff-tree", "--no-commit-id", "-M", "--numstat", "-r", "-z", "--root"}, trees...)...)
 	if err != nil {
 		return nil, err
 	}

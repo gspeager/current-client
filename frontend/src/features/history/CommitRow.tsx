@@ -1,8 +1,11 @@
-import type { CSSProperties, MouseEvent } from 'react'
+import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
+import { Ellipsis } from 'lucide-react'
+import { isMenuKey } from '../../components/controls/ContextMenu'
 import { parsePrefix } from '../../lib/conventionalCommit'
 import { highlightMatch } from '../../lib/highlightMatch'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import type { CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
 import CommitGraph from './CommitGraph'
 import IdentityBadge from '../../components/git/IdentityBadge'
@@ -26,7 +29,7 @@ interface CommitRowProps {
   conventional?: boolean
   style: CSSProperties
   onSelect: () => void
-  onContextMenu: (e: MouseEvent) => void
+  onContextMenu: (e: MouseEvent | KeyboardEvent) => void
 }
 
 function CommitRow({
@@ -48,6 +51,7 @@ function CommitRow({
   onSelect,
   onContextMenu,
 }: CommitRowProps) {
+  useClockTick()
   const { laneColor } = useLaneColors()
   const prefix = (conventional && parsePrefix(commit.subject)?.prefix) || ''
   const classes = ['commit-row']
@@ -63,6 +67,11 @@ function CommitRow({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
+        if (isMenuKey(e)) {
+          onContextMenu(e)
+          return
+        }
+        if (e.target !== e.currentTarget) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onSelect()
@@ -104,6 +113,17 @@ function CommitRow({
         <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
         <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
       </div>
+
+      <span className="commit-row-actions">
+        <button
+          type="button"
+          onClick={onContextMenu}
+          aria-label={`More actions for ${commit.sha.slice(0, 7)}`}
+          title="More actions"
+        >
+          <Ellipsis size={16} strokeWidth={1.75} />
+        </button>
+      </span>
     </div>
   )
 }

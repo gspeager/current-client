@@ -4,7 +4,6 @@ import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
 import { GitService, HistoryService, PlatformService } from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
-import ContextualNudges from './features/remotes/ContextualNudges'
 import HeaderBar from './components/chrome/HeaderBar'
 import KeepAlive from './components/chrome/KeepAlive'
 import NavPane from './components/chrome/NavPane'
@@ -19,7 +18,7 @@ import { useAutoFetch } from './features/remotes/useAutoFetch'
 import { useConflictState } from './features/branches/useConflictState'
 import { useFileWatcher } from './features/repositories/useFileWatcher'
 import { useLastFetchTime } from './features/remotes/useLastFetchTime'
-import { useRemoteSync } from './features/remotes/useRemoteSync'
+import { DIVERGED, useRemoteSync } from './features/remotes/useRemoteSync'
 import { useRepositoryLifecycle } from './features/repositories/useRepositoryLifecycle'
 import { useResizableWidth } from './lib/useResizableWidth'
 import { useSettings } from './features/settings/useSettings'
@@ -73,7 +72,11 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
   const bumpRepoVersion = () => setRepoVersion((v) => v + 1)
-  const { pull, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, bumpRepoVersion)
+  // A pull fetches too, so it moves "fetched … ago" as well as the branch.
+  const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, () => {
+    bumpRepoVersion()
+    reloadLastFetchTime()
+  })
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
@@ -96,11 +99,13 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   }
 
   // Only ref moves bump repoVersion, since that remounts History and refetches Activity.
+  // A fetch from a terminal moves remote branches, so it also updates the fetch time.
   const onFileWatcherChanged = (refChanged: boolean) => {
     workingTree.loadStatus()
     reloadConflictState()
     if (refChanged) {
       bumpRepoVersion()
+      reloadLastFetchTime()
     }
   }
 
@@ -159,6 +164,13 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     onBranchChanged()
   }
 
+  const resetNotice = settings.resetNotice && (
+    <p className="app-inline-error">
+      {settings.resetNotice}
+      <button onClick={settings.dismissResetNotice}>Dismiss</button>
+    </p>
+  )
+
   // Without a usable git nothing else works, so it takes over even with a repo open.
   if (!repo.repoPath || gitError) {
     return (
@@ -176,6 +188,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           </button>
         </div>
         <h1>Current Client</h1>
+        {resetNotice}
         {gitError ? (
           <>
             <p className="app-welcome-status app-welcome-status-error">{gitError}</p>
@@ -222,6 +235,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             dirty={dirty}
             onOpenSettings={() => setSettingsOpen(true)}
             onPull={pull}
+            onPullMerge={pullMerge}
             onPullRebase={pullRebase}
             onPush={push}
             onForcePush={() => void forcePush()}
@@ -242,10 +256,9 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             />
           )}
 
-          <ContextualNudges repoPath={repo.repoPath} repoVersion={repoVersion} onPush={push} onPull={pull} />
-
           {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
 
+          {resetNotice}
           {pullOp.running && (
             <p className="app-inline-notice">
               Pulling… <button onClick={pullOp.cancel}>Cancel</button>
@@ -256,7 +269,17 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               Pushing… <button onClick={pushOp.cancel}>Cancel</button>
             </p>
           )}
-          {pullOp.error && <p className="app-inline-error">Could not pull: {pullOp.error}</p>}
+          {pullOp.error && (
+            <p className="app-inline-error">
+              Could not pull: {pullOp.error}
+              {pullOp.error === DIVERGED && (
+                <>
+                  <button onClick={pullMerge}>Pull (merge)</button>
+                  <button onClick={pullRebase}>Pull (rebase)</button>
+                </>
+              )}
+            </p>
+          )}
           {pushOp.error && <p className="app-inline-error">Could not push: {pushOp.error}</p>}
 
           <div className="app-body">

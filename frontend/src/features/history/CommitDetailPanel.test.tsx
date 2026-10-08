@@ -69,7 +69,7 @@ describe('CommitDetailPanel', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Commit abc1234' })
     expect(within(dialog).getByText('feat: a change with a long description')).toBeInTheDocument()
     expect(await within(dialog).findByText(diffLine('in src/new.ts'))).toBeInTheDocument()
-    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'src/new.ts', '0001112223334', commit.sha, false)
+    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'src/new.ts', '0001112223334', commit.sha, false, false)
 
     await userEvent.click(within(dialog).getByRole('button', { name: /src\/app\.ts/ }))
     expect(await within(dialog).findByText(diffLine('in src/app.ts'))).toBeInTheDocument()
@@ -78,5 +78,24 @@ describe('CommitDetailPanel', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     // The narrow pane no longer shows a diff of its own.
     expect(screen.queryByText(diffLine('in src/app.ts'))).not.toBeInTheDocument()
+  })
+
+  it("says a merge's files are compared with its first parent", async () => {
+    vi.mocked(HistoryService.GetChangedFiles).mockResolvedValue([new ChangedFile({ status: 'A', path: 'feature.ts' })])
+    const merge = new CommitInfo({ ...commit, parentShas: ['aaaaaaa1111', 'bbbbbbb2222'], body: '' })
+    render(
+      <DialogProvider>
+        <CommitDetailPanel
+          repoPath={REPO}
+          commit={merge}
+          colorError={null}
+          onColorChange={vi.fn()}
+          onCreateBranchHere={vi.fn()}
+        />
+      </DialogProvider>,
+    )
+
+    expect(await screen.findByRole('button', { name: /feature\.ts/ })).toBeInTheDocument()
+    expect(screen.getByText('Compared with the first parent, aaaaaaa.')).toBeInTheDocument()
   })
 })

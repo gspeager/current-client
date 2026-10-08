@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, ChevronDown, Plus, RefreshCw, Settings, X } from 'l
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
 import Checkbox from '../forms/Checkbox'
+import ContextMenu, { type ContextMenuState } from '../controls/ContextMenu'
 import FileHistoryPanel from '../../features/history/FileHistoryPanel'
 import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
@@ -13,6 +14,7 @@ import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
 import { baseName } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
 import QuickSwitchPalette from './QuickSwitchPalette'
@@ -32,6 +34,7 @@ interface HeaderBarProps {
   dirty: boolean
   onOpenSettings: () => void
   onPull: () => void
+  onPullMerge: () => void
   onPullRebase: () => void
   onPush: () => void
   onForcePush: () => void
@@ -53,6 +56,7 @@ function HeaderBar({
   dirty,
   onOpenSettings,
   onPull,
+  onPullMerge,
   onPullRebase,
   onPush,
   onForcePush,
@@ -62,6 +66,7 @@ function HeaderBar({
   syncing,
   accessory,
 }: HeaderBarProps) {
+  useClockTick()
   const { branchColor } = useLaneColors()
   const currentUser = useCurrentUser(repoPath)
   const branchStatus = useBranchStatus(repoPath, repoVersion)
@@ -73,6 +78,7 @@ function HeaderBar({
   const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [pullMenu, setPullMenu] = useState<ContextMenuState | null>(null)
   const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null)
   const branchSwitcherRef = useRef<HTMLDetailsElement>(null)
 
@@ -210,16 +216,39 @@ function HeaderBar({
       </div>
 
       {branchStatus && branchStatus.behind > 0 && (
-        <button
-          type="button"
-          className="header-bar-sync header-bar-sync-behind"
-          onClick={syncing ? undefined : (e) => (e.shiftKey ? onPullRebase() : onPull())}
-          title="Pull (shift-click to rebase)"
-        >
-          <ArrowDown size={12} strokeWidth={1.5} />
-          Pull {branchStatus.behind}
-        </button>
+        <span className="header-bar-sync-group">
+          <button
+            type="button"
+            className="header-bar-sync header-bar-sync-behind"
+            onClick={syncing ? undefined : (e) => (e.shiftKey ? onPullRebase() : onPull())}
+            title="Pull (shift-click to rebase)"
+          >
+            <ArrowDown size={12} strokeWidth={1.5} />
+            Pull {branchStatus.behind}
+          </button>
+          <button
+            type="button"
+            className="header-bar-sync header-bar-sync-behind header-bar-sync-more"
+            aria-label="Pull options"
+            title="Pull options"
+            disabled={syncing}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              setPullMenu({
+                x: rect.left,
+                y: rect.bottom + 4,
+                items: [
+                  { label: 'Pull (merge)', onClick: onPullMerge },
+                  { label: 'Pull (rebase)', onClick: onPullRebase },
+                ],
+              })
+            }}
+          >
+            <ChevronDown size={12} strokeWidth={1.5} />
+          </button>
+        </span>
       )}
+      {pullMenu && <ContextMenu state={pullMenu} onClose={() => setPullMenu(null)} />}
 
       {branchStatus && branchStatus.ahead > 0 && (
         <button
@@ -286,6 +315,7 @@ function HeaderBar({
           onBranchChanged={onBranchChanged}
           onOpenSettings={onOpenSettings}
           onPull={onPull}
+          onPullMerge={onPullMerge}
           onPullRebase={onPullRebase}
           onPush={onPush}
           onFetchAll={fetchAllOp.fetchAll}

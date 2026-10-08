@@ -68,6 +68,8 @@ function ChangesView({
   const headCommit = useHeadCommit(repoPath)
   const filesWidth = useResizableWidth('pane-width-changes-files', 318, 240, 640)
   const showsStaged = openSection === 'staged'
+  // A new file's diff is the whole file: it's staged or discarded as a file, not by hunk.
+  const untracked = !showsStaged && unstaged.some((f) => f.path === selectedPath && f.worktreeStatus === '?')
 
   const selectPath = (path: string | null) => {
     setSelectedPath(path)
@@ -82,14 +84,16 @@ function ChangesView({
   // Large files load only after an explicit request, and only for that file.
   // Every status reload (file watcher, staging, hunk actions) also refreshes the open diff.
   const force = forcedPath !== null && forcedPath === selectedPath
+  // A staged rename is diffed from its old path, so only the edit shows.
+  const origPath = (showsStaged && staged.find((f) => f.path === selectedPath)?.origPath) || ''
   const { data: diff, error: diffError } = useAsyncData(
     () => {
       if (!selectedPath) return null
       return showsStaged
-        ? DiffService.GetIndexDiff(repoPath, selectedPath, ignoreWhitespace)
+        ? DiffService.GetIndexDiff(repoPath, selectedPath, origPath, force, ignoreWhitespace)
         : DiffService.GetWorkingTreeDiff(repoPath, selectedPath, force, ignoreWhitespace)
     },
-    [repoPath, selectedPath, showsStaged, ignoreWhitespace, force],
+    [repoPath, selectedPath, showsStaged, origPath, ignoreWhitespace, force],
     { refreshKey: files },
   )
 
@@ -254,13 +258,13 @@ function ChangesView({
                 baseSide={
                   showsStaged
                     ? { label: 'HEAD · working tree base', sha: headCommit?.sha.slice(0, 7) }
-                    : { label: 'Staged index' }
+                    : { label: untracked ? 'Untracked' : 'Staged index' }
                 }
                 targetSide={showsStaged ? { label: 'Staged index' } : { label: 'Working tree' }}
-                onStageHunk={showsStaged ? undefined : stageHunk}
+                onStageHunk={showsStaged || untracked ? undefined : stageHunk}
                 onUnstageHunk={showsStaged ? unstageHunk : undefined}
-                onDiscardHunk={discardHunk}
-                canDiscardLines={!showsStaged}
+                onDiscardHunk={untracked ? undefined : discardHunk}
+                canDiscardLines={!showsStaged && !untracked}
                 onForceLoad={() => setForcedPath(selectedPath)}
                 repoPath={repoPath}
                 images={{

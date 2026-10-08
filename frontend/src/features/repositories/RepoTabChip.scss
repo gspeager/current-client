@@ -20,6 +20,21 @@
   }
 }
 
+.header-bar-tab-open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 .header-bar-tab-dot {
   flex-shrink: 0;
   width: 6px;

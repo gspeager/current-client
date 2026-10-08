@@ -83,6 +83,18 @@ describe('HistoryView', () => {
     expect(HistoryService.GetChangedFiles).toHaveBeenCalledWith(REPO, history[0].sha)
   })
 
+  it('opens a commit menu with Shift+F10 on the focused row', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    renderHistory()
+    const user = userEvent.setup()
+
+    ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
+    await user.keyboard('{Shift>}{F10}{/Shift}')
+
+    expect(await screen.findByRole('button', { name: 'Copy SHA' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Reset (hard) to here' })).toBeInTheDocument()
+  })
+
   it('shows why history could not load', async () => {
     vi.mocked(HistoryService.GetHistory).mockRejectedValue(new Error('Not a git repository.'))
     renderHistory()

@@ -15,10 +15,11 @@ export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, 
 
   const discardFile = async (f: FileStatus) => {
     const untracked = f.indexStatus === '?'
+    const folder = f.path.endsWith('/')
     const confirmed = await confirm({
-      title: untracked ? 'Delete file' : 'Discard changes',
+      title: untracked ? (folder ? 'Delete folder' : 'Delete file') : 'Discard changes',
       message: untracked
-        ? `Delete ${f.path}? This cannot be undone.`
+        ? `Delete ${f.path}${folder ? ' and everything in it' : ''}? This cannot be undone.`
         : `Discard changes to ${f.path}? This cannot be undone.`,
       confirmLabel: untracked ? 'Delete' : 'Discard',
       destructive: true,
