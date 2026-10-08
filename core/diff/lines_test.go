@@ -79,6 +79,70 @@ func TestUnstageLinesUnstagesOnlyTheSelection(t *testing.T) {
 	}
 }
 
+func TestUnstageHunkOfANewFileUnstagesTheFile(t *testing.T) {
+	ctx := context.Background()
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "other.txt", "x\n", "initial")
+	gittest.WriteFile(t, dir, "f.txt", "a\nb\n")
+	gittest.Run(t, dir, "add", "f.txt")
+	fd, _ := GetIndexDiff(ctx, dir, "f.txt", false)
+
+	if err := UnstageHunk(ctx, dir, "f.txt", onlyHunk(t, fd)); err != nil {
+		t.Fatalf("UnstageHunk: %v", err)
+	}
+	if got := gittest.Run(t, dir, "status", "--porcelain", "f.txt"); got != "?? f.txt" {
+		t.Fatalf("status = %q, want the file untracked again, not an empty file staged", got)
+	}
+}
+
+func TestUnstageSomeLinesOfANewFileKeepsTheRestStaged(t *testing.T) {
+	ctx := context.Background()
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "other.txt", "x\n", "initial")
+	gittest.WriteFile(t, dir, "f.txt", "a\nb\n")
+	gittest.Run(t, dir, "add", "f.txt")
+	fd, _ := GetIndexDiff(ctx, dir, "f.txt", false)
+
+	if err := UnstageLines(ctx, dir, "f.txt", onlyHunk(t, fd), LineSelection{Added: []int{2}}); err != nil {
+		t.Fatalf("UnstageLines: %v", err)
+	}
+	if got := gittest.Run(t, dir, "show", ":f.txt"); got != "a" {
+		t.Fatalf("index = %q, want only the first line still staged", got)
+	}
+}
+
+func TestStageHunkOfADeletedFileStagesTheDeletion(t *testing.T) {
+	ctx := context.Background()
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "f.txt", "a\nb\n", "initial")
+	if err := os.Remove(filepath.Join(dir, "f.txt")); err != nil {
+		t.Fatal(err)
+	}
+	fd, _ := GetWorkingTreeDiff(ctx, dir, "f.txt", false, false)
+
+	if err := StageHunk(ctx, dir, "f.txt", onlyHunk(t, fd)); err != nil {
+		t.Fatalf("StageHunk: %v", err)
+	}
+	if got := gittest.Run(t, dir, "status", "--porcelain", "f.txt"); got != "D  f.txt" {
+		t.Fatalf("status = %q, want the deletion staged, not an empty file", got)
+	}
+}
+
+func TestStageHunkIntoAnExistingEmptyFile(t *testing.T) {
+	ctx := context.Background()
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "f.txt", "", "initial")
+	gittest.WriteFile(t, dir, "f.txt", "a\n")
+	fd, _ := GetWorkingTreeDiff(ctx, dir, "f.txt", false, false)
+
+	if err := StageHunk(ctx, dir, "f.txt", onlyHunk(t, fd)); err != nil {
+		t.Fatalf("StageHunk: %v", err)
+	}
+	if got := gittest.Run(t, dir, "status", "--porcelain", "f.txt"); got != "M  f.txt" {
+		t.Fatalf("status = %q, want the edit staged", got)
+	}
+}
+
 func TestDiscardLinesRevertsOnlyTheSelectionInTheWorkingTree(t *testing.T) {
 	ctx := context.Background()
 	dir := initLinesRepo(t)
