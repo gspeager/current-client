@@ -85,8 +85,15 @@ func TestChangedFilesRealRepo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ChangedFiles(merge): %v", err)
 	}
-	if len(mergeFiles) != 0 {
-		t.Fatalf("clean merge commit: got %+v, want empty (matches `git show` default)", mergeFiles)
+	if want := []ChangedFile{{Status: "A", Path: "feature.txt"}}; !reflect.DeepEqual(mergeFiles, want) {
+		t.Fatalf("merge commit: got %+v, want what it brought in from feature, %+v", mergeFiles, want)
+	}
+	mergeStats, err := CommitNumstat(ctx, dir, merge)
+	if err != nil {
+		t.Fatalf("CommitNumstat(merge): %v", err)
+	}
+	if len(mergeStats) != 1 || mergeStats[0].Path != "feature.txt" || mergeStats[0].Added != 1 {
+		t.Fatalf("merge numstat = %+v, want feature.txt +1", mergeStats)
 	}
 }
 

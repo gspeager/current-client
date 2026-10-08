@@ -12,13 +12,31 @@ type ChangedFile struct {
 	OrigPath string
 }
 
-// ChangedFiles returns nothing for a merge commit, matching `git show`.
+// ChangedFiles lists a merge commit's changes against its first parent: what
+// the merge brought in, as Revert and Cherry-pick apply it.
 func ChangedFiles(ctx context.Context, repoPath, sha string) ([]ChangedFile, error) {
-	result, err := runResult(ctx, repoPath, "diff-tree", "--no-commit-id", "--name-status", "-r", "-z", "--root", sha)
+	trees, err := commitTrees(ctx, repoPath, sha)
+	if err != nil {
+		return nil, err
+	}
+	result, err := runResult(ctx, repoPath, append([]string{"diff-tree", "--no-commit-id", "--name-status", "-r", "-z", "--root"}, trees...)...)
 	if err != nil {
 		return nil, err
 	}
 	return parseChangedFiles(result.Stdout)
+}
+
+// commitTrees is what diff-tree compares for a commit: the commit alone, which
+// diffs it against its parent, or a merge's first parent and the merge.
+func commitTrees(ctx context.Context, repoPath, sha string) ([]string, error) {
+	parents, err := runResult(ctx, repoPath, "rev-list", "--parents", "-n", "1", sha)
+	if err != nil {
+		return nil, err
+	}
+	if len(strings.Fields(parents.Stdout)) > 2 {
+		return []string{sha + "^1", sha}, nil
+	}
+	return []string{sha}, nil
 }
 
 // RefRangeChangedFiles compares the two tips directly (not against their
