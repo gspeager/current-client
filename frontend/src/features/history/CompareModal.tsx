@@ -46,7 +46,7 @@ function CompareModal({ repoPath, initialFromRef, initialToRef, onClose }: Compa
           before: { kind: 'commit', rev: fromRef },
           after: { kind: 'commit', rev: toRef },
         })}
-        loadDiff={(file) => DiffService.GetRefDiff(repoPath, file.path, fromRef, toRef, false)}
+        loadDiff={(file, force) => DiffService.GetRefDiff(repoPath, file.path, fromRef, toRef, force, false)}
       />
     </Modal>
   )

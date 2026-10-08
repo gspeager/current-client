@@ -6,6 +6,7 @@ import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
@@ -38,6 +39,7 @@ function loadSwitcher(repoPath: string) {
 }
 
 function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = false }: BranchSwitcherProps) {
+  useClockTick()
   const { branchColor } = useLaneColors()
   const [filter, setFilter] = useState('')
   const { data, error: loadError, reload: load } = useAsyncData(() => loadSwitcher(repoPath), [repoPath])

@@ -95,11 +95,14 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
   }, [])
 
   const pickAndOpen = (run: (path: string) => Promise<string>) => {
-    RepositoryService.PickRepositoryFolder().then((path) => {
-      if (path) {
-        openPath(run(path))
-      }
-    })
+    setRepoError(null)
+    RepositoryService.PickRepositoryFolder()
+      .then((path) => {
+        if (path) {
+          openPath(run(path))
+        }
+      })
+      .catch((err: unknown) => setRepoError(errorMessage(err)))
   }
 
   const openRepository = () => pickAndOpen(RepositoryService.OpenRepository)
@@ -146,11 +149,13 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
   }
 
   const chooseCloneDestination = () => {
-    RepositoryService.PickDestinationFolder().then((path) => {
-      if (path) {
-        setCloneDest(path)
-      }
-    })
+    RepositoryService.PickDestinationFolder()
+      .then((path) => {
+        if (path) {
+          setCloneDest(path)
+        }
+      })
+      .catch((err: unknown) => setRepoError(errorMessage(err)))
   }
 
   const cloneRepository = () => {

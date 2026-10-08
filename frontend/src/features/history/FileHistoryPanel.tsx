@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { DiffService, HistoryService } from '@current-client-bindings/app'
 import { diffBaseFor } from '../diff/diffMapping'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import Modal from '../../components/chrome/Modal'
 import DiffViewer from '../diff/DiffViewer'
@@ -15,18 +16,28 @@ interface FileHistoryPanelProps {
 }
 
 function FileHistoryPanel({ repoPath, path, onClose }: FileHistoryPanelProps) {
+  useClockTick()
   const { data: commits, error } = useAsyncData(
     () => HistoryService.GetFileHistory(repoPath, path, 200, 0),
     [repoPath, path],
   )
   const [selectedSha, setSelectedSha] = useState<string | null>(null)
   const selectedCommit = commits?.find((c) => c.sha === selectedSha)
+  const [forcedSha, setForcedSha] = useState<string | null>(null)
+  const force = selectedSha !== null && forcedSha === selectedSha
   const { data: diff, error: diffError } = useAsyncData(
     () =>
       selectedCommit
-        ? DiffService.GetRefDiff(repoPath, path, diffBaseFor(selectedCommit.parentShas), selectedCommit.sha, false)
+        ? DiffService.GetRefDiff(
+            repoPath,
+            path,
+            diffBaseFor(selectedCommit.parentShas),
+            selectedCommit.sha,
+            force,
+            false,
+          )
         : null,
-    [repoPath, path, selectedCommit],
+    [repoPath, path, selectedCommit, force],
   )
 
   return (
@@ -72,6 +83,7 @@ function FileHistoryPanel({ repoPath, path, onClose }: FileHistoryPanelProps) {
               path={path}
               viewMode="unified"
               repoPath={repoPath}
+              onForceLoad={() => setForcedSha(selectedSha)}
               images={
                 selectedCommit && {
                   repoPath,

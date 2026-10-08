@@ -84,14 +84,16 @@ function ChangesView({
   // Large files load only after an explicit request, and only for that file.
   // Every status reload (file watcher, staging, hunk actions) also refreshes the open diff.
   const force = forcedPath !== null && forcedPath === selectedPath
+  // A staged rename is diffed from its old path, so only the edit shows.
+  const origPath = (showsStaged && staged.find((f) => f.path === selectedPath)?.origPath) || ''
   const { data: diff, error: diffError } = useAsyncData(
     () => {
       if (!selectedPath) return null
       return showsStaged
-        ? DiffService.GetIndexDiff(repoPath, selectedPath, ignoreWhitespace)
+        ? DiffService.GetIndexDiff(repoPath, selectedPath, origPath, force, ignoreWhitespace)
         : DiffService.GetWorkingTreeDiff(repoPath, selectedPath, force, ignoreWhitespace)
     },
-    [repoPath, selectedPath, showsStaged, ignoreWhitespace, force],
+    [repoPath, selectedPath, showsStaged, origPath, ignoreWhitespace, force],
     { refreshKey: files },
   )
 

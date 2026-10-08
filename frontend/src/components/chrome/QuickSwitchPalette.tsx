@@ -30,6 +30,7 @@ import { localNameFor } from '../../features/branches/branches'
 import { useLaneColors } from '../../lib/laneColor'
 import { baseName } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
@@ -167,6 +168,7 @@ function QuickSwitchPalette({
   onSearchFiles,
   onOpenCommit,
 }: QuickSwitchPaletteProps) {
+  useClockTick()
   const { branchColor } = useLaneColors()
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)

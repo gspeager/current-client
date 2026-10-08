@@ -3,6 +3,7 @@ import { Search, SkipForward, Target, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { BisectService, HistoryService, type BisectStatusInfo, type CommitInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { EMPTY_HISTORY_FILTER } from './useCommitHistory'
 import Modal from '../../components/chrome/Modal'
@@ -52,6 +53,7 @@ function Candidate({ sha, commit }: { sha: string; commit: CommitInfo | null }) 
 }
 
 function BisectWizard({ repoPath, onClose, onViewCommit }: BisectWizardProps) {
+  useClockTick()
   const [stage, setStage] = useState<Stage>({ kind: 'loading' })
   const [badRev, setBadRev] = useState('HEAD')
   const [goodRev, setGoodRev] = useState('')

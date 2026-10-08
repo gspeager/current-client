@@ -18,21 +18,30 @@ var ErrFileTooLarge = errors.New("file is too large to read")
 // ReadRevisionFile reads path as it is at rev (any commit-ish), or in the
 // index when rev is "". found is false when path doesn't exist there.
 func ReadRevisionFile(ctx context.Context, repoPath, rev, path string, maxBytes int64) (data []byte, found bool, err error) {
-	object := rev + ":" + path
-	exec := gitexec.NewExecutor("")
-	size, err := exec.RunChecked(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "-s", object}})
-	if err != nil {
-		// cat-file fails the same way for a missing path and a missing rev.
+	size, found := RevisionFileSize(ctx, repoPath, rev, path)
+	if !found {
 		return nil, false, nil
 	}
-	if n, _ := strconv.ParseInt(strings.TrimSpace(size.Stdout), 10, 64); n > maxBytes {
+	if size > maxBytes {
 		return nil, true, ErrFileTooLarge
 	}
-	result, err := exec.RunChecked(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "blob", object}})
+	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "blob", rev + ":" + path}})
 	if err != nil {
 		return nil, true, err
 	}
 	return []byte(result.Stdout), true, nil
+}
+
+// RevisionFileSize is path's size at rev (any commit-ish), or in the index
+// when rev is "". found is false when path doesn't exist there; cat-file fails
+// the same way for a missing path and a missing rev.
+func RevisionFileSize(ctx context.Context, repoPath, rev, path string) (size int64, found bool) {
+	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "-s", rev + ":" + path}})
+	if err != nil {
+		return 0, false
+	}
+	size, err = strconv.ParseInt(strings.TrimSpace(result.Stdout), 10, 64)
+	return size, err == nil
 }
 
 // ReadWorkingFile reads path from the working tree. path must stay inside

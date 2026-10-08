@@ -14,6 +14,7 @@ import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
 import { baseName } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
 import QuickSwitchPalette from './QuickSwitchPalette'
@@ -65,6 +66,7 @@ function HeaderBar({
   syncing,
   accessory,
 }: HeaderBarProps) {
+  useClockTick()
   const { branchColor } = useLaneColors()
   const currentUser = useCurrentUser(repoPath)
   const branchStatus = useBranchStatus(repoPath, repoVersion)

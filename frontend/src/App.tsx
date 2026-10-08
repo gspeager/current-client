@@ -72,7 +72,11 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
   const bumpRepoVersion = () => setRepoVersion((v) => v + 1)
-  const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, bumpRepoVersion)
+  // A pull fetches too, so it moves "fetched … ago" as well as the branch.
+  const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, () => {
+    bumpRepoVersion()
+    reloadLastFetchTime()
+  })
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)

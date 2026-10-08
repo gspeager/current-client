@@ -69,7 +69,7 @@ describe('CommitDetailPanel', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Commit abc1234' })
     expect(within(dialog).getByText('feat: a change with a long description')).toBeInTheDocument()
     expect(await within(dialog).findByText(diffLine('in src/new.ts'))).toBeInTheDocument()
-    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'src/new.ts', '0001112223334', commit.sha, false)
+    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'src/new.ts', '0001112223334', commit.sha, false, false)
 
     await userEvent.click(within(dialog).getByRole('button', { name: /src\/app\.ts/ }))
     expect(await within(dialog).findByText(diffLine('in src/app.ts'))).toBeInTheDocument()

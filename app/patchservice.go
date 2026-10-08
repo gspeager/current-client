@@ -41,8 +41,8 @@ func (s *PatchService) ImportPatch(repoPath string) (string, error) {
 		SetTitle("Import Patch").
 		AddFilter("Patch files", "*.patch;*.diff").
 		PromptForSingleSelection()
-	if err != nil || path == "" {
-		return "", nil
+	if path, err = dialogResult(path, err); err != nil || path == "" {
+		return "", err
 	}
 	asCommits, err := git.ImportPatch(context.Background(), repoPath, path)
 	if err != nil {

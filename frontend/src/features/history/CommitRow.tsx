@@ -5,6 +5,7 @@ import { parsePrefix } from '../../lib/conventionalCommit'
 import { highlightMatch } from '../../lib/highlightMatch'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import type { CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
 import CommitGraph from './CommitGraph'
 import IdentityBadge from '../../components/git/IdentityBadge'
@@ -50,6 +51,7 @@ function CommitRow({
   onSelect,
   onContextMenu,
 }: CommitRowProps) {
+  useClockTick()
   const { laneColor } = useLaneColors()
   const prefix = (conventional && parsePrefix(commit.subject)?.prefix) || ''
   const classes = ['commit-row']

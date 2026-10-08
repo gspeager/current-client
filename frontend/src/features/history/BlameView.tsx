@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BlameService } from '@current-client-bindings/app'
 import { ageIntensity } from './blameAge'
 import { relativeTime } from '../../lib/relativeTime'
+import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import Modal from '../../components/chrome/Modal'
@@ -15,6 +16,7 @@ interface BlameViewProps {
 }
 
 function BlameView({ repoPath, path, onClose }: BlameViewProps) {
+  useClockTick()
   const { data: lines, error } = useAsyncData(() => BlameService.GetBlame(repoPath, path), [repoPath, path])
   const [focusedLine, setFocusedLine] = useState<number | null>(null)
   const currentUser = useCurrentUser(repoPath)
