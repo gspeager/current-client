@@ -1,5 +1,9 @@
-import { useState, type MouseEvent } from 'react'
-import ContextMenu, { type ContextMenuItem, type ContextMenuState } from '../../components/controls/ContextMenu'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import ContextMenu, {
+  menuAnchor,
+  type ContextMenuItem,
+  type ContextMenuState,
+} from '../../components/controls/ContextMenu'
 import BlameView from './BlameView'
 import FileHistoryPanel from './FileHistoryPanel'
 
@@ -10,9 +14,9 @@ export function useFileTools(repoPath: string) {
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
   const [blamePath, setBlamePath] = useState<string | null>(null)
 
-  const openMenu = (e: MouseEvent, items: ContextMenuItem[]) => {
+  const openMenu = (e: MouseEvent | KeyboardEvent, items: ContextMenuItem[]) => {
     e.preventDefault()
-    setContextMenu({ x: e.clientX, y: e.clientY, items })
+    setContextMenu({ ...menuAnchor(e), items })
   }
 
   const pathItems = (path: string, tracked = true): ContextMenuItem[] => [

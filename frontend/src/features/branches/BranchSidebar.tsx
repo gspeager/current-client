@@ -1,5 +1,5 @@
-import { useState, type MouseEvent } from 'react'
-import { GitBranchPlus, Pencil, TriangleAlert, X } from 'lucide-react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { Ellipsis, GitBranchPlus, Pencil, TriangleAlert, X } from 'lucide-react'
 import {
   BranchService,
   GitFlowService,
@@ -8,7 +8,7 @@ import {
   type OverlapInfo,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
-import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
+import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import SetUpstreamDialog from './SetUpstreamDialog'
 import { toBranchName } from '../../lib/branchName'
@@ -185,11 +185,11 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
       .catch((err: unknown) => setActionError(`Could not restore ${branch.name}: ${errorMessage(err)}`))
   }
 
-  const branchContextMenu = (b: BranchInfo) => (e: MouseEvent) => {
+  const branchContextMenu = (b: BranchInfo) => (e: MouseEvent | KeyboardEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
+      ...menuAnchor(e),
       items: [
         { label: 'Checkout', onClick: () => checkoutBranch(b.name), disabled: b.current },
         { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
@@ -305,8 +305,13 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
               onClick={() => !b.current && checkoutBranch(b.name)}
               onContextMenu={branchContextMenu(b)}
               role="button"
-              tabIndex={b.current ? -1 : 0}
+              tabIndex={0}
               onKeyDown={(e) => {
+                if (isMenuKey(e)) {
+                  branchContextMenu(b)(e)
+                  return
+                }
+                if (e.target !== e.currentTarget) return
                 if ((e.key === 'Enter' || e.key === ' ') && !b.current) {
                   e.preventDefault()
                   checkoutBranch(b.name)
@@ -329,6 +334,14 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
                 )}
               </span>
               <span className="branch-row-actions">
+                <button
+                  type="button"
+                  onClick={branchContextMenu(b)}
+                  aria-label={`More actions for ${b.name}`}
+                  title="More actions"
+                >
+                  <Ellipsis size={16} strokeWidth={1.75} />
+                </button>
                 <button
                   type="button"
                   onClick={(e) => {

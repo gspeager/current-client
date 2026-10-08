@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
+import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
 import { PatchService, type FileStatus } from '@current-client-bindings/app'
@@ -233,8 +233,9 @@ function WorkingTreeFileList({
     return items
   }
 
-  const rowContextMenu = (f: FileStatus, section: WorkingTreeSection) => (e: MouseEvent) => {
-    if (isToggleClick(e)) {
+  const rowContextMenu = (f: FileStatus, section: WorkingTreeSection) => (e: MouseEvent | KeyboardEvent) => {
+    e.stopPropagation()
+    if ('button' in e && isToggleClick(e)) {
       e.preventDefault()
       return
     }

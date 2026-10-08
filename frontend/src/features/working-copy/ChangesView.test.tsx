@@ -215,6 +215,19 @@ describe('ChangesView untracked files', () => {
   })
 })
 
+describe('ChangesView file menu', () => {
+  it("opens from a file row's More actions button", async () => {
+    vi.mocked(StatusService.StageFile).mockResolvedValue()
+    renderChanges([file('src/app.ts')])
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'More actions for src/app.ts' }))
+    await user.click(await screen.findByRole('button', { name: 'Stage' }))
+
+    expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
+  })
+})
+
 describe('ChangesView discard', () => {
   it('discards only after confirming', async () => {
     vi.mocked(StatusService.DiscardFile).mockResolvedValue()

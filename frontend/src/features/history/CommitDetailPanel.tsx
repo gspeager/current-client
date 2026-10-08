@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import {
   Check,
   Cherry,
@@ -51,7 +51,8 @@ function CommitDetailPanel({
     [repoPath, commit.sha],
   )
 
-  const fileContextMenu = (f: ChangedFile) => (e: MouseEvent) => fileTools.openMenu(e, fileTools.pathItems(f.path))
+  const fileContextMenu = (f: ChangedFile) => (e: MouseEvent | KeyboardEvent) =>
+    fileTools.openMenu(e, fileTools.pathItems(f.path))
 
   return (
     <section className="commit-detail">

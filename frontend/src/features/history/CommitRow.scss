@@ -12,7 +12,15 @@
 
   &:hover {
     background: var(--surface-container);
+
+    .commit-row-actions {
+      opacity: 1;
+    }
   }
+}
+
+.commit-row-actions {
+  @include patterns.row-actions;
 }
 
 .commit-row-selected {

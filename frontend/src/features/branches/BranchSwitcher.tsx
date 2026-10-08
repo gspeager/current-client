@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { Cloud, GitBranchPlus, RefreshCw, Search, X } from 'lucide-react'
 import { BranchService, RemoteService, StatusService } from '@current-client-bindings/app'
 import { localNameFor } from './branches'
@@ -11,7 +11,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { useFetchAll } from '../remotes/useFetchAll'
 import BranchPill from '../../components/git/BranchPill'
-import ContextMenu, { type ContextMenuState } from '../../components/controls/ContextMenu'
+import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import './BranchSwitcher.scss'
 
 interface BranchSwitcherProps {
@@ -93,6 +93,22 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
     load()
   })
 
+  const remoteMenu = (name: string) => (e: MouseEvent | KeyboardEvent) => {
+    e.preventDefault()
+    setContextMenu({
+      ...menuAnchor(e),
+      items: [
+        { label: 'Checkout', onClick: () => checkoutBranch(localName(name)) },
+        {
+          label: 'Delete on remote…',
+          onClick: () => void deleteRemote.deleteRemoteBranch(name),
+          destructive: true,
+          disabled: deleteRemote.running,
+        },
+      ],
+    })
+  }
+
   const current = localBranches.find((b) => b.current) ?? null
   const query = filter.trim().toLowerCase()
   const filteredLocal = localBranches.filter((b) => !b.current && b.name.toLowerCase().includes(query))
@@ -167,22 +183,8 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
               key={name}
               className="branch-switcher-row branch-switcher-row-remote"
               onClick={() => checkoutBranch(localName(name))}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                setContextMenu({
-                  x: e.clientX,
-                  y: e.clientY,
-                  items: [
-                    { label: 'Checkout', onClick: () => checkoutBranch(localName(name)) },
-                    {
-                      label: 'Delete on remote…',
-                      onClick: () => void deleteRemote.deleteRemoteBranch(name),
-                      destructive: true,
-                      disabled: deleteRemote.running,
-                    },
-                  ],
-                })
-              }}
+              onKeyDown={(e) => isMenuKey(e) && remoteMenu(name)(e)}
+              onContextMenu={remoteMenu(name)}
             >
               <Cloud size={14} strokeWidth={1.5} className="branch-switcher-remote-icon" />
               <span className="branch-switcher-remote-name">{name}</span>
