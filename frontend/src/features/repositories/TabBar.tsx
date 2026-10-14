@@ -12,14 +12,14 @@ interface TabBarProps {
 function TabBar({ active, onChange, showChangelog }: TabBarProps) {
   return (
     <nav className="tab-bar">
-      <Tab active={active === 'activity'} onClick={() => onChange('activity')}>
-        Activity
-      </Tab>
       <Tab active={active === 'working-copy'} onClick={() => onChange('working-copy')}>
         Working Copy
       </Tab>
       <Tab active={active === 'history'} onClick={() => onChange('history')}>
         Branch Graph &amp; History
+      </Tab>
+      <Tab active={active === 'activity'} onClick={() => onChange('activity')}>
+        Activity
       </Tab>
       {showChangelog && (
         <Tab active={active === 'changelog'} onClick={() => onChange('changelog')}>

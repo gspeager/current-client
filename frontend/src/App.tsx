@@ -82,7 +82,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
   const { activeTab: rememberedTab, setActiveTab, restored, remember } = useTabMemory(repo.repoPath)
-  const activeTab = rememberedTab === 'changelog' && !conventionalCommitsOn ? 'activity' : rememberedTab
+  const activeTab = rememberedTab === 'changelog' && !conventionalCommitsOn ? 'working-copy' : rememberedTab
   const { data: conventional } = useAsyncData(
     () => (repo.repoPath ? HistoryService.FollowsConventionalCommits(repo.repoPath) : null),
     [repo.repoPath],

@@ -4,6 +4,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- Repositories open on **Working Copy**, now the first tab, instead of Activity. The tabs are Working Copy, Branch Graph & History, Activity and Changelog. ([#114](https://github.com/gspeager/current-client/issues/114))
+
 ### Fixed
 
 - Pull and push progress and errors show only in the tab of the repository they're for, so switching tabs no longer leaves another repository's "Could not pull" in view. **Pull (merge)** and **Pull (rebase)** in that message pull the repository that diverged, and a pull or push keeps running in a background tab. ([#122](https://github.com/gspeager/current-client/issues/122))
