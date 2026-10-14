@@ -17,18 +17,14 @@ const otherExtensionLabel = "other"
 // LanguageBreakdown folds extensionless files and anything past limit into
 // "other".
 func LanguageBreakdown(ctx context.Context, repoPath string, limit int) ([]LanguageStat, error) {
-	result, err := runResult(ctx, repoPath, "ls-files")
+	files, err := trackedFiles(ctx, repoPath)
 	if err != nil {
 		return nil, err
 	}
 
 	counts := make(map[string]int)
 	var order []string
-	for _, line := range strings.Split(result.Stdout, "\n") {
-		path := strings.TrimSpace(line)
-		if path == "" {
-			continue
-		}
+	for _, path := range files {
 		ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
 		if ext == "" {
 			ext = otherExtensionLabel

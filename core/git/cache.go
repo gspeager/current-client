@@ -26,11 +26,12 @@ var cache = struct {
 	entries map[string]cacheEntry
 }{entries: map[string]cacheEntry{}}
 
-// cachedByRefs keeps read's answer until a ref, HEAD or the config changes,
-// whoever changes it, so callers must treat a returned slice as read-only.
-// Without a stamp (not a repository yet) every call reads.
-func cachedByRefs[T any](ctx context.Context, repoPath, name string, read func() (T, error)) (T, error) {
-	stamp, ok := refsStamp(ctx, repoPath)
+// cachedByRefs keeps read's answer until a ref, HEAD, the config or one of
+// the also files changes, whoever changes it, so callers must treat a
+// returned slice as read-only. Without a stamp (not a repository yet) every
+// call reads.
+func cachedByRefs[T any](ctx context.Context, repoPath, name string, read func() (T, error), also ...string) (T, error) {
+	stamp, ok := refsStamp(ctx, repoPath, also)
 	if !ok {
 		return read()
 	}
@@ -57,11 +58,22 @@ func cachedByRefs[T any](ctx context.Context, repoPath, name string, read func()
 	return value.(T), nil
 }
 
+// shared runs read once for callers that ask at the same time, without
+// keeping the answer, for data that changes without a ref moving.
+func shared[T any](repoPath, name string, read func() (T, error)) (T, error) {
+	value, err, _ := flights.Do(name+"\x00"+repoPath, func() (any, error) { return read() })
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	return value.(T), nil
+}
+
 // refsStamp fingerprints the files git changes when a ref moves: HEAD, loose
 // and packed refs, their reflogs, the config (upstreams) and each worktree's
 // HEAD. Sizes as well as times, since reflogs only grow and a coarse
 // filesystem clock could give two updates the same time.
-func refsStamp(ctx context.Context, repoPath string) (uint64, bool) {
+func refsStamp(ctx context.Context, repoPath string, also []string) (uint64, bool) {
 	dirs, err := gitDirs(ctx, repoPath)
 	if err != nil {
 		return 0, false
@@ -71,12 +83,12 @@ func refsStamp(ctx context.Context, repoPath string) (uint64, bool) {
 	add := func(path string, info fs.FileInfo) {
 		fmt.Fprintf(h, "%s\x00%d\x00%d\n", path, info.Size(), info.ModTime().UnixNano())
 	}
-	for _, path := range []string{
+	for _, path := range append([]string{
 		filepath.Join(gitDir, "HEAD"),
 		filepath.Join(gitDir, "logs", "HEAD"),
 		filepath.Join(commonDir, "packed-refs"),
 		filepath.Join(commonDir, "config"),
-	} {
+	}, also...) {
 		if info, err := os.Stat(path); err == nil {
 			add(path, info)
 		}

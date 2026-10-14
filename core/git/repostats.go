@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -34,11 +35,11 @@ func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	}
 	stats.ContributorCount = len(contributors)
 
-	files, err := runResult(ctx, repoPath, "ls-files")
+	files, err := trackedFiles(ctx, repoPath)
 	if err != nil {
 		return stats, err
 	}
-	stats.FileCount = countNonEmptyLines(files.Stdout)
+	stats.FileCount = len(files)
 
 	firstCommit, err := runResult(ctx, repoPath, "log", "--all", "--format=%at", "--reverse", "-1")
 	if err != nil {
@@ -77,12 +78,24 @@ func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	return stats, nil
 }
 
-func countNonEmptyLines(output string) int {
-	count := 0
-	for _, line := range strings.Split(output, "\n") {
-		if strings.TrimSpace(line) != "" {
-			count++
-		}
+// trackedFiles is cached until the index changes, as Activity's stats and
+// language breakdown both list them.
+func trackedFiles(ctx context.Context, repoPath string) ([]string, error) {
+	gitDir, err := GitDir(ctx, repoPath)
+	if err != nil {
+		return nil, err
 	}
-	return count
+	return cachedByRefs(ctx, repoPath, "tracked-files", func() ([]string, error) {
+		result, err := runResult(ctx, repoPath, "ls-files")
+		if err != nil {
+			return nil, err
+		}
+		var files []string
+		for _, line := range strings.Split(result.Stdout, "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				files = append(files, line)
+			}
+		}
+		return files, nil
+	}, filepath.Join(gitDir, "index"))
 }
