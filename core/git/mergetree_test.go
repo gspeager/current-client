@@ -39,7 +39,44 @@ func TestMergeConflicts(t *testing.T) {
 	}
 }
 
-// Git before 2.38 rejects --write-tree with a usage error, exit 129.
+func TestMergeConflictsManyMatchesOneAtATime(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a\n", "base a")
+	gittest.CommitFile(t, dir, "b.txt", "b\n", "base b")
+	gittest.Run(t, dir, "branch", "same")
+	gittest.Run(t, dir, "switch", "-c", "clean")
+	gittest.CommitFile(t, dir, "c.txt", "c\n", "unrelated file")
+	gittest.Run(t, dir, "switch", "-c", "one", "main")
+	gittest.CommitFile(t, dir, "b.txt", "theirs b\n", "their b")
+	gittest.Run(t, dir, "switch", "-c", "two", "main")
+	gittest.CommitFile(t, dir, "a.txt", "theirs a\n", "their a")
+	gittest.CommitFile(t, dir, "b.txt", "theirs b too\n", "their b")
+	gittest.Run(t, dir, "switch", "main")
+	gittest.CommitFile(t, dir, "a.txt", "ours a\n", "our a")
+	gittest.CommitFile(t, dir, "b.txt", "ours b\n", "our b")
+	ctx := context.Background()
+
+	tips := []string{"two", "clean", "one", "same", "two"}
+	got, err := MergeConflictsMany(ctx, dir, "main", tips)
+	if err != nil {
+		t.Fatalf("MergeConflictsMany: %v", err)
+	}
+	for i, tip := range tips {
+		want, err := MergeConflicts(ctx, dir, "main", tip)
+		if err != nil {
+			t.Fatalf("MergeConflicts %s: %v", tip, err)
+		}
+		if !reflect.DeepEqual(got[i], want) {
+			t.Errorf("%s: batched %v, one at a time %v", tip, got[i], want)
+		}
+	}
+	if got[0] == nil || got[1] != nil {
+		t.Errorf("got %v, want two to conflict and clean not to", got)
+	}
+}
+
+// Git before 2.38 rejects --write-tree with a usage error, exit 129, and Git
+// 2.38 and 2.39 reject --stdin the same way.
 func TestMergeConflictsOnOldGit(t *testing.T) {
 	stub := t.TempDir()
 	path, content := filepath.Join(stub, "git"), "#!/bin/sh\necho usage: git merge-tree >&2\nexit 129\n"
@@ -54,5 +91,8 @@ func TestMergeConflictsOnOldGit(t *testing.T) {
 
 	if _, err := MergeConflicts(context.Background(), t.TempDir(), "a", "b"); !errors.Is(err, ErrMergeTreeUnsupported) {
 		t.Errorf("err = %v, want ErrMergeTreeUnsupported", err)
+	}
+	if _, err := MergeConflictsMany(context.Background(), t.TempDir(), "a", []string{"b"}); !errors.Is(err, ErrMergeTreeStdinUnsupported) {
+		t.Errorf("batched err = %v, want ErrMergeTreeStdinUnsupported", err)
 	}
 }
