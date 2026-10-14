@@ -67,6 +67,9 @@ func defaultEnv(binary string) []string {
 }
 
 func (e *Executor) Run(ctx context.Context, cmd Command) (Result, error) {
+	if e.binary == "git" && CommandLineToolsMissing() {
+		return Result{}, ErrCommandLineToolsMissing
+	}
 	args := cmd.Args
 	var credEnv []string
 	if cred, ok := credentialFrom(ctx); ok {
