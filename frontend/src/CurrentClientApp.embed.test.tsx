@@ -75,6 +75,16 @@ describe('CurrentClientApp embedding', () => {
     )
   })
 
+  it('opens a repository on Working Copy, the first view', async () => {
+    stubStartup(['/repos/app'], '/repos/app')
+    render(<CurrentClientApp />)
+    const workingCopy = await screen.findByRole('button', { name: 'Working Copy' })
+
+    const views = [...document.querySelectorAll('.tab-bar button')].map((b) => b.textContent)
+    expect(views).toEqual(['Working Copy', 'Branch Graph & History', 'Activity', 'Changelog'])
+    expect(workingCopy).toHaveClass('tab-active')
+  })
+
   it('does not reload a tab that is visited again with no new commits', async () => {
     stubStartup(['/repos/app'], '/repos/app')
     vi.mocked(HistoryService.GetHistory).mockResolvedValue([])
