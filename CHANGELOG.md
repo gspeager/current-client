@@ -8,6 +8,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 - Pull and push progress and errors show only in the tab of the repository they're for, so switching tabs no longer leaves another repository's "Could not pull" in view. **Pull (merge)** and **Pull (rebase)** in that message pull the repository that diverged, and a pull or push keeps running in a background tab. ([#122](https://github.com/gspeager/current-client/issues/122))
 - On macOS, the app goes idle again while files have uncommitted changes. Reading a modified file to show its status counted as a change to it, so the app refreshed about twice a second, running five Git commands each time. ([#109](https://github.com/gspeager/current-client/issues/109))
+- On Windows, Git commands start faster: the app runs Git for Windows' own `git.exe` directly instead of through the launcher on the `PATH`, which started a second process for every command. A Git executable chosen in Settings is used as it is. ([#106](https://github.com/gspeager/current-client/issues/106))
 
 ## [0.2.1] - 2026-10-08
 
