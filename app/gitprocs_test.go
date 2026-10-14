@@ -55,7 +55,6 @@ func TestGitProcesses(t *testing.T) {
 	defer watcher.Stop()
 	open := []func(){
 		func() { _, _ = (&GitService{}).GetGitVersion() },
-		func() { _ = (&RepositoryService{}).GetRepoSummaries([]string{repo}) },
 		func() { _, _ = (&HistoryService{}).FollowsConventionalCommits(repo) },
 		func() { _, _ = (&StatusService{}).GetStatus(repo) },
 		func() { _, _ = (&ConflictService{}).GetConflictState(repo) },
@@ -98,7 +97,7 @@ func TestGitProcesses(t *testing.T) {
 
 	total, byCommand := countGitProcesses(t, trace)
 	t.Logf("opening a repository: %d git processes\n%s", total, byCommand)
-	const budget = 26
+	const budget = 24
 	if total > budget {
 		t.Errorf("opening a repository started %d git processes, want at most %d", total, budget)
 	}

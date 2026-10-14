@@ -39,13 +39,52 @@ func GetStatus(ctx context.Context, repoPath string) ([]Status, error) {
 	return ParseStatus(result.Stdout)
 }
 
+// StatusSummary is the current branch and how many files changed, from one
+// git process.
+type StatusSummary struct {
+	// Branch is "HEAD" when HEAD is detached.
+	Branch   string
+	Upstream string
+	Ahead    int
+	Behind   int
+	Changes  int
+}
+
+func SummarizeStatus(ctx context.Context, repoPath string) (StatusSummary, error) {
+	result, err := runResult(ctx, repoPath, "status", "--porcelain=v2", "--branch", "-z", "--untracked-files=all")
+	if err != nil {
+		return StatusSummary{}, err
+	}
+	statuses, err := ParseStatus(result.Stdout)
+	if err != nil {
+		return StatusSummary{}, err
+	}
+	summary := StatusSummary{Changes: len(statuses)}
+	for _, record := range strings.Split(result.Stdout, "\x00") {
+		key, value, _ := strings.Cut(strings.TrimPrefix(record, "# "), " ")
+		switch key {
+		case "branch.head":
+			summary.Branch = value
+			if value == "(detached)" {
+				summary.Branch = "HEAD"
+			}
+		case "branch.upstream":
+			summary.Upstream = value
+		case "branch.ab":
+			_, _ = fmt.Sscanf(value, "+%d -%d", &summary.Ahead, &summary.Behind)
+		}
+	}
+	return summary, nil
+}
+
+// ParseStatus skips the "# branch.…" headers that --branch adds.
 func ParseStatus(output string) ([]Status, error) {
 	records := strings.Split(output, "\x00")
 	var statuses []Status
 
 	for i := 0; i < len(records); i++ {
 		record := records[i]
-		if record == "" {
+		if record == "" || record[0] == '#' {
 			continue
 		}
 

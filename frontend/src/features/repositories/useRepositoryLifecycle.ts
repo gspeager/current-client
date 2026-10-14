@@ -25,9 +25,11 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
       .catch(() => undefined)
   }
 
+  // The focused tab's chip shows the live branch status instead, so a tab's
+  // summary is read for the other tabs and again on leaving it.
   const refreshTabSummaries = (paths: string[]) => {
     if (paths.length === 0) return
-    RepositoryService.GetRepoSummaries(paths)
+    RepositoryService.GetTabSummaries(paths)
       .then((results) => {
         setTabSummaries((prev) => {
           const next = { ...prev }
@@ -51,7 +53,6 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
       persistTabs(next, path)
       return next
     })
-    refreshTabSummaries([path])
   }
 
   const openPath = (open: Promise<string>) => {
@@ -77,22 +78,30 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
       const savedTabs = tabsResult?.tabs ?? []
       if (initialRepoPath) {
         setTabs(savedTabs)
-        refreshTabSummaries(savedTabs)
         openPath(RepositoryService.OpenRepository(initialRepoPath))
+        refreshTabSummaries(savedTabs.filter((p) => p !== initialRepoPath))
       } else if (savedTabs.length > 0) {
         setTabs(savedTabs)
-        refreshTabSummaries(savedTabs)
         const focused =
           tabsResult?.focused && savedTabs.includes(tabsResult.focused) ? tabsResult.focused : savedTabs[0]
+        // The focused repository loads first; the other tabs' summaries wait for it.
         RepositoryService.OpenRepository(focused)
           .then((path) => setRepoPathState(path))
           .catch((err: unknown) => setRepoError(errorMessage(err)))
+          .finally(() => refreshTabSummaries(savedTabs.filter((p) => p !== focused)))
       } else if (recentList.length > 0) {
         openPath(RepositoryService.OpenRepository(recentList[0]))
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const previousRepoPath = useRef<string | null>(null)
+  useEffect(() => {
+    const left = previousRepoPath.current
+    previousRepoPath.current = repoPath
+    if (left && left !== repoPath) refreshTabSummaries([left])
+  }, [repoPath])
 
   const pickAndOpen = (run: (path: string) => Promise<string>) => {
     setRepoError(null)
