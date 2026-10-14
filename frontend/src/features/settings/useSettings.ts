@@ -103,6 +103,11 @@ export function useSettings() {
     SettingsService.SetPruneOnFetch(prune).catch((err: unknown) => setError(errorMessage(err)))
   }
 
+  const setHistoryBranchFilter = (filter: string) => {
+    setSettings((prev) => (prev ? { ...prev, historyBranchFilter: filter } : prev))
+    SettingsService.SetHistoryBranchFilter(filter).catch((err: unknown) => setError(errorMessage(err)))
+  }
+
   const setDiffExpanded = (expanded: boolean) => {
     setSettings((prev) => (prev ? { ...prev, diffExpanded: expanded } : prev))
     SettingsService.SetDiffExpanded(expanded).catch((err: unknown) => setError(errorMessage(err)))
@@ -132,6 +137,7 @@ export function useSettings() {
     setDiffExpanded,
     setDiffNoWrap,
     setPruneOnFetch,
+    setHistoryBranchFilter,
     setDisableConventionalCommits,
     setChangelogPrefs,
     setTheme,

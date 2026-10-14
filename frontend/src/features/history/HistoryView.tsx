@@ -22,6 +22,7 @@ import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { useResizableWidth } from '../../lib/useResizableWidth'
 import './HistoryView.scss'
+import { ALL_BRANCHES, isBranchName } from './branchFilter'
 
 interface HistoryViewProps {
   repoPath: string
@@ -29,8 +30,11 @@ interface HistoryViewProps {
   initialSelectedSha?: string | null
   // Only set when initialSelectedSha may be past the first loaded page.
   initialLoadThrough?: number | null
-  // Opens History filtered to this branch instead of the current one.
+  // Opens History filtered to this branch instead of defaultRef.
   initialRef?: string | null
+  // The branch filter to open with, and where a change to it is saved.
+  defaultRef?: string
+  onRefChange?: (ref: string) => void
   onBranchChanged?: () => void
   // App keeps the last-seen top SHA across remounts so new commits can flash.
   previousTopSha?: string | null
@@ -48,13 +52,15 @@ function HistoryView({
   initialSelectedSha = null,
   initialLoadThrough = null,
   initialRef = null,
+  defaultRef = ALL_BRANCHES,
+  onRefChange,
   onBranchChanged,
   previousTopSha,
   onTopShaChange,
   onSelectedShaChange,
 }: HistoryViewProps) {
   const { confirm } = useDialogs()
-  const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? '' })
+  const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef })
   const { commits, loading, done, error, loadMore } = useCommitHistory(repoPath, filter, initialLoadThrough)
   const graphNodes = useCommitGraph(commits)
   const refsBySha = useRefBadges(repoPath)
@@ -100,6 +106,19 @@ function HistoryView({
     () => BranchService.ListLocal(repoPath).then((result) => result.map((b) => b.name)),
     [repoPath],
   )
+
+  // A saved branch that's since been deleted, or belongs to another repository.
+  useEffect(() => {
+    if (branches && !initialRef && isBranchName(filter.ref) && !branches.includes(filter.ref)) {
+      setFilter((prev) => ({ ...prev, ref: ALL_BRANCHES }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branches])
+
+  const changeFilter = (next: typeof filter) => {
+    if (next.ref !== filter.ref) onRefChange?.(next.ref)
+    setFilter(next)
+  }
 
   const selectSha = (sha: string) => {
     setSelectedSha(sha)
@@ -228,7 +247,7 @@ function HistoryView({
           onHideMergesChange={setHideMerges}
           branches={branches ?? []}
           filter={filter}
-          onFilterChange={setFilter}
+          onFilterChange={changeFilter}
           showTypeFilter={conventional}
           onCopyAsciiGraph={copyAsciiGraph}
           copied={graphCopied}

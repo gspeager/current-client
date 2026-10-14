@@ -22,6 +22,7 @@ type Settings struct {
 	DiffExpanded                bool                  `json:"diffExpanded"`
 	DiffNoWrap                  bool                  `json:"diffNoWrap"`
 	PruneOnFetch                bool                  `json:"pruneOnFetch"`
+	HistoryBranchFilter         string                `json:"historyBranchFilter"`
 	DisableConventionalCommits  bool                  `json:"disableConventionalCommits"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
 }
@@ -52,6 +53,7 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		DiffExpanded:                cfg.DiffExpanded,
 		DiffNoWrap:                  cfg.DiffNoWrap,
 		PruneOnFetch:                cfg.PruneOnFetch,
+		HistoryBranchFilter:         cfg.HistoryBranchFilter,
 		DisableConventionalCommits:  cfg.DisableConventionalCommits,
 		Changelog:                   changelogPrefs(cfg),
 	}, nil
@@ -123,6 +125,10 @@ func (s *SettingsService) SetLaneColorTheme(theme string) error {
 
 func (s *SettingsService) SetNavCollapsed(collapsed bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.NavCollapsed = collapsed })
+}
+
+func (s *SettingsService) SetHistoryBranchFilter(filter string) error {
+	return updateConfig(func(cfg *config.Config) { cfg.HistoryBranchFilter = filter })
 }
 
 func (s *SettingsService) SetPruneOnFetch(prune bool) error {

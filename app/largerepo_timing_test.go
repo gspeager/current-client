@@ -114,13 +114,18 @@ func TestLargeRepoTiming(t *testing.T) {
 	var firstPage []CommitInfo
 	timeIt("OpenRepository", func() (int, error) { _, err := (&RepositoryService{}).OpenRepository(dir); return 1, err })
 	timeIt("GetStatus (5,001 modified)", func() (int, error) { r, err := (&StatusService{}).GetStatus(dir); return len(r), err })
-	timeIt("GetHistory first page (200)", func() (int, error) {
-		r, err := history.GetHistory(dir, 200, 0, HistoryFilterInfo{})
+	// History opens on all branches.
+	timeIt("GetHistory first page (200, all)", func() (int, error) {
+		r, err := history.GetHistory(dir, 200, 0, HistoryFilterInfo{Ref: "--all"})
 		firstPage = r
 		return len(r), err
 	})
-	timeIt("GetHistory page at 40,000", func() (int, error) {
-		r, err := history.GetHistory(dir, 200, 40000, HistoryFilterInfo{})
+	timeIt("GetHistory first page (200, current)", func() (int, error) {
+		r, err := history.GetHistory(dir, 200, 0, HistoryFilterInfo{})
+		return len(r), err
+	})
+	timeIt("GetHistory page at 40,000 (all)", func() (int, error) {
+		r, err := history.GetHistory(dir, 200, 40000, HistoryFilterInfo{Ref: "--all"})
 		return len(r), err
 	})
 	timeIt("ComputeGraphLayout (200)", func() (int, error) {

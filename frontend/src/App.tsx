@@ -30,6 +30,7 @@ import ActivityView from './features/activity/ActivityView'
 import ChangelogView from './features/changelog/ChangelogView'
 import ChangesView from './features/working-copy/ChangesView'
 import HistoryView from './features/history/HistoryView'
+import { refFromSaved, savedFromRef } from './features/history/branchFilter'
 import './App.scss'
 
 // Each request remounts History so its initial selection, deep load, and scroll apply again.
@@ -314,6 +315,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   initialSelectedSha={restored.selectedCommitSha}
                   initialLoadThrough={focus?.position ?? null}
                   initialRef={focus?.ref ?? null}
+                  defaultRef={refFromSaved(settings.settings?.historyBranchFilter)}
+                  onRefChange={(ref) => settings.setHistoryBranchFilter(savedFromRef(ref))}
                   onBranchChanged={onBranchChanged}
                   previousTopSha={restored.historyTopSha}
                   onTopShaChange={(sha) => remember({ historyTopSha: sha })}
