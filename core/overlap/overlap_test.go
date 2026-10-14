@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/internal/gittest"
 )
 
@@ -63,5 +64,32 @@ func TestPredictEmptyRepository(t *testing.T) {
 	gittest.Run(t, dir, "init", "-b", "main")
 	if got, err := Predict(context.Background(), dir); err != nil || got != nil {
 		t.Errorf("Predict = %+v, %v; want nothing for a repository with no commits", got, err)
+	}
+}
+
+// Git 2.38 and 2.39 have merge-tree --write-tree but not --stdin.
+func TestPredictFallsBackToOneMergeAtATime(t *testing.T) {
+	mergeMany = func(context.Context, string, string, []string) ([][]string, error) {
+		return nil, git.ErrMergeTreeStdinUnsupported
+	}
+	t.Cleanup(func() { mergeMany = git.MergeConflictsMany })
+
+	dir := t.TempDir()
+	gittest.Run(t, dir, "init", "-b", "main")
+	gittest.Run(t, dir, "config", "user.email", "test@example.com")
+	gittest.Run(t, dir, "config", "user.name", "Test")
+	gittest.Run(t, dir, "config", "core.autocrlf", "false")
+	gittest.CommitFile(t, dir, "shared.txt", "base\n", "base")
+	gittest.Run(t, dir, "switch", "-c", "conflicting")
+	gittest.CommitFile(t, dir, "shared.txt", "theirs\n", "theirs")
+	gittest.Run(t, dir, "switch", "-c", "unrelated", "main")
+	gittest.CommitFile(t, dir, "new.txt", "new\n", "unrelated")
+	gittest.Run(t, dir, "switch", "main")
+	gittest.CommitFile(t, dir, "shared.txt", "ours\n", "ours")
+
+	got, err := Predict(context.Background(), dir)
+	want := []Overlap{{Branch: "conflicting", Files: []string{"shared.txt"}}}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Errorf("Predict = %+v, %v; want %+v", got, err, want)
 	}
 }
