@@ -18,8 +18,8 @@ import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
 import { useConflictResolution } from './useConflictResolution'
-import './ChangesView.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import './ChangesView.scss'
 
 interface ChangesViewProps {
   repoPath: string

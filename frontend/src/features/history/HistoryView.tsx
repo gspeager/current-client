@@ -21,8 +21,8 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { useResizableWidth } from '../../lib/useResizableWidth'
-import './HistoryView.scss'
 import { ALL_BRANCHES, isBranchName } from './branchFilter'
+import './HistoryView.scss'
 
 interface HistoryViewProps {
   repoPath: string

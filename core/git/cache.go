@@ -78,7 +78,7 @@ func refsStamp(ctx context.Context, repoPath string, also []string) (uint64, boo
 	if err != nil {
 		return 0, false
 	}
-	gitDir, commonDir := dirs[0], dirs[1]
+	gitDir, commonDir := dirs.gitDir, dirs.commonDir
 	h := fnv.New64a()
 	add := func(path string, info fs.FileInfo) {
 		fmt.Fprintf(h, "%s\x00%d\x00%d\n", path, info.Size(), info.ModTime().UnixNano())

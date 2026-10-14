@@ -111,7 +111,7 @@ func ConflictSides(ctx context.Context, repoPath string) (ConflictSideNames, err
 		return ConflictSideNames{Ours: commitName(ctx, repoPath, readLine(filepath.Join(rebaseDir, "onto"))), Theirs: theirs}, nil
 	}
 
-	names := ConflictSideNames{Ours: "HEAD"}
+	var names ConflictSideNames
 	if status, err := CurrentBranchStatus(ctx, repoPath); err == nil && status.DetachedAt == "" {
 		names.Ours = status.Current
 	} else {
@@ -164,8 +164,14 @@ func readLine(path string) string {
 // KeepConflictSide resolves a conflicted file with one side's whole version
 // and stages it. If that side deleted the file, it's deleted.
 func KeepConflictSide(ctx context.Context, repoPath, path string, side ConflictSide) error {
-	stage := map[ConflictSide]string{Ours: "2", Theirs: "3"}[side]
-	if stage == "" {
+	// Git keeps ours as stage 2 of a conflicted file and theirs as stage 3.
+	var stage string
+	switch side {
+	case Ours:
+		stage = "2"
+	case Theirs:
+		stage = "3"
+	default:
 		return fmt.Errorf("unknown side %q", side)
 	}
 	stages, err := runResult(ctx, repoPath, "ls-files", "-u", "-z", "--", path)
