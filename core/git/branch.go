@@ -176,11 +176,14 @@ func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, er
 }
 
 func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
-	result, err := runResult(ctx, repoPath, "branch", "-r", "--format=%(refname)%09%(refname:short)")
-	if err != nil {
-		return nil, err
-	}
-	return parseRemoteBranches(result.Stdout), nil
+	branches, err := cachedByRefs(ctx, repoPath, "remote-branches", func() ([]string, error) {
+		result, err := runResult(ctx, repoPath, "branch", "-r", "--format=%(refname)%09%(refname:short)")
+		if err != nil {
+			return nil, err
+		}
+		return parseRemoteBranches(result.Stdout), nil
+	})
+	return slices.Clone(branches), err
 }
 
 func parseRemoteBranches(output string) []string {
