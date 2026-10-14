@@ -146,3 +146,29 @@ describe('NavPane import patch', () => {
     expect(screen.queryByText(/Patch applied/)).not.toBeInTheDocument()
   })
 })
+
+describe('NavPane Workspace', () => {
+  it('fits every action in one row of named icon buttons above Branches', async () => {
+    vi.mocked(PlatformService.OpenInEditor).mockResolvedValue()
+    renderNav(false)
+
+    const row = document.querySelector('.nav-pane-workspace')!
+    const names = [...row.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))
+    expect(names).toEqual([
+      'Open Terminal',
+      expect.stringMatching(/^(Reveal in|Open in File Manager)/),
+      'Open in Editor',
+      'Undo last operation',
+      'Reflog',
+      'Bisect',
+      'Import Patch…',
+    ])
+    for (const button of row.querySelectorAll('button')) {
+      expect(button).toHaveAttribute('title', button.getAttribute('aria-label'))
+      expect(button).toHaveTextContent('')
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open in Editor' }))
+    expect(PlatformService.OpenInEditor).toHaveBeenCalledWith(REPO)
+  })
+})

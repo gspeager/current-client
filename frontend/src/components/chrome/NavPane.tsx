@@ -89,7 +89,6 @@ function NavPane({
   const [gcBusy, setGcBusy] = useState(false)
   const [gcError, setGcError] = useState<string | null>(null)
   const [gcMessage, setGcMessage] = useState<string | null>(null)
-  const [workspaceOpen, setWorkspaceOpen] = useState(true)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
   const sectionRefs = useRef<Partial<Record<SectionId, HTMLElement | null>>>({})
   const pendingSection = useRef<SectionId | null>(null)
@@ -107,7 +106,6 @@ function NavPane({
     setActionNotice(null)
     action.catch((err: unknown) => {
       setActionError(`${failure}: ${errorMessage(err)}`)
-      setWorkspaceOpen(true)
       onCollapsedChange(false)
     })
   }
@@ -254,14 +252,7 @@ function NavPane({
       <div className="nav-pane-scroll">
         <section className="nav-pane-section">
           <div className="nav-pane-section-header">
-            <button type="button" className="nav-pane-section-toggle" onClick={() => setWorkspaceOpen((open) => !open)}>
-              {workspaceOpen ? (
-                <ChevronDown size={14} strokeWidth={1.5} className="nav-pane-section-chevron" />
-              ) : (
-                <ChevronRight size={14} strokeWidth={1.5} className="nav-pane-section-chevron" />
-              )}
-              <span className="nav-pane-label">Workspace</span>
-            </button>
+            <span className="nav-pane-label">Workspace</span>
             <button
               type="button"
               className="nav-pane-collapse"
@@ -272,13 +263,21 @@ function NavPane({
               <PanelLeftClose size={16} strokeWidth={1.75} />
             </button>
           </div>
-          {workspaceOpen &&
-            workspaceActions.map(({ label, icon: ActionIcon, onClick }) => (
-              <button key={label} type="button" className="nav-pane-row" onClick={onClick}>
-                <ActionIcon size={16} strokeWidth={1.75} className="nav-pane-row-icon" />
-                <span className="nav-pane-row-label">{label}</span>
+          {/* One row of icons, so Branches starts near the top. */}
+          <div className="nav-pane-workspace">
+            {workspaceActions.map(({ label, icon: ActionIcon, onClick }) => (
+              <button
+                key={label}
+                type="button"
+                className="nav-pane-rail-button"
+                onClick={onClick}
+                aria-label={label}
+                title={label}
+              >
+                <ActionIcon size={16} strokeWidth={1.75} />
               </button>
             ))}
+          </div>
           {actionError && <p className="nav-pane-error">{actionError}</p>}
           {actionNotice && <p className="nav-pane-success">{actionNotice}</p>}
         </section>
