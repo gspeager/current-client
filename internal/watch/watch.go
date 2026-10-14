@@ -78,6 +78,7 @@ func (w *Watcher) Stop() {
 func run(fw *fsnotify.Watcher, stopCh chan struct{}, repoPath string, dirs gitDirs, onChange func(refChanged bool)) {
 	var timer *time.Timer
 	var refChanged, newDir atomic.Bool
+	modes := map[string]fs.FileMode{}
 	for {
 		select {
 		case <-stopCh:
@@ -91,6 +92,9 @@ func run(fw *fsnotify.Watcher, stopCh chan struct{}, repoPath string, dirs gitDi
 			}
 			ref, inGitDir := dirs.classify(event.Name)
 			if inGitDir && !ref {
+				continue
+			}
+			if changed := modeChanged(modes, event.Name); !changed && event.Op == fsnotify.Chmod {
 				continue
 			}
 			if ref {
@@ -121,6 +125,21 @@ func run(fw *fsnotify.Watcher, stopCh chan struct{}, repoPath string, dirs gitDi
 			}
 		}
 	}
+}
+
+// modeChanged records the path's mode and says whether it differs from the
+// last one seen. Reading a file updates its access time, which kqueue reports
+// as Chmod; git status and diff read every modified file, so reacting to that
+// would refresh forever. A real mode change, like the executable bit, differs.
+func modeChanged(modes map[string]fs.FileMode, path string) bool {
+	info, err := os.Lstat(path)
+	if err != nil {
+		delete(modes, path)
+		return true
+	}
+	mode, seen := modes[path]
+	modes[path] = info.Mode()
+	return !seen || mode != info.Mode()
 }
 
 func findGitDirs(repoPath string) gitDirs {
