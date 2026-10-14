@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -77,6 +78,45 @@ func TestWatcherFiresOnTrackedFileEdit(t *testing.T) {
 	}
 	if refChanged {
 		t.Error("refChanged = true for an ordinary tracked-file edit, want false")
+	}
+}
+
+func TestWatcherIgnoresReadsOfAModifiedFile(t *testing.T) {
+	dir := initWatchRepo(t)
+	var w Watcher
+	changed := startRecording(t, &w, dir)
+	defer w.Stop()
+
+	path := filepath.Join(dir, "tracked.txt")
+	if err := os.WriteFile(path, []byte("v2"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if fired, _ := waitForChange(t, changed, 5*time.Second); !fired {
+		t.Fatal("onChange did not fire after editing a tracked file")
+	}
+
+	// git status and diff read the modified file, which only moves its access time.
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat: %v", err)
+	}
+	for i := range 3 {
+		if err := os.Chtimes(path, time.Now().Add(time.Duration(i+1)*time.Hour), info.ModTime()); err != nil {
+			t.Fatalf("Chtimes: %v", err)
+		}
+		if fired, _ := waitForChange(t, changed, time.Second); fired {
+			t.Fatalf("read %d: onChange fired for an access-time change, want it ignored", i+1)
+		}
+	}
+
+	if runtime.GOOS == "windows" {
+		return
+	}
+	if err := os.Chmod(path, 0o755); err != nil {
+		t.Fatalf("Chmod: %v", err)
+	}
+	if fired, _ := waitForChange(t, changed, 5*time.Second); !fired {
+		t.Fatal("onChange did not fire after making a tracked file executable")
 	}
 }
 
