@@ -15,7 +15,6 @@ import './CommitRow.scss'
 interface CommitRowProps {
   commit: CommitInfo
   graphNode?: GraphNode
-  hasAbove: boolean
   laneCount: number
   rowHeight: number
   identity?: IdentityInfo
@@ -35,7 +34,6 @@ interface CommitRowProps {
 function CommitRow({
   commit,
   graphNode,
-  hasAbove,
   laneCount,
   rowHeight,
   identity,
@@ -79,7 +77,7 @@ function CommitRow({
       }}
     >
       <div className="commit-row-graph">
-        {graphNode && <CommitGraph node={graphNode} hasAbove={hasAbove} laneCount={laneCount} rowHeight={rowHeight} />}
+        {graphNode && <CommitGraph node={graphNode} laneCount={laneCount} rowHeight={rowHeight} />}
       </div>
 
       <div className="commit-row-commit">
