@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { DiffService, type LineSelection } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
@@ -14,6 +14,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHeadCommit } from './useHeadCommit'
 import { useResizableWidth } from '../../lib/useResizableWidth'
+import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
 import './ChangesView.scss'
@@ -54,7 +55,7 @@ function ChangesView({
   onCommitDraftChange,
   showCommitTypePicker = false,
 }: ChangesViewProps) {
-  const { files, staged, unstaged, loadStatus } = workingTree
+  const { files, conflicted, staged, unstaged, loadStatus } = workingTree
   const actions = useWorkingTreeActions(repoPath, loadStatus, onBranchChanged)
   const { confirm } = useDialogs()
   const [selectedPath, setSelectedPath] = useState<string | null>(initialSelectedPath)
@@ -80,6 +81,23 @@ function ChangesView({
     selectPath(path)
     setOpenSection(section)
   }
+
+  const previousLists = useRef<SectionPaths | null>(null)
+  useEffect(() => {
+    if (!files) return
+    const lists = {
+      conflicted: conflicted.map((f) => f.path),
+      unstaged: unstaged.map((f) => f.path),
+      staged: staged.map((f) => f.path),
+    }
+    const current = selectedPath === null ? null : { path: selectedPath, section: openSection }
+    const next = nextSelection(lists, current, previousLists.current)
+    previousLists.current = lists
+    if (next === current) return
+    if (next) openFile(next.path, next.section)
+    else selectPath(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files])
 
   // Large files load only after an explicit request, and only for that file.
   // Every status reload (file watcher, staging, hunk actions) also refreshes the open diff.
