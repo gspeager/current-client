@@ -81,3 +81,27 @@ func TestLayoutForkAndMerge(t *testing.T) {
 		t.Fatalf("root lane = %d, want 0", lane)
 	}
 }
+
+func TestLayoutHasChild(t *testing.T) {
+	//	* tip      (a branch tip in its own lane)
+	//	| * main2
+	//	|/
+	//	*   merge
+	//	|\
+	//	| * feat
+	//	|/
+	//	* base
+	commits := []Commit{
+		{SHA: "tip", ParentSHAs: []string{"merge"}},
+		{SHA: "main2", ParentSHAs: []string{"merge"}},
+		{SHA: "merge", ParentSHAs: []string{"base", "feat"}},
+		{SHA: "feat", ParentSHAs: []string{"base"}},
+		{SHA: "base", ParentSHAs: nil},
+	}
+	want := map[string]bool{"tip": false, "main2": false, "merge": true, "feat": true, "base": true}
+	for _, n := range Layout(commits) {
+		if n.HasChild != want[n.SHA] {
+			t.Errorf("%s: HasChild = %v, want %v", n.SHA, n.HasChild, want[n.SHA])
+		}
+	}
+}

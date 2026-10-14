@@ -10,6 +10,9 @@ type Commit struct {
 type Node struct {
 	SHA  string
 	Lane int
+	// HasChild means a lane was waiting for this commit, so its own lane comes
+	// down from the row above; a branch tip starts at its node.
+	HasChild bool
 
 	// ParentLanes[i] is the lane parent i continues in; [0] is always Lane.
 	ParentLanes []int
@@ -28,7 +31,7 @@ func Layout(commits []Commit) []Node {
 	for i, c := range commits {
 		before := lanes.active()
 
-		lane, converging := lanes.resolve(c.SHA)
+		lane, hasChild, converging := lanes.resolve(c.SHA)
 		parentLanes := lanes.assignParents(lane, c.ParentSHAs)
 
 		after := lanes.active()
@@ -37,6 +40,7 @@ func Layout(commits []Commit) []Node {
 		nodes[i] = Node{
 			SHA:             c.SHA,
 			Lane:            lane,
+			HasChild:        hasChild,
 			ParentLanes:     parentLanes,
 			ConvergingLanes: converging,
 			PassThrough:     passThroughLanes(before, after, lane, parentLanes),
@@ -82,7 +86,7 @@ func (t *laneTracker) freeLane() int {
 
 // resolve keeps the first lane waiting for sha and frees the others, which
 // converge here.
-func (t *laneTracker) resolve(sha string) (lane int, converging []int) {
+func (t *laneTracker) resolve(sha string) (lane int, hasChild bool, converging []int) {
 	lane = -1
 	for i, waiting := range t.waitingFor {
 		if waiting != sha {
@@ -96,9 +100,9 @@ func (t *laneTracker) resolve(sha string) (lane int, converging []int) {
 		t.waitingFor[i] = ""
 	}
 	if lane == -1 {
-		lane = t.freeLane()
+		return t.freeLane(), false, converging
 	}
-	return lane, converging
+	return lane, true, converging
 }
 
 // assignParents continues lane with the first parent and gives each merge

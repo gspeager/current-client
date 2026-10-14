@@ -127,6 +127,7 @@ type CommitRef struct {
 type GraphNode struct {
 	SHA             string `json:"sha"`
 	Lane            int    `json:"lane"`
+	HasChild        bool   `json:"hasChild"`
 	ParentLanes     []int  `json:"parentLanes"`
 	ConvergingLanes []int  `json:"convergingLanes"`
 	PassThrough     []int  `json:"passThrough"`
