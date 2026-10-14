@@ -13,17 +13,35 @@ type UserIdentity struct {
 }
 
 func CurrentUser(ctx context.Context, repoPath string) UserIdentity {
-	return UserIdentity{
-		Name:  configValue(ctx, repoPath, "user.name"),
-		Email: configValue(ctx, repoPath, "user.email"),
-	}
+	return userIdentity(ctx, repoPath)
 }
 
 func GlobalUser(ctx context.Context) UserIdentity {
-	return UserIdentity{
-		Name:  configValue(ctx, "", "--global", "user.name"),
-		Email: configValue(ctx, "", "--global", "user.email"),
+	return userIdentity(ctx, "", "--global")
+}
+
+// userIdentity reads both keys in one process. Like --get, the last value
+// wins when several scopes set one.
+func userIdentity(ctx context.Context, repoPath string, scope ...string) UserIdentity {
+	args := append([]string{"config", "-z"}, scope...)
+	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+		Dir:  repoPath,
+		Args: append(args, "--get-regexp", `^user\.(name|email)$`),
+	})
+	var user UserIdentity
+	if err != nil || result.ExitCode != 0 {
+		return user
 	}
+	for _, entry := range strings.Split(result.Stdout, "\x00") {
+		key, value, _ := strings.Cut(entry, "\n")
+		switch key {
+		case "user.name":
+			user.Name = value
+		case "user.email":
+			user.Email = value
+		}
+	}
+	return user
 }
 
 func SetGlobalUser(ctx context.Context, name, email string) error {

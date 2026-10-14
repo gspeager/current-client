@@ -17,7 +17,7 @@ function stubStartup(tabs: string[], focused = '') {
   vi.mocked(SettingsService.GetSettings).mockResolvedValue({ theme: 'dark' } as Settings)
   vi.mocked(RepositoryService.GetRecentRepositories).mockResolvedValue([])
   vi.mocked(RepositoryService.GetOpenTabs).mockResolvedValue({ tabs, focused } as OpenTabsInfo)
-  vi.mocked(RepositoryService.GetRepoSummaries).mockResolvedValue([])
+  vi.mocked(RepositoryService.GetTabSummaries).mockResolvedValue([])
   vi.mocked(RepositoryService.SetOpenTabs).mockResolvedValue()
   vi.mocked(RepositoryService.OpenRepository).mockImplementation(
     (path) => Promise.resolve(path) as ReturnType<typeof RepositoryService.OpenRepository>,

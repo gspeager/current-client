@@ -103,32 +103,35 @@ type RepoSummaryInfo struct {
 // GetRepoSummaries marks a moved or deleted repo as unavailable instead of
 // failing the whole batch.
 func (s *RepositoryService) GetRepoSummaries(paths []string) []RepoSummaryInfo {
-	return mapSlice(paths, repoSummary)
+	return mapSlice(paths, func(path string) RepoSummaryInfo { return repoSummary(path, true) })
 }
 
-func repoSummary(repoPath string) RepoSummaryInfo {
+// GetTabSummaries is GetRepoSummaries without the activity sparkline, which
+// tabs don't show.
+func (s *RepositoryService) GetTabSummaries(paths []string) []RepoSummaryInfo {
+	return mapSlice(paths, func(path string) RepoSummaryInfo { return repoSummary(path, false) })
+}
+
+func repoSummary(repoPath string, withActivity bool) RepoSummaryInfo {
 	ctx := context.Background()
 	summary := RepoSummaryInfo{Path: repoPath, Name: filepath.Base(repoPath)}
 
-	statuses, err := git.GetStatus(ctx, repoPath)
+	status, err := git.SummarizeStatus(ctx, repoPath)
 	if err != nil {
 		return summary
 	}
-	summary.Dirty = len(statuses)
+	summary.Dirty = status.Changes
+	summary.CurrentBranch = status.Branch
+	summary.Ahead = status.Ahead
+	summary.Behind = status.Behind
 
-	branchStatus, err := git.CurrentBranchStatus(ctx, repoPath)
-	if err != nil {
-		return summary
+	if withActivity {
+		activity, err := git.CommitActivity(ctx, repoPath, sparklineDays)
+		if err != nil {
+			return summary
+		}
+		summary.Activity = mapSlice(activity, func(d git.DayActivity) int { return d.Commits })
 	}
-	summary.CurrentBranch = branchStatus.Current
-	summary.Ahead = branchStatus.Ahead
-	summary.Behind = branchStatus.Behind
-
-	activity, err := git.CommitActivity(ctx, repoPath, sparklineDays)
-	if err != nil {
-		return summary
-	}
-	summary.Activity = mapSlice(activity, func(d git.DayActivity) int { return d.Commits })
 
 	summary.Available = true
 	return summary

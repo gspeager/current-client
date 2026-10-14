@@ -2,6 +2,9 @@ package git
 
 import (
 	"context"
+	"errors"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -19,6 +22,10 @@ type Submodule struct {
 
 // ListSubmodules includes nested submodules, with paths from the top.
 func ListSubmodules(ctx context.Context, repoPath string) ([]Submodule, error) {
+	// git submodule is a shell script of about seven processes.
+	if _, err := os.Stat(filepath.Join(repoPath, ".gitmodules")); errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
 	result, err := runResult(ctx, repoPath, "submodule", "status", "--recursive")
 	if err != nil {
 		return nil, err

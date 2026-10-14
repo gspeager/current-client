@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"slices"
 	"strings"
 )
 
@@ -12,11 +13,14 @@ type Remote struct {
 }
 
 func ListRemotes(ctx context.Context, repoPath string) ([]Remote, error) {
-	result, err := runResult(ctx, repoPath, "remote", "-v")
-	if err != nil {
-		return nil, err
-	}
-	return parseRemotes(result.Stdout), nil
+	remotes, err := cachedByRefs(ctx, repoPath, "remotes", func() ([]Remote, error) {
+		result, err := runResult(ctx, repoPath, "remote", "-v")
+		if err != nil {
+			return nil, err
+		}
+		return parseRemotes(result.Stdout), nil
+	})
+	return slices.Clone(remotes), err
 }
 
 func AddRemote(ctx context.Context, repoPath, name, url string) error {
