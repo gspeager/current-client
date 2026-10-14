@@ -3,9 +3,10 @@ import { act, renderHook, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, RemoteService, type BranchStatusInfo } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
-import { useRemoteSync } from './useRemoteSync'
+import { DIVERGED, useRemoteSync } from './useRemoteSync'
 
 const REPO = '/repos/app'
+const OTHER_REPO = '/repos/site'
 const NEEDS_CREDENTIALS =
   'This remote needs credentials. Set up a credential helper, such as Git Credential Manager, for it.'
 const AUTH_FAILED = 'Authentication failed. Check the credentials Git uses for this remote.'
@@ -170,5 +171,49 @@ describe('useRemoteSync', () => {
     await act(async () => result.current.push())
 
     expect(result.current.pushOp.error).toBe('The remote stopped responding.')
+  })
+
+  it('keeps a failed pull with its repository, and offers the choice for that repository only', async () => {
+    vi.mocked(RemoteService.Pull).mockRejectedValue(new Error(DIVERGED))
+    vi.mocked(RemoteService.PullMerge).mockResolvedValue()
+    const { result, rerender } = renderHook(({ repoPath }) => useRemoteSync(repoPath, vi.fn()), {
+      wrapper,
+      initialProps: { repoPath: REPO },
+    })
+
+    await act(async () => result.current.pull())
+    expect(result.current.pullOp.error).toBe(DIVERGED)
+
+    rerender({ repoPath: OTHER_REPO })
+    expect(result.current.pullOp.error).toBeNull()
+
+    rerender({ repoPath: REPO })
+    expect(result.current.pullOp.error).toBe(DIVERGED)
+    await act(async () => result.current.pullMerge())
+
+    expect(RemoteService.PullMerge).toHaveBeenCalledWith(REPO, null)
+    expect(result.current.pullOp.error).toBeNull()
+  })
+
+  it('keeps a push running in its repository while another is shown, and cancels it there', async () => {
+    const { promise, cancel } = pendingPush()
+    vi.mocked(RemoteService.Push).mockReturnValue(promise as ReturnType<typeof RemoteService.Push>)
+    const { result, rerender } = renderHook(({ repoPath }) => useRemoteSync(repoPath, vi.fn()), {
+      wrapper,
+      initialProps: { repoPath: REPO },
+    })
+
+    act(() => result.current.push())
+    rerender({ repoPath: OTHER_REPO })
+    expect(result.current.pushOp.running).toBe(false)
+    await act(async () => result.current.pushOp.cancel())
+    expect(cancel).not.toHaveBeenCalled()
+
+    rerender({ repoPath: REPO })
+    expect(result.current.pushOp.running).toBe(true)
+    await act(async () => result.current.pushOp.cancel())
+
+    expect(cancel).toHaveBeenCalled()
+    expect(result.current.pushOp.running).toBe(false)
   })
 })
