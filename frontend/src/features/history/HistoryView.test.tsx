@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { HistoryService, type CommitInfo } from '@current-client-bindings/app'
+import { BranchService, HistoryService, type BranchInfo, type CommitInfo } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { giveElementsLayout } from '../../test/bindings'
 import HistoryView from './HistoryView'
@@ -128,5 +128,43 @@ describe('HistoryView', () => {
       expect(document.querySelector('.commit-row-type')).toBeNull()
       expect(screen.queryByRole('combobox', { name: 'Type filter' })).toBeNull()
     })
+  })
+})
+
+describe('HistoryView branch filter', () => {
+  const localBranches = (...names: string[]) =>
+    vi.mocked(BranchService.ListLocal).mockResolvedValue(names.map((name) => ({ name }) as BranchInfo))
+  const loadedRefs = () => vi.mocked(HistoryService.GetHistory).mock.calls.map(([, , , filter]) => filter.ref)
+
+  it('shows all branches by default, and reports a change to the filter', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    localBranches('main', 'feature')
+    const onRefChange = vi.fn()
+    renderHistory({ onRefChange })
+
+    const select = await screen.findByRole('combobox', { name: 'Branch filter' })
+    expect(select).toHaveValue('--all')
+    await vi.waitFor(() => expect(loadedRefs()).toContain('--all'))
+
+    await screen.findByRole('option', { name: 'feature' })
+    await userEvent.selectOptions(select, 'feature')
+    expect(onRefChange).toHaveBeenCalledWith('feature')
+  })
+
+  it('falls back to all branches when the saved branch no longer exists', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    localBranches('main')
+    renderHistory({ defaultRef: 'deleted-branch' })
+
+    await vi.waitFor(() => expect(screen.getByRole('combobox', { name: 'Branch filter' })).toHaveValue('--all'))
+  })
+
+  it('keeps a saved branch that still exists', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    localBranches('main', 'feature')
+    renderHistory({ defaultRef: 'feature' })
+
+    await screen.findByRole('option', { name: 'feature' })
+    expect(screen.getByRole('combobox', { name: 'Branch filter' })).toHaveValue('feature')
   })
 })

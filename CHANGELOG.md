@@ -11,6 +11,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 ### Changed
 
 - Repositories open on **Working Copy**, now the first tab, instead of Activity. The tabs are Working Copy, Branch Graph & History, Activity and Changelog. ([#114](https://github.com/gspeager/current-client/issues/114))
+- Branch Graph & History shows all branches by default instead of the current branch, so it draws a graph straight away. The branch filter you choose is remembered; a branch that no longer exists falls back to all branches. ([#119](https://github.com/gspeager/current-client/issues/119))
 - Working Copy opens the first changed file instead of an empty diff: the first conflicted file, then unstaged, then staged. When the open file is staged, discarded or committed, the next one opens. ([#118](https://github.com/gspeager/current-client/issues/118))
 
 ### Fixed
