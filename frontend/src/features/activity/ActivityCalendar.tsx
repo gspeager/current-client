@@ -1,6 +1,6 @@
 import { ActivityService } from '@current-client-bindings/app'
 import { ACTIVITY_INTENSITY_STEPS, activityIntensity, layoutActivityCalendar } from './calendarLayout'
-import { currentStreak, longestStreak, peakDayCommits } from './activityStats'
+import { peakDayCommits } from './activityStats'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './ActivityCalendar.scss'
 
@@ -10,10 +10,6 @@ interface ActivityCalendarProps {
 }
 
 const DAYS = 371 // 53 full weeks, GitHub-contribution-graph shape
-
-function formatDays(days: number): string {
-  return `${days} ${days === 1 ? 'day' : 'days'}`
-}
 
 function formatCommits(commits: number): string {
   return `${commits} ${commits === 1 ? 'commit' : 'commits'}`
@@ -79,14 +75,6 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
       {activity && (
         <div className="activity-footer">
           <div className="activity-footer-stats">
-            <span className="activity-footer-stat">
-              <span className="activity-footer-dot activity-footer-dot-longest" />
-              Longest streak: <strong>{formatDays(longestStreak(activity))}</strong>
-            </span>
-            <span className="activity-footer-stat">
-              <span className="activity-footer-dot activity-footer-dot-current" />
-              Current streak: <strong>{formatDays(currentStreak(activity))}</strong>
-            </span>
             <span className="activity-footer-stat">
               <span className="activity-footer-dot activity-footer-dot-peak" />
               Peak day: <strong>{formatCommits(peakDayCommits(activity))}</strong>

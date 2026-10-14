@@ -25,12 +25,11 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
   const staleBranchCount = data ? data[0].filter((b) => isStaleBranch(b.lastCommitDate)).length : null
   const looseObjectCount = data?.[1].looseObjectCount ?? null
 
-  const workingTreeClean = !dirty && !hasConflict
   const unpushedCount = branchStatus?.ahead ?? null
 
   const loaded = staleBranchCount !== null && unpushedCount !== null
   const issueCount = loaded
-    ? countHealthIssues({ staleBranchCount: staleBranchCount!, unpushedCount: unpushedCount!, workingTreeClean })
+    ? countHealthIssues({ staleBranchCount: staleBranchCount!, unpushedCount: unpushedCount!, hasConflict })
     : 0
 
   return (
@@ -92,10 +91,10 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
                       : 'Clean tree, no merge conflicts'}
                 </span>
               </div>
-              {workingTreeClean ? (
-                <Check className="repo-health-icon repo-health-icon-ok" size={16} strokeWidth={2} />
-              ) : (
+              {hasConflict ? (
                 <X className="repo-health-icon repo-health-icon-warn" size={16} strokeWidth={2} />
+              ) : (
+                !dirty && <Check className="repo-health-icon repo-health-icon-ok" size={16} strokeWidth={2} />
               )}
             </div>
 
