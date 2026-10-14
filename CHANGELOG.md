@@ -17,6 +17,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - Opening a repository runs about a third as many Git commands (22 instead of 70 in a repository with 16 branches), and each action refreshes once instead of twice. Answers that only change when a branch, tag or the config does are read once and reused; tab chips take one Git command each, and only for the tabs not in view; repositories without submodules or extra worktrees skip those checks. This matters most on Windows, where each Git command costs more. ([#112](https://github.com/gspeager/current-client/issues/112))
 - Predicting which branches would conflict with yours runs one Git command for all of them instead of one per branch, each time the current branch moves. Git 2.38 and 2.39 still check one branch at a time. ([#111](https://github.com/gspeager/current-client/issues/111))
 - On a Mac without Apple's Command Line Tools, Apple's install window no longer appears as soon as the app opens. The app says the tools are missing and offers **Install Command Line Tools**, then **Check again**. **Check again** is also offered whenever Git isn't found. ([#107](https://github.com/gspeager/current-client/issues/107))
+- In the branch graph, a branch tip's lane starts at its commit instead of a short line above it that led nowhere. ([#108](https://github.com/gspeager/current-client/issues/108))
 
 ## [0.2.1] - 2026-10-08
 

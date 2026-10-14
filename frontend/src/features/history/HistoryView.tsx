@@ -242,13 +242,12 @@ function HistoryView({
         <div ref={parentRef} className="history-scroll">
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
             {virtualItems.map((row) => {
-              const { commit, graphNode, index } = rows[row.index]
+              const { commit, graphNode } = rows[row.index]
               return (
                 <CommitRow
                   key={commit.sha}
                   commit={commit}
                   graphNode={graphNode}
-                  hasAbove={index > 0}
                   laneCount={laneCount}
                   rowHeight={ROW_HEIGHT}
                   identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
