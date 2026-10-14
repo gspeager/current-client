@@ -2,8 +2,9 @@ import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
-import { GitService, HistoryService, PlatformService } from '@current-client-bindings/app'
+import { GitService, HistoryService } from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
+import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './components/chrome/HeaderBar'
 import KeepAlive from './components/chrome/KeepAlive'
 import NavPane from './components/chrome/NavPane'
@@ -192,21 +193,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
         <h1>Current Client</h1>
         {resetNotice}
         {gitError ? (
-          <>
-            <p className="app-welcome-status app-welcome-status-error">{gitError}</p>
-            <div className="app-welcome-git-actions">
-              <button
-                type="button"
-                className="repo-switcher-secondary"
-                onClick={() => void PlatformService.OpenGitDownloadPage()}
-              >
-                Download Git
-              </button>
-              <button type="button" className="repo-switcher-secondary" onClick={() => setSettingsOpen(true)}>
-                Set git executable path…
-              </button>
-            </div>
-          </>
+          <GitMissing error={gitError} onCheckAgain={reloadGitVersion} onSetPath={() => setSettingsOpen(true)} />
         ) : gitVersion ? (
           <p className="app-welcome-status">git {gitVersion}</p>
         ) : (
