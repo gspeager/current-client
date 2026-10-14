@@ -37,8 +37,8 @@ import type { useRepositoryLifecycle } from '../../features/repositories/useRepo
 import Kbd from '../controls/Kbd'
 import PathText from '../git/PathText'
 import Modal from './Modal'
-import './QuickSwitchPalette.scss'
 import { revealInFileManagerLabel } from '../../lib/fileManager'
+import './QuickSwitchPalette.scss'
 
 interface QuickSwitchPaletteProps {
   repoPath: string

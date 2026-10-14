@@ -22,44 +22,53 @@ func runResult(ctx context.Context, repoPath string, args ...string) (gitexec.Re
 // a worktree.
 func GitDir(ctx context.Context, repoPath string) (string, error) {
 	dirs, err := gitDirs(ctx, repoPath)
-	return dirs[0], err
+	return dirs.gitDir, err
 }
 
 // CommonDir resolves the .git directory a repository's refs live in, which
 // all its worktrees share; outside a worktree it's the same as GitDir.
 func CommonDir(ctx context.Context, repoPath string) (string, error) {
 	dirs, err := gitDirs(ctx, repoPath)
-	return dirs[1], err
+	return dirs.commonDir, err
+}
+
+type repoDirs struct {
+	gitDir    string
+	commonDir string
 }
 
 var dirCache sync.Map
 
 // gitDirs asks git once per repository path; the answer only changes if the
 // repository is removed, which the existence check catches.
-func gitDirs(ctx context.Context, repoPath string) ([2]string, error) {
-	if dirs, ok := dirCache.Load(repoPath); ok {
-		if _, err := os.Stat(dirs.([2]string)[0]); err == nil {
-			return dirs.([2]string), nil
+func gitDirs(ctx context.Context, repoPath string) (repoDirs, error) {
+	if cached, ok := dirCache.Load(repoPath); ok {
+		dirs := cached.(repoDirs)
+		if _, err := os.Stat(dirs.gitDir); err == nil {
+			return dirs, nil
 		}
 		dirCache.Delete(repoPath)
 	}
 	dirs, err, _ := flights.Do("dirs\x00"+repoPath, func() (any, error) {
 		result, err := runResult(ctx, repoPath, "rev-parse", "--git-dir", "--git-common-dir")
 		if err != nil {
-			return [2]string{}, err
+			return repoDirs{}, err
 		}
-		var dirs [2]string
-		for i, dir := range strings.SplitN(strings.TrimSpace(result.Stdout), "\n", 2) {
-			dir = strings.TrimSpace(dir)
-			if !filepath.IsAbs(dir) {
-				dir = filepath.Join(repoPath, dir)
-			}
-			dirs[i] = dir
-		}
+		gitDir, commonDir, _ := strings.Cut(strings.TrimSpace(result.Stdout), "\n")
+		dirs := repoDirs{gitDir: absoluteIn(repoPath, gitDir), commonDir: absoluteIn(repoPath, commonDir)}
 		dirCache.Store(repoPath, dirs)
 		return dirs, nil
 	})
-	return dirs.([2]string), err
+	return dirs.(repoDirs), err
+}
+
+// absoluteIn resolves a path git printed relative to repoPath.
+func absoluteIn(repoPath, dir string) string {
+	dir = strings.TrimSpace(dir)
+	if filepath.IsAbs(dir) {
+		return dir
+	}
+	return filepath.Join(repoPath, dir)
 }
 
 // sinceMidnight formats a --since value with an explicit time: a bare

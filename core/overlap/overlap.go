@@ -75,9 +75,9 @@ func predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 	}
 	cache.Unlock()
 	if len(tips) > 0 {
-		merged, err := mergeMany(ctx, repoPath, head, tips)
-		if errors.Is(err, git.ErrMergeTreeStdinUnsupported) {
-			merged, err = mergeEach(ctx, repoPath, head, tips)
+		merged, err := merge(ctx, repoPath, head, tips)
+		if errors.Is(err, git.ErrUnrelatedHistories) {
+			merged, err = mergeSharingHistory(ctx, repoPath, head, tips)
 		}
 		if err != nil {
 			return nil, err
@@ -100,6 +100,47 @@ func predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 		}
 	}
 	return overlaps, nil
+}
+
+// merge merges every tip in one process, or one per process on Git 2.38 and 2.39.
+func merge(ctx context.Context, repoPath, head string, tips []string) ([][]string, error) {
+	merged, err := mergeMany(ctx, repoPath, head, tips)
+	if errors.Is(err, git.ErrMergeTreeStdinUnsupported) {
+		return mergeEach(ctx, repoPath, head, tips)
+	}
+	return merged, err
+}
+
+// mergeSharingHistory merges only the tips that share history with head.
+// The others, such as an orphan gh-pages branch, can't be merged, so they
+// can't conflict either.
+func mergeSharingHistory(ctx context.Context, repoPath, head string, tips []string) ([][]string, error) {
+	related, err := git.SharingHistory(ctx, repoPath, head)
+	if err != nil {
+		return nil, err
+	}
+	var relatedTips []string
+	for _, tip := range tips {
+		if related[tip] {
+			relatedTips = append(relatedTips, tip)
+		}
+	}
+	merged := make([][]string, len(tips))
+	if len(relatedTips) == 0 {
+		return merged, nil
+	}
+	relatedMerged, err := merge(ctx, repoPath, head, relatedTips)
+	if err != nil {
+		return nil, err
+	}
+	next := 0
+	for i, tip := range tips {
+		if related[tip] {
+			merged[i] = relatedMerged[next]
+			next++
+		}
+	}
+	return merged, nil
 }
 
 // mergeEach merges one branch per process, for Git without merge-tree --stdin.

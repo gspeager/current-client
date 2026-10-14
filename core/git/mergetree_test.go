@@ -96,3 +96,29 @@ func TestMergeConflictsOnOldGit(t *testing.T) {
 		t.Errorf("batched err = %v, want ErrMergeTreeStdinUnsupported", err)
 	}
 }
+
+func TestMergeConflictsWithUnrelatedHistory(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a\n", "base")
+	gittest.Run(t, dir, "switch", "-q", "--orphan", "gh-pages")
+	gittest.CommitFile(t, dir, "index.html", "site\n", "site")
+	gittest.Run(t, dir, "switch", "-q", "-c", "related", "main")
+	gittest.CommitFile(t, dir, "b.txt", "b\n", "related")
+	gittest.Run(t, dir, "switch", "-q", "main")
+	ctx := context.Background()
+
+	if _, err := MergeConflictsMany(ctx, dir, "main", []string{"related", "gh-pages"}); !errors.Is(err, ErrUnrelatedHistories) {
+		t.Errorf("batched err = %v, want ErrUnrelatedHistories", err)
+	}
+	if _, err := MergeConflicts(ctx, dir, "main", "gh-pages"); !errors.Is(err, ErrUnrelatedHistories) {
+		t.Errorf("single err = %v, want ErrUnrelatedHistories", err)
+	}
+	related, err := SharingHistory(ctx, dir, "main")
+	if err != nil {
+		t.Fatalf("SharingHistory: %v", err)
+	}
+	sha := func(rev string) string { return gittest.Run(t, dir, "rev-parse", rev) }
+	if !related[sha("related")] || !related[sha("main")] || related[sha("gh-pages")] {
+		t.Errorf("SharingHistory = %v, want related and main but not gh-pages", related)
+	}
+}
