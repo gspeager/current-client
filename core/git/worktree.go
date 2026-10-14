@@ -25,20 +25,43 @@ type Worktree struct {
 	Missing bool
 }
 
+// ListWorktrees takes repoPath as the top of a working tree, as Open returns
+// it. Without linked worktrees, the main one comes from the cached branch list.
 func ListWorktrees(ctx context.Context, repoPath string) ([]Worktree, error) {
-	result, err := runResult(ctx, repoPath, "worktree", "list", "--porcelain")
-	if err != nil {
-		return nil, err
+	if main, ok := onlyWorktree(ctx, repoPath); ok {
+		return []Worktree{main}, nil
 	}
-	top, err := runResult(ctx, repoPath, "rev-parse", "--show-toplevel")
+	result, err := runResult(ctx, repoPath, "worktree", "list", "--porcelain")
 	if err != nil {
 		return nil, err
 	}
 	worktrees := parseWorktrees(result.Stdout)
 	for i := range worktrees {
-		worktrees[i].Current = samePath(worktrees[i].Path, strings.TrimSpace(top.Stdout))
+		worktrees[i].Current = samePath(worktrees[i].Path, repoPath)
 	}
 	return worktrees, nil
+}
+
+// onlyWorktree is false when there may be linked worktrees, or HEAD isn't on
+// a branch, which leaves git to say.
+func onlyWorktree(ctx context.Context, repoPath string) (Worktree, bool) {
+	commonDir, err := CommonDir(ctx, repoPath)
+	if err != nil {
+		return Worktree{}, false
+	}
+	if linked, err := os.ReadDir(filepath.Join(commonDir, "worktrees")); err == nil && len(linked) > 0 {
+		return Worktree{}, false
+	}
+	list, err := listBranches(ctx, repoPath)
+	if err != nil || list.head == "" {
+		return Worktree{}, false
+	}
+	for _, b := range list.branches {
+		if b.Current {
+			return Worktree{Path: repoPath, Branch: b.Name, Head: list.head, Main: true, Current: true}, true
+		}
+	}
+	return Worktree{}, false
 }
 
 // Blocks of "key value" lines separated by blank lines; the first is the main worktree.

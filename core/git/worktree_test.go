@@ -130,3 +130,20 @@ func TestListBranchesReportsTheirWorktree(t *testing.T) {
 		}
 	}
 }
+
+func TestListWorktreesWithoutLinkedOnesMatchesGit(t *testing.T) {
+	ctx := context.Background()
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+
+	got, err := ListWorktrees(ctx, dir)
+	if err != nil {
+		t.Fatalf("ListWorktrees: %v", err)
+	}
+	want := parseWorktrees(gittest.Run(t, dir, "worktree", "list", "--porcelain"))
+	want[0].Current = true
+	if len(got) != 1 || got[0].Branch != want[0].Branch || got[0].Head != want[0].Head || !got[0].Main || !got[0].Current ||
+		!samePath(got[0].Path, want[0].Path) {
+		t.Fatalf("got %+v, want %+v", got, want)
+	}
+}

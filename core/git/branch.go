@@ -29,12 +29,14 @@ type branchList struct {
 	branches []Branch
 	// goneUpstream holds the branches whose upstream no longer exists.
 	goneUpstream map[string]bool
+	// head is the current branch's commit, "" when HEAD isn't on a branch.
+	head string
 }
 
 func listBranches(ctx context.Context, repoPath string) (branchList, error) {
 	return cachedByRefs(ctx, repoPath, "branches", func() (branchList, error) {
 		result, err := runResult(ctx, repoPath, "branch",
-			"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)%09%(worktreepath)")
+			"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)%09%(objectname)%09%(worktreepath)")
 		if err != nil {
 			return branchList{}, err
 		}
@@ -48,7 +50,7 @@ func parseLocalBranches(output string) branchList {
 		if line == "" {
 			continue
 		}
-		fields := strings.SplitN(line, "\t", 6)
+		fields := strings.SplitN(line, "\t", 7)
 		if len(fields) < 5 {
 			continue
 		}
@@ -64,8 +66,11 @@ func parseLocalBranches(output string) branchList {
 			Behind:         behind,
 			LastCommitDate: fields[4],
 		})
-		if len(fields) == 6 && fields[5] != "" {
-			list.branches[len(list.branches)-1].WorktreePath = filepath.FromSlash(fields[5])
+		if len(fields) >= 6 && fields[0] == "*" && !strings.HasPrefix(fields[1], "(") {
+			list.head = fields[5]
+		}
+		if len(fields) == 7 && fields[6] != "" {
+			list.branches[len(list.branches)-1].WorktreePath = filepath.FromSlash(fields[6])
 		}
 	}
 	return list
