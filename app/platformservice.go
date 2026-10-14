@@ -68,6 +68,11 @@ func (s *PlatformService) AppVersion() string {
 	return appVersion
 }
 
+func (s *PlatformService) HomeDir() string {
+	home, _ := os.UserHomeDir()
+	return home
+}
+
 type RecentErrorInfo struct {
 	At      string `json:"at"`
 	Message string `json:"message"`

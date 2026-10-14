@@ -31,6 +31,26 @@
   flex: 1;
 }
 
+.status-bar-branch,
+.status-bar > span {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+// The only part that gives way when the window narrows; PathText cuts the
+// start, so the repository's own folder stays visible.
 .status-bar-repo-path {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
   font: var(--data-sm);
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
 }
