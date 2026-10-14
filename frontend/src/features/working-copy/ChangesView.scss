@@ -124,3 +124,24 @@
   font: var(--ui-xs);
   font-weight: 600;
 }
+
+.changes-conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+
+  button {
+    height: var(--h-chip);
+    padding: 0 var(--space-sm);
+    background: none;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius);
+    color: var(--on-surface);
+    font: var(--ui-xs);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface-container);
+    }
+  }
+}

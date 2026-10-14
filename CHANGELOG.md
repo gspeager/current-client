@@ -4,6 +4,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- A conflicted file can be resolved with one side's whole version, named by branch (**Keep main's version**, **Keep feature-x's version**, or **Keep it deleted, as in main**), from its menu or the buttons above its diff. **Open in editor** opens the file at its first conflict marker, and **Mark resolved** asks first if markers remain. ([#113](https://github.com/gspeager/current-client/issues/113))
+
 ### Changed
 
 - Repositories open on **Working Copy**, now the first tab, instead of Activity. The tabs are Working Copy, Branch Graph & History, Activity and Changelog. ([#114](https://github.com/gspeager/current-client/issues/114))

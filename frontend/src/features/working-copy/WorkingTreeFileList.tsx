@@ -11,6 +11,7 @@ import { suggestedWorkingTreePatchFilename } from '../../lib/patchFilename'
 import { useFileTools } from '../history/useFileTools'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import type { WorkingTreeActions } from './useWorkingTreeActions'
+import type { ConflictResolution } from './useConflictResolution'
 import FileRow from './FileRow'
 import './WorkingTreeFileList.scss'
 
@@ -18,6 +19,7 @@ interface WorkingTreeFileListProps {
   repoPath: string
   workingTree: ReturnType<typeof useWorkingTree>
   actions: WorkingTreeActions
+  conflicts: ConflictResolution
   openPath: string | null
   openSection: WorkingTreeSection
   onOpen: (path: string, section: WorkingTreeSection) => void
@@ -64,6 +66,7 @@ function WorkingTreeFileList({
   repoPath,
   workingTree,
   actions,
+  conflicts,
   openPath,
   openSection,
   onOpen,
@@ -245,9 +248,13 @@ function WorkingTreeFileList({
     }
     const untracked = section === 'unstaged' && f.worktreeStatus === '?'
     const items: ContextMenuItem[] = [
-      section === 'staged'
-        ? { label: 'Unstage', onClick: () => actions.unstage(f) }
-        : { label: section === 'conflicted' ? 'Mark resolved' : 'Stage', onClick: () => actions.stage(f) },
+      ...(section === 'conflicted'
+        ? conflicts.menuItems(f)
+        : [
+            section === 'staged'
+              ? { label: 'Unstage', onClick: () => actions.unstage(f) }
+              : { label: 'Stage', onClick: () => actions.stage(f) },
+          ]),
       ...fileTools.pathItems(f.path, !untracked),
     ]
     if (untracked) {
@@ -325,7 +332,9 @@ function WorkingTreeFileList({
         removed={isStaged ? f.indexRemoved : f.workRemoved}
         binary={isStaged ? f.indexBinary : f.workBinary}
         tag={f.submodule ? 'submodule' : f.lfs ? 'LFS' : undefined}
-        onToggleChecked={() => (isStaged ? actions.unstage(f) : actions.stage(f))}
+        onToggleChecked={() =>
+          isStaged ? actions.unstage(f) : row.section === 'conflicted' ? conflicts.markResolved(f) : actions.stage(f)
+        }
         onSelect={onFileRowClick(row.section, f)}
         onSelectMouseDown={onFileRowMouseDown(row.section, f)}
         onDiscard={row.section === 'unstaged' ? () => actions.discardFile(f) : undefined}
