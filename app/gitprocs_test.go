@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gspeager/current-client/internal/watch"
 )
@@ -47,6 +48,13 @@ func TestGitProcesses(t *testing.T) {
 		run(repo, "branch", fmt.Sprintf("topic-%02d", i))
 	}
 	run(repo, "tag", "v1.0.0")
+	// A file written in the same second as the index makes status rewrite the
+	// index, which an app opening an existing repository doesn't see.
+	hourAgo := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(filepath.Join(repo, "main.go"), hourAgo, hourAgo); err != nil {
+		t.Fatal(err)
+	}
+	run(repo, "status")
 
 	trace := filepath.Join(t.TempDir(), "trace.json")
 	t.Setenv("GIT_TRACE2_EVENT", trace)
@@ -97,7 +105,7 @@ func TestGitProcesses(t *testing.T) {
 
 	total, byCommand := countGitProcesses(t, trace)
 	t.Logf("opening a repository: %d git processes\n%s", total, byCommand)
-	const budget = 24
+	const budget = 23
 	if total > budget {
 		t.Errorf("opening a repository started %d git processes, want at most %d", total, budget)
 	}
