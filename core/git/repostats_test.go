@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/gspeager/current-client/core/internal/gittest"
 )
@@ -47,5 +48,37 @@ func TestRepoStats(t *testing.T) {
 	}
 	if stats.CurrentBranch != "main" {
 		t.Errorf("CurrentBranch = %q, want %q", stats.CurrentBranch, "main")
+	}
+}
+
+func TestRepoAgeIsFromTheOldestRootCommit(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	at := func(daysAgo int) {
+		date := time.Now().AddDate(0, 0, -daysAgo).Format(time.RFC3339)
+		t.Setenv("GIT_AUTHOR_DATE", date)
+		t.Setenv("GIT_COMMITTER_DATE", date)
+	}
+	at(20)
+	gittest.CommitFile(t, dir, "a.txt", "v1", "first on main")
+	at(2)
+	gittest.CommitFile(t, dir, "a.txt", "v2", "newest on main")
+	// A second history, merged in later, began earlier.
+	at(30)
+	gittest.Run(t, dir, "switch", "-q", "--orphan", "imported")
+	gittest.CommitFile(t, dir, "b.txt", "v1", "first imported")
+	gittest.Run(t, dir, "switch", "-q", "main")
+	at(0)
+	gittest.Run(t, dir, "merge", "-q", "--allow-unrelated-histories", "-m", "merge imported", "imported")
+	// A stash of untracked files is a root commit too, and isn't history.
+	at(100)
+	gittest.WriteFile(t, dir, "untracked.txt", "x")
+	gittest.Run(t, dir, "stash", "push", "-u")
+
+	stats, err := ComputeRepoStats(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("ComputeRepoStats: %v", err)
+	}
+	if stats.RepoAgeDays != 30 {
+		t.Errorf("RepoAgeDays = %d, want 30", stats.RepoAgeDays)
 	}
 }
