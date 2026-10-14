@@ -430,11 +430,8 @@ describe('ChangesView expanded diff', () => {
 
   it('hides the file list while expanded, and brings it back from the header', async () => {
     const onDiffExpandedChange = renderExpandable(true)
-    // Nothing open yet, so the file list shows.
-    expect(screen.getByRole('button', { name: 'src/app.ts' })).toBeVisible()
 
-    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
-
+    // The first file opens by itself, so the expanded diff takes the whole view.
     const show = await screen.findByRole('button', { name: 'Show file list' })
     expect(screen.queryByRole('button', { name: 'src/app.ts' })).not.toBeInTheDocument()
     expect(screen.queryByRole('separator', { name: 'Resize file list' })).not.toBeInTheDocument()
@@ -468,5 +465,27 @@ describe('ChangesView conflicts', () => {
     renderChanges([file('src/app.ts')])
 
     expect(screen.queryByText('Conflicted')).not.toBeInTheDocument()
+  })
+})
+
+describe('ChangesView first file', () => {
+  it('opens the first file, and the next one when it is staged', async () => {
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue({ hunks: [] } as unknown as FileDiff)
+    const files = [file('src/a.ts'), file('src/b.ts')]
+    const { rerender } = render(changesView(workingTreeFor(files)))
+
+    await vi.waitFor(() => expect(DiffService.GetWorkingTreeDiff).toHaveBeenCalledWith(REPO, 'src/a.ts', false, false))
+
+    rerender(changesView(workingTreeFor([file('src/a.ts', { indexStatus: 'M', worktreeStatus: '.' }), files[1]])))
+
+    await vi.waitFor(() =>
+      expect(DiffService.GetWorkingTreeDiff).toHaveBeenLastCalledWith(REPO, 'src/b.ts', false, false),
+    )
+  })
+
+  it('opens nothing in a clean working tree', () => {
+    renderChanges([])
+    expect(screen.getByText('Select a file to see its diff.')).toBeInTheDocument()
+    expect(DiffService.GetWorkingTreeDiff).not.toHaveBeenCalled()
   })
 })
