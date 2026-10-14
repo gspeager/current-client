@@ -2,6 +2,12 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [Unreleased]
+
+### Fixed
+
+- Pull and push progress and errors show only in the tab of the repository they're for, so switching tabs no longer leaves another repository's "Could not pull" in view. **Pull (merge)** and **Pull (rebase)** in that message pull the repository that diverged, and a pull or push keeps running in a background tab. ([#122](https://github.com/gspeager/current-client/issues/122))
+
 ## [0.2.1] - 2026-10-08
 
 ### Added
