@@ -36,6 +36,7 @@ import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import BisectWizard from '../../features/history/BisectWizard'
 import ReflogPanel from '../../features/history/ReflogPanel'
 import './NavPane.scss'
+import { revealInFileManagerLabel } from '../../lib/fileManager'
 
 type SectionId = 'maintenance' | 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 
@@ -125,7 +126,7 @@ function NavPane({
       onClick: () => run(PlatformService.OpenTerminal(repoPath), 'Could not open terminal'),
     },
     {
-      label: 'Reveal in File Explorer',
+      label: revealInFileManagerLabel(),
       icon: FolderOpen,
       onClick: () => run(PlatformService.RevealInFileManager(repoPath), 'Could not open file manager'),
     },
