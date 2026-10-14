@@ -1,4 +1,4 @@
-import { baseName, joinPath } from './paths'
+import { baseName, joinPath, tildePath } from './paths'
 
 describe('baseName', () => {
   it('returns the last path segment for either separator', () => {
@@ -24,5 +24,18 @@ describe('joinPath', () => {
   it('does not double a trailing separator', () => {
     expect(joinPath('/', 'app')).toBe('/app')
     expect(joinPath('C:\\', 'app')).toBe('C:\\app')
+  })
+})
+
+describe('tildePath', () => {
+  it('shows the home folder as ~', () => {
+    expect(tildePath('/Users/sam/projects/acme', '/Users/sam')).toBe('~/projects/acme')
+    expect(tildePath('/Users/sam', '/Users/sam')).toBe('~')
+  })
+
+  it('leaves other paths, and paths that only start with the same letters, alone', () => {
+    expect(tildePath('/Users/samantha/acme', '/Users/sam')).toBe('/Users/samantha/acme')
+    expect(tildePath('/srv/acme', '/Users/sam')).toBe('/srv/acme')
+    expect(tildePath('C:\\Users\\sam\\acme', '')).toBe('C:\\Users\\sam\\acme')
   })
 })
