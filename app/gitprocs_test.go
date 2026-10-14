@@ -105,7 +105,7 @@ func TestGitProcesses(t *testing.T) {
 
 	total, byCommand := countGitProcesses(t, trace)
 	t.Logf("opening a repository: %d git processes\n%s", total, byCommand)
-	const budget = 23
+	const budget = 22
 	if total > budget {
 		t.Errorf("opening a repository started %d git processes, want at most %d", total, budget)
 	}
