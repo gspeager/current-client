@@ -74,17 +74,3 @@ func hasNoCommits(ctx context.Context, repoPath string) bool {
 	_, err := runResult(ctx, repoPath, "rev-parse", "--verify", "--quiet", "HEAD")
 	return err != nil
 }
-
-// currentBranchName also works before the first commit, when HEAD names a
-// branch that doesn't exist yet. A detached HEAD reads as "HEAD".
-func currentBranchName(ctx context.Context, repoPath string) (string, error) {
-	result, err := runResult(ctx, repoPath, "rev-parse", "--abbrev-ref", "HEAD")
-	if err == nil {
-		return strings.TrimSpace(result.Stdout), nil
-	}
-	unborn, symErr := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "HEAD")
-	if symErr != nil {
-		return "", err
-	}
-	return strings.TrimSpace(unborn.Stdout), nil
-}

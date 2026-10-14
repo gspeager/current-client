@@ -68,10 +68,11 @@ func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	}
 	stats.StashCount = len(stashes)
 
-	stats.CurrentBranch, err = currentBranchName(ctx, repoPath)
+	status, err := CurrentBranchStatus(ctx, repoPath)
 	if err != nil {
 		return stats, err
 	}
+	stats.CurrentBranch = status.Current
 
 	return stats, nil
 }

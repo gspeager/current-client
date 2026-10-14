@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -20,16 +21,29 @@ type Branch struct {
 }
 
 func ListBranches(ctx context.Context, repoPath string) ([]Branch, error) {
-	result, err := runResult(ctx, repoPath, "branch",
-		"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)%09%(worktreepath)")
-	if err != nil {
-		return nil, err
-	}
-	return parseLocalBranches(result.Stdout), nil
+	list, err := listBranches(ctx, repoPath)
+	return slices.Clone(list.branches), err
 }
 
-func parseLocalBranches(output string) []Branch {
-	var branches []Branch
+type branchList struct {
+	branches []Branch
+	// goneUpstream holds the branches whose upstream no longer exists.
+	goneUpstream map[string]bool
+}
+
+func listBranches(ctx context.Context, repoPath string) (branchList, error) {
+	return cachedByRefs(ctx, repoPath, "branches", func() (branchList, error) {
+		result, err := runResult(ctx, repoPath, "branch",
+			"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)%09%(worktreepath)")
+		if err != nil {
+			return branchList{}, err
+		}
+		return parseLocalBranches(result.Stdout), nil
+	})
+}
+
+func parseLocalBranches(output string) branchList {
+	list := branchList{goneUpstream: map[string]bool{}}
 	for _, line := range strings.Split(output, "\n") {
 		if line == "" {
 			continue
@@ -39,7 +53,10 @@ func parseLocalBranches(output string) []Branch {
 			continue
 		}
 		ahead, behind := parseUpstreamTrack(fields[3])
-		branches = append(branches, Branch{
+		if fields[3] == "[gone]" {
+			list.goneUpstream[fields[1]] = true
+		}
+		list.branches = append(list.branches, Branch{
 			Name:           fields[1],
 			Current:        fields[0] == "*",
 			Upstream:       fields[2],
@@ -48,10 +65,10 @@ func parseLocalBranches(output string) []Branch {
 			LastCommitDate: fields[4],
 		})
 		if len(fields) == 6 && fields[5] != "" {
-			branches[len(branches)-1].WorktreePath = filepath.FromSlash(fields[5])
+			list.branches[len(list.branches)-1].WorktreePath = filepath.FromSlash(fields[5])
 		}
 	}
-	return branches
+	return list
 }
 
 // Matches either half of %(upstream:track)'s "[ahead N, behind M]".
@@ -126,37 +143,36 @@ type BranchStatus struct {
 	DetachedAt string
 }
 
+// CurrentBranchStatus reads the current branch's row of the cached branch
+// list; only a detached or unborn HEAD needs its own git process.
 func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, error) {
-	current, err := currentBranchName(ctx, repoPath)
+	list, err := listBranches(ctx, repoPath)
 	if err != nil {
 		return BranchStatus{}, err
 	}
-	status := BranchStatus{Current: current}
-	if current == "HEAD" {
-		sha, err := runResult(ctx, repoPath, "rev-parse", "--short", "HEAD")
-		if err != nil {
-			return status, err
+	for _, b := range list.branches {
+		if !b.Current {
+			continue
 		}
-		status.DetachedAt = strings.TrimSpace(sha.Stdout)
-		return status, nil
+		// git branch lists a detached HEAD, or one mid-rebase, as "(HEAD detached at …)".
+		if strings.HasPrefix(b.Name, "(") {
+			sha, err := runResult(ctx, repoPath, "rev-parse", "--short", "HEAD")
+			if err != nil {
+				return BranchStatus{Current: "HEAD"}, err
+			}
+			return BranchStatus{Current: "HEAD", DetachedAt: strings.TrimSpace(sha.Stdout)}, nil
+		}
+		if list.goneUpstream[b.Name] {
+			return BranchStatus{Current: b.Name}, nil
+		}
+		return BranchStatus{Current: b.Name, Upstream: b.Upstream, Ahead: b.Ahead, Behind: b.Behind}, nil
 	}
-
-	upstream, err := runResult(ctx, repoPath, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
+	// An unborn branch has no row yet.
+	unborn, err := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "HEAD")
 	if err != nil {
-		return status, nil
+		return BranchStatus{}, err
 	}
-	status.Upstream = strings.TrimSpace(upstream.Stdout)
-
-	counts, err := runResult(ctx, repoPath, "rev-list", "--left-right", "--count", "@{upstream}...HEAD")
-	if err != nil {
-		return status, err
-	}
-	fields := strings.Fields(counts.Stdout)
-	if len(fields) == 2 {
-		status.Behind, _ = strconv.Atoi(fields[0])
-		status.Ahead, _ = strconv.Atoi(fields[1])
-	}
-	return status, nil
+	return BranchStatus{Current: strings.TrimSpace(unborn.Stdout)}, nil
 }
 
 func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
@@ -195,11 +211,14 @@ func DefaultBranch(ctx context.Context, repoPath string) (string, error) {
 // originHead returns "" when origin/HEAD isn't set, e.g. no origin remote or
 // a repo that was never cloned.
 func originHead(ctx context.Context, repoPath string) string {
-	result, err := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
-	if err != nil {
-		return ""
-	}
-	return strings.TrimPrefix(strings.TrimSpace(result.Stdout), "origin/")
+	head, _ := cachedByRefs(ctx, repoPath, "origin-head", func() (string, error) {
+		result, err := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+		if err != nil {
+			return "", nil
+		}
+		return strings.TrimPrefix(strings.TrimSpace(result.Stdout), "origin/"), nil
+	})
+	return head
 }
 
 func defaultBranch(branches []Branch, remoteHead string) string {

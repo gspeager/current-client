@@ -13,15 +13,21 @@ import (
 func TestParseLocalBranches(t *testing.T) {
 	output := "*\tfeature\torigin/feature\t[ahead 2]\t2024-01-15T10:30:00-08:00\n" +
 		" \tmain\torigin/main\t\t2024-01-10T08:00:00-08:00\n" +
-		" \trelease\t\t\t2024-01-05T12:00:00-08:00\n"
-	got := parseLocalBranches(output)
+		" \trelease\t\t\t2024-01-05T12:00:00-08:00\n" +
+		" \told\torigin/old\t[gone]\t2024-01-01T12:00:00-08:00\n"
+	list := parseLocalBranches(output)
+	got := list.branches
 	want := []Branch{
 		{Name: "feature", Current: true, Upstream: "origin/feature", Ahead: 2, LastCommitDate: "2024-01-15T10:30:00-08:00"},
 		{Name: "main", Current: false, Upstream: "origin/main", LastCommitDate: "2024-01-10T08:00:00-08:00"},
 		{Name: "release", Current: false, LastCommitDate: "2024-01-05T12:00:00-08:00"},
+		{Name: "old", Current: false, Upstream: "origin/old", LastCommitDate: "2024-01-01T12:00:00-08:00"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v, want %+v", got, want)
+	}
+	if !reflect.DeepEqual(list.goneUpstream, map[string]bool{"old": true}) {
+		t.Errorf("goneUpstream = %v, want only old", list.goneUpstream)
 	}
 }
 
@@ -46,7 +52,7 @@ func TestParseUpstreamTrack(t *testing.T) {
 }
 
 func TestParseLocalBranchesEmpty(t *testing.T) {
-	got := parseLocalBranches("")
+	got := parseLocalBranches("").branches
 	if len(got) != 0 {
 		t.Fatalf("got %+v, want none", got)
 	}
@@ -459,5 +465,38 @@ func TestSetAndUnsetUpstream(t *testing.T) {
 	}
 	if out := gittest.Run(t, dir, "for-each-ref", "--format=%(upstream)", "refs/heads/feature"); out != "" {
 		t.Fatalf("upstream still set: %q", out)
+	}
+}
+
+func TestCurrentBranchStatusFollowsChangesMadeOutsideTheApp(t *testing.T) {
+	ctx := context.Background()
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	dir := gittest.InitRepo(t)
+
+	if status, err := CurrentBranchStatus(ctx, dir); err != nil || status != (BranchStatus{Current: "main"}) {
+		t.Fatalf("unborn: status = %+v, err = %v, want main", status, err)
+	}
+
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "push", "-q", "-u", "origin", "main")
+	want := BranchStatus{Current: "main", Upstream: "origin/main"}
+	if status, _ := CurrentBranchStatus(ctx, dir); status != want {
+		t.Fatalf("after push -u: status = %+v, want %+v", status, want)
+	}
+
+	// Each commit rewrites refs/heads/main with the same size, possibly within one clock tick.
+	for ahead := 1; ahead <= 3; ahead++ {
+		gittest.CommitFile(t, dir, "file.txt", strings.Repeat("v", ahead+1), "local change")
+		want.Ahead = ahead
+		if status, _ := CurrentBranchStatus(ctx, dir); status != want {
+			t.Fatalf("after commit %d: status = %+v, want %+v", ahead, status, want)
+		}
+	}
+
+	gittest.Run(t, dir, "update-ref", "-d", "refs/remotes/origin/main")
+	if status, _ := CurrentBranchStatus(ctx, dir); status != (BranchStatus{Current: "main"}) {
+		t.Fatalf("upstream gone: status = %+v, want no upstream", status)
 	}
 }
