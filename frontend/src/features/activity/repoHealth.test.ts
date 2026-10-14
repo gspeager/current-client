@@ -15,14 +15,14 @@ describe('isStaleBranch', () => {
 
 describe('countHealthIssues', () => {
   it('is 0 when every check passes', () => {
-    expect(countHealthIssues({ staleBranchCount: 0, unpushedCount: 0, workingTreeClean: true })).toBe(0)
+    expect(countHealthIssues({ staleBranchCount: 0, unpushedCount: 0, hasConflict: false })).toBe(0)
   })
 
   it('counts one point per failing check, not per unit', () => {
-    expect(countHealthIssues({ staleBranchCount: 5, unpushedCount: 3, workingTreeClean: false })).toBe(3)
+    expect(countHealthIssues({ staleBranchCount: 5, unpushedCount: 3, hasConflict: true })).toBe(3)
   })
 
-  it('counts a single failing check', () => {
-    expect(countHealthIssues({ staleBranchCount: 0, unpushedCount: 0, workingTreeClean: false })).toBe(1)
+  it('counts a conflict, as uncommitted changes are normal and not an issue', () => {
+    expect(countHealthIssues({ staleBranchCount: 0, unpushedCount: 0, hasConflict: true })).toBe(1)
   })
 })

@@ -1,12 +1,6 @@
 import type { DayActivityInfo } from '@current-client-bindings/app'
 import { describe, expect, it } from 'vitest'
-import {
-  averageWeeklyCommits,
-  busiestWeekday,
-  lastWeekVsAverage,
-  weeklyBuckets,
-  type WeekBucket,
-} from './commitVelocity'
+import { averageWeeklyCommits, busiestWeekday, weeklyBuckets, type WeekBucket } from './commitVelocity'
 
 function days(dates: [string, number][]): DayActivityInfo[] {
   return dates.map(([date, commits]) => ({ date, commits }))
@@ -67,28 +61,5 @@ describe('averageWeeklyCommits', () => {
 
   it('returns 0 for no weeks', () => {
     expect(averageWeeklyCommits([])).toBe(0)
-  })
-})
-
-describe('lastWeekVsAverage', () => {
-  it('reports a sprint burst when the last week is above average', () => {
-    expect(lastWeekVsAverage(weeks([10, 10, 10, 20]))).toEqual({ percent: 60, label: 'sprint burst' })
-  })
-
-  it('reports below average when the last week trails the average', () => {
-    // Average of [20, 20, 20, 10] is 17.5; 10 is 42.9% below that.
-    expect(lastWeekVsAverage(weeks([20, 20, 20, 10]))).toEqual({ percent: -43, label: 'below average' })
-  })
-
-  it('reports a steady pace when the last week matches the average exactly', () => {
-    expect(lastWeekVsAverage(weeks([10, 10, 10]))).toEqual({ percent: 0, label: 'steady pace' })
-  })
-
-  it('returns null when the whole window has no commits', () => {
-    expect(lastWeekVsAverage(weeks([0, 0, 0]))).toBeNull()
-  })
-
-  it('returns null for an empty window', () => {
-    expect(lastWeekVsAverage([])).toBeNull()
   })
 })

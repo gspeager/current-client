@@ -40,19 +40,3 @@ export function averageWeeklyCommits(weeks: WeekBucket[]): number {
   if (weeks.length === 0) return 0
   return weeks.reduce((sum, w) => sum + w.commits, 0) / weeks.length
 }
-
-interface WeekOverAverage {
-  percent: number
-  label: 'sprint burst' | 'below average' | 'steady pace'
-}
-
-export function lastWeekVsAverage(weeks: WeekBucket[]): WeekOverAverage | null {
-  if (weeks.length === 0) return null
-  const average = averageWeeklyCommits(weeks)
-  if (average === 0) return null
-  const last = weeks[weeks.length - 1].commits
-  const percent = Math.round(((last - average) / average) * 100)
-  if (percent > 0) return { percent, label: 'sprint burst' }
-  if (percent < 0) return { percent, label: 'below average' }
-  return { percent: 0, label: 'steady pace' }
-}
