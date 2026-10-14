@@ -10,6 +10,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - On macOS, the app goes idle again while files have uncommitted changes. Reading a modified file to show its status counted as a change to it, so the app refreshed about twice a second, running five Git commands each time. ([#109](https://github.com/gspeager/current-client/issues/109))
 - On Windows, Git commands start faster: the app runs Git for Windows' own `git.exe` directly instead of through the launcher on the `PATH`, which started a second process for every command. A Git executable chosen in Settings is used as it is. ([#106](https://github.com/gspeager/current-client/issues/106))
 - Opening a repository runs about a third as many Git commands (22 instead of 70 in a repository with 16 branches), and each action refreshes once instead of twice. Answers that only change when a branch, tag or the config does are read once and reused; tab chips take one Git command each, and only for the tabs not in view; repositories without submodules or extra worktrees skip those checks. This matters most on Windows, where each Git command costs more. ([#112](https://github.com/gspeager/current-client/issues/112))
+- Predicting which branches would conflict with yours runs one Git command for all of them instead of one per branch, each time the current branch moves. Git 2.38 and 2.39 still check one branch at a time. ([#111](https://github.com/gspeager/current-client/issues/111))
 
 ## [0.2.1] - 2026-10-08
 

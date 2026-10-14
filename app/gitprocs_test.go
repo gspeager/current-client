@@ -120,7 +120,7 @@ func TestGitProcesses(t *testing.T) {
 	measure("opening a repository", append(startup, refresh...), 22)
 
 	run(repo, "commit", "-q", "--allow-empty", "-m", "feat: second")
-	measure("refreshing after a commit", refresh, 22)
+	measure("refreshing after a commit", refresh, 19)
 	if status, _ := (&BranchService{}).CurrentBranchStatus(repo); status.Ahead != 1 {
 		t.Errorf("after a commit, ahead = %d, want 1", status.Ahead)
 	}
