@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -22,11 +23,14 @@ type Stash struct {
 var stashIndexPattern = regexp.MustCompile(`^stash@\{(\d+)\}$`)
 
 func ListStashes(ctx context.Context, repoPath string) ([]Stash, error) {
-	result, err := runResult(ctx, repoPath, "stash", "list", "--format=%gd%x09%s%x09%at")
-	if err != nil {
-		return nil, err
-	}
-	return parseStashList(result.Stdout)
+	stashes, err := cachedByRefs(ctx, repoPath, "stashes", func() ([]Stash, error) {
+		result, err := runResult(ctx, repoPath, "stash", "list", "--format=%gd%x09%s%x09%at")
+		if err != nil {
+			return nil, err
+		}
+		return parseStashList(result.Stdout)
+	})
+	return slices.Clone(stashes), err
 }
 
 func parseStashList(output string) ([]Stash, error) {

@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"slices"
 	"strings"
 )
 
@@ -13,12 +14,15 @@ type Tag struct {
 }
 
 func ListTags(ctx context.Context, repoPath string) ([]Tag, error) {
-	result, err := runResult(ctx, repoPath, "for-each-ref",
-		"--format=%(refname:short)%09%(objectname)%09%(*objectname)%09%(creatordate:iso-strict)", "refs/tags")
-	if err != nil {
-		return nil, err
-	}
-	return parseTags(result.Stdout), nil
+	tags, err := cachedByRefs(ctx, repoPath, "tags", func() ([]Tag, error) {
+		result, err := runResult(ctx, repoPath, "for-each-ref",
+			"--format=%(refname:short)%09%(objectname)%09%(*objectname)%09%(creatordate:iso-strict)", "refs/tags")
+		if err != nil {
+			return nil, err
+		}
+		return parseTags(result.Stdout), nil
+	})
+	return slices.Clone(tags), err
 }
 
 func parseTags(output string) []Tag {

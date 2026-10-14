@@ -123,3 +123,32 @@ func TestGetStatusRealRepo(t *testing.T) {
 		t.Fatalf("statuses = %+v, want the file inside a new folder listed itself", statuses)
 	}
 }
+
+func TestSummarizeStatusMatchesStatusAndBranch(t *testing.T) {
+	ctx := context.Background()
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	gittest.CommitFile(t, dir, "a.txt", "v1", "initial")
+	gittest.Run(t, dir, "push", "-q", "-u", "origin", "main")
+	gittest.CommitFile(t, dir, "a.txt", "v2", "local")
+	gittest.Run(t, dir, "mv", "a.txt", "b.txt")
+	gittest.WriteFile(t, dir, "untracked.txt", "new")
+
+	got, err := SummarizeStatus(ctx, dir)
+	if err != nil {
+		t.Fatalf("SummarizeStatus: %v", err)
+	}
+	statuses, _ := GetStatus(ctx, dir)
+	want := StatusSummary{Branch: "main", Upstream: "origin/main", Ahead: 1, Changes: len(statuses)}
+	if got != want || got.Changes != 2 {
+		t.Fatalf("got %+v, want %+v with a rename and an untracked file", got, want)
+	}
+
+	gittest.Run(t, dir, "commit", "-q", "-m", "rename")
+	gittest.Run(t, dir, "switch", "-q", "--detach")
+	if got, _ := SummarizeStatus(ctx, dir); got.Branch != "HEAD" {
+		t.Fatalf("detached: got %+v, want HEAD", got)
+	}
+}
