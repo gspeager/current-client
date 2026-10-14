@@ -7,15 +7,26 @@ interface Cancellable<T> extends Promise<T> {
   cancel(): Promise<void>
 }
 
+interface OperationState {
+  running: boolean
+  error: string | null
+}
+
+const IDLE: OperationState = { running: false, error: null }
+
 function isCancellation(err: unknown): boolean {
   return err instanceof Error && err.name === 'CancelError'
 }
 
-export function useCancellableOperation() {
+// Each key (such as a repository path) has its own operation, so one started
+// under a key keeps running and reporting there while another key is current.
+export function useCancellableOperation(key = '') {
   const { signIn } = useDialogs()
-  const [running, setRunning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const current = useRef<Cancellable<unknown> | null>(null)
+  const [states, setStates] = useState<Record<string, OperationState>>({})
+  const current = useRef(new Map<string, Cancellable<unknown>>())
+
+  const update = (patch: Partial<OperationState>) =>
+    setStates((prev) => ({ ...prev, [key]: { ...(prev[key] ?? IDLE), ...patch } }))
 
   // start is called again with what the user enters if the remote asks them
   // to sign in. onError returns true when it has handled the failure itself.
@@ -24,11 +35,10 @@ export function useCancellableOperation() {
     onSuccess?: (value: T) => void,
     onError?: (message: string) => boolean,
   ) {
-    setError(null)
-    setRunning(true)
+    update({ running: true, error: null })
     return withSignIn((auth) => {
       const promise = start(auth)
-      current.current = promise
+      current.current.set(key, promise)
       return promise
     }, signIn)
       .then((value) => onSuccess?.(value))
@@ -36,18 +46,19 @@ export function useCancellableOperation() {
         if (isCancellation(err)) return
         const message = errorMessage(err)
         if (!onError?.(message)) {
-          setError(message)
+          update({ error: message })
         }
       })
       .finally(() => {
-        setRunning(false)
-        current.current = null
+        update({ running: false })
+        current.current.delete(key)
       })
   }
 
   function cancel() {
-    current.current?.cancel()
+    current.current.get(key)?.cancel()
   }
 
-  return { running, error, setError, run, cancel }
+  const { running, error } = states[key] ?? IDLE
+  return { running, error, setError: (message: string | null) => update({ error: message }), run, cancel }
 }

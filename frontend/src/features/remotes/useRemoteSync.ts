@@ -9,8 +9,8 @@ export const DIVERGED = 'This branch and its upstream have diverged. Choose Pull
 
 export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
   const { confirm } = useDialogs()
-  const pullOp = useCancellableOperation()
-  const pushOp = useCancellableOperation()
+  const pullOp = useCancellableOperation(repoPath ?? '')
+  const pushOp = useCancellableOperation(repoPath ?? '')
 
   const pull = () => {
     if (!repoPath) return
