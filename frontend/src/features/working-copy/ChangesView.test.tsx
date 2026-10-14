@@ -1,9 +1,11 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  ConflictService,
   DiffService,
   FileContent,
   FileDiff,
+  PlatformService,
   StashService,
   StatusService,
   type FileStatus,
@@ -453,10 +455,61 @@ describe('ChangesView conflicts', () => {
   })
 
   it('marks a conflicted file resolved by staging it', async () => {
+    vi.mocked(ConflictService.ConflictMarkerLine).mockResolvedValue(0)
     vi.mocked(StatusService.StageFile).mockResolvedValue()
     renderChanges([conflictedFile()])
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Mark src/app.ts resolved' }))
+
+    await vi.waitFor(() => expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts'))
+  })
+
+  const sides = () =>
+    vi.mocked(ConflictService.GetConflictSides).mockResolvedValue({ ours: 'main', theirs: 'feature-x' })
+
+  it('keeps one side of a conflicted file, named by branch, after confirming', async () => {
+    sides()
+    vi.mocked(ConflictService.KeepSide).mockResolvedValue()
+    const workingTree = renderChanges([conflictedFile()])
+
+    await userEvent.click(await screen.findByRole('button', { name: "Keep feature-x's version" }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent('Changes to it from main are discarded.')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Keep' }))
+
+    expect(ConflictService.KeepSide).toHaveBeenCalledWith(REPO, 'src/app.ts', 'theirs')
+    await vi.waitFor(() => expect(workingTree.loadStatus).toHaveBeenCalled())
+  })
+
+  it('offers to keep a file deleted when one side deleted it', async () => {
+    sides()
+    renderChanges([file('src/app.ts', { indexStatus: 'D', worktreeStatus: 'U', conflicted: true })])
+
+    expect(await screen.findByRole('button', { name: 'Keep it deleted, as in main' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: "Keep feature-x's version" })).toBeInTheDocument()
+  })
+
+  it('opens the file in the editor at its first conflict marker', async () => {
+    sides()
+    vi.mocked(ConflictService.ConflictMarkerLine).mockResolvedValue(12)
+    vi.mocked(PlatformService.OpenFileInEditor).mockResolvedValue()
+    renderChanges([conflictedFile()])
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Open in editor' }))
+
+    await vi.waitFor(() => expect(PlatformService.OpenFileInEditor).toHaveBeenCalledWith(REPO, 'src/app.ts', 12))
+  })
+
+  it('warns before marking a file resolved that still has conflict markers', async () => {
+    vi.mocked(ConflictService.ConflictMarkerLine).mockResolvedValue(3)
+    vi.mocked(StatusService.StageFile).mockResolvedValue()
+    renderChanges([conflictedFile()])
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Mark src/app.ts resolved' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent('src/app.ts still has conflict markers, from line 3.')
+    expect(StatusService.StageFile).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Mark resolved' }))
 
     expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
   })

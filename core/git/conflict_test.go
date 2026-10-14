@@ -359,3 +359,83 @@ func TestAbortConflictOperationAmReturnsToPreConflictState(t *testing.T) {
 		t.Fatalf("file.txt = %q, want the pre-am content restored", content)
 	}
 }
+
+func TestConflictSidesAreNamedByBranch(t *testing.T) {
+	ctx := context.Background()
+	dir := initConflictRepo(t)
+	runGitExpectFailure(t, dir, "merge", "theirs")
+	if got, err := ConflictSides(ctx, dir); err != nil || got != (ConflictSideNames{Ours: "main", Theirs: "theirs"}) {
+		t.Fatalf("merge: sides = %+v, %v; want main and theirs", got, err)
+	}
+	gittest.Run(t, dir, "merge", "--abort")
+
+	// A rebase swaps them: ours is the branch being rebased onto.
+	gittest.Run(t, dir, "checkout", "-q", "theirs")
+	runGitExpectFailure(t, dir, "rebase", "main")
+	if got, err := ConflictSides(ctx, dir); err != nil || got != (ConflictSideNames{Ours: "main", Theirs: "theirs"}) {
+		t.Fatalf("rebase: sides = %+v, %v; want main and theirs", got, err)
+	}
+	gittest.Run(t, dir, "rebase", "--abort")
+
+	gittest.Run(t, dir, "checkout", "-q", "main")
+	short := gittest.Run(t, dir, "rev-parse", "--short", "theirs")
+	runGitExpectFailure(t, dir, "cherry-pick", "theirs")
+	if got, err := ConflictSides(ctx, dir); err != nil || got != (ConflictSideNames{Ours: "main", Theirs: short}) {
+		t.Fatalf("cherry-pick: sides = %+v, %v; want main and %s", got, err, short)
+	}
+}
+
+func TestKeepConflictSide(t *testing.T) {
+	ctx := context.Background()
+	for _, tt := range []struct {
+		side ConflictSide
+		want string
+	}{{Ours, "ours\n"}, {Theirs, "theirs\n"}} {
+		dir := initConflictRepo(t)
+		runGitExpectFailure(t, dir, "merge", "theirs")
+		if line, err := ConflictMarkerLine(dir, "file.txt"); err != nil || line != 1 {
+			t.Fatalf("marker line = %d, %v; want 1", line, err)
+		}
+
+		if err := KeepConflictSide(ctx, dir, "file.txt", tt.side); err != nil {
+			t.Fatalf("KeepConflictSide %s: %v", tt.side, err)
+		}
+		data, _ := os.ReadFile(filepath.Join(dir, "file.txt"))
+		if string(data) != tt.want {
+			t.Errorf("%s: file = %q, want %q", tt.side, data, tt.want)
+		}
+		if status := gittest.Run(t, dir, "status", "--porcelain"); !strings.HasPrefix(status, "M  file.txt") && status != "" {
+			t.Errorf("%s: status = %q, want the file staged and resolved", tt.side, status)
+		}
+		if line, _ := ConflictMarkerLine(dir, "file.txt"); line != 0 {
+			t.Errorf("%s: marker line = %d after resolving, want 0", tt.side, line)
+		}
+	}
+}
+
+func TestKeepConflictSideThatDeletedTheFile(t *testing.T) {
+	ctx := context.Background()
+	for _, tt := range []struct {
+		side   ConflictSide
+		exists bool
+	}{{Ours, false}, {Theirs, true}} {
+		dir := gittest.InitRepo(t)
+		gittest.CommitFile(t, dir, "file.txt", "base\n", "initial")
+		gittest.Run(t, dir, "checkout", "-q", "-b", "theirs")
+		gittest.CommitFile(t, dir, "file.txt", "theirs\n", "edit")
+		gittest.Run(t, dir, "checkout", "-q", "main")
+		gittest.Run(t, dir, "rm", "-q", "file.txt")
+		gittest.Run(t, dir, "commit", "-q", "-m", "delete")
+		runGitExpectFailure(t, dir, "merge", "theirs")
+
+		if err := KeepConflictSide(ctx, dir, "file.txt", tt.side); err != nil {
+			t.Fatalf("KeepConflictSide %s: %v", tt.side, err)
+		}
+		if _, err := os.Stat(filepath.Join(dir, "file.txt")); (err == nil) != tt.exists {
+			t.Errorf("%s: file exists = %v, want %v", tt.side, err == nil, tt.exists)
+		}
+		if state, _ := DetectConflictState(ctx, dir); len(state.ConflictedPaths) != 0 {
+			t.Errorf("%s: still conflicted: %v", tt.side, state.ConflictedPaths)
+		}
+	}
+}

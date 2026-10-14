@@ -17,6 +17,7 @@ import { useResizableWidth } from '../../lib/useResizableWidth'
 import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
+import { useConflictResolution } from './useConflictResolution'
 import './ChangesView.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 
@@ -57,6 +58,7 @@ function ChangesView({
 }: ChangesViewProps) {
   const { files, conflicted, staged, unstaged, loadStatus } = workingTree
   const actions = useWorkingTreeActions(repoPath, loadStatus, onBranchChanged)
+  const conflicts = useConflictResolution(repoPath, conflicted.length > 0, actions.run)
   const { confirm } = useDialogs()
   const [selectedPath, setSelectedPath] = useState<string | null>(initialSelectedPath)
   // A staged file's diff is HEAD→index; an unstaged file's is index→working tree.
@@ -176,6 +178,7 @@ function ChangesView({
     }
   }
 
+  const openConflict = openSection === 'conflicted' ? conflicted.find((f) => f.path === selectedPath) : undefined
   const fullyStaged =
     selectedPath !== null &&
     staged.some((f) => f.path === selectedPath) &&
@@ -193,6 +196,7 @@ function ChangesView({
           repoPath={repoPath}
           workingTree={workingTree}
           actions={actions}
+          conflicts={conflicts}
           openPath={selectedPath}
           openSection={openSection}
           onOpen={openFile}
@@ -265,6 +269,22 @@ function ChangesView({
                 </span>
               )}
             </div>
+            {openConflict && (
+              <div className="changes-conflict-actions">
+                <button type="button" onClick={() => void conflicts.keep(openConflict, 'ours')}>
+                  {conflicts.keepLabel(openConflict, 'ours')}
+                </button>
+                <button type="button" onClick={() => void conflicts.keep(openConflict, 'theirs')}>
+                  {conflicts.keepLabel(openConflict, 'theirs')}
+                </button>
+                <button type="button" onClick={() => conflicts.openInEditor(openConflict)}>
+                  Open in editor
+                </button>
+                <button type="button" onClick={() => void conflicts.markResolved(openConflict)}>
+                  Mark resolved
+                </button>
+              </div>
+            )}
             {externalToolError && <p className="changes-error">Could not open external tool: {externalToolError}</p>}
             {diffError ? (
               <p className="changes-empty">Could not load diff: {diffError}</p>
