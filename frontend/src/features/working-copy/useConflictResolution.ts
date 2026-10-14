@@ -36,7 +36,7 @@ export function useConflictResolution(repoPath: string, active: boolean, run: (a
     const other = side === 'ours' ? 'theirs' : 'ours'
     const confirmed = await confirm({
       title: keepLabel(f, side),
-      message: `${keepLabel(f, side)} of ${f.path}? Changes to it from ${name(other)} are discarded.`,
+      message: `Resolve ${f.path} this way? Changes to it from ${name(other)} are discarded.`,
       confirmLabel: 'Keep',
       destructive: true,
     })

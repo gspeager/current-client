@@ -474,7 +474,8 @@ describe('ChangesView conflicts', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: "Keep feature-x's version" }))
     const dialog = await screen.findByRole('alertdialog')
-    expect(dialog).toHaveTextContent('Changes to it from main are discarded.')
+    expect(dialog).toHaveTextContent("Keep feature-x's version")
+    expect(dialog).toHaveTextContent('Resolve src/app.ts this way? Changes to it from main are discarded.')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Keep' }))
 
     expect(ConflictService.KeepSide).toHaveBeenCalledWith(REPO, 'src/app.ts', 'theirs')
@@ -485,7 +486,11 @@ describe('ChangesView conflicts', () => {
     sides()
     renderChanges([file('src/app.ts', { indexStatus: 'D', worktreeStatus: 'U', conflicted: true })])
 
-    expect(await screen.findByRole('button', { name: 'Keep it deleted, as in main' })).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Keep it deleted, as in main' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent('Keep it deleted, as in main')
+    expect(dialog).toHaveTextContent('Resolve src/app.ts this way? Changes to it from feature-x are discarded.')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(screen.getByRole('button', { name: "Keep feature-x's version" })).toBeInTheDocument()
   })
 

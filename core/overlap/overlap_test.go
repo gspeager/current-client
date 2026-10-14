@@ -93,3 +93,41 @@ func TestPredictFallsBackToOneMergeAtATime(t *testing.T) {
 		t.Errorf("Predict = %+v, %v; want %+v", got, err, want)
 	}
 }
+
+// An orphan branch such as gh-pages shares no history, which merge-tree
+// refuses to merge; it mustn't hide the other branches' conflicts.
+func TestPredictWithABranchOfUnrelatedHistory(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		mergeMany func(context.Context, string, string, []string) ([][]string, error)
+	}{
+		{"in one batch", git.MergeConflictsMany},
+		{"one at a time", func(context.Context, string, string, []string) ([][]string, error) {
+			return nil, git.ErrMergeTreeStdinUnsupported
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			mergeMany = tt.mergeMany
+			t.Cleanup(func() { mergeMany = git.MergeConflictsMany })
+
+			dir := t.TempDir()
+			gittest.Run(t, dir, "init", "-b", "main")
+			gittest.Run(t, dir, "config", "user.email", "test@example.com")
+			gittest.Run(t, dir, "config", "user.name", "Test")
+			gittest.Run(t, dir, "config", "core.autocrlf", "false")
+			gittest.CommitFile(t, dir, "shared.txt", "base\n", "base")
+			gittest.Run(t, dir, "switch", "-c", "conflicting")
+			gittest.CommitFile(t, dir, "shared.txt", "theirs\n", "theirs")
+			gittest.Run(t, dir, "switch", "--orphan", "gh-pages")
+			gittest.CommitFile(t, dir, "index.html", "site\n", "site")
+			gittest.Run(t, dir, "switch", "main")
+			gittest.CommitFile(t, dir, "shared.txt", "ours\n", "ours")
+
+			got, err := Predict(context.Background(), dir)
+			want := []Overlap{{Branch: "conflicting", Files: []string{"shared.txt"}}}
+			if err != nil || !reflect.DeepEqual(got, want) {
+				t.Errorf("Predict = %+v, %v; want %+v", got, err, want)
+			}
+		})
+	}
+}

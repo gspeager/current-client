@@ -35,8 +35,8 @@ import { useDialogs } from '../../lib/useDialogs'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import BisectWizard from '../../features/history/BisectWizard'
 import ReflogPanel from '../../features/history/ReflogPanel'
-import './NavPane.scss'
 import { revealInFileManagerLabel } from '../../lib/fileManager'
+import './NavPane.scss'
 
 type SectionId = 'maintenance' | 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 
