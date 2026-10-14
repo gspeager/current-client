@@ -24,7 +24,7 @@ export function useTabMemory(repoPath: string | null) {
   const [activeTabs, setActiveTabs] = useState<Record<string, AppTab>>({})
   const memory = useRef(new Map<string, ViewMemory>())
 
-  const activeTab: AppTab = (repoPath && activeTabs[repoPath]) || 'activity'
+  const activeTab: AppTab = (repoPath && activeTabs[repoPath]) || 'working-copy'
   const setActiveTab = (tab: AppTab) => {
     if (repoPath) setActiveTabs((prev) => ({ ...prev, [repoPath]: tab }))
   }
