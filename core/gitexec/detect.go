@@ -2,6 +2,7 @@ package gitexec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -17,6 +18,9 @@ type Info struct {
 func Detect(ctx context.Context, override string) (Info, error) {
 	path := override
 	if path == "" {
+		if CommandLineToolsMissing() {
+			return Info{}, ErrCommandLineToolsMissing
+		}
 		found, err := exec.LookPath("git")
 		if err != nil {
 			return Info{}, err
@@ -54,6 +58,9 @@ const MinimumVersion = "2.23"
 // failures worded for display.
 func DetectSupported(ctx context.Context, override string) (Info, error) {
 	info, err := Detect(ctx, override)
+	if errors.Is(err, ErrCommandLineToolsMissing) {
+		return Info{}, ErrCommandLineToolsMissing
+	}
 	if err != nil {
 		return Info{}, &AppError{Message: "Git not found.", Detail: err.Error()}
 	}

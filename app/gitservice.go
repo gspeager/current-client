@@ -30,3 +30,13 @@ func (s *GitService) GetGitVersion() (string, error) {
 	gitVersions.Store(path, info.Version)
 	return info.Version, nil
 }
+
+// CommandLineToolsMissing is true on a Mac whose only Git is the stand-in
+// that Apple's Command Line Tools replace.
+func (s *GitService) CommandLineToolsMissing() bool {
+	return configOrDefault().GitExecutablePath == "" && gitexec.CommandLineToolsMissing()
+}
+
+func (s *GitService) InstallCommandLineTools() error {
+	return gitexec.InstallCommandLineTools()
+}
