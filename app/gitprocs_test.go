@@ -19,6 +19,7 @@ import (
 // TestGitProcesses counts the git processes that opening a repository starts,
 // making the calls the UI makes when a repository opens on Activity, all at
 // once as its components do, so repeated questions show up as extra processes.
+// Then it counts the refresh after a commit, which the caches must notice.
 func TestGitProcesses(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("APPDATA", home)
@@ -61,15 +62,17 @@ func TestGitProcesses(t *testing.T) {
 
 	var watcher watch.Watcher
 	defer watcher.Stop()
-	open := []func(){
+	startup := []func(){
 		func() { _, _ = (&GitService{}).GetGitVersion() },
+		func() { _ = watcher.Start(repo, func(bool) {}) },
+		func() { _ = (&IdentityService{}).GetCurrentUser(repo) },
+	}
+	refresh := []func(){
 		func() { _, _ = (&HistoryService{}).FollowsConventionalCommits(repo) },
 		func() { _, _ = (&StatusService{}).GetStatus(repo) },
 		func() { _, _ = (&ConflictService{}).GetConflictState(repo) },
 		func() { _, _ = (&RemoteService{}).LastFetchTime(repo) },
-		func() { _ = watcher.Start(repo, func(bool) {}) },
 		// HeaderBar
-		func() { _ = (&IdentityService{}).GetCurrentUser(repo) },
 		func() { _, _ = (&BranchService{}).CurrentBranchStatus(repo) },
 		// StatusBar
 		func() { _, _ = (&BranchService{}).CurrentBranchStatus(repo) },
@@ -97,17 +100,29 @@ func TestGitProcesses(t *testing.T) {
 		func() { _, _ = (&ContributorsService{}).GetContributors(repo, "", "") },
 		func() { _, _ = (&DashboardService{}).GetLanguageBreakdown(repo) },
 	}
-	var wg sync.WaitGroup
-	for _, call := range open {
-		wg.Go(call)
+	measure := func(what string, calls []func(), budget int) {
+		t.Helper()
+		if err := os.WriteFile(trace, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var wg sync.WaitGroup
+		for _, call := range calls {
+			wg.Go(call)
+		}
+		wg.Wait()
+		total, byCommand := countGitProcesses(t, trace)
+		t.Logf("%s: %d git processes\n%s", what, total, byCommand)
+		if total > budget {
+			t.Errorf("%s started %d git processes, want at most %d", what, total, budget)
+		}
 	}
-	wg.Wait()
 
-	total, byCommand := countGitProcesses(t, trace)
-	t.Logf("opening a repository: %d git processes\n%s", total, byCommand)
-	const budget = 22
-	if total > budget {
-		t.Errorf("opening a repository started %d git processes, want at most %d", total, budget)
+	measure("opening a repository", append(startup, refresh...), 22)
+
+	run(repo, "commit", "-q", "--allow-empty", "-m", "feat: second")
+	measure("refreshing after a commit", refresh, 22)
+	if status, _ := (&BranchService{}).CurrentBranchStatus(repo); status.Ahead != 1 {
+		t.Errorf("after a commit, ahead = %d, want 1", status.Ahead)
 	}
 }
 
