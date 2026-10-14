@@ -5,10 +5,14 @@ import { useDialogs } from '../../lib/useDialogs'
 
 type Side = 'ours' | 'theirs'
 
-// A side that deleted the file shows D in its half of the status: the index
-// letter for ours, the working tree's for theirs.
-function deletedBy(f: FileStatus, side: Side): boolean {
-  return (side === 'ours' ? f.indexStatus : f.worktreeStatus) === 'D'
+// Each side's half of the status: the index letter for ours, the working
+// tree's for theirs. D means that side deleted the file; when only the other
+// side added it (AU, UA), this side never had it.
+function withoutFile(f: FileStatus, side: Side): 'deleted' | 'absent' | null {
+  const [mine, other] = side === 'ours' ? [f.indexStatus, f.worktreeStatus] : [f.worktreeStatus, f.indexStatus]
+  if (mine === 'D') return 'deleted'
+  if (mine === 'U' && other === 'A') return 'absent'
+  return null
 }
 
 // Sides are named by branch: during a rebase Git's "ours" is the branch being
@@ -21,8 +25,12 @@ export function useConflictResolution(repoPath: string, active: boolean, run: (a
   )
   const name = (side: Side) => sides?.[side] ?? side
 
-  const keepLabel = (f: FileStatus, side: Side) =>
-    deletedBy(f, side) ? `Keep it deleted, as in ${name(side)}` : `Keep ${name(side)}'s version`
+  const keepLabel = (f: FileStatus, side: Side) => {
+    const without = withoutFile(f, side)
+    if (without === 'deleted') return `Keep it deleted, as in ${name(side)}`
+    if (without === 'absent') return `Remove it, as in ${name(side)}`
+    return `Keep ${name(side)}'s version`
+  }
 
   const keep = async (f: FileStatus, side: Side) => {
     const other = side === 'ours' ? 'theirs' : 'ours'

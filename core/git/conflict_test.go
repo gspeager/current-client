@@ -439,3 +439,16 @@ func TestKeepConflictSideThatDeletedTheFile(t *testing.T) {
 		}
 	}
 }
+
+func TestConflictMarkerLineAfterALongLine(t *testing.T) {
+	dir := t.TempDir()
+	long := strings.Repeat("x", 10000)
+	gittest.WriteFile(t, dir, "f.txt", long+"\nnot <<<<<<< a marker\n"+long+"<<<<<<< nor this\n<<<<<<< HEAD\nours\n")
+	if line, err := ConflictMarkerLine(dir, "f.txt"); err != nil || line != 4 {
+		t.Errorf("line = %d, %v; want 4", line, err)
+	}
+	gittest.WriteFile(t, dir, "clean.txt", "no markers")
+	if line, err := ConflictMarkerLine(dir, "clean.txt"); err != nil || line != 0 {
+		t.Errorf("clean: line = %d, %v; want 0", line, err)
+	}
+}

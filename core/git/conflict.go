@@ -1,8 +1,12 @@
 package git
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -187,18 +191,34 @@ func KeepConflictSide(ctx context.Context, repoPath, path string, side ConflictS
 }
 
 // ConflictMarkerLine is the 1-based line of the first "<<<<<<< " marker in a
-// working-tree file, or 0 when it has none.
+// working-tree file, or 0 when it has none. It reads as it goes, so a large
+// binary file isn't held in memory.
 func ConflictMarkerLine(repoPath, path string) (int, error) {
-	data, err := os.ReadFile(filepath.Join(repoPath, path))
+	f, err := os.Open(filepath.Join(repoPath, path))
 	if err != nil {
 		return 0, err
 	}
-	for i, line := range strings.Split(string(data), "\n") {
-		if strings.HasPrefix(line, "<<<<<<< ") {
-			return i + 1, nil
+	defer f.Close()
+	r := bufio.NewReader(f)
+	marker := []byte("<<<<<<< ")
+	line, atLineStart := 1, true
+	for {
+		chunk, err := r.ReadSlice('\n')
+		if atLineStart && bytes.HasPrefix(chunk, marker) {
+			return line, nil
+		}
+		// A line longer than the buffer arrives in several chunks.
+		atLineStart = err == nil
+		if atLineStart {
+			line++
+		}
+		if errors.Is(err, io.EOF) {
+			return 0, nil
+		}
+		if err != nil && !errors.Is(err, bufio.ErrBufferFull) {
+			return 0, err
 		}
 	}
-	return 0, nil
 }
 
 // ContinueConflictOperation sets GIT_EDITOR=true so git accepts its prepared

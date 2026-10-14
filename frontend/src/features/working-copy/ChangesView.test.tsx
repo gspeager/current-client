@@ -489,6 +489,14 @@ describe('ChangesView conflicts', () => {
     expect(screen.getByRole('button', { name: "Keep feature-x's version" })).toBeInTheDocument()
   })
 
+  it('offers to remove a file that only the other side added', async () => {
+    sides()
+    renderChanges([file('src/app.ts', { indexStatus: 'A', worktreeStatus: 'U', conflicted: true })])
+
+    expect(await screen.findByRole('button', { name: 'Remove it, as in feature-x' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: "Keep main's version" })).toBeInTheDocument()
+  })
+
   it('opens the file in the editor at its first conflict marker', async () => {
     sides()
     vi.mocked(ConflictService.ConflictMarkerLine).mockResolvedValue(12)
