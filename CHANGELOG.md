@@ -24,6 +24,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - In the branch graph, a branch tip's lane starts at its commit instead of a short line above it that led nowhere. ([#108](https://github.com/gspeager/current-client/issues/108))
 - Activity's **Repository age** counts from the repository's oldest commit instead of its newest, so an active repository no longer looks a few days old. In a repository that merged in another history, it's the oldest of their first commits. ([#110](https://github.com/gspeager/current-client/issues/110))
 - **Reveal in File Explorer** says **Reveal in Finder** on macOS and **Open in File Manager** on Linux. ([#117](https://github.com/gspeager/current-client/issues/117))
+- The status bar keeps the repository path on one line. A long path is shortened from the start so the repository's folder stays visible, the home folder shows as `~` on macOS and Linux, and clicking the path copies it in full. ([#120](https://github.com/gspeager/current-client/issues/120))
 
 ## [0.2.1] - 2026-10-08
 
