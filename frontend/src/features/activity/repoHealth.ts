@@ -8,9 +8,11 @@ export function isStaleBranch(lastCommitDate: string, now: Date = new Date()): b
 interface HealthChecks {
   staleBranchCount: number
   unpushedCount: number
-  workingTreeClean: boolean
+  hasConflict: boolean
 }
 
+// Uncommitted changes are the normal state while working, so only conflicts
+// count against the working directory.
 export function countHealthIssues(checks: HealthChecks): number {
-  return (checks.staleBranchCount > 0 ? 1 : 0) + (checks.unpushedCount > 0 ? 1 : 0) + (checks.workingTreeClean ? 0 : 1)
+  return (checks.staleBranchCount > 0 ? 1 : 0) + (checks.unpushedCount > 0 ? 1 : 0) + (checks.hasConflict ? 1 : 0)
 }
