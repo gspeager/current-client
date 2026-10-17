@@ -2,8 +2,9 @@ import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
-import { GitService, HistoryService, PlatformService } from '@current-client-bindings/app'
+import { GitService, HistoryService } from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
+import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './components/chrome/HeaderBar'
 import KeepAlive from './components/chrome/KeepAlive'
 import NavPane from './components/chrome/NavPane'
@@ -20,6 +21,7 @@ import { useFileWatcher } from './features/repositories/useFileWatcher'
 import { useLastFetchTime } from './features/remotes/useLastFetchTime'
 import { DIVERGED, useRemoteSync } from './features/remotes/useRemoteSync'
 import { useRepositoryLifecycle } from './features/repositories/useRepositoryLifecycle'
+import { useRepoVersion } from './features/repositories/useRepoVersion'
 import { useResizableWidth } from './lib/useResizableWidth'
 import { useSettings } from './features/settings/useSettings'
 import { useTabMemory } from './features/repositories/useTabMemory'
@@ -28,6 +30,7 @@ import ActivityView from './features/activity/ActivityView'
 import ChangelogView from './features/changelog/ChangelogView'
 import ChangesView from './features/working-copy/ChangesView'
 import HistoryView from './features/history/HistoryView'
+import { refFromSaved, savedFromRef } from './features/history/branchFilter'
 import './App.scss'
 
 // Each request remounts History so its initial selection, deep load, and scroll apply again.
@@ -60,18 +63,17 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     error: gitError,
     reload: reloadGitVersion,
   } = useAsyncData(() => GitService.GetGitVersion(), [])
-  const [repoVersion, setRepoVersion] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [commitFocus, setCommitFocus] = useState<CommitFocus | null>(null)
   // Bumped to remount Changes on a newly requested file, as commitFocus does for History.
   const [fileFocus, setFileFocus] = useState(0)
 
   const repo = useRepositoryLifecycle(activeRepoPath)
+  const { repoVersion, bumpRepoVersion, justBumped } = useRepoVersion()
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
   const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
-  const bumpRepoVersion = () => setRepoVersion((v) => v + 1)
   // A pull fetches too, so it moves "fetched … ago" as well as the branch.
   const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, () => {
     bumpRepoVersion()
@@ -81,7 +83,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
   const { activeTab: rememberedTab, setActiveTab, restored, remember } = useTabMemory(repo.repoPath)
-  const activeTab = rememberedTab === 'changelog' && !conventionalCommitsOn ? 'activity' : rememberedTab
+  const activeTab = rememberedTab === 'changelog' && !conventionalCommitsOn ? 'working-copy' : rememberedTab
   const { data: conventional } = useAsyncData(
     () => (repo.repoPath ? HistoryService.FollowsConventionalCommits(repo.repoPath) : null),
     [repo.repoPath],
@@ -98,12 +100,14 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     reloadLastFetchTime()
   }
 
-  // Only ref moves bump repoVersion, since that remounts History and refetches Activity.
-  // A fetch from a terminal moves remote branches, so it also updates the fetch time.
+  // Only ref moves bump repoVersion, since that remounts History and refetches Activity,
+  // conflict state included. A fetch from a terminal moves remote branches, so it also
+  // updates the fetch time. The app's own actions have already bumped it.
   const onFileWatcherChanged = (refChanged: boolean) => {
     workingTree.loadStatus()
-    reloadConflictState()
-    if (refChanged) {
+    if (!refChanged) {
+      reloadConflictState()
+    } else if (!justBumped()) {
       bumpRepoVersion()
       reloadLastFetchTime()
     }
@@ -190,21 +194,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
         <h1>Current Client</h1>
         {resetNotice}
         {gitError ? (
-          <>
-            <p className="app-welcome-status app-welcome-status-error">{gitError}</p>
-            <div className="app-welcome-git-actions">
-              <button
-                type="button"
-                className="repo-switcher-secondary"
-                onClick={() => void PlatformService.OpenGitDownloadPage()}
-              >
-                Download Git
-              </button>
-              <button type="button" className="repo-switcher-secondary" onClick={() => setSettingsOpen(true)}>
-                Set git executable path…
-              </button>
-            </div>
-          </>
+          <GitMissing error={gitError} onCheckAgain={reloadGitVersion} onSetPath={() => setSettingsOpen(true)} />
         ) : gitVersion ? (
           <p className="app-welcome-status">git {gitVersion}</p>
         ) : (
@@ -325,6 +315,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   initialSelectedSha={restored.selectedCommitSha}
                   initialLoadThrough={focus?.position ?? null}
                   initialRef={focus?.ref ?? null}
+                  defaultRef={refFromSaved(settings.settings?.historyBranchFilter)}
+                  onRefChange={(ref) => settings.setHistoryBranchFilter(savedFromRef(ref))}
                   onBranchChanged={onBranchChanged}
                   previousTopSha={restored.historyTopSha}
                   onTopShaChange={(sha) => remember({ historyTopSha: sha })}

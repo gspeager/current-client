@@ -110,16 +110,3 @@
   color: var(--outline);
   font: var(--ui-sm);
 }
-
-.commit-velocity-vs-average {
-  font: var(--ui-sm);
-  font-weight: 600;
-}
-
-.commit-velocity-vs-average-up {
-  color: var(--tertiary);
-}
-
-.commit-velocity-vs-average-down {
-  color: var(--warning);
-}

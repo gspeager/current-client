@@ -38,3 +38,24 @@ func onConflictOperation(repoPath string, finish func(context.Context, string, g
 	}
 	return finish(ctx, repoPath, state.Operation)
 }
+
+type ConflictSidesInfo struct {
+	Ours   string `json:"ours"`
+	Theirs string `json:"theirs"`
+}
+
+func (s *ConflictService) GetConflictSides(repoPath string) (ConflictSidesInfo, error) {
+	sides, err := git.ConflictSides(context.Background(), repoPath)
+	return ConflictSidesInfo(sides), err
+}
+
+// KeepSide resolves a conflicted file with one side's whole version, "ours"
+// or "theirs", and stages it.
+func (s *ConflictService) KeepSide(repoPath, path, side string) error {
+	return git.KeepConflictSide(context.Background(), repoPath, path, git.ConflictSide(side))
+}
+
+// ConflictMarkerLine is the first conflict marker's line, or 0 when there is none.
+func (s *ConflictService) ConflictMarkerLine(repoPath, path string) (int, error) {
+	return git.ConflictMarkerLine(repoPath, path)
+}

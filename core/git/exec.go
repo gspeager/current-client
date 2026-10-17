@@ -2,8 +2,10 @@ package git
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -19,29 +21,54 @@ func runResult(ctx context.Context, repoPath string, args ...string) (gitexec.Re
 // GitDir resolves the real .git directory, which isn't "<repoPath>/.git" for
 // a worktree.
 func GitDir(ctx context.Context, repoPath string) (string, error) {
-	result, err := runResult(ctx, repoPath, "rev-parse", "--git-dir")
-	if err != nil {
-		return "", err
-	}
-	dir := strings.TrimSpace(result.Stdout)
-	if !filepath.IsAbs(dir) {
-		dir = filepath.Join(repoPath, dir)
-	}
-	return dir, nil
+	dirs, err := gitDirs(ctx, repoPath)
+	return dirs.gitDir, err
 }
 
 // CommonDir resolves the .git directory a repository's refs live in, which
 // all its worktrees share; outside a worktree it's the same as GitDir.
 func CommonDir(ctx context.Context, repoPath string) (string, error) {
-	result, err := runResult(ctx, repoPath, "rev-parse", "--git-common-dir")
-	if err != nil {
-		return "", err
+	dirs, err := gitDirs(ctx, repoPath)
+	return dirs.commonDir, err
+}
+
+type repoDirs struct {
+	gitDir    string
+	commonDir string
+}
+
+var dirCache sync.Map
+
+// gitDirs asks git once per repository path; the answer only changes if the
+// repository is removed, which the existence check catches.
+func gitDirs(ctx context.Context, repoPath string) (repoDirs, error) {
+	if cached, ok := dirCache.Load(repoPath); ok {
+		dirs := cached.(repoDirs)
+		if _, err := os.Stat(dirs.gitDir); err == nil {
+			return dirs, nil
+		}
+		dirCache.Delete(repoPath)
 	}
-	dir := strings.TrimSpace(result.Stdout)
-	if !filepath.IsAbs(dir) {
-		dir = filepath.Join(repoPath, dir)
+	dirs, err, _ := flights.Do("dirs\x00"+repoPath, func() (any, error) {
+		result, err := runResult(ctx, repoPath, "rev-parse", "--git-dir", "--git-common-dir")
+		if err != nil {
+			return repoDirs{}, err
+		}
+		gitDir, commonDir, _ := strings.Cut(strings.TrimSpace(result.Stdout), "\n")
+		dirs := repoDirs{gitDir: absoluteIn(repoPath, gitDir), commonDir: absoluteIn(repoPath, commonDir)}
+		dirCache.Store(repoPath, dirs)
+		return dirs, nil
+	})
+	return dirs.(repoDirs), err
+}
+
+// absoluteIn resolves a path git printed relative to repoPath.
+func absoluteIn(repoPath, dir string) string {
+	dir = strings.TrimSpace(dir)
+	if filepath.IsAbs(dir) {
+		return dir
 	}
-	return dir, nil
+	return filepath.Join(repoPath, dir)
 }
 
 // sinceMidnight formats a --since value with an explicit time: a bare
@@ -55,18 +82,4 @@ func sinceMidnight(day time.Time) string {
 func hasNoCommits(ctx context.Context, repoPath string) bool {
 	_, err := runResult(ctx, repoPath, "rev-parse", "--verify", "--quiet", "HEAD")
 	return err != nil
-}
-
-// currentBranchName also works before the first commit, when HEAD names a
-// branch that doesn't exist yet. A detached HEAD reads as "HEAD".
-func currentBranchName(ctx context.Context, repoPath string) (string, error) {
-	result, err := runResult(ctx, repoPath, "rev-parse", "--abbrev-ref", "HEAD")
-	if err == nil {
-		return strings.TrimSpace(result.Stdout), nil
-	}
-	unborn, symErr := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "HEAD")
-	if symErr != nil {
-		return "", err
-	}
-	return strings.TrimSpace(unborn.Stdout), nil
 }

@@ -16,7 +16,13 @@ type RepoDiskUsage struct {
 	TotalSizeKB      int
 }
 
+// ComputeRepoDiskUsage isn't cached, as objects change without a ref moving
+// (gc, fetch), but callers that ask together share one count.
 func ComputeRepoDiskUsage(ctx context.Context, repoPath string) (RepoDiskUsage, error) {
+	return shared(repoPath, "disk-usage", func() (RepoDiskUsage, error) { return computeRepoDiskUsage(ctx, repoPath) })
+}
+
+func computeRepoDiskUsage(ctx context.Context, repoPath string) (RepoDiskUsage, error) {
 	result, err := runResult(ctx, repoPath, "count-objects", "-v")
 	if err != nil {
 		return RepoDiskUsage{}, err

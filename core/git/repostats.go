@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -34,20 +35,19 @@ func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	}
 	stats.ContributorCount = len(contributors)
 
-	files, err := runResult(ctx, repoPath, "ls-files")
+	files, err := trackedFiles(ctx, repoPath)
 	if err != nil {
 		return stats, err
 	}
-	stats.FileCount = countNonEmptyLines(files.Stdout)
+	stats.FileCount = len(files)
 
-	firstCommit, err := runResult(ctx, repoPath, "log", "--all", "--format=%at", "--reverse", "-1")
+	// The root commits; a repository that merged in another history has several.
+	roots, err := runResult(ctx, repoPath, "log", "--max-parents=0", "--exclude=refs/stash", "--all", "--format=%at")
 	if err != nil {
 		return stats, err
 	}
-	if unixTime := strings.TrimSpace(firstCommit.Stdout); unixTime != "" {
-		if epoch, convErr := strconv.ParseInt(unixTime, 10, 64); convErr == nil {
-			stats.RepoAgeDays = int(time.Since(time.Unix(epoch, 0)).Hours() / 24)
-		}
+	if oldest, ok := oldestTime(roots.Stdout); ok {
+		stats.RepoAgeDays = int(time.Since(oldest).Hours() / 24)
 	}
 
 	branches, err := ListBranches(ctx, repoPath)
@@ -68,20 +68,44 @@ func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	}
 	stats.StashCount = len(stashes)
 
-	stats.CurrentBranch, err = currentBranchName(ctx, repoPath)
+	status, err := CurrentBranchStatus(ctx, repoPath)
 	if err != nil {
 		return stats, err
 	}
+	stats.CurrentBranch = status.Current
 
 	return stats, nil
 }
 
-func countNonEmptyLines(output string) int {
-	count := 0
-	for _, line := range strings.Split(output, "\n") {
-		if strings.TrimSpace(line) != "" {
-			count++
+func oldestTime(unixTimes string) (time.Time, bool) {
+	var oldest int64
+	found := false
+	for _, field := range strings.Fields(unixTimes) {
+		if t, err := strconv.ParseInt(field, 10, 64); err == nil && (!found || t < oldest) {
+			oldest, found = t, true
 		}
 	}
-	return count
+	return time.Unix(oldest, 0), found
+}
+
+// trackedFiles is cached until the index changes, as Activity's stats and
+// language breakdown both list them.
+func trackedFiles(ctx context.Context, repoPath string) ([]string, error) {
+	gitDir, err := GitDir(ctx, repoPath)
+	if err != nil {
+		return nil, err
+	}
+	return cachedByRefs(ctx, repoPath, "tracked-files", func() ([]string, error) {
+		result, err := runResult(ctx, repoPath, "ls-files")
+		if err != nil {
+			return nil, err
+		}
+		var files []string
+		for _, line := range strings.Split(result.Stdout, "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				files = append(files, line)
+			}
+		}
+		return files, nil
+	}, filepath.Join(gitDir, "index"))
 }

@@ -3,6 +3,8 @@ package git
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -15,7 +17,18 @@ type ContributorStat struct {
 
 // Contributors passes HEAD explicitly: without a revision, shortlog reads
 // from stdin and returns nothing.
+// The all-time list is cached, with .mailmap, as Activity's stats and chart both ask.
 func Contributors(ctx context.Context, repoPath, since, until string) ([]ContributorStat, error) {
+	if since == "" && until == "" {
+		stats, err := cachedByRefs(ctx, repoPath, "contributors", func() ([]ContributorStat, error) {
+			return contributors(ctx, repoPath, since, until)
+		}, filepath.Join(repoPath, ".mailmap"))
+		return slices.Clone(stats), err
+	}
+	return contributors(ctx, repoPath, since, until)
+}
+
+func contributors(ctx context.Context, repoPath, since, until string) ([]ContributorStat, error) {
 	args := []string{"shortlog", "-sn", "-e"}
 	if since != "" {
 		args = append(args, "--since="+since)

@@ -120,6 +120,10 @@ func gitReason(stderr string) string {
 }
 
 func WrapRunError(err error) *AppError {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr
+	}
 	if errors.Is(err, context.Canceled) {
 		return &AppError{Message: "The operation was cancelled.", Detail: err.Error()}
 	}

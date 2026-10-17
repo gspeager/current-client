@@ -2,9 +2,9 @@ import { act, renderHook } from '@testing-library/react'
 import { useTabMemory } from './useTabMemory'
 
 describe('useTabMemory', () => {
-  it('starts every repo on the activity view with empty memory', () => {
+  it('starts every repo on Working Copy with empty memory', () => {
     const { result } = renderHook(() => useTabMemory('/repos/app'))
-    expect(result.current.activeTab).toBe('activity')
+    expect(result.current.activeTab).toBe('working-copy')
     expect(result.current.restored).toEqual({
       selectedFilePath: null,
       selectedCommitSha: null,
@@ -22,7 +22,7 @@ describe('useTabMemory', () => {
     result.current.remember({ selectedCommitSha: 'abc123' })
 
     rerender({ path: '/repos/server' })
-    expect(result.current.activeTab).toBe('activity')
+    expect(result.current.activeTab).toBe('working-copy')
     expect(result.current.restored.commitDraft).toBe('')
 
     rerender({ path: '/repos/app' })
@@ -46,7 +46,7 @@ describe('useTabMemory', () => {
     result.current.remember({ commitDraft: 'lost' })
     act(() => result.current.setActiveTab('history'))
     rerender({ path: '/repos/app' })
-    expect(result.current.activeTab).toBe('activity')
+    expect(result.current.activeTab).toBe('working-copy')
     expect(result.current.restored.commitDraft).toBe('')
   })
 })

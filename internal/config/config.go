@@ -52,6 +52,10 @@ type Config struct {
 	// Zero keeps long diff lines wrapping, as they always have.
 	DiffNoWrap bool `json:"diffNoWrap,omitempty"`
 
+	// History's branch filter: "" is all branches, "HEAD" the current branch,
+	// anything else a branch name.
+	HistoryBranchFilter string `json:"historyBranchFilter,omitempty"`
+
 	// Whether the header's fetch also deletes remote-tracking branches gone from the remote.
 	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`
 

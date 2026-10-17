@@ -30,17 +30,21 @@ type Executor struct {
 var defaultBinary = struct {
 	mu   sync.RWMutex
 	path string
+	env  []string
 }{path: "git"}
 
 // SetDefaultBinary sets the binary for executors created with an empty path;
-// an empty value resets it to "git" on PATH.
+// an empty value resets it to "git" on PATH, or on Windows to the real git
+// behind Git for Windows' launcher.
 func SetDefaultBinary(path string) {
+	var env []string
+	if path == "" {
+		path, env = resolveDefault()
+	}
 	defaultBinary.mu.Lock()
 	defer defaultBinary.mu.Unlock()
-	if path == "" {
-		path = "git"
-	}
 	defaultBinary.path = path
+	defaultBinary.env = env
 }
 
 func NewExecutor(binary string) *Executor {
@@ -52,7 +56,20 @@ func NewExecutor(binary string) *Executor {
 	return &Executor{binary: binary}
 }
 
+// defaultEnv is the environment the default binary needs, set with it.
+func defaultEnv(binary string) []string {
+	defaultBinary.mu.RLock()
+	defer defaultBinary.mu.RUnlock()
+	if binary != defaultBinary.path {
+		return nil
+	}
+	return defaultBinary.env
+}
+
 func (e *Executor) Run(ctx context.Context, cmd Command) (Result, error) {
+	if e.binary == "git" && CommandLineToolsMissing() {
+		return Result{}, ErrCommandLineToolsMissing
+	}
 	args := cmd.Args
 	var credEnv []string
 	if cred, ok := credentialFrom(ctx); ok {
@@ -70,6 +87,7 @@ func (e *Executor) Run(ctx context.Context, cmd Command) (Result, error) {
 	// An HTTP transfer that stalls below 1 KB/s for a minute is aborted rather
 	// than left running until someone presses Cancel.
 	env = append(env, "GIT_HTTP_LOW_SPEED_LIMIT=1000", "GIT_HTTP_LOW_SPEED_TIME=60")
+	env = append(env, defaultEnv(e.binary)...)
 	env = append(env, cmd.Env...)
 	env = append(env, credEnv...)
 	// Last so it wins: output must stay English for the parsers.

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { DiffService, type LineSelection } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
@@ -14,10 +14,12 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHeadCommit } from './useHeadCommit'
 import { useResizableWidth } from '../../lib/useResizableWidth'
+import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
-import './ChangesView.scss'
+import { useConflictResolution } from './useConflictResolution'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import './ChangesView.scss'
 
 interface ChangesViewProps {
   repoPath: string
@@ -54,8 +56,9 @@ function ChangesView({
   onCommitDraftChange,
   showCommitTypePicker = false,
 }: ChangesViewProps) {
-  const { files, staged, unstaged, loadStatus } = workingTree
+  const { files, conflicted, staged, unstaged, loadStatus } = workingTree
   const actions = useWorkingTreeActions(repoPath, loadStatus, onBranchChanged)
+  const conflicts = useConflictResolution(repoPath, conflicted.length > 0, actions.run)
   const { confirm } = useDialogs()
   const [selectedPath, setSelectedPath] = useState<string | null>(initialSelectedPath)
   // A staged file's diff is HEAD→index; an unstaged file's is index→working tree.
@@ -80,6 +83,23 @@ function ChangesView({
     selectPath(path)
     setOpenSection(section)
   }
+
+  const previousLists = useRef<SectionPaths | null>(null)
+  useEffect(() => {
+    if (!files) return
+    const lists = {
+      conflicted: conflicted.map((f) => f.path),
+      unstaged: unstaged.map((f) => f.path),
+      staged: staged.map((f) => f.path),
+    }
+    const current = selectedPath === null ? null : { path: selectedPath, section: openSection }
+    const next = nextSelection(lists, current, previousLists.current)
+    previousLists.current = lists
+    if (next === current) return
+    if (next) openFile(next.path, next.section)
+    else selectPath(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files])
 
   // Large files load only after an explicit request, and only for that file.
   // Every status reload (file watcher, staging, hunk actions) also refreshes the open diff.
@@ -158,6 +178,7 @@ function ChangesView({
     }
   }
 
+  const openConflict = openSection === 'conflicted' ? conflicted.find((f) => f.path === selectedPath) : undefined
   const fullyStaged =
     selectedPath !== null &&
     staged.some((f) => f.path === selectedPath) &&
@@ -175,6 +196,7 @@ function ChangesView({
           repoPath={repoPath}
           workingTree={workingTree}
           actions={actions}
+          conflicts={conflicts}
           openPath={selectedPath}
           openSection={openSection}
           onOpen={openFile}
@@ -247,6 +269,22 @@ function ChangesView({
                 </span>
               )}
             </div>
+            {openConflict && (
+              <div className="changes-conflict-actions">
+                <button type="button" onClick={() => void conflicts.keep(openConflict, 'ours')}>
+                  {conflicts.keepLabel(openConflict, 'ours')}
+                </button>
+                <button type="button" onClick={() => void conflicts.keep(openConflict, 'theirs')}>
+                  {conflicts.keepLabel(openConflict, 'theirs')}
+                </button>
+                <button type="button" onClick={() => conflicts.openInEditor(openConflict)}>
+                  Open in editor
+                </button>
+                <button type="button" onClick={() => void conflicts.markResolved(openConflict)}>
+                  Mark resolved
+                </button>
+              </div>
+            )}
             {externalToolError && <p className="changes-error">Could not open external tool: {externalToolError}</p>}
             {diffError ? (
               <p className="changes-empty">Could not load diff: {diffError}</p>

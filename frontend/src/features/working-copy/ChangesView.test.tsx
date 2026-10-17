@@ -1,9 +1,11 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  ConflictService,
   DiffService,
   FileContent,
   FileDiff,
+  PlatformService,
   StashService,
   StatusService,
   type FileStatus,
@@ -430,11 +432,8 @@ describe('ChangesView expanded diff', () => {
 
   it('hides the file list while expanded, and brings it back from the header', async () => {
     const onDiffExpandedChange = renderExpandable(true)
-    // Nothing open yet, so the file list shows.
-    expect(screen.getByRole('button', { name: 'src/app.ts' })).toBeVisible()
 
-    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
-
+    // The first file opens by itself, so the expanded diff takes the whole view.
     const show = await screen.findByRole('button', { name: 'Show file list' })
     expect(screen.queryByRole('button', { name: 'src/app.ts' })).not.toBeInTheDocument()
     expect(screen.queryByRole('separator', { name: 'Resize file list' })).not.toBeInTheDocument()
@@ -456,10 +455,74 @@ describe('ChangesView conflicts', () => {
   })
 
   it('marks a conflicted file resolved by staging it', async () => {
+    vi.mocked(ConflictService.ConflictMarkerLine).mockResolvedValue(0)
     vi.mocked(StatusService.StageFile).mockResolvedValue()
     renderChanges([conflictedFile()])
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Mark src/app.ts resolved' }))
+
+    await vi.waitFor(() => expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts'))
+  })
+
+  const sides = () =>
+    vi.mocked(ConflictService.GetConflictSides).mockResolvedValue({ ours: 'main', theirs: 'feature-x' })
+
+  it('keeps one side of a conflicted file, named by branch, after confirming', async () => {
+    sides()
+    vi.mocked(ConflictService.KeepSide).mockResolvedValue()
+    const workingTree = renderChanges([conflictedFile()])
+
+    await userEvent.click(await screen.findByRole('button', { name: "Keep feature-x's version" }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent("Keep feature-x's version")
+    expect(dialog).toHaveTextContent('Resolve src/app.ts this way? Changes to it from main are discarded.')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Keep' }))
+
+    expect(ConflictService.KeepSide).toHaveBeenCalledWith(REPO, 'src/app.ts', 'theirs')
+    await vi.waitFor(() => expect(workingTree.loadStatus).toHaveBeenCalled())
+  })
+
+  it('offers to keep a file deleted when one side deleted it', async () => {
+    sides()
+    renderChanges([file('src/app.ts', { indexStatus: 'D', worktreeStatus: 'U', conflicted: true })])
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Keep it deleted, as in main' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent('Keep it deleted, as in main')
+    expect(dialog).toHaveTextContent('Resolve src/app.ts this way? Changes to it from feature-x are discarded.')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByRole('button', { name: "Keep feature-x's version" })).toBeInTheDocument()
+  })
+
+  it('offers to remove a file that only the other side added', async () => {
+    sides()
+    renderChanges([file('src/app.ts', { indexStatus: 'A', worktreeStatus: 'U', conflicted: true })])
+
+    expect(await screen.findByRole('button', { name: 'Remove it, as in feature-x' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: "Keep main's version" })).toBeInTheDocument()
+  })
+
+  it('opens the file in the editor at its first conflict marker', async () => {
+    sides()
+    vi.mocked(ConflictService.ConflictMarkerLine).mockResolvedValue(12)
+    vi.mocked(PlatformService.OpenFileInEditor).mockResolvedValue()
+    renderChanges([conflictedFile()])
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Open in editor' }))
+
+    await vi.waitFor(() => expect(PlatformService.OpenFileInEditor).toHaveBeenCalledWith(REPO, 'src/app.ts', 12))
+  })
+
+  it('warns before marking a file resolved that still has conflict markers', async () => {
+    vi.mocked(ConflictService.ConflictMarkerLine).mockResolvedValue(3)
+    vi.mocked(StatusService.StageFile).mockResolvedValue()
+    renderChanges([conflictedFile()])
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Mark src/app.ts resolved' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(dialog).toHaveTextContent('src/app.ts still has conflict markers, from line 3.')
+    expect(StatusService.StageFile).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Mark resolved' }))
 
     expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
   })
@@ -468,5 +531,27 @@ describe('ChangesView conflicts', () => {
     renderChanges([file('src/app.ts')])
 
     expect(screen.queryByText('Conflicted')).not.toBeInTheDocument()
+  })
+})
+
+describe('ChangesView first file', () => {
+  it('opens the first file, and the next one when it is staged', async () => {
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue({ hunks: [] } as unknown as FileDiff)
+    const files = [file('src/a.ts'), file('src/b.ts')]
+    const { rerender } = render(changesView(workingTreeFor(files)))
+
+    await vi.waitFor(() => expect(DiffService.GetWorkingTreeDiff).toHaveBeenCalledWith(REPO, 'src/a.ts', false, false))
+
+    rerender(changesView(workingTreeFor([file('src/a.ts', { indexStatus: 'M', worktreeStatus: '.' }), files[1]])))
+
+    await vi.waitFor(() =>
+      expect(DiffService.GetWorkingTreeDiff).toHaveBeenLastCalledWith(REPO, 'src/b.ts', false, false),
+    )
+  })
+
+  it('opens nothing in a clean working tree', () => {
+    renderChanges([])
+    expect(screen.getByText('Select a file to see its diff.')).toBeInTheDocument()
+    expect(DiffService.GetWorkingTreeDiff).not.toHaveBeenCalled()
   })
 })

@@ -2,6 +2,33 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [0.3.0] - 2026-10-17
+
+### Added
+
+- Conflicted files can be resolved without leaving the app. From a file's menu or the buttons above its diff, **Keep main's version** or **Keep feature-x's version** resolves the whole file with one side, named by branch even during a rebase, and asks first. When one side deleted the file, it offers **Keep it deleted, as in main**. **Open in editor** opens the file at its first conflict marker, and **Mark resolved** asks first if markers remain. ([#113](https://github.com/gspeager/current-client/issues/113))
+- On a Mac without Apple's Command Line Tools, the app says so and offers **Install Command Line Tools**, instead of Apple's install window appearing as soon as the app opens. **Check again** is offered whenever Git isn't found. ([#107](https://github.com/gspeager/current-client/issues/107))
+
+### Changed
+
+- Repositories open on **Working Copy**, now the first tab, with the first changed file already open: a conflicted file first, then unstaged, then staged. When the open file is staged, discarded or committed, the next one opens. The tabs are Working Copy, Branch Graph & History, Activity and Changelog. ([#114](https://github.com/gspeager/current-client/issues/114), [#118](https://github.com/gspeager/current-client/issues/118))
+- Branch Graph & History shows all branches by default, so it draws a graph straight away. The branch filter you choose is remembered; a branch that no longer exists falls back to all branches. ([#119](https://github.com/gspeager/current-client/issues/119))
+- The sidebar's Workspace actions are one row of icon buttons, named on hover, so Branches starts near the top. ([#115](https://github.com/gspeager/current-client/issues/115))
+- Activity's Repository health no longer counts uncommitted changes as an issue; it still shows them, and still counts conflicts. The sprint-burst percentage under Commit velocity and the streaks under the activity calendar are gone. ([#116](https://github.com/gspeager/current-client/issues/116))
+- Opening a repository runs about a third as many Git commands (22 instead of 70 in a repository with 16 branches), and each action refreshes once instead of twice. Answers that only change when a branch, tag or the config does are read once and reused, and tabs that aren't in view take one Git command each. This matters most on Windows, where each Git command costs more. ([#112](https://github.com/gspeager/current-client/issues/112))
+- On Windows, the app runs Git for Windows' own `git.exe` directly instead of through the launcher on the `PATH`, which started a second process for every command. A Git executable chosen in Settings is used as it is. ([#106](https://github.com/gspeager/current-client/issues/106))
+- Predicting which branches would conflict with yours runs one Git command for all of them instead of one per branch. Git 2.38 and 2.39 still check one branch at a time. ([#111](https://github.com/gspeager/current-client/issues/111))
+
+### Fixed
+
+- Pull and push progress and errors show only in the tab of the repository they're for. Switching tabs no longer leaves another repository's "Could not pull" in view, and its **Pull (merge)** and **Pull (rebase)** pull the repository that diverged. A pull or push keeps running in a background tab. ([#122](https://github.com/gspeager/current-client/issues/122))
+- On macOS, the app goes idle again while files have uncommitted changes. Reading a modified file to show its status counted as a change to it, so the app refreshed about twice a second. ([#109](https://github.com/gspeager/current-client/issues/109))
+- Conflict marks on branches no longer disappear when the repository has a branch with unrelated history, such as an orphan `gh-pages`.
+- In the branch graph, a branch tip's lane starts at its commit instead of a short line above it that led nowhere. ([#108](https://github.com/gspeager/current-client/issues/108))
+- Activity's **Repository age** counts from the repository's oldest commit instead of its newest, so an active repository no longer looks a few days old. ([#110](https://github.com/gspeager/current-client/issues/110))
+- The status bar keeps the repository path on one line, shortened from the start so the repository's folder stays visible. The home folder shows as `~` on macOS and Linux, and clicking the path copies it in full. ([#120](https://github.com/gspeager/current-client/issues/120))
+- **Reveal in File Explorer** says **Reveal in Finder** on macOS and **Open in File Manager** on Linux. ([#117](https://github.com/gspeager/current-client/issues/117))
+
 ## [0.2.1] - 2026-10-08
 
 ### Added
@@ -94,6 +121,7 @@ First public version.
 - A Changelog tab that writes Conventional Commits into `CHANGELOG.md`, or saves them as Markdown, HTML or PDF.
 - The Git layer as a Go library under `core/`, and an example of embedding the app in another Wails app.
 
+[0.3.0]: https://github.com/gspeager/current-client/releases/tag/v0.3.0
 [0.2.1]: https://github.com/gspeager/current-client/releases/tag/v0.2.1
 [0.2.0]: https://github.com/gspeager/current-client/releases/tag/v0.2.0
 [0.1.1]: https://github.com/gspeager/current-client/releases/tag/v0.1.1

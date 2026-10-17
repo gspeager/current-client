@@ -3,7 +3,6 @@ import { useLaneColors } from '../../lib/laneColor'
 
 interface CommitGraphProps {
   node: GraphNode
-  hasAbove: boolean
   laneCount: number
   rowHeight: number
   laneWidth?: number
@@ -15,7 +14,7 @@ function laneX(lane: number, laneWidth: number): number {
 
 const NODE_RADIUS = 4
 
-function CommitGraph({ node, hasAbove, laneCount, rowHeight, laneWidth = 18 }: CommitGraphProps) {
+function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18 }: CommitGraphProps) {
   const { laneColor } = useLaneColors()
   const mid = rowHeight / 2
   const ownX = laneX(node.lane, laneWidth)
@@ -50,7 +49,7 @@ function CommitGraph({ node, hasAbove, laneCount, rowHeight, laneWidth = 18 }: C
         )
       })}
 
-      {hasAbove && (
+      {node.hasChild && (
         <line x1={ownX} y1={0} x2={ownX} y2={mid} style={{ stroke: laneColor(node.lane) }} strokeWidth={1.5} />
       )}
 

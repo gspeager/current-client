@@ -17,7 +17,7 @@ function stubStartup(tabs: string[], focused = '') {
   vi.mocked(SettingsService.GetSettings).mockResolvedValue({ theme: 'dark' } as Settings)
   vi.mocked(RepositoryService.GetRecentRepositories).mockResolvedValue([])
   vi.mocked(RepositoryService.GetOpenTabs).mockResolvedValue({ tabs, focused } as OpenTabsInfo)
-  vi.mocked(RepositoryService.GetRepoSummaries).mockResolvedValue([])
+  vi.mocked(RepositoryService.GetTabSummaries).mockResolvedValue([])
   vi.mocked(RepositoryService.SetOpenTabs).mockResolvedValue()
   vi.mocked(RepositoryService.OpenRepository).mockImplementation(
     (path) => Promise.resolve(path) as ReturnType<typeof RepositoryService.OpenRepository>,
@@ -73,6 +73,16 @@ describe('CurrentClientApp embedding', () => {
         expect.objectContaining({ ref: 'feature/login' }),
       ),
     )
+  })
+
+  it('opens a repository on Working Copy, the first view', async () => {
+    stubStartup(['/repos/app'], '/repos/app')
+    render(<CurrentClientApp />)
+    const workingCopy = await screen.findByRole('button', { name: 'Working Copy' })
+
+    const views = [...document.querySelectorAll('.tab-bar button')].map((b) => b.textContent)
+    expect(views).toEqual(['Working Copy', 'Branch Graph & History', 'Activity', 'Changelog'])
+    expect(workingCopy).toHaveClass('tab-active')
   })
 
   it('does not reload a tab that is visited again with no new commits', async () => {

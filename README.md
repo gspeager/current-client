@@ -20,7 +20,7 @@ Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet re
 
 ## Install
 
-Download your platform's file from the [latest release](../../releases/latest). Current Client runs your installed Git, so you also need [Git](https://git-scm.com/downloads) 2.23 or newer.
+Download your platform's file from the [latest release](../../releases/latest). Current Client runs your installed Git, so you also need [Git](https://git-scm.com/downloads) 2.23 or newer. On a Mac, Git comes with Apple's Command Line Tools, and Current Client offers to install them if they're missing.
 
 - **Windows:** run the `-setup.exe`. The installer isn't code-signed yet, so the first time you run it SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run anyway**. It installs to `C:\Program Files\Current Client`.
 - **macOS:** open the `.dmg` and drag Current Client to Applications. It's signed and notarized, so it opens without a warning.

@@ -1,5 +1,5 @@
 import { ActivityService } from '@current-client-bindings/app'
-import { averageWeeklyCommits, busiestWeekday, lastWeekVsAverage, weeklyBuckets } from './commitVelocity'
+import { averageWeeklyCommits, busiestWeekday, weeklyBuckets } from './commitVelocity'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './CommitVelocityChart.scss'
 
@@ -20,7 +20,6 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
   const busiest = activity ? busiestWeekday(activity) : null
   const maxCommits = Math.max(1, ...weeks.map((w) => w.commits))
   const average = weeks.length > 0 ? averageWeeklyCommits(weeks) : null
-  const vsAverage = weeks.length > 0 ? lastWeekVsAverage(weeks) : null
 
   return (
     <div className="commit-velocity">
@@ -63,14 +62,6 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
       {average !== null && (
         <div className="commit-velocity-footer">
           <span className="commit-velocity-average">Average: {average.toFixed(1)} commits/wk</span>
-          {vsAverage && (
-            <span
-              className={`commit-velocity-vs-average commit-velocity-vs-average-${vsAverage.percent >= 0 ? 'up' : 'down'}`}
-            >
-              {vsAverage.percent > 0 ? '+' : ''}
-              {vsAverage.percent}% {vsAverage.label}
-            </span>
-          )}
         </div>
       )}
     </div>

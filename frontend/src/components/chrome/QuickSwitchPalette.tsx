@@ -37,6 +37,7 @@ import type { useRepositoryLifecycle } from '../../features/repositories/useRepo
 import Kbd from '../controls/Kbd'
 import PathText from '../git/PathText'
 import Modal from './Modal'
+import { revealInFileManagerLabel } from '../../lib/fileManager'
 import './QuickSwitchPalette.scss'
 
 interface QuickSwitchPaletteProps {
@@ -203,7 +204,7 @@ function QuickSwitchPalette({
     { id: 'open-terminal', label: 'Open Terminal', icon: Terminal, run: () => PlatformService.OpenTerminal(repoPath) },
     {
       id: 'reveal-file-manager',
-      label: 'Reveal in File Explorer',
+      label: revealInFileManagerLabel(),
       icon: FolderOpen,
       run: () => PlatformService.RevealInFileManager(repoPath),
     },
