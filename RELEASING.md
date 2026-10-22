@@ -124,5 +124,5 @@ Create the GitHub release for the tag as a **draft**, paste the version's `CHANG
 
 Finally, update what users read about the release:
 
-- the wiki, for anything the release changes for users
+- the wiki: merge its version branch (`0.4.0`, kept current as PRs merged) into `master`, which is what GitHub renders, and check it against the changelog for anything missed
 - the website's Current Client page, `current-client.html`: the version beside the name, on both **Download** buttons and in the footer; the release date under the hero; and **What's new**, which lists the release's main changes and links to the changelog
