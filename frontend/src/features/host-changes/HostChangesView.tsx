@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, GitBranch, RefreshCw } from 'lucide-react'
 import {
+  BranchChange,
   HostService,
   IdentityService,
   PlatformService,
@@ -134,20 +135,9 @@ function ChangeRow({ change, prefix, selected, onSelect }: ChangeRowProps) {
       onClick={onSelect}
     >
       <ChangeMarker
-        change={{
-          number: change.number,
-          prefix,
-          state: change.state,
-          draft: change.draft,
-          ci: change.ci,
-          title: '',
-          author: '',
-          webUrl: '',
-          sourceBranch: '',
-          targetBranch: '',
-          unresolvedThreads: 0,
-          updatedAt: '',
-        }}
+        change={
+          new BranchChange({ number: change.number, prefix, state: change.state, draft: change.draft, ci: change.ci })
+        }
       />
       <span className="host-change-row-main">
         <span className="host-change-row-title">{change.title}</span>
