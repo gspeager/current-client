@@ -24,7 +24,9 @@ import { DIVERGED, useRemoteSync } from './features/remotes/useRemoteSync'
 import { useRepositoryLifecycle } from './features/repositories/useRepositoryLifecycle'
 import { useRepoVersion } from './features/repositories/useRepoVersion'
 import { useResizableWidth } from './lib/useResizableWidth'
+import HostChangesView, { changesLabelFor } from './features/host-changes/HostChangesView'
 import { useHostPrompt } from './features/settings/useHostPrompt'
+import { useHostIndicator } from './lib/useHostIndicator'
 import { useSettings } from './features/settings/useSettings'
 import { useTabMemory } from './features/repositories/useTabMemory'
 import { useWorkingTree } from './features/working-copy/useWorkingTree'
@@ -77,6 +79,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const [fileFocus, setFileFocus] = useState(0)
 
   const repo = useRepositoryLifecycle(activeRepoPath)
+  const integration = useHostIndicator(repo.repoPath ?? '', hostsVersion, hostIntegration && !!repo.repoPath)
+  const changesLabel = integration ? changesLabelFor(integration.host.provider) : null
   const { repoVersion, bumpRepoVersion, justBumped } = useRepoVersion()
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
   const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
@@ -91,7 +95,10 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
   const { activeTab: rememberedTab, setActiveTab, restored, remember } = useTabMemory(repo.repoPath)
-  const activeTab = rememberedTab === 'changelog' && !conventionalCommitsOn ? 'working-copy' : rememberedTab
+  const activeTab =
+    (rememberedTab === 'changelog' && !conventionalCommitsOn) || (rememberedTab === 'changes' && !changesLabel)
+      ? 'working-copy'
+      : rememberedTab
   const { data: conventional } = useAsyncData(
     () => (repo.repoPath ? HistoryService.FollowsConventionalCommits(repo.repoPath) : null),
     [repo.repoPath],
@@ -261,7 +268,12 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             syncing={pullOp.running || pushOp.running}
             accessory={headerAccessory}
           />
-          <TabBar active={activeTab} onChange={changeTab} showChangelog={conventionalCommitsOn} />
+          <TabBar
+            active={activeTab}
+            onChange={changeTab}
+            showChangelog={conventionalCommitsOn}
+            changesLabel={changesLabel}
+          />
 
           {conflictState && (
             <ConflictBanner
@@ -360,6 +372,16 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
                 />
               </KeepAlive>
+              {changesLabel && (
+                <KeepAlive active={activeTab === 'changes'}>
+                  <HostChangesView
+                    key={`${repo.repoPath}-${hostsVersion}`}
+                    repoPath={repo.repoPath}
+                    label={changesLabel}
+                    onBranchChanged={onBranchChanged}
+                  />
+                </KeepAlive>
+              )}
               <KeepAlive active={activeTab === 'changelog'}>
                 <ChangelogView
                   key={repo.repoPath}
@@ -386,8 +408,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             repoPath={repo.repoPath}
             repoVersion={repoVersion}
             gitVersion={gitVersion}
-            hostsVersion={hostsVersion}
-            hostIntegration={hostIntegration}
+            integration={integration}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>

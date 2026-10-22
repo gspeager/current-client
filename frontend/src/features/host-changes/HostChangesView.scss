@@ -1,0 +1,202 @@
+@use '../../styles/patterns';
+
+.host-changes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: var(--space-md);
+}
+
+.host-changes-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.host-changes-title {
+  margin: 0;
+  font: var(--ui-md);
+  color: var(--on-surface);
+}
+
+.host-changes-fetched {
+  flex: 1;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.host-changes-refresh,
+.host-change-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  @include patterns.secondary-button;
+}
+
+.host-changes-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.host-changes-notice {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.host-changes-body {
+  display: grid;
+  grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
+  gap: var(--space-md);
+  flex: 1;
+  min-height: 0;
+}
+
+.host-changes-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+}
+
+.host-changes-empty {
+  padding: var(--space-sm) var(--space-md);
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.host-change-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: var(--h-row);
+  padding: var(--space-xs) var(--space-sm);
+  background: none;
+  border: none;
+  border-bottom: var(--border-structure);
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-high);
+  }
+
+  &.host-change-row-selected {
+    background: var(--surface-highest);
+  }
+}
+
+.host-change-row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.host-change-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--ui-sm);
+}
+
+.host-change-row-branches,
+.host-change-facts-branches,
+.host-change-detail-number {
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.host-change-row-labels {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.host-change-label {
+  padding: 0 var(--space-xs);
+  border: var(--border-structure);
+  border-radius: var(--radius-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.host-change-row-time {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.host-change-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--space-md);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+}
+
+.host-change-detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.host-change-detail-title {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+  font: var(--ui-md);
+  color: var(--on-surface);
+}
+
+.host-change-state {
+  padding: 0 var(--space-xs);
+  border-radius: 3px;
+  border: 1px solid var(--secondary);
+  color: var(--secondary);
+  font: var(--ui-xs);
+
+  &.host-change-state-closed {
+    border-color: var(--outline);
+    color: var(--outline);
+  }
+}
+
+.host-change-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  font: var(--ui-sm);
+
+  dt {
+    color: var(--outline);
+  }
+
+  dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.host-change-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.host-change-description {
+  padding-top: var(--space-sm);
+  border-top: var(--border-structure);
+}

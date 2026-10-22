@@ -1,23 +1,33 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, HostInfo, HostService, PlatformService } from '@current-client-bindings/app'
+import { BranchService, HostInfo, PlatformService } from '@current-client-bindings/app'
 import StatusBar from './StatusBar'
-
-beforeEach(() => {
-  vi.mocked(HostService.Detect).mockResolvedValue([])
-})
 
 describe('StatusBar', () => {
   it('shows which API host integration is on for, when it was last asked, and opens Settings', async () => {
     vi.mocked(PlatformService.AppVersion).mockResolvedValue('0.1.0')
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', upstream: '' } as never)
-    vi.mocked(HostService.Detect).mockResolvedValue([
-      new HostInfo({ hostname: 'github.com', provider: 'github', apiUrl: 'https://api.github.com', enabled: true }),
-    ])
-    vi.mocked(HostService.Status).mockResolvedValue({ lastRequest: null, inFlight: false })
     const onOpenSettings = vi.fn()
+    const integration = {
+      host: new HostInfo({
+        hostname: 'github.com',
+        provider: 'github',
+        apiUrl: 'https://api.github.com',
+        enabled: true,
+      }),
+      apiHost: 'api.github.com',
+      status: { lastRequest: null, inFlight: false },
+    }
 
-    render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" onOpenSettings={onOpenSettings} />)
+    render(
+      <StatusBar
+        repoPath="/repos/app"
+        repoVersion={0}
+        gitVersion="2.47.0"
+        integration={integration}
+        onOpenSettings={onOpenSettings}
+      />,
+    )
 
     const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
     expect(indicator).toHaveTextContent('no requests yet')
@@ -28,15 +38,11 @@ describe('StatusBar', () => {
   it('shows nothing about hosts while integration is off', async () => {
     vi.mocked(PlatformService.AppVersion).mockResolvedValue('0.1.0')
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', upstream: '' } as never)
-    vi.mocked(HostService.Detect).mockResolvedValue([
-      new HostInfo({ hostname: 'github.com', apiUrl: 'https://api.github.com' }),
-    ])
 
     render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" />)
 
     expect(await screen.findByText('Current Client 0.1.0')).toBeInTheDocument()
     expect(screen.queryByText(/requests/)).not.toBeInTheDocument()
-    expect(HostService.Status).not.toHaveBeenCalled()
   })
 
   it('shows the app version next to the Git version', async () => {

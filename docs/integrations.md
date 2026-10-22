@@ -37,7 +37,7 @@ A **refresh** is the only thing that fetches from a host:
 - A Git fetch or pull the user starts.
 - A push refreshes only the pushed branch's MR/PR and its CI.
 
-Nothing else does. Switching branches, scrolling history, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. With background refresh on (off by default, like background fetch) the same refresh runs on a timer.
+Nothing else does. Switching branches, scrolling history, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
 
 With integration off, the only host-related traffic is Git's own: a fetch the user starts also runs one `git ls-remote` against the remote, which lists the pull request / merge request heads the host publishes (`refs/pull/*` on GitHub, Gitea and Forgejo, `refs/merge-requests/*` on GitLab) and gives each branch its open change's number. Bitbucket publishes none, so it gives nothing. A change counts only while its head is still a branch tip, which drops every change whose branch was deleted on merge. GitHub also publishes `refs/pull/N/merge` only while a pull request is open, so there the number is an open one. GitLab keeps merge refs after closing, so Git alone cannot tell a closed merge request whose branch was kept from an open one: with integration off the branch shows the number without a state, and the state comes from the API once integration is on.
 
@@ -47,6 +47,12 @@ One cache per repository, keyed by host and repository, holding MRs/PRs, CI resu
 
 - Data stays visible after it goes stale, labeled with its age, until a refresh replaces it. Offline, the last answer shows.
 - The cache is cleared when integration is turned off for the host or the repository is closed.
+
+## The merge request / pull request tab
+
+While a host is on for the repository, a tab named **Merge requests** (GitLab) or **Pull requests** (GitHub) lists the open changes from the last refresh: number, title, author as an initials badge, source and target branch, draft, labels, CI result and when it was updated, with an **Authored by me** filter. Opening the tab for the first time in a session refreshes it; after that it reads the cache until **Refresh**, a fetch or a pull. The list stops at the page cap and says so.
+
+Selecting a change shows its description, rendered through the one sanitizing renderer (images are links, nothing is fetched), its branches, labels, CI and conflict state, **Open on host** and **Check out locally**. Checking out fetches the change's head from the remote into `refs/current-client/<remote>/mr/<number>` (ordinary Git traffic, with Git's own credentials) and creates a local branch at it named after the source branch, or `<owner>/<branch>` for a change from a fork; a branch that already exists is checked out as it is. The diff, history and blame views then work on it as on any branch.
 
 ## What a branch row shows
 
