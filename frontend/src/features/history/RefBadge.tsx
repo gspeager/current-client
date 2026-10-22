@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
-import type { RefInfo } from '@current-client-bindings/app'
+import type { BranchChange, RefInfo } from '@current-client-bindings/app'
+import ChangeMarker from '../../components/git/ChangeMarker'
 import './RefBadge.scss'
 
 interface RefBadgeProps {
@@ -7,9 +8,10 @@ interface RefBadgeProps {
   color: string
   onClick?: (sha: string) => void
   active?: boolean
+  change?: BranchChange
 }
 
-function RefBadge({ refInfo, color, onClick, active }: RefBadgeProps) {
+function RefBadge({ refInfo, color, onClick, active, change }: RefBadgeProps) {
   const classes = ['ref-badge']
   if (refInfo.kind === 'branch' || refInfo.kind === 'remote') classes.push('ref-badge-pill')
   if (onClick) classes.push('ref-badge-clickable')
@@ -20,7 +22,7 @@ function RefBadge({ refInfo, color, onClick, active }: RefBadgeProps) {
         onClick(refInfo.sha)
       }
     : undefined
-  return (
+  const badge = (
     <span
       className={classes.join(' ')}
       onClick={handleClick}
@@ -28,6 +30,13 @@ function RefBadge({ refInfo, color, onClick, active }: RefBadgeProps) {
       style={{ background: color }}
     >
       {refInfo.name}
+    </span>
+  )
+  if (!change) return badge
+  return (
+    <span className="ref-badge-with-change">
+      {badge}
+      <ChangeMarker change={change} />
     </span>
   )
 }

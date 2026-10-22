@@ -8,6 +8,7 @@ import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import type { CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
+import type { BranchChanges } from '../../lib/useBranchChanges'
 import CommitGraph from './CommitGraph'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
@@ -29,6 +30,7 @@ interface CommitRowProps {
   searchQuery?: string
   conventional?: boolean
   hostLinks?: Links | null
+  changes?: BranchChanges
   style: CSSProperties
   onSelect: () => void
   onContextMenu: (e: MouseEvent | KeyboardEvent) => void
@@ -49,6 +51,7 @@ function CommitRow({
   searchQuery = '',
   conventional = false,
   hostLinks = null,
+  changes,
   style,
   onSelect,
   onContextMenu,
@@ -94,6 +97,7 @@ function CommitRow({
                 color={laneColor(graphNode?.lane ?? 0)}
                 onClick={onFocusRef}
                 active={focusedSha === r.sha}
+                change={r.kind === 'remote' ? changes?.[r.name] : undefined}
               />
             ))}
           </span>
