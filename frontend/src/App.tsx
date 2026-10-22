@@ -13,6 +13,7 @@ import ResizeHandle from './components/chrome/ResizeHandle'
 import SettingsPanel from './features/settings/SettingsPanel'
 import StatusBar from './components/chrome/StatusBar'
 import TabBar, { type AppTab } from './features/repositories/TabBar'
+import { useWorkspaceActions } from './components/chrome/useWorkspaceActions'
 import { LaneThemeContext, toLaneThemeName } from './lib/laneColor'
 import { useAsyncData } from './lib/useAsyncData'
 import { useAutoFetch } from './features/remotes/useAutoFetch'
@@ -134,6 +135,14 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     setCommitFocus((prev) => ({ repoPath: repo.repoPath, position, ref, request: (prev?.request ?? 0) + 1 }))
   }
 
+  // A failed action expands the sidebar, so its message is visible.
+  const workspace = useWorkspaceActions({
+    repoPath: repo.repoPath,
+    onBranchChanged,
+    onOpenCommit: (sha) => openCommit(sha),
+    onFailure: () => settings.setNavCollapsed(false),
+  })
+
   useImperativeHandle(handle, () => ({
     openCommit: async (sha) => {
       if (!repo.repoPath) return
@@ -223,6 +232,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             onPruneOnFetchChange={settings.setPruneOnFetch}
             repo={repo}
             dirty={dirty}
+            workspaceActions={workspace.actions}
             onOpenSettings={() => setSettingsOpen(true)}
             onPull={pull}
             onPullMerge={pullMerge}
@@ -247,6 +257,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           )}
 
           {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
+          {workspace.modals}
 
           {resetNotice}
           {pullOp.running && (
@@ -278,6 +289,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               repoPath={repo.repoPath}
               repoVersion={repoVersion}
               workingTree={workingTree}
+              workspaceActions={workspace.actions}
+              workspaceFeedback={workspace.feedback}
               onBranchChanged={onBranchChanged}
               onFetched={onFetched}
               pruneOnFetch={settings.settings?.pruneOnFetch ?? false}

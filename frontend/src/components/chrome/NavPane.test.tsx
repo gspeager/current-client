@@ -4,6 +4,7 @@ import { PatchService, PlatformService, UndoService, type UndoPlanInfo } from '@
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import { DialogProvider } from './DialogProvider'
 import NavPane from './NavPane'
+import { useWorkspaceActions } from './useWorkspaceActions'
 
 const REPO = '/repos/app'
 
@@ -16,21 +17,39 @@ const workingTree = {
   loadStatus: vi.fn(),
 } as unknown as ReturnType<typeof useWorkingTree>
 
-function renderNav(collapsed: boolean, onCollapsedChange = vi.fn()) {
-  const ui = (isCollapsed: boolean) => (
-    <DialogProvider>
+// The sidebar with its Workspace actions wired the way App wires them.
+function Shell({ collapsed, onCollapsedChange }: { collapsed: boolean; onCollapsedChange: (next: boolean) => void }) {
+  const workspace = useWorkspaceActions({
+    repoPath: REPO,
+    onBranchChanged: vi.fn(),
+    onOpenCommit: vi.fn(),
+    onFailure: () => onCollapsedChange(false),
+  })
+  return (
+    <>
       <NavPane
         repoPath={REPO}
         repoVersion={0}
         workingTree={workingTree}
+        workspaceActions={workspace.actions}
+        workspaceFeedback={workspace.feedback}
         onBranchChanged={vi.fn()}
         onFetched={vi.fn()}
         onOpenRepository={vi.fn()}
         onOpenHeadCommit={vi.fn()}
         width={240}
-        collapsed={isCollapsed}
+        collapsed={collapsed}
         onCollapsedChange={onCollapsedChange}
       />
+      {workspace.modals}
+    </>
+  )
+}
+
+function renderNav(collapsed: boolean, onCollapsedChange = vi.fn()) {
+  const ui = (isCollapsed: boolean) => (
+    <DialogProvider>
+      <Shell collapsed={isCollapsed} onCollapsedChange={onCollapsedChange} />
     </DialogProvider>
   )
   const { rerender } = render(ui(collapsed))

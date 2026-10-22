@@ -3,25 +3,18 @@ import {
   ChevronDown,
   ChevronRight,
   Cloud,
-  Code2,
   FolderGit2,
-  FolderOpen,
   GitBranch,
-  History,
-  Import,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
   Sparkles,
-  Split,
   Tag,
-  Terminal,
-  Undo2,
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
-import { DashboardService, PatchService, PlatformService, UndoService } from '@current-client-bindings/app'
+import { DashboardService } from '@current-client-bindings/app'
 import BranchSidebar from '../../features/branches/BranchSidebar'
 import HeadCommitPanel from '../../features/working-copy/HeadCommitPanel'
 import RemotesPanel from '../../features/remotes/RemotesPanel'
@@ -30,12 +23,8 @@ import TagsPanel from '../../features/branches/TagsPanel'
 import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
 import SubmodulesPanel from '../../features/submodules/SubmodulesPanel'
 import { errorMessage } from '../../lib/errors'
-import { undoConfirmOptions } from '../../features/history/undoPreview'
-import { useDialogs } from '../../lib/useDialogs'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
-import BisectWizard from '../../features/history/BisectWizard'
-import ReflogPanel from '../../features/history/ReflogPanel'
-import { revealInFileManagerLabel } from '../../lib/fileManager'
+import type { WorkspaceAction, WorkspaceFeedback } from './useWorkspaceActions'
 import './NavPane.scss'
 
 type SectionId = 'maintenance' | 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
@@ -44,6 +33,8 @@ interface NavPaneProps {
   repoPath: string
   repoVersion: number
   workingTree: ReturnType<typeof useWorkingTree>
+  workspaceActions: WorkspaceAction[]
+  workspaceFeedback: WorkspaceFeedback | null
   onBranchChanged: () => void
   onFetched: () => void
   pruneOnFetch?: boolean
@@ -69,6 +60,8 @@ function NavPane({
   repoPath,
   repoVersion,
   workingTree,
+  workspaceActions,
+  workspaceFeedback,
   onBranchChanged,
   onFetched,
   pruneOnFetch,
@@ -78,11 +71,6 @@ function NavPane({
   collapsed,
   onCollapsedChange,
 }: NavPaneProps) {
-  const { confirm } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [actionNotice, setActionNotice] = useState<string | null>(null)
-  const [reflogOpen, setReflogOpen] = useState(false)
-  const [bisectOpen, setBisectOpen] = useState(false)
   const [fsckBusy, setFsckBusy] = useState(false)
   const [fsckError, setFsckError] = useState<string | null>(null)
   const [fsckResult, setFsckResult] = useState<string[] | null>(null)
@@ -99,59 +87,6 @@ function NavPane({
     sectionRefs.current[pendingSection.current]?.scrollIntoView({ block: 'start' })
     pendingSection.current = null
   }, [collapsed])
-
-  // A failure from the rail expands the pane, so its message is visible.
-  const run = (action: Promise<unknown>, failure: string) => {
-    setActionError(null)
-    setActionNotice(null)
-    action.catch((err: unknown) => {
-      setActionError(`${failure}: ${errorMessage(err)}`)
-      onCollapsedChange(false)
-    })
-  }
-
-  const undoLast = async () => {
-    const plan = await UndoService.Preview(repoPath)
-    if (!(await confirm(undoConfirmOptions(plan)))) return
-    await UndoService.Apply(repoPath, plan)
-    onBranchChanged()
-  }
-
-  const workspaceActions: { label: string; icon: LucideIcon; onClick: () => void }[] = [
-    {
-      label: 'Open Terminal',
-      icon: Terminal,
-      onClick: () => run(PlatformService.OpenTerminal(repoPath), 'Could not open terminal'),
-    },
-    {
-      label: revealInFileManagerLabel(),
-      icon: FolderOpen,
-      onClick: () => run(PlatformService.RevealInFileManager(repoPath), 'Could not open file manager'),
-    },
-    {
-      label: 'Open in Editor',
-      icon: Code2,
-      onClick: () => run(PlatformService.OpenInEditor(repoPath), 'Could not open editor'),
-    },
-    {
-      label: 'Undo last operation',
-      icon: Undo2,
-      onClick: () => run(undoLast(), 'Could not undo'),
-    },
-    { label: 'Reflog', icon: History, onClick: () => setReflogOpen(true) },
-    { label: 'Bisect', icon: Split, onClick: () => setBisectOpen(true) },
-    {
-      label: 'Import Patch…',
-      icon: Import,
-      onClick: () =>
-        run(
-          PatchService.ImportPatch(repoPath)
-            .then((notice) => setActionNotice(notice || null))
-            .finally(onBranchChanged),
-          'Could not import patch',
-        ),
-    },
-  ]
 
   const showSection = (id: SectionId) => {
     if (id === 'maintenance') setMaintenanceOpen(true)
@@ -186,24 +121,6 @@ function NavPane({
     sectionRefs.current[id] = el
   }
 
-  const modals = (
-    <>
-      {reflogOpen && (
-        <ReflogPanel repoPath={repoPath} onClose={() => setReflogOpen(false)} onBranchChanged={onBranchChanged} />
-      )}
-      {bisectOpen && (
-        <BisectWizard
-          repoPath={repoPath}
-          onClose={() => setBisectOpen(false)}
-          onViewCommit={(sha) => {
-            setBisectOpen(false)
-            onOpenHeadCommit(sha)
-          }}
-        />
-      )}
-    </>
-  )
-
   if (collapsed) {
     return (
       <nav className="nav-pane nav-pane-collapsed" aria-label="Repository">
@@ -217,12 +134,12 @@ function NavPane({
           <PanelLeftOpen size={16} strokeWidth={1.75} />
         </button>
         <div className="nav-pane-rail-divider" />
-        {workspaceActions.map(({ label, icon: ActionIcon, onClick }) => (
+        {workspaceActions.map(({ id, label, icon: ActionIcon, run }) => (
           <button
-            key={label}
+            key={id}
             type="button"
             className="nav-pane-rail-button"
-            onClick={onClick}
+            onClick={run}
             aria-label={label}
             title={label}
           >
@@ -242,7 +159,6 @@ function NavPane({
             <SectionIcon size={16} strokeWidth={1.75} />
           </button>
         ))}
-        {modals}
       </nav>
     )
   }
@@ -265,12 +181,12 @@ function NavPane({
           </div>
           {/* One row of icons, so Branches starts near the top. */}
           <div className="nav-pane-workspace">
-            {workspaceActions.map(({ label, icon: ActionIcon, onClick }) => (
+            {workspaceActions.map(({ id, label, icon: ActionIcon, run }) => (
               <button
-                key={label}
+                key={id}
                 type="button"
                 className="nav-pane-rail-button"
-                onClick={onClick}
+                onClick={run}
                 aria-label={label}
                 title={label}
               >
@@ -278,8 +194,11 @@ function NavPane({
               </button>
             ))}
           </div>
-          {actionError && <p className="nav-pane-error">{actionError}</p>}
-          {actionNotice && <p className="nav-pane-success">{actionNotice}</p>}
+          {workspaceFeedback && (
+            <p className={workspaceFeedback.kind === 'error' ? 'nav-pane-error' : 'nav-pane-success'}>
+              {workspaceFeedback.text}
+            </p>
+          )}
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('maintenance')}>
@@ -361,7 +280,6 @@ function NavPane({
       </div>
 
       <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />
-      {modals}
     </nav>
   )
 }
