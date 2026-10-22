@@ -60,7 +60,16 @@ MR/PR heads are Git refs, so fetching one (to check it out, or to forecast confl
 
 ## Credentials
 
-*To come.* Git's own credential helper is asked first; a pasted token is stored by Git's helper under a separate key, never by Current Client.
+Current Client stores no credentials of its own. Two ways to a token, both through Git's credential helper:
+
+- **Git's own sign-in.** With no token saved, Current Client asks Git's credential helper for the host the remote points at (`github.com`, not `api.github.com`), with `git credential fill`. Git Credential Manager often already holds a token there, so many people need no setup. This runs only on a user action, since a helper may show its own window, and once per host per session.
+- **A personal access token**, for SSH-only remotes or when the helper has nothing. It is pasted once in Settings → Integrations and handed to Git with `git credential approve`, so the user's own helper keeps it (the OS keychain, Git Credential Manager, `store`…). **Remove** hands it to `git credential reject`. The settings file records only that a token exists, never the token.
+
+The token is saved under its own key, `https://current-client-api@api.<host>`, not under the host itself. A fetch or push asks the helper for the host alone, and a helper answers with any entry it has for that host, so a read-only token stored under the host would be tried for a push, rejected, and erased by Git. No Git operation ever asks for `api.<host>`, so the two can't collide. The token reaches Git on standard input, never on a command line, and never appears in logs or Diagnostics.
+
+**Scopes.** Read-only is enough for everything but creating a merge request / pull request: GitLab `read_api`; GitHub fine-grained read access to pull requests, checks, contents and issues. The per-endpoint table below names the scope each feature needs.
+
+**Errors** are plain messages, never the host's answer: a rejected token (401) says "The token for `<host>` was rejected. Update it in Settings → Integrations."; a missing scope (403) names the scope the action needs. A rejected token is forgotten so the next request asks Git again, which is how a sign-in renewed in Git Credential Manager gets picked up.
 
 ## Certificates and proxies
 

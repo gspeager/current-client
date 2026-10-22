@@ -85,13 +85,24 @@ type Response struct {
 var ErrNotEnabled = errors.New("host integration is off")
 
 // HostError is an answer the host gave that the caller can't use. It carries
-// the status and never the response body.
+// the status and never the response body. A caller that knows which token
+// scope the request needed sets Scope, so a 403 can name it.
 type HostError struct {
 	Host   string
 	Status int
+	Scope  string
 }
 
 func (e *HostError) Error() string {
+	switch e.Status {
+	case http.StatusUnauthorized:
+		return fmt.Sprintf("The token for %s was rejected. Update it in Settings → Integrations.", e.Host)
+	case http.StatusForbidden:
+		if e.Scope != "" {
+			return fmt.Sprintf("The token for %s lacks the %s scope this needs. Update it in Settings → Integrations.", e.Host, e.Scope)
+		}
+		return fmt.Sprintf("%s refused this: the token lacks permission. Check its scopes in Settings → Integrations.", e.Host)
+	}
 	return fmt.Sprintf("%s answered %d %s", e.Host, e.Status, http.StatusText(e.Status))
 }
 
@@ -200,6 +211,11 @@ func (c *Client) Do(ctx context.Context, host Host, req *http.Request) (*Respons
 		(resp.Status == http.StatusForbidden && raw.Header.Get("X-RateLimit-Remaining") == "0") {
 		until := c.backOff(host.Name, raw.Header)
 		return nil, &RateLimitError{Host: host.Name, Until: until}
+	}
+	if resp.Status == http.StatusUnauthorized {
+		if forgetter, ok := c.opts.Tokens.(interface{ Forget(string) }); ok {
+			forgetter.Forget(host.Name)
+		}
 	}
 	if resp.Status >= 400 {
 		return nil, &HostError{Host: host.Name, Status: resp.Status}

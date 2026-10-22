@@ -24,10 +24,13 @@ type ChangelogPrefs struct {
 // its port when the remote has one). Empty Provider means the type detected
 // from the remote URL; empty APIURL means the address derived from the type.
 // Enabled is the only thing that lets the app contact the host's API.
+// HasToken records that an API token was saved with Git's credential
+// helper; the token itself is never written here.
 type HostConfig struct {
 	Provider string `json:"provider,omitempty"`
 	APIURL   string `json:"apiUrl,omitempty"`
 	Enabled  bool   `json:"enabled,omitempty"`
+	HasToken bool   `json:"hasToken,omitempty"`
 }
 
 type Config struct {
