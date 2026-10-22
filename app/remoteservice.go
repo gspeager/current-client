@@ -207,13 +207,7 @@ func hostLinksFor(remotes []git.Remote, hosts map[string]config.HostConfig) *hos
 	if len(remotes) == 0 {
 		return nil
 	}
-	remote := remotes[0]
-	for _, r := range remotes {
-		if r.Name == "origin" {
-			remote = r
-		}
-	}
-	host, ok := hostlink.Resolve(context.Background(), remoteURL(remote))
+	host, ok := hostlink.Resolve(context.Background(), remoteURL(primaryRemote(remotes)))
 	if !ok {
 		return nil
 	}
@@ -233,4 +227,14 @@ func remoteURL(remote git.Remote) string {
 		return remote.FetchURL
 	}
 	return remote.PushURL
+}
+
+// primaryRemote is origin when there is one, else the first remote.
+func primaryRemote(remotes []git.Remote) git.Remote {
+	for _, r := range remotes {
+		if r.Name == "origin" {
+			return r
+		}
+	}
+	return remotes[0]
 }

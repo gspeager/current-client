@@ -30,10 +30,10 @@ func TestBranchChangesReadOnlyTheCache(t *testing.T) {
 	hostClient.Cache.Put("gitlab.example.com", repo, cacheRemoteRefs, "origin", git.RemoteChanges{
 		Kind: git.MergeRequestRefs, ByBranch: map[string]int{"feature": 7, "older": 9},
 	})
-	hostClient.Cache.Put("gitlab.example.com", repo, cacheChanges, "group/app", []hostapi.Change{
+	hostClient.Cache.Put("gitlab.example.com", repo, cacheChanges, "group/app", cachedChanges{changes: []hostapi.Change{
 		{Number: 7, Title: "Add the thing", State: hostapi.ChangeOpen, Draft: true, SourceBranch: "feature", CI: hostapi.CIFailed, Author: hostapi.User{Name: "Ada"}, WebURL: "https://gitlab.example.com/group/app/-/merge_requests/7"},
 		{Number: 8, Title: "From a fork", State: hostapi.ChangeOpen, SourceBranch: "feature", SourceProject: "someone/app"},
-	})
+	}})
 
 	changes, err := s.BranchChanges(repo)
 	if err != nil {

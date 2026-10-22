@@ -108,6 +108,7 @@ func (s *HostService) SetEnabled(hostname string, enabled bool) error {
 	if !enabled {
 		hostClient.Forget(hostname)
 		hostCredentials.Forget(hostname)
+		deleteFetchedHeads(hostname)
 	}
 	return setHostFlag(hostname, func(host *config.HostConfig) {
 		host.Enabled = enabled

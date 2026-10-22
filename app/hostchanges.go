@@ -28,7 +28,13 @@ type BranchChange struct {
 const (
 	cacheRemoteRefs = "ls-remote"
 	cacheChanges    = "changes"
+	cacheUser       = "user"
 )
+
+type cachedChanges struct {
+	changes   []hostapi.Change
+	truncated bool
+}
 
 // BranchChanges maps each remote branch ("origin/feature") to its change,
 // reading only what the last fetch and refresh left in the cache: drawing
@@ -56,7 +62,7 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 			}
 		}
 		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project); ok {
-			for _, change := range cached.([]hostapi.Change) {
+			for _, change := range cached.(cachedChanges).changes {
 				if change.SourceProject != "" && change.SourceProject != info.Project {
 					continue
 				}
@@ -78,7 +84,8 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 
 // Refresh is what a fetch or pull does for the host side: one ls-remote per
 // remote for the change numbers Git publishes, and the open changes from
-// each host that is on. Failures leave the last answer in place.
+// each host that is on. A failed host request is returned so the panel can
+// show it; the last answer stays in the cache.
 func (s *HostService) Refresh(repoPath string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -103,8 +110,15 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		if provider == nil {
 			continue
 		}
-		if changes, _, err := provider.OpenChanges(ctx, info.Project); err == nil {
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, changes)
+		if changes, truncated, err := provider.OpenChanges(ctx, info.Project); err == nil {
+			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
+		} else {
+			return err
+		}
+		if _, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheUser, remote.Name); !ok {
+			if user, err := provider.CurrentUser(ctx); err == nil {
+				hostClient.Cache.Put(info.Hostname, repoPath, cacheUser, remote.Name, user)
+			}
 		}
 	}
 	return nil
