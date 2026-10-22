@@ -115,7 +115,11 @@ func merge(ctx context.Context, repoPath, head string, tips []string) ([][]strin
 // The others, such as an orphan gh-pages branch, can't be merged, so they
 // can't conflict either.
 func mergeSharingHistory(ctx context.Context, repoPath, head string, tips []string) ([][]string, error) {
-	related, err := git.SharingHistory(ctx, repoPath, head)
+	return mergeSharingHistoryIn(ctx, repoPath, head, tips, "refs/heads", "refs/remotes")
+}
+
+func mergeSharingHistoryIn(ctx context.Context, repoPath, head string, tips []string, namespaces ...string) ([][]string, error) {
+	related, err := git.SharingHistoryIn(ctx, repoPath, head, namespaces...)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,13 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchChange, CIMark, CurrentChange, HostService, PlatformService } from '@current-client-bindings/app'
+import {
+  BranchChange,
+  CIMark,
+  CurrentChange,
+  ForecastReport,
+  HostService,
+  PlatformService,
+} from '@current-client-bindings/app'
 import CurrentChangeSection from './CurrentChangeSection'
 
 const change = new BranchChange({
@@ -15,6 +22,44 @@ const change = new BranchChange({
 })
 
 describe('CurrentChangeSection', () => {
+  beforeEach(() => {
+    vi.mocked(HostService.Forecast).mockResolvedValue(new ForecastReport({ enabled: true, conflicts: [] }))
+  })
+
+  it('lists the open changes that would conflict with the branch, even without a change of its own', async () => {
+    vi.mocked(HostService.CurrentChange).mockResolvedValue(
+      new CurrentChange({ branch: 'main', enabled: true, change: null }),
+    )
+    vi.mocked(HostService.Forecast).mockResolvedValue(
+      new ForecastReport({
+        enabled: true,
+        branch: 'main',
+        base: 'main',
+        checked: 20,
+        total: 34,
+        conflicts: [
+          {
+            number: 138,
+            prefix: '!',
+            title: 'Add the thing',
+            author: 'Ada',
+            sourceBranch: 'feature',
+            files: ['app/x.go', 'README.md'],
+            webUrl: 'https://h/138',
+          },
+        ],
+      }),
+    )
+    const onOpenChange = vi.fn()
+    render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} onOpenChange={onOpenChange} />)
+
+    const section = await screen.findByRole('region', { name: 'Conflict forecast for main' })
+    const conflict = within(section).getByRole('button', { name: /Conflicts with !138 by Ada in app\/x.go, README.md/ })
+    expect(within(section).getByText('20 of 34 checked')).toBeInTheDocument()
+    await userEvent.click(conflict)
+    expect(onOpenChange).toHaveBeenCalledWith(138)
+  })
+
   it('shows the checked-out branch’s merge request with CI, failed jobs and actions', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue(
       new CurrentChange({

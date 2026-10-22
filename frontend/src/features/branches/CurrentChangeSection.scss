@@ -79,3 +79,57 @@
   font: var(--ui-xs);
   @include patterns.secondary-button;
 }
+
+.current-change-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: var(--border-structure);
+  font: var(--ui-xs);
+  color: var(--on-surface-variant);
+}
+
+.current-change-conflicts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+}
+
+.current-change-conflict-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--error);
+}
+
+.current-change-conflict {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.current-change-conflict-files {
+  font: var(--data-sm);
+}
+
+.current-change-forecast-cap,
+.current-change-forecast-clean {
+  color: var(--outline);
+}
