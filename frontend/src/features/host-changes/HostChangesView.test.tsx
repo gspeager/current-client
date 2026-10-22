@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ChangeList, HostService, IdentityService, PlatformService } from '@current-client-bindings/app'
+import { ChangeList, ForecastReport, HostService, IdentityService, PlatformService } from '@current-client-bindings/app'
 import { Change, ChangeState, CIStatus } from '@current-client-bindings/core/hostapi'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import HostChangesView from './HostChangesView'
@@ -41,6 +41,15 @@ function list(overrides: Partial<ChangeList> = {}): ChangeList {
 }
 
 function renderView(onBranchChanged = vi.fn()) {
+  vi.mocked(HostService.Forecast).mockResolvedValue(
+    new ForecastReport({
+      enabled: true,
+      branch: 'main',
+      conflicts: [
+        { number: 138, prefix: '!', title: '', author: '', sourceBranch: 'feature', files: ['app/x.go'], webUrl: '' },
+      ],
+    }),
+  )
   vi.mocked(IdentityService.GetIdentities).mockResolvedValue([{ initials: 'AL', color: '#123456' }])
   render(
     <DialogProvider>
@@ -93,6 +102,7 @@ describe('HostChangesView', () => {
     const detail = await screen.findByRole('article', { name: '!138' })
     expect(await within(detail).findByText('#4')).toBeInTheDocument()
     expect(within(detail).getByText('feature → main')).toBeInTheDocument()
+    expect(within(detail).getByText(/Would conflict with main in/)).toBeInTheDocument()
     await userEvent.click(within(detail).getByRole('button', { name: 'Open on host' }))
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.example.com/g/r/-/merge_requests/138')
     expect(HostService.ChangeDetails).toHaveBeenCalledWith(REPO, 138)

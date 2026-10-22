@@ -22,6 +22,20 @@ func FetchHostChangeHead(ctx context.Context, repoPath, remote, remoteRef string
 	return err
 }
 
+// FetchHostChangeHeads is FetchHostChangeHead for several changes in one
+// fetch; refs maps each number to its ref on the remote.
+func FetchHostChangeHeads(ctx context.Context, repoPath, remote string, refs map[int]string) error {
+	if len(refs) == 0 {
+		return nil
+	}
+	args := []string{"fetch", "--no-tags", remote}
+	for number, remoteRef := range refs {
+		args = append(args, "+"+remoteRef+":"+HostChangeRef(remote, number))
+	}
+	_, err := runResult(ctx, repoPath, args...)
+	return err
+}
+
 // DeleteHostRefs removes every fetched head for remote, or for all remotes
 // when remote is empty.
 func DeleteHostRefs(ctx context.Context, repoPath, remote string) error {

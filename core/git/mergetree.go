@@ -103,6 +103,11 @@ func parseMergeTreeStdin(output string, merges int) ([][]string, error) {
 // SharingHistory returns the commits of local and remote-tracking branches
 // that share history with ours: those that contain one of its root commits.
 func SharingHistory(ctx context.Context, repoPath, ours string) (map[string]bool, error) {
+	return SharingHistoryIn(ctx, repoPath, ours, "refs/heads", "refs/remotes")
+}
+
+// SharingHistoryIn is SharingHistory over the given ref namespaces.
+func SharingHistoryIn(ctx context.Context, repoPath, ours string, namespaces ...string) (map[string]bool, error) {
 	roots, err := runResult(ctx, repoPath, "rev-list", "--max-parents=0", ours)
 	if err != nil {
 		return nil, err
@@ -111,7 +116,7 @@ func SharingHistory(ctx context.Context, repoPath, ours string) (map[string]bool
 	for _, root := range strings.Fields(roots.Stdout) {
 		args = append(args, "--contains="+root)
 	}
-	containing, err := runResult(ctx, repoPath, append(args, "refs/heads", "refs/remotes")...)
+	containing, err := runResult(ctx, repoPath, append(args, namespaces...)...)
 	if err != nil {
 		return nil, err
 	}

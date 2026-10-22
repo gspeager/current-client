@@ -129,6 +129,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 			fillChangeCI(ctx, provider, info, repoPath, changes)
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
 			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
+			refreshForecast(ctx, info, repoPath, remote.Name, changes)
 		} else {
 			return err
 		}

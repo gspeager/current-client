@@ -173,6 +173,8 @@ function ChangeDetail({ repoPath, change, prefix, onBranchChanged }: ChangeDetai
     () => HostService.ChangeDetails(repoPath, change.number),
     [repoPath, change.number],
   )
+  const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath])
+  const conflict = forecast?.conflicts?.find((c) => c.number === change.number)
   const checkout = useCancellableOperation(`${repoPath}:${change.number}`)
   const [checkedOut, setCheckedOut] = useState<string | null>(null)
   const state = change.draft ? 'draft' : change.state
@@ -222,6 +224,15 @@ function ChangeDetail({ repoPath, change, prefix, onBranchChanged }: ChangeDetai
           <>
             <dt>Conflicts</dt>
             <dd>Has conflicts with {change.targetBranch} on the host.</dd>
+          </>
+        )}
+        {conflict && forecast && (
+          <>
+            <dt>Your branch</dt>
+            <dd>
+              Would conflict with {forecast.branch} in{' '}
+              <span className="host-change-facts-branches">{conflict.files.join(', ')}</span>
+            </dd>
           </>
         )}
       </dl>
