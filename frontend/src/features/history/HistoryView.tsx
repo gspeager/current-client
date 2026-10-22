@@ -20,6 +20,7 @@ import { useCreateBranchFromCommit } from './useCreateBranchFromCommit'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
+import { useCIStatus } from '../../lib/useCIStatus'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { useResizableWidth } from '../../lib/useResizableWidth'
@@ -159,6 +160,10 @@ function HistoryView({
     overscan: 10,
   })
   const virtualItems = virtualizer.getVirtualItems()
+  const ciMarks = useCIStatus(
+    repoPath,
+    virtualItems.map((row) => rows[row.index].commit.sha),
+  )
 
   useEffect(() => {
     const last = virtualItems[virtualItems.length - 1]
@@ -275,6 +280,8 @@ function HistoryView({
                   laneCount={laneCount}
                   hostLinks={hostLinks}
                   changes={changes}
+                  repoPath={repoPath}
+                  ci={ciMarks[commit.sha]}
                   rowHeight={ROW_HEIGHT}
                   identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
                   refs={refsBySha.get(commit.sha)}

@@ -6,12 +6,13 @@ import { highlightMatch } from '../../lib/highlightMatch'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
-import type { CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
+import type { CIMark as CIMarkInfo, CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import type { BranchChanges } from '../../lib/useBranchChanges'
 import CommitGraph from './CommitGraph'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
+import CIMark from '../../components/git/CIMark'
 import RefBadge from './RefBadge'
 import './CommitRow.scss'
 
@@ -31,6 +32,8 @@ interface CommitRowProps {
   conventional?: boolean
   hostLinks?: Links | null
   changes?: BranchChanges
+  repoPath?: string
+  ci?: CIMarkInfo
   style: CSSProperties
   onSelect: () => void
   onContextMenu: (e: MouseEvent | KeyboardEvent) => void
@@ -52,6 +55,8 @@ function CommitRow({
   conventional = false,
   hostLinks = null,
   changes,
+  repoPath = '',
+  ci,
   style,
   onSelect,
   onContextMenu,
@@ -121,6 +126,7 @@ function CommitRow({
 
       <div className="commit-row-hash">
         <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
+        <CIMark repoPath={repoPath} mark={ci} />
         <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
       </div>
 

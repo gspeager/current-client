@@ -37,7 +37,7 @@ A **refresh** is the only thing that fetches from a host:
 - A Git fetch or pull the user starts.
 - A push refreshes only the pushed branch's MR/PR and its CI.
 
-Nothing else does. Switching branches, scrolling history, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
+Nothing else does, with one bounded exception: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
 
 With integration off, the only host-related traffic is Git's own: a fetch the user starts also runs one `git ls-remote` against the remote, which lists the pull request / merge request heads the host publishes (`refs/pull/*` on GitHub, Gitea and Forgejo, `refs/merge-requests/*` on GitLab) and gives each branch its open change's number. Bitbucket publishes none, so it gives nothing. A change counts only while its head is still a branch tip, which drops every change whose branch was deleted on merge. GitHub also publishes `refs/pull/N/merge` only while a pull request is open, so there the number is an open one. GitLab keeps merge refs after closing, so Git alone cannot tell a closed merge request whose branch was kept from an open one: with integration off the branch shows the number without a state, and the state comes from the API once integration is on.
 
@@ -53,6 +53,10 @@ One cache per repository, keyed by host and repository, holding MRs/PRs, CI resu
 While a host is on for the repository, a tab named **Merge requests** (GitLab) or **Pull requests** (GitHub) lists the open changes from the last refresh: number, title, author as an initials badge, source and target branch, draft, labels, CI result and when it was updated, with an **Authored by me** filter. Opening the tab for the first time in a session refreshes it; after that it reads the cache until **Refresh**, a fetch or a pull. The list stops at the page cap and says so.
 
 Selecting a change shows its description, rendered through the one sanitizing renderer (images are links, nothing is fetched), its branches, labels, CI and conflict state, **Open on host** and **Check out locally**. Checking out fetches the change's head from the remote into `refs/current-client/<remote>/mr/<number>` (ordinary Git traffic, with Git's own credentials) and creates a local branch at it named after the source branch, or `<owner>/<branch>` for a change from a fork; a branch that already exists is checked out as it is. The diff, history and blame views then work on it as on any branch.
+
+## CI results
+
+With the host on, commits in History and branch tips in the sidebar show a small square in the pipeline's color: passed, failed, canceled, or an outline while running or pending. For commits the result is asked for when the commit scrolls into view, in batches of up to 50 at a time and never twice for the same commit until the next refresh; a commit without a pipeline is remembered as such. Branch tips and open merge requests get theirs on refresh. Clicking a square lists the pipeline's jobs with stage, status and duration, fetched only then, with **Open on host**. HEAD's cyan is never used for CI state.
 
 ## What a branch row shows
 
@@ -86,7 +90,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/merge_requests/:iid` | Refresh of one merge request (the pushed branch's, the checked-out branch's) | `read_api` |
 | `GET /projects/:id` | Once per fork a merge request comes from, to name it | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/discussions` | Refresh, for the checked-out branch's merge request | `read_api` |
-| `GET /projects/:path/pipelines?sha=` | Refresh, for branch tips and visible commits, in batches | `read_api` |
+| `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads; and as commits scroll into view, once per commit until the next refresh | `read_api` |
 | `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark | `read_api` |
 | `GET /projects/:path/jobs/:id/trace` | Clicking a failed job | `read_api` |
 | `GET /projects/:path/issues/:iid` | Refresh, for issue references on screen | `read_api` |

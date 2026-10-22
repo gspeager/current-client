@@ -20,7 +20,7 @@ function worktree(path: string, overrides: Partial<WorktreeInfo> = {}): Worktree
 }
 
 function branch(name: string, worktreePath = ''): BranchInfo {
-  return { name, current: false, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath }
+  return { name, current: false, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath, tip: '' }
 }
 
 function renderPanel(worktrees: WorktreeInfo[]) {

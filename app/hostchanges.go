@@ -110,7 +110,12 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		if provider == nil {
 			continue
 		}
+		// Pipelines are asked for again after a refresh; the heads of open
+		// changes first, since the list endpoint carries no CI result.
+		hostClient.Cache.ClearKind(info.Hostname, repoPath, cachePipeline)
+		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheJobs)
 		if changes, truncated, err := provider.OpenChanges(ctx, info.Project); err == nil {
+			fillChangeCI(ctx, provider, info, repoPath, changes)
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
 		} else {
 			return err

@@ -46,6 +46,12 @@ func (c *Cache) ClearRepo(repo string) {
 	c.clear(func(key cacheKey) bool { return key.repo == repo })
 }
 
+// ClearKind drops one kind of entry for a host and repository, for data a
+// refresh must ask for again rather than merge.
+func (c *Cache) ClearKind(host, repo, kind string) {
+	c.clear(func(key cacheKey) bool { return key.host == host && key.repo == repo && key.kind == kind })
+}
+
 func (c *Cache) clear(match func(cacheKey) bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ChangeList, HostService, IdentityService, PlatformService } from '@current-client-bindings/app'
-import { Change } from '@current-client-bindings/core/hostapi'
+import { Change, ChangeState, CIStatus } from '@current-client-bindings/core/hostapi'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import HostChangesView from './HostChangesView'
 
@@ -11,12 +11,12 @@ function change(overrides: Partial<Change>): Change {
   return new Change({
     number: 138,
     title: 'Add the thing',
-    state: 'open',
+    state: ChangeState.ChangeOpen,
     sourceBranch: 'feature',
     targetBranch: 'main',
     author: { name: 'Ada Lovelace', username: 'ada' },
     labels: ['backend'],
-    ci: 'success',
+    ci: CIStatus.CISuccess,
     updatedAt: new Date().toISOString(),
     webUrl: 'https://gitlab.example.com/g/r/-/merge_requests/138',
     ...overrides,

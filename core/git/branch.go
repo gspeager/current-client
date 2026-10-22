@@ -18,6 +18,7 @@ type Branch struct {
 	LastCommitDate string
 	// WorktreePath is the worktree the branch is checked out in, if any.
 	WorktreePath string
+	Tip          string
 }
 
 func ListBranches(ctx context.Context, repoPath string) ([]Branch, error) {
@@ -66,8 +67,11 @@ func parseLocalBranches(output string) branchList {
 			Behind:         behind,
 			LastCommitDate: fields[4],
 		})
-		if len(fields) >= 6 && fields[0] == "*" && !strings.HasPrefix(fields[1], "(") {
-			list.head = fields[5]
+		if len(fields) >= 6 {
+			list.branches[len(list.branches)-1].Tip = fields[5]
+			if fields[0] == "*" && !strings.HasPrefix(fields[1], "(") {
+				list.head = fields[5]
+			}
 		}
 		if len(fields) == 7 && fields[6] != "" {
 			list.branches[len(list.branches)-1].WorktreePath = filepath.FromSlash(fields[6])
