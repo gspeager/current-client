@@ -31,6 +31,8 @@ type HostConfig struct {
 	APIURL   string `json:"apiUrl,omitempty"`
 	Enabled  bool   `json:"enabled,omitempty"`
 	HasToken bool   `json:"hasToken,omitempty"`
+	// Dismissed remembers "Not now" on the first-use prompt.
+	Dismissed bool `json:"dismissed,omitempty"`
 }
 
 type Config struct {

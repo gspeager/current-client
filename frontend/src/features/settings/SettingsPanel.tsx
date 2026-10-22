@@ -9,6 +9,7 @@ import type { useSettings } from './useSettings'
 import DiagnosticsSection from './DiagnosticsSection'
 import IdentityColorSettings from './IdentityColorSettings'
 import IdentitySettings from './IdentitySettings'
+import IntegrationsSection from './IntegrationsSection'
 import Modal from '../../components/chrome/Modal'
 import PathSettingRow from './PathSettingRow'
 import SettingsRow, { SettingsGroup } from './SettingsRow'
@@ -30,10 +31,12 @@ const AUTO_FETCH_OPTIONS = [
 
 interface SettingsPanelProps {
   settings: ReturnType<typeof useSettings>
+  repoPath?: string | null
   onClose: () => void
+  onHostsChanged?: () => void
 }
 
-function SettingsPanel({ settings, onClose }: SettingsPanelProps) {
+function SettingsPanel({ settings, repoPath = null, onClose, onHostsChanged }: SettingsPanelProps) {
   const {
     settings: values,
     error,
@@ -183,6 +186,10 @@ function SettingsPanel({ settings, onClose }: SettingsPanelProps) {
               ))}
             </select>
           </SettingsRow>
+        </SettingsGroup>
+
+        <SettingsGroup title="Integrations">
+          <IntegrationsSection repoPath={repoPath} onChanged={onHostsChanged} />
         </SettingsGroup>
 
         <SettingsGroup title="Identity colors">

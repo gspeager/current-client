@@ -183,3 +183,61 @@
   color: var(--on-surface-variant);
   font: var(--data-sm);
 }
+
+.settings-integrations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+}
+
+.settings-host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+}
+
+.settings-host-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.settings-host-name,
+.settings-host-project,
+.settings-host-api {
+  font: var(--data-sm);
+}
+
+.settings-host-name {
+  color: var(--on-surface);
+}
+
+.settings-host-fields {
+  display: grid;
+  grid-template-columns: fit-content(160px) minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.settings-host-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+
+  .settings-field {
+    width: 100%;
+  }
+}
+
+.settings-host-credential {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}

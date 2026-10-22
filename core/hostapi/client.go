@@ -61,6 +61,14 @@ type Client struct {
 	mu      sync.Mutex
 	clients map[string]*http.Client
 	waitFor map[string]time.Time
+	status  map[string]*HostStatus
+}
+
+// HostStatus is what an indicator shows: when the host was last contacted
+// and whether a request is in flight now.
+type HostStatus struct {
+	LastRequest time.Time
+	InFlight    int
 }
 
 func New(opts Options) *Client {
@@ -73,7 +81,30 @@ func New(opts Options) *Client {
 	if opts.PageCap == 0 {
 		opts.PageCap = 10
 	}
-	return &Client{opts: opts, Cache: NewCache(), clients: map[string]*http.Client{}, waitFor: map[string]time.Time{}}
+	return &Client{opts: opts, Cache: NewCache(), clients: map[string]*http.Client{}, waitFor: map[string]time.Time{}, status: map[string]*HostStatus{}}
+}
+
+func (c *Client) Status(hostName string) HostStatus {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if status, ok := c.status[hostName]; ok {
+		return *status
+	}
+	return HostStatus{}
+}
+
+func (c *Client) track(hostName string, delta int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	status, ok := c.status[hostName]
+	if !ok {
+		status = &HostStatus{}
+		c.status[hostName] = status
+	}
+	status.InFlight += delta
+	if delta > 0 {
+		status.LastRequest = time.Now()
+	}
 }
 
 type Response struct {
@@ -196,6 +227,8 @@ func (c *Client) Do(ctx context.Context, host Host, req *http.Request) (*Respons
 	if err != nil {
 		return nil, err
 	}
+	c.track(host.Name, 1)
+	defer c.track(host.Name, -1)
 	raw, err := httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", host.Name, plainError(err))
@@ -229,6 +262,7 @@ func (c *Client) Forget(hostName string) {
 	c.mu.Lock()
 	delete(c.clients, hostName)
 	delete(c.waitFor, hostName)
+	delete(c.status, hostName)
 	c.mu.Unlock()
 	c.Cache.ClearHost(hostName)
 }

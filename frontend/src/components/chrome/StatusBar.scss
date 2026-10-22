@@ -54,3 +54,38 @@
     color: var(--on-surface);
   }
 }
+
+// Visible whenever a host's API may be contacted, so the promise can be
+// watched: which host, and when it was last asked.
+.status-bar-host {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+.status-bar-host-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid var(--secondary);
+
+  .status-bar-host-busy & {
+    background: var(--secondary);
+  }
+}
+
+.status-bar-host-name {
+  font: var(--data-sm);
+}

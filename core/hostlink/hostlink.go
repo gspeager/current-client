@@ -76,6 +76,12 @@ func Parse(remoteURL string) (Host, bool) {
 	return Host{Root: scheme + "://" + host + "/", Project: project, Style: styleFor(host, project)}, true
 }
 
+// DefaultStyle is the guess for a host entered by hand, with no project
+// path to go on.
+func DefaultStyle(hostname string) Style {
+	return styleFor(hostname, "")
+}
+
 // GitHub and GitLab are recognized by name; any other host that nests groups
 // is taken for GitLab, since GitHub-style hosts have exactly owner/repo.
 func styleFor(host, project string) Style {
