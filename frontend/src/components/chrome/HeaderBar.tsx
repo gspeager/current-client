@@ -18,6 +18,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
 import QuickSwitchPalette from './QuickSwitchPalette'
+import type { WorkspaceAction } from './useWorkspaceActions'
 import RepoPickerModal from '../../features/repositories/RepoPickerModal'
 import RepoTabChip from '../../features/repositories/RepoTabChip'
 import SearchModal from '../../features/search/SearchModal'
@@ -32,6 +33,7 @@ interface HeaderBarProps {
   onPruneOnFetchChange: (prune: boolean) => void
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
+  workspaceActions: WorkspaceAction[]
   onOpenSettings: () => void
   onPull: () => void
   onPullMerge: () => void
@@ -54,6 +56,7 @@ function HeaderBar({
   onPruneOnFetchChange,
   repo,
   dirty,
+  workspaceActions,
   onOpenSettings,
   onPull,
   onPullMerge,
@@ -313,6 +316,7 @@ function HeaderBar({
           repo={repo}
           onClose={() => setQuickSwitchOpen(false)}
           onBranchChanged={onBranchChanged}
+          workspaceActions={workspaceActions}
           onOpenSettings={onOpenSettings}
           onPull={onPull}
           onPullMerge={onPullMerge}

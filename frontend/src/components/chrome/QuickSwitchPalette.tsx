@@ -5,25 +5,16 @@ import {
   ArrowDown,
   ArrowUp,
   Cloud,
-  Code2,
   CornerDownLeft,
   FileText,
   FolderGit2,
-  FolderOpen,
   GitBranch,
   GitCommitVertical,
   Search,
   Settings as SettingsIcon,
-  Terminal,
   type LucideIcon,
 } from 'lucide-react'
-import {
-  BranchService,
-  HistoryService,
-  PlatformService,
-  RemoteService,
-  StatusService,
-} from '@current-client-bindings/app'
+import { BranchService, HistoryService, RemoteService, StatusService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { highlightMatch } from '../../lib/highlightMatch'
 import { localNameFor } from '../../features/branches/branches'
@@ -37,7 +28,7 @@ import type { useRepositoryLifecycle } from '../../features/repositories/useRepo
 import Kbd from '../controls/Kbd'
 import PathText from '../git/PathText'
 import Modal from './Modal'
-import { revealInFileManagerLabel } from '../../lib/fileManager'
+import type { WorkspaceAction } from './useWorkspaceActions'
 import './QuickSwitchPalette.scss'
 
 interface QuickSwitchPaletteProps {
@@ -45,6 +36,7 @@ interface QuickSwitchPaletteProps {
   repo: ReturnType<typeof useRepositoryLifecycle>
   onClose: () => void
   onBranchChanged?: () => void
+  workspaceActions: WorkspaceAction[]
   onOpenSettings: () => void
   onPull: () => void
   onPullMerge: () => void
@@ -68,13 +60,6 @@ interface RepoResult {
   path: string
   uncommitted: number
   currentBranch: string
-}
-
-interface Action {
-  id: string
-  label: string
-  icon: LucideIcon
-  run: () => void
 }
 
 const SETTINGS_ITEMS = [
@@ -159,6 +144,7 @@ function QuickSwitchPalette({
   repo,
   onClose,
   onBranchChanged,
+  workspaceActions,
   onOpenSettings,
   onPull,
   onPullMerge,
@@ -194,21 +180,14 @@ function QuickSwitchPalette({
   ).data
   const commits = q ? (searchResults ?? []) : []
 
-  const actions: Action[] = [
+  const actions: WorkspaceAction[] = [
     { id: 'search-files', label: 'Search in files', icon: Search, run: onSearchFiles },
     { id: 'fetch-all', label: 'Fetch all remotes', icon: Cloud, run: onFetchAll },
     { id: 'pull', label: 'Pull', icon: ArrowDown, run: onPull },
     { id: 'pull-merge', label: 'Pull (merge)', icon: ArrowDown, run: onPullMerge },
     { id: 'pull-rebase', label: 'Pull (rebase)', icon: ArrowDown, run: onPullRebase },
     { id: 'push', label: 'Push', icon: ArrowUp, run: onPush },
-    { id: 'open-terminal', label: 'Open Terminal', icon: Terminal, run: () => PlatformService.OpenTerminal(repoPath) },
-    {
-      id: 'reveal-file-manager',
-      label: revealInFileManagerLabel(),
-      icon: FolderOpen,
-      run: () => PlatformService.RevealInFileManager(repoPath),
-    },
-    { id: 'open-editor', label: 'Open in Editor', icon: Code2, run: () => PlatformService.OpenInEditor(repoPath) },
+    ...workspaceActions,
     { id: 'open-settings', label: 'Open Settings', icon: SettingsIcon, run: onOpenSettings },
   ]
 
