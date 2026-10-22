@@ -3,6 +3,7 @@ import { Ellipsis, GitBranchPlus, Pencil, TriangleAlert, X } from 'lucide-react'
 import {
   BranchService,
   GitFlowService,
+  HostService,
   OverlapService,
   type BranchInfo,
   type OverlapInfo,
@@ -22,6 +23,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
+import CIMark from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import './BranchSidebar.scss'
 
@@ -48,6 +50,16 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   const branchStatus = useBranchStatus(repoPath, refreshKey)
   const hostLinks = useHostLinks(repoPath)
   const changes = useBranchChanges(repoPath, refreshKey)
+  // Branch tips, joined so the lookup only reruns when a tip moves.
+  const tipsKey = (branches ?? [])
+    .map((b) => b.tip)
+    .filter(Boolean)
+    .join(',')
+  const { data: ciMarks } = useAsyncData(
+    () => (tipsKey ? HostService.CIStatus(repoPath, tipsKey.split(',')) : null),
+    [repoPath, tipsKey],
+    { refreshKey },
+  )
   const { data: overlapReport } = useAsyncData(() => OverlapService.Predict(repoPath), [repoPath], { refreshKey })
   const overlaps = overlapReport?.overlaps ?? []
   const localOverlaps = new Map(overlaps.filter((o) => !o.remote).map((o) => [o.branch, o]))
@@ -338,6 +350,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
               />
               {b.current && <span className="branch-row-head">HEAD</span>}
               <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
+              {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
               <OverlapMark overlap={localOverlaps.get(b.name)} />
               {!b.current && b.worktreePath && (
                 <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>
