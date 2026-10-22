@@ -19,7 +19,7 @@ describe('StatusBar', () => {
 
     render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" onOpenSettings={onOpenSettings} />)
 
-    const indicator = await screen.findByRole('button', { name: /api.github.com/ })
+    const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
     expect(indicator).toHaveTextContent('no requests yet')
     await userEvent.click(indicator)
     expect(onOpenSettings).toHaveBeenCalled()
