@@ -312,3 +312,40 @@ func atoi(s string) int {
 	n, _ := strconv.Atoi(s)
 	return n
 }
+
+func TestRejectedAndForbiddenTokensGetTheirMessages(t *testing.T) {
+	status := http.StatusUnauthorized
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: status, Header: http.Header{}, Body: http.NoBody}, nil
+	})
+	host := Host{Name: "gitlab.internal.example", API: "https://gitlab.internal.example/api/v4"}
+	tokens := &forgettingTokens{token: "old"}
+	client := New(Options{Enabled: enabledOnly(host.Name), Transport: transport, Tokens: tokens})
+
+	_, err := client.Get(context.Background(), host, "projects", nil)
+	if err == nil || err.Error() != "The token for gitlab.internal.example was rejected. Update it in Settings → Integrations." {
+		t.Fatalf("401: %v", err)
+	}
+	if !tokens.forgotten {
+		t.Fatal("a rejected token should be forgotten so the next request asks Git again")
+	}
+
+	status = http.StatusForbidden
+	_, err = client.Get(context.Background(), host, "projects", nil)
+	var hostErr *HostError
+	if !errors.As(err, &hostErr) || !strings.Contains(err.Error(), "lacks permission") {
+		t.Fatalf("403: %v", err)
+	}
+	hostErr.Scope = "read_api"
+	if hostErr.Error() != "The token for gitlab.internal.example lacks the read_api scope this needs. Update it in Settings → Integrations." {
+		t.Fatalf("403 with scope: %v", hostErr)
+	}
+}
+
+type forgettingTokens struct {
+	token     string
+	forgotten bool
+}
+
+func (f *forgettingTokens) Token(context.Context, string) (string, error) { return f.token, nil }
+func (f *forgettingTokens) Forget(string)                                 { f.forgotten = true }
