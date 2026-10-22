@@ -4,6 +4,7 @@ import (
 	"context"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // Resolve is Parse with an SSH host alias replaced by the hostname ssh would
@@ -38,8 +39,11 @@ func isSSH(remoteURL string) bool {
 	return false
 }
 
-// sshHostname is replaced in tests.
+// sshHostname is replaced in tests. The timeout keeps a stuck ssh, such as
+// one that prompts, from holding up the view that asked for links.
 var sshHostname = func(ctx context.Context, alias string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	return sshConfigHostname(ctx, alias)
 }
 
