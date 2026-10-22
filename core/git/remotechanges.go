@@ -44,7 +44,7 @@ func ListRemoteChanges(ctx context.Context, repoPath, remote string) (RemoteChan
 }
 
 func parseRemoteChanges(output string) RemoteChanges {
-	tips := map[string]string{}
+	tips := map[string][]string{}
 	heads := map[ChangeRefKind]map[int]string{PullRefs: {}, MergeRequestRefs: {}}
 	merges := map[ChangeRefKind]map[int]bool{PullRefs: {}, MergeRequestRefs: {}}
 	for _, line := range strings.Split(output, "\n") {
@@ -53,7 +53,7 @@ func parseRemoteChanges(output string) RemoteChanges {
 			continue
 		}
 		if branch, ok := strings.CutPrefix(ref, "refs/heads/"); ok {
-			tips[sha] = branch
+			tips[sha] = append(tips[sha], branch)
 			continue
 		}
 		for kind := range heads {
@@ -82,13 +82,16 @@ func parseRemoteChanges(output string) RemoteChanges {
 		}
 		changes.Kind = kind
 		requireMerge := kind == PullRefs && len(merges[kind]) > 0
+		// Branches sharing a tip all get the number; Git can't say which
+		// one the change was opened from.
 		for number, sha := range heads[kind] {
-			branch, ok := tips[sha]
-			if !ok || (requireMerge && !merges[kind][number]) {
+			if requireMerge && !merges[kind][number] {
 				continue
 			}
-			if number > changes.ByBranch[branch] {
-				changes.ByBranch[branch] = number
+			for _, branch := range tips[sha] {
+				if number > changes.ByBranch[branch] {
+					changes.ByBranch[branch] = number
+				}
 			}
 		}
 		break

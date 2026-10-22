@@ -1,0 +1,111 @@
+//go:build !nohost
+
+package app
+
+import (
+	"context"
+	"time"
+
+	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/hostapi"
+	"github.com/gspeager/current-client/core/hostlink"
+)
+
+// BranchChange is what a branch row or graph ref shows for its merge
+// request / pull request. State is empty when only the number is known,
+// from Git alone, with the host's API off.
+type BranchChange struct {
+	Number int    `json:"number"`
+	Prefix string `json:"prefix"`
+	State  string `json:"state"`
+	Draft  bool   `json:"draft"`
+	CI     string `json:"ci"`
+	Title  string `json:"title"`
+	Author string `json:"author"`
+	WebURL string `json:"webUrl"`
+}
+
+const (
+	cacheRemoteRefs = "ls-remote"
+	cacheChanges    = "changes"
+)
+
+// BranchChanges maps each remote branch ("origin/feature") to its change,
+// reading only what the last fetch and refresh left in the cache: drawing
+// the sidebar or the graph never makes a request.
+func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, error) {
+	remotes, err := git.ListRemotes(context.Background(), repoPath)
+	if err != nil {
+		return nil, err
+	}
+	hosts := configOrDefault().Hosts
+	changes := map[string]BranchChange{}
+	for _, remote := range remotes {
+		info, _ := hostInfoFor(remote, hosts)
+		prefix := "#"
+		if hostlink.Style(info.Provider) == hostlink.GitLab {
+			prefix = "!"
+		}
+		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRemoteRefs, remote.Name); ok {
+			refs := cached.(git.RemoteChanges)
+			if refs.Kind == git.MergeRequestRefs {
+				prefix = "!"
+			}
+			for branch, number := range refs.ByBranch {
+				changes[remote.Name+"/"+branch] = BranchChange{Number: number, Prefix: prefix}
+			}
+		}
+		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project); ok {
+			for _, change := range cached.([]hostapi.Change) {
+				if change.SourceProject != "" && change.SourceProject != info.Project {
+					continue
+				}
+				changes[remote.Name+"/"+change.SourceBranch] = BranchChange{
+					Number: change.Number,
+					Prefix: prefix,
+					State:  string(change.State),
+					Draft:  change.Draft,
+					CI:     string(change.CI),
+					Title:  change.Title,
+					Author: change.Author.Name,
+					WebURL: change.WebURL,
+				}
+			}
+		}
+	}
+	return changes, nil
+}
+
+// Refresh is what a fetch or pull does for the host side: one ls-remote per
+// remote for the change numbers Git publishes, and the open changes from
+// each host that is on. Failures leave the last answer in place.
+func (s *HostService) Refresh(repoPath string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return refreshHostChanges(ctx, repoPath)
+}
+
+func refreshHostChanges(ctx context.Context, repoPath string) error {
+	remotes, err := git.ListRemotes(ctx, repoPath)
+	if err != nil {
+		return err
+	}
+	hosts := configOrDefault().Hosts
+	for _, remote := range remotes {
+		info, _ := hostInfoFor(remote, hosts)
+		if refs, err := git.ListRemoteChanges(ctx, repoPath, remote.Name); err == nil {
+			hostClient.Cache.Put(info.Hostname, repoPath, cacheRemoteRefs, remote.Name, refs)
+		}
+		if !info.Enabled {
+			continue
+		}
+		provider := providerFor(info)
+		if provider == nil {
+			continue
+		}
+		if changes, _, err := provider.OpenChanges(ctx, info.Project); err == nil {
+			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, changes)
+		}
+	}
+	return nil
+}

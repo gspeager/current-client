@@ -19,6 +19,7 @@ import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useCreateBranchFromCommit } from './useCreateBranchFromCommit'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
+import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { useResizableWidth } from '../../lib/useResizableWidth'
@@ -66,6 +67,8 @@ function HistoryView({
   const graphNodes = useCommitGraph(commits)
   const refsBySha = useRefBadges(repoPath)
   const hostLinks = useHostLinks(repoPath)
+  // History remounts on every ref move, so the repository path is the only key.
+  const changes = useBranchChanges(repoPath)
   const { identities, colorError, setAuthorColor } = useIdentities(commits)
   const { createBranchFrom, branchError } = useCreateBranchFromCommit(repoPath, onBranchChanged)
 
@@ -271,6 +274,7 @@ function HistoryView({
                   graphNode={graphNode}
                   laneCount={laneCount}
                   hostLinks={hostLinks}
+                  changes={changes}
                   rowHeight={ROW_HEIGHT}
                   identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
                   refs={refsBySha.get(commit.sha)}

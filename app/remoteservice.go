@@ -66,7 +66,11 @@ func (s *RemoteService) Fetch(ctx context.Context, repoPath, remote string, auth
 	if err != nil {
 		return err
 	}
-	return git.Fetch(ctx, repoPath, remote)
+	if err := git.Fetch(ctx, repoPath, remote); err != nil {
+		return err
+	}
+	afterFetch(ctx, repoPath)
+	return nil
 }
 
 func (s *RemoteService) FetchAll(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
@@ -74,7 +78,11 @@ func (s *RemoteService) FetchAll(ctx context.Context, repoPath string, auth *git
 	if err != nil {
 		return err
 	}
-	return git.FetchAll(ctx, repoPath)
+	if err := git.FetchAll(ctx, repoPath); err != nil {
+		return err
+	}
+	afterFetch(ctx, repoPath)
+	return nil
 }
 
 func (s *RemoteService) FetchAllPrune(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
@@ -82,7 +90,11 @@ func (s *RemoteService) FetchAllPrune(ctx context.Context, repoPath string, auth
 	if err != nil {
 		return err
 	}
-	return git.FetchAllPrune(ctx, repoPath)
+	if err := git.FetchAllPrune(ctx, repoPath); err != nil {
+		return err
+	}
+	afterFetch(ctx, repoPath)
+	return nil
 }
 
 func (s *RemoteService) LastFetchTime(repoPath string) (*time.Time, error) {
@@ -94,7 +106,11 @@ func (s *RemoteService) Pull(ctx context.Context, repoPath string, auth *gitexec
 	if err != nil {
 		return err
 	}
-	return git.Pull(ctx, repoPath)
+	if err := git.Pull(ctx, repoPath); err != nil {
+		return err
+	}
+	afterFetch(ctx, repoPath)
+	return nil
 }
 
 func (s *RemoteService) PullMerge(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
@@ -102,7 +118,11 @@ func (s *RemoteService) PullMerge(ctx context.Context, repoPath string, auth *gi
 	if err != nil {
 		return err
 	}
-	return git.PullMerge(ctx, repoPath)
+	if err := git.PullMerge(ctx, repoPath); err != nil {
+		return err
+	}
+	afterFetch(ctx, repoPath)
+	return nil
 }
 
 func (s *RemoteService) PullRebase(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
@@ -110,7 +130,11 @@ func (s *RemoteService) PullRebase(ctx context.Context, repoPath string, auth *g
 	if err != nil {
 		return err
 	}
-	return git.PullRebase(ctx, repoPath)
+	if err := git.PullRebase(ctx, repoPath); err != nil {
+		return err
+	}
+	afterFetch(ctx, repoPath)
+	return nil
 }
 
 func (s *RemoteService) Push(ctx context.Context, repoPath string, auth *gitexec.Credential) error {

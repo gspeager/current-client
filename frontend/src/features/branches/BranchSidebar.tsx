@@ -21,6 +21,8 @@ import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
+import ChangeMarker from '../../components/git/ChangeMarker'
+import { useBranchChanges } from '../../lib/useBranchChanges'
 import './BranchSidebar.scss'
 
 interface BranchSidebarProps {
@@ -45,6 +47,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   })
   const branchStatus = useBranchStatus(repoPath, refreshKey)
   const hostLinks = useHostLinks(repoPath)
+  const changes = useBranchChanges(repoPath, refreshKey)
   const { data: overlapReport } = useAsyncData(() => OverlapService.Predict(repoPath), [repoPath], { refreshKey })
   const overlaps = overlapReport?.overlaps ?? []
   const localOverlaps = new Map(overlaps.filter((o) => !o.remote).map((o) => [o.branch, o]))
@@ -334,6 +337,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
                 hostLinks={hostLinks}
               />
               {b.current && <span className="branch-row-head">HEAD</span>}
+              <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
               <OverlapMark overlap={localOverlaps.get(b.name)} />
               {!b.current && b.worktreePath && (
                 <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>

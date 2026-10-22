@@ -1,7 +1,9 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  BranchChange,
   BranchService,
+  HostService,
   OverlapService,
   PlatformService,
   RemoteService,
@@ -28,6 +30,23 @@ function renderSidebar(onBranchChanged = vi.fn()) {
 }
 
 describe('BranchSidebar', () => {
+  it('marks a branch whose upstream has a merge request, from the cache alone', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([
+      branch('main', true),
+      { ...branch('feature'), upstream: 'origin/feature' },
+      { ...branch('other'), upstream: 'origin/other' },
+    ])
+    vi.mocked(HostService.BranchChanges).mockResolvedValue({
+      'origin/feature': new BranchChange({ number: 138, prefix: '!', state: 'open', title: 'Add the thing' }),
+    })
+    renderSidebar()
+
+    const row = await screen.findByRole('button', { name: /^feature/ })
+    expect(within(row).getByRole('button', { name: '!138 · Add the thing · open' })).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: /^other/ })).queryByText(/!/)).not.toBeInTheDocument()
+    expect(HostService.BranchChanges).toHaveBeenCalledWith(REPO)
+  })
+
   it('checks out a branch when its row is clicked', async () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('feature/login')])
     vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()

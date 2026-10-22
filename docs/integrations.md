@@ -48,6 +48,10 @@ One cache per repository, keyed by host and repository, holding MRs/PRs, CI resu
 - Data stays visible after it goes stale, labeled with its age, until a refresh replaces it. Offline, the last answer shows.
 - The cache is cleared when integration is turned off for the host or the repository is closed.
 
+## What a branch row shows
+
+Every branch whose upstream has a merge request / pull request gets a square marker beside its pill, in the sidebar and on the graph's remote-tracking refs: the number, and when the host is on, the state (draft, open, merged, closed) and the CI result. Clicking it opens the change on the host. The marker is drawn from the cache: with the host off, the number comes from the `git ls-remote` a fetch runs (and on GitLab the state stays unknown, as Git alone can't tell a closed merge request with a kept branch from an open one); with the host on, a fetch or pull also refreshes the open changes. Drawing the sidebar or graph never makes a request.
+
 ## Refs on disk
 
 MR/PR heads are Git refs, so fetching one (to check it out, or to forecast conflicts) does land in the repository. They go under `refs/current-client/<remote>/mr/<number>`, never `refs/remotes/`, so they never appear as remote branches in the sidebar or graph. They are deleted when the host is turned off or the repository is removed from the app, and can be removed by hand with `git update-ref -d`.
