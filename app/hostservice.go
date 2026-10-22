@@ -181,26 +181,35 @@ func (s *HostService) RemoveToken(hostname string) error {
 }
 
 // TestConnection asks the host who the token belongs to, through the same
-// client and rules as every other request.
+// client and rules as every other request: the provider where one exists,
+// else the host's user endpoint.
 func (s *HostService) TestConnection(hostname string) (string, error) {
 	hosts := configOrDefault().Hosts
 	info := infoFor(hostByName(hostname, hosts), hosts)
-	var user struct {
-		Username string `json:"username"`
-		Login    string `json:"login"`
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	err := hostClient.GetJSON(ctx, hostapi.Host{Name: hostname, API: info.APIURL}, "user", nil, &user)
+	var name string
+	var err error
+	if provider := providerFor(info); provider != nil {
+		var user hostapi.User
+		user, err = provider.CurrentUser(ctx)
+		name = user.Username
+	} else {
+		var user struct {
+			Username string `json:"username"`
+			Login    string `json:"login"`
+		}
+		err = hostClient.GetJSON(ctx, hostapi.Host{Name: hostname, API: info.APIURL}, "user", nil, &user)
+		name = user.Username
+		if name == "" {
+			name = user.Login
+		}
+	}
 	if errors.Is(err, hostapi.ErrNotEnabled) {
 		return "", fmt.Errorf("integration for %s is off", hostname)
 	}
 	if err != nil {
 		return "", err
-	}
-	name := user.Username
-	if name == "" {
-		name = user.Login
 	}
 	if name == "" {
 		return "Connected to " + info.APIURL + ".", nil

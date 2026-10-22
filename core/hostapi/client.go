@@ -6,6 +6,7 @@
 package hostapi
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -166,7 +167,33 @@ func (c *Client) GetJSON(ctx context.Context, host Host, path string, query url.
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(resp.Body, out)
+	return DecodeJSON(resp, out)
+}
+
+// PostJSON sends body as JSON and decodes the answer into out, which may be
+// nil.
+func (c *Client) PostJSON(ctx context.Context, host Host, path string, body, out any) error {
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest(http.MethodPost, apiURL(host, path, nil), bytes.NewReader(encoded))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.Do(ctx, host, req)
+	if err != nil || out == nil {
+		return err
+	}
+	return DecodeJSON(resp, out)
+}
+
+func DecodeJSON(resp *Response, out any) error {
+	if err := json.Unmarshal(resp.Body, out); err != nil {
+		return fmt.Errorf("the host's answer wasn't the JSON expected: %w", err)
+	}
+	return nil
 }
 
 // GetPages follows the Link rel="next" header both GitHub and GitLab send,
