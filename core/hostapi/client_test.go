@@ -30,18 +30,8 @@ func enabledOnly(names ...string) func(string) bool {
 	}
 }
 
-// isolateGitConfig gives the test its own, empty Git configuration, so the
-// machine's proxy or CA settings can't reach the test servers.
 func isolateGitConfig(t *testing.T) string {
-	t.Helper()
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("XDG_CONFIG_HOME", home)
-	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	for _, v := range []string{"GIT_SSL_CAINFO", "GIT_SSL_CAPATH", "GIT_SSL_NO_VERIFY", "HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"} {
-		t.Setenv(v, "")
-	}
-	return home
+	return hostapitest.IsolateGitConfig(t)
 }
 
 func writeGitConfig(t *testing.T, home, content string) {

@@ -63,7 +63,26 @@ The release check in RELEASING.md opens a description containing an image hosted
 
 ## Endpoints and scopes
 
-*To come with each provider.* Every endpoint called, the user action that triggers it and the token scope it needs, for GitLab and for GitHub. Read-only scope is enough for everything except creating a merge request / pull request.
+Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating a merge request / pull request. Nothing is called before integration is on for the host and one of the triggers happens.
+
+### GitLab (gitlab.com and Self-Managed, 16.0 or newer)
+
+All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`).
+
+| Endpoint | When | Scope |
+| --- | --- | --- |
+| `GET /user` | Test connection | `read_api` |
+| `GET /projects/:path/merge_requests?state=opened` | Refresh: the open merge requests, paged up to the cap | `read_api` |
+| `GET /projects/:path/merge_requests/:iid` | Refresh of one merge request (the pushed branch's, the checked-out branch's) | `read_api` |
+| `GET /projects/:id` | Once per fork a merge request comes from, to name it | `read_api` |
+| `GET /projects/:path/merge_requests/:iid/discussions` | Refresh, for the checked-out branch's merge request | `read_api` |
+| `GET /projects/:path/pipelines?sha=` | Refresh, for branch tips and visible commits, in batches | `read_api` |
+| `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark | `read_api` |
+| `GET /projects/:path/jobs/:id/trace` | Clicking a failed job | `read_api` |
+| `GET /projects/:path/issues/:iid` | Refresh, for issue references on screen | `read_api` |
+| `POST /projects/:path/merge_requests` | Create merge request | `api` |
+
+Avatar URLs in these answers are never decoded. GitHub's table arrives with its provider.
 
 ## What works at each level
 
