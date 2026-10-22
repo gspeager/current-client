@@ -70,6 +70,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const [settingsOpen, setSettingsOpen] = useState(false)
   // Bumped when a host switch may have changed, so the status bar's indicator follows.
   const [hostsVersion, setHostsVersion] = useState(0)
+  const [changeFocus, setChangeFocus] = useState<number | null>(null)
   const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
   // false only in a build made with the nohost tag; until known, assume the full build.
   const { data: hostIntegrationBuilt } = useAsyncData(() => PlatformService.HostIntegrationAvailable(), [])
@@ -180,6 +181,11 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
   const reportActiveRepo = useEventCallback((path: string | null) => onActiveRepoChange?.(path))
   useEffect(() => reportActiveRepo(repo.repoPath), [repo.repoPath, reportActiveRepo])
+
+  const openChange = (number: number) => {
+    setChangeFocus(number)
+    setActiveTab('changes')
+  }
 
   const openWorkingFile = (path: string) => {
     remember({ selectedFilePath: path })
@@ -331,6 +337,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               onFetched={onFetched}
               pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
               onOpenHeadCommit={openCommit}
+              onOpenChange={openChange}
               onOpenRepository={repo.openRecent}
               width={navWidth.width}
               collapsed={navCollapsed}
@@ -378,6 +385,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                     key={`${repo.repoPath}-${hostsVersion}`}
                     repoPath={repo.repoPath}
                     label={changesLabel}
+                    selectedNumber={changeFocus}
                     onBranchChanged={onBranchChanged}
                   />
                 </KeepAlive>

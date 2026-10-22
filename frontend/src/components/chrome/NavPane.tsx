@@ -39,6 +39,8 @@ interface NavPaneProps {
   onFetched: () => void
   pruneOnFetch?: boolean
   onOpenHeadCommit: (sha: string) => void
+  // Opens a merge request / pull request in its tab.
+  onOpenChange?: (number: number) => void
   // Opens a repository (such as a worktree or submodule) as a tab.
   onOpenRepository: (path: string) => void
   width: number
@@ -70,6 +72,7 @@ function NavPane({
   width,
   collapsed,
   onCollapsedChange,
+  onOpenChange,
 }: NavPaneProps) {
   const [fsckBusy, setFsckBusy] = useState(false)
   const [fsckError, setFsckError] = useState<string | null>(null)
@@ -243,6 +246,7 @@ function NavPane({
             dirty={(workingTree.files?.length ?? 0) > 0}
             refreshKey={repoVersion}
             onBranchChanged={onBranchChanged}
+            onOpenChange={onOpenChange}
           />
         </section>
 
