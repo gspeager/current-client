@@ -7,10 +7,10 @@ import SettingsPanel from './SettingsPanel'
 
 const dialogs: Dialogs = { confirm: vi.fn(), prompt: vi.fn(), signIn: vi.fn() }
 
-function renderPanel(settings: ReturnType<typeof useSettings>) {
+function renderPanel(settings: ReturnType<typeof useSettings>, hostIntegration = true) {
   return render(
     <DialogContext.Provider value={dialogs}>
-      <SettingsPanel settings={settings} onClose={vi.fn()} />
+      <SettingsPanel settings={settings} hostIntegration={hostIntegration} onClose={vi.fn()} />
     </DialogContext.Provider>,
   )
 }
@@ -78,6 +78,13 @@ describe('SettingsPanel', () => {
     expect(screen.getByRole('checkbox', { name: 'Ignore whitespace' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Background fetch' })).toHaveValue('0')
     expect(screen.getByRole('button', { name: 'Add host…' })).toBeInTheDocument()
+  })
+
+  it('has no Integrations group in a build without host integration', () => {
+    renderPanel(settingsWith(), false)
+
+    expect(screen.queryByRole('region', { name: 'Integrations' })).not.toBeInTheDocument()
+    expect(HostService.List).not.toHaveBeenCalled()
   })
 
   it('shows a chosen path so its end stays visible, with a way back to the default', async () => {

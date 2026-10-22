@@ -196,3 +196,17 @@ func hostLinksFor(remotes []git.Remote, hosts map[string]config.HostConfig) *hos
 	links := withHostConfig(host, hosts).Links()
 	return &links
 }
+
+func withHostConfig(host hostlink.Host, hosts map[string]config.HostConfig) hostlink.Host {
+	if provider := hosts[host.Hostname()].Provider; provider != "" {
+		host.Style = hostlink.Style(provider)
+	}
+	return host
+}
+
+func remoteURL(remote git.Remote) string {
+	if remote.FetchURL != "" {
+		return remote.FetchURL
+	}
+	return remote.PushURL
+}

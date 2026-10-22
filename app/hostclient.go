@@ -1,3 +1,5 @@
+//go:build !nohost
+
 package app
 
 import "github.com/gspeager/current-client/core/hostapi"

@@ -7,8 +7,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"sort"
+	"strings"
 
 	"github.com/gspeager/current-client/core/gitexec"
+	"github.com/gspeager/current-client/internal/config"
 	"github.com/gspeager/current-client/internal/platform"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -98,13 +101,16 @@ type RecentErrorInfo struct {
 
 // GetDiagnostics takes the errors the UI has shown, newest first, since only
 // the frontend knows which failures reached the user.
-func (s *PlatformService) GetDiagnostics(recentErrors []RecentErrorInfo) string {
+func (s *PlatformService) GetDiagnostics(recentErrors []RecentErrorInfo, omitHostnames bool) string {
 	cfg := configOrDefault()
 	in := platform.DiagnosticsInput{
 		AppVersion:      appVersion,
 		SettingsVersion: cfg.Version,
 		RecentErrors:    mapSlice(recentErrors, func(e RecentErrorInfo) platform.RecentError { return platform.RecentError(e) }),
 		RepoPaths:       append(append([]string(nil), cfg.RecentRepositories...), cfg.OpenTabs...),
+		HostIntegration: hostIntegrationSummary(cfg),
+		Hostnames:       knownHostnames(cfg),
+		OmitHostnames:   omitHostnames,
 	}
 	in.HomeDir, _ = os.UserHomeDir()
 	info, err := gitexec.DetectSupported(context.Background(), cfg.GitExecutablePath)
@@ -113,6 +119,40 @@ func (s *PlatformService) GetDiagnostics(recentErrors []RecentErrorInfo) string 
 	}
 	in.GitVersion, in.GitPath = info.Version, info.Path
 	return platform.Diagnostics(in)
+}
+
+// HostIntegrationAvailable is false in a build made with the nohost tag,
+// which has no host integration code at all; the frontend then shows none
+// of its UI.
+func (s *PlatformService) HostIntegrationAvailable() bool {
+	return hostIntegrationBuilt
+}
+
+func hostIntegrationSummary(cfg config.Config) string {
+	if !hostIntegrationBuilt {
+		return "not built in"
+	}
+	var on []string
+	for name, host := range cfg.Hosts {
+		if host.Enabled {
+			on = append(on, name)
+		}
+	}
+	if len(on) == 0 {
+		return "off"
+	}
+	sort.Strings(on)
+	return "on for " + strings.Join(on, ", ")
+}
+
+// knownHostnames are the hosts in settings and their API hosts, which is
+// where an error message would name one.
+func knownHostnames(cfg config.Config) []string {
+	var names []string
+	for name := range cfg.Hosts {
+		names = append(names, name, "api."+name)
+	}
+	return names
 }
 
 // SetDarkTitleBar matches the calling window's native title bar to the app's
