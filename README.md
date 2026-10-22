@@ -2,7 +2,7 @@
 
 A privacy-first Git client for developers, on Windows, macOS and Linux.
 
-Current Client runs entirely on your machine and talks only to your repositories' own Git remotes: no account, no telemetry, no update checks. It works the same with GitHub, GitLab, Bitbucket, a self-hosted server or a plain SSH remote, including on air-gapped networks.
+Current Client runs entirely on your machine and connects only to the servers your repositories already use: no account, no telemetry, no update checks. It works the same with GitHub, GitLab, Bitbucket, a self-hosted server or a plain SSH remote, including on air-gapped networks.
 
 ## Features
 
@@ -35,8 +35,9 @@ Download your platform's file from the [latest release](../../releases/latest). 
 
 ## Privacy
 
-- **Only your Git remotes.** The only network traffic is Git talking to a repository's configured remotes. Background fetch is off until you turn it on in Settings.
-- **Nothing else.** No telemetry, analytics, update checks, crash uploads or host APIs.
+- **Only destinations you chose.** Current Client connects to your repositories' Git remotes and the servers they're hosted on, never to a vendor, CDN or other third party. If all your remotes are on an internal network, nothing leaves it.
+- **Off until you turn it on.** Anything beyond the Git operations you start, such as background fetch, stays off until you enable it in Settings.
+- **Nothing else.** No telemetry, analytics, update checks or crash uploads.
 - **No accounts, no avatars.** People are shown as initials badges made on your machine.
 - **No stored credentials.** Credentials stay with Git's credential helpers and your SSH agent; Current Client never stores or logs them.
 

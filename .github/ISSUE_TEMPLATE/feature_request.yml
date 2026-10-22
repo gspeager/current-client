@@ -18,5 +18,5 @@ body:
     attributes:
       label: Privacy
       options:
-        - label: This doesn't need any network connection other than Git talking to a repository's remotes (see CONTRIBUTING.md). If it does, I've explained why and how it would stay off by default.
+        - label: This only connects to destinations the user configures, such as a repository's remotes or their host, never a third party (see CONTRIBUTING.md). If it needs any network access beyond a Git operation the user starts, I've explained what and how it stays off by default.
           required: true

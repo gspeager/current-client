@@ -11,5 +11,5 @@
 - [ ] Targets `develop`, and the title is a Conventional Commit (`feat(scope): …`, `fix: …`) — it becomes the squashed commit
 - [ ] Commits are signed off (`git commit -s`)
 - [ ] `go test . ./app/... ./core/... ./internal/...` and `cd frontend && npm test` pass
-- [ ] No new network calls beyond Git talking to a repository's remotes
+- [ ] Any new network connection goes only to a destination the user configured, and is off by default unless it's a Git operation the user starts
 - [ ] If dependencies changed: `wails3 task notices` re-run and `wails3 task notices:check` passes
