@@ -15,11 +15,12 @@
   white-space: nowrap;
   cursor: pointer;
 
-  &:disabled {
+  // A number without a page to open: no pointer, no hover state.
+  &.change-marker-static {
     cursor: default;
   }
 
-  &:not(:disabled):hover {
+  &:not(.change-marker-static):hover {
     background: var(--surface-high);
     color: var(--on-surface);
   }

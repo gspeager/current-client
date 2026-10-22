@@ -138,6 +138,10 @@ function ChangeRow({ change, prefix, selected, onSelect }: ChangeRowProps) {
           title: '',
           author: '',
           webUrl: '',
+          sourceBranch: '',
+          targetBranch: '',
+          unresolvedThreads: 0,
+          updatedAt: '',
         }}
       />
       <span className="host-change-row-main">

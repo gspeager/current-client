@@ -21,6 +21,7 @@ import ChangedFileRow from './ChangedFileRow'
 import CommitFilesModal from './CommitFilesModal'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
+import type { ReferenceCards } from '../../lib/useReferenceCards'
 import './CommitDetailPanel.scss'
 
 interface CommitDetailPanelProps {
@@ -28,6 +29,7 @@ interface CommitDetailPanelProps {
   commit: CommitInfo
   identity?: IdentityInfo
   hostLinks?: Links | null
+  referenceCards?: ReferenceCards
   colorError: string | null
   onColorChange: (color: string) => void
   onCreateBranchHere: () => void
@@ -39,6 +41,7 @@ function CommitDetailPanel({
   commit,
   identity,
   hostLinks = null,
+  referenceCards,
   colorError,
   onColorChange,
   onCreateBranchHere,
@@ -139,11 +142,11 @@ function CommitDetailPanel({
         </div>
 
         <p className="commit-detail-subject">
-          <ReferenceText text={commit.subject} links={hostLinks} />
+          <ReferenceText text={commit.subject} links={hostLinks} cards={referenceCards} />
         </p>
         {commit.body && (
           <p className="commit-detail-body">
-            <ReferenceText text={commit.body} links={hostLinks} />
+            <ReferenceText text={commit.body} links={hostLinks} cards={referenceCards} />
           </p>
         )}
 

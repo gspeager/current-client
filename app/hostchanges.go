@@ -15,14 +15,18 @@ import (
 // request / pull request. State is empty when only the number is known,
 // from Git alone, with the host's API off.
 type BranchChange struct {
-	Number int    `json:"number"`
-	Prefix string `json:"prefix"`
-	State  string `json:"state"`
-	Draft  bool   `json:"draft"`
-	CI     string `json:"ci"`
-	Title  string `json:"title"`
-	Author string `json:"author"`
-	WebURL string `json:"webUrl"`
+	Number            int    `json:"number"`
+	Prefix            string `json:"prefix"`
+	State             string `json:"state"`
+	Draft             bool   `json:"draft"`
+	CI                string `json:"ci"`
+	Title             string `json:"title"`
+	Author            string `json:"author"`
+	WebURL            string `json:"webUrl"`
+	SourceBranch      string `json:"sourceBranch"`
+	TargetBranch      string `json:"targetBranch"`
+	UnresolvedThreads int    `json:"unresolvedThreads"`
+	UpdatedAt         string `json:"updatedAt"`
 }
 
 const (
@@ -67,14 +71,18 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 					continue
 				}
 				changes[remote.Name+"/"+change.SourceBranch] = BranchChange{
-					Number: change.Number,
-					Prefix: prefix,
-					State:  string(change.State),
-					Draft:  change.Draft,
-					CI:     string(change.CI),
-					Title:  change.Title,
-					Author: change.Author.Name,
-					WebURL: change.WebURL,
+					Number:            change.Number,
+					Prefix:            prefix,
+					State:             string(change.State),
+					Draft:             change.Draft,
+					CI:                string(change.CI),
+					Title:             change.Title,
+					Author:            change.Author.Name,
+					WebURL:            change.WebURL,
+					SourceBranch:      change.SourceBranch,
+					TargetBranch:      change.TargetBranch,
+					UnresolvedThreads: change.UnresolvedThreads,
+					UpdatedAt:         change.UpdatedAt.UTC().Format(time.RFC3339),
 				}
 			}
 		}
@@ -114,6 +122,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		// changes first, since the list endpoint carries no CI result.
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cachePipeline)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheJobs)
+		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheIssue)
 		if changes, truncated, err := provider.OpenChanges(ctx, info.Project); err == nil {
 			fillChangeCI(ctx, provider, info, repoPath, changes)
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})

@@ -9,6 +9,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import type { CIMark as CIMarkInfo, CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import type { BranchChanges } from '../../lib/useBranchChanges'
+import type { ReferenceCards } from '../../lib/useReferenceCards'
 import CommitGraph from './CommitGraph'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
@@ -34,6 +35,7 @@ interface CommitRowProps {
   changes?: BranchChanges
   repoPath?: string
   ci?: CIMarkInfo
+  referenceCards?: ReferenceCards
   style: CSSProperties
   onSelect: () => void
   onContextMenu: (e: MouseEvent | KeyboardEvent) => void
@@ -57,6 +59,7 @@ function CommitRow({
   changes,
   repoPath = '',
   ci,
+  referenceCards,
   style,
   onSelect,
   onContextMenu,
@@ -112,6 +115,7 @@ function CommitRow({
           <ReferenceText
             text={commit.subject.slice(prefix.length)}
             links={hostLinks}
+            cards={referenceCards}
             render={(segment) => highlightMatch(segment, searchQuery, 'search-match')}
           />
         </span>

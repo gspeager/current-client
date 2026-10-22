@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
 import { Ellipsis, GitBranchPlus, Pencil, TriangleAlert, X } from 'lucide-react'
 import {
   BranchService,
@@ -25,6 +25,7 @@ import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
+import { useReferenceCards } from '../../lib/useReferenceCards'
 import './BranchSidebar.scss'
 
 interface BranchSidebarProps {
@@ -50,6 +51,8 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
   const branchStatus = useBranchStatus(repoPath, refreshKey)
   const hostLinks = useHostLinks(repoPath)
   const changes = useBranchChanges(repoPath, refreshKey)
+  const issueTexts = useMemo(() => (branches ?? []).map((b) => b.name.replace(/^(\d+)-.*/, '#$1')), [branches])
+  const referenceCards = useReferenceCards(repoPath, issueTexts, changes)
   // Branch tips, joined so the lookup only reruns when a tip moves.
   const tipsKey = (branches ?? [])
     .map((b) => b.tip)
@@ -347,6 +350,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
                 current={b.current}
                 dirty={dirty}
                 hostLinks={hostLinks}
+                referenceCards={referenceCards}
               />
               {b.current && <span className="branch-row-head">HEAD</span>}
               <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />

@@ -1,6 +1,7 @@
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { branchIssue } from '../../lib/hostReferences'
 import { ReferenceLink } from './ReferenceText'
+import type { ReferenceCards } from '../../lib/useReferenceCards'
 import './BranchPill.scss'
 
 interface BranchPillProps {
@@ -10,10 +11,11 @@ interface BranchPillProps {
   bare?: boolean
   dirty?: boolean
   hostLinks?: Links | null
+  referenceCards?: ReferenceCards
 }
 
 // `bare` drops the pill shape when already inside a chip.
-function BranchPill({ name, color, current, bare, dirty, hostLinks = null }: BranchPillProps) {
+function BranchPill({ name, color, current, bare, dirty, hostLinks = null, referenceCards }: BranchPillProps) {
   const issue = branchIssue(name, hostLinks)
   const classes = ['branch-pill']
   if (current) classes.push('branch-pill-current')
@@ -24,7 +26,7 @@ function BranchPill({ name, color, current, bare, dirty, hostLinks = null }: Bra
       <span className="branch-pill-dot" style={{ background: color }} />
       {issue ? (
         <>
-          <ReferenceLink reference={issue} />
+          <ReferenceLink reference={issue} card={referenceCards?.[`#${issue.text}`]} />
           {name.slice(issue.text.length)}
         </>
       ) : (

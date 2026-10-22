@@ -1,0 +1,36 @@
+// design-system.md: nothing slides or fades in; it appears.
+.hover-card {
+  position: fixed;
+  z-index: 30;
+  width: 320px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-highest);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.hover-card-title {
+  margin: 0 0 var(--space-xs);
+  font: var(--ui-md);
+  overflow-wrap: anywhere;
+}
+
+.hover-card-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.hover-card-data {
+  font: var(--data-sm);
+}
+
+.hover-card-muted {
+  color: var(--outline);
+}
