@@ -23,9 +23,11 @@ type ChangelogPrefs struct {
 // HostConfig is the user's choice for one Git host, keyed by hostname (with
 // its port when the remote has one). Empty Provider means the type detected
 // from the remote URL; empty APIURL means the address derived from the type.
+// Enabled is the only thing that lets the app contact the host's API.
 type HostConfig struct {
 	Provider string `json:"provider,omitempty"`
 	APIURL   string `json:"apiUrl,omitempty"`
+	Enabled  bool   `json:"enabled,omitempty"`
 }
 
 type Config struct {

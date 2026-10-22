@@ -64,7 +64,15 @@ MR/PR heads are Git refs, so fetching one (to check it out, or to forecast confl
 
 ## Certificates and proxies
 
-*To come.* Host API traffic trusts and routes exactly as Git does for the same URL, read from `git config`.
+Host API traffic trusts and routes exactly as Git does for the same URL. Before the first request to a host, Current Client reads `git config --get-urlmatch http <API address>` from your global and system Git configuration and applies:
+
+- `http.sslCAInfo` and `http.sslCAPath`: your internal certificate authority, used instead of the system trust store, as Git uses it.
+- `http.proxy`, and otherwise the `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` environment, as Git falls back to them.
+- `http.sslVerify = false` (or `GIT_SSL_NO_VERIFY`): shown as a warning in Settings. Certificate checks are never turned off; configure the authority instead.
+
+So a self-hosted GitLab behind a corporate proxy with a private CA needs no setup beyond what `git fetch` already needed. `GIT_SSL_CAINFO` and `GIT_SSL_CAPATH` in the environment override the configuration, as they do for Git.
+
+Every request has a timeout and can be cancelled. When a host answers 429, or 403 with its rate limit exhausted, Current Client waits for the time the host named (`Retry-After`, GitHub's `X-RateLimit-Reset` or GitLab's `RateLimit-Reset`, at most an hour) and sends nothing to that host until then; the panel shows a quiet message. Paged answers are followed through the `Link` header up to a fixed number of pages, never off the API address, and the panel says when a list was cut. A host being unreachable never affects Git operations: it becomes a plain message in the panel and in Diagnostics' recent errors, without the response body.
 
 ## Building without host integration
 

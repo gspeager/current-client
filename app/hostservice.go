@@ -17,6 +17,8 @@ type HostService struct{}
 
 // Provider and APIURL are what is in effect; the Detected and Default fields
 // are what the remote URL alone gives, for Settings to show beside a choice.
+// SSLVerifyOff reports Git's http.sslVerify=false for the API address, which
+// Settings warns about; certificate checks stay on regardless.
 type HostInfo struct {
 	Remote           string `json:"remote"`
 	Hostname         string `json:"hostname"`
@@ -25,6 +27,8 @@ type HostInfo struct {
 	DetectedProvider string `json:"detectedProvider"`
 	APIURL           string `json:"apiUrl"`
 	DefaultAPIURL    string `json:"defaultApiUrl"`
+	Enabled          bool   `json:"enabled"`
+	SSLVerifyOff     bool   `json:"sslVerifyOff"`
 }
 
 func (s *HostService) Detect(repoPath string) ([]HostInfo, error) {
@@ -58,14 +62,16 @@ func (s *HostService) SetHost(hostname, provider, apiURL string) error {
 		}
 	}
 	return updateConfig(func(cfg *config.Config) {
-		if provider == "" && apiURL == "" {
+		host := cfg.Hosts[hostname]
+		host.Provider, host.APIURL = provider, apiURL
+		if host == (config.HostConfig{}) {
 			delete(cfg.Hosts, hostname)
 			return
 		}
 		if cfg.Hosts == nil {
 			cfg.Hosts = map[string]config.HostConfig{}
 		}
-		cfg.Hosts[hostname] = config.HostConfig{Provider: provider, APIURL: apiURL}
+		cfg.Hosts[hostname] = host
 	})
 }
 
@@ -79,6 +85,7 @@ func hostInfoFor(remote git.Remote, hosts map[string]config.HostConfig) (HostInf
 	if apiURL == "" {
 		apiURL = host.API()
 	}
+	httpConfig, _ := git.HTTPConfigFor(context.Background(), "", apiURL)
 	return HostInfo{
 		Remote:           remote.Name,
 		Hostname:         host.Hostname(),
@@ -87,6 +94,8 @@ func hostInfoFor(remote git.Remote, hosts map[string]config.HostConfig) (HostInf
 		DetectedProvider: string(detected.Style),
 		APIURL:           apiURL,
 		DefaultAPIURL:    host.API(),
+		Enabled:          hosts[host.Hostname()].Enabled,
+		SSLVerifyOff:     !httpConfig.SSLVerify,
 	}, true
 }
 
