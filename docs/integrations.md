@@ -37,6 +37,8 @@ A **refresh** is the only thing that fetches from a host:
 
 Nothing else does. Switching branches, scrolling history, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. With background refresh on (off by default, like background fetch) the same refresh runs on a timer.
 
+With integration off, the only host-related traffic is Git's own: a fetch the user starts also runs one `git ls-remote` against the remote, which lists the pull request / merge request heads the host publishes (`refs/pull/*` on GitHub, Gitea and Forgejo, `refs/merge-requests/*` on GitLab) and gives each branch its open change's number. Bitbucket publishes none, so it gives nothing. A change counts only while its head is still a branch tip, which drops every change whose branch was deleted on merge. GitHub also publishes `refs/pull/N/merge` only while a pull request is open, so there the number is an open one. GitLab keeps merge refs after closing, so Git alone cannot tell a closed merge request whose branch was kept from an open one: with integration off the branch shows the number without a state, and the state comes from the API once integration is on.
+
 ## What is cached
 
 One cache per repository, keyed by host and repository, holding MRs/PRs, CI results, review threads and issue titles with the time each was fetched. It lives in memory only; nothing from a host is written to disk.
