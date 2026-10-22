@@ -49,3 +49,34 @@ func TestDiagnosticsReportsAGitProblemAndNoErrors(t *testing.T) {
 		t.Fatalf("diagnostics =\n%s", got)
 	}
 }
+
+func TestDiagnosticsNeverShowTokensOrHostAnswers(t *testing.T) {
+	in := DiagnosticsInput{
+		AppVersion:      "1.2.3",
+		HostIntegration: "on for gitlab.example.com",
+		Hostnames:       []string{"gitlab.example.com", "api.gitlab.example.com"},
+		RecentErrors: []RecentError{
+			{At: "t1", Message: "gitlab.example.com answered 401 for token=glpat-AbCdEfGhIjKlMnOpQrSt"},
+			{At: "t2", Message: `api.gitlab.example.com: {"message": "401 Unauthorized", "error": "invalid_token"}`},
+			{At: "t3", Message: "Authorization: Bearer ghp_abcdefghijklmnopqrstuvwxyz0123456789 rejected"},
+			{At: "t4", Message: "<html><body>Bad gateway</body></html>"},
+		},
+	}
+	got := Diagnostics(in)
+	for _, leaked := range []string{"glpat-", "ghp_", "invalid_token", "Bad gateway", "Unauthorized"} {
+		if strings.Contains(got, leaked) {
+			t.Errorf("diagnostics leak %q:\n%s", leaked, got)
+		}
+	}
+	for _, want := range []string{"Host integration: on for gitlab.example.com", "<token>", "<response omitted>", "api.gitlab.example.com"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("diagnostics lack %q:\n%s", want, got)
+		}
+	}
+
+	in.OmitHostnames = true
+	got = Diagnostics(in)
+	if strings.Contains(got, "gitlab.example.com") || !strings.Contains(got, "Host integration: on for <host>") || !strings.Contains(got, "<host>: <response omitted>") {
+		t.Errorf("hostnames not left out:\n%s", got)
+	}
+}

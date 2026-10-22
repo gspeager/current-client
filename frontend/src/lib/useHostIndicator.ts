@@ -14,8 +14,10 @@ export interface HostIndicator {
 // The host the current repository has integration on for, with when it was
 // last contacted. Both reads are local; hostsVersion changes when Settings
 // or the first-use prompt may have changed a switch.
-export function useHostIndicator(repoPath: string, hostsVersion: number): HostIndicator | null {
-  const { data: hosts } = useAsyncData(() => HostService.Detect(repoPath), [repoPath], { refreshKey: hostsVersion })
+export function useHostIndicator(repoPath: string, hostsVersion: number, available = true): HostIndicator | null {
+  const { data: hosts } = useAsyncData(() => (available ? HostService.Detect(repoPath) : null), [repoPath, available], {
+    refreshKey: hostsVersion,
+  })
   const host = hosts?.find((h) => h.enabled) ?? null
   const hostname = host?.hostname ?? null
   const [status, setStatus] = useState<HostStatusInfo | null>(null)

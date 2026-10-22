@@ -32,11 +32,19 @@ const AUTO_FETCH_OPTIONS = [
 interface SettingsPanelProps {
   settings: ReturnType<typeof useSettings>
   repoPath?: string | null
+  // false in a build made without host integration; the group is then absent.
+  hostIntegration?: boolean
   onClose: () => void
   onHostsChanged?: () => void
 }
 
-function SettingsPanel({ settings, repoPath = null, onClose, onHostsChanged }: SettingsPanelProps) {
+function SettingsPanel({
+  settings,
+  repoPath = null,
+  hostIntegration = true,
+  onClose,
+  onHostsChanged,
+}: SettingsPanelProps) {
   const {
     settings: values,
     error,
@@ -188,9 +196,11 @@ function SettingsPanel({ settings, repoPath = null, onClose, onHostsChanged }: S
           </SettingsRow>
         </SettingsGroup>
 
-        <SettingsGroup title="Integrations">
-          <IntegrationsSection repoPath={repoPath} onChanged={onHostsChanged} />
-        </SettingsGroup>
+        {hostIntegration && (
+          <SettingsGroup title="Integrations">
+            <IntegrationsSection repoPath={repoPath} onChanged={onHostsChanged} />
+          </SettingsGroup>
+        )}
 
         <SettingsGroup title="Identity colors">
           <IdentityColorSettings />

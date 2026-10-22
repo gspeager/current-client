@@ -1,3 +1,5 @@
+//go:build !nohost
+
 package app
 
 import (
@@ -257,18 +259,4 @@ func infoFor(detected hostlink.Host, hosts map[string]config.HostConfig) HostInf
 		Dismissed:        cfg.Dismissed,
 		SSLVerifyOff:     !httpConfig.SSLVerify,
 	}
-}
-
-func withHostConfig(host hostlink.Host, hosts map[string]config.HostConfig) hostlink.Host {
-	if provider := hosts[host.Hostname()].Provider; provider != "" {
-		host.Style = hostlink.Style(provider)
-	}
-	return host
-}
-
-func remoteURL(remote git.Remote) string {
-	if remote.FetchURL != "" {
-		return remote.FetchURL
-	}
-	return remote.PushURL
 }

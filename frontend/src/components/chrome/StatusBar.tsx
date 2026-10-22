@@ -14,12 +14,20 @@ interface StatusBarProps {
   repoVersion: number
   gitVersion: string | null
   hostsVersion?: number
+  hostIntegration?: boolean
   onOpenSettings?: () => void
 }
 
-function StatusBar({ repoPath, repoVersion, gitVersion, hostsVersion = 0, onOpenSettings }: StatusBarProps) {
+function StatusBar({
+  repoPath,
+  repoVersion,
+  gitVersion,
+  hostsVersion = 0,
+  hostIntegration = true,
+  onOpenSettings,
+}: StatusBarProps) {
   const status = useBranchStatus(repoPath, repoVersion)
-  const integration = useHostIndicator(repoPath, hostsVersion)
+  const integration = useHostIndicator(repoPath, hostsVersion, hostIntegration)
   const { data: appVersion } = useAsyncData(() => PlatformService.AppVersion(), [])
   const { data: home } = useAsyncData(() => (System.IsWindows() ? null : PlatformService.HomeDir()), [])
   const { copied, copy } = useCopyToClipboard()

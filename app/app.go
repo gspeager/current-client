@@ -8,7 +8,7 @@ import (
 )
 
 func Services() []application.Service {
-	return []application.Service{
+	return append([]application.Service{
 		application.NewService(&GitService{}),
 		application.NewService(&RepositoryService{}),
 		application.NewService(&StatusService{}),
@@ -16,7 +16,6 @@ func Services() []application.Service {
 		application.NewService(&CommitService{}),
 		application.NewService(&BranchService{}),
 		application.NewService(&RemoteService{}),
-		application.NewService(&HostService{}),
 		application.NewService(&StashService{}),
 		application.NewService(&TagService{}),
 		application.NewService(&GitFlowService{}),
@@ -40,7 +39,7 @@ func Services() []application.Service {
 		application.NewService(&SearchService{}),
 		application.NewService(&WorktreeService{}),
 		application.NewService(&SubmoduleService{}),
-	}
+	}, hostServices()...)
 }
 
 // Startup applies saved settings before any service runs and returns the saved

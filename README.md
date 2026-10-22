@@ -40,6 +40,7 @@ Download your platform's file from the [latest release](../../releases/latest). 
 - **Nothing else.** No telemetry, analytics, update checks or crash uploads.
 - **No accounts, no avatars.** People are shown as initials badges made on your machine.
 - **No stored credentials.** Credentials stay with Git's credential helpers and your SSH agent; Current Client never stores or logs them.
+- **Host integration is off until you turn it on, per host.** GitLab and GitHub features contact only the host your remote already points at, and only once you enable that host in Settings. [docs/integrations.md](docs/integrations.md) lists exactly what is contacted and when, and how to build without the code at all.
 
 ## Connecting to remotes
 

@@ -15,9 +15,22 @@ describe('DiagnosticsSection', () => {
 
     await user.click(screen.getByRole('button', { name: 'Copy diagnostics' }))
 
-    const sent = vi.mocked(PlatformService.GetDiagnostics).mock.calls[0][0]
+    const [sent, omitHostnames] = vi.mocked(PlatformService.GetDiagnostics).mock.calls[0]
     expect(sent.slice(0, 2).map((e) => e.message)).toEqual(['The remote stopped responding.', 'Authentication failed.'])
+    expect(omitHostnames).toBe(false)
     expect(writeText).toHaveBeenCalledWith('the report')
     expect(await screen.findByText('Copied.')).toBeInTheDocument()
+  })
+
+  it('can leave hostnames out of the report', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(navigator.clipboard, 'writeText')
+    vi.mocked(PlatformService.GetDiagnostics).mockResolvedValue('the report')
+    render(<DiagnosticsSection />)
+
+    await user.click(screen.getByRole('checkbox', { name: 'Leave out hostnames' }))
+    await user.click(screen.getByRole('button', { name: 'Copy diagnostics' }))
+
+    expect(vi.mocked(PlatformService.GetDiagnostics).mock.calls[0][1]).toBe(true)
   })
 })

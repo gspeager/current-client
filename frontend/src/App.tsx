@@ -2,7 +2,7 @@ import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
-import { GitService, HistoryService } from '@current-client-bindings/app'
+import { GitService, HistoryService, PlatformService } from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
 import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './components/chrome/HeaderBar'
@@ -69,6 +69,9 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   // Bumped when a host switch may have changed, so the status bar's indicator follows.
   const [hostsVersion, setHostsVersion] = useState(0)
   const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
+  // false only in a build made with the nohost tag; until known, assume the full build.
+  const { data: hostIntegrationBuilt } = useAsyncData(() => PlatformService.HostIntegrationAvailable(), [])
+  const hostIntegration = hostIntegrationBuilt !== false
   const [commitFocus, setCommitFocus] = useState<CommitFocus | null>(null)
   // Bumped to remount Changes on a newly requested file, as commitFocus does for History.
   const [fileFocus, setFileFocus] = useState(0)
@@ -120,7 +123,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
   useAutoFetch(repo.repoPath, settings.settings?.autoFetchIntervalMinutes ?? 0, onFetched)
   useFileWatcher(repo.repoPath, onFileWatcherChanged)
-  useHostPrompt(repo.repoPath, bumpHostsVersion)
+  useHostPrompt(hostIntegration ? repo.repoPath : null, bumpHostsVersion)
 
   // Settings may have changed the git executable path.
   const closeSettings = () => {
@@ -219,6 +222,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           <SettingsPanel
             settings={settings}
             repoPath={repo.repoPath}
+            hostIntegration={hostIntegration}
             onClose={closeSettings}
             onHostsChanged={bumpHostsVersion}
           />
@@ -272,6 +276,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             <SettingsPanel
               settings={settings}
               repoPath={repo.repoPath}
+              hostIntegration={hostIntegration}
               onClose={closeSettings}
               onHostsChanged={bumpHostsVersion}
             />
@@ -382,6 +387,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             repoVersion={repoVersion}
             gitVersion={gitVersion}
             hostsVersion={hostsVersion}
+            hostIntegration={hostIntegration}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>

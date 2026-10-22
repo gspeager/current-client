@@ -67,7 +67,22 @@ The release check in RELEASING.md opens a description containing an image hosted
 
 ## What works at each level
 
-*To come.* Per feature: what works with integration off (links to the host, PR numbers found through `git ls-remote`, local detection of squash-merged branches), with a read-only token, and with write scope.
+| Feature | Integration off | Read-only token | Write scope |
+| --- | --- | --- | --- |
+| Links from issue and MR/PR references to the host | yes | yes | yes |
+| Open on host: commit, file at line, branch, tag, repository | yes | yes | yes |
+| Create MR/PR link after a push (the host's pre-filled form) | yes | yes | yes |
+| PR numbers on branches, through `git ls-remote` with a fetch | yes (number only) | with state and CI | with state and CI |
+| Clean up branches merged on the host | squash merges found locally | plus merged on the host | plus merged on the host |
+| MR/PR list, details, local checkout | no | yes | yes |
+| CI status, job list, failed job log | no | yes | yes |
+| Review threads beside the code | no | yes | yes |
+| Conflict forecast against open MRs/PRs | no | yes | yes |
+| Hover cards with title and state | local facts only | yes | yes |
+| Create MR/PR in the app | no | no, says which scope | yes |
+| Warn before pushing to a protected branch | no | yes | yes |
+
+"Off" means the host is never contacted for it. A read-only token is GitLab `read_api`, or GitHub fine-grained read access to pull requests, checks, contents and issues.
 
 ## Credentials
 
@@ -96,4 +111,14 @@ Every request has a timeout and can be cancelled. When a host answers 429, or 40
 
 ## Building without host integration
 
-*To come.* A build tag that compiles host integration out entirely.
+For a deployment that must not carry the code at all, build with the `nohost` tag:
+
+```bash
+wails3 build EXTRA_TAGS=nohost
+```
+
+That build has no host API client, no `HostService`, no Integrations settings, no first-use prompt and no host indicator; Diagnostics says "Host integration: not built in". A test (`TestNohostBuildLeavesOutHostIntegration`) checks that the tagged build does not depend on `core/hostapi` or `core/hostcontent`, and the test suite runs under the tag too.
+
+## Diagnostics
+
+Settings → Diagnostics → **Copy diagnostics** reports which hosts integration is on for and the last errors shown. Tokens (by shape, and anything after `token=`, `Bearer` or `PRIVATE-TOKEN:`) and host answers (JSON objects, HTML pages) are replaced before the report is made, however they got into a message, and **Leave out hostnames** replaces every known host and API host with `<host>`. Repository paths and the home folder were already left out.
