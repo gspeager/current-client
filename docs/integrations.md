@@ -52,6 +52,15 @@ One cache per repository, keyed by host and repository, holding MRs/PRs, CI resu
 
 MR/PR heads are Git refs, so fetching one (to check it out, or to forecast conflicts) does land in the repository. They go under `refs/current-client/<remote>/mr/<number>`, never `refs/remotes/`, so they never appear as remote branches in the sidebar or graph. They are deleted when the host is turned off or the repository is removed from the app, and can be removed by hand with `git update-ref -d`.
 
+## Host content is untrusted
+
+A merge request description or a review comment is text anyone with an account on the host may have written, and it is shown inside a page that has bindings to run Git. Two things keep it inert:
+
+- **A Content-Security-Policy on the page**, set as a response header by the asset server on every build: scripts and fonts only from the app itself, images only from the app or `data:` URLs, connections only to the app's own bridge, no frames, objects or form targets. Inline event handlers, `javascript:` links and remote images are then stopped by the browser, before any renderer is involved. A dev build additionally allows Vite's inline hot-reload preamble and its socket; a release build does not.
+- **One renderer for all host text** (`core/hostcontent`): Markdown in, HTML out. Raw HTML in the source is dropped, not escaped into view. Only `http(s)` links are kept; relative links are resolved against the project's web address, and any other scheme becomes plain text. Images are never fetched: they render as a link to their address. Links open in your own browser through the same opener as every other link in the app, which takes only `http(s)`.
+
+The release check in RELEASING.md opens a description containing an image hosted elsewhere and confirms the firewall log shows no request to that host.
+
 ## Endpoints and scopes
 
 *To come with each provider.* Every endpoint called, the user action that triggers it and the token scope it needs, for GitLab and for GitHub. Read-only scope is enough for everything except creating a merge request / pull request.

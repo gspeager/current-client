@@ -11,9 +11,11 @@ import (
 )
 
 // Every host API call goes through this package: no other non-test file in
-// core/ or app/ may import net/http.
+// core/ or app/ may import net/http, except app/csp.go, which only sets the
+// page's Content-Security-Policy on the asset server's responses.
 func TestNoOtherHTTPClientInCoreOrApp(t *testing.T) {
 	root := moduleRoot(t)
+	allowed := map[string]bool{filepath.Join("app", "csp.go"): true}
 	var offenders []string
 	for _, dir := range []string{"core", "app"} {
 		filepath.WalkDir(filepath.Join(root, dir), func(path string, d fs.DirEntry, err error) error {
@@ -28,8 +30,9 @@ func TestNoOtherHTTPClientInCoreOrApp(t *testing.T) {
 				t.Fatalf("parsing %s: %v", path, err)
 			}
 			for _, imp := range file.Imports {
-				if strings.Trim(imp.Path.Value, `"`) == "net/http" {
-					offenders = append(offenders, strings.TrimPrefix(path, root+string(filepath.Separator)))
+				relative := strings.TrimPrefix(path, root+string(filepath.Separator))
+				if strings.Trim(imp.Path.Value, `"`) == "net/http" && !allowed[relative] {
+					offenders = append(offenders, relative)
 				}
 			}
 			return nil
