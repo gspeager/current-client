@@ -3,10 +3,12 @@ import userEvent from '@testing-library/user-event'
 import {
   BranchService,
   OverlapService,
+  PlatformService,
   RemoteService,
   type BranchInfo,
   type BranchStatusInfo,
 } from '@current-client-bindings/app'
+import { Links } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchSidebar from './BranchSidebar'
 
@@ -35,6 +37,24 @@ describe('BranchSidebar', () => {
 
     expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'feature/login')
     expect(onBranchChanged).toHaveBeenCalled()
+  })
+
+  it('links a branch named for an issue to that issue instead of checking it out', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('123-fix-login')])
+    vi.mocked(RemoteService.HostLinks).mockResolvedValue(
+      new Links({ issue: 'https://gitlab.com/g/r/-/issues/', root: 'https://gitlab.com/', issuePath: '/-/issues/' }),
+    )
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    renderSidebar()
+
+    const link = await screen.findByRole('link', { name: '123' })
+    expect(link).toHaveAttribute('href', 'https://gitlab.com/g/r/-/issues/123')
+    expect(screen.getByRole('button', { name: /^123-fix-login/ })).toBeInTheDocument()
+
+    await userEvent.click(link)
+
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.com/g/r/-/issues/123')
+    expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
   })
 
   it('creates a branch with spaces turned into dashes, and shows the name first', async () => {

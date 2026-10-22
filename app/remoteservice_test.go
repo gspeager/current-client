@@ -26,3 +26,23 @@ func TestSplitRemoteBranch(t *testing.T) {
 		}
 	}
 }
+
+func TestHostLinksPrefersOrigin(t *testing.T) {
+	remotes := []git.Remote{
+		{Name: "fork", FetchURL: "git@github.com:me/repo.git"},
+		{Name: "origin", FetchURL: "", PushURL: "https://gitlab.com/group/repo.git"},
+	}
+	links := hostLinksFor(remotes)
+	if links == nil || links.Issue != "https://gitlab.com/group/repo/-/issues/" {
+		t.Fatalf("links = %+v", links)
+	}
+	if links := hostLinksFor(remotes[:1]); links == nil || links.Issue != "https://github.com/me/repo/issues/" {
+		t.Fatalf("first remote links = %+v", links)
+	}
+	if links := hostLinksFor([]git.Remote{{Name: "origin", FetchURL: "/srv/git/repo.git"}}); links != nil {
+		t.Fatalf("local remote links = %+v", links)
+	}
+	if hostLinksFor(nil) != nil {
+		t.Fatal("no remotes should give no links")
+	}
+}

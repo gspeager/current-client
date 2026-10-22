@@ -18,6 +18,7 @@ import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useCreateBranchFromCommit } from './useCreateBranchFromCommit'
 import { useDialogs } from '../../lib/useDialogs'
+import { useHostLinks } from '../../lib/useHostLinks'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { useResizableWidth } from '../../lib/useResizableWidth'
@@ -64,6 +65,7 @@ function HistoryView({
   const { commits, loading, done, error, loadMore } = useCommitHistory(repoPath, filter, initialLoadThrough)
   const graphNodes = useCommitGraph(commits)
   const refsBySha = useRefBadges(repoPath)
+  const hostLinks = useHostLinks(repoPath)
   const { identities, colorError, setAuthorColor } = useIdentities(commits)
   const { createBranchFrom, branchError } = useCreateBranchFromCommit(repoPath, onBranchChanged)
 
@@ -268,6 +270,7 @@ function HistoryView({
                   commit={commit}
                   graphNode={graphNode}
                   laneCount={laneCount}
+                  hostLinks={hostLinks}
                   rowHeight={ROW_HEIGHT}
                   identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
                   refs={refsBySha.get(commit.sha)}
@@ -304,6 +307,7 @@ function HistoryView({
               repoPath={repoPath}
               commit={selectedCommit}
               identity={selectedIdentity}
+              hostLinks={hostLinks}
               colorError={colorError}
               onColorChange={(color) => setAuthorColor(selectedCommit.authorName, selectedCommit.authorEmail, color)}
               onCreateBranchHere={() => createBranchFrom(selectedCommit.sha)}

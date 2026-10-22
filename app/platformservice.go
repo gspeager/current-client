@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"net/url"
 	"os"
 	"os/exec"
 
@@ -25,6 +26,23 @@ func (s *PlatformService) OpenGitDownloadPage() error {
 
 func (s *PlatformService) OpenConventionalCommitsPage() error {
 	return application.Get().Browser.OpenURL(conventionalCommitsURL)
+}
+
+// OpenWebPage opens a page on the repository's own host in the user's
+// browser. The frontend only passes URLs built from the repository's remotes.
+func (s *PlatformService) OpenWebPage(pageURL string) error {
+	if err := checkWebPageURL(pageURL); err != nil {
+		return err
+	}
+	return application.Get().Browser.OpenURL(pageURL)
+}
+
+func checkWebPageURL(pageURL string) error {
+	u, err := url.Parse(pageURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return &gitexec.AppError{Message: "That isn't a web address.", Detail: pageURL}
+	}
+	return nil
 }
 
 func (s *PlatformService) OpenTerminal(repoPath string) error {

@@ -1,6 +1,14 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, HistoryService, type BranchInfo, type CommitInfo } from '@current-client-bindings/app'
+import {
+  BranchService,
+  HistoryService,
+  PlatformService,
+  RemoteService,
+  type BranchInfo,
+  type CommitInfo,
+} from '@current-client-bindings/app'
+import { Links } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { giveElementsLayout } from '../../test/bindings'
 import HistoryView from './HistoryView'
@@ -49,6 +57,25 @@ describe('HistoryView', () => {
     expect(onSelectedShaChange).toHaveBeenCalledWith(history[1].sha)
     expect(HistoryService.GetChangedFiles).toHaveBeenCalledWith(REPO, history[1].sha)
     expect(screen.getByRole('button', { name: 'Copy full commit hash' }).parentElement).toHaveTextContent('a1b2c3d')
+  })
+
+  it('links issue references in the row and the inspector to the host', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue([{ ...history[0], subject: 'Fix login (#12)' }, history[1]])
+    vi.mocked(RemoteService.HostLinks).mockResolvedValue(
+      new Links({ issue: 'https://github.com/o/r/issues/', root: 'https://github.com/', issuePath: '/issues/' }),
+    )
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    const onSelectedShaChange = vi.fn()
+    renderHistory({ onSelectedShaChange })
+
+    const rowLink = await screen.findByRole('link', { name: '#12' })
+    expect(rowLink).toHaveAttribute('href', 'https://github.com/o/r/issues/12')
+    await userEvent.click(rowLink)
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://github.com/o/r/issues/12')
+    expect(onSelectedShaChange).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: /Fix login/ }))
+    expect(screen.getAllByRole('link', { name: '#12' })).toHaveLength(2)
   })
 
   it('lists co-authors in the inspector', async () => {

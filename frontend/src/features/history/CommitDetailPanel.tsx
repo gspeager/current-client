@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { HistoryService, type ChangedFile, type IdentityInfo, type CommitInfo } from '@current-client-bindings/app'
+import type { Links } from '@current-client-bindings/core/hostlink'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -19,12 +20,14 @@ import { useFileTools } from './useFileTools'
 import ChangedFileRow from './ChangedFileRow'
 import CommitFilesModal from './CommitFilesModal'
 import IdentityBadge from '../../components/git/IdentityBadge'
+import ReferenceText from '../../components/git/ReferenceText'
 import './CommitDetailPanel.scss'
 
 interface CommitDetailPanelProps {
   repoPath: string
   commit: CommitInfo
   identity?: IdentityInfo
+  hostLinks?: Links | null
   colorError: string | null
   onColorChange: (color: string) => void
   onCreateBranchHere: () => void
@@ -35,6 +38,7 @@ function CommitDetailPanel({
   repoPath,
   commit,
   identity,
+  hostLinks = null,
   colorError,
   onColorChange,
   onCreateBranchHere,
@@ -134,8 +138,14 @@ function CommitDetailPanel({
           )}
         </div>
 
-        <p className="commit-detail-subject">{commit.subject}</p>
-        {commit.body && <p className="commit-detail-body">{commit.body}</p>}
+        <p className="commit-detail-subject">
+          <ReferenceText text={commit.subject} links={hostLinks} />
+        </p>
+        {commit.body && (
+          <p className="commit-detail-body">
+            <ReferenceText text={commit.body} links={hostLinks} />
+          </p>
+        )}
 
         <div className="commit-detail-section-header">
           <span className="commit-detail-label">Changed files</span>
