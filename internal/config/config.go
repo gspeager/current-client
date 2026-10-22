@@ -20,6 +20,14 @@ type ChangelogPrefs struct {
 	SplitByRelease bool     `json:"splitByRelease,omitempty"`
 }
 
+// HostConfig is the user's choice for one Git host, keyed by hostname (with
+// its port when the remote has one). Empty Provider means the type detected
+// from the remote URL; empty APIURL means the address derived from the type.
+type HostConfig struct {
+	Provider string `json:"provider,omitempty"`
+	APIURL   string `json:"apiUrl,omitempty"`
+}
+
 type Config struct {
 	Version            int               `json:"version"`
 	RecentRepositories []string          `json:"recentRepositories,omitempty"`
@@ -63,6 +71,8 @@ type Config struct {
 	DisableConventionalCommits bool `json:"disableConventionalCommits,omitempty"`
 
 	Changelog *ChangelogPrefs `json:"changelog,omitempty"`
+
+	Hosts map[string]HostConfig `json:"hosts,omitempty"`
 }
 
 func Default() Config {

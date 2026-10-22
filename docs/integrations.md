@@ -10,6 +10,22 @@ Integration is per host and off by default. Turning it on is a deliberate choice
 
 The set of enabled hosts is decided by the app, not by `core/`. `core/` cannot read the settings file; it is handed the set by whichever app embeds it (Current Client passes what Settings says, other apps pass their own), and it refuses any host outside that set before a connection is opened. That is what makes "integration off means no request" a property of the library, not of each caller.
 
+## Which host, and which API
+
+A repository's host is worked out from its remote URLs alone: HTTPS, `ssh://` and scp-like `git@host:group/repo.git` forms, with ports and nested GitLab groups. An SSH alias from `~/.ssh/config` (`git@work:group/repo`) is resolved with `ssh -G`, which prints the configured hostname without connecting. Nothing probes the server.
+
+github.com and gitlab.com are recognized by name. Any other host is taken for GitLab when its name contains "gitlab" or the project path has nested groups, and for GitHub otherwise. The type can be changed per host in Settings → Integrations, and the links the app builds for that host follow the choice.
+
+The API address is derived from the type, and can be edited for unusual installs such as a custom port or GitLab served under a relative URL:
+
+| Host | API address |
+| --- | --- |
+| gitlab.com, GitLab Self-Managed | `https://<host>/api/v4` |
+| github.com | `https://api.github.com` |
+| GitHub Enterprise Server | `https://<host>/api/v3` |
+
+Settings and the host indicator show the address actually contacted, `api.github.com` rather than `github.com`.
+
 ## When requests happen
 
 A **refresh** is the only thing that fetches from a host:
