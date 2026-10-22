@@ -8,6 +8,7 @@ import (
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostlink"
+	"github.com/gspeager/current-client/internal/config"
 )
 
 type RemoteService struct{}
@@ -168,16 +169,17 @@ func splitRemoteBranch(remotes []git.Remote, remoteBranch string) (remote, branc
 }
 
 // HostLinks are the web links for the repository's host, from origin's URL or
-// the first remote's. nil when no remote points at a hosted project.
+// the first remote's, in the style the user chose for that host. nil when no
+// remote points at a hosted project.
 func (s *RemoteService) HostLinks(repoPath string) (*hostlink.Links, error) {
 	remotes, err := git.ListRemotes(context.Background(), repoPath)
 	if err != nil {
 		return nil, err
 	}
-	return hostLinksFor(remotes), nil
+	return hostLinksFor(remotes, configOrDefault().Hosts), nil
 }
 
-func hostLinksFor(remotes []git.Remote) *hostlink.Links {
+func hostLinksFor(remotes []git.Remote, hosts map[string]config.HostConfig) *hostlink.Links {
 	if len(remotes) == 0 {
 		return nil
 	}
@@ -187,14 +189,10 @@ func hostLinksFor(remotes []git.Remote) *hostlink.Links {
 			remote = r
 		}
 	}
-	remoteURL := remote.FetchURL
-	if remoteURL == "" {
-		remoteURL = remote.PushURL
-	}
-	host, ok := hostlink.Parse(remoteURL)
+	host, ok := hostlink.Resolve(context.Background(), remoteURL(remote))
 	if !ok {
 		return nil
 	}
-	links := host.Links()
+	links := withHostConfig(host, hosts).Links()
 	return &links
 }

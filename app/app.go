@@ -16,6 +16,7 @@ func Services() []application.Service {
 		application.NewService(&CommitService{}),
 		application.NewService(&BranchService{}),
 		application.NewService(&RemoteService{}),
+		application.NewService(&HostService{}),
 		application.NewService(&StashService{}),
 		application.NewService(&TagService{}),
 		application.NewService(&GitFlowService{}),

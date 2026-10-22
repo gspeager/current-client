@@ -89,6 +89,27 @@ func styleFor(host, project string) Style {
 	return GitHub
 }
 
+func (h Host) Hostname() string {
+	u, err := url.Parse(h.Root)
+	if err != nil {
+		return ""
+	}
+	return u.Host
+}
+
+// API is the host's REST API address: GitLab serves it under the web root,
+// github.com on its own host, GitHub Enterprise Server under /api/v3.
+func (h Host) API() string {
+	switch {
+	case h.Style == GitLab:
+		return h.Root + "api/v4"
+	case h.Hostname() == "github.com":
+		return "https://api.github.com"
+	default:
+		return h.Root + "api/v3"
+	}
+}
+
 func (h Host) Links() Links {
 	issuePath := "/issues/"
 	mergeRequest := ""
