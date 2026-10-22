@@ -12,9 +12,9 @@ Current Client is pre-1.0. Only the latest release receives security fixes.
 
 ## Scope
 
-Current Client runs locally and only talks to your repositories' Git remotes through your installed Git. Especially relevant reports include:
+Current Client runs locally and only connects to destinations you configured: your repositories' Git remotes and the servers hosting them. Especially relevant reports include:
 
-- Any network connection other than Git traffic to a repository's remotes.
+- Any network connection to a destination the user didn't configure, or networked behavior that runs without being turned on.
 - Credentials, tokens or keys being logged, stored or exposed.
 - Command injection through repository content, branch names, file names or remote URLs.
 - Opening a repository causing code to run without the user's action.
