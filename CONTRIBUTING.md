@@ -15,7 +15,7 @@ These are not negotiable, and a change that breaks one won't be merged:
 - No telemetry, analytics, tracking, advertising or remote logging.
 - Current Client never chooses a network destination itself. It only connects to destinations the user or their company configured: a repository's Git remotes and the servers those remotes are hosted on, cloud or self-hosted. On a network where every remote is internal, nothing Current Client does leaves that network.
 - No vendor or third-party endpoints: no websites, CDNs, AI services, update servers or sign-in through an outside provider.
-- Any network traffic beyond a Git operation the user starts is off by default. That covers background fetch and integrations such as the GitHub or GitLab API on a remote's own host. Each one is turned on only by a deliberate choice, is clearly visible when on, and works with self-hosted servers.
+- Any network traffic beyond a Git operation the user starts is off by default. That covers background fetch and integrations such as the GitHub or GitLab API on a remote's own host. Each one is turned on only by a deliberate choice, is clearly visible when on, and works with self-hosted servers. How host integration keeps to this is in [docs/integrations.md](docs/integrations.md).
 - No automatic update checks or crash-report uploads.
 - No avatars or downloaded images; people are shown as local initials badges.
 - No custom credential storage. Use Git's own mechanisms (credential helpers, SSH agent). Never log credentials, tokens or keys.
