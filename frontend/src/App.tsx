@@ -24,6 +24,7 @@ import { DIVERGED, useRemoteSync } from './features/remotes/useRemoteSync'
 import { useRepositoryLifecycle } from './features/repositories/useRepositoryLifecycle'
 import { useRepoVersion } from './features/repositories/useRepoVersion'
 import { useResizableWidth } from './lib/useResizableWidth'
+import { useHostPrompt } from './features/settings/useHostPrompt'
 import { useSettings } from './features/settings/useSettings'
 import { useTabMemory } from './features/repositories/useTabMemory'
 import { useWorkingTree } from './features/working-copy/useWorkingTree'
@@ -65,6 +66,9 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     reload: reloadGitVersion,
   } = useAsyncData(() => GitService.GetGitVersion(), [])
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Bumped when a host switch may have changed, so the status bar's indicator follows.
+  const [hostsVersion, setHostsVersion] = useState(0)
+  const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
   const [commitFocus, setCommitFocus] = useState<CommitFocus | null>(null)
   // Bumped to remount Changes on a newly requested file, as commitFocus does for History.
   const [fileFocus, setFileFocus] = useState(0)
@@ -116,6 +120,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
   useAutoFetch(repo.repoPath, settings.settings?.autoFetchIntervalMinutes ?? 0, onFetched)
   useFileWatcher(repo.repoPath, onFileWatcherChanged)
+  useHostPrompt(repo.repoPath, bumpHostsVersion)
 
   // Settings may have changed the git executable path.
   const closeSettings = () => {
@@ -210,7 +215,14 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           <p className="app-welcome-status">Detecting Git installation…</p>
         )}
         {!gitError && <RepoSwitcher repo={repo} />}
-        {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
+        {settingsOpen && (
+          <SettingsPanel
+            settings={settings}
+            repoPath={repo.repoPath}
+            onClose={closeSettings}
+            onHostsChanged={bumpHostsVersion}
+          />
+        )}
       </div>
     )
   }
@@ -256,7 +268,14 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             />
           )}
 
-          {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
+          {settingsOpen && (
+            <SettingsPanel
+              settings={settings}
+              repoPath={repo.repoPath}
+              onClose={closeSettings}
+              onHostsChanged={bumpHostsVersion}
+            />
+          )}
           {workspace.modals}
 
           {resetNotice}
@@ -358,7 +377,13 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             </main>
           </div>
 
-          <StatusBar repoPath={repo.repoPath} repoVersion={repoVersion} gitVersion={gitVersion} />
+          <StatusBar
+            repoPath={repo.repoPath}
+            repoVersion={repoVersion}
+            gitVersion={gitVersion}
+            hostsVersion={hostsVersion}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
         </div>
       </DiffWrapContext.Provider>
     </LaneThemeContext.Provider>

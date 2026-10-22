@@ -1,8 +1,19 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { IdentityService, SettingsService } from '@current-client-bindings/app'
+import { HostService, IdentityService, SettingsService } from '@current-client-bindings/app'
+import { DialogContext, type Dialogs } from '../../lib/useDialogs'
 import type { useSettings } from './useSettings'
 import SettingsPanel from './SettingsPanel'
+
+const dialogs: Dialogs = { confirm: vi.fn(), prompt: vi.fn(), signIn: vi.fn() }
+
+function renderPanel(settings: ReturnType<typeof useSettings>) {
+  return render(
+    <DialogContext.Provider value={dialogs}>
+      <SettingsPanel settings={settings} onClose={vi.fn()} />
+    </DialogContext.Provider>,
+  )
+}
 
 function settingsWith(overrides: Partial<NonNullable<ReturnType<typeof useSettings>['settings']>> = {}) {
   return {
@@ -31,13 +42,23 @@ function settingsWith(overrides: Partial<NonNullable<ReturnType<typeof useSettin
 beforeEach(() => {
   vi.mocked(IdentityService.GetGlobalUser).mockResolvedValue({ name: 'Ada', email: 'ada@example.com' })
   vi.mocked(SettingsService.GetIdentityColorOverrides).mockResolvedValue({})
+  vi.mocked(HostService.List).mockResolvedValue([])
 })
 
 describe('SettingsPanel', () => {
   it('groups every setting and keeps each control reachable by its label', async () => {
-    render(<SettingsPanel settings={settingsWith()} onClose={vi.fn()} />)
+    renderPanel(settingsWith())
 
-    for (const group of ['Appearance', 'Git', 'Tools and folders', 'Diff', 'Network', 'Identity colors', 'Support']) {
+    for (const group of [
+      'Appearance',
+      'Git',
+      'Tools and folders',
+      'Diff',
+      'Network',
+      'Integrations',
+      'Identity colors',
+      'Support',
+    ]) {
       expect(screen.getByRole('region', { name: group })).toBeInTheDocument()
     }
     expect(
@@ -56,11 +77,12 @@ describe('SettingsPanel', () => {
     }
     expect(screen.getByRole('checkbox', { name: 'Ignore whitespace' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Background fetch' })).toHaveValue('0')
+    expect(screen.getByRole('button', { name: 'Add host…' })).toBeInTheDocument()
   })
 
   it('shows a chosen path so its end stays visible, with a way back to the default', async () => {
     const settings = settingsWith({ gitExecutablePath: 'C:\\Program Files\\Git\\cmd\\git.exe' })
-    render(<SettingsPanel settings={settings} onClose={vi.fn()} />)
+    renderPanel(settings)
 
     const git = within(screen.getByRole('region', { name: 'Git' }))
     expect(git.getByTitle('C:\\Program Files\\Git\\cmd\\git.exe')).toHaveClass('path-text')
@@ -71,7 +93,7 @@ describe('SettingsPanel', () => {
 
   it('changes background fetch from its menu', async () => {
     const settings = settingsWith()
-    render(<SettingsPanel settings={settings} onClose={vi.fn()} />)
+    renderPanel(settings)
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Background fetch' }), 'Every 15 minutes')
 
@@ -79,7 +101,7 @@ describe('SettingsPanel', () => {
   })
   it('turns Conventional Commits off, and it starts on', async () => {
     const settings = settingsWith()
-    render(<SettingsPanel settings={settings} onClose={vi.fn()} />)
+    renderPanel(settings)
 
     const toggle = screen.getByRole('checkbox', { name: 'Conventional Commits' })
     expect(toggle).toBeChecked()

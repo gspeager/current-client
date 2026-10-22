@@ -5,6 +5,7 @@ export interface ConfirmOptions {
   title: string
   message: string
   confirmLabel: string
+  cancelLabel?: string
   destructive?: boolean
 }
 
@@ -13,6 +14,8 @@ export interface PromptOptions {
   label: string
   confirmLabel: string
   initialValue?: string
+  // Masks the input, for a token.
+  secret?: boolean
   // Normalizes the typed value; when that changes it, the dialog shows the
   // result before it's confirmed.
   transform?: (value: string) => string
