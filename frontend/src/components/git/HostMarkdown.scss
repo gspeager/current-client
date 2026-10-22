@@ -1,0 +1,69 @@
+.host-markdown {
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  overflow-wrap: anywhere;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  p,
+  ul,
+  ol,
+  pre,
+  table,
+  blockquote {
+    margin: 0 0 var(--space-sm);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: var(--space-md) 0 var(--space-xs);
+    font: var(--ui-md);
+  }
+
+  a {
+    color: var(--on-surface);
+    text-decoration: underline;
+    text-decoration-color: var(--outline);
+    cursor: pointer;
+
+    &:hover {
+      text-decoration-color: currentColor;
+    }
+  }
+
+  code {
+    font: var(--data-sm);
+  }
+
+  pre {
+    padding: var(--space-sm);
+    overflow-x: auto;
+    background: var(--surface-lowest);
+    border-radius: var(--radius);
+  }
+
+  blockquote {
+    padding-left: var(--space-sm);
+    border-left: 2px solid var(--outline);
+    color: var(--on-surface-variant);
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: var(--space-xs) var(--space-sm);
+    border: var(--border-structure);
+    text-align: left;
+  }
+}

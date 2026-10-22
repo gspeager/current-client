@@ -23,7 +23,7 @@ func main() {
 	host := application.New(application.Options{
 		Name:     "current-client-embed-example",
 		Services: app.Services(),
-		Assets:   application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
+		Assets:   application.AssetOptions{Handler: application.AssetFileServerFS(assets), Middleware: app.CSPMiddleware()},
 	})
 	host.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:   "Current Client embed example",
