@@ -92,6 +92,7 @@ All Git commands go through `core/gitexec`. Arguments are always passed as a lis
 - Sign off every commit (`git commit -s`). This certifies the [Developer Certificate of Origin](https://developercertificate.org/): that you wrote the change or have the right to submit it under the project's license.
 - By contributing you agree your work is licensed under the [Apache License 2.0](LICENSE).
 - Keep pull requests focused on one change, and fill in the template.
+- Documentation moves with the code but is published at release. Don't edit CHANGELOG.md in a pull request; its section is written in the release step from the squash titles. After a user-facing pull request merges, update the [wiki](https://github.com/gspeager/current-client/wiki) in its own clone on a branch named after the next version (for example `0.4.0`), one commit per page topic. GitHub renders only the wiki's `master`, which receives that branch in the release step, so the published wiki always describes the released app.
 
 ## Reporting bugs and security issues
 
