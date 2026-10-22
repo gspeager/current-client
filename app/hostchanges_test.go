@@ -40,7 +40,7 @@ func TestBranchChangesReadOnlyTheCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]BranchChange{
-		"origin/feature": {Number: 7, Prefix: "!", State: "open", Draft: true, CI: "failed", Title: "Add the thing", Author: "Ada", WebURL: "https://gitlab.example.com/group/app/-/merge_requests/7"},
+		"origin/feature": {Number: 7, Prefix: "!", State: "open", Draft: true, CI: "failed", Title: "Add the thing", Author: "Ada", WebURL: "https://gitlab.example.com/group/app/-/merge_requests/7", SourceBranch: "feature", UpdatedAt: "0001-01-01T00:00:00Z"},
 		"origin/older":   {Number: 9, Prefix: "!"},
 	}
 	if len(changes) != len(want) {

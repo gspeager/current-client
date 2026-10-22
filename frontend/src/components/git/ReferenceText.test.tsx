@@ -40,3 +40,26 @@ describe('ReferenceText', () => {
     expect(screen.getByText('Fix #12')).toBeInTheDocument()
   })
 })
+
+describe('ReferenceText hover cards', () => {
+  it('shows an issue title and state from the cards, and says when none was fetched', async () => {
+    render(
+      <ReferenceText
+        text="Fixes #4 and #9"
+        links={links}
+        cards={{
+          '#4': { title: 'Login fails', state: 'open', known: true },
+          '#9': { title: '', state: '', known: false },
+        }}
+      />,
+    )
+    await userEvent.hover(screen.getByRole('link', { name: '#4' }))
+    const card = await screen.findByRole('tooltip')
+    expect(card).toHaveTextContent('Login fails')
+    expect(card).toHaveTextContent('open')
+    await userEvent.unhover(screen.getByRole('link', { name: '#4' }))
+
+    await userEvent.hover(screen.getByRole('link', { name: '#9' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Title not fetched')
+  })
+})

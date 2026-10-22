@@ -21,6 +21,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useCIStatus } from '../../lib/useCIStatus'
+import { useReferenceCards } from '../../lib/useReferenceCards'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { useResizableWidth } from '../../lib/useResizableWidth'
@@ -70,6 +71,8 @@ function HistoryView({
   const hostLinks = useHostLinks(repoPath)
   // History remounts on every ref move, so the repository path is the only key.
   const changes = useBranchChanges(repoPath)
+  const commitTexts = useMemo(() => commits.map((c) => c.subject + '\n' + c.body), [commits])
+  const referenceCards = useReferenceCards(repoPath, commitTexts, changes)
   const { identities, colorError, setAuthorColor } = useIdentities(commits)
   const { createBranchFrom, branchError } = useCreateBranchFromCommit(repoPath, onBranchChanged)
 
@@ -282,6 +285,7 @@ function HistoryView({
                   changes={changes}
                   repoPath={repoPath}
                   ci={ciMarks[commit.sha]}
+                  referenceCards={referenceCards}
                   rowHeight={ROW_HEIGHT}
                   identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
                   refs={refsBySha.get(commit.sha)}
@@ -319,6 +323,7 @@ function HistoryView({
               commit={selectedCommit}
               identity={selectedIdentity}
               hostLinks={hostLinks}
+              referenceCards={referenceCards}
               colorError={colorError}
               onColorChange={(color) => setAuthorColor(selectedCommit.authorName, selectedCommit.authorEmail, color)}
               onCreateBranchHere={() => createBranchFrom(selectedCommit.sha)}

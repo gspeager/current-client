@@ -2,6 +2,7 @@ import { useState, type MouseEvent } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { HostService, PlatformService, type CIMark as CIMarkInfo } from '@current-client-bindings/app'
 import type { Job } from '@current-client-bindings/core/hostapi'
+import HoverCard from '../chrome/HoverCard'
 import Modal from '../chrome/Modal'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -33,14 +34,31 @@ function CIMark({ repoPath, mark }: CIMarkProps) {
   }
   return (
     <>
-      <button
-        type="button"
-        className={`ci-mark ci-mark-${mark.status}`}
-        title={label}
-        aria-label={label}
-        onClick={onClick}
-      />
+      <HoverCard card={<CICard repoPath={repoPath} mark={mark} label={label} />}>
+        <button type="button" className={`ci-mark ci-mark-${mark.status}`} aria-label={label} onClick={onClick} />
+      </HoverCard>
       {open && <PipelineJobs repoPath={repoPath} mark={mark} onClose={() => setOpen(false)} />}
+    </>
+  )
+}
+
+// Reads the jobs a click already fetched; hovering never fetches.
+function CICard({ repoPath, mark, label }: { repoPath: string; mark: CIMarkInfo; label: string }) {
+  const { data: jobs } = useAsyncData(
+    () => HostService.CachedPipelineJobs(repoPath, mark.pipelineId),
+    [repoPath, mark.pipelineId],
+  )
+  const failed = (jobs ?? []).filter((job) => job.status === 'failed')
+  const total = (jobs ?? []).reduce((sum, job) => sum + job.duration, 0)
+  return (
+    <>
+      <p className="hover-card-title">{label}</p>
+      {failed.length > 0 && (
+        <p className="hover-card-line hover-card-data">{failed.map((job) => job.name).join(', ')}</p>
+      )}
+      <p className="hover-card-line hover-card-muted">
+        {jobs?.length ? `${jobs.length} jobs${total > 0 ? ` · ${formatDuration(total)}` : ''}` : 'Click for the jobs.'}
+      </p>
     </>
   )
 }

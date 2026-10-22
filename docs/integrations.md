@@ -58,6 +58,10 @@ Selecting a change shows its description, rendered through the one sanitizing re
 
 With the host on, commits in History and branch tips in the sidebar show a small square in the pipeline's color: passed, failed, canceled, or an outline while running or pending. For commits the result is asked for when the commit scrolls into view, in batches of up to 50 at a time and never twice for the same commit until the next refresh; a commit without a pipeline is remembered as such. Branch tips and open merge requests get theirs on refresh. Clicking a square lists the pipeline's jobs with stage, status and duration, fetched only then, with **Open on host**. HEAD's cyan is never used for CI state.
 
+## Hover cards
+
+Pausing the pointer on a merge request marker, a CI square or an issue or merge request reference, or giving one keyboard focus, shows a card with what the cache holds: for a change, its title, author, state, branches, CI result, unresolved threads and when it was updated; for a CI square, the pipeline state and, once the jobs were opened, the failed job names and total duration; for a reference, the title and state. Hovering never makes a request. Issue titles are asked for when the History page they appear on loads, at most 50 at a time and each once until the next refresh. With integration off, a card shows only what Git supplied: the number and the link, and says the rest needs the host.
+
 ## What a branch row shows
 
 Every branch whose upstream has a merge request / pull request gets a square marker beside its pill, in the sidebar and on the graph's remote-tracking refs: the number, and when the host is on, the state (draft, open, merged, closed) and the CI result. Clicking it opens the change on the host. The marker is drawn from the cache: with the host off, the number comes from the `git ls-remote` a fetch runs (and on GitLab the state stays unknown, as Git alone can't tell a closed merge request with a kept branch from an open one); with the host on, a fetch or pull also refreshes the open changes. Drawing the sidebar or graph never makes a request.
@@ -93,7 +97,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads; and as commits scroll into view, once per commit until the next refresh | `read_api` |
 | `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark | `read_api` |
 | `GET /projects/:path/jobs/:id/trace` | Clicking a failed job | `read_api` |
-| `GET /projects/:path/issues/:iid` | Refresh, for issue references on screen | `read_api` |
+| `GET /projects/:path/issues/:iid` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
 
 Avatar URLs in these answers are never decoded. GitHub's table arrives with its provider.

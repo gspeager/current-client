@@ -32,7 +32,40 @@ describe('ChangeMarker', () => {
     render(<ChangeMarker change={new BranchChange({ number: 42, prefix: '#' })} />)
     const marker = screen.getByRole('button', { name: '#42' })
     expect(marker).toHaveAttribute('data-state', 'unknown')
-    expect(marker).toBeDisabled()
+    expect(marker).toHaveClass('change-marker-static')
     expect(marker.querySelector('.change-marker-ci')).toBeNull()
+  })
+
+  it('shows the cached facts in a hover card, and says what is unknown with the host off', async () => {
+    render(
+      <>
+        <ChangeMarker
+          change={
+            new BranchChange({
+              number: 138,
+              prefix: '!',
+              state: 'open',
+              title: 'Add the thing',
+              author: 'Ada',
+              sourceBranch: 'feature',
+              targetBranch: 'main',
+              unresolvedThreads: 2,
+              ci: 'failed',
+            })
+          }
+        />
+        <ChangeMarker change={new BranchChange({ number: 42, prefix: '#' })} />
+      </>,
+    )
+    await userEvent.hover(screen.getByRole('button', { name: /^!138/ }))
+    const card = await screen.findByRole('tooltip')
+    expect(card).toHaveTextContent('Add the thing')
+    expect(card).toHaveTextContent('by Ada')
+    expect(card).toHaveTextContent('feature → main')
+    expect(card).toHaveTextContent('2 unresolved')
+    await userEvent.unhover(screen.getByRole('button', { name: /^!138/ }))
+
+    await userEvent.hover(screen.getByRole('button', { name: '#42' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Turn integration on for its title and state.')
   })
 })
