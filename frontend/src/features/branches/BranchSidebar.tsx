@@ -23,6 +23,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
+import CurrentChangeSection from './CurrentChangeSection'
 import CIMark from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
@@ -33,11 +34,12 @@ interface BranchSidebarProps {
   dirty: boolean
   refreshKey: number
   onBranchChanged?: () => void
+  onOpenChange?: (number: number) => void
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
 
-function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchSidebarProps) {
+function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenChange }: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
   const {
@@ -316,6 +318,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
           Changes from {squashed} are staged. Commit them to finish the squash.
         </p>
       )}
+      <CurrentChangeSection repoPath={repoPath} refreshKey={refreshKey} onOpenChange={onOpenChange} />
       {branches === null ? (
         <p className="branch-sidebar-hint">Loading branches…</p>
       ) : branches.length === 0 ? (

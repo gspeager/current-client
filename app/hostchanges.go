@@ -27,6 +27,7 @@ type BranchChange struct {
 	TargetBranch      string `json:"targetBranch"`
 	UnresolvedThreads int    `json:"unresolvedThreads"`
 	UpdatedAt         string `json:"updatedAt"`
+	HeadSHA           string `json:"headSha"`
 }
 
 const (
@@ -83,6 +84,7 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 					TargetBranch:      change.TargetBranch,
 					UnresolvedThreads: change.UnresolvedThreads,
 					UpdatedAt:         change.UpdatedAt.UTC().Format(time.RFC3339),
+					HeadSHA:           change.HeadSHA,
 				}
 			}
 		}
@@ -126,6 +128,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		if changes, truncated, err := provider.OpenChanges(ctx, info.Project); err == nil {
 			fillChangeCI(ctx, provider, info, repoPath, changes)
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
+			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
 		} else {
 			return err
 		}

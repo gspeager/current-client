@@ -54,6 +54,10 @@ While a host is on for the repository, a tab named **Merge requests** (GitLab) o
 
 Selecting a change shows its description, rendered through the one sanitizing renderer (images are links, nothing is fetched), its branches, labels, CI and conflict state, **Open on host** and **Check out locally**. Checking out fetches the change's head from the remote into `refs/current-client/<remote>/mr/<number>` (ordinary Git traffic, with Git's own credentials) and creates a local branch at it named after the source branch, or `<owner>/<branch>` for a change from a fork; a branch that already exists is checked out as it is. The diff, history and blame views then work on it as on any branch.
 
+## The checked-out branch's merge request
+
+While the host is on and the checked-out branch's upstream has a merge request / pull request in the cache, the top of the Branches sidebar shows it: number, title, state, draft, target branch, the CI result with the failed jobs named (a refresh fetches the jobs of a failing pipeline for this one branch, so no click is needed), unresolved threads, **Details** (the merge request tab) and **Open on host**. It reads the cache; checking out a branch makes no request. Review threads, the conflict forecast and the clean-up offer join it as they land.
+
 ## CI results
 
 With the host on, commits in History and branch tips in the sidebar show a small square in the pipeline's color: passed, failed, canceled, or an outline while running or pending. For commits the result is asked for when the commit scrolls into view, in batches of up to 50 at a time and never twice for the same commit until the next refresh; a commit without a pipeline is remembered as such. Branch tips and open merge requests get theirs on refresh. Clicking a square lists the pipeline's jobs with stage, status and duration, fetched only then, with **Open on host**. HEAD's cyan is never used for CI state.
@@ -95,7 +99,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:id` | Once per fork a merge request comes from, to name it | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/discussions` | Refresh, for the checked-out branch's merge request | `read_api` |
 | `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads; and as commits scroll into view, once per commit until the next refresh | `read_api` |
-| `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark | `read_api` |
+| `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark; on refresh, for the checked-out branch's merge request when its pipeline failed | `read_api` |
 | `GET /projects/:path/jobs/:id/trace` | Clicking a failed job | `read_api` |
 | `GET /projects/:path/issues/:iid` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |

@@ -22,6 +22,8 @@ import './HostChangesView.scss'
 interface HostChangesViewProps {
   repoPath: string
   label: string
+  // A change to select, from the sidebar's Details; the list's own selection otherwise.
+  selectedNumber?: number | null
   onBranchChanged: () => void
 }
 
@@ -29,7 +31,7 @@ interface HostChangesViewProps {
 // refresh, details for one, and checking it out locally. Opening the panel
 // for the first time, and its refresh button, are the only things here
 // that contact the host.
-function HostChangesView({ repoPath, label, onBranchChanged }: HostChangesViewProps) {
+function HostChangesView({ repoPath, label, selectedNumber = null, onBranchChanged }: HostChangesViewProps) {
   const {
     data: list,
     error,
@@ -39,6 +41,9 @@ function HostChangesView({ repoPath, label, onBranchChanged }: HostChangesViewPr
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [onlyMine, setOnlyMine] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
+  useEffect(() => {
+    if (selectedNumber !== null) setSelected(selectedNumber)
+  }, [selectedNumber])
   useClockTick()
 
   const refresh = () => {
