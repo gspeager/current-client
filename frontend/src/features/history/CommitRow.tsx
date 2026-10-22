@@ -7,8 +7,10 @@ import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import type { CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
+import type { Links } from '@current-client-bindings/core/hostlink'
 import CommitGraph from './CommitGraph'
 import IdentityBadge from '../../components/git/IdentityBadge'
+import ReferenceText from '../../components/git/ReferenceText'
 import RefBadge from './RefBadge'
 import './CommitRow.scss'
 
@@ -26,6 +28,7 @@ interface CommitRowProps {
   onFocusRef?: (sha: string) => void
   searchQuery?: string
   conventional?: boolean
+  hostLinks?: Links | null
   style: CSSProperties
   onSelect: () => void
   onContextMenu: (e: MouseEvent | KeyboardEvent) => void
@@ -45,6 +48,7 @@ function CommitRow({
   onFocusRef,
   searchQuery = '',
   conventional = false,
+  hostLinks = null,
   style,
   onSelect,
   onContextMenu,
@@ -96,7 +100,11 @@ function CommitRow({
         )}
         <span className="commit-row-subject">
           {prefix && <span className="commit-row-type">{highlightMatch(prefix, searchQuery, 'search-match')}</span>}
-          {highlightMatch(commit.subject.slice(prefix.length), searchQuery, 'search-match')}
+          <ReferenceText
+            text={commit.subject.slice(prefix.length)}
+            links={hostLinks}
+            render={(segment) => highlightMatch(segment, searchQuery, 'search-match')}
+          />
         </span>
       </div>
 

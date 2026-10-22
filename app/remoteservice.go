@@ -7,6 +7,7 @@ import (
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
+	"github.com/gspeager/current-client/core/hostlink"
 )
 
 type RemoteService struct{}
@@ -164,4 +165,36 @@ func splitRemoteBranch(remotes []git.Remote, remoteBranch string) (remote, branc
 		}
 	}
 	return remote, branch, ok
+}
+
+// HostLinks are the web links for the repository's host, from origin's URL or
+// the first remote's. nil when no remote points at a hosted project.
+func (s *RemoteService) HostLinks(repoPath string) (*hostlink.Links, error) {
+	remotes, err := git.ListRemotes(context.Background(), repoPath)
+	if err != nil {
+		return nil, err
+	}
+	return hostLinksFor(remotes), nil
+}
+
+func hostLinksFor(remotes []git.Remote) *hostlink.Links {
+	if len(remotes) == 0 {
+		return nil
+	}
+	remote := remotes[0]
+	for _, r := range remotes {
+		if r.Name == "origin" {
+			remote = r
+		}
+	}
+	remoteURL := remote.FetchURL
+	if remoteURL == "" {
+		remoteURL = remote.PushURL
+	}
+	host, ok := hostlink.Parse(remoteURL)
+	if !ok {
+		return nil
+	}
+	links := host.Links()
+	return &links
 }

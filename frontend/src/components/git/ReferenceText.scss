@@ -1,0 +1,16 @@
+@use '../../styles/tokens/typography';
+
+.reference-link {
+  color: inherit;
+  font-family: var(--font-mono);
+  @include typography.mono-numeric;
+  text-decoration: underline;
+  text-decoration-color: var(--outline);
+  text-underline-offset: 2px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}

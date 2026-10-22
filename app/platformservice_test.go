@@ -25,3 +25,16 @@ func TestMissingEditorIsExplained(t *testing.T) {
 		t.Fatal("no error should stay no error")
 	}
 }
+
+func TestOpenWebPageOnlyTakesWebAddresses(t *testing.T) {
+	for _, u := range []string{"https://github.com/owner/repo/issues/1", "http://git.example.com:8080/o/r/issues/2"} {
+		if err := checkWebPageURL(u); err != nil {
+			t.Errorf("checkWebPageURL(%q) = %v", u, err)
+		}
+	}
+	for _, u := range []string{"", "file:///etc/passwd", "javascript:alert(1)", "ftp://example.com/x", "owner/repo", "https://"} {
+		if err := checkWebPageURL(u); err == nil {
+			t.Errorf("checkWebPageURL(%q) accepted it", u)
+		}
+	}
+}

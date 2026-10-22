@@ -19,6 +19,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useDialogs } from '../../lib/useDialogs'
+import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import './BranchSidebar.scss'
 
@@ -43,6 +44,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
     refreshKey,
   })
   const branchStatus = useBranchStatus(repoPath, refreshKey)
+  const hostLinks = useHostLinks(repoPath)
   const { data: overlapReport } = useAsyncData(() => OverlapService.Predict(repoPath), [repoPath], { refreshKey })
   const overlaps = overlapReport?.overlaps ?? []
   const localOverlaps = new Map(overlaps.filter((o) => !o.remote).map((o) => [o.branch, o]))
@@ -324,7 +326,13 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged }: BranchS
                 }
               }}
             >
-              <BranchPill name={b.name} color={branchColor(b.name, b.current)} current={b.current} dirty={dirty} />
+              <BranchPill
+                name={b.name}
+                color={branchColor(b.name, b.current)}
+                current={b.current}
+                dirty={dirty}
+                hostLinks={hostLinks}
+              />
               {b.current && <span className="branch-row-head">HEAD</span>}
               <OverlapMark overlap={localOverlaps.get(b.name)} />
               {!b.current && b.worktreePath && (
