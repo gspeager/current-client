@@ -38,7 +38,6 @@ func (c *Cache) Get(host, repo, kind, id string) (value any, fetchedAt time.Time
 	return entry.value, entry.at, ok
 }
 
-// Values returns every entry of one kind for a host and repository.
 func (c *Cache) Values(host, repo, kind string) []any {
 	c.mu.Lock()
 	defer c.mu.Unlock()

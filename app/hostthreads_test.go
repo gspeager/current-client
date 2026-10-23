@@ -42,7 +42,7 @@ func TestReviewThreadsOfTheCheckedOutBranchAreFetchedOnRefreshAndReadFromTheCach
 	var s HostService
 
 	hosts := configOrDefault().Hosts
-	info := infoFor(hostByName("gitlab.example.com", hosts), hosts)
+	info := infoFor(hostByName("gitlab.example.com"), hosts)
 	info.Project = "group/app"
 	changes := []hostapi.Change{{Number: 7, SourceBranch: "feature", TargetBranch: "main", HeadSHA: "abc", State: hostapi.ChangeOpen}}
 	provider := gitlab.New(hostClient, hostapi.Host{Name: info.Hostname, API: info.APIURL})

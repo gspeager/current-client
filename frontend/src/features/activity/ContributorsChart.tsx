@@ -5,6 +5,7 @@ import {
   type ContributorStatInfo,
   type IdentityInfo,
 } from '@current-client-bindings/app'
+import { plural } from '../../lib/plural'
 import { sinceDaysAgo } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import IdentityBadge from '../../components/git/IdentityBadge'
@@ -96,7 +97,7 @@ function ContributorsChart({ repoPath, repoVersion }: ContributorsChartProps) {
               <div className="contributors-donut-center">
                 <span className="contributors-donut-value">{topSharePercent}%</span>
                 <span className="contributors-donut-caption" style={{ color: topContributor?.color }}>
-                  {contributors.length} AUTHOR{contributors.length === 1 ? '' : 'S'}
+                  {plural(contributors.length, 'AUTHOR')}
                 </span>
               </div>
             </div>
@@ -110,9 +111,7 @@ function ContributorsChart({ repoPath, repoVersion }: ContributorsChartProps) {
                     <span className="contributors-row-email">{c.email}</span>
                   </div>
                   <div className="contributors-row-stats">
-                    <span className="contributors-row-commits">
-                      {c.commits} commit{c.commits === 1 ? '' : 's'}
-                    </span>
+                    <span className="contributors-row-commits">{plural(c.commits, 'commit')}</span>
                     <span className="contributors-row-share" style={{ color: c.color }}>
                       {total === 0 ? 0 : Math.round((c.commits / total) * 100)}% share
                     </span>

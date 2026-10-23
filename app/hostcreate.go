@@ -46,10 +46,7 @@ func (s *HostService) ChangeDraft(repoPath, branch string) (ChangeDraft, error) 
 		return ChangeDraft{}, errors.New("integration is off for this repository's host")
 	}
 	ctx := context.Background()
-	draft := ChangeDraft{Branch: branch, Remote: remote.Name, Kind: "pull request"}
-	if changePrefix(info) == "!" {
-		draft.Kind = "merge request"
-	}
+	draft := ChangeDraft{Branch: branch, Remote: remote.Name, Kind: changeKind(info)}
 	branches, err := git.ListBranches(ctx, repoPath)
 	if err != nil {
 		return ChangeDraft{}, err
@@ -87,7 +84,7 @@ func (s *HostService) ChangeDraft(repoPath, branch string) (ChangeDraft, error) 
 // GitLab's Default.md or first template, GitHub's in any of its places.
 func changeTemplate(repoPath string, info HostInfo) string {
 	var candidates []string
-	if changePrefix(info) == "!" {
+	if isGitLab(info) {
 		dir := filepath.Join(repoPath, ".gitlab", "merge_request_templates")
 		candidates = append(candidates, filepath.Join(dir, "Default.md"))
 		if entries, err := os.ReadDir(dir); err == nil {
@@ -118,7 +115,7 @@ func changeTemplate(repoPath string, info HostInfo) string {
 // CreateChange is the one write to the host. The created change goes
 // straight into the cache so the branch shows it without a refresh.
 func (s *HostService) CreateChange(repoPath, branch string, input NewChangeInput) (hostapi.Change, error) {
-	remote, info, ok, err := primaryHost(repoPath)
+	_, info, ok, err := primaryHost(repoPath)
 	if err != nil {
 		return hostapi.Change{}, err
 	}
@@ -147,6 +144,5 @@ func (s *HostService) CreateChange(repoPath, branch string, input NewChangeInput
 	}
 	cached.changes = append([]hostapi.Change{change}, cached.changes...)
 	hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cached)
-	_ = remote
 	return change, nil
 }

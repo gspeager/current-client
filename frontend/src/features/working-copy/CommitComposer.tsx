@@ -3,6 +3,7 @@ import { GitCommitVertical, UserPlus, X } from 'lucide-react'
 import { CommitService, IdentityService, type AuthorInfo } from '@current-client-bindings/app'
 import { COMMIT_TYPES, parsePrefix, withPrefix } from '../../lib/conventionalCommit'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
@@ -310,11 +311,7 @@ function CommitComposer({
         }
       >
         <GitCommitVertical size={14} strokeWidth={1.75} />
-        {amend
-          ? 'Amend'
-          : stagedCount === 0 && allowEmpty
-            ? 'Commit (empty)'
-            : `Commit ${stagedCount} file${stagedCount === 1 ? '' : 's'}`}
+        {amend ? 'Amend' : stagedCount === 0 && allowEmpty ? 'Commit (empty)' : `Commit ${plural(stagedCount, 'file')}`}
       </SplitButton>
       {blockReason && <p className="commit-composer-block-hint">{blockReason}</p>}
       {error && <p className="commit-composer-error">{error}</p>}

@@ -17,6 +17,10 @@ const LABELS: Record<string, string> = {
   skipped: 'CI skipped',
 }
 
+export function ciLabel(status: string): string {
+  return LABELS[status] ?? `CI ${status}`
+}
+
 interface CIMarkProps {
   repoPath: string
   mark: CIMarkInfo | undefined
@@ -27,7 +31,7 @@ interface CIMarkProps {
 function CIMark({ repoPath, mark }: CIMarkProps) {
   const [open, setOpen] = useState(false)
   if (!mark?.status) return null
-  const label = LABELS[mark.status] ?? `CI ${mark.status}`
+  const label = ciLabel(mark.status)
   const onClick = (e: MouseEvent) => {
     e.stopPropagation()
     setOpen(true)
@@ -69,7 +73,7 @@ function PipelineJobs({ repoPath, mark, onClose }: { repoPath: string; mark: CIM
     [repoPath, mark.pipelineId],
   )
   return (
-    <Modal title={LABELS[mark.status] ?? 'Pipeline'} onClose={onClose} className="ci-jobs-panel">
+    <Modal title={ciLabel(mark.status)} onClose={onClose} className="ci-jobs-panel">
       <div className="ci-jobs">
         {error && <p className="ci-jobs-error">{errorMessage(error)}</p>}
         {jobs === null && !error && <p className="ci-jobs-hint">Loading jobs…</p>}

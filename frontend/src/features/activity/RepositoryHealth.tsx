@@ -1,6 +1,7 @@
 import { Check, X } from 'lucide-react'
 import { BranchService, DashboardService } from '@current-client-bindings/app'
 import { countHealthIssues, isStaleBranch, STALE_THRESHOLD_DAYS } from './repoHealth'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import './RepositoryHealth.scss'
@@ -38,7 +39,7 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
         <span className="repo-health-title">Repository health</span>
         {loaded && (
           <span className={`repo-health-badge repo-health-badge-${issueCount === 0 ? 'optimal' : 'attention'}`}>
-            {issueCount === 0 ? 'Optimal' : `${issueCount} issue${issueCount === 1 ? '' : 's'}`}
+            {issueCount === 0 ? 'Optimal' : plural(issueCount, 'issue')}
           </span>
         )}
       </div>
@@ -56,7 +57,7 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
                 <span className="repo-health-row-subtitle">
                   {staleBranchCount === 0
                     ? `No inactive branches >${STALE_THRESHOLD_DAYS}d`
-                    : `${staleBranchCount} branch${staleBranchCount === 1 ? '' : 'es'} inactive >${STALE_THRESHOLD_DAYS}d`}
+                    : `${plural(staleBranchCount, 'branch', 'branches')} inactive >${STALE_THRESHOLD_DAYS}d`}
                 </span>
               </div>
               <span className={`repo-health-value repo-health-value-${staleBranchCount === 0 ? 'ok' : 'warn'}`}>

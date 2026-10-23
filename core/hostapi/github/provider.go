@@ -130,7 +130,7 @@ func (p *Provider) OpenChanges(ctx context.Context, project string) ([]hostapi.C
 	truncated, err := p.client.GetPages(ctx, p.host, repoPath(project, "pulls"),
 		url.Values{"state": {"open"}, "per_page": {"100"}}, func(resp *hostapi.Response) error {
 			var page []pullRequest
-			if err := decode(resp, &page); err != nil {
+			if err := hostapi.DecodeJSON(resp, &page); err != nil {
 				return err
 			}
 			for _, pr := range page {
@@ -138,13 +138,13 @@ func (p *Provider) OpenChanges(ctx context.Context, project string) ([]hostapi.C
 			}
 			return nil
 		})
-	return changes, truncated, scoped(err)
+	return changes, truncated, hostapi.WithScope(err, scope)
 }
 
 func (p *Provider) Change(ctx context.Context, project string, number int) (hostapi.Change, error) {
 	var pr pullRequest
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "pulls", itoa(number)), nil, &pr); err != nil {
-		return hostapi.Change{}, scoped(err)
+	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number)), nil, &pr); err != nil {
+		return hostapi.Change{}, hostapi.WithScope(err, scope)
 	}
 	return toChange(pr), nil
 }
@@ -154,10 +154,10 @@ func (p *Provider) Change(ctx context.Context, project string, number int) (host
 func (p *Provider) Threads(ctx context.Context, project string, number int, headSHA string) ([]hostapi.Thread, error) {
 	var threads []hostapi.Thread
 	index := map[int64]int{}
-	_, err := p.client.GetPages(ctx, p.host, repoPath(project, "pulls", itoa(number), "comments"),
+	_, err := p.client.GetPages(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number), "comments"),
 		url.Values{"per_page": {"100"}}, func(resp *hostapi.Response) error {
 			var page []reviewComment
-			if err := decode(resp, &page); err != nil {
+			if err := hostapi.DecodeJSON(resp, &page); err != nil {
 				return err
 			}
 			for _, c := range page {
@@ -171,7 +171,7 @@ func (p *Provider) Threads(ctx context.Context, project string, number int, head
 			}
 			return nil
 		})
-	return threads, scoped(err)
+	return threads, hostapi.WithScope(err, scope)
 }
 
 // LatestPipeline is the commit's check runs and commit statuses read as one
@@ -200,11 +200,11 @@ func (p *Provider) Jobs(ctx context.Context, project string, pipelineID int64) (
 func (p *Provider) commitJobs(ctx context.Context, project, ref string) ([]hostapi.Job, error) {
 	var runs checkRuns
 	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "commits", ref, "check-runs"), url.Values{"per_page": {"100"}}, &runs); err != nil {
-		return nil, scoped(err)
+		return nil, hostapi.WithScope(err, scope)
 	}
 	var status commitStatus
 	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "commits", ref, "status"), nil, &status); err != nil {
-		return nil, scoped(err)
+		return nil, hostapi.WithScope(err, scope)
 	}
 	jobs := make([]hostapi.Job, 0, len(runs.CheckRuns)+len(status.Statuses))
 	for _, run := range runs.CheckRuns {
@@ -229,23 +229,16 @@ func (p *Provider) commitJobs(ctx context.Context, project, ref string) ([]hosta
 func (p *Provider) JobLog(ctx context.Context, project string, jobID int64, maxBytes int) (string, bool, error) {
 	resp, err := p.client.Get(ctx, p.host, repoPath(project, "actions", "jobs", strconv.FormatInt(jobID, 10), "logs"), nil)
 	if err != nil {
-		return "", false, scoped(err)
+		return "", false, hostapi.WithScope(err, scope)
 	}
-	body := resp.Body
-	if maxBytes > 0 && len(body) > maxBytes {
-		cut := body[len(body)-maxBytes:]
-		if i := strings.IndexByte(string(cut), '\n'); i >= 0 {
-			cut = cut[i+1:]
-		}
-		return string(cut), true, nil
-	}
-	return string(body), false, nil
+	log, truncated := hostapi.TailLog(resp.Body, maxBytes)
+	return log, truncated, nil
 }
 
 func (p *Provider) Issue(ctx context.Context, project string, number int) (hostapi.Issue, error) {
 	var is issue
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", itoa(number)), nil, &is); err != nil {
-		return hostapi.Issue{}, scoped(err)
+	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", strconv.Itoa(number)), nil, &is); err != nil {
+		return hostapi.Issue{}, hostapi.WithScope(err, scope)
 	}
 	return hostapi.Issue{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}, nil
 }
@@ -260,7 +253,7 @@ func (p *Provider) CreateChange(ctx context.Context, project string, change host
 	}
 	var pr pullRequest
 	if err := p.client.PostJSON(ctx, p.host, repoPath(project, "pulls"), body, &pr); err != nil {
-		return hostapi.Change{}, scoped(err)
+		return hostapi.Change{}, hostapi.WithScope(err, scope)
 	}
 	return toChange(pr), nil
 }
@@ -275,13 +268,13 @@ func (p *Provider) BranchRules(ctx context.Context, project string, branches []s
 	}
 	for _, branch := range branches {
 		var applied []rule
-		err := p.client.GetJSON(ctx, p.host, repoPath(project, "rules", "branches", escapeBranch(branch)), nil, &applied)
+		err := p.client.GetJSON(ctx, p.host, repoPath(project, "rules", "branches", url.PathEscape(branch)), nil, &applied)
 		var hostErr *hostapi.HostError
 		if errors.As(err, &hostErr) && (hostErr.Status == http.StatusNotFound || hostErr.Status == http.StatusForbidden) {
 			return rules, nil
 		}
 		if err != nil {
-			return nil, scoped(err)
+			return nil, hostapi.WithScope(err, scope)
 		}
 		if r, ok := branchRule(branch, applied); ok {
 			rules = append(rules, r)
@@ -310,7 +303,7 @@ func branchRule(branch string, applied []rule) (hostapi.BranchRule, bool) {
 func (p *Provider) CurrentUser(ctx context.Context) (hostapi.User, error) {
 	var u user
 	if err := p.client.GetJSON(ctx, p.host, "user", nil, &u); err != nil {
-		return hostapi.User{}, scoped(err)
+		return hostapi.User{}, hostapi.WithScope(err, scope)
 	}
 	return toUser(u), nil
 }
@@ -457,22 +450,4 @@ func (p *Provider) webRoot() string {
 // repoPath builds "repos/<owner>/<repo>/<parts…>".
 func repoPath(project string, parts ...string) string {
 	return strings.Join(append([]string{"repos", project}, parts...), "/")
-}
-
-func escapeBranch(branch string) string {
-	return url.PathEscape(branch)
-}
-
-func decode(resp *hostapi.Response, out any) error {
-	return hostapi.DecodeJSON(resp, out)
-}
-
-func itoa(n int) string { return strconv.Itoa(n) }
-
-func scoped(err error) error {
-	var hostErr *hostapi.HostError
-	if errors.As(err, &hostErr) && hostErr.Scope == "" {
-		hostErr.Scope = scope
-	}
-	return err
 }

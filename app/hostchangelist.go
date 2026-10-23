@@ -110,19 +110,30 @@ func (s *HostService) CheckoutChange(ctx context.Context, repoPath string, numbe
 	return CheckoutResult{Branch: name}, nil
 }
 
+func isGitLab(info HostInfo) bool {
+	return hostlink.Style(info.Provider) == hostlink.GitLab
+}
+
 // changeHeadRef is where the host publishes a change's head.
 func changeHeadRef(info HostInfo, number int) string {
-	if hostlink.Style(info.Provider) == hostlink.GitLab {
+	if isGitLab(info) {
 		return fmt.Sprintf("refs/merge-requests/%d/head", number)
 	}
 	return fmt.Sprintf("refs/pull/%d/head", number)
 }
 
 func changePrefix(info HostInfo) string {
-	if hostlink.Style(info.Provider) == hostlink.GitLab {
+	if isGitLab(info) {
 		return "!"
 	}
 	return "#"
+}
+
+func changeKind(info HostInfo) string {
+	if isGitLab(info) {
+		return "merge request"
+	}
+	return "pull request"
 }
 
 func primaryHost(repoPath string) (git.Remote, HostInfo, bool, error) {

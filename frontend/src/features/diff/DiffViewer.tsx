@@ -12,8 +12,9 @@ import { submoduleChange } from './submoduleChange'
 import { buildDisplayRows, diffStats } from './diffRows'
 import DiffPane, { lineKey, type HunkActions } from './DiffPane'
 import ReviewThreadBlock from './ReviewThreadBlock'
-import './DiffViewer.scss'
+import { toggled } from '../../lib/sets'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import './DiffViewer.scss'
 
 function formatMegabytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
@@ -74,15 +75,8 @@ function DiffViewer({
     const from = lastToggled.current ? order.indexOf(lastToggled.current) : -1
     const to = order.indexOf(key)
     setSelectedLines((prev) => {
-      const next = new Set(prev)
-      if (range && from !== -1) {
-        for (const k of order.slice(Math.min(from, to), Math.max(from, to) + 1)) next.add(k)
-      } else if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
-      return next
+      if (!range || from === -1) return toggled(prev, key)
+      return new Set([...prev, ...order.slice(Math.min(from, to), Math.max(from, to) + 1)])
     })
     lastToggled.current = key
   }
@@ -113,14 +107,7 @@ function DiffViewer({
     })
   })
 
-  const toggleGroup = (index: number) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev)
-      if (next.has(index)) next.delete(index)
-      else next.add(index)
-      return next
-    })
-  }
+  const toggleGroup = (index: number) => setExpandedGroups((prev) => toggled(prev, index))
 
   const submodule = submoduleChange(diff)
   if (submodule) return <SubmoduleDiff change={submodule} path={path} repoPath={repoPath} />

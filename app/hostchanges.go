@@ -8,7 +8,6 @@ import (
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
-	"github.com/gspeager/current-client/core/hostlink"
 )
 
 // BranchChange is what a branch row or graph ref shows for its merge
@@ -53,10 +52,7 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 	changes := map[string]BranchChange{}
 	for _, remote := range remotes {
 		info, _ := hostInfoFor(remote, hosts)
-		prefix := "#"
-		if hostlink.Style(info.Provider) == hostlink.GitLab {
-			prefix = "!"
-		}
+		prefix := changePrefix(info)
 		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRemoteRefs, remote.Name); ok {
 			refs := cached.(git.RemoteChanges)
 			if refs.Kind == git.MergeRequestRefs {

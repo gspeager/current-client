@@ -319,7 +319,6 @@ func onePerCommit(tags []git.DatedTag) []git.DatedTag {
 	return kept
 }
 
-// tagVersion drops the "v" from a semantic-version tag (v1.2.0 → 1.2.0).
 func tagVersion(tag string) string {
 	if semverTag.MatchString(tag) {
 		return strings.TrimPrefix(tag, "v")

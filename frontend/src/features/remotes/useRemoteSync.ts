@@ -2,6 +2,7 @@ import { BranchService, RemoteService, type PushResult } from '@current-client-b
 import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { errorMessage } from '../../lib/errors'
 import { protectionFor } from '../../lib/protection'
+import { primaryRemoteName } from '../../lib/remotes'
 import { useDialogs } from '../../lib/useDialogs'
 
 const NO_UPSTREAM = 'This branch has no upstream configured.'
@@ -34,12 +35,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
 
   const pushSettingUpstream = async (path: string) => {
     try {
-      const [status, remotes] = await Promise.all([BranchService.CurrentBranchStatus(path), RemoteService.List(path)])
-      const remoteName = remotes.find((r) => r.name === 'origin')?.name ?? remotes[0]?.name
-      if (!remoteName) {
-        pushOp.setError('No remote configured to push to.')
-        return
-      }
+      const [status, remoteName] = await Promise.all([BranchService.CurrentBranchStatus(path), primaryRemoteName(path)])
       const protection = await protectionFor(path, `${remoteName}/${status.current}`, 'push')
       const confirmed = await confirm({
         title: 'Set upstream',

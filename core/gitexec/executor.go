@@ -56,7 +56,6 @@ func NewExecutor(binary string) *Executor {
 	return &Executor{binary: binary}
 }
 
-// defaultEnv is the environment the default binary needs, set with it.
 func defaultEnv(binary string) []string {
 	defaultBinary.mu.RLock()
 	defer defaultBinary.mu.RUnlock()

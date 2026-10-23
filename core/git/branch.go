@@ -235,13 +235,8 @@ func originHead(ctx context.Context, repoPath string) string {
 
 func defaultBranch(branches []Branch, remoteHead string) string {
 	for _, candidate := range []string{remoteHead, "main", "master"} {
-		if candidate == "" {
-			continue
-		}
-		for _, b := range branches {
-			if b.Name == candidate {
-				return candidate
-			}
+		if candidate != "" && hasBranch(branches, candidate) {
+			return candidate
 		}
 	}
 	return ""

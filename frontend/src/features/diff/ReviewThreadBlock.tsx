@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronRight, MessageSquare } from 'lucide-react'
 import type { ReviewThread } from '@current-client-bindings/app'
 import HostMarkdown from '../../components/git/HostMarkdown'
+import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import './ReviewThreadBlock.scss'
 
@@ -31,9 +32,7 @@ function ReviewThreadBlock({ thread, where }: ReviewThreadBlockProps) {
         />
         <MessageSquare size={12} strokeWidth={1.75} />
         <span className="review-thread-summary">
-          {thread.resolved
-            ? 'Resolved'
-            : `${thread.notes?.length ?? 0} ${thread.notes?.length === 1 ? 'note' : 'notes'}`}
+          {thread.resolved ? 'Resolved' : plural(thread.notes?.length ?? 0, 'note')}
           {first ? ` · ${first.author}` : ''}
           {where ? ` · ${where}` : ''}
         </span>

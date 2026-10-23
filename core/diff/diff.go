@@ -273,8 +273,6 @@ type diffParser struct {
 	raw strings.Builder
 }
 
-// startHunk takes the old/new start and length groups matched by either
-// hunk header pattern.
 func (p *diffParser) startHunk(header string, m []string) {
 	p.finishHunk()
 	p.fd.Hunks = append(p.fd.Hunks, Hunk{
@@ -417,7 +415,6 @@ func (p *diffParser) parseCombinedBodyLine(line string) error {
 	return nil
 }
 
-// conflictMarkerRegion reports which section a marker line opens.
 func conflictMarkerRegion(content string) (conflictRegion, bool) {
 	switch {
 	case strings.HasPrefix(content, "<<<<<<<"):

@@ -62,7 +62,6 @@ func gitDirs(ctx context.Context, repoPath string) (repoDirs, error) {
 	return dirs.(repoDirs), err
 }
 
-// absoluteIn resolves a path git printed relative to repoPath.
 func absoluteIn(repoPath, dir string) string {
 	dir = strings.TrimSpace(dir)
 	if filepath.IsAbs(dir) {

@@ -8,6 +8,7 @@ import { errorMessage } from '../../lib/errors'
 import { buildFileTreeRows } from './fileTree'
 import { baseName } from '../../lib/paths'
 import { suggestedWorkingTreePatchFilename } from '../../lib/patchFilename'
+import { toggled } from '../../lib/sets'
 import { useFileTools } from '../history/useFileTools'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import type { WorkingTreeActions } from './useWorkingTreeActions'
@@ -93,15 +94,8 @@ function WorkingTreeFileList({
   const [anchorKey, setAnchorKey] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const toggleFolder = (section: WorkingTreeSection, path: string) => {
-    const key = `${section}:${path}`
-    setCollapsedFolders((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
+  const toggleFolder = (section: WorkingTreeSection, path: string) =>
+    setCollapsedFolders((prev) => toggled(prev, `${section}:${path}`))
 
   const query = filter.trim().toLowerCase()
   const filtered = useMemo(() => {
@@ -172,12 +166,7 @@ function WorkingTreeFileList({
 
   const toggleSelected = (section: WorkingTreeSection, path: string) => {
     const key = rowKey(section, path)
-    setSelectedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+    setSelectedKeys((prev) => toggled(prev, key))
     setAnchorKey(key)
   }
 

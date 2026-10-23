@@ -10,6 +10,7 @@ import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggl
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
 import { errorMessage } from '../../lib/errors'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHeadCommit } from './useHeadCommit'
@@ -253,9 +254,7 @@ function ChangesView({
                 <span className="changes-diff-stats">
                   <span className="changes-diff-stat-added">+{stats.added}</span>
                   <span className="changes-diff-stat-removed">-{stats.removed}</span>
-                  <span className="changes-diff-stat-hunks">
-                    {stats.hunks} hunk{stats.hunks === 1 ? '' : 's'}
-                  </span>
+                  <span className="changes-diff-stat-hunks">{plural(stats.hunks, 'hunk')}</span>
                 </span>
               )}
 

@@ -1,5 +1,6 @@
 import { ActivityService } from '@current-client-bindings/app'
 import { averageWeeklyCommits, busiestWeekday, weeklyBuckets } from './commitVelocity'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './CommitVelocityChart.scss'
 
@@ -42,7 +43,7 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
               <div
                 key={week.weekStart}
                 className="commit-velocity-bar-wrap"
-                title={`Week of ${week.weekStart}: ${week.commits} commit${week.commits === 1 ? '' : 's'}`}
+                title={`Week of ${week.weekStart}: ${plural(week.commits, 'commit')}`}
               >
                 <span
                   className="commit-velocity-bar"

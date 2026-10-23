@@ -192,12 +192,12 @@ func StashNumstat(ctx context.Context, repoPath string, index int) ([]NumstatEnt
 // stash saved (`stash push -u`), or "" when it saved none.
 func stashUntrackedRef(ctx context.Context, repoPath string, index int) (string, error) {
 	ref := stashRef(index)
-	result, err := runResult(ctx, repoPath, "rev-list", "--parents", "-n", "1", ref)
+	parents, err := parentCount(ctx, repoPath, ref)
 	if err != nil {
 		return "", err
 	}
-	// The stash commit itself, then its parents: HEAD, the index, and the untracked files.
-	if len(strings.Fields(result.Stdout)) < 4 {
+	// The parents are HEAD, the index, and the untracked files.
+	if parents < 3 {
 		return "", nil
 	}
 	return ref + "^3", nil

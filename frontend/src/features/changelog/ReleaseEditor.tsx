@@ -13,6 +13,7 @@ import Checkbox from '../../components/forms/Checkbox'
 import { changelogPdfBase64 } from './changelogPdf'
 import { COMMIT_TYPES } from '../../lib/conventionalCommit'
 import { errorMessage } from '../../lib/errors'
+import { toggled } from '../../lib/sets'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useDialogs } from '../../lib/useDialogs'
@@ -36,13 +37,6 @@ function countBy(entries: ChangelogEntry[], key: (e: ChangelogEntry) => string):
   const counts = new Map<string, number>()
   for (const e of entries) counts.set(key(e), (counts.get(key(e)) ?? 0) + 1)
   return [...counts]
-}
-
-function toggled(set: ReadonlySet<string>, value: string, on: boolean): ReadonlySet<string> {
-  const next = new Set(set)
-  if (on) next.add(value)
-  else next.delete(value)
-  return next
 }
 
 export interface ChangelogFilters {
@@ -168,14 +162,7 @@ function ReleaseEditor({
   }
 
   const toggle = (sha: string, include: boolean) =>
-    void regenerate(() =>
-      setExcluded((prev) => {
-        const next = new Set(prev)
-        if (include) next.delete(sha)
-        else next.add(sha)
-        return next
-      }),
-    )
+    void regenerate(() => setExcluded((prev) => toggled(prev, sha, !include)))
 
   // action resolves to the notice to show, or null when it was cancelled.
   const run = async (working: string, failure: string, action: () => Promise<string | null>) => {

@@ -59,7 +59,6 @@ const (
 	recentAuthorResultLimit = 20
 )
 
-// RecentAuthors returns distinct authors, most recently active first.
 func RecentAuthors(ctx context.Context, repoPath string) ([]Author, error) {
 	result, err := runResult(ctx, repoPath, "log", "-n", strconv.Itoa(recentAuthorScanLimit), "--format=%aN%x1f%aE")
 	if err != nil {

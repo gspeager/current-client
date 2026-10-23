@@ -89,7 +89,7 @@ func (s *HostService) List(repoPaths []string) ([]HostInfo, error) {
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		infos = append(infos, infoFor(hostByName(name, hosts), hosts))
+		infos = append(infos, infoFor(hostByName(name), hosts))
 	}
 	return infos, nil
 }
@@ -191,7 +191,7 @@ func (s *HostService) RemoveToken(hostname string) error {
 // else the host's user endpoint.
 func (s *HostService) TestConnection(hostname string) (string, error) {
 	hosts := configOrDefault().Hosts
-	info := infoFor(hostByName(hostname, hosts), hosts)
+	info := infoFor(hostByName(hostname), hosts)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	var name string
@@ -250,7 +250,7 @@ func hostInfoFor(remote git.Remote, hosts map[string]config.HostConfig) (HostInf
 
 // hostByName is a host with no remote behind it: its style is guessed from
 // the name alone.
-func hostByName(hostname string, hosts map[string]config.HostConfig) hostlink.Host {
+func hostByName(hostname string) hostlink.Host {
 	return hostlink.Host{Root: "https://" + hostname + "/", Style: hostlink.DefaultStyle(hostname)}
 }
 

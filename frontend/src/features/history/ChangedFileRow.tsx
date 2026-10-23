@@ -4,8 +4,8 @@ import type { ChangedFile as ChangedFileInfo } from '@current-client-bindings/ap
 import DiffStat from '../../components/git/DiffStat'
 import PathText from '../../components/git/PathText'
 import StatusBadge from '../../components/git/StatusBadge'
+import ThreadCount from '../../components/git/ThreadCount'
 import './ChangedFileRow.scss'
-import '../diff/ReviewThreadBlock.scss'
 
 interface ChangedFileRowProps {
   file: ChangedFileInfo
@@ -27,11 +27,7 @@ function ChangedFileRow({ file, selected, onSelect, onContextMenu, threads }: Ch
         onKeyDown={(e) => onContextMenu && isMenuKey(e) && onContextMenu(e)}
       >
         <PathText path={file.origPath ? `${file.origPath} → ${file.path}` : file.path} className="changed-file-path" />
-        {threads ? (
-          <span className="thread-count" title={`${threads} unresolved review ${threads === 1 ? 'thread' : 'threads'}`}>
-            {threads}
-          </span>
-        ) : null}
+        <ThreadCount count={threads} />
         <DiffStat added={file.added} removed={file.removed} binary={file.binary} />
         <StatusBadge status={file.status} />
       </button>

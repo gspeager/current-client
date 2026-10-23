@@ -3,6 +3,7 @@ import { BranchService, type MergedBranchInfo, RemoteService } from '@current-cl
 import Modal from '../../components/chrome/Modal'
 import Checkbox from '../../components/forms/Checkbox'
 import { errorMessage } from '../../lib/errors'
+import { toggled } from '../../lib/sets'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
@@ -34,13 +35,7 @@ function CleanUpBranchesDialog({ repoPath, onDeleted, onClose }: CleanUpBranches
     if (report) setSelected(new Set(report.branches.filter((b) => !b.newer).map((b) => b.name)))
   }, [report])
 
-  const toggle = (name: string, checked: boolean) =>
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (checked) next.add(name)
-      else next.delete(name)
-      return next
-    })
+  const toggle = (name: string, checked: boolean) => setSelected((prev) => toggled(prev, name, checked))
 
   const current = branches.find((b) => b.current && selected.has(b.name))
 

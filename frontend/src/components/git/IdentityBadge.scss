@@ -1,0 +1,18 @@
+.identity-badge {
+  // The ink must match core/identity's BadgeInk, which every badge color is
+  // checked for contrast against; it doesn't follow the theme.
+  --badge-ink: #0a0e16;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--badge-size);
+  height: var(--badge-size);
+  border-radius: 50%;
+  color: var(--badge-ink);
+  font-family: var(--font-mono);
+  font-size: calc(var(--badge-size) * 0.42);
+  font-weight: 600;
+  line-height: 1;
+}
