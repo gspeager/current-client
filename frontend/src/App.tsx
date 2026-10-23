@@ -235,7 +235,9 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     setFileFocus((n) => n + 1)
   }
 
+  // Only Abort reaches here now; the message the composer held was the aborted operation's.
   const onConflictResolved = () => {
+    remember({ commitDraft: '' })
     reloadConflictState()
     onBranchChanged()
   }

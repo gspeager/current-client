@@ -436,6 +436,7 @@ function BranchSidebar({
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
       <span className="branch-row-remote-name">{name}</span>
+      {conflict && name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
       <ConflictsBadge overlap={overlapFor.get(name)} />
       {!localNames.has(localNameFor(name, remoteNames)) && <span className="branch-row-meta">not local</span>}
     </li>

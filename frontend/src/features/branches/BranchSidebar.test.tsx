@@ -106,6 +106,22 @@ describe('BranchSidebar groups', () => {
     expect(screen.getByRole('button', { name: /^docs/ })).not.toHaveTextContent('incoming')
   })
 
+  it('badges a remote-tracking branch as incoming when that is what is merging', async () => {
+    render(
+      <DialogProvider>
+        <BranchSidebar
+          repoPath={REPO}
+          dirty={false}
+          refreshKey={0}
+          sections={openSections()}
+          conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'origin/login' })}
+        />
+      </DialogProvider>,
+    )
+
+    expect((await screen.findByText('origin/login')).closest('.branch-row')).toHaveTextContent('incoming')
+  })
+
   it('opens Branches when New branch is used on a closed section', async () => {
     const sections = { ...defaultSections(), isOpen: () => false }
     renderSidebar(vi.fn(), sections)
