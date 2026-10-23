@@ -8,19 +8,14 @@ export function useCommitActions(repoPath: string, onChanged?: () => void) {
   const { confirm } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const cherryPick = (sha: string) => {
+  const apply = (operation: (repoPath: string, sha: string) => Promise<void>) => (sha: string) => {
     setActionError(null)
-    CommitService.CherryPick(repoPath, sha)
+    operation(repoPath, sha)
       .catch((err: unknown) => setActionError(errorMessage(err)))
       .finally(() => onChanged?.())
   }
-
-  const revert = (sha: string) => {
-    setActionError(null)
-    CommitService.Revert(repoPath, sha)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
-      .finally(() => onChanged?.())
-  }
+  const cherryPick = apply(CommitService.CherryPick)
+  const revert = apply(CommitService.Revert)
 
   const checkoutCommit = async (sha: string) => {
     const confirmed = await confirm({

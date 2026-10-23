@@ -105,14 +105,24 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
+  // A refresh may have found something changed on the checked-out branch's change.
+  const collectHostNotices = () => {
+    if (!repo.repoPath || !hostIntegration) return
+    HostService.TakeNotices(repo.repoPath)
+      .then((notices) => notices.length > 0 && setHostNotices(notices))
+      .catch(() => undefined)
+  }
+
+  const onFetched = () => {
+    bumpRepoVersion()
+    reloadLastFetchTime()
+    collectHostNotices()
+  }
+
   // A pull fetches too, so it moves "fetched … ago" as well as the branch.
   const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(
     repo.repoPath,
-    () => {
-      bumpRepoVersion()
-      reloadLastFetchTime()
-      collectHostNotices()
-    },
+    onFetched,
     setPushed,
   )
   const workingTree = useWorkingTree(repo.repoPath)
@@ -132,20 +142,6 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const onBranchChanged = () => {
     bumpRepoVersion()
     workingTree.loadStatus()
-  }
-
-  // A refresh may have found something changed on the checked-out branch's change.
-  const collectHostNotices = () => {
-    if (!repo.repoPath || !hostIntegration) return
-    HostService.TakeNotices(repo.repoPath)
-      .then((notices) => notices.length > 0 && setHostNotices(notices))
-      .catch(() => undefined)
-  }
-
-  const onFetched = () => {
-    bumpRepoVersion()
-    reloadLastFetchTime()
-    collectHostNotices()
   }
 
   // Only ref moves bump repoVersion, since that remounts History and refetches Activity,

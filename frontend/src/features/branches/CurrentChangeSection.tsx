@@ -1,7 +1,8 @@
 import { ExternalLink, PanelRight, TriangleAlert } from 'lucide-react'
-import { HostService, PlatformService, RemoteService } from '@current-client-bindings/app'
+import { HostService, PlatformService } from '@current-client-bindings/app'
 import ChangeMarker from '../../components/git/ChangeMarker'
-import CIMark from '../../components/git/CIMark'
+import CIMark, { ciLabel } from '../../components/git/CIMark'
+import { createChangeFor } from '../../lib/createChange'
 import { ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useReviewThreads } from '../../lib/useReviewThreads'
@@ -38,12 +39,7 @@ function CurrentChangeSection({
   const canCreate = !change && !!data?.upstream
   if (!data?.enabled || (!change && conflicts.length === 0 && !canCreate)) return null
 
-  const createChange = () =>
-    onCreateChange && data?.branch
-      ? Promise.resolve(onCreateChange(data.branch))
-      : RemoteService.CreateChangeLink(repoPath, data?.branch ?? '')
-          .then((link) => (link ? PlatformService.OpenWebPage(link) : undefined))
-          .catch(ignoreDecorativeFailure)
+  const createChange = () => createChangeFor(repoPath, data.branch, onCreateChange)
 
   const kind = change
     ? change.prefix === '!'
@@ -152,18 +148,6 @@ function CurrentChangeSection({
       )}
     </section>
   )
-}
-
-function ciLabel(status: string): string {
-  const labels: Record<string, string> = {
-    success: 'CI passed',
-    failed: 'CI failed',
-    running: 'CI running',
-    pending: 'CI pending',
-    canceled: 'CI canceled',
-    skipped: 'CI skipped',
-  }
-  return labels[status] ?? `CI ${status}`
 }
 
 export default CurrentChangeSection

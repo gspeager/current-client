@@ -8,7 +8,6 @@ import {
   type OverlapInfo,
   OverlapService,
   PlatformService,
-  RemoteService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
@@ -16,7 +15,9 @@ import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import SetUpstreamDialog from './SetUpstreamDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
+import { createChangeFor } from '../../lib/createChange'
 import { errorMessage } from '../../lib/errors'
+import { plural } from '../../lib/plural'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
@@ -165,7 +166,7 @@ function BranchSidebar({
     if (target && target.behind > 0) {
       const confirmed = await confirm({
         title: `Merge ${name}`,
-        message: `${name} is ${target.behind} commit${target.behind === 1 ? '' : 's'} behind ${target.upstream}. Pull ${name} first to include the latest work, or merge it as it is.`,
+        message: `${name} is ${plural(target.behind, 'commit')} behind ${target.upstream}. Pull ${name} first to include the latest work, or merge it as it is.`,
         confirmLabel: 'Merge anyway',
       })
       if (!confirmed) return
@@ -242,13 +243,7 @@ function BranchSidebar({
     onBranchChanged?.()
   }
 
-  // The host's pre-filled form for a new merge request / pull request from the branch, built without the API.
-  const createChange = (name: string) =>
-    onCreateChange
-      ? Promise.resolve(onCreateChange(name))
-      : RemoteService.CreateChangeLink(repoPath, name)
-          .then((link) => (link ? PlatformService.OpenWebPage(link) : undefined))
-          .catch(() => undefined)
+  const createChange = (name: string) => createChangeFor(repoPath, name, onCreateChange)
 
   // The branch's merge request when one is known, else its tree on the host.
   const branchHostPage = (b: BranchInfo): string => {

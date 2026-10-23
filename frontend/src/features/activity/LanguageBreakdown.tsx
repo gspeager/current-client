@@ -1,5 +1,6 @@
 import { DashboardService } from '@current-client-bindings/app'
 import { groupTopLanguages, languageColor } from './languageColors'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './LanguageBreakdown.scss'
 
@@ -33,11 +34,7 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
     <div className="language-breakdown">
       <div className="language-breakdown-header">
         <span className="language-breakdown-title">Languages &amp; assets</span>
-        {languages && (
-          <span className="language-breakdown-total">
-            {total} total file{total === 1 ? '' : 's'}
-          </span>
-        )}
+        {languages && <span className="language-breakdown-total">{plural(total, 'total file')}</span>}
       </div>
 
       <div className="language-breakdown-body">
@@ -70,9 +67,7 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
                   <li key={l.extension} className="language-breakdown-row">
                     <span className="language-breakdown-dot" style={{ background: languageColor(l.extension) }} />
                     <span className="language-breakdown-extension">{extensionLabel(l.extension)}</span>
-                    <span className="language-breakdown-count">
-                      {l.count} file{l.count === 1 ? '' : 's'}
-                    </span>
+                    <span className="language-breakdown-count">{plural(l.count, 'file')}</span>
                     <span
                       className="language-breakdown-percent"
                       style={i === 0 ? { color: languageColor(l.extension) } : undefined}

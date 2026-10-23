@@ -3,6 +3,7 @@ import { TriangleAlert } from 'lucide-react'
 import { ConflictService, type ConflictStateInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { baseName } from '../../lib/paths'
+import { plural } from '../../lib/plural'
 import { useDialogs } from '../../lib/useDialogs'
 import './ConflictBanner.scss'
 
@@ -59,7 +60,7 @@ function ConflictBanner({ repoPath, state, onResolved, onOpenFile }: ConflictBan
       <TriangleAlert size={14} strokeWidth={1.75} className="conflict-banner-icon" />
       <span className="conflict-banner-text">
         {label} in progress
-        {remaining > 0 ? ` — ${remaining} file${remaining === 1 ? '' : 's'} conflicted` : ' — all conflicts resolved'}
+        {remaining > 0 ? ` — ${plural(remaining, 'file')} conflicted` : ' — all conflicts resolved'}
         {state.conflictedPaths.map((path) => (
           <button
             key={path}

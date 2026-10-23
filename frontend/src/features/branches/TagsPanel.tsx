@@ -1,13 +1,8 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, CloudOff, ExternalLink, Plus, Tag, Upload, X } from 'lucide-react'
-import {
-  PlatformService,
-  RemoteService,
-  type TagInfo,
-  type TagMessageInfo,
-  TagService,
-} from '@current-client-bindings/app'
+import { PlatformService, type TagInfo, type TagMessageInfo, TagService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
+import { primaryRemoteName } from '../../lib/remotes'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { withSignIn } from '../../lib/signIn'
@@ -72,20 +67,10 @@ function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
       .finally(() => setBusyName(null))
   }
 
-  // origin, or else the first remote.
-  const tagRemote = async () => {
-    const remotes = await RemoteService.List(repoPath)
-    const remoteName = remotes.find((r) => r.name === 'origin')?.name ?? remotes[0]?.name
-    if (!remoteName) {
-      throw new Error('No remote configured to push to.')
-    }
-    return remoteName
-  }
-
   const pushTag = (name: string) => {
     setActionError(null)
     setBusyName(name)
-    tagRemote()
+    primaryRemoteName(repoPath)
       .then((remote) => withSignIn((auth) => TagService.PushTag(repoPath, remote, name, auth), signIn))
       .catch((err: unknown) => setActionError(errorMessage(err)))
       .finally(() => setBusyName(null))
@@ -95,7 +80,7 @@ function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
     setActionError(null)
     let remote: string
     try {
-      remote = await tagRemote()
+      remote = await primaryRemoteName(repoPath)
     } catch (err) {
       setActionError(errorMessage(err))
       return

@@ -3,6 +3,7 @@ import { PlatformService, type BranchChange } from '@current-client-bindings/app
 import { ignoreDecorativeFailure } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import HoverCard from '../chrome/HoverCard'
+import { ciLabel } from './CIMark'
 import './ChangeMarker.scss'
 
 interface ChangeMarkerProps {
@@ -10,14 +11,6 @@ interface ChangeMarkerProps {
 }
 
 const STATE_LABELS: Record<string, string> = { open: 'open', merged: 'merged', closed: 'closed' }
-const CI_LABELS: Record<string, string> = {
-  success: 'CI passed',
-  failed: 'CI failed',
-  running: 'CI running',
-  pending: 'CI pending',
-  canceled: 'CI canceled',
-  skipped: 'CI skipped',
-}
 
 // The square marker for a branch's merge request / pull request: number,
 // state and CI result when the host is on, the number alone when only Git
@@ -26,7 +19,7 @@ function ChangeMarker({ change }: ChangeMarkerProps) {
   if (!change) return null
   const number = `${change.prefix}${change.number}`
   const state = change.draft ? 'draft' : (STATE_LABELS[change.state] ?? '')
-  const title = [number, change.title, state, CI_LABELS[change.ci]].filter(Boolean).join(' · ')
+  const title = [number, change.title, state, change.ci && ciLabel(change.ci)].filter(Boolean).join(' · ')
   const open = (e: MouseEvent) => {
     e.stopPropagation()
     if (change.webUrl) PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)
@@ -75,7 +68,7 @@ function ChangeCard({ change, number, state }: { change: BranchChange; number: s
         </p>
       )}
       <p className="hover-card-line">
-        {change.ci && <span>{CI_LABELS[change.ci] ?? change.ci}</span>}
+        {change.ci && <span>{ciLabel(change.ci)}</span>}
         {change.unresolvedThreads > 0 && <span>{change.unresolvedThreads} unresolved</span>}
         {change.updatedAt && (
           <span className="hover-card-muted">updated {relativeTime(new Date(change.updatedAt))}</span>
