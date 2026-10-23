@@ -39,11 +39,20 @@ interface BranchSidebarProps {
   onBranchChanged?: () => void
   onOpenChange?: (number: number) => void
   onOpenFile?: (path: string) => void
+  onCreateChange?: (branch: string) => void
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
 
-function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenChange, onOpenFile }: BranchSidebarProps) {
+function BranchSidebar({
+  repoPath,
+  dirty,
+  refreshKey,
+  onBranchChanged,
+  onOpenChange,
+  onOpenFile,
+  onCreateChange,
+}: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
   const {
@@ -217,9 +226,11 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenCha
 
   // The host's pre-filled form for a new merge request / pull request from the branch, built without the API.
   const createChange = (name: string) =>
-    RemoteService.CreateChangeLink(repoPath, name)
-      .then((link) => (link ? PlatformService.OpenWebPage(link) : undefined))
-      .catch(() => undefined)
+    onCreateChange
+      ? Promise.resolve(onCreateChange(name))
+      : RemoteService.CreateChangeLink(repoPath, name)
+          .then((link) => (link ? PlatformService.OpenWebPage(link) : undefined))
+          .catch(() => undefined)
 
   // The branch's merge request when one is known, else its tree on the host.
   const branchHostPage = (b: BranchInfo): string => {
@@ -352,6 +363,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenCha
         refreshKey={refreshKey}
         onOpenChange={onOpenChange}
         onOpenFile={onOpenFile}
+        onCreateChange={onCreateChange}
       />
       {branches === null ? (
         <p className="branch-sidebar-hint">Loading branches…</p>

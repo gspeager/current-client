@@ -33,6 +33,7 @@ import { useRepoVersion } from './features/repositories/useRepoVersion'
 import { useResizableWidth } from './lib/useResizableWidth'
 import HostChangesView, { changesLabelFor } from './features/host-changes/HostChangesView'
 import HostNoticeBanner from './components/chrome/HostNoticeBanner'
+import CreateChangeDialog from './features/host-changes/CreateChangeDialog'
 import { useHostPrompt } from './features/settings/useHostPrompt'
 import { useHostIndicator } from './lib/useHostIndicator'
 import { useHostLinks } from './lib/useHostLinks'
@@ -83,6 +84,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const [changeFocus, setChangeFocus] = useState<number | null>(null)
   const [hostNotices, setHostNotices] = useState<HostNotice[]>([])
   const [pushed, setPushed] = useState<PushResult | null>(null)
+  // The branch the in-app create form is open for.
+  const [createChangeFor, setCreateChangeFor] = useState<string | null>(null)
   const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
   // false only in a build made with the nohost tag; until known, assume the full build.
   const { data: hostIntegrationBuilt } = useAsyncData(() => PlatformService.HostIntegrationAvailable(), [])
@@ -219,6 +222,16 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     setActiveTab('changes')
   }
 
+  // With the host on, the in-app form; otherwise the host's pre-filled page.
+  const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
+
+  const onChangeCreated = (number: number) => {
+    setCreateChangeFor(null)
+    setPushed(null)
+    onBranchChanged()
+    openChange(number)
+  }
+
   const openWorkingFile = (path: string) => {
     remember({ selectedFilePath: path })
     setActiveTab('working-copy')
@@ -332,6 +345,14 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             />
           )}
           {workspace.modals}
+          {createChangeFor && repo.repoPath && (
+            <CreateChangeDialog
+              repoPath={repo.repoPath}
+              branch={createChangeFor}
+              onCreated={onChangeCreated}
+              onClose={() => setCreateChangeFor(null)}
+            />
+          )}
 
           {resetNotice}
           <HostNoticeBanner
@@ -365,7 +386,14 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           {pushed?.createLink && !changes[pushed.upstream]?.state && (
             <p className="app-inline-notice" role="status">
               Pushed {pushed.branch}.{' '}
-              <button type="button" onClick={() => void PlatformService.OpenWebPage(pushed.createLink)}>
+              <button
+                type="button"
+                onClick={() =>
+                  requestCreateChange
+                    ? requestCreateChange(pushed.branch)
+                    : void PlatformService.OpenWebPage(pushed.createLink)
+                }
+              >
                 Create {pushed.kind}
               </button>
               <button type="button" onClick={() => setPushed(null)} aria-label="Dismiss">
@@ -387,6 +415,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
               onOpenHeadCommit={openCommit}
               onOpenChange={openChange}
+              onOpenFile={openWorkingFile}
+              onCreateChange={requestCreateChange}
               onOpenRepository={repo.openRecent}
               width={navWidth.width}
               collapsed={navCollapsed}

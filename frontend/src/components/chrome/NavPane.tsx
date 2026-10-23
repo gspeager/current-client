@@ -42,6 +42,7 @@ interface NavPaneProps {
   // Opens a merge request / pull request in its tab.
   onOpenChange?: (number: number) => void
   onOpenFile?: (path: string) => void
+  onCreateChange?: (branch: string) => void
   // Opens a repository (such as a worktree or submodule) as a tab.
   onOpenRepository: (path: string) => void
   width: number
@@ -75,6 +76,7 @@ function NavPane({
   onCollapsedChange,
   onOpenChange,
   onOpenFile,
+  onCreateChange,
 }: NavPaneProps) {
   const [fsckBusy, setFsckBusy] = useState(false)
   const [fsckError, setFsckError] = useState<string | null>(null)
@@ -250,6 +252,7 @@ function NavPane({
             onBranchChanged={onBranchChanged}
             onOpenChange={onOpenChange}
             onOpenFile={onOpenFile}
+            onCreateChange={onCreateChange}
           />
         </section>
 
