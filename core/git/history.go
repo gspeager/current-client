@@ -164,7 +164,8 @@ func filterArgs(filter HistoryFilter) []string {
 		args = append(args, "--use-mailmap", "--author="+filter.Author)
 	}
 	if filter.Ref == "--all" {
-		args = append(args, "--all")
+		// Stash entries are commits under refs/stash; they aren't history.
+		args = append(args, "--exclude=refs/stash", "--all")
 	} else if filter.Ref != "" {
 		args = append(args, filter.Ref)
 	}

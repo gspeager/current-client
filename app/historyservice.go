@@ -63,6 +63,10 @@ func (s *HistoryService) GetCommitPosition(repoPath, sha string) (int, error) {
 	return git.CommitPosition(context.Background(), repoPath, sha)
 }
 
+func (s *HistoryService) BranchesContaining(repoPath, sha string) ([]string, error) {
+	return git.BranchesContaining(context.Background(), repoPath, sha)
+}
+
 func (s *HistoryService) ResolveCommit(repoPath, ref string) (string, error) {
 	return git.ResolveCommit(context.Background(), repoPath, ref)
 }

@@ -195,6 +195,16 @@ func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
 	return slices.Clone(branches), err
 }
 
+// BranchesContaining lists the local branches whose history includes sha.
+// for-each-ref, not branch, so a detached HEAD isn't listed as "(HEAD detached at …)".
+func BranchesContaining(ctx context.Context, repoPath, sha string) ([]string, error) {
+	result, err := runResult(ctx, repoPath, "for-each-ref", "refs/heads", "--contains", sha, "--format=%(refname:short)")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(result.Stdout), nil
+}
+
 func parseRemoteBranches(output string) []string {
 	var branches []string
 	for _, line := range strings.Split(output, "\n") {

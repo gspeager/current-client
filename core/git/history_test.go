@@ -346,3 +346,18 @@ func TestHistoryTypeFilter(t *testing.T) {
 		})
 	}
 }
+
+func TestHistoryAllLeavesOutStashes(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "first")
+	gittest.WriteFile(t, dir, "file.txt", "v2")
+	gittest.Run(t, dir, "stash", "push", "-m", "wip")
+
+	all, err := History(context.Background(), dir, 0, 0, HistoryFilter{Ref: "--all"})
+	if err != nil {
+		t.Fatalf("History (--all): %v", err)
+	}
+	if len(all) != 1 || all[0].Subject != "first" {
+		t.Fatalf("--all history includes the stash: %+v", all)
+	}
+}

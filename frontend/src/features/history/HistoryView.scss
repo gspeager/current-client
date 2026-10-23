@@ -43,10 +43,20 @@
   font: var(--ui-sm);
 }
 
+.history-footer {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+// Fixed, so the toolbar and the rows keep their room at every window width.
 .history-inspector {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  width: 360px;
   min-height: 0;
   background: var(--surface-low);
+  border-left: var(--border-structure);
 }

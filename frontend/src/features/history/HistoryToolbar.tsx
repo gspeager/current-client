@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Check, Copy, GitMerge, Search, User } from 'lucide-react'
+import { Check, Copy, Search, SlidersHorizontal } from 'lucide-react'
 import type { HistoryFilterInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
 import { BREAKING_FILTER, COMMIT_TYPES } from '../../lib/conventionalCommit'
 import { sinceDaysAgo } from '../../lib/relativeTime'
+import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
 import './HistoryToolbar.scss'
 
 interface HistoryToolbarProps {
@@ -19,6 +20,8 @@ interface HistoryToolbarProps {
   copied: boolean
 }
 
+// Search and the branch select stay in the bar at every width; the rest of the
+// filters live in one menu, whose badge counts the ones in effect.
 function HistoryToolbar({
   search,
   onSearchChange,
@@ -32,6 +35,10 @@ function HistoryToolbar({
   copied,
 }: HistoryToolbarProps) {
   const [sinceDays, setSinceDays] = useState(0)
+  const filtersRef = useDismissibleDetails()
+  const active = [filter.since !== '', showTypeFilter && filter.type !== '', filter.author !== '', hideMerges].filter(
+    Boolean,
+  ).length
 
   return (
     <div className="history-toolbar">
@@ -59,53 +66,68 @@ function HistoryToolbar({
           </option>
         ))}
       </select>
-      <select
-        className="history-toolbar-filter"
-        value={sinceDays}
-        onChange={(e) => {
-          const days = Number(e.target.value)
-          setSinceDays(days)
-          onFilterChange({ ...filter, since: sinceDaysAgo(days) })
-        }}
-        aria-label="Date filter"
-      >
-        <option value={0}>All time</option>
-        <option value={1}>Today</option>
-        <option value={7}>Past 7 days</option>
-        <option value={30}>Past 30 days</option>
-        <option value={90}>Past 90 days</option>
-      </select>
-      {showTypeFilter && (
-        <select
-          className="history-toolbar-filter"
-          value={filter.type}
-          onChange={(e) => onFilterChange({ ...filter, type: e.target.value })}
-          aria-label="Type filter"
-        >
-          <option value="">All types</option>
-          <option value={BREAKING_FILTER}>Breaking changes</option>
-          {COMMIT_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-      )}
-      <div className="history-toolbar-author">
-        <User size={14} strokeWidth={1.5} className="history-toolbar-author-icon" />
-        <input
-          className="history-toolbar-author-input"
-          type="text"
-          placeholder="Author"
-          value={filter.author}
-          onChange={(e) => onFilterChange({ ...filter, author: e.target.value })}
-          aria-label="Author filter"
-        />
-      </div>
-      <div className="history-toolbar-hide-merges">
-        <GitMerge size={14} strokeWidth={1.5} className="history-toolbar-hide-merges-icon" />
-        <Checkbox checked={hideMerges} onChange={onHideMergesChange} label="Hide merges" />
-      </div>
+      <details ref={filtersRef} className="history-toolbar-filters">
+        <summary className="history-toolbar-filters-toggle" aria-label={active ? `Filters, ${active} on` : 'Filters'}>
+          <SlidersHorizontal size={14} strokeWidth={1.5} />
+          Filters
+          {active > 0 && <span className="history-toolbar-filters-count">{active}</span>}
+        </summary>
+        <div className="history-toolbar-filters-menu">
+          <label className="history-toolbar-filters-row">
+            <span>Time</span>
+            <select
+              className="history-toolbar-filter"
+              value={sinceDays}
+              onChange={(e) => {
+                const days = Number(e.target.value)
+                setSinceDays(days)
+                onFilterChange({ ...filter, since: sinceDaysAgo(days) })
+              }}
+              aria-label="Date filter"
+            >
+              <option value={0}>All time</option>
+              <option value={1}>Today</option>
+              <option value={7}>Past 7 days</option>
+              <option value={30}>Past 30 days</option>
+              <option value={90}>Past 90 days</option>
+            </select>
+          </label>
+          {showTypeFilter && (
+            <label className="history-toolbar-filters-row">
+              <span>Type</span>
+              <select
+                className="history-toolbar-filter"
+                value={filter.type}
+                onChange={(e) => onFilterChange({ ...filter, type: e.target.value })}
+                aria-label="Type filter"
+              >
+                <option value="">All types</option>
+                <option value={BREAKING_FILTER}>Breaking changes</option>
+                {COMMIT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="history-toolbar-filters-row">
+            <span>Author</span>
+            <input
+              className="history-toolbar-author-input"
+              type="text"
+              placeholder="Any author"
+              value={filter.author}
+              onChange={(e) => onFilterChange({ ...filter, author: e.target.value })}
+              aria-label="Author filter"
+            />
+          </label>
+          <div className="history-toolbar-filters-row">
+            <span>Merges</span>
+            <Checkbox checked={hideMerges} onChange={onHideMergesChange} label="Hide merges" />
+          </div>
+        </div>
+      </details>
       <button
         type="button"
         className="history-toolbar-copy-graph"

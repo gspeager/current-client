@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   type BranchInfo,
@@ -118,8 +118,36 @@ describe('HistoryView', () => {
     ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
 
-    expect(await screen.findByRole('button', { name: 'Copy SHA' })).toHaveFocus()
-    expect(screen.getByRole('button', { name: 'Reset (hard) to here' })).toBeInTheDocument()
+    const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
+    expect(within(menu).getByRole('button', { name: 'Check out' })).toHaveFocus()
+    expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Check out',
+      'Branch here',
+      'Cherry-pick',
+      'Revert',
+      'Reset to here…',
+      'Export patch…',
+      'Copy SHA',
+    ])
+  })
+
+  it('opens a fixed inspector whose actions match the menu, and says how many commits there are', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    renderHistory()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Initial commit/ }))
+
+    const inspector = document.querySelector('.history-inspector')!
+    expect(inspector).not.toHaveAttribute('style')
+    expect(screen.queryByRole('separator', { name: 'Resize commit inspector' })).not.toBeInTheDocument()
+    expect([...inspector.querySelectorAll('.commit-detail-actions button')].map((b) => b.textContent)).toEqual([
+      'Check out',
+      'Branch here',
+      'Cherry-pick',
+      'Revert',
+      'More',
+    ])
+    expect(await screen.findByText('2 commits · stashes hidden')).toBeInTheDocument()
   })
 
   it('offers Open on host for a commit when a remote points at a host', async () => {
@@ -154,7 +182,9 @@ describe('HistoryView', () => {
       const prefix = await screen.findByText('feat(history):', { exact: false, selector: '.commit-row-type' })
       expect(prefix.parentElement).toHaveTextContent('feat(history): filter by type')
 
+      await userEvent.click(screen.getByText('Filters'))
       await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Type filter' }), 'Breaking changes')
+      expect(screen.getByText('Filters').closest('summary')).toHaveAttribute('aria-label', 'Filters, 1 on')
       expect(HistoryService.GetHistory).toHaveBeenLastCalledWith(
         REPO,
         expect.any(Number),
@@ -169,7 +199,9 @@ describe('HistoryView', () => {
 
       await screen.findByText('feat(history): filter by type')
       expect(document.querySelector('.commit-row-type')).toBeNull()
+      await userEvent.click(screen.getByText('Filters'))
       expect(screen.queryByRole('combobox', { name: 'Type filter' })).toBeNull()
+      expect(screen.getByRole('combobox', { name: 'Date filter' })).toBeInTheDocument()
     })
   })
 })
