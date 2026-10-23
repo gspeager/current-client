@@ -26,13 +26,21 @@ interface HostChangesViewProps {
   // A change to select, from the sidebar's Details; the list's own selection otherwise.
   selectedNumber?: number | null
   onBranchChanged: () => void
+  // After a refresh from this view's button.
+  onRefreshed?: () => void
 }
 
 // The merge request / pull request panel: open changes from the last
 // refresh, details for one, and checking it out locally. Opening the panel
 // for the first time, and its refresh button, are the only things here
 // that contact the host.
-function HostChangesView({ repoPath, label, selectedNumber = null, onBranchChanged }: HostChangesViewProps) {
+function HostChangesView({
+  repoPath,
+  label,
+  selectedNumber = null,
+  onBranchChanged,
+  onRefreshed,
+}: HostChangesViewProps) {
   const {
     data: list,
     error,
@@ -51,7 +59,10 @@ function HostChangesView({ repoPath, label, selectedNumber = null, onBranchChang
     setRefreshing(true)
     setRefreshError(null)
     HostService.Refresh(repoPath)
-      .then(reload)
+      .then(() => {
+        reload()
+        onRefreshed?.()
+      })
       .catch((err: unknown) => setRefreshError(errorMessage(err)))
       .finally(() => setRefreshing(false))
   }

@@ -2,7 +2,7 @@ import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
-import { GitService, HistoryService, PlatformService } from '@current-client-bindings/app'
+import { GitService, HistoryService, type HostNotice, HostService, PlatformService } from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
 import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './components/chrome/HeaderBar'
@@ -25,6 +25,7 @@ import { useRepositoryLifecycle } from './features/repositories/useRepositoryLif
 import { useRepoVersion } from './features/repositories/useRepoVersion'
 import { useResizableWidth } from './lib/useResizableWidth'
 import HostChangesView, { changesLabelFor } from './features/host-changes/HostChangesView'
+import HostNoticeBanner from './components/chrome/HostNoticeBanner'
 import { useHostPrompt } from './features/settings/useHostPrompt'
 import { useHostIndicator } from './lib/useHostIndicator'
 import { useSettings } from './features/settings/useSettings'
@@ -71,6 +72,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   // Bumped when a host switch may have changed, so the status bar's indicator follows.
   const [hostsVersion, setHostsVersion] = useState(0)
   const [changeFocus, setChangeFocus] = useState<number | null>(null)
+  const [hostNotices, setHostNotices] = useState<HostNotice[]>([])
   const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
   // false only in a build made with the nohost tag; until known, assume the full build.
   const { data: hostIntegrationBuilt } = useAsyncData(() => PlatformService.HostIntegrationAvailable(), [])
@@ -91,6 +93,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, () => {
     bumpRepoVersion()
     reloadLastFetchTime()
+    collectHostNotices()
   })
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
@@ -111,9 +114,18 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     workingTree.loadStatus()
   }
 
+  // A refresh may have found something changed on the checked-out branch's change.
+  const collectHostNotices = () => {
+    if (!repo.repoPath || !hostIntegration) return
+    HostService.TakeNotices(repo.repoPath)
+      .then((notices) => notices.length > 0 && setHostNotices(notices))
+      .catch(() => undefined)
+  }
+
   const onFetched = () => {
     bumpRepoVersion()
     reloadLastFetchTime()
+    collectHostNotices()
   }
 
   // Only ref moves bump repoVersion, since that remounts History and refetches Activity,
@@ -302,6 +314,12 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
           {workspace.modals}
 
           {resetNotice}
+          <HostNoticeBanner
+            notices={hostNotices}
+            onOpenChange={openChange}
+            onOpenFile={openWorkingFile}
+            onDismiss={() => setHostNotices([])}
+          />
           {pullOp.running && (
             <p className="app-inline-notice">
               Pulling… <button onClick={pullOp.cancel}>Cancel</button>
@@ -386,6 +404,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                     repoPath={repo.repoPath}
                     label={changesLabel}
                     selectedNumber={changeFocus}
+                    onRefreshed={collectHostNotices}
                     onBranchChanged={onBranchChanged}
                   />
                 </KeepAlive>
