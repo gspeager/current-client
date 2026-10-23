@@ -6,18 +6,6 @@
   gap: 2px;
 }
 
-.submodules-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-xs);
-}
-
-.submodules-panel-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
 .submodules-panel-update-all {
   height: var(--h-micro);
   padding: 0 var(--space-xs);

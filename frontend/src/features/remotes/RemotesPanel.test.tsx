@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { RemoteService } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import RemotesPanel from './RemotesPanel'
+import { defaultSections } from '../../test/sections'
 
 const REPO = '/repos/app'
 
@@ -14,7 +15,7 @@ function renderPanel(pruneOnFetch: boolean) {
   const onFetched = vi.fn()
   render(
     <DialogProvider>
-      <RemotesPanel repoPath={REPO} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
+      <RemotesPanel sections={defaultSections()} repoPath={REPO} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
     </DialogProvider>,
   )
   return onFetched

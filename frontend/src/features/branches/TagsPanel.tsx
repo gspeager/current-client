@@ -11,13 +11,16 @@ import { useDialogs } from '../../lib/useDialogs'
 import './TagsPanel.scss'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { tagPage } from '../../lib/hostPages'
+import SidebarSection from '../../components/chrome/SidebarSection'
+import type { SidebarSections } from '../../lib/useSidebarSections'
 
 interface TagsPanelProps {
   repoPath: string
+  sections: SidebarSections
   onTagChanged?: () => void
 }
 
-function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
+function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
   const hostLinks = useHostLinks(repoPath)
   useClockTick()
   const {
@@ -114,137 +117,144 @@ function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
     }
   }
 
+  const hasTags = (tags?.length ?? 0) > 0
+
+  const toggleNewTag = () => {
+    setShowNewTag((v) => !v)
+    sections.open('tags')
+  }
+
   return (
     <div className="tags-panel">
-      <div className="tags-panel-header">
-        <span className="tags-panel-label">Tags</span>
-        <button
-          type="button"
-          className="tags-panel-add"
-          onClick={() => setShowNewTag((v) => !v)}
-          aria-label="New tag"
-          title="New tag"
-        >
-          <Plus size={18} strokeWidth={1.75} />
-        </button>
-      </div>
-
-      {showNewTag && (
-        <div className="tags-panel-new">
-          <input
-            aria-label="new tag name"
-            placeholder="Tag name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            autoFocus
-          />
-          <input
-            aria-label="new tag message"
-            placeholder="Message (blank = lightweight tag)"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-          />
-          <button type="button" onClick={createTag} disabled={newName.trim() === ''}>
-            Create tag
+      <SidebarSection
+        label="Tags"
+        count={tags?.length}
+        open={sections.isOpen('tags', hasTags)}
+        onToggle={() => sections.toggle('tags', hasTags)}
+        actions={
+          <button type="button" className="tags-panel-add" onClick={toggleNewTag} aria-label="New tag" title="New tag">
+            <Plus size={18} strokeWidth={1.75} />
           </button>
-        </div>
-      )}
-
-      {error && <p className="tags-panel-error">{error}</p>}
-      {tags === null ? (
-        <p className="tags-panel-hint">Loading tags…</p>
-      ) : tags.length === 0 ? (
-        <p className="tags-panel-hint">No tags.</p>
-      ) : (
-        <ul className="tags-panel-list">
-          {tags.map((t) => (
-            <li key={t.name} className="tag-row-group">
-              <div
-                className={t.annotated ? 'tag-row tag-row-expandable' : 'tag-row'}
-                onClick={() => toggleExpand(t)}
-                title={t.name}
-              >
-                {t.annotated ? (
-                  expandedName === t.name ? (
-                    <ChevronDown size={14} strokeWidth={1.5} className="tag-row-chevron" />
+        }
+        pinned={
+          showNewTag && (
+            <div className="tags-panel-new">
+              <input
+                aria-label="new tag name"
+                placeholder="Tag name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                autoFocus
+              />
+              <input
+                aria-label="new tag message"
+                placeholder="Message (blank = lightweight tag)"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+              />
+              <button type="button" onClick={createTag} disabled={newName.trim() === ''}>
+                Create tag
+              </button>
+            </div>
+          )
+        }
+      >
+        {error && <p className="tags-panel-error">{error}</p>}
+        {tags === null ? (
+          <p className="tags-panel-hint">Loading tags…</p>
+        ) : tags.length === 0 ? (
+          <p className="tags-panel-hint">No tags.</p>
+        ) : (
+          <ul className="tags-panel-list">
+            {tags.map((t) => (
+              <li key={t.name} className="tag-row-group">
+                <div
+                  className={t.annotated ? 'tag-row tag-row-expandable' : 'tag-row'}
+                  onClick={() => toggleExpand(t)}
+                  title={t.name}
+                >
+                  {t.annotated ? (
+                    expandedName === t.name ? (
+                      <ChevronDown size={14} strokeWidth={1.5} className="tag-row-chevron" />
+                    ) : (
+                      <ChevronRight size={14} strokeWidth={1.5} className="tag-row-chevron" />
+                    )
                   ) : (
-                    <ChevronRight size={14} strokeWidth={1.5} className="tag-row-chevron" />
-                  )
-                ) : (
-                  <Tag size={14} strokeWidth={1.5} className="tag-row-icon" />
-                )}
-                <span className="tag-row-name">{t.name}</span>
-                <span className="tag-row-time">{relativeTime(new Date(t.date))}</span>
-                <span className="tag-row-actions">
-                  {hostLinks?.tag && (
+                    <Tag size={14} strokeWidth={1.5} className="tag-row-icon" />
+                  )}
+                  <span className="tag-row-name">{t.name}</span>
+                  <span className="tag-row-time">{relativeTime(new Date(t.date))}</span>
+                  <span className="tag-row-actions">
+                    {hostLinks?.tag && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void PlatformService.OpenWebPage(tagPage(hostLinks, t.name))
+                        }}
+                        aria-label={`Open tag ${t.name} on host`}
+                        title="Open on host"
+                      >
+                        <ExternalLink size={16} strokeWidth={1.75} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
-                        void PlatformService.OpenWebPage(tagPage(hostLinks, t.name))
+                        pushTag(t.name)
                       }}
-                      aria-label={`Open tag ${t.name} on host`}
-                      title="Open on host"
+                      disabled={busyName !== null}
+                      aria-label={`Push tag ${t.name}`}
+                      title="Push"
                     >
-                      <ExternalLink size={16} strokeWidth={1.75} />
+                      <Upload size={16} strokeWidth={1.75} />
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      pushTag(t.name)
-                    }}
-                    disabled={busyName !== null}
-                    aria-label={`Push tag ${t.name}`}
-                    title="Push"
-                  >
-                    <Upload size={16} strokeWidth={1.75} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      void deleteRemoteTag(t.name)
-                    }}
-                    disabled={busyName !== null}
-                    aria-label={`Delete tag ${t.name} on remote`}
-                    title="Delete on remote"
-                  >
-                    <CloudOff size={16} strokeWidth={1.75} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteTag(t.name)
-                    }}
-                    disabled={busyName !== null}
-                    aria-label={`Delete tag ${t.name}`}
-                    title="Delete"
-                  >
-                    <X size={16} strokeWidth={1.75} />
-                  </button>
-                </span>
-              </div>
-              {t.annotated && expandedName === t.name && (
-                <div className="tag-row-message">
-                  {messages.has(t.name) ? (
-                    <>
-                      <p className="tag-row-message-subject">{messages.get(t.name)!.subject}</p>
-                      {messages.get(t.name)!.body && (
-                        <p className="tag-row-message-body">{messages.get(t.name)!.body}</p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="tag-row-message-subject">Loading…</p>
-                  )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void deleteRemoteTag(t.name)
+                      }}
+                      disabled={busyName !== null}
+                      aria-label={`Delete tag ${t.name} on remote`}
+                      title="Delete on remote"
+                    >
+                      <CloudOff size={16} strokeWidth={1.75} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteTag(t.name)
+                      }}
+                      disabled={busyName !== null}
+                      aria-label={`Delete tag ${t.name}`}
+                      title="Delete"
+                    >
+                      <X size={16} strokeWidth={1.75} />
+                    </button>
+                  </span>
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                {t.annotated && expandedName === t.name && (
+                  <div className="tag-row-message">
+                    {messages.has(t.name) ? (
+                      <>
+                        <p className="tag-row-message-subject">{messages.get(t.name)!.subject}</p>
+                        {messages.get(t.name)!.body && (
+                          <p className="tag-row-message-body">{messages.get(t.name)!.body}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="tag-row-message-subject">Loading…</p>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </SidebarSection>
     </div>
   )
 }

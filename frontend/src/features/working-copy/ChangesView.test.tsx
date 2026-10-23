@@ -6,6 +6,7 @@ import {
   FileContent,
   FileDiff,
   PlatformService,
+  SettingsService,
   StashService,
   StatusService,
   type FileStatus,
@@ -439,6 +440,29 @@ describe('ChangesView expanded diff', () => {
     expect(screen.queryByRole('separator', { name: 'Resize file list' })).not.toBeInTheDocument()
     await userEvent.click(show)
     expect(onDiffExpandedChange).toHaveBeenCalledWith(false)
+  })
+})
+
+describe('ChangesView file groups', () => {
+  it('folds a group from its header and remembers the choice for the repository', async () => {
+    vi.mocked(SettingsService.SetSidebarSection).mockResolvedValue()
+    renderChanges([file('src/app.ts'), file('src/lib.ts', { indexStatus: 'M', worktreeStatus: '.' })])
+
+    const unstaged = screen.getByRole('button', { name: 'Unstaged, 1' })
+    expect(unstaged).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Staged, 1' })).toHaveAttribute('aria-expanded', 'true')
+    await userEvent.click(unstaged)
+
+    expect(screen.getByRole('button', { name: 'Unstaged, 1' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('button', { name: 'src/app.ts' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'src/lib.ts' })).toBeInTheDocument()
+    expect(SettingsService.SetSidebarSection).toHaveBeenCalledWith(REPO, 'files-unstaged', false)
+  })
+
+  it('starts an empty group closed', () => {
+    renderChanges([file('src/app.ts')])
+
+    expect(screen.getByRole('button', { name: 'Staged, 0' })).toHaveAttribute('aria-expanded', 'false')
   })
 })
 

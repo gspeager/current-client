@@ -183,6 +183,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const workspace = useWorkspaceActions({
     repoPath: repo.repoPath,
     hostLinks,
+    editorPath: settings.settings?.editorPath ?? '',
     onBranchChanged,
     onOpenCommit: (sha) => openCommit(sha),
     onFailure: () => settings.setNavCollapsed(false),
@@ -408,6 +409,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               workingTree={workingTree}
               workspaceActions={workspace.actions}
               workspaceFeedback={workspace.feedback}
+              onDismissFeedback={workspace.dismissFeedback}
               onBranchChanged={onBranchChanged}
               onFetched={onFetched}
               pruneOnFetch={settings.settings?.pruneOnFetch ?? false}

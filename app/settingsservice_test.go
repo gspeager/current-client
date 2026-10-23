@@ -78,3 +78,32 @@ func TestTitleBarThemeFollowsSavedTheme(t *testing.T) {
 		t.Error("system: SystemDefault, want an explicit Dark or Light so Wails doesn't override SetDarkTitleBar")
 	}
 }
+
+func TestSidebarSectionsAreKeptPerRepository(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("APPDATA", dir)
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("HOME", dir)
+	svc := &SettingsService{}
+
+	if err := svc.SetSidebarSection("/repos/a", "stash", false); err != nil {
+		t.Fatalf("SetSidebarSection: %v", err)
+	}
+	if err := svc.SetSidebarSection("/repos/a", "tags", true); err != nil {
+		t.Fatalf("SetSidebarSection: %v", err)
+	}
+	got, err := svc.GetSidebarSections("/repos/a")
+	if err != nil {
+		t.Fatalf("GetSidebarSections: %v", err)
+	}
+	if want := map[string]bool{"stash": false, "tags": true}; !reflect.DeepEqual(got, want) {
+		t.Errorf("sections = %#v, want %#v", got, want)
+	}
+	other, err := svc.GetSidebarSections("/repos/b")
+	if err != nil {
+		t.Fatalf("GetSidebarSections: %v", err)
+	}
+	if len(other) != 0 {
+		t.Errorf("another repository has sections %#v", other)
+	}
+}

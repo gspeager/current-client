@@ -8,6 +8,20 @@
   flex-direction: column;
 }
 
+.nav-pane-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-right: var(--space-xs);
+  border-bottom: var(--border-structure);
+
+  .head-commit-panel {
+    flex: 1;
+    min-width: 0;
+    border-bottom: none;
+  }
+}
+
 .nav-pane-scroll {
   flex: 1;
   min-height: 0;
@@ -16,6 +30,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+
+  > .current-change {
+    margin: 0 var(--space-md);
+  }
 }
 
 .nav-pane-section {
@@ -23,110 +41,6 @@
   flex-direction: column;
   gap: 2px;
   padding: 0 var(--space-md);
-}
-
-.nav-pane-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
-.nav-pane-section-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  width: 100%;
-  height: var(--h-micro);
-  margin-bottom: var(--space-xs);
-  padding: 0;
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-
-  &:hover .nav-pane-label {
-    color: var(--on-surface);
-  }
-}
-
-.nav-pane-section-chevron {
-  flex-shrink: 0;
-  color: var(--outline);
-}
-
-.nav-pane-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  width: 100%;
-  height: var(--h-row-tree);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
-  font: var(--ui-sm);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--surface-container);
-  }
-}
-
-.nav-pane-row-label {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-}
-
-.nav-pane-row-icon {
-  flex-shrink: 0;
-  color: var(--outline);
-}
-
-.nav-pane-error {
-  margin: 0;
-  padding: 0 var(--space-sm);
-  color: var(--error);
-  font: var(--ui-xs);
-}
-
-.nav-pane-success {
-  margin: 0;
-  padding: 0 var(--space-sm);
-  color: var(--tertiary);
-  font: var(--ui-xs);
-}
-
-.nav-pane-fsck-issues {
-  padding: var(--space-xs) var(--space-sm);
-  background: color-mix(in srgb, var(--warning) 12%, transparent);
-  border-radius: var(--radius-xs);
-  color: var(--warning);
-  font: var(--ui-xs);
-
-  p {
-    margin: 0;
-
-    & + p {
-      margin-top: 2px;
-    }
-  }
-}
-
-.nav-pane-section-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-
-  > .nav-pane-label {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .nav-pane-section-toggle {
-    flex: 1;
-    min-width: 0;
-  }
 }
 
 .nav-pane-collapse,
@@ -151,7 +65,6 @@
 .nav-pane-collapse {
   width: var(--h-chip);
   height: var(--h-chip);
-  margin-bottom: var(--space-xs);
 }
 
 // Icon-only rail: one row-tree-sized button per action, centered in the column.
@@ -163,6 +76,13 @@
   padding: var(--space-md) 0;
   overflow-y: auto;
   border-right: var(--border-structure);
+}
+
+.nav-pane-rail-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
 }
 
 .nav-pane-rail-button {
@@ -177,9 +97,82 @@
   background: var(--surface-highest);
 }
 
-// Wraps rather than overflows when the pane is narrowed to its minimum.
-.nav-pane-workspace {
+.nav-pane-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-top: var(--border-structure);
+}
+
+// "Open in: Terminal · Finder · VS Code", wrapping when the pane is narrow.
+.nav-pane-action-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-xs);
+  row-gap: 2px;
+  min-height: var(--h-micro);
+  font: var(--ui-xs);
+}
+
+.nav-pane-action-row-label {
+  color: var(--outline);
+
+  &::after {
+    content: ':';
+  }
+}
+
+.nav-pane-action {
+  display: inline-flex;
+  align-items: center;
   gap: 2px;
+  height: var(--h-micro);
+  padding: 0 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  & + &::before {
+    content: '·';
+    margin-right: var(--space-xs);
+    color: var(--outline);
+  }
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.nav-pane-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: 0;
+  font: var(--ui-xs);
+  white-space: pre-line;
+
+  > span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  > button {
+    @include patterns.tab-close;
+  }
+}
+
+.nav-pane-feedback-error {
+  color: var(--error);
+}
+
+.nav-pane-feedback-notice {
+  color: var(--tertiary);
 }

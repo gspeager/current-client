@@ -1,0 +1,48 @@
+@use '../../styles/patterns';
+
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.sidebar-section-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-micro);
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover .sidebar-section-label,
+  &:hover .sidebar-section-chevron {
+    color: var(--on-surface);
+  }
+}
+
+.sidebar-section-chevron {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.sidebar-section-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.sidebar-section-count {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.sidebar-section-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}

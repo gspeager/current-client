@@ -202,3 +202,23 @@ func (s *SettingsService) SetPaneWidth(key string, width int) error {
 		cfg.PaneWidths[key] = width
 	})
 }
+
+func (s *SettingsService) GetSidebarSections(repoPath string) (map[string]bool, error) {
+	cfg, _, err := loadCurrentConfig()
+	if err != nil {
+		return nil, err
+	}
+	return cfg.SidebarSections[repoPath], nil
+}
+
+func (s *SettingsService) SetSidebarSection(repoPath, section string, open bool) error {
+	return updateConfig(func(cfg *config.Config) {
+		if cfg.SidebarSections == nil {
+			cfg.SidebarSections = map[string]map[string]bool{}
+		}
+		if cfg.SidebarSections[repoPath] == nil {
+			cfg.SidebarSections[repoPath] = map[string]bool{}
+		}
+		cfg.SidebarSections[repoPath][section] = open
+	})
+}

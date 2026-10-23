@@ -27,6 +27,7 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Changed
 
+- **The sidebar is restructured.** HEAD is one line at the top, with your branch's pull request under it; every section folds from its header and keeps its count and add button while closed, empty sections start closed, and what you open or close is remembered per repository (the changed-files groups in Changes fold the same way). Branches come in **Checked out**, **Local** and **Remote** groups with a filter, a **conflicts** badge in place of the warning glyph, and the time on hover. The icon row became **Open in** (Terminal, file manager, your editor, the host) and **Tools** (Undo, Reflog, Bisect, Import patch, Maintenance) rows at the bottom; messages there can be dismissed. Remotes on disk show the end of their path rather than overflowing. ([#217](https://github.com/gspeager/current-client/issues/217))
 - One name per concept across the app: the tabs read **Changes** (with the count of changed files), **History**, **Pull requests** / **Merge requests**, **Activity**, **Changelog**; branch menus say **Check out** like the buttons; the command palette is **Go to anything** and at rest lists local branches, recent repositories and actions rather than everything, with settings appearing once typed for; the sidebar's merge request section and the create dialog use the host's own word; the diff's side labels are **HEAD** and **Staged**. ([#216](https://github.com/gspeager/current-client/issues/216))
 
 ### What works at each level of access

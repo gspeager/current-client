@@ -5,23 +5,28 @@ import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import PathText from '../../components/git/PathText'
+import SidebarSection from '../../components/chrome/SidebarSection'
+import type { SidebarSections } from '../../lib/useSidebarSections'
 import './RemotesPanel.scss'
 
 interface RemotesPanelProps {
   repoPath: string
+  sections: SidebarSections
   onFetched?: () => void
   pruneOnFetch?: boolean
 }
 
-function hostLabel(url: string): string {
+// The host for a URL; null for a filesystem remote, whose path is shown instead.
+function hostLabel(url: string): string | null {
   const httpMatch = url.match(/^\w+:\/\/([^/]+)/)
   if (httpMatch) return httpMatch[1].replace(/^www\./, '')
   const sshMatch = url.match(/^[\w.-]+@([^:/]+)/)
   if (sshMatch) return sshMatch[1]
-  return url
+  return null
 }
 
-function RemotesPanel({ repoPath, onFetched, pruneOnFetch = false }: RemotesPanelProps) {
+function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: RemotesPanelProps) {
   const {
     data: remotes,
     error: loadError,
@@ -87,97 +92,109 @@ function RemotesPanel({ repoPath, onFetched, pruneOnFetch = false }: RemotesPane
     fetchOp.run((auth) => fetch(repoPath, auth), onFetched).finally(() => setFetchingRemote(null))
   }
 
+  const hasRemotes = (remotes?.length ?? 0) > 0
+
   return (
     <div className="remotes-panel">
-      <div className="remotes-panel-header">
-        <span className="remotes-panel-label">Remotes</span>
-        <button
-          type="button"
-          className="remotes-panel-add"
-          onClick={() => setShowAddRemote((v) => !v)}
-          aria-label="Add remote"
-          title="Add remote"
-        >
-          <Plus size={18} strokeWidth={1.75} />
-        </button>
-      </div>
-
-      {showAddRemote && (
-        <div className="remotes-panel-new">
-          <input
-            aria-label="new remote name"
-            placeholder="Remote name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            autoFocus
-          />
-          <input
-            aria-label="new remote url"
-            placeholder="Remote URL"
-            value={newUrl}
-            onChange={(e) => setNewUrl(e.target.value)}
-          />
-          <button type="button" onClick={addRemote} disabled={newName.trim() === '' || newUrl.trim() === ''}>
-            Add remote
+      <SidebarSection
+        label="Remotes"
+        count={remotes?.length}
+        open={sections.isOpen('remotes', hasRemotes)}
+        onToggle={() => sections.toggle('remotes', hasRemotes)}
+        actions={
+          <button
+            type="button"
+            className="remotes-panel-add"
+            onClick={() => setShowAddRemote((v) => !v)}
+            aria-label="Add remote"
+            title="Add remote"
+          >
+            <Plus size={18} strokeWidth={1.75} />
           </button>
-        </div>
-      )}
-
-      {error && <p className="remotes-panel-error">{error}</p>}
-      {fetchOp.error && <p className="remotes-panel-error">Could not fetch: {fetchOp.error}</p>}
-      {remotes === null ? (
-        <p className="remotes-panel-hint">Loading remotes…</p>
-      ) : remotes.length === 0 ? (
-        <p className="remotes-panel-hint">No remotes.</p>
-      ) : (
-        <>
-          {remotes.length > 1 && (
-            <button
-              type="button"
-              className="remotes-panel-fetch-all"
-              onClick={fetchingRemote === '*' ? fetchOp.cancel : fetchAll}
-              disabled={fetchingRemote !== null && fetchingRemote !== '*'}
-            >
-              {fetchingRemote === '*' ? 'Fetching all… (cancel)' : 'Fetch all'}
-            </button>
-          )}
-          <ul className="remotes-panel-list">
-            {remotes.map((r) => (
-              <li key={r.name} className="remote-row" title={r.fetchUrl}>
-                <Cloud size={14} strokeWidth={1.5} className="remote-row-icon" />
-                <span className="remote-row-name">{r.name}</span>
-                <span className="remote-row-host">{hostLabel(r.fetchUrl)}</span>
-                <span className="remote-row-actions">
-                  <button
-                    type="button"
-                    onClick={() => (fetchingRemote === r.name ? fetchOp.cancel() : fetchRemote(r.name))}
-                    disabled={fetchingRemote !== null && fetchingRemote !== r.name}
-                    aria-label={fetchingRemote === r.name ? `Cancel fetching ${r.name}` : `Fetch ${r.name}`}
-                    title={fetchingRemote === r.name ? 'Cancel fetching' : 'Fetch'}
-                  >
-                    {fetchingRemote === r.name ? (
+        }
+        pinned={
+          showAddRemote && (
+            <div className="remotes-panel-new">
+              <input
+                aria-label="new remote name"
+                placeholder="Remote name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                autoFocus
+              />
+              <input
+                aria-label="new remote url"
+                placeholder="Remote URL"
+                value={newUrl}
+                onChange={(e) => setNewUrl(e.target.value)}
+              />
+              <button type="button" onClick={addRemote} disabled={newName.trim() === '' || newUrl.trim() === ''}>
+                Add remote
+              </button>
+            </div>
+          )
+        }
+      >
+        {error && <p className="remotes-panel-error">{error}</p>}
+        {fetchOp.error && <p className="remotes-panel-error">Could not fetch: {fetchOp.error}</p>}
+        {remotes === null ? (
+          <p className="remotes-panel-hint">Loading remotes…</p>
+        ) : remotes.length === 0 ? (
+          <p className="remotes-panel-hint">No remotes.</p>
+        ) : (
+          <>
+            {remotes.length > 1 && (
+              <button
+                type="button"
+                className="remotes-panel-fetch-all"
+                onClick={fetchingRemote === '*' ? fetchOp.cancel : fetchAll}
+                disabled={fetchingRemote !== null && fetchingRemote !== '*'}
+              >
+                {fetchingRemote === '*' ? 'Fetching all… (cancel)' : 'Fetch all'}
+              </button>
+            )}
+            <ul className="remotes-panel-list">
+              {remotes.map((r) => (
+                <li key={r.name} className="remote-row" title={r.fetchUrl}>
+                  <Cloud size={14} strokeWidth={1.5} className="remote-row-icon" />
+                  <span className="remote-row-name">{r.name}</span>
+                  {hostLabel(r.fetchUrl) ? (
+                    <span className="remote-row-host">{hostLabel(r.fetchUrl)}</span>
+                  ) : (
+                    <PathText path={r.fetchUrl} className="remote-row-path" />
+                  )}
+                  <span className="remote-row-actions">
+                    <button
+                      type="button"
+                      onClick={() => (fetchingRemote === r.name ? fetchOp.cancel() : fetchRemote(r.name))}
+                      disabled={fetchingRemote !== null && fetchingRemote !== r.name}
+                      aria-label={fetchingRemote === r.name ? `Cancel fetching ${r.name}` : `Fetch ${r.name}`}
+                      title={fetchingRemote === r.name ? 'Cancel fetching' : 'Fetch'}
+                    >
+                      {fetchingRemote === r.name ? (
+                        <X size={16} strokeWidth={1.75} />
+                      ) : (
+                        <RefreshCw size={16} strokeWidth={1.75} />
+                      )}
+                    </button>
+                    <button type="button" onClick={() => editRemote(r)} aria-label={`Edit ${r.name}`} title="Edit">
+                      <Pencil size={16} strokeWidth={1.75} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeRemote(r.name)}
+                      aria-label={`Remove ${r.name}`}
+                      title="Remove"
+                    >
                       <X size={16} strokeWidth={1.75} />
-                    ) : (
-                      <RefreshCw size={16} strokeWidth={1.75} />
-                    )}
-                  </button>
-                  <button type="button" onClick={() => editRemote(r)} aria-label={`Edit ${r.name}`} title="Edit">
-                    <Pencil size={16} strokeWidth={1.75} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeRemote(r.name)}
-                    aria-label={`Remove ${r.name}`}
-                    title="Remove"
-                  >
-                    <X size={16} strokeWidth={1.75} />
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </SidebarSection>
     </div>
   )
 }

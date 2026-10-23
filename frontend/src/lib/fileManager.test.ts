@@ -1,5 +1,5 @@
 import { System } from '@wailsio/runtime'
-import { revealInFileManagerLabel } from './fileManager'
+import { fileManagerName, revealInFileManagerLabel } from './fileManager'
 
 vi.mock('@wailsio/runtime', () => ({ System: { IsMac: vi.fn(), IsWindows: vi.fn() } }))
 
@@ -14,5 +14,15 @@ describe('revealInFileManagerLabel', () => {
 
     vi.mocked(System.IsWindows).mockReturnValue(false)
     expect(revealInFileManagerLabel()).toBe('Open in File Manager')
+  })
+})
+
+describe('fileManagerName', () => {
+  it('is the short name used in the sidebar row', () => {
+    vi.mocked(System.IsMac).mockReturnValue(true)
+    expect(fileManagerName()).toBe('Finder')
+    vi.mocked(System.IsMac).mockReturnValue(false)
+    vi.mocked(System.IsWindows).mockReturnValue(true)
+    expect(fileManagerName()).toBe('File Explorer')
   })
 })

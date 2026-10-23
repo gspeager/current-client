@@ -3,51 +3,42 @@
 .head-commit-panel {
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: var(--space-xs);
-  margin: var(--space-md);
-  padding: var(--space-sm);
-  background: var(--surface);
-  border: var(--border-structure);
-  border-radius: var(--radius);
+  width: 100%;
+  height: var(--h-row-tree);
+  margin: 0;
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-bottom: var(--border-structure);
   text-align: left;
   cursor: pointer;
 
   &:hover {
     background: var(--surface-container);
-    border-color: var(--outline);
   }
 }
 
-.head-commit-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.head-commit-panel-label-group {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.head-commit-panel-icon {
-  color: var(--outline);
-}
-
 .head-commit-panel-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
+  flex-shrink: 0;
+  padding: 1px var(--space-xs);
+  background: var(--primary);
+  border-radius: var(--radius-xs);
+  color: var(--on-primary);
+  font: var(--eyebrow);
+  letter-spacing: var(--eyebrow-tracking);
 }
 
 .head-commit-panel-sha {
+  flex-shrink: 0;
   color: var(--primary);
   font: var(--data-sm);
 }
 
 .head-commit-panel-subject {
-  display: block;
+  min-width: 0;
+  @include patterns.truncate;
   color: var(--on-surface);
   font: var(--ui-sm);
 }

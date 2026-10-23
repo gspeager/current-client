@@ -14,6 +14,7 @@ import {
 import { Links, Style } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchSidebar from './BranchSidebar'
+import { defaultSections } from '../../test/sections'
 
 const REPO = '/repos/app'
 
@@ -21,14 +22,81 @@ function branch(name: string, current = false): BranchInfo {
   return { name, current, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath: '', tip: '' }
 }
 
-function renderSidebar(onBranchChanged = vi.fn()) {
+function renderSidebar(onBranchChanged = vi.fn(), sections = defaultSections()) {
   render(
     <DialogProvider>
-      <BranchSidebar repoPath={REPO} dirty={false} refreshKey={0} onBranchChanged={onBranchChanged} />
+      <BranchSidebar
+        repoPath={REPO}
+        dirty={false}
+        refreshKey={0}
+        sections={sections}
+        onBranchChanged={onBranchChanged}
+      />
     </DialogProvider>,
   )
   return onBranchChanged
 }
+
+// Sections that are all open, so remote rows render.
+function openSections() {
+  return { ...defaultSections(), isOpen: () => true }
+}
+
+describe('BranchSidebar groups', () => {
+  beforeEach(() => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([
+      branch('main', true),
+      { ...branch('feature'), lastCommitDate: '2026-10-20T00:00:00Z' },
+      branch('docs'),
+    ])
+    vi.mocked(BranchService.ListRemote).mockResolvedValue(['origin/feature', 'origin/login'])
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin', fetchUrl: 'git@github.com:g/r.git' }] as never)
+  })
+
+  it('lists the checked-out branch first, then Local with a count, then Remote closed', async () => {
+    renderSidebar()
+
+    const checkedOut = (await screen.findByText('Checked out')).parentElement!
+    expect(within(checkedOut).getByRole('button', { name: /^main/ })).toHaveTextContent('HEAD')
+    expect(screen.getByRole('button', { name: 'Local, 2' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Remote, 2' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText('origin/login')).not.toBeInTheDocument()
+  })
+
+  it('filters local and remote branches together', async () => {
+    renderSidebar(vi.fn(), openSections())
+
+    await screen.findByText('origin/login')
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filter branches' }), 'log')
+
+    expect(screen.getByRole('button', { name: 'Local, 0' })).toBeInTheDocument()
+    expect(screen.getByText('origin/login')).toBeInTheDocument()
+    expect(screen.queryByText('origin/feature')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^main/ })).toBeInTheDocument()
+  })
+
+  it('checks out a remote branch by its local name, and says when it has none yet', async () => {
+    vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
+    renderSidebar(vi.fn(), openSections())
+
+    const login = (await screen.findByText('origin/login')).closest('.branch-row')!
+    expect(login).toHaveTextContent('not local')
+    expect((await screen.findByText('origin/feature')).closest('.branch-row')).not.toHaveTextContent('not local')
+    await userEvent.click(login)
+
+    expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'login')
+  })
+
+  it('opens Branches when New branch is used on a closed section', async () => {
+    const sections = { ...defaultSections(), isOpen: () => false }
+    renderSidebar(vi.fn(), sections)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New branch' }))
+
+    expect(sections.open).toHaveBeenCalledWith('branches')
+    expect(screen.getByRole('textbox', { name: 'new branch name' })).toBeInTheDocument()
+  })
+})
 
 describe('BranchSidebar', () => {
   it('offers to create a merge request for a pushed branch without one, through the host’s form', async () => {
@@ -431,18 +499,26 @@ describe('BranchSidebar overlap prediction', () => {
     ],
   })
 
-  it('marks local and remote branches that would conflict', async () => {
+  it('badges local and remote branches that would conflict', async () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('spike'), branch('docs')])
+    vi.mocked(BranchService.ListRemote).mockResolvedValue(['origin/login', 'origin/main'])
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin', fetchUrl: 'git@github.com:g/r.git' }] as never)
     vi.mocked(OverlapService.Predict).mockResolvedValue(report(true))
-    renderSidebar()
+    const sections = defaultSections()
+    renderSidebar(vi.fn(), sections)
 
-    const marks = await screen.findAllByRole('img', { name: /^Would conflict with the current branch/ })
-    expect(marks.map((m) => m.getAttribute('aria-label'))).toEqual([
-      'Would conflict with the current branch: src/app.ts, README.md',
-      'Would conflict with the current branch: src/app.ts',
-    ])
-    expect(screen.getByRole('button', { name: /^spike/ })).toContainElement(marks[0])
-    expect(screen.getByText('Remote branches that would conflict').parentElement).toHaveTextContent('origin/login')
+    const badge = await screen.findByTitle('Would conflict with the current branch: src/app.ts, README.md')
+    expect(badge).toHaveTextContent('conflicts')
+    expect(screen.getByRole('button', { name: /^spike/ })).toContainElement(badge)
+    expect(screen.queryByRole('button', { name: /^docs/ })).not.toContainElement(
+      screen.queryByText('conflicts', { selector: '.branch-row:nth-child(3) *' }),
+    )
+
+    // The Remote group is closed by default, so its header carries the count.
+    expect(screen.getByTitle('1 remote branch would conflict with the current branch')).toHaveTextContent('1 conflicts')
+    expect(screen.queryByText('origin/login')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Remote, 2' }))
+    expect(sections.toggle).toHaveBeenCalledWith('branches-remote', false)
   })
 
   it('shows nothing when Git is too old to predict', async () => {
@@ -451,7 +527,6 @@ describe('BranchSidebar overlap prediction', () => {
     renderSidebar()
 
     await screen.findByRole('button', { name: /^spike/ })
-    expect(screen.queryByRole('img', { name: /Would conflict/ })).not.toBeInTheDocument()
-    expect(screen.queryByText('Remote branches that would conflict')).not.toBeInTheDocument()
+    expect(screen.queryByText('conflicts')).not.toBeInTheDocument()
   })
 })

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { SubmoduleService, type SubmoduleInfo } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import SubmodulesPanel from './SubmodulesPanel'
+import { defaultSections } from '../../test/sections'
 
 const REPO = '/projects/app'
 
@@ -16,7 +17,12 @@ function renderPanel(submodules: SubmoduleInfo[]) {
   const onSubmodulesChanged = vi.fn()
   const { container } = render(
     <DialogProvider>
-      <SubmodulesPanel repoPath={REPO} onOpenRepository={onOpenRepository} onSubmodulesChanged={onSubmodulesChanged} />
+      <SubmodulesPanel
+        sections={defaultSections()}
+        repoPath={REPO}
+        onOpenRepository={onOpenRepository}
+        onSubmodulesChanged={onSubmodulesChanged}
+      />
     </DialogProvider>,
   )
   return { container, onOpenRepository, onSubmodulesChanged }

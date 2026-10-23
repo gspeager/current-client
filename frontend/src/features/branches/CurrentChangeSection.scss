@@ -18,6 +18,11 @@
   gap: var(--space-sm);
 }
 
+.current-change-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
 .current-change-state {
   padding: 0 var(--space-xs);
   border: 1px solid var(--secondary);
