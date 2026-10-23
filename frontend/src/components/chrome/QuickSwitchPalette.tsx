@@ -196,7 +196,10 @@ function QuickSwitchPalette({
 
   const branchResults = q
     ? branches.filter((b) => matches(b.name, q))
-    : branches.filter((b) => !b.remote).slice(0, MAX_IDLE_BRANCHES)
+    : branches
+        .filter((b) => !b.remote)
+        .sort((a, b) => Number(b.current) - Number(a.current))
+        .slice(0, MAX_IDLE_BRANCHES)
   const repoResults = repos.filter((r) => matches(r.path, q))
   // A large repo has thousands of files, so they only appear once there's a query.
   const fileResults = q ? files.filter((p) => matches(p, q)).slice(0, MAX_FILE_RESULTS) : []

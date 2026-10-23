@@ -3,7 +3,9 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   BisectService,
+  BranchService,
   PatchService,
+  RemoteService,
   ReflogService,
   UndoService,
   type UndoPlanInfo,
@@ -94,6 +96,31 @@ beforeAll(() => {
     disconnect() {}
   }
   Element.prototype.scrollIntoView = vi.fn()
+})
+
+describe('QuickSwitchPalette at rest', () => {
+  it('lists the checked-out branch first, at most eight local branches, and no settings until typed for', async () => {
+    const names = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([
+      ...names.map((name) => ({ name, current: false })),
+      { name: 'main', current: true },
+    ] as never)
+    vi.mocked(BranchService.ListRemote).mockResolvedValue(['origin/zed'])
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin', fetchUrl: 'git@example.com:g/r.git' }] as never)
+    renderPalette()
+
+    await within(palette()).findByRole('option', { name: 'main, current branch' })
+    const branches = within(palette())
+      .getAllByRole('option')
+      .filter((o) => o.getAttribute('data-value')?.startsWith('branch:'))
+    expect(branches).toHaveLength(8)
+    expect(branches[0]).toHaveAccessibleName('main, current branch')
+    expect(within(palette()).queryByRole('option', { name: /origin\/zed/ })).not.toBeInTheDocument()
+    expect(within(palette()).queryByRole('option', { name: 'Settings: Theme' })).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByRole('combobox'), 'the')
+    expect(await within(palette()).findByRole('option', { name: 'Settings: Theme' })).toBeInTheDocument()
+  })
 })
 
 describe('QuickSwitchPalette Workspace actions', () => {

@@ -78,10 +78,10 @@ describe('CurrentClientApp embedding', () => {
   it('opens a repository on Changes, the first view', async () => {
     stubStartup(['/repos/app'], '/repos/app')
     render(<CurrentClientApp />)
-    const workingCopy = await screen.findByRole('button', { name: 'Changes' })
+    const workingCopy = await screen.findByRole('button', { name: /^Changes/ })
 
     const views = [...document.querySelectorAll('.tab-bar button')].map((b) => b.textContent)
-    expect(views).toEqual(['Changes', 'History', 'Activity', 'Changelog'])
+    expect(views).toEqual([expect.stringMatching(/^Changes/), 'History', 'Activity', 'Changelog'])
     expect(workingCopy).toHaveClass('tab-active')
   })
 

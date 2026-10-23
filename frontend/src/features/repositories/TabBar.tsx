@@ -1,4 +1,5 @@
 import Tab from '../../components/controls/Tab'
+import { plural } from '../../lib/plural'
 import './TabBar.scss'
 
 export type AppTab = 'working-copy' | 'history' | 'activity' | 'changelog' | 'changes'
@@ -17,7 +18,11 @@ interface TabBarProps {
 function TabBar({ active, onChange, showChangelog, changesLabel = null, changedCount = 0 }: TabBarProps) {
   return (
     <nav className="tab-bar">
-      <Tab active={active === 'working-copy'} onClick={() => onChange('working-copy')} label="Changes">
+      <Tab
+        active={active === 'working-copy'}
+        onClick={() => onChange('working-copy')}
+        label={changedCount > 0 ? `Changes, ${plural(changedCount, 'changed file')}` : 'Changes'}
+      >
         Changes
         {changedCount > 0 && <span className="tab-count">{changedCount}</span>}
       </Tab>
