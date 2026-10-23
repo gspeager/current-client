@@ -227,8 +227,6 @@ function HistoryView({
           copied={graphCopied}
         />
 
-        {commitActions.error && !selectedCommit && <p className="history-error">{commitActions.error}</p>}
-
         <div ref={parentRef} className="history-scroll">
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
             {virtualItems.map((row) => {

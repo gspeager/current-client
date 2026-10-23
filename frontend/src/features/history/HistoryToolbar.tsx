@@ -36,7 +36,7 @@ function HistoryToolbar({
 }: HistoryToolbarProps) {
   const [sinceDays, setSinceDays] = useState(0)
   const filtersRef = useDismissibleDetails()
-  const active = [sinceDays !== 0, showTypeFilter && filter.type !== '', filter.author !== '', hideMerges].filter(
+  const active = [filter.since !== '', showTypeFilter && filter.type !== '', filter.author !== '', hideMerges].filter(
     Boolean,
   ).length
 
