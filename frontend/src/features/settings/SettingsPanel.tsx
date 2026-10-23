@@ -179,13 +179,18 @@ function SettingsPanel({
         <SettingsGroup title="Network">
           <SettingsRow
             label="Background fetch"
-            hint="Off by default. When off, a remote is only contacted on an explicit fetch, pull or push."
+            hint={
+              values.autoFetchManaged
+                ? 'Managed by your organization.'
+                : 'Off by default. When off, a remote is only contacted on an explicit fetch, pull or push.'
+            }
           >
             <select
               className="settings-field"
               value={values.autoFetchIntervalMinutes}
               onChange={(e) => setAutoFetchIntervalMinutes(Number(e.target.value))}
               aria-label="Background fetch"
+              disabled={values.autoFetchManaged}
             >
               {AUTO_FETCH_OPTIONS.map((o) => (
                 <option key={o.minutes} value={o.minutes}>

@@ -208,6 +208,12 @@
   gap: var(--space-lg);
 }
 
+.settings-host-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
 .settings-host-name,
 .settings-host-project,
 .settings-host-api {

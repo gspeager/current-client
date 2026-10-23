@@ -13,7 +13,7 @@ export function useHostPrompt(repoPath: string | null, onChanged: () => void) {
     let cancelled = false
     HostService.Detect(repoPath)
       .then(async (hosts) => {
-        const host = hosts.find((h) => !h.enabled && !h.dismissed)
+        const host = hosts.find((h) => !h.enabled && !h.dismissed && !h.managed)
         if (!host || cancelled) return
         const provider = providerLabel(host.provider)
         const enable = await dialogs.confirm({

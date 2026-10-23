@@ -3,11 +3,13 @@ package app
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/policy"
 )
 
 func useTempSettings(t *testing.T) string {
@@ -16,6 +18,8 @@ func useTempSettings(t *testing.T) string {
 	t.Setenv("APPDATA", dir)
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("HOME", dir)
+	policy.SetPath(filepath.Join(dir, "policy.json"))
+	t.Cleanup(func() { policy.SetPath("") })
 	path, err := config.DefaultPath()
 	if err != nil {
 		t.Fatalf("DefaultPath: %v", err)

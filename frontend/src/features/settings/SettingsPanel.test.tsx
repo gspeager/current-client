@@ -80,6 +80,15 @@ describe('SettingsPanel', () => {
     expect(screen.getByRole('button', { name: 'Add host…' })).toBeInTheDocument()
   })
 
+  it('shows a managed background fetch disabled, with the label', () => {
+    renderPanel(settingsWith({ autoFetchIntervalMinutes: 5, autoFetchManaged: true }))
+
+    const select = screen.getByRole('combobox', { name: 'Background fetch' })
+    expect(select).toBeDisabled()
+    expect(select).toHaveValue('5')
+    expect(screen.getByText('Managed by your organization.')).toBeInTheDocument()
+  })
+
   it('has no Integrations group in a build without host integration', () => {
     renderPanel(settingsWith(), false)
 
