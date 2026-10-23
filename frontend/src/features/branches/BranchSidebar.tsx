@@ -1,12 +1,13 @@
 import { useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
 import { Ellipsis, GitBranchPlus, Pencil, TriangleAlert, X } from 'lucide-react'
 import {
+  type BranchInfo,
   BranchService,
   GitFlowService,
   HostService,
-  OverlapService,
-  type BranchInfo,
   type OverlapInfo,
+  OverlapService,
+  PlatformService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
@@ -27,6 +28,7 @@ import CurrentChangeSection from './CurrentChangeSection'
 import CIMark from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
+import { branchPage, remoteBranchName } from '../../lib/hostPages'
 import './BranchSidebar.scss'
 
 interface BranchSidebarProps {
@@ -212,6 +214,14 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenCha
       .catch((err: unknown) => setActionError(`Could not restore ${branch.name}: ${errorMessage(err)}`))
   }
 
+  // The branch's merge request when one is known, else its tree on the host.
+  const branchHostPage = (b: BranchInfo): string => {
+    const change = b.upstream ? changes[b.upstream] : undefined
+    if (change?.webUrl) return change.webUrl
+    const name = b.upstream ? remoteBranchName(b.upstream, [b.upstream.split('/')[0]]) : b.name
+    return branchPage(hostLinks!, name)
+  }
+
   const branchContextMenu = (b: BranchInfo) => (e: MouseEvent | KeyboardEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -231,6 +241,9 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenCha
           : []),
         { label: 'Rebase current onto', onClick: () => rebaseOnto(b.name), disabled: b.current },
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
+        ...(hostLinks?.tree
+          ? [{ label: 'Open on host', onClick: () => void PlatformService.OpenWebPage(branchHostPage(b)) }]
+          : []),
         { label: 'Rename…', onClick: () => renameBranch(b.name) },
         { label: 'Set upstream…', onClick: () => setUpstreamFor(b) },
         ...(b.upstream ? [{ label: 'Unset upstream', onClick: () => unsetUpstream(b.name) }] : []),

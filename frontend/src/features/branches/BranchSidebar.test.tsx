@@ -30,6 +30,35 @@ function renderSidebar(onBranchChanged = vi.fn()) {
 }
 
 describe('BranchSidebar', () => {
+  it('opens a branch on the host, as its merge request when known and its tree otherwise', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([
+      branch('main', true),
+      { ...branch('feature'), upstream: 'origin/feature' },
+      { ...branch('other'), upstream: 'origin/other' },
+    ])
+    vi.mocked(RemoteService.HostLinks).mockResolvedValue(
+      new Links({ root: 'https://gitlab.com/', issuePath: '/-/issues/', tree: 'https://gitlab.com/g/r/-/tree/' }),
+    )
+    vi.mocked(HostService.BranchChanges).mockResolvedValue({
+      'origin/feature': new BranchChange({
+        number: 7,
+        prefix: '!',
+        state: 'open',
+        webUrl: 'https://gitlab.com/g/r/-/merge_requests/7',
+      }),
+    })
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    renderSidebar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for feature' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Open on host' }))
+    expect(PlatformService.OpenWebPage).toHaveBeenLastCalledWith('https://gitlab.com/g/r/-/merge_requests/7')
+
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for other' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Open on host' }))
+    expect(PlatformService.OpenWebPage).toHaveBeenLastCalledWith('https://gitlab.com/g/r/-/tree/other')
+  })
+
   it('marks a branch whose upstream has a merge request, from the cache alone', async () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([
       branch('main', true),

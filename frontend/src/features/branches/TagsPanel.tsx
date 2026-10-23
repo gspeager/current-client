@@ -1,6 +1,12 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, CloudOff, Plus, Tag, Upload, X } from 'lucide-react'
-import { RemoteService, TagService, type TagInfo, type TagMessageInfo } from '@current-client-bindings/app'
+import { ChevronDown, ChevronRight, CloudOff, ExternalLink, Plus, Tag, Upload, X } from 'lucide-react'
+import {
+  PlatformService,
+  RemoteService,
+  type TagInfo,
+  type TagMessageInfo,
+  TagService,
+} from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
@@ -8,6 +14,8 @@ import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import './TagsPanel.scss'
+import { useHostLinks } from '../../lib/useHostLinks'
+import { tagPage } from '../../lib/hostPages'
 
 interface TagsPanelProps {
   repoPath: string
@@ -15,6 +23,7 @@ interface TagsPanelProps {
 }
 
 function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
+  const hostLinks = useHostLinks(repoPath)
   useClockTick()
   const {
     data: tags,
@@ -182,6 +191,19 @@ function TagsPanel({ repoPath, onTagChanged }: TagsPanelProps) {
                 <span className="tag-row-name">{t.name}</span>
                 <span className="tag-row-time">{relativeTime(new Date(t.date))}</span>
                 <span className="tag-row-actions">
+                  {hostLinks?.tag && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void PlatformService.OpenWebPage(tagPage(hostLinks, t.name))
+                      }}
+                      aria-label={`Open tag ${t.name} on host`}
+                      title="Open on host"
+                    >
+                      <ExternalLink size={16} strokeWidth={1.75} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {

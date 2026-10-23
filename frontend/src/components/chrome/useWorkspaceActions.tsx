@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react'
-import { Code2, FolderOpen, History, Import, Split, Terminal, Undo2, type LucideIcon } from 'lucide-react'
+import { Code2, ExternalLink, FolderOpen, History, Import, Split, Terminal, Undo2, type LucideIcon } from 'lucide-react'
 import { PatchService, PlatformService, UndoService } from '@current-client-bindings/app'
+import type { Links } from '@current-client-bindings/core/hostlink'
+import { repositoryPage } from '../../lib/hostPages'
 import BisectWizard from '../../features/history/BisectWizard'
 import ReflogPanel from '../../features/history/ReflogPanel'
 import { undoConfirmOptions } from '../../features/history/undoPreview'
@@ -22,6 +24,8 @@ export interface WorkspaceFeedback {
 
 interface WorkspaceActionsOptions {
   repoPath: string | null
+  // The repository's host pages, when a remote points at one.
+  hostLinks?: Links | null
   onBranchChanged: () => void
   onOpenCommit: (sha: string) => void
   onFailure: () => void
@@ -40,6 +44,7 @@ export function useWorkspaceActions({
   onBranchChanged,
   onOpenCommit,
   onFailure,
+  hostLinks = null,
 }: WorkspaceActionsOptions): WorkspaceActions {
   const { confirm } = useDialogs()
   const [feedback, setFeedback] = useState<(WorkspaceFeedback & { repoPath: string }) | null>(null)
@@ -88,6 +93,16 @@ export function useWorkspaceActions({
       icon: Code2,
       run: () => run(PlatformService.OpenInEditor(repoPath), 'Could not open editor'),
     },
+    ...(hostLinks?.project
+      ? [
+          {
+            id: 'open-on-host',
+            label: 'Open repository on host',
+            icon: ExternalLink,
+            run: () => run(PlatformService.OpenWebPage(repositoryPage(hostLinks)), 'Could not open'),
+          },
+        ]
+      : []),
     { id: 'undo', label: 'Undo last operation', icon: Undo2, run: () => run(undoLast(), 'Could not undo') },
     { id: 'reflog', label: 'Reflog', icon: History, run: () => setOpen('reflog') },
     { id: 'bisect', label: 'Bisect', icon: Split, run: () => setOpen('bisect') },

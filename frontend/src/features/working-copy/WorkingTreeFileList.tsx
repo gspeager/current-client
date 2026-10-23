@@ -25,6 +25,8 @@ interface WorkingTreeFileListProps {
   onOpen: (path: string, section: WorkingTreeSection) => void
   // Unresolved review threads per path, from the checked-out branch's change.
   threadCounts?: Record<string, number | undefined>
+  // Opens the file as HEAD has it on the host; absent without a parseable remote.
+  onOpenOnHost?: (path: string) => void
 }
 
 type ListRow =
@@ -73,6 +75,7 @@ function WorkingTreeFileList({
   openSection,
   onOpen,
   threadCounts,
+  onOpenOnHost,
 }: WorkingTreeFileListProps) {
   const { files, conflicted, staged, unstaged, error, loadStatus } = workingTree
   const sectionFiles = useMemo<Record<WorkingTreeSection, FileStatus[]>>(
@@ -262,6 +265,7 @@ function WorkingTreeFileList({
     ]
     if (untracked) {
       items.push({ label: 'Add to .gitignore', onClick: () => actions.addToGitignore(f.path) })
+      if (onOpenOnHost) items.push({ label: 'Open on host', onClick: () => onOpenOnHost(f.path) })
       const ext = fileExtension(f.path)
       if (ext) {
         items.push({ label: `Add *.${ext} to .gitignore`, onClick: () => actions.addToGitignore(`*.${ext}`) })

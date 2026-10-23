@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type KeyboardEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { BranchService, CommitService, PatchService, type CommitInfo } from '@current-client-bindings/app'
+import {
+  BranchService,
+  type CommitInfo,
+  CommitService,
+  PatchService,
+  PlatformService,
+} from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import CommitDetailPanel from './CommitDetailPanel'
@@ -19,6 +25,7 @@ import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useCreateBranchFromCommit } from './useCreateBranchFromCommit'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
+import { commitPage } from '../../lib/hostPages'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useCIStatus } from '../../lib/useCIStatus'
 import { useReferenceCards } from '../../lib/useReferenceCards'
@@ -240,6 +247,14 @@ function HistoryView({
       ...menuAnchor(e),
       items: [
         { label: 'Copy SHA', onClick: () => void navigator.clipboard.writeText(commit.sha) },
+        ...(hostLinks?.commit
+          ? [
+              {
+                label: 'Open on host',
+                onClick: () => void PlatformService.OpenWebPage(commitPage(hostLinks, commit.sha)),
+              },
+            ]
+          : []),
         { label: 'Check out', onClick: () => void checkoutCommit(commit.sha) },
         { label: 'Branch here', onClick: () => createBranchFrom(commit.sha) },
         { label: 'Export patch…', onClick: () => exportPatch(commit.sha, commit.subject) },
