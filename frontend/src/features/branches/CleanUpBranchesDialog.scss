@@ -1,0 +1,38 @@
+.clean-up-panel {
+  width: min(520px, 90vw);
+}
+
+.clean-up-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.clean-up-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 28px;
+}
+
+.clean-up-name {
+  font: var(--data-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clean-up-reason {
+  flex: 1;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
+
+.clean-up-newer {
+  color: var(--warning);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}

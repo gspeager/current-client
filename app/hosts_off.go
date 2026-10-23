@@ -15,3 +15,5 @@ const hostIntegrationBuilt = false
 func hostServices() []application.Service { return nil }
 
 func afterFetch(context.Context, string) {}
+
+func mergedOnHost(string) map[string]hostMergedChange { return nil }
