@@ -2,6 +2,7 @@ package hostapi
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -104,6 +105,57 @@ type Issue struct {
 	WebURL string `json:"webUrl"`
 }
 
+// BranchRule is what the host forbids on branches matching Pattern, which
+// may end in a wildcard ("release/*"). NoPush means nobody pushes directly;
+// RestrictedPush that only some roles or people may.
+type BranchRule struct {
+	Pattern        string `json:"pattern"`
+	NoPush         bool   `json:"noPush"`
+	RestrictedPush bool   `json:"restrictedPush"`
+	NoForcePush    bool   `json:"noForcePush"`
+	NoDelete       bool   `json:"noDelete"`
+}
+
+// Matches follows the hosts: * stands for any run of characters.
+func (r BranchRule) Matches(branch string) bool {
+	return matchWildcard(r.Pattern, branch)
+}
+
+func matchWildcard(pattern, name string) bool {
+	before, after, found := strings.Cut(pattern, "*")
+	if !found {
+		return pattern == name
+	}
+	rest, ok := strings.CutPrefix(name, before)
+	if !ok {
+		return false
+	}
+	for i := 0; i <= len(rest); i++ {
+		if matchWildcard(after, rest[i:]) {
+			return true
+		}
+	}
+	return false
+}
+
+// MatchRule picks the rule for a branch: an exact one before a wildcard.
+func MatchRule(rules []BranchRule, branch string) (BranchRule, bool) {
+	var matched BranchRule
+	found := false
+	for _, rule := range rules {
+		if !rule.Matches(branch) {
+			continue
+		}
+		if rule.Pattern == branch {
+			return rule, true
+		}
+		if !found {
+			matched, found = rule, true
+		}
+	}
+	return matched, found
+}
+
 // Provider is what a host offers this release's features. Every method
 // goes through the one Client, so the enabled set, Git's trust settings,
 // rate limits and the page cap apply to all of them. project is the path
@@ -122,5 +174,9 @@ type Provider interface {
 	JobLog(ctx context.Context, project string, jobID int64, maxBytes int) (log string, truncated bool, err error)
 	Issue(ctx context.Context, project string, number int) (Issue, error)
 	CreateChange(ctx context.Context, project string, change NewChange) (Change, error)
+	// BranchRules are the host's protection rules; branches names the ones
+	// to ask about on a host whose endpoint takes a branch. A host that
+	// won't show them to this token answers with none, not an error.
+	BranchRules(ctx context.Context, project string, branches []string) ([]BranchRule, error)
 	CurrentUser(ctx context.Context) (User, error)
 }

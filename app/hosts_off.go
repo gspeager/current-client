@@ -17,3 +17,5 @@ func hostServices() []application.Service { return nil }
 func afterFetch(context.Context, string) {}
 
 func mergedOnHost(string) map[string]hostMergedChange { return nil }
+
+func protectionOf(string, string, string) (*PushWarning, error) { return nil, nil }

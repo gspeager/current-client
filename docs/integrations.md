@@ -64,6 +64,10 @@ With the host on, **Create merge request** opens a form in the app instead of th
 
 **Clean up merged branches**, in the Branches sidebar's header, lists the local branches whose work is already on the default branch and offers to delete them. Git alone finds them, so this works with integration off: a branch with an upstream is merged when merging it into the default branch's upstream (`origin/main`, or the local branch without a remote) would change nothing, which catches squash and rebase merges as well as merge commits. With the host on, a branch whose merge request / pull request the cache knows as merged is listed with its number as the reason; the host is asked about a change once, on the refresh after it leaves the open list or while Git still publishes its head, and never again. A branch with commits past what was merged is marked **Newer commits** and left unselected. Building the list makes no request. Deleting goes through the same **Undo** as a single deletion; when the checked-out branch is among them, the default branch is checked out and pulled first.
 
+## Protected branches
+
+With the host on, a push, force-push, push that sets an upstream, or deletion on the remote of a branch the host protects is confirmed first, naming the branch, the rule when it is a wildcard (`release/*`, matched in the app) and what the host forbids: direct pushes, pushes except by some roles, force-pushes, deleting it. The action is allowed after the warning; the host enforces. The rules come from a refresh and the cache: nothing is asked at push time, and with no rules cached, or the host unreachable, the push runs as it does without the host. On GitLab the endpoint needs the Maintainer role, and a 403 means no warning rather than an error.
+
 ## The merge request / pull request tab
 
 While a host is on for the repository, a tab named **Merge requests** (GitLab) or **Pull requests** (GitHub) lists the open changes from the last refresh: number, title, author as an initials badge, source and target branch, draft, labels, CI result and when it was updated, with an **Authored by me** filter. Opening the tab for the first time in a session refreshes it; after that it reads the cache until **Refresh**, a fetch or a pull. The list stops at the page cap and says so.
@@ -130,6 +134,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark; on refresh, for the checked-out branch's merge request when its pipeline failed | `read_api` |
 | `GET /projects/:path/jobs/:id/trace` | Clicking a failed job | `read_api` |
 | `GET /projects/:path/issues/:iid` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | `read_api` |
+| `GET /projects/:path/protected_branches` | Refresh; a 403 (not a Maintainer) means no warnings | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
 
 Avatar URLs in these answers are never decoded. GitHub's table arrives with its provider.

@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Added
 
+- With host integration on, pushing, force-pushing or deleting on the remote a branch the host protects asks first, naming the branch and what the host forbids, instead of the push being rejected afterwards. The rules come from the last refresh; nothing is asked at push time. ([#163](https://github.com/gspeager/current-client/issues/163))
 - **Clean up merged branches**, in the Branches sidebar's header, lists local branches whose work is already on the default branch, squash and rebase merges included, and deletes the ones you pick, with **Undo**. With host integration on, a branch whose merge request or pull request was merged on the host is listed with its number. A branch with commits newer than what was merged is marked and left unselected. When the checked-out branch is among them, the default branch is checked out and pulled first. ([#159](https://github.com/gspeager/current-client/issues/159))
 
 ## [0.3.0] - 2026-10-17

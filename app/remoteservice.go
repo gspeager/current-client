@@ -264,6 +264,41 @@ func (s *RemoteService) ForcePush(ctx context.Context, repoPath string, auth *gi
 	return git.ForcePushUpstream(ctx, repoPath)
 }
 
+// PushWarning is what the host forbids on the branch a push would reach,
+// for a confirmation before the push rather than a rejection after it.
+type PushWarning struct {
+	Host           string `json:"host"`
+	Branch         string `json:"branch"`
+	Pattern        string `json:"pattern"`
+	NoPush         bool   `json:"noPush"`
+	RestrictedPush bool   `json:"restrictedPush"`
+	NoForcePush    bool   `json:"noForcePush"`
+	NoDelete       bool   `json:"noDelete"`
+}
+
+// PushWarning reads the cache only and is nil when the host is off, has
+// shown no rules, or none covers the branch. remoteBranch is "origin/main";
+// empty means the current branch's upstream.
+func (s *RemoteService) PushWarning(repoPath, remoteBranch string) (*PushWarning, error) {
+	ctx := context.Background()
+	if remoteBranch == "" {
+		status, err := git.CurrentBranchStatus(ctx, repoPath)
+		if err != nil || status.Upstream == "" {
+			return nil, err
+		}
+		remoteBranch = status.Upstream
+	}
+	remotes, err := git.ListRemotes(ctx, repoPath)
+	if err != nil {
+		return nil, err
+	}
+	remote, branch, ok := splitRemoteBranch(remotes, remoteBranch)
+	if !ok {
+		return nil, nil
+	}
+	return protectionOf(repoPath, remote, branch)
+}
+
 // DeleteRemoteBranch takes a remote-tracking branch as the UI shows it, such
 // as "origin/feature".
 func (s *RemoteService) DeleteRemoteBranch(ctx context.Context, repoPath, remoteBranch string, auth *gitexec.Credential) error {
