@@ -32,7 +32,7 @@ func TestCurrentChangeReadsTheCheckedOutBranchFromTheCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	none, _ := s.CurrentChange(repo)
-	if !none.Enabled || none.Change != nil {
+	if !none.Enabled || none.Change != nil || none.Kind != "merge request" {
 		t.Fatalf("enabled, nothing cached: %+v", none)
 	}
 

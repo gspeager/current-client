@@ -100,7 +100,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
     setContextMenu({
       ...menuAnchor(e),
       items: [
-        { label: 'Checkout', onClick: () => checkoutBranch(localName(name)) },
+        { label: 'Check out', onClick: () => checkoutBranch(localName(name)) },
         {
           label: 'Delete on remote…',
           onClick: () => void deleteRemote.deleteRemoteBranch(name),

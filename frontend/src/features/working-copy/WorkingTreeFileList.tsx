@@ -343,7 +343,7 @@ function WorkingTreeFileList({
   return (
     <>
       <div className="changes-files-header">
-        <span className="changes-files-title">Working tree</span>
+        <span className="changes-files-title">Changed files</span>
         <div className="changes-files-header-spacer" />
         <SegmentedControl
           value={viewMode}

@@ -12,7 +12,7 @@ interface CurrentChangeSectionProps {
   repoPath: string
   refreshKey: number
   onOpenChange?: (number: number) => void
-  // Opens a file in Working Copy, for the first unresolved thread.
+  // Opens a file in Changes, for the first unresolved thread.
   onOpenFile?: (path: string) => void
   // Opens the in-app create form; without it the host's form is used.
   onCreateChange?: (branch: string) => void
@@ -41,13 +41,8 @@ function CurrentChangeSection({
 
   const createChange = () => createChangeFor(repoPath, data.branch, onCreateChange)
 
-  const kind = change
-    ? change.prefix === '!'
-      ? 'Merge request'
-      : 'Pull request'
-    : conflicts.length > 0
-      ? 'Conflict forecast'
-      : 'Merge request'
+  const kindWord = data.kind || 'pull request'
+  const kind = change || conflicts.length === 0 ? kindWord[0].toUpperCase() + kindWord.slice(1) : 'Conflict forecast'
   const state = change ? (change.draft ? 'draft' : change.state) : ''
   return (
     <section className="current-change" aria-label={`${kind} for ${data.branch}`}>
@@ -105,7 +100,7 @@ function CurrentChangeSection({
         <div className="current-change-actions">
           <button type="button" className="current-change-button" onClick={() => void createChange()}>
             <ExternalLink size={14} strokeWidth={1.75} />
-            Create merge request
+            Create {kindWord}
           </button>
         </div>
       )}

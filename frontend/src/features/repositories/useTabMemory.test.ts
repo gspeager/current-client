@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { useTabMemory } from './useTabMemory'
 
 describe('useTabMemory', () => {
-  it('starts every repo on Working Copy with empty memory', () => {
+  it('starts every repo on Changes with empty memory', () => {
     const { result } = renderHook(() => useTabMemory('/repos/app'))
     expect(result.current.activeTab).toBe('working-copy')
     expect(result.current.restored).toEqual({

@@ -194,7 +194,7 @@ function ReleaseEditor({
         return null
       }
       await ChangelogService.Write(repoPath, markdown, existing.length > 0)
-      return 'Written to CHANGELOG.md. Commit it from Working Copy.'
+      return 'Written to CHANGELOG.md. Commit it from Changes.'
     })
 
   const newest = markdownSections[0]?.version || UNRELEASED

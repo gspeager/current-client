@@ -83,7 +83,7 @@ function renderPalette(onBranchChanged?: () => void) {
   )
 }
 
-const palette = () => screen.getByRole('dialog', { name: 'Command palette' })
+const palette = () => screen.getByRole('dialog', { name: 'Go to anything' })
 const paletteAction = (name: string) => within(palette()).getByRole('option', { name })
 
 beforeAll(() => {
@@ -142,7 +142,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
     expect(dialog).toHaveTextContent(
       'feature moves from b2c3d4e to a1b2c3d. 1 commit leaves the branch. 1 commit comes back.',
     )
-    expect(screen.queryByRole('dialog', { name: 'Command palette' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Go to anything' })).not.toBeInTheDocument()
     await userEvent.click(within(dialog).getByRole('button', { name: 'Undo rebase' }))
 
     await vi.waitFor(() => expect(UndoService.Apply).toHaveBeenCalledWith(REPO, plan))

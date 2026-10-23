@@ -11,6 +11,8 @@ import './CreateChangeDialog.scss'
 interface CreateChangeDialogProps {
   repoPath: string
   branch: string
+  // The host's word, for the title before the draft arrives.
+  kind: string
   onCreated: (number: number) => void
   onClose: () => void
 }
@@ -19,14 +21,14 @@ interface CreateChangeDialogProps {
 // prefilled from its commits and the repository's template. The one write
 // to the host; a token without write scope gets the message naming the
 // scope.
-function CreateChangeDialog({ repoPath, branch, onCreated, onClose }: CreateChangeDialogProps) {
+function CreateChangeDialog({ repoPath, branch, kind, onCreated, onClose }: CreateChangeDialogProps) {
   const { data: draft, error: draftError } = useAsyncData(
     () => HostService.ChangeDraft(repoPath, branch),
     [repoPath, branch],
   )
   if (draftError) {
     return (
-      <Modal title="Create merge request" onClose={onClose} className="dialog-panel">
+      <Modal title={`Create ${kind}`} onClose={onClose} className="dialog-panel">
         <div className="dialog-body">
           <p className="dialog-error" role="alert">
             {draftError}
