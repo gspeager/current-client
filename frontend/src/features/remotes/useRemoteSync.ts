@@ -1,6 +1,7 @@
 import { BranchService, RemoteService, type PushResult } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { errorMessage } from '../../lib/errors'
+import { protectionFor } from '../../lib/protection'
 import { useDialogs } from '../../lib/useDialogs'
 
 const NO_UPSTREAM = 'This branch has no upstream configured.'
@@ -39,9 +40,10 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
         pushOp.setError('No remote configured to push to.')
         return
       }
+      const protection = await protectionFor(path, `${remoteName}/${status.current}`, 'push')
       const confirmed = await confirm({
         title: 'Set upstream',
-        message: `Push and set upstream to ${remoteName}/${status.current}?`,
+        message: [`Push and set upstream to ${remoteName}/${status.current}?`, protection].filter(Boolean).join(' '),
         confirmLabel: 'Push',
       })
       if (!confirmed) return
@@ -51,8 +53,18 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
     }
   }
 
-  const push = () => {
+  // A branch the host protects is confirmed first; the host still decides.
+  const push = async () => {
     if (!repoPath) return
+    const protection = await protectionFor(repoPath, '', 'push')
+    if (protection) {
+      const confirmed = await confirm({
+        title: 'Push to a protected branch',
+        message: protection,
+        confirmLabel: 'Push anyway',
+      })
+      if (!confirmed) return
+    }
     void pushOp.run(
       (auth) => RemoteService.Push(repoPath, auth),
       pushed,
@@ -73,9 +85,15 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
         pushOp.setError('No upstream configured to force-push to.')
         return
       }
+      const protection = await protectionFor(repoPath, status.upstream, 'force-push')
       const confirmed = await confirm({
         title: 'Force-push',
-        message: `Force-push ${status.current} to ${status.upstream}? This rewrites remote history and can discard commits other people have pushed.`,
+        message: [
+          `Force-push ${status.current} to ${status.upstream}? This rewrites remote history and can discard commits other people have pushed.`,
+          protection,
+        ]
+          .filter(Boolean)
+          .join(' '),
         confirmLabel: 'Force-push',
         destructive: true,
       })

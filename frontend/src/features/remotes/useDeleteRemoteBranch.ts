@@ -1,5 +1,6 @@
 import { RemoteService } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
+import { protectionFor } from '../../lib/protection'
 import { useDialogs } from '../../lib/useDialogs'
 
 // remoteBranch is a remote-tracking branch as listed, such as "origin/feature".
@@ -8,9 +9,15 @@ export function useDeleteRemoteBranch(repoPath: string, onDeleted?: () => void) 
   const { running, error, run } = useCancellableOperation()
 
   const deleteRemoteBranch = async (remoteBranch: string) => {
+    const protection = await protectionFor(repoPath, remoteBranch, 'delete')
     const confirmed = await confirm({
       title: 'Delete on remote',
-      message: `Delete ${remoteBranch} from its remote? It's removed for everyone who uses that remote. Local branches are kept.`,
+      message: [
+        `Delete ${remoteBranch} from its remote? It's removed for everyone who uses that remote. Local branches are kept.`,
+        protection,
+      ]
+        .filter(Boolean)
+        .join(' '),
       confirmLabel: 'Delete',
       destructive: true,
     })

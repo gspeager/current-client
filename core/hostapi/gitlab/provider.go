@@ -5,6 +5,7 @@ package gitlab
 import (
 	"context"
 	"errors"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -225,6 +226,47 @@ func (p *Provider) CreateChange(ctx context.Context, project string, change host
 		return hostapi.Change{}, scoped(err, writeScope)
 	}
 	return p.change(ctx, mr)
+}
+
+type protectedBranch struct {
+	Name             string `json:"name"`
+	AllowForcePush   bool   `json:"allow_force_push"`
+	PushAccessLevels []struct {
+		AccessLevel int `json:"access_level"`
+	} `json:"push_access_levels"`
+}
+
+// BranchRules lists every protected branch. The endpoint needs the
+// Maintainer role; a 403 means no rules to warn about. A protected branch
+// can't be deleted with a push on GitLab.
+func (p *Provider) BranchRules(ctx context.Context, project string, _ []string) ([]hostapi.BranchRule, error) {
+	var rules []hostapi.BranchRule
+	_, err := p.client.GetPages(ctx, p.host, projectPath(project, "protected_branches"), url.Values{"per_page": {"100"}},
+		func(resp *hostapi.Response) error {
+			var page []protectedBranch
+			if err := decode(resp, &page); err != nil {
+				return err
+			}
+			for _, b := range page {
+				rules = append(rules, branchRule(b))
+			}
+			return nil
+		})
+	var hostErr *hostapi.HostError
+	if errors.As(err, &hostErr) && hostErr.Status == http.StatusForbidden {
+		return nil, nil
+	}
+	return rules, scoped(err, readScope)
+}
+
+func branchRule(b protectedBranch) hostapi.BranchRule {
+	rule := hostapi.BranchRule{Pattern: b.Name, NoPush: true, NoForcePush: !b.AllowForcePush, NoDelete: true}
+	for _, level := range b.PushAccessLevels {
+		if level.AccessLevel > 0 {
+			rule.NoPush, rule.RestrictedPush = false, true
+		}
+	}
+	return rule
 }
 
 func (p *Provider) CurrentUser(ctx context.Context) (hostapi.User, error) {

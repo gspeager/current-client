@@ -281,3 +281,30 @@ func TestAgainstRealGitLab(t *testing.T) {
 type staticToken string
 
 func (s staticToken) Token(context.Context, string) (string, error) { return string(s), nil }
+
+func TestBranchRulesFromRecordedFixtureAndSilentOnForbidden(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{"GET " + api + "/protected_branches?per_page=100": "protected_branches.json"})
+	rules, err := p.BranchRules(context.Background(), project, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []hostapi.BranchRule{
+		{Pattern: "main", NoPush: true, NoForcePush: true, NoDelete: true},
+		{Pattern: "develop", RestrictedPush: true, NoDelete: true},
+		{Pattern: "release/*", RestrictedPush: true, NoForcePush: true, NoDelete: true},
+	}
+	if len(rules) != len(want) {
+		t.Fatalf("rules = %+v", rules)
+	}
+	for i := range want {
+		if rules[i] != want[i] {
+			t.Errorf("rule %d = %+v, want %+v", i, rules[i], want[i])
+		}
+	}
+
+	p, _ = newProvider(t, map[string]string{"GET " + api + "/protected_branches?per_page=100": "403"})
+	rules, err = p.BranchRules(context.Background(), project, nil)
+	if err != nil || rules != nil {
+		t.Fatalf("without the Maintainer role: %v, %v; want no rules and no error", rules, err)
+	}
+}

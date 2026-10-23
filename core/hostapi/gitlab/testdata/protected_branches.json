@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "main",
+    "push_access_levels": [{"id": 1, "access_level": 0, "access_level_description": "No one"}],
+    "merge_access_levels": [{"id": 2, "access_level": 40, "access_level_description": "Maintainers"}],
+    "allow_force_push": false,
+    "code_owner_approval_required": false
+  },
+  {
+    "id": 2,
+    "name": "develop",
+    "push_access_levels": [{"id": 3, "access_level": 40, "access_level_description": "Maintainers"}],
+    "merge_access_levels": [{"id": 4, "access_level": 30, "access_level_description": "Developers + Maintainers"}],
+    "allow_force_push": true,
+    "code_owner_approval_required": false
+  },
+  {
+    "id": 3,
+    "name": "release/*",
+    "push_access_levels": [{"id": 5, "access_level": 40, "access_level_description": "Maintainers"}],
+    "merge_access_levels": [{"id": 6, "access_level": 40, "access_level_description": "Maintainers"}],
+    "allow_force_push": false,
+    "code_owner_approval_required": true
+  }
+]

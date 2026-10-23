@@ -1,7 +1,13 @@
 import type { ReactNode } from 'react'
 import { act, renderHook, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, type BranchStatusInfo, PushResult, RemoteService } from '@current-client-bindings/app'
+import {
+  BranchService,
+  type BranchStatusInfo,
+  PushResult,
+  PushWarning,
+  RemoteService,
+} from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { DIVERGED, useRemoteSync } from './useRemoteSync'
 
@@ -42,6 +48,65 @@ describe('useRemoteSync', () => {
     expect(RemoteService.Push).toHaveBeenCalledWith(REPO, null)
     expect(onSynced).toHaveBeenCalled()
     expect(result.current.pushOp.error).toBeNull()
+  })
+
+  it('asks before pushing to a branch the host protects, and leaves the push unrun on cancel', async () => {
+    vi.mocked(RemoteService.PushWarning).mockResolvedValue(
+      new PushWarning({
+        host: 'gitlab.com',
+        branch: 'main',
+        pattern: 'main',
+        noPush: true,
+        noForcePush: true,
+        noDelete: true,
+      }),
+    )
+    vi.mocked(RemoteService.Push).mockResolvedValue(new PushResult({}))
+    const onSynced = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
+
+    act(() => {
+      void result.current.push()
+    })
+    let dialog = await screen.findByRole('alertdialog', { name: 'Push to a protected branch' })
+    expect(dialog).toHaveTextContent('gitlab.com protects main and forbids direct pushes. The push may be rejected.')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(RemoteService.Push).not.toHaveBeenCalled()
+
+    act(() => {
+      void result.current.push()
+    })
+    dialog = await screen.findByRole('alertdialog', { name: 'Push to a protected branch' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Push anyway' }))
+
+    await vi.waitFor(() => expect(onSynced).toHaveBeenCalled())
+    expect(RemoteService.PushWarning).toHaveBeenCalledWith(REPO, '')
+  })
+
+  it('names what the host forbids in the force-push confirmation', async () => {
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({
+      current: 'release/1.0',
+      upstream: 'origin/release/1.0',
+    } as BranchStatusInfo)
+    vi.mocked(RemoteService.PushWarning).mockResolvedValue(
+      new PushWarning({
+        host: 'gitlab.com',
+        branch: 'release/1.0',
+        pattern: 'release/*',
+        restrictedPush: true,
+        noForcePush: true,
+        noDelete: true,
+      }),
+    )
+    const { result } = renderHook(() => useRemoteSync(REPO, vi.fn()), { wrapper })
+
+    act(() => void result.current.forcePush())
+    const dialog = await screen.findByRole('alertdialog', { name: 'Force-push' })
+
+    expect(dialog).toHaveTextContent(
+      'gitlab.com protects release/1.0 (rule release/*) and forbids pushes except by some roles and force-pushes.',
+    )
+    expect(RemoteService.PushWarning).toHaveBeenCalledWith(REPO, 'origin/release/1.0')
   })
 
   it('force-pushes to the upstream it names, after confirming', async () => {
@@ -95,7 +160,9 @@ describe('useRemoteSync', () => {
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
-    act(() => result.current.push())
+    act(() => {
+      void result.current.push()
+    })
     const dialog = await screen.findByRole('alertdialog', { name: 'Set upstream' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Push' }))
 
@@ -113,7 +180,9 @@ describe('useRemoteSync', () => {
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
-    act(() => result.current.push())
+    act(() => {
+      void result.current.push()
+    })
     let dialog = await screen.findByRole('dialog', { name: 'Sign in to remote' })
     expect(await within(dialog).findByText(/osxkeychain credential helper/)).toBeInTheDocument()
     await userEvent.type(within(dialog).getByLabelText('Username'), 'alice')
@@ -138,7 +207,9 @@ describe('useRemoteSync', () => {
     vi.mocked(RemoteService.CredentialHelper).mockResolvedValue('')
     const { result } = renderHook(() => useRemoteSync(REPO, vi.fn()), { wrapper })
 
-    act(() => result.current.push())
+    act(() => {
+      void result.current.push()
+    })
     const dialog = await screen.findByRole('dialog', { name: 'Sign in to remote' })
     expect(await within(dialog).findByText(/used once and not saved/)).toBeInTheDocument()
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
@@ -154,7 +225,7 @@ describe('useRemoteSync', () => {
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
-    act(() => result.current.push())
+    await act(async () => result.current.push())
     expect(result.current.pushOp.running).toBe(true)
     await act(async () => result.current.pushOp.cancel())
 
@@ -203,7 +274,7 @@ describe('useRemoteSync', () => {
       initialProps: { repoPath: REPO },
     })
 
-    act(() => result.current.push())
+    await act(async () => result.current.push())
     rerender({ repoPath: OTHER_REPO })
     expect(result.current.pushOp.running).toBe(false)
     await act(async () => result.current.pushOp.cancel())

@@ -27,7 +27,7 @@ func refreshMergedChanges(ctx context.Context, provider hostapi.Provider, info H
 	}
 	upstreams := map[string]bool{}
 	for _, b := range branches {
-		if branch, ok := strings.CutPrefix(b.Upstream, remote+"/"); ok {
+		if branch, ok := cutRemote(b.Upstream, remote); ok {
 			upstreams[branch] = true
 		}
 	}
@@ -76,4 +76,9 @@ func mergedOnHost(repoPath string) map[string]hostMergedChange {
 		merged[remote.Name+"/"+change.SourceBranch] = hostMergedChange{Number: change.Number, Prefix: changePrefix(info), HeadSHA: change.HeadSHA}
 	}
 	return merged
+}
+
+// cutRemote is the branch's name on the remote, from its remote-tracking name.
+func cutRemote(upstream, remote string) (string, bool) {
+	return strings.CutPrefix(upstream, remote+"/")
 }
