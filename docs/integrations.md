@@ -199,6 +199,28 @@ So a self-hosted GitLab behind a corporate proxy with a private CA needs no setu
 
 Every request has a timeout and can be cancelled. When a host answers 429, or 403 with its rate limit exhausted, Current Client waits for the time the host named (`Retry-After`, GitHub's `X-RateLimit-Reset` or GitLab's `RateLimit-Reset`, at most an hour) and sends nothing to that host until then; the panel shows a quiet message. Paged answers are followed through the `Link` header up to a fixed number of pages, never off the API address, and the panel says when a list was cut. A host being unreachable never affects Git operations: it becomes a plain message in the panel and in Diagnostics' recent errors, without the response body.
 
+## Managed policy
+
+An organization can fix the networked switches for every user of a machine with one file, read once at start-up and never contacted for anything:
+
+| Platform | Path |
+| --- | --- |
+| Windows | `%ProgramData%\Current Client\policy.json` |
+| macOS | `/Library/Application Support/Current Client/policy.json` |
+| Linux | `/etc/current-client/policy.json` |
+
+```json
+{
+  "hosts": {
+    "gitlab.example.com": { "enabled": true },
+    "github.com": { "enabled": false }
+  },
+  "autoFetch": { "enabled": true, "intervalMinutes": 15 }
+}
+```
+
+A host with `enabled: false` is locked off: its switch in Settings is disabled and labeled **Managed by your organization**, the prompt to turn it on never shows, and the HTTP client refuses it whatever the user's settings say. With `enabled: true` it is forced on, with the same label. A host the file doesn't name is the user's to decide, as is everything with no file at all. `autoFetch` works the same for background fetch; forced on without an interval fetches every five minutes. A file that can't be read or parsed is ignored, as if absent. The Windows registry and macOS configuration profiles are for a later release.
+
 ## Building without host integration
 
 For a deployment that must not carry the code at all, build with the `nohost` tag:

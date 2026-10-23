@@ -4,6 +4,7 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/internal/config"
 	"github.com/gspeager/current-client/internal/platform"
+	"github.com/gspeager/current-client/internal/policy"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -46,6 +47,7 @@ func Services() []application.Service {
 // window size, or zeros when there is none.
 func Startup() (width, height int) {
 	platform.UseLoginShellPath()
+	policy.Load()
 	cfg, _, err := loadCurrentConfig()
 	if err != nil {
 		return 0, 0

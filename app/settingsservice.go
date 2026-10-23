@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/identity"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/policy"
 )
 
 type SettingsService struct{}
@@ -17,6 +19,7 @@ type Settings struct {
 	DiffIgnoreWhitespaceDefault bool                  `json:"diffIgnoreWhitespaceDefault"`
 	EditorPath                  string                `json:"editorPath"`
 	AutoFetchIntervalMinutes    int                   `json:"autoFetchIntervalMinutes"`
+	AutoFetchManaged            bool                  `json:"autoFetchManaged"`
 	LaneColorTheme              string                `json:"laneColorTheme"`
 	NavCollapsed                bool                  `json:"navCollapsed"`
 	DiffExpanded                bool                  `json:"diffExpanded"`
@@ -41,13 +44,15 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 	if err != nil {
 		return Settings{}, err
 	}
+	autoFetch, autoFetchManaged := policy.AutoFetchMinutes(cfg.AutoFetchIntervalMinutes)
 	return Settings{
 		Theme:                       normalizeTheme(cfg.Theme),
 		GitExecutablePath:           cfg.GitExecutablePath,
 		DefaultRepoLocation:         cfg.DefaultRepoLocation,
 		DiffIgnoreWhitespaceDefault: cfg.DiffIgnoreWhitespaceDefault,
 		EditorPath:                  cfg.EditorPath,
-		AutoFetchIntervalMinutes:    cfg.AutoFetchIntervalMinutes,
+		AutoFetchIntervalMinutes:    autoFetch,
+		AutoFetchManaged:            autoFetchManaged,
 		LaneColorTheme:              cfg.LaneColorTheme,
 		NavCollapsed:                cfg.NavCollapsed,
 		DiffExpanded:                cfg.DiffExpanded,
@@ -116,6 +121,9 @@ func (s *SettingsService) PickEditorExecutable() (string, error) {
 }
 
 func (s *SettingsService) SetAutoFetchIntervalMinutes(minutes int) error {
+	if _, managed := policy.AutoFetchMinutes(0); managed {
+		return errors.New("background fetch is managed by your organization")
+	}
 	return updateConfig(func(cfg *config.Config) { cfg.AutoFetchIntervalMinutes = minutes })
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostlink"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/policy"
 )
 
 // HostService works out which Git host each remote belongs to, from the
@@ -36,6 +37,7 @@ type HostInfo struct {
 	APIURL           string `json:"apiUrl"`
 	DefaultAPIURL    string `json:"defaultApiUrl"`
 	Enabled          bool   `json:"enabled"`
+	Managed          bool   `json:"managed"`
 	HasToken         bool   `json:"hasToken"`
 	Dismissed        bool   `json:"dismissed"`
 	SSLVerifyOff     bool   `json:"sslVerifyOff"`
@@ -105,6 +107,9 @@ func (s *HostService) Status(hostname string) HostStatusInfo {
 // host off drops everything the client holds for it, as the integrations
 // guide promises.
 func (s *HostService) SetEnabled(hostname string, enabled bool) error {
+	if _, managed := policy.Host(hostname); managed {
+		return fmt.Errorf("integration for %s is managed by your organization", hostname)
+	}
 	if !enabled {
 		hostClient.Forget(hostname)
 		hostCredentials.Forget(hostname)
@@ -258,13 +263,15 @@ func infoFor(detected hostlink.Host, hosts map[string]config.HostConfig) HostInf
 		apiURL = host.API()
 	}
 	httpConfig, _ := git.HTTPConfigFor(context.Background(), "", apiURL)
+	enabled, managed := effectiveHostEnabled(name, cfg.Enabled)
 	return HostInfo{
 		Hostname:         name,
 		Provider:         string(host.Style),
 		DetectedProvider: string(detected.Style),
 		APIURL:           apiURL,
 		DefaultAPIURL:    host.API(),
-		Enabled:          cfg.Enabled,
+		Enabled:          enabled,
+		Managed:          managed,
 		HasToken:         cfg.HasToken,
 		Dismissed:        cfg.Dismissed,
 		SSLVerifyOff:     !httpConfig.SSLVerify,

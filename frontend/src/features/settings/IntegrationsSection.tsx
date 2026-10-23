@@ -135,11 +135,15 @@ function HostRow({ host, run }: HostRowProps) {
             )}
           </span>
         </div>
-        <Switch
-          checked={host.enabled}
-          onChange={(on) => void run(HostService.SetEnabled(host.hostname, on))}
-          ariaLabel={`Integration for ${host.hostname}`}
-        />
+        <div className="settings-host-switch">
+          {host.managed && <span className="settings-hint">Managed by your organization</span>}
+          <Switch
+            checked={host.enabled}
+            onChange={(on) => void run(HostService.SetEnabled(host.hostname, on))}
+            ariaLabel={`Integration for ${host.hostname}`}
+            disabled={host.managed}
+          />
+        </div>
       </div>
 
       <div className="settings-host-fields">

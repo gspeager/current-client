@@ -33,6 +33,15 @@ function renderSection(dialogs: Partial<Dialogs> = {}) {
 }
 
 describe('IntegrationsSection', () => {
+  it('shows a managed host with its switch disabled and labeled', async () => {
+    vi.mocked(HostService.List).mockResolvedValue([host({ enabled: false, managed: true })])
+    renderSection()
+
+    const row = await screen.findByLabelText('gitlab.example.com')
+    expect(within(row).getByText('Managed by your organization')).toBeInTheDocument()
+    expect(within(row).getByRole('checkbox', { name: 'Integration for gitlab.example.com' })).toBeDisabled()
+  })
+
   it('lists each host off by default, with its remote, provider and API address', async () => {
     vi.mocked(HostService.List).mockResolvedValue([
       host({}),
