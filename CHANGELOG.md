@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Added
 
+- Host integration works with GitHub, github.com and GitHub Enterprise Server 3.11 or newer, with the same features as GitLab: pull requests, including ones from forks, review comments beside the code, check runs and commit statuses as one CI result, Actions job logs, issue titles, creating a pull request, protected-branch warnings. [docs/integrations.md](docs/integrations.md) lists every endpoint and the access each needs. ([#152](https://github.com/gspeager/current-client/issues/152))
 - With host integration on, pushing, force-pushing or deleting on the remote a branch the host protects asks first, naming the branch and what the host forbids, instead of the push being rejected afterwards. The rules come from the last refresh; nothing is asked at push time. ([#163](https://github.com/gspeager/current-client/issues/163))
 - **Clean up merged branches**, in the Branches sidebar's header, lists local branches whose work is already on the default branch, squash and rebase merges included, and deletes the ones you pick, with **Undo**. With host integration on, a branch whose merge request or pull request was merged on the host is listed with its number. A branch with commits newer than what was merged is marked and left unselected. When the checked-out branch is among them, the default branch is checked out and pulled first. ([#159](https://github.com/gspeager/current-client/issues/159))
 

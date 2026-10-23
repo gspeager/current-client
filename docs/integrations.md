@@ -137,7 +137,23 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/protected_branches` | Refresh; a 403 (not a Maintainer) means no warnings | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
 
-Avatar URLs in these answers are never decoded. GitHub's table arrives with its provider.
+### GitHub (github.com and Enterprise Server 3.11 or newer)
+
+Under `https://api.github.com` or the server's `/api/v3`. A classic token needs the `repo` scope; a fine-grained one, read access to pull requests, checks, contents and issues, and write access to pull requests for creating one. The two differ only in address; Enterprise Server before 3.11 has no repository rulesets, so it gets everything but the protected-branch warning.
+
+| Endpoint | When | Access |
+| --- | --- | --- |
+| `GET /user` | Test connection | read |
+| `GET /repos/:owner/:repo/pulls?state=open` | Refresh: the open pull requests, paged up to the cap | pull requests: read |
+| `GET /repos/:owner/:repo/pulls/:number` | Refresh of one pull request; once per local branch whose pull request left the open list | pull requests: read |
+| `GET /repos/:owner/:repo/pulls/:number/comments` | Refresh, for the checked-out branch's pull request (review comments; the REST API doesn't say whether a thread is resolved, so none shows as resolved) | pull requests: read |
+| `GET /repos/:owner/:repo/commits/:sha/check-runs` and `…/status` | Refresh, for open pull requests' heads; and as commits scroll into view, once per commit until the next refresh. Check runs and commit statuses are read as one result | checks, commit statuses: read |
+| `GET /repos/:owner/:repo/actions/jobs/:id/logs` | Clicking a failed job; the host redirects to the log's storage, which is followed without the token | actions: read |
+| `GET /repos/:owner/:repo/issues/:number` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | issues: read |
+| `GET /repos/:owner/:repo/rules/branches/:branch` | Refresh, once per local branch's upstream, at most 25; a 404 (no rulesets) or 403 means no warnings | metadata: read |
+| `POST /repos/:owner/:repo/pulls` | Create pull request | pull requests: write |
+
+Avatar URLs in these answers are never decoded.
 
 ## What works at each level
 
