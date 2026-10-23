@@ -219,7 +219,10 @@ function DiffViewer({
           </div>
           <div className="diff-side-header">
             <span className="diff-side-header-dot diff-side-header-dot-target" />
-            <span className="diff-side-header-label">{targetSide.label}</span>
+            <span className="diff-side-header-label">
+              {targetSide.label}
+              {targetSide.sha && <span className="diff-side-header-sha">{targetSide.sha}</span>}
+            </span>
             {!diff.conflicted && (
               <span className="diff-side-header-count diff-side-header-count-added">{stats.added} added</span>
             )}
