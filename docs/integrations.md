@@ -1,6 +1,6 @@
 # Host integration
 
-Current Client can show what a Git host knows about a repository: merge requests / pull requests, CI results and review threads, from GitLab (gitlab.com or Self-Managed) and GitHub (github.com or Enterprise Server). This guide says exactly when it talks to a host, what it asks for, what it keeps and how to turn it off or keep it off. It is being written as the feature is built for 0.4.0; the sections marked *to come* are filled in as each part lands.
+Current Client can show what a Git host knows about a repository: merge requests / pull requests, CI results and review threads, from GitLab (gitlab.com or Self-Managed) and GitHub (github.com or Enterprise Server). This guide says exactly when it talks to a host, what it asks for, what it keeps and how to turn it off or keep it off. It covers 0.4.0 in full: every endpoint, its trigger and its scope, the refresh and cache model, what works at each level of access, credentials, certificates and proxies, the managed policy, the build without the code, and what Diagnostics may contain.
 
 The rules it works under are the [privacy rules](../CONTRIBUTING.md#privacy-rules): the only destination is the host the repository's remotes already point at, and nothing is contacted until someone turns integration on for that host.
 
@@ -165,12 +165,14 @@ Avatar URLs in these answers are never decoded.
 | PR numbers on branches, through `git ls-remote` with a fetch | yes (number only) | with state and CI | with state and CI |
 | Clean up branches merged on the host | squash merges found locally | plus merged on the host | plus merged on the host |
 | MR/PR list, details, local checkout | no | yes | yes |
+| The checked-out branch's MR/PR in the sidebar, and what a refresh changed | no | yes | yes |
 | CI status, job list, failed job log | no | yes | yes |
 | Review threads beside the code | no | yes | yes |
 | Conflict forecast against open MRs/PRs | no | yes | yes |
 | Hover cards with title and state | local facts only | yes | yes |
 | Create MR/PR in the app | no | no, says which scope | yes |
 | Warn before pushing to a protected branch | no | yes | yes |
+| Managed policy: lock a host off or force it on | applies | applies | applies |
 
 "Off" means the host is never contacted for it. A read-only token is GitLab `read_api`, or GitHub fine-grained read access to pull requests, checks, contents and issues.
 
