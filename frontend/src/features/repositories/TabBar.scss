@@ -7,3 +7,11 @@
   background: var(--surface-low);
   border-bottom: var(--border-structure);
 }
+
+// Between the core views and the reports.
+.tab-bar-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 16px;
+  background: var(--outline-variant);
+}

@@ -36,6 +36,9 @@ interface NavPaneProps {
   workspaceActions: WorkspaceAction[]
   workspaceFeedback: WorkspaceFeedback | null
   onDismissFeedback: () => void
+  // Bumped when a host list is refreshed, so the change row re-reads itself.
+  hostVersion?: number
+  onPushToCreate?: () => void
   conflictState?: ConflictStateInfo | null
   onBranchChanged: () => void
   onFetched: () => void
@@ -88,23 +91,26 @@ function RailButton({
   )
 }
 
-function ActionRow({ label, actions, children }: { label: string; actions: WorkspaceAction[]; children?: ReactNode }) {
+function ToolGroup({ label, actions, children }: { label: string; actions: WorkspaceAction[]; children?: ReactNode }) {
   return (
-    <div className="nav-pane-action-row">
-      <span className="nav-pane-action-row-label">{label}</span>
-      {actions.map((action) => (
-        <button
-          key={action.id}
-          type="button"
-          className="nav-pane-action"
-          onClick={action.run}
-          disabled={action.disabled}
-          title={action.reason ?? action.label}
-        >
-          {action.short}
-        </button>
-      ))}
-      {children}
+    <div className="nav-pane-tool-group">
+      <span className="nav-pane-tool-caption">{label}</span>
+      <div className="nav-pane-tool-buttons">
+        {actions.map(({ id, short, label: full, icon: Icon, run, disabled, reason }) => (
+          <button
+            key={id}
+            type="button"
+            className="nav-pane-tool"
+            onClick={run}
+            disabled={disabled}
+            title={reason ?? full}
+          >
+            <Icon size={14} strokeWidth={1.75} />
+            {short}
+          </button>
+        ))}
+        {children}
+      </div>
     </div>
   )
 }
@@ -116,6 +122,8 @@ function NavPane({
   workspaceActions,
   workspaceFeedback,
   onDismissFeedback,
+  hostVersion = 0,
+  onPushToCreate,
   conflictState = null,
   onBranchChanged,
   onFetched,
@@ -191,10 +199,11 @@ function NavPane({
       <div className="nav-pane-scroll">
         <CurrentChangeSection
           repoPath={repoPath}
-          refreshKey={repoVersion}
+          refreshKey={`${repoVersion}:${hostVersion}`}
           onOpenChange={onOpenChange}
           onOpenFile={onOpenFile}
           onCreateChange={onCreateChange}
+          onPushToCreate={onPushToCreate}
         />
 
         <section className="nav-pane-section" ref={sectionRef('branches')}>
@@ -254,16 +263,16 @@ function NavPane({
             </button>
           </p>
         )}
-        <ActionRow label="Open in" actions={group('open')} />
-        <ActionRow label="Tools" actions={group('tools')}>
+        <ToolGroup label="Open in" actions={group('open')} />
+        <ToolGroup label="Tools" actions={group('tools')}>
           <button
             type="button"
-            className="nav-pane-action"
+            className="nav-pane-tool"
             onClick={() => setMaintenanceOpen((open) => !open)}
             aria-expanded={maintenanceOpen}
             title="Check integrity, run cleanup"
           >
-            <Wrench size={12} strokeWidth={1.75} />
+            <Wrench size={14} strokeWidth={1.75} />
             Maintenance
             {maintenanceOpen ? (
               <ChevronDown size={12} strokeWidth={1.5} />
@@ -271,8 +280,8 @@ function NavPane({
               <ChevronRight size={12} strokeWidth={1.5} />
             )}
           </button>
-        </ActionRow>
-        {maintenanceOpen && <ActionRow label="Maintenance" actions={group('maintenance')} />}
+        </ToolGroup>
+        {maintenanceOpen && <ToolGroup label="Maintenance" actions={group('maintenance')} />}
       </div>
     </nav>
   )

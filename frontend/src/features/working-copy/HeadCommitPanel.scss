@@ -1,17 +1,15 @@
 @use '../../styles/patterns';
 
 .head-commit-panel {
-  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   width: 100%;
-  height: var(--h-row-tree);
-  margin: 0;
-  padding: 0 var(--space-sm);
-  background: none;
-  border: none;
-  border-bottom: var(--border-structure);
+  min-width: 0;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-low);
+  border: var(--border-structure);
+  border-radius: var(--radius-md);
   text-align: left;
   cursor: pointer;
 
@@ -20,25 +18,36 @@
   }
 }
 
-.head-commit-panel-label {
+.head-commit-panel-icon {
   flex-shrink: 0;
-  padding: 1px var(--space-xs);
-  background: var(--primary);
-  border-radius: var(--radius-xs);
-  color: var(--on-primary);
-  font: var(--eyebrow);
-  letter-spacing: var(--eyebrow-tracking);
+  color: var(--outline);
+}
+
+.head-commit-panel-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.head-commit-panel-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.head-commit-panel-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
 }
 
 .head-commit-panel-sha {
-  flex-shrink: 0;
   color: var(--primary);
   font: var(--data-sm);
 }
 
 .head-commit-panel-subject {
-  min-width: 0;
   @include patterns.truncate;
-  color: var(--on-surface);
+  color: var(--on-surface-variant);
   font: var(--ui-sm);
 }

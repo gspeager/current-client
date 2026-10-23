@@ -11,6 +11,61 @@
   border-radius: var(--radius);
 }
 
+.current-change-slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-sm);
+
+  .current-change-forecast {
+    padding: 0 var(--space-xs);
+    border-top: none;
+  }
+}
+
+// Reads like a branch row: no header, no box.
+.current-change-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  @include patterns.disabled;
+}
+
+.current-change-row-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.current-change-row-text {
+  min-width: 0;
+  @include patterns.truncate;
+}
+
+.current-change-row-sep {
+  color: var(--outline);
+}
+
+.current-change-row-action {
+  color: var(--on-surface);
+  font-weight: 600;
+}
+
 .current-change-head {
   display: flex;
   align-items: center;

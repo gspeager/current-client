@@ -121,7 +121,7 @@ describe('NavPane expanded', () => {
     expect(onCollapsedChange).toHaveBeenCalledWith(true)
   })
 
-  it('leads with HEAD, which opens the commit', async () => {
+  it('leads with the HEAD card, which opens the commit', async () => {
     vi.mocked(HistoryService.GetHistory).mockResolvedValue([
       { sha: 'abc1234def5678', subject: 'Add the thing' },
     ] as never)
@@ -130,21 +130,29 @@ describe('NavPane expanded', () => {
 
     const head = await screen.findByRole('button', { name: 'HEAD abc1234 Add the thing' })
     expect(head.parentElement).toHaveClass('nav-pane-head')
+    expect(head.querySelector('.head-commit-panel-label')).toHaveTextContent('HEAD')
+    expect(head.querySelector('.head-commit-panel-sha')).toHaveTextContent('abc1234')
+    expect(head.querySelector('.head-commit-panel-subject')).toHaveTextContent('Add the thing')
+    expect(head.querySelector('svg')).not.toBeNull()
     await userEvent.click(head)
 
     expect(onOpenHeadCommit).toHaveBeenCalledWith('abc1234def5678')
   })
 
-  it('ends with Open in and Tools rows, and Maintenance behind a disclosure', async () => {
+  it('ends with Open in and Tools groups of outlined buttons, and Maintenance behind a disclosure', async () => {
     vi.mocked(PlatformService.OpenInEditor).mockResolvedValue()
     vi.mocked(DashboardService.RunFsckCheck).mockResolvedValue([])
     renderNav(false)
 
-    const rows = [...document.querySelectorAll('.nav-pane-footer .nav-pane-action-row')]
-    expect(rows.map((row) => row.textContent)).toEqual([
+    const groups = [...document.querySelectorAll('.nav-pane-footer .nav-pane-tool-group')]
+    expect(groups.map((row) => row.textContent)).toEqual([
       expect.stringMatching(/^Open inTerminal(Finder|File Explorer|File Manager)VS Code$/),
-      'ToolsUndoReflogBisectImport patchMaintenance',
+      'ToolsUndoReflogBisectApply patchMaintenance',
     ])
+    for (const button of groups.flatMap((g) => [...g.querySelectorAll('button')])) {
+      expect(button).toHaveClass('nav-pane-tool')
+      expect(button.querySelector('svg')).not.toBeNull()
+    }
     expect(screen.queryByRole('button', { name: 'Check integrity' })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'VS Code' }))
@@ -159,7 +167,7 @@ describe('NavPane expanded', () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
     renderNav(false)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Import patch' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
     const message = await screen.findByText('Patch applied to the working tree.')
     await userEvent.click(within(message.parentElement!).getByRole('button', { name: 'Dismiss' }))
 
@@ -219,7 +227,7 @@ describe('NavPane import patch', () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
     renderNav(false)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Import patch' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
 
     expect(await screen.findByText('Patch applied to the working tree.')).toBeInTheDocument()
   })
@@ -228,7 +236,7 @@ describe('NavPane import patch', () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('')
     renderNav(false)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Import patch' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
 
     await vi.waitFor(() => expect(PatchService.ImportPatch).toHaveBeenCalledWith(REPO))
     expect(screen.queryByText(/Patch applied/)).not.toBeInTheDocument()

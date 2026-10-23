@@ -54,7 +54,7 @@ describe('CurrentChangeSection', () => {
     const onOpenChange = vi.fn()
     render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} onOpenChange={onOpenChange} />)
 
-    const section = await screen.findByRole('region', { name: 'Conflict forecast for main' })
+    const section = await screen.findByRole('region', { name: 'Pull request for main' })
     const conflict = within(section).getByRole('button', { name: /Conflicts with !138 by Ada in app\/x.go, README.md/ })
     expect(within(section).getByText('20 of 34 checked')).toBeInTheDocument()
     await userEvent.click(conflict)
@@ -90,7 +90,7 @@ describe('CurrentChangeSection', () => {
     expect(HostService.CurrentChange).toHaveBeenCalledWith('/repos/app')
   })
 
-  it('offers to create a merge request when the pushed branch has none', async () => {
+  it('is one row, "No merge request · Create…", when the pushed branch has none', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue(
       new CurrentChange({
         branch: 'feature',
@@ -104,25 +104,34 @@ describe('CurrentChangeSection', () => {
     vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
     render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} />)
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Create merge request' }))
+    const row = await screen.findByRole('button', { name: 'No merge request · Create…' })
+    expect(row).toHaveClass('current-change-row')
+    expect(screen.queryByText('Merge request')).not.toBeInTheDocument()
+    await userEvent.click(row)
     expect(RemoteService.CreateChangeLink).toHaveBeenCalledWith('/repos/app', 'feature')
     await waitFor(() =>
       expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.com/g/r/-/merge_requests/new?x'),
     )
   })
 
-  it('is absent when the branch has no known merge request or the host is off', async () => {
+  it('is one row, "Push to create a pull request", when the branch has no upstream, and pushes from it', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue(
-      new CurrentChange({ branch: 'main', enabled: true, change: null }),
+      new CurrentChange({ branch: 'topic', enabled: true, kind: 'pull request', change: null }),
     )
-    const { rerender } = render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} />)
-    await waitFor(() => expect(HostService.CurrentChange).toHaveBeenCalled())
-    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+    const onPushToCreate = vi.fn()
+    render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} onPushToCreate={onPushToCreate} />)
 
+    const row = await screen.findByRole('button', { name: 'Push to create a pull request' })
+    expect(row).toHaveClass('current-change-row')
+    await userEvent.click(row)
+    expect(onPushToCreate).toHaveBeenCalled()
+  })
+
+  it('is absent when the host is off', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue(
       new CurrentChange({ branch: 'feature', enabled: false, change }),
     )
-    rerender(<CurrentChangeSection repoPath="/repos/other" refreshKey={0} />)
+    render(<CurrentChangeSection repoPath="/repos/other" refreshKey={0} />)
     await waitFor(() => expect(HostService.CurrentChange).toHaveBeenCalledWith('/repos/other'))
     expect(screen.queryByRole('region')).not.toBeInTheDocument()
   })

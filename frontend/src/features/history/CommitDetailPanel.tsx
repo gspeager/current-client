@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import { Check, ChevronDown, Copy, GitCommitVertical, Palette, ShieldAlert, ShieldCheck } from 'lucide-react'
 import {
   type ChangedFile,
@@ -14,7 +14,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { PRIMARY_COMMIT_ACTIONS, type CommitAction } from './useCommitActions'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { plural } from '../../lib/plural'
-import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
+import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
 import { useFileTools } from './useFileTools'
 import ChangedFileRow from './ChangedFileRow'
 import IdentityBadge from '../../components/git/IdentityBadge'
@@ -53,7 +53,7 @@ function CommitDetailPanel({
   onOpenFile,
 }: CommitDetailPanelProps) {
   useClockTick()
-  const [moreMenu, setMoreMenu] = useState<ContextMenuState | null>(null)
+  const moreRef = useDismissibleDetails()
   const { copied: shaCopied, copy } = useCopyToClipboard()
   const fileTools = useFileTools(repoPath)
 
@@ -66,11 +66,10 @@ function CommitDetailPanel({
     [repoPath, commit.sha],
   )
 
-  const openMore = (e: MouseEvent | KeyboardEvent) =>
-    setMoreMenu({
-      ...menuAnchor(e),
-      items: actions.slice(PRIMARY_COMMIT_ACTIONS).map((a) => ({ label: a.label, onClick: a.run })),
-    })
+  const runMore = (run: () => void) => {
+    if (moreRef.current) moreRef.current.open = false
+    run()
+  }
 
   const fileContextMenu = (f: ChangedFile) => (e: MouseEvent | KeyboardEvent) =>
     fileTools.openMenu(e, [
@@ -225,16 +224,25 @@ function CommitDetailPanel({
             </button>
           ))}
           {actions.length > PRIMARY_COMMIT_ACTIONS && (
-            <button type="button" className="commit-detail-more" onClick={openMore} aria-haspopup="menu">
-              More
-              <ChevronDown size={14} strokeWidth={1.75} />
-            </button>
+            <details ref={moreRef} className="commit-detail-more">
+              <summary className="commit-detail-more-toggle" aria-label="More actions" title="More actions">
+                More
+                <ChevronDown size={14} strokeWidth={1.75} />
+              </summary>
+              <div className="commit-detail-more-menu">
+                {actions.slice(PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run }) => (
+                  <button key={id} type="button" onClick={() => runMore(run)}>
+                    <Icon size={14} strokeWidth={1.75} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </details>
           )}
         </div>
         {actionError && <p className="commit-detail-error">{actionError}</p>}
       </div>
 
-      {moreMenu && <ContextMenu state={moreMenu} onClose={() => setMoreMenu(null)} />}
       {fileTools.overlays}
     </section>
   )
