@@ -68,6 +68,6 @@ describe('useFetchAll primary remote', () => {
 
     act(() => result.current.fetchPrimary())
 
-    await vi.waitFor(() => expect(result.current.error).toBe('No remote configured to push to.'))
+    await vi.waitFor(() => expect(result.current.error).toBe('No remote configured.'))
   })
 })

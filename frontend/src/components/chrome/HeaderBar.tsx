@@ -125,34 +125,37 @@ function HeaderBar({
 
   // A sync button with a chevron beside it that drops the rest of its choices.
   const syncButton = (
-    id: string,
+    id: 'fetch' | 'pull' | 'push',
     label: string,
     Icon: LucideIcon,
     title: string,
     onClick: (e: React.MouseEvent) => void,
     items: ContextMenuItem[],
     disabled = false,
-  ) => (
-    <span className={`header-bar-sync-group header-bar-sync-${id}`}>
-      <button type="button" className="header-bar-sync" onClick={disabled ? undefined : onClick} title={title}>
-        <Icon size={12} strokeWidth={1.5} />
-        {label}
-      </button>
-      <button
-        type="button"
-        className="header-bar-sync header-bar-sync-more"
-        aria-label={`${label.split(' ')[0]} options`}
-        title={`${label.split(' ')[0]} options`}
-        disabled={disabled}
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect()
-          setSyncMenu({ x: rect.left, y: rect.bottom + 4, items })
-        }}
-      >
-        <ChevronDown size={12} strokeWidth={1.5} />
-      </button>
-    </span>
-  )
+  ) => {
+    const name = id[0].toUpperCase() + id.slice(1)
+    return (
+      <span className={`header-bar-sync-group header-bar-sync-${id}`}>
+        <button type="button" className="header-bar-sync" onClick={disabled ? undefined : onClick} title={title}>
+          <Icon size={12} strokeWidth={1.5} />
+          {label}
+        </button>
+        <button
+          type="button"
+          className="header-bar-sync header-bar-sync-more"
+          aria-label={`${name} options`}
+          title={`${name} options`}
+          disabled={disabled}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            setSyncMenu({ x: rect.left, y: rect.bottom + 4, items })
+          }}
+        >
+          <ChevronDown size={12} strokeWidth={1.5} />
+        </button>
+      </span>
+    )
+  }
 
   useWindowKeydown((e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {

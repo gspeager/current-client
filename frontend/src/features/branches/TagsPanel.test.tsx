@@ -52,7 +52,7 @@ describe('TagsPanel', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Delete tag v1.0 on remote' }))
 
-    expect(await screen.findByText('No remote configured to push to.')).toBeInTheDocument()
+    expect(await screen.findByText('No remote configured.')).toBeInTheDocument()
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
   })
 })
