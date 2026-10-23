@@ -1,5 +1,5 @@
 import { System } from '@wailsio/runtime'
-import { PlatformService } from '@current-client-bindings/app'
+import { PlatformService, type HostStatusInfo } from '@current-client-bindings/app'
 import PathText from '../git/PathText'
 import { tildePath } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
@@ -65,10 +65,20 @@ function StatusBar({ repoPath, repoVersion, gitVersion, integration = null, onOp
   )
 }
 
-function hostRequestLabel(status: { inFlight: boolean; lastRequest: string | null } | null): string {
-  if (status?.inFlight) return 'request in flight'
-  if (status?.lastRequest) return `last request ${relativeTime(new Date(status.lastRequest))}`
-  return 'no requests yet'
+// The budget the host reported with its last answer, then when it was
+// last asked.
+function hostRequestLabel(status: HostStatusInfo | null): string {
+  const parts: string[] = []
+  if (status?.limit) {
+    parts.push(`${status.remaining} of ${status.limit} requests left`)
+    if (status.remaining === 0 && status.resetAt) {
+      parts.push(`resets at ${new Date(status.resetAt).toLocaleTimeString([], { timeStyle: 'short' })}`)
+    }
+  }
+  if (status?.inFlight) parts.push('request in flight')
+  else if (status?.lastRequest) parts.push(`last request ${relativeTime(new Date(status.lastRequest))}`)
+  else parts.push('no requests yet')
+  return parts.join(' · ')
 }
 
 export default StatusBar
