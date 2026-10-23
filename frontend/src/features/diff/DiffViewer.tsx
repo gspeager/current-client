@@ -108,6 +108,7 @@ function DiffViewer({
   useWindowKeydown((e) => {
     if (!e.altKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
     if (diff.conflicted) {
+      if (blocks.blockStarts.length === 0) return
       e.preventDefault()
       goToBlock(
         e.key === 'ArrowDown'
