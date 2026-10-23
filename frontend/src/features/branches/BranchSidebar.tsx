@@ -328,6 +328,19 @@ function BranchSidebar({ repoPath, dirty, refreshKey, sections, onBranchChanged,
   const localNames = new Set((branches ?? []).map((b) => b.name))
   const remoteList = (remoteBranches ?? []).filter((name) => name.toLowerCase().includes(query))
 
+  // Enter and Space activate a row like a click; the menu key opens its menu.
+  const rowKeys = (activate: () => void, menu: (e: KeyboardEvent) => void) => (e: KeyboardEvent<HTMLLIElement>) => {
+    if (isMenuKey(e)) {
+      menu(e)
+      return
+    }
+    if (e.target !== e.currentTarget) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      activate()
+    }
+  }
+
   const renderLocalRow = (b: BranchInfo) => (
     <li
       key={b.name}
@@ -336,17 +349,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, sections, onBranchChanged,
       onContextMenu={branchContextMenu(b)}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (isMenuKey(e)) {
-          branchContextMenu(b)(e)
-          return
-        }
-        if (e.target !== e.currentTarget) return
-        if ((e.key === 'Enter' || e.key === ' ') && !b.current) {
-          e.preventDefault()
-          checkoutBranch(b.name)
-        }
-      }}
+      onKeyDown={rowKeys(() => !b.current && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill
         name={b.name}
@@ -415,16 +418,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, sections, onBranchChanged,
       onContextMenu={remoteMenu(name)}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (isMenuKey(e)) {
-          remoteMenu(name)(e)
-          return
-        }
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          checkoutBranch(localNameFor(name, remoteNames))
-        }
-      }}
+      onKeyDown={rowKeys(() => checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
       <span className="branch-row-remote-name">{name}</span>
@@ -566,7 +560,7 @@ function BranchSidebar({ repoPath, dirty, refreshKey, sections, onBranchChanged,
             <div className="branch-sidebar-group">
               <SidebarSection
                 label="Remote"
-                count={remoteBranches?.length}
+                count={remoteBranches === null ? undefined : remoteList.length}
                 open={remoteOpen}
                 onToggle={() => sections.toggle('branches-remote', false)}
                 actions={

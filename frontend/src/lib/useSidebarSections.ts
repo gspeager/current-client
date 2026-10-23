@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SettingsService } from '@current-client-bindings/app'
 
 export interface SidebarSections {
@@ -12,11 +12,15 @@ export interface SidebarSections {
 // user has never toggled follows the default its content decides.
 export function useSidebarSections(repoPath: string): SidebarSections {
   const [choices, setChoices] = useState<Record<string, boolean | undefined>>({})
+  const loadedPath = useRef(repoPath)
 
   useEffect(() => {
+    loadedPath.current = repoPath
     setChoices({})
     SettingsService.GetSidebarSections(repoPath)
-      .then((stored) => setChoices(stored ?? {}))
+      .then((stored) => {
+        if (loadedPath.current === repoPath) setChoices(stored ?? {})
+      })
       .catch(() => {})
   }, [repoPath])
 
@@ -28,13 +32,14 @@ export function useSidebarSections(repoPath: string): SidebarSections {
     [repoPath],
   )
 
-  const isOpen = useCallback((id: string, defaultOpen: boolean) => choices[id] ?? defaultOpen, [choices])
-
-  return {
-    isOpen,
-    toggle: (id, defaultOpen) => set(id, !isOpen(id, defaultOpen)),
-    open: (id) => {
-      if (!isOpen(id, false)) set(id, true)
-    },
-  }
+  return useMemo(() => {
+    const isOpen = (id: string, defaultOpen: boolean) => choices[id] ?? defaultOpen
+    return {
+      isOpen,
+      toggle: (id, defaultOpen) => set(id, !isOpen(id, defaultOpen)),
+      open: (id) => {
+        if (!isOpen(id, false)) set(id, true)
+      },
+    }
+  }, [choices, set])
 }

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
 import { PatchService, type FileStatus } from '@current-client-bindings/app'
@@ -89,8 +89,10 @@ function WorkingTreeFileList({
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set())
   const sections = useSidebarSections(repoPath)
   // A group with files starts open and an empty one closed, until the user decides.
-  const sectionOpen = (section: WorkingTreeSection) =>
-    sections.isOpen(`files-${section}`, sectionFiles[section].length > 0)
+  const sectionOpen = useCallback(
+    (section: WorkingTreeSection) => sections.isOpen(`files-${section}`, sectionFiles[section].length > 0),
+    [sections, sectionFiles],
+  )
   const fileTools = useFileTools(repoPath)
   const [patchError, setPatchError] = useState<string | null>(null)
   const [patchBusy, setPatchBusy] = useState(false)
@@ -134,8 +136,7 @@ function WorkingTreeFileList({
       { kind: 'header', section: 'unstaged' },
       ...sectionRows('unstaged', filtered.unstaged),
     ]
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasConflicts, filtered, viewMode, collapsedFolders, sections])
+  }, [hasConflicts, filtered, viewMode, collapsedFolders, sectionOpen])
 
   const orderedRowKeys = (): string[] =>
     listRows.flatMap((r) => (r.kind === 'file' ? [rowKey(r.section, r.file.path)] : []))

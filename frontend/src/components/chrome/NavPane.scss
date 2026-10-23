@@ -43,11 +43,6 @@
   padding: 0 var(--space-md);
 }
 
-.nav-pane-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
 .nav-pane-collapse,
 .nav-pane-rail-button {
   display: inline-flex;
