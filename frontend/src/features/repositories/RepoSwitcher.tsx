@@ -22,7 +22,7 @@ function RepoSwitcher({ repo, defaultLocation = '', onOpenSettings }: RepoSwitch
 
   return (
     <div className="repo-switcher">
-      <div className="repo-switcher-tabs" role="tablist">
+      <div className="repo-switcher-tabs">
         <Tab active={tab === 'open'} onClick={() => setTab('open')}>
           Open
         </Tab>
