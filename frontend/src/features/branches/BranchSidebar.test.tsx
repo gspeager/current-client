@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   BranchChange,
@@ -10,7 +10,7 @@ import {
   type BranchInfo,
   type BranchStatusInfo,
 } from '@current-client-bindings/app'
-import { Links } from '@current-client-bindings/core/hostlink'
+import { Links, Style } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchSidebar from './BranchSidebar'
 
@@ -30,6 +30,32 @@ function renderSidebar(onBranchChanged = vi.fn()) {
 }
 
 describe('BranchSidebar', () => {
+  it('offers to create a merge request for a pushed branch without one, through the host’s form', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([
+      branch('main', true),
+      { ...branch('feature'), upstream: 'origin/feature' },
+    ])
+    vi.mocked(RemoteService.HostLinks).mockResolvedValue(
+      new Links({
+        root: 'https://gitlab.com/',
+        issuePath: '/-/issues/',
+        tree: 'https://gitlab.com/g/r/-/tree/',
+        style: Style.GitLab,
+      }),
+    )
+    vi.mocked(HostService.BranchChanges).mockResolvedValue({})
+    vi.mocked(RemoteService.CreateChangeLink).mockResolvedValue('https://gitlab.com/g/r/-/merge_requests/new?x')
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    renderSidebar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for feature' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Create merge request…' }))
+    expect(RemoteService.CreateChangeLink).toHaveBeenCalledWith(REPO, 'feature')
+    await waitFor(() =>
+      expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.com/g/r/-/merge_requests/new?x'),
+    )
+  })
+
   it('opens a branch on the host, as its merge request when known and its tree otherwise', async () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([
       branch('main', true),

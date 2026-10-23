@@ -66,6 +66,7 @@ func TestLinks(t *testing.T) {
 			Tree:      "https://github.com/owner/repo/tree/",
 			Tag:       "https://github.com/owner/repo/releases/tag/",
 			Blob:      "https://github.com/owner/repo/blob/",
+			Style:     GitHub,
 		}},
 		{"https://gitlab.com/group/sub/repo.git", Links{
 			Issue:        "https://gitlab.com/group/sub/repo/-/issues/",
@@ -77,6 +78,7 @@ func TestLinks(t *testing.T) {
 			Tree:         "https://gitlab.com/group/sub/repo/-/tree/",
 			Tag:          "https://gitlab.com/group/sub/repo/-/tags/",
 			Blob:         "https://gitlab.com/group/sub/repo/-/blob/",
+			Style:        GitLab,
 		}},
 		{"http://git.example.com:8080/owner/repo", Links{
 			Issue:     "http://git.example.com:8080/owner/repo/issues/",
@@ -87,6 +89,7 @@ func TestLinks(t *testing.T) {
 			Tree:      "http://git.example.com:8080/owner/repo/tree/",
 			Tag:       "http://git.example.com:8080/owner/repo/releases/tag/",
 			Blob:      "http://git.example.com:8080/owner/repo/blob/",
+			Style:     GitHub,
 		}},
 	}
 	for _, tt := range tests {
@@ -96,6 +99,24 @@ func TestLinks(t *testing.T) {
 		}
 		if got := host.Links(); got != tt.want {
 			t.Errorf("Links(%q) = %+v, want %+v", tt.url, got, tt.want)
+		}
+	}
+}
+
+func TestNewChange(t *testing.T) {
+	github, _ := Parse("git@github.com:owner/repo.git")
+	gitlab, _ := Parse("https://gitlab.com/group/sub/repo.git")
+	fork, _ := Parse("git@github.com:someone/repo.git")
+	tests := []struct{ got, want string }{
+		{github.NewChange("feature/login", "main"), "https://github.com/owner/repo/compare/main...feature/login?expand=1"},
+		{github.NewChange("fix", ""), "https://github.com/owner/repo/compare/main...fix?expand=1"},
+		{gitlab.NewChange("feature/login", "main"), "https://gitlab.com/group/sub/repo/-/merge_requests/new?merge_request%5Bsource_branch%5D=feature%2Flogin&merge_request%5Btarget_branch%5D=main"},
+		{gitlab.NewChange("fix", ""), "https://gitlab.com/group/sub/repo/-/merge_requests/new?merge_request%5Bsource_branch%5D=fix"},
+		{fork.NewChangeFromFork(github, "fix", "main"), "https://github.com/owner/repo/compare/main...someone:fix?expand=1"},
+	}
+	for _, tt := range tests {
+		if tt.got != tt.want {
+			t.Errorf("got  %s\nwant %s", tt.got, tt.want)
 		}
 	}
 }

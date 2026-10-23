@@ -1,5 +1,5 @@
 import { ExternalLink, PanelRight, TriangleAlert } from 'lucide-react'
-import { HostService, PlatformService } from '@current-client-bindings/app'
+import { HostService, PlatformService, RemoteService } from '@current-client-bindings/app'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark from '../../components/git/CIMark'
 import { ignoreDecorativeFailure } from '../../lib/errors'
@@ -27,9 +27,21 @@ function CurrentChangeSection({ repoPath, refreshKey, onOpenChange, onOpenFile }
   const firstThreadPath = Object.keys(reviewThreads.counts).find((path) => (reviewThreads.counts[path] ?? 0) > 0)
   const change = data?.enabled ? data.change : null
   const conflicts = forecast?.enabled ? (forecast.conflicts ?? []) : []
-  if (!data?.enabled || (!change && conflicts.length === 0)) return null
+  const canCreate = !change && !!data?.upstream
+  if (!data?.enabled || (!change && conflicts.length === 0 && !canCreate)) return null
 
-  const kind = change ? (change.prefix === '!' ? 'Merge request' : 'Pull request') : 'Conflict forecast'
+  const createChange = () =>
+    RemoteService.CreateChangeLink(repoPath, data?.branch ?? '')
+      .then((link) => (link ? PlatformService.OpenWebPage(link) : undefined))
+      .catch(ignoreDecorativeFailure)
+
+  const kind = change
+    ? change.prefix === '!'
+      ? 'Merge request'
+      : 'Pull request'
+    : conflicts.length > 0
+      ? 'Conflict forecast'
+      : 'Merge request'
   const state = change ? (change.draft ? 'draft' : change.state) : ''
   return (
     <section className="current-change" aria-label={`${kind} for ${data.branch}`}>
@@ -82,6 +94,14 @@ function CurrentChangeSection({ repoPath, refreshKey, onOpenChange, onOpenFile }
             </button>
           </div>
         </>
+      )}
+      {canCreate && (
+        <div className="current-change-actions">
+          <button type="button" className="current-change-button" onClick={() => void createChange()}>
+            <ExternalLink size={14} strokeWidth={1.75} />
+            Create merge request
+          </button>
+        </div>
       )}
       {forecast?.enabled && forecast.checked > 0 && (
         <div className="current-change-forecast" aria-label="Conflict forecast">

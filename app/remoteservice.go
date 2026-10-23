@@ -137,20 +137,122 @@ func (s *RemoteService) PullRebase(ctx context.Context, repoPath string, auth *g
 	return nil
 }
 
-func (s *RemoteService) Push(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
-	ctx, err := withAuth(ctx, auth)
-	if err != nil {
-		return err
-	}
-	return git.Push(ctx, repoPath)
+// PushResult says what was pushed and, when the branch has no known merge
+// request / pull request, where to create one: the link the host printed,
+// else one built from the remote's address. Kind names the host's word.
+type PushResult struct {
+	Branch     string `json:"branch"`
+	Upstream   string `json:"upstream"`
+	CreateLink string `json:"createLink"`
+	Kind       string `json:"kind"`
 }
 
-func (s *RemoteService) PushSetUpstream(ctx context.Context, repoPath, remote, branch string, auth *gitexec.Credential) error {
+func (s *RemoteService) Push(ctx context.Context, repoPath string, auth *gitexec.Credential) (PushResult, error) {
 	ctx, err := withAuth(ctx, auth)
 	if err != nil {
-		return err
+		return PushResult{}, err
 	}
-	return git.PushSetUpstream(ctx, repoPath, remote, branch)
+	output, err := git.PushOutput(ctx, repoPath)
+	if err != nil {
+		return PushResult{}, err
+	}
+	return s.pushResult(ctx, repoPath, output)
+}
+
+func (s *RemoteService) PushSetUpstream(ctx context.Context, repoPath, remote, branch string, auth *gitexec.Credential) (PushResult, error) {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return PushResult{}, err
+	}
+	output, err := git.PushSetUpstreamOutput(ctx, repoPath, remote, branch)
+	if err != nil {
+		return PushResult{}, err
+	}
+	return s.pushResult(ctx, repoPath, output)
+}
+
+func (s *RemoteService) pushResult(ctx context.Context, repoPath, output string) (PushResult, error) {
+	status, err := git.CurrentBranchStatus(ctx, repoPath)
+	if err != nil {
+		return PushResult{}, err
+	}
+	result := PushResult{Branch: status.Current, Upstream: status.Upstream}
+	if link, kind, err := s.createChangeLink(ctx, repoPath, status.Current); err == nil && link != "" {
+		result.CreateLink, result.Kind = link, kind
+		if printed := createLinkIn(output); printed != "" {
+			result.CreateLink = printed
+		}
+	}
+	return result, nil
+}
+
+// CreateChangeLink is the host's pre-filled form for a merge request / pull
+// request from branch, built from the remote's address, no API. For a fork
+// (a remote named upstream on the same host) the target is upstream's
+// project. Empty when no remote points at a hosted project.
+func (s *RemoteService) CreateChangeLink(repoPath, branch string) (string, error) {
+	link, _, err := s.createChangeLink(context.Background(), repoPath, branch)
+	return link, err
+}
+
+func (s *RemoteService) createChangeLink(ctx context.Context, repoPath, branch string) (link, kind string, err error) {
+	remotes, err := git.ListRemotes(ctx, repoPath)
+	if err != nil || len(remotes) == 0 {
+		return "", "", err
+	}
+	primary := primaryRemote(remotes)
+	host, ok := hostlink.Resolve(ctx, remoteURL(primary))
+	if !ok {
+		return "", "", nil
+	}
+	host = withHostConfig(host, configOrDefault().Hosts)
+	kind = "pull request"
+	if host.Style == hostlink.GitLab {
+		kind = "merge request"
+	}
+	base, _ := git.DefaultBranch(ctx, repoPath)
+	branch = remoteBranchOf(ctx, repoPath, branch)
+	for _, r := range remotes {
+		if r.Name != "upstream" || r.Name == primary.Name {
+			continue
+		}
+		if upstream, ok := hostlink.Resolve(ctx, remoteURL(r)); ok && upstream.Hostname() == host.Hostname() {
+			return host.NewChangeFromFork(upstream, branch, base), kind, nil
+		}
+	}
+	return host.NewChange(branch, base), kind, nil
+}
+
+// remoteBranchOf is the branch's name on the remote: its upstream's, when
+// it has one, without the remote's name.
+func remoteBranchOf(ctx context.Context, repoPath, branch string) string {
+	branches, err := git.ListBranches(ctx, repoPath)
+	if err != nil {
+		return branch
+	}
+	for _, b := range branches {
+		if b.Name == branch && b.Upstream != "" {
+			if _, rest, ok := strings.Cut(b.Upstream, "/"); ok {
+				return rest
+			}
+		}
+	}
+	return branch
+}
+
+// createLinkIn finds the link a host prints after a push ("To create a
+// merge request for feature, visit:", "Create a pull request for 'feature'
+// on GitHub by visiting:").
+func createLinkIn(output string) string {
+	for _, line := range strings.Split(output, "\n") {
+		for _, word := range strings.Fields(line) {
+			if (strings.HasPrefix(word, "https://") || strings.HasPrefix(word, "http://")) &&
+				(strings.Contains(word, "/merge_requests/new") || strings.Contains(word, "/pull/new/") || strings.Contains(word, "/compare/")) {
+				return word
+			}
+		}
+	}
+	return ""
 }
 
 // ForcePush force-pushes the current branch to its configured upstream.

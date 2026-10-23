@@ -2,7 +2,14 @@ import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
-import { GitService, HistoryService, type HostNotice, HostService, PlatformService } from '@current-client-bindings/app'
+import {
+  GitService,
+  HistoryService,
+  type HostNotice,
+  HostService,
+  PlatformService,
+  type PushResult,
+} from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
 import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './components/chrome/HeaderBar'
@@ -29,6 +36,7 @@ import HostNoticeBanner from './components/chrome/HostNoticeBanner'
 import { useHostPrompt } from './features/settings/useHostPrompt'
 import { useHostIndicator } from './lib/useHostIndicator'
 import { useHostLinks } from './lib/useHostLinks'
+import { useBranchChanges } from './lib/useBranchChanges'
 import { useSettings } from './features/settings/useSettings'
 import { useTabMemory } from './features/repositories/useTabMemory'
 import { useWorkingTree } from './features/working-copy/useWorkingTree'
@@ -74,6 +82,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const [hostsVersion, setHostsVersion] = useState(0)
   const [changeFocus, setChangeFocus] = useState<number | null>(null)
   const [hostNotices, setHostNotices] = useState<HostNotice[]>([])
+  const [pushed, setPushed] = useState<PushResult | null>(null)
   const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
   // false only in a build made with the nohost tag; until known, assume the full build.
   const { data: hostIntegrationBuilt } = useAsyncData(() => PlatformService.HostIntegrationAvailable(), [])
@@ -87,16 +96,22 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const changesLabel = integration ? changesLabelFor(integration.host.provider) : null
   const hostLinks = useHostLinks(repo.repoPath ?? '')
   const { repoVersion, bumpRepoVersion, justBumped } = useRepoVersion()
+  // The branch's known change, to offer a create link only while it has none.
+  const changes = useBranchChanges(repo.repoPath ?? '', repoVersion)
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
   const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
   // A pull fetches too, so it moves "fetched … ago" as well as the branch.
-  const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, () => {
-    bumpRepoVersion()
-    reloadLastFetchTime()
-    collectHostNotices()
-  })
+  const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(
+    repo.repoPath,
+    () => {
+      bumpRepoVersion()
+      reloadLastFetchTime()
+      collectHostNotices()
+    },
+    setPushed,
+  )
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
@@ -196,6 +211,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
   const reportActiveRepo = useEventCallback((path: string | null) => onActiveRepoChange?.(path))
   useEffect(() => reportActiveRepo(repo.repoPath), [repo.repoPath, reportActiveRepo])
+
+  useEffect(() => setPushed(null), [repo.repoPath])
 
   const openChange = (number: number) => {
     setChangeFocus(number)
@@ -345,6 +362,17 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             </p>
           )}
           {pushOp.error && <p className="app-inline-error">Could not push: {pushOp.error}</p>}
+          {pushed?.createLink && !changes[pushed.upstream]?.state && (
+            <p className="app-inline-notice" role="status">
+              Pushed {pushed.branch}.{' '}
+              <button type="button" onClick={() => void PlatformService.OpenWebPage(pushed.createLink)}>
+                Create {pushed.kind}
+              </button>
+              <button type="button" onClick={() => setPushed(null)} aria-label="Dismiss">
+                Dismiss
+              </button>
+            </p>
+          )}
 
           <div className="app-body">
             <NavPane

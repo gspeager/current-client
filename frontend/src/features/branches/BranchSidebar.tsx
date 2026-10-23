@@ -8,6 +8,7 @@ import {
   type OverlapInfo,
   OverlapService,
   PlatformService,
+  RemoteService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
@@ -214,6 +215,12 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenCha
       .catch((err: unknown) => setActionError(`Could not restore ${branch.name}: ${errorMessage(err)}`))
   }
 
+  // The host's pre-filled form for a new merge request / pull request from the branch, built without the API.
+  const createChange = (name: string) =>
+    RemoteService.CreateChangeLink(repoPath, name)
+      .then((link) => (link ? PlatformService.OpenWebPage(link) : undefined))
+      .catch(() => undefined)
+
   // The branch's merge request when one is known, else its tree on the host.
   const branchHostPage = (b: BranchInfo): string => {
     const change = b.upstream ? changes[b.upstream] : undefined
@@ -243,6 +250,14 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenCha
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
         ...(hostLinks?.tree
           ? [{ label: 'Open on host', onClick: () => void PlatformService.OpenWebPage(branchHostPage(b)) }]
+          : []),
+        ...(hostLinks?.tree && b.upstream && !changes[b.upstream]?.state
+          ? [
+              {
+                label: `Create ${hostLinks.style === 'gitlab' ? 'merge request' : 'pull request'}…`,
+                onClick: () => void createChange(b.name),
+              },
+            ]
           : []),
         { label: 'Rename…', onClick: () => renameBranch(b.name) },
         { label: 'Set upstream…', onClick: () => setUpstreamFor(b) },
