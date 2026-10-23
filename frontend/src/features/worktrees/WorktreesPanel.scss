@@ -6,18 +6,6 @@
   gap: 2px;
 }
 
-.worktrees-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-xs);
-}
-
-.worktrees-panel-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
 .worktrees-panel-add {
   @include patterns.icon-button;
 }

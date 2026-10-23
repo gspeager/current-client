@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -8,26 +8,25 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
-  ShieldCheck,
-  Sparkles,
   Tag,
   Wrench,
+  X,
   type LucideIcon,
 } from 'lucide-react'
-import { DashboardService } from '@current-client-bindings/app'
 import BranchSidebar from '../../features/branches/BranchSidebar'
+import CurrentChangeSection from '../../features/branches/CurrentChangeSection'
 import HeadCommitPanel from '../../features/working-copy/HeadCommitPanel'
 import RemotesPanel from '../../features/remotes/RemotesPanel'
 import StashPanel from '../../features/branches/StashPanel'
 import TagsPanel from '../../features/branches/TagsPanel'
 import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
 import SubmodulesPanel from '../../features/submodules/SubmodulesPanel'
-import { errorMessage } from '../../lib/errors'
+import { useSidebarSections } from '../../lib/useSidebarSections'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
-import type { WorkspaceAction, WorkspaceFeedback } from './useWorkspaceActions'
+import type { WorkspaceAction, WorkspaceFeedback, WorkspaceGroup } from './useWorkspaceActions'
 import './NavPane.scss'
 
-type SectionId = 'maintenance' | 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
+type SectionId = 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 
 interface NavPaneProps {
   repoPath: string
@@ -35,6 +34,7 @@ interface NavPaneProps {
   workingTree: ReturnType<typeof useWorkingTree>
   workspaceActions: WorkspaceAction[]
   workspaceFeedback: WorkspaceFeedback | null
+  onDismissFeedback: () => void
   onBranchChanged: () => void
   onFetched: () => void
   pruneOnFetch?: boolean
@@ -52,7 +52,6 @@ interface NavPaneProps {
 
 // The rail jumps to these sections; they need the full width to show anything.
 const SECTION_SHORTCUTS: { id: SectionId; label: string; icon: LucideIcon }[] = [
-  { id: 'maintenance', label: 'Maintenance', icon: Wrench },
   { id: 'branches', label: 'Branches', icon: GitBranch },
   { id: 'stash', label: 'Stash', icon: Package },
   { id: 'tags', label: 'Tags', icon: Tag },
@@ -60,12 +59,35 @@ const SECTION_SHORTCUTS: { id: SectionId; label: string; icon: LucideIcon }[] = 
   { id: 'worktrees', label: 'Worktrees', icon: FolderGit2 },
 ]
 
+function RailButton({ label, icon: Icon, onClick }: { label: string; icon: LucideIcon; onClick: () => void }) {
+  return (
+    <button type="button" className="nav-pane-rail-button" onClick={onClick} aria-label={label} title={label}>
+      <Icon size={16} strokeWidth={1.75} />
+    </button>
+  )
+}
+
+function ActionRow({ label, actions, children }: { label: string; actions: WorkspaceAction[]; children?: ReactNode }) {
+  return (
+    <div className="nav-pane-action-row">
+      <span className="nav-pane-action-row-label">{label}</span>
+      {actions.map((action) => (
+        <button key={action.id} type="button" className="nav-pane-action" onClick={action.run} title={action.label}>
+          {action.short}
+        </button>
+      ))}
+      {children}
+    </div>
+  )
+}
+
 function NavPane({
   repoPath,
   repoVersion,
   workingTree,
   workspaceActions,
   workspaceFeedback,
+  onDismissFeedback,
   onBranchChanged,
   onFetched,
   pruneOnFetch,
@@ -78,15 +100,12 @@ function NavPane({
   onOpenFile,
   onCreateChange,
 }: NavPaneProps) {
-  const [fsckBusy, setFsckBusy] = useState(false)
-  const [fsckError, setFsckError] = useState<string | null>(null)
-  const [fsckResult, setFsckResult] = useState<string[] | null>(null)
-  const [gcBusy, setGcBusy] = useState(false)
-  const [gcError, setGcError] = useState<string | null>(null)
-  const [gcMessage, setGcMessage] = useState<string | null>(null)
+  const sections = useSidebarSections(repoPath)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
   const sectionRefs = useRef<Partial<Record<SectionId, HTMLElement | null>>>({})
   const pendingSection = useRef<SectionId | null>(null)
+  const dirty = (workingTree.files?.length ?? 0) > 0
+  const group = (name: WorkspaceGroup) => workspaceActions.filter((a) => a.group === name)
 
   // A section picked from the rail is scrolled to once the pane has expanded.
   useEffect(() => {
@@ -96,32 +115,9 @@ function NavPane({
   }, [collapsed])
 
   const showSection = (id: SectionId) => {
-    if (id === 'maintenance') setMaintenanceOpen(true)
+    sections.open(id)
     pendingSection.current = id
     onCollapsedChange(false)
-  }
-
-  const checkIntegrity = () => {
-    setFsckError(null)
-    setFsckResult(null)
-    setFsckBusy(true)
-    DashboardService.RunFsckCheck(repoPath)
-      .then((issues) => setFsckResult(issues))
-      .catch((err: unknown) => setFsckError(errorMessage(err)))
-      .finally(() => setFsckBusy(false))
-  }
-
-  const runCleanup = () => {
-    setGcError(null)
-    setGcMessage(null)
-    setGcBusy(true)
-    DashboardService.RunGC(repoPath)
-      .then(() => {
-        setGcMessage('Cleanup complete.')
-        onBranchChanged()
-      })
-      .catch((err: unknown) => setGcError(errorMessage(err)))
-      .finally(() => setGcBusy(false))
   }
 
   const sectionRef = (id: SectionId) => (el: HTMLElement | null) => {
@@ -131,40 +127,18 @@ function NavPane({
   if (collapsed) {
     return (
       <nav className="nav-pane nav-pane-collapsed" aria-label="Repository">
-        <button
-          type="button"
-          className="nav-pane-rail-button"
-          onClick={() => onCollapsedChange(false)}
-          aria-label="Expand sidebar"
-          title="Expand sidebar"
-        >
-          <PanelLeftOpen size={16} strokeWidth={1.75} />
-        </button>
-        <div className="nav-pane-rail-divider" />
-        {workspaceActions.map(({ id, label, icon: ActionIcon, run }) => (
-          <button
-            key={id}
-            type="button"
-            className="nav-pane-rail-button"
-            onClick={run}
-            aria-label={label}
-            title={label}
-          >
-            <ActionIcon size={16} strokeWidth={1.75} />
-          </button>
+        <RailButton label="Expand sidebar" icon={PanelLeftOpen} onClick={() => onCollapsedChange(false)} />
+        {(['open', 'tools', 'maintenance'] as const).map((name) => (
+          <div key={name} className="nav-pane-rail-group">
+            <div className="nav-pane-rail-divider" />
+            {group(name).map(({ id, label, icon, run }) => (
+              <RailButton key={id} label={label} icon={icon} onClick={run} />
+            ))}
+          </div>
         ))}
         <div className="nav-pane-rail-divider" />
-        {SECTION_SHORTCUTS.map(({ id, label, icon: SectionIcon }) => (
-          <button
-            key={id}
-            type="button"
-            className="nav-pane-rail-button"
-            onClick={() => showSection(id)}
-            aria-label={`Show ${label}`}
-            title={label}
-          >
-            <SectionIcon size={16} strokeWidth={1.75} />
-          </button>
+        {SECTION_SHORTCUTS.map(({ id, label, icon }) => (
+          <RailButton key={id} label={`Show ${label}`} icon={icon} onClick={() => showSection(id)} />
         ))}
       </nav>
     )
@@ -172,86 +146,35 @@ function NavPane({
 
   return (
     <nav className="nav-pane" style={{ width, minWidth: width }} aria-label="Repository">
-      <div className="nav-pane-scroll">
-        <section className="nav-pane-section">
-          <div className="nav-pane-section-header">
-            <span className="nav-pane-label">Workspace</span>
-            <button
-              type="button"
-              className="nav-pane-collapse"
-              onClick={() => onCollapsedChange(true)}
-              aria-label="Collapse sidebar"
-              title="Collapse sidebar"
-            >
-              <PanelLeftClose size={16} strokeWidth={1.75} />
-            </button>
-          </div>
-          {/* One row of icons, so Branches starts near the top. */}
-          <div className="nav-pane-workspace">
-            {workspaceActions.map(({ id, label, icon: ActionIcon, run }) => (
-              <button
-                key={id}
-                type="button"
-                className="nav-pane-rail-button"
-                onClick={run}
-                aria-label={label}
-                title={label}
-              >
-                <ActionIcon size={16} strokeWidth={1.75} />
-              </button>
-            ))}
-          </div>
-          {workspaceFeedback && (
-            <p className={workspaceFeedback.kind === 'error' ? 'nav-pane-error' : 'nav-pane-success'}>
-              {workspaceFeedback.text}
-            </p>
-          )}
-        </section>
+      <div className="nav-pane-head">
+        <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />
+        <button
+          type="button"
+          className="nav-pane-collapse"
+          onClick={() => onCollapsedChange(true)}
+          aria-label="Collapse sidebar"
+          title="Collapse sidebar"
+        >
+          <PanelLeftClose size={16} strokeWidth={1.75} />
+        </button>
+      </div>
 
-        <section className="nav-pane-section" ref={sectionRef('maintenance')}>
-          <button type="button" className="nav-pane-section-toggle" onClick={() => setMaintenanceOpen((open) => !open)}>
-            {maintenanceOpen ? (
-              <ChevronDown size={14} strokeWidth={1.5} className="nav-pane-section-chevron" />
-            ) : (
-              <ChevronRight size={14} strokeWidth={1.5} className="nav-pane-section-chevron" />
-            )}
-            <span className="nav-pane-label">Maintenance</span>
-          </button>
-          {maintenanceOpen && (
-            <>
-              <button type="button" className="nav-pane-row" onClick={checkIntegrity} disabled={fsckBusy}>
-                <ShieldCheck size={16} strokeWidth={1.75} className="nav-pane-row-icon" />
-                <span className="nav-pane-row-label">Check integrity</span>
-              </button>
-              {fsckError && <p className="nav-pane-error">Could not check integrity: {fsckError}</p>}
-              {fsckResult !== null &&
-                (fsckResult.length === 0 ? (
-                  <p className="nav-pane-success">Repository is healthy.</p>
-                ) : (
-                  <div className="nav-pane-fsck-issues">
-                    {fsckResult.map((issue, i) => (
-                      <p key={i}>{issue}</p>
-                    ))}
-                  </div>
-                ))}
-              <button type="button" className="nav-pane-row" onClick={runCleanup} disabled={gcBusy}>
-                <Sparkles size={16} strokeWidth={1.75} className="nav-pane-row-icon" />
-                <span className="nav-pane-row-label">Run cleanup</span>
-              </button>
-              {gcError && <p className="nav-pane-error">Could not run cleanup: {gcError}</p>}
-              {gcMessage && <p className="nav-pane-success">{gcMessage}</p>}
-            </>
-          )}
-        </section>
+      <div className="nav-pane-scroll">
+        <CurrentChangeSection
+          repoPath={repoPath}
+          refreshKey={repoVersion}
+          onOpenChange={onOpenChange}
+          onOpenFile={onOpenFile}
+          onCreateChange={onCreateChange}
+        />
 
         <section className="nav-pane-section" ref={sectionRef('branches')}>
           <BranchSidebar
             repoPath={repoPath}
-            dirty={(workingTree.files?.length ?? 0) > 0}
+            dirty={dirty}
             refreshKey={repoVersion}
+            sections={sections}
             onBranchChanged={onBranchChanged}
-            onOpenChange={onOpenChange}
-            onOpenFile={onOpenFile}
             onCreateChange={onCreateChange}
           />
         </section>
@@ -259,24 +182,26 @@ function NavPane({
         <section className="nav-pane-section" ref={sectionRef('stash')}>
           <StashPanel
             repoPath={repoPath}
-            dirty={(workingTree.files?.length ?? 0) > 0}
+            dirty={dirty}
             refreshKey={repoVersion}
+            sections={sections}
             onStashChanged={onBranchChanged}
           />
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('tags')}>
-          <TagsPanel repoPath={repoPath} onTagChanged={onBranchChanged} />
+          <TagsPanel repoPath={repoPath} sections={sections} onTagChanged={onBranchChanged} />
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('remotes')}>
-          <RemotesPanel repoPath={repoPath} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
+          <RemotesPanel repoPath={repoPath} sections={sections} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('worktrees')}>
           <WorktreesPanel
             repoPath={repoPath}
             refreshKey={repoVersion}
+            sections={sections}
             onOpenRepository={onOpenRepository}
             onWorktreesChanged={onBranchChanged}
           />
@@ -284,12 +209,41 @@ function NavPane({
         <SubmodulesPanel
           repoPath={repoPath}
           refreshKey={repoVersion}
+          sections={sections}
           onOpenRepository={onOpenRepository}
           onSubmodulesChanged={onBranchChanged}
         />
       </div>
 
-      <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />
+      <div className="nav-pane-footer">
+        {workspaceFeedback && (
+          <p className={`nav-pane-feedback nav-pane-feedback-${workspaceFeedback.kind}`} role="status">
+            <span>{workspaceFeedback.text}</span>
+            <button type="button" onClick={onDismissFeedback} aria-label="Dismiss" title="Dismiss">
+              <X size={14} strokeWidth={1.75} />
+            </button>
+          </p>
+        )}
+        <ActionRow label="Open in" actions={group('open')} />
+        <ActionRow label="Tools" actions={group('tools')}>
+          <button
+            type="button"
+            className="nav-pane-action"
+            onClick={() => setMaintenanceOpen((open) => !open)}
+            aria-expanded={maintenanceOpen}
+            title="Check integrity, run cleanup"
+          >
+            <Wrench size={12} strokeWidth={1.75} />
+            Maintenance
+            {maintenanceOpen ? (
+              <ChevronDown size={12} strokeWidth={1.5} />
+            ) : (
+              <ChevronRight size={12} strokeWidth={1.5} />
+            )}
+          </button>
+        </ActionRow>
+        {maintenanceOpen && <ActionRow label="Maintenance" actions={group('maintenance')} />}
+      </div>
     </nav>
   )
 }

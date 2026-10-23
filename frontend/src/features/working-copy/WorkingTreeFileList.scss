@@ -92,6 +92,23 @@
   padding: 0 var(--space-sm);
 }
 
+.changes-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
 .changes-section-label {
   @include patterns.eyebrow;
 }

@@ -54,6 +54,10 @@ type Config struct {
 	// Keyed by the storage key passed to the frontend's useResizableWidth.
 	PaneWidths map[string]int `json:"paneWidths,omitempty"`
 
+	// Sidebar sections the user opened or closed, by repository path then
+	// section id; a section not listed falls back to its default.
+	SidebarSections map[string]map[string]bool `json:"sidebarSections,omitempty"`
+
 	WindowWidth  int `json:"windowWidth,omitempty"`
 	WindowHeight int `json:"windowHeight,omitempty"`
 

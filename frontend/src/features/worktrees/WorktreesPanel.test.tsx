@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { BranchService, WorktreeService, type BranchInfo, type WorktreeInfo } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import WorktreesPanel from './WorktreesPanel'
+import { defaultSections } from '../../test/sections'
 
 const REPO = '/projects/app'
 
@@ -34,7 +35,12 @@ function renderPanel(worktrees: WorktreeInfo[]) {
   const onWorktreesChanged = vi.fn()
   render(
     <DialogProvider>
-      <WorktreesPanel repoPath={REPO} onOpenRepository={onOpenRepository} onWorktreesChanged={onWorktreesChanged} />
+      <WorktreesPanel
+        sections={defaultSections()}
+        repoPath={REPO}
+        onOpenRepository={onOpenRepository}
+        onWorktreesChanged={onWorktreesChanged}
+      />
     </DialogProvider>,
   )
   return { onOpenRepository, onWorktreesChanged }
@@ -113,8 +119,9 @@ describe('WorktreesPanel', () => {
   it('lists nothing while the repository is its only worktree', async () => {
     renderPanel([worktree('/projects/app', { branch: 'main', main: true, current: true })])
 
-    expect(await screen.findByText('No other worktrees.')).toBeInTheDocument()
-    expect(screen.queryByText('current')).not.toBeInTheDocument()
+    const header = await screen.findByRole('button', { name: 'Worktrees, 0' })
+    expect(header).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText('No other worktrees.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add worktree' })).toBeInTheDocument()
   })
 })

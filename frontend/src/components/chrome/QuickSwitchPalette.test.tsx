@@ -47,6 +47,7 @@ function Shell({ onBranchChanged = vi.fn() }: { onBranchChanged?: () => void }) 
         workingTree={workingTree}
         workspaceActions={workspace.actions}
         workspaceFeedback={workspace.feedback}
+        onDismissFeedback={workspace.dismissFeedback}
         onBranchChanged={onBranchChanged}
         onFetched={vi.fn()}
         onOpenRepository={vi.fn()}
@@ -127,8 +128,8 @@ describe('QuickSwitchPalette Workspace actions', () => {
   it('lists every sidebar action by its sidebar name', () => {
     renderPalette()
 
-    const sidebar = [...document.querySelectorAll('.nav-pane-workspace button')].map((b) =>
-      b.getAttribute('aria-label'),
+    const sidebar = [...document.querySelectorAll('.nav-pane-action:not([aria-expanded])')].map((b) =>
+      b.getAttribute('title'),
     )
     const options = within(palette())
       .getAllByRole('option')
@@ -136,13 +137,15 @@ describe('QuickSwitchPalette Workspace actions', () => {
     expect(sidebar).toEqual([
       'Open Terminal',
       expect.stringMatching(/^(Reveal in|Open in File Manager)/),
-      'Open in Editor',
+      'Open in VS Code',
       'Undo last operation',
       'Reflog',
       'Bisect',
-      'Import Patch…',
+      'Import patch…',
     ])
     for (const name of sidebar) expect(options).toContain(name)
+    expect(options).toContain('Check integrity')
+    expect(options).toContain('Run cleanup')
   })
 
   it('previews the undo and applies it once confirmed', async () => {
@@ -182,7 +185,9 @@ describe('QuickSwitchPalette Workspace actions', () => {
 
     await userEvent.click(paletteAction('Undo last operation'))
 
-    expect(await screen.findByText('Could not undo: Nothing to undo.')).toHaveClass('nav-pane-error')
+    expect((await screen.findByText('Could not undo: Nothing to undo.')).parentElement).toHaveClass(
+      'nav-pane-feedback-error',
+    )
   })
 
   it('opens the Reflog window', async () => {
@@ -210,9 +215,11 @@ describe('QuickSwitchPalette Workspace actions', () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
     renderPalette()
 
-    await userEvent.click(paletteAction('Import Patch…'))
+    await userEvent.click(paletteAction('Import patch…'))
 
-    expect(await screen.findByText('Patch applied to the working tree.')).toHaveClass('nav-pane-success')
+    expect((await screen.findByText('Patch applied to the working tree.')).parentElement).toHaveClass(
+      'nav-pane-feedback-notice',
+    )
     expect(PatchService.ImportPatch).toHaveBeenCalledWith(REPO)
   })
 })

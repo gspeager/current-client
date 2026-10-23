@@ -47,7 +47,7 @@ function CurrentChangeSection({
   return (
     <section className="current-change" aria-label={`${kind} for ${data.branch}`}>
       <div className="current-change-head">
-        <span className="branch-sidebar-label">{kind}</span>
+        <span className="current-change-label">{kind}</span>
         {state && <span className={`current-change-state current-change-state-${state}`}>{state}</span>}
       </div>
       {change && (

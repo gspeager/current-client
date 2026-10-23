@@ -6,18 +6,6 @@
   gap: 2px;
 }
 
-.remotes-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-xs);
-}
-
-.remotes-panel-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
 .remotes-panel-add {
   @include patterns.icon-button;
 }
@@ -109,6 +97,14 @@
 
 .remote-row-host {
   flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.remote-row-path {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 50%;
   color: var(--outline);
   font: var(--data-sm);
 }

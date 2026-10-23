@@ -32,3 +32,14 @@ export function remoteBranchName(upstream: string, remotes: string[]): string {
   }
   return upstream
 }
+
+// "GitHub" or "GitLab" when the style is known, else the host's name.
+export function hostName(links: Links): string {
+  if (links.style === 'github') return 'GitHub'
+  if (links.style === 'gitlab') return 'GitLab'
+  try {
+    return new URL(links.root).host
+  } catch {
+    return 'host'
+  }
+}

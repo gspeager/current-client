@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
-import { BrushCleaning, Ellipsis, GitBranchPlus, Pencil, TriangleAlert, X } from 'lucide-react'
+import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X } from 'lucide-react'
 import {
   type BranchInfo,
   BranchService,
@@ -8,10 +8,14 @@ import {
   type OverlapInfo,
   OverlapService,
   PlatformService,
+  RemoteService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
+import { localNameFor } from './branches'
+import SidebarSection from '../../components/chrome/SidebarSection'
+import type { SidebarSections } from '../../lib/useSidebarSections'
 import SetUpstreamDialog from './SetUpstreamDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
@@ -27,7 +31,6 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
-import CurrentChangeSection from './CurrentChangeSection'
 import CIMark from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
@@ -38,23 +41,14 @@ interface BranchSidebarProps {
   repoPath: string
   dirty: boolean
   refreshKey: number
+  sections: SidebarSections
   onBranchChanged?: () => void
-  onOpenChange?: (number: number) => void
-  onOpenFile?: (path: string) => void
   onCreateChange?: (branch: string) => void
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
 
-function BranchSidebar({
-  repoPath,
-  dirty,
-  refreshKey,
-  onBranchChanged,
-  onOpenChange,
-  onOpenFile,
-  onCreateChange,
-}: BranchSidebarProps) {
+function BranchSidebar({ repoPath, dirty, refreshKey, sections, onBranchChanged, onCreateChange }: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
   const {
@@ -65,6 +59,16 @@ function BranchSidebar({
   const { data: defaultBranch } = useAsyncData(() => BranchService.DefaultBranch(repoPath), [repoPath], {
     refreshKey,
   })
+  const { data: remoteBranches, error: remoteError } = useAsyncData(
+    () => BranchService.ListRemote(repoPath),
+    [repoPath],
+    {
+      refreshKey,
+    },
+  )
+  const { data: remotes } = useAsyncData(() => RemoteService.List(repoPath), [repoPath], { refreshKey })
+  const remoteNames = useMemo(() => (remotes ?? []).map((r) => r.name), [remotes])
+  const [filter, setFilter] = useState('')
   const branchStatus = useBranchStatus(repoPath, refreshKey)
   const hostLinks = useHostLinks(repoPath)
   const changes = useBranchChanges(repoPath, refreshKey)
@@ -82,8 +86,8 @@ function BranchSidebar({
   )
   const { data: overlapReport } = useAsyncData(() => OverlapService.Predict(repoPath), [repoPath], { refreshKey })
   const overlaps = overlapReport?.overlaps ?? []
-  const localOverlaps = new Map(overlaps.filter((o) => !o.remote).map((o) => [o.branch, o]))
-  const remoteOverlaps = overlaps.filter((o) => o.remote)
+  const overlapFor = new Map(overlaps.map((o) => [o.branch, o]))
+  const remoteConflicts = overlaps.filter((o) => o.remote).length
   const { confirm, prompt } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
   const error = loadError ?? actionError
@@ -301,201 +305,288 @@ function BranchSidebar({
     })
   }
 
+  const remoteMenu = (name: string) => (e: MouseEvent | KeyboardEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({
+      ...menuAnchor(e),
+      items: [
+        { label: 'Check out', onClick: () => checkoutBranch(localNameFor(name, remoteNames)) },
+        {
+          label: 'Delete on remote…',
+          onClick: () => void deleteRemote.deleteRemoteBranch(name),
+          destructive: true,
+          disabled: deleteRemote.running,
+        },
+      ],
+    })
+  }
+
+  const query = filter.trim().toLowerCase()
+  const current = branches?.find((b) => b.current) ?? null
+  const localBranches = (branches ?? []).filter((b) => !b.current && b.name.toLowerCase().includes(query))
+  const localNames = new Set((branches ?? []).map((b) => b.name))
+  const remoteList = (remoteBranches ?? []).filter((name) => name.toLowerCase().includes(query))
+
+  const renderLocalRow = (b: BranchInfo) => (
+    <li
+      key={b.name}
+      className={b.current ? 'branch-row branch-row-current' : 'branch-row'}
+      onClick={() => !b.current && checkoutBranch(b.name)}
+      onContextMenu={branchContextMenu(b)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (isMenuKey(e)) {
+          branchContextMenu(b)(e)
+          return
+        }
+        if (e.target !== e.currentTarget) return
+        if ((e.key === 'Enter' || e.key === ' ') && !b.current) {
+          e.preventDefault()
+          checkoutBranch(b.name)
+        }
+      }}
+    >
+      <BranchPill
+        name={b.name}
+        color={branchColor(b.name, b.current)}
+        current={b.current}
+        dirty={dirty}
+        hostLinks={hostLinks}
+        referenceCards={referenceCards}
+      />
+      {b.current && <span className="branch-row-head">HEAD</span>}
+      <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
+      {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
+      <ConflictsBadge overlap={overlapFor.get(b.name)} />
+      {!b.current && b.worktreePath && (
+        <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>
+          worktree
+        </span>
+      )}
+      <span className="branch-row-meta">
+        {b.ahead > 0 && <span className="branch-row-ahead">↑{b.ahead}</span>}
+        {b.behind > 0 && <span className="branch-row-behind">↓{b.behind}</span>}
+        {b.lastCommitDate && <span className="branch-row-time">{relativeTime(new Date(b.lastCommitDate))}</span>}
+      </span>
+      <span className="branch-row-actions">
+        <button
+          type="button"
+          onClick={branchContextMenu(b)}
+          aria-label={`More actions for ${b.name}`}
+          title="More actions"
+        >
+          <Ellipsis size={16} strokeWidth={1.75} />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            renameBranch(b.name)
+          }}
+          aria-label={`Rename ${b.name}`}
+          title="Rename"
+        >
+          <Pencil size={16} strokeWidth={1.75} />
+        </button>
+        {!b.current && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              deleteBranch(b.name, false)
+            }}
+            aria-label={`Delete ${b.name}`}
+            title="Delete"
+          >
+            <X size={16} strokeWidth={1.75} />
+          </button>
+        )}
+      </span>
+    </li>
+  )
+
+  const renderRemoteRow = (name: string) => (
+    <li
+      key={name}
+      className="branch-row branch-row-remote"
+      onClick={() => checkoutBranch(localNameFor(name, remoteNames))}
+      onContextMenu={remoteMenu(name)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (isMenuKey(e)) {
+          remoteMenu(name)(e)
+          return
+        }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          checkoutBranch(localNameFor(name, remoteNames))
+        }
+      }}
+    >
+      <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
+      <span className="branch-row-remote-name">{name}</span>
+      <ConflictsBadge overlap={overlapFor.get(name)} />
+      {!localNames.has(localNameFor(name, remoteNames)) && <span className="branch-row-meta">not local</span>}
+    </li>
+  )
+
+  const localOpen = sections.isOpen('branches-local', true)
+  const remoteOpen = sections.isOpen('branches-remote', false)
+
   return (
     <div className="branch-sidebar">
-      <div className="branch-sidebar-header">
-        <span className="branch-sidebar-label">Branches</span>
-        <button
-          type="button"
-          className="branch-sidebar-add"
-          onClick={() => setShowNewBranch((v) => !v)}
-          aria-label="New branch"
-          title="New branch"
-        >
-          <GitBranchPlus size={18} strokeWidth={1.75} />
-        </button>
-        <button
-          type="button"
-          className="branch-sidebar-add"
-          onClick={() => setCleanUp(true)}
-          aria-label="Clean up merged branches"
-          title="Clean up merged branches"
-        >
-          <BrushCleaning size={18} strokeWidth={1.75} />
-        </button>
-      </div>
-
-      {showNewBranch && (
-        <div className="branch-sidebar-new">
-          <select
-            aria-label="new branch kind"
-            className="branch-sidebar-new-kind"
-            value={newBranchKind}
-            onChange={(e) => setNewBranchKind(e.target.value as NewBranchKind)}
-          >
-            <option value="branch">Branch</option>
-            <option value="feature">Start feature</option>
-            <option value="release">Start release</option>
-            <option value="hotfix">Start hotfix</option>
-          </select>
-          <div className="branch-sidebar-new-row">
-            {newBranchKind !== 'branch' && <span className="branch-sidebar-new-prefix">{newBranchKind}/</span>}
-            <input
-              aria-label="new branch name"
-              placeholder={newBranchKind === 'branch' ? 'New branch name' : 'Name'}
-              value={newBranchName}
-              onChange={(e) => setNewBranchName(e.target.value)}
-              autoFocus
-            />
-            <button type="button" onClick={createBranch} disabled={newBranch === ''}>
-              Create
-            </button>
-          </div>
-          {newBranch !== '' && newBranch !== newBranchName.trim() && (
-            <p className="branch-sidebar-new-result" role="status">
-              Will be created as{' '}
-              <span className="branch-sidebar-new-result-name">
-                {newBranchKind === 'branch' ? '' : `${newBranchKind}/`}
-                {newBranch}
-              </span>
-            </p>
-          )}
-        </div>
-      )}
-
-      {error && <p className="branch-sidebar-error">{error}</p>}
-      {deleteRemote.error && <p className="branch-sidebar-error">Could not delete on remote: {deleteRemote.error}</p>}
-      {deleted && (
-        <p className="branch-sidebar-deleted" role="status">
-          <span>
-            Deleted{' '}
-            {deleted.length === 1 ? (
-              <span className="branch-sidebar-deleted-name">{deleted[0].name}</span>
-            ) : (
-              `${deleted.length} branches`
-            )}
-          </span>
-          <button type="button" onClick={() => restoreDeleted(deleted)}>
-            Undo
-          </button>
-        </p>
-      )}
-      {squashed && (
-        <p className="branch-sidebar-notice" role="status">
-          Changes from {squashed} are staged. Commit them to finish the squash.
-        </p>
-      )}
-      <CurrentChangeSection
-        repoPath={repoPath}
-        refreshKey={refreshKey}
-        onOpenChange={onOpenChange}
-        onOpenFile={onOpenFile}
-        onCreateChange={onCreateChange}
-      />
-      {branches === null ? (
-        <p className="branch-sidebar-hint">Loading branches…</p>
-      ) : branches.length === 0 ? (
-        <p className="branch-sidebar-hint">
-          {branchStatus?.current ? `No commits on ${branchStatus.current} yet.` : 'No branches.'}
-        </p>
-      ) : (
-        <ul className="branch-sidebar-list">
-          {branches.map((b) => (
-            <li
-              key={b.name}
-              className={b.current ? 'branch-row branch-row-current' : 'branch-row'}
-              onClick={() => !b.current && checkoutBranch(b.name)}
-              onContextMenu={branchContextMenu(b)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (isMenuKey(e)) {
-                  branchContextMenu(b)(e)
-                  return
-                }
-                if (e.target !== e.currentTarget) return
-                if ((e.key === 'Enter' || e.key === ' ') && !b.current) {
-                  e.preventDefault()
-                  checkoutBranch(b.name)
-                }
+      <SidebarSection
+        label="Branches"
+        count={branches?.length}
+        open={sections.isOpen('branches', true)}
+        onToggle={() => sections.toggle('branches', true)}
+        actions={
+          <>
+            <button
+              type="button"
+              className="branch-sidebar-add"
+              onClick={() => {
+                setShowNewBranch((v) => !v)
+                sections.open('branches')
               }}
+              aria-label="New branch"
+              title="New branch"
             >
-              <BranchPill
-                name={b.name}
-                color={branchColor(b.name, b.current)}
-                current={b.current}
-                dirty={dirty}
-                hostLinks={hostLinks}
-                referenceCards={referenceCards}
-              />
-              {b.current && <span className="branch-row-head">HEAD</span>}
-              <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
-              {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
-              <OverlapMark overlap={localOverlaps.get(b.name)} />
-              {!b.current && b.worktreePath && (
-                <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>
-                  worktree
-                </span>
+              <GitBranchPlus size={18} strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              className="branch-sidebar-add"
+              onClick={() => setCleanUp(true)}
+              aria-label="Clean up merged branches"
+              title="Clean up merged branches"
+            >
+              <BrushCleaning size={18} strokeWidth={1.75} />
+            </button>
+          </>
+        }
+        pinned={
+          showNewBranch && (
+            <div className="branch-sidebar-new">
+              <select
+                aria-label="new branch kind"
+                className="branch-sidebar-new-kind"
+                value={newBranchKind}
+                onChange={(e) => setNewBranchKind(e.target.value as NewBranchKind)}
+              >
+                <option value="branch">Branch</option>
+                <option value="feature">Start feature</option>
+                <option value="release">Start release</option>
+                <option value="hotfix">Start hotfix</option>
+              </select>
+              <div className="branch-sidebar-new-row">
+                {newBranchKind !== 'branch' && <span className="branch-sidebar-new-prefix">{newBranchKind}/</span>}
+                <input
+                  aria-label="new branch name"
+                  placeholder={newBranchKind === 'branch' ? 'New branch name' : 'Name'}
+                  value={newBranchName}
+                  onChange={(e) => setNewBranchName(e.target.value)}
+                  autoFocus
+                />
+                <button type="button" onClick={createBranch} disabled={newBranch === ''}>
+                  Create
+                </button>
+              </div>
+              {newBranch !== '' && newBranch !== newBranchName.trim() && (
+                <p className="branch-sidebar-new-result" role="status">
+                  Will be created as{' '}
+                  <span className="branch-sidebar-new-result-name">
+                    {newBranchKind === 'branch' ? '' : `${newBranchKind}/`}
+                    {newBranch}
+                  </span>
+                </p>
               )}
-              <span className="branch-row-meta">
-                {b.ahead > 0 && <span className="branch-row-ahead">↑{b.ahead}</span>}
-                {b.behind > 0 && <span className="branch-row-behind">↓{b.behind}</span>}
-                {b.lastCommitDate && (
-                  <span className="branch-row-time">{relativeTime(new Date(b.lastCommitDate))}</span>
-                )}
-              </span>
-              <span className="branch-row-actions">
-                <button
-                  type="button"
-                  onClick={branchContextMenu(b)}
-                  aria-label={`More actions for ${b.name}`}
-                  title="More actions"
-                >
-                  <Ellipsis size={16} strokeWidth={1.75} />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    renameBranch(b.name)
-                  }}
-                  aria-label={`Rename ${b.name}`}
-                  title="Rename"
-                >
-                  <Pencil size={16} strokeWidth={1.75} />
-                </button>
-                {!b.current && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteBranch(b.name, false)
-                    }}
-                    aria-label={`Delete ${b.name}`}
-                    title="Delete"
-                  >
-                    <X size={16} strokeWidth={1.75} />
-                  </button>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {remoteOverlaps.length > 0 && (
-        <div className="branch-sidebar-overlaps">
-          <span className="branch-sidebar-overlaps-label">Remote branches that would conflict</span>
-          <ul>
-            {remoteOverlaps.map((o) => (
-              <li key={o.branch}>
-                <OverlapMark overlap={o} />
-                <span className="branch-sidebar-overlaps-name">{o.branch}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+            </div>
+          )
+        }
+      >
+        {error && <p className="branch-sidebar-error">{error}</p>}
+        {deleteRemote.error && <p className="branch-sidebar-error">Could not delete on remote: {deleteRemote.error}</p>}
+        {deleted && (
+          <p className="branch-sidebar-deleted" role="status">
+            <span>
+              Deleted{' '}
+              {deleted.length === 1 ? (
+                <span className="branch-sidebar-deleted-name">{deleted[0].name}</span>
+              ) : (
+                `${deleted.length} branches`
+              )}
+            </span>
+            <button type="button" onClick={() => restoreDeleted(deleted)}>
+              Undo
+            </button>
+          </p>
+        )}
+        {squashed && (
+          <p className="branch-sidebar-notice" role="status">
+            Changes from {squashed} are staged. Commit them to finish the squash.
+          </p>
+        )}
+        {branches === null ? (
+          <p className="branch-sidebar-hint">Loading branches…</p>
+        ) : branches.length === 0 ? (
+          <p className="branch-sidebar-hint">
+            {branchStatus?.current ? `No commits on ${branchStatus.current} yet.` : 'No branches.'}
+          </p>
+        ) : (
+          <>
+            <div className="branch-sidebar-filter">
+              <Search size={14} strokeWidth={1.5} />
+              <input
+                aria-label="Filter branches"
+                placeholder="Filter branches…"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+            </div>
+            {current && (
+              <div className="branch-sidebar-group">
+                <span className="branch-sidebar-group-label">Checked out</span>
+                <ul className="branch-sidebar-list">{renderLocalRow(current)}</ul>
+              </div>
+            )}
+            <div className="branch-sidebar-group">
+              <SidebarSection
+                label="Local"
+                count={localBranches.length}
+                open={localOpen}
+                onToggle={() => sections.toggle('branches-local', true)}
+              >
+                <ul className="branch-sidebar-list">{localBranches.map(renderLocalRow)}</ul>
+              </SidebarSection>
+            </div>
+            <div className="branch-sidebar-group">
+              <SidebarSection
+                label="Remote"
+                count={remoteBranches?.length}
+                open={remoteOpen}
+                onToggle={() => sections.toggle('branches-remote', false)}
+                actions={
+                  remoteConflicts > 0 && (
+                    <span
+                      className="branch-conflicts-badge"
+                      title={`${plural(remoteConflicts, 'remote branch')} would conflict with the current branch`}
+                    >
+                      {remoteConflicts} conflicts
+                    </span>
+                  )
+                }
+              >
+                {remoteError && <p className="branch-sidebar-error">{remoteError}</p>}
+                <ul className="branch-sidebar-list">{remoteList.map(renderRemoteRow)}</ul>
+              </SidebarSection>
+            </div>
+          </>
+        )}
+      </SidebarSection>
 
       {cleanUp && <CleanUpBranchesDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setCleanUp(false)} />}
       {upstreamFor && (
@@ -523,12 +614,14 @@ function BranchSidebar({
   )
 }
 
-function OverlapMark({ overlap }: { overlap?: OverlapInfo }) {
+function ConflictsBadge({ overlap }: { overlap?: OverlapInfo }) {
   if (!overlap) return null
-  const label = `Would conflict with the current branch: ${overlap.files.join(', ')}`
   return (
-    <span className="branch-overlap-mark" role="img" aria-label={label} title={label}>
-      <TriangleAlert size={12} strokeWidth={1.75} />
+    <span
+      className="branch-conflicts-badge"
+      title={`Would conflict with the current branch: ${overlap.files.join(', ')}`}
+    >
+      conflicts
     </span>
   )
 }
