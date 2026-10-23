@@ -77,7 +77,7 @@ function PipelineJobs({ repoPath, mark, onClose }: { repoPath: string; mark: CIM
         {jobs && jobs.length > 0 && (
           <ul className="ci-jobs-list" aria-label="Jobs">
             {jobs.map((job) => (
-              <JobRow key={job.id} job={job} />
+              <JobRow key={job.id} job={job} repoPath={repoPath} />
             ))}
           </ul>
         )}
@@ -97,14 +97,62 @@ function PipelineJobs({ repoPath, mark, onClose }: { repoPath: string; mark: CIM
   )
 }
 
-function JobRow({ job }: { job: Job }) {
-  return (
-    <li className="ci-job">
+// A failed job opens its log on click; the log is fetched then, never
+// before. Show full log asks for the rest, up to the cap.
+function JobRow({ job, repoPath }: { job: Job; repoPath: string }) {
+  const [open, setOpen] = useState(false)
+  const [full, setFull] = useState(false)
+  const failed = job.status === 'failed'
+  const { data: log, error } = useAsyncData(
+    () => (open ? HostService.JobLog(repoPath, job.id, full) : null),
+    [open, full, repoPath, job.id],
+    { keepData: true },
+  )
+  const row = (
+    <>
       <span className={`ci-mark ci-mark-${job.status}`} aria-hidden="true" />
       <span className="ci-job-name">{job.name}</span>
       <span className="ci-job-stage">{job.stage}</span>
       <span className="ci-job-status">{job.status}</span>
       <span className="ci-job-duration">{formatDuration(job.duration)}</span>
+    </>
+  )
+  if (!failed) return <li className="ci-job">{row}</li>
+  return (
+    <li className="ci-job ci-job-failed">
+      <button type="button" className="ci-job-row" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        {row}
+      </button>
+      {open && (
+        <div className="ci-job-log" aria-label={`Log of ${job.name}`}>
+          {error && <p className="ci-jobs-error">{errorMessage(error)}</p>}
+          {!log && !error && <p className="ci-jobs-hint">Loading log…</p>}
+          {log && (
+            <>
+              <pre className="ci-job-log-text">{log.text}</pre>
+              <div className="ci-job-log-actions">
+                {log.truncated && !log.full && (
+                  <button type="button" className="ci-jobs-button" onClick={() => setFull(true)}>
+                    Show full log
+                  </button>
+                )}
+                {log.full && log.truncated && (
+                  <span className="ci-jobs-hint">Cut at the cap; the rest is on the host.</span>
+                )}
+                <button
+                  type="button"
+                  className="ci-jobs-button"
+                  onClick={() => PlatformService.OpenWebPage(job.webUrl).catch(ignoreDecorativeFailure)}
+                  disabled={!job.webUrl}
+                >
+                  <ExternalLink size={14} strokeWidth={1.75} />
+                  Open on host
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </li>
   )
 }
