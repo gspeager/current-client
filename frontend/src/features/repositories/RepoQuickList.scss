@@ -1,0 +1,86 @@
+@use '../../styles/patterns';
+
+.repo-quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+}
+
+.repo-quick-list-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.repo-quick-list-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.repo-quick-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+
+  @include patterns.disabled;
+}
+
+.repo-quick-row-current {
+  box-shadow: inset 2px 0 0 0 var(--primary);
+}
+
+.repo-quick-row-name {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--data-md);
+}
+
+.repo-quick-row-meta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.repo-quick-row-open {
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--outline);
+  border-radius: 3px;
+  font: var(--ui-xs);
+}
+
+.repo-quick-list-another {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-action);
+  margin-top: var(--space-xs);
+  @include patterns.secondary-button;
+}

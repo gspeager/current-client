@@ -47,6 +47,8 @@ interface HeaderBarProps {
   syncing: boolean
   // "merge", "rebase", "cherry-pick", "revert" or "am" while one is in progress.
   operation?: string | null
+  // Settings' default repository location, shown in the Open repository dialog.
+  defaultRepoLocation?: string
   // Supplied by an app embedding Current Client, such as a switch between its views.
   accessory?: ReactNode
 }
@@ -72,6 +74,7 @@ function HeaderBar({
   onOpenCommit,
   syncing,
   operation = null,
+  defaultRepoLocation = '',
   accessory,
 }: HeaderBarProps) {
   useClockTick()
@@ -243,6 +246,10 @@ function HeaderBar({
                     onBranchChanged={onBranchChanged}
                     onFetched={onFetched}
                     pruneOnFetch={pruneOnFetch}
+                    onOpenAnother={() => {
+                      setBranchSwitcherOpen(false)
+                      setPickerOpen(true)
+                    }}
                   />
                 </div>
               )}
@@ -363,7 +370,17 @@ function HeaderBar({
           }}
         />
       )}
-      {pickerOpen && <RepoPickerModal repo={repo} onClose={() => setPickerOpen(false)} />}
+      {pickerOpen && (
+        <RepoPickerModal
+          repo={repo}
+          defaultLocation={defaultRepoLocation}
+          onOpenSettings={() => {
+            setPickerOpen(false)
+            onOpenSettings()
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </header>
   )
 }
