@@ -112,10 +112,17 @@ function DiffContent({ pair, side, language }: { pair: PairedLine; side: Side; l
   )
 }
 
-function splitRow(pair: PairedLine, side: Side, language: string | null, key: Key, select?: LineSelect) {
+function splitRow(
+  pair: PairedLine,
+  side: Side,
+  language: string | null,
+  key: Key,
+  select?: LineSelect,
+  extraClass = '',
+) {
   const line = side === 'left' ? pair.left : pair.right
   return (
-    <div key={key} className={`${rowClass(line)} diff-row-split-${side}${selectedClass(line, select)}`}>
+    <div key={key} className={`${rowClass(line)} diff-row-split-${side}${selectedClass(line, select)}${extraClass}`}>
       <LineNumber line={line} side={side} select={select} />
       <span className="diff-marker">{marker(line)}</span>
       <DiffContent pair={pair} side={side} language={language} />
@@ -123,11 +130,30 @@ function splitRow(pair: PairedLine, side: Side, language: string | null, key: Ke
   )
 }
 
-function unifiedRow({ pair, side }: UnifiedRow, language: string | null, key: Key, select?: LineSelect) {
+function unifiedRow(
+  { pair, side }: UnifiedRow,
+  language: string | null,
+  key: Key,
+  select?: LineSelect,
+  extraClass = '',
+  singleNumber = false,
+) {
   const activeLine = side === 'left' ? pair.left : pair.right
   const isContext = pair.left !== null && pair.left === pair.right
+  if (singleNumber) {
+    return (
+      <div key={key} className={`${rowClass(activeLine)} diff-row-result${extraClass}`}>
+        <LineNumber line={pair.right} side="right" />
+        <span className="diff-marker">{marker(activeLine)}</span>
+        <DiffContent pair={pair} side={side} language={language} />
+      </div>
+    )
+  }
   return (
-    <div key={key} className={`${rowClass(activeLine)} diff-row-unified${selectedClass(activeLine, select)}`}>
+    <div
+      key={key}
+      className={`${rowClass(activeLine)} diff-row-unified${selectedClass(activeLine, select)}${extraClass}`}
+    >
       {isContext || side === 'left' ? (
         <LineNumber line={pair.left} side="left" select={select} />
       ) : (
@@ -214,6 +240,10 @@ interface DiffPaneProps extends HunkActions {
   lineSelect?: LineSelect & { byHunk: Map<string, LineSelection> }
   // Review threads pinned under the new-side line they were left on.
   threadsByLine?: Map<number, ReviewThread[]>
+  // Rows that open a conflict block, marked so the footer can walk to them.
+  blockStarts?: Set<number>
+  // The conflicted file as it is: one line-number column, the working file's.
+  resultView?: boolean
 }
 
 // Split mode is one grid, so hunk headers can span both columns, unless lines
@@ -228,6 +258,8 @@ function DiffPane({
   scrollRef,
   lineSelect,
   threadsByLine,
+  blockStarts,
+  resultView = false,
   ...hunkActions
 }: DiffPaneProps) {
   const { wrap } = useDiffWrap()
@@ -239,15 +271,17 @@ function DiffPane({
     const threads = !side && line ? threadsByLine?.get(line) : undefined
     return threads ? threads.map((thread) => <ReviewThreadBlock key={`${key}-t-${thread.id}`} thread={thread} />) : []
   }
-  const renderPair = (pair: PairedLine, key: Key, side?: Side): ReactNode[] => [
+  const renderPair = (pair: PairedLine, key: Key, side?: Side, extraClass = ''): ReactNode[] => [
     ...(side
-      ? [splitRow(pair, side, language, key, lineSelect)]
+      ? [splitRow(pair, side, language, key, lineSelect, extraClass)]
       : mode === 'split'
         ? [
-            splitRow(pair, 'left', language, `${key}-l`, lineSelect),
-            splitRow(pair, 'right', language, `${key}-r`, lineSelect),
+            splitRow(pair, 'left', language, `${key}-l`, lineSelect, extraClass),
+            splitRow(pair, 'right', language, `${key}-r`, lineSelect, extraClass),
           ]
-        : unifiedRowsForPair(pair).map((row, k) => unifiedRow(row, language, `${key}-${k}`, lineSelect))),
+        : unifiedRowsForPair(pair).map((row, k) =>
+            unifiedRow(row, language, `${key}-${k}`, lineSelect, k === 0 ? extraClass : '', resultView),
+          )),
     ...threadRows(pair, key, side),
   ]
 
@@ -282,7 +316,7 @@ function DiffPane({
           </button>
         )
       }
-      return renderPair(row.pair, i, side)
+      return renderPair(row.pair, i, side, blockStarts?.has(i) ? ' diff-conflict-block-start' : '')
     })
   }
 

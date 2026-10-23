@@ -2,7 +2,15 @@ import type { DiffLine } from '@current-client-bindings/app'
 import { buildDisplayRows, diffStats, pairLines, unifiedRowsForPair } from './diffRows'
 
 function line(kind: 'context' | 'added' | 'removed', content: string, n = 1): DiffLine {
-  return { kind, content, oldLine: kind === 'added' ? 0 : n, newLine: kind === 'removed' ? 0 : n, moved: false }
+  return {
+    kind,
+    content,
+    oldLine: kind === 'added' ? 0 : n,
+    newLine: kind === 'removed' ? 0 : n,
+    moved: false,
+    inOurs: false,
+    inTheirs: false,
+  }
 }
 
 describe('pairLines', () => {

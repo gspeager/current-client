@@ -131,3 +131,14 @@ describe('HeaderBar during a merge', () => {
     expect(await screen.findByText('merging')).toHaveClass('header-bar-mode')
   })
 })
+
+describe('HeaderBar sync cluster during a merge', () => {
+  it('disables Fetch, Pull and Push with the reason', async () => {
+    renderHeader({ operation: 'merge' })
+
+    const fetch = screen.getByRole('button', { name: 'Fetch' })
+    expect(fetch).toBeDisabled()
+    expect(fetch).toHaveAttribute('title', 'Finish the merge first')
+    expect(screen.getByRole('button', { name: 'Push options' })).toBeDisabled()
+  })
+})

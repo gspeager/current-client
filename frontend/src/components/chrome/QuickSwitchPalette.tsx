@@ -190,7 +190,7 @@ function QuickSwitchPalette({
     { id: 'pull-merge', label: 'Pull (merge)', icon: ArrowDown, run: onPullMerge },
     { id: 'pull-rebase', label: 'Pull (rebase)', icon: ArrowDown, run: onPullRebase },
     { id: 'push', label: 'Push', icon: ArrowUp, run: onPush },
-    ...workspaceActions,
+    ...workspaceActions.filter((a) => !a.disabled),
     { id: 'open-settings', label: 'Open Settings', icon: SettingsIcon, run: onOpenSettings },
   ]
 

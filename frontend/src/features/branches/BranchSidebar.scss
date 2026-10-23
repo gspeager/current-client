@@ -203,6 +203,11 @@
   cursor: default;
 }
 
+.branch-row-blocked {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .branch-row-meta {
   flex-shrink: 0;
   margin-left: auto;

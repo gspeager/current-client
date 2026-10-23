@@ -34,6 +34,10 @@ type Line struct {
 	Content string
 	// Moved flags an added or removed line whose block was relocated unchanged.
 	Moved bool
+	// Which side of a conflicted file has the line; both for a line the sides
+	// agree on, neither for a marker. Unset outside a conflicted diff.
+	InOurs   bool
+	InTheirs bool
 }
 
 type Hunk struct {
@@ -381,9 +385,10 @@ func (p *diffParser) parseCombinedBodyLine(line string) error {
 	}
 	ours, theirs, content := line[0], line[1], line[2:]
 	p.appendRaw(line)
-
+	// A '-' column is a line that parent has and the result lacks; ' ' is a
+	// line the parent and the result share; '+' is the result's alone.
 	if ours == '-' || theirs == '-' {
-		l := Line{Kind: LineRemoved, Content: content}
+		l := Line{Kind: LineRemoved, Content: content, InOurs: ours == '-', InTheirs: theirs == '-'}
 		if ours == '-' {
 			l.OldLine = p.oldLineNo
 			p.oldLineNo++
@@ -392,7 +397,7 @@ func (p *diffParser) parseCombinedBodyLine(line string) error {
 		return nil
 	}
 
-	l := Line{Kind: LineContext, NewLine: p.newLineNo, Content: content}
+	l := Line{Kind: LineContext, NewLine: p.newLineNo, Content: content, InOurs: ours == ' ', InTheirs: theirs == ' '}
 	p.newLineNo++
 	if ours == ' ' {
 		l.OldLine = p.oldLineNo

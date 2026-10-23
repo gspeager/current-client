@@ -118,8 +118,8 @@ describe('ChangesView staging', () => {
           header: '@@ -1,1 +1,2 @@',
           raw: 'raw-hunk',
           lines: [
-            { kind: 'added', oldLine: 0, newLine: 1, content: 'keep', moved: false },
-            { kind: 'added', oldLine: 0, newLine: 2, content: 'later', moved: false },
+            { kind: 'added', oldLine: 0, newLine: 1, content: 'keep', moved: false, inOurs: false, inTheirs: false },
+            { kind: 'added', oldLine: 0, newLine: 2, content: 'later', moved: false, inOurs: false, inTheirs: false },
           ],
         },
       ],
@@ -193,7 +193,9 @@ describe('ChangesView untracked files', () => {
           {
             header: '@@ -0,0 +1 @@',
             raw: 'raw',
-            lines: [{ kind: 'added', oldLine: 0, newLine: 1, content: 'hello', moved: false }],
+            lines: [
+              { kind: 'added', oldLine: 0, newLine: 1, content: 'hello', moved: false, inOurs: false, inTheirs: false },
+            ],
           },
         ],
       }),
@@ -502,6 +504,93 @@ describe('ChangesView conflicts', () => {
     const actions = document.querySelector('.changes-conflict-actions')!
     expect(actions.querySelector('button')).toHaveTextContent('Mark resolved')
     expect(actions.querySelector('button')).toHaveClass('changes-conflict-primary')
+  })
+
+  it('offers Side by side and Result for a conflicted file, with the columns named by branch', async () => {
+    vi.mocked(ConflictService.GetConflictSides).mockResolvedValue({ ours: 'main', theirs: 'feature' })
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue(
+      new FileDiff({
+        conflicted: true,
+        hunks: [
+          {
+            header: '@@@ -1 -1 +1,5 @@@',
+            raw: '',
+            lines: [
+              {
+                kind: 'conflict-marker',
+                oldLine: 0,
+                newLine: 1,
+                content: '<<<<<<< HEAD',
+                moved: false,
+                inOurs: false,
+                inTheirs: false,
+              },
+              {
+                kind: 'conflict-ours',
+                oldLine: 1,
+                newLine: 2,
+                content: 'OURS',
+                moved: false,
+                inOurs: true,
+                inTheirs: false,
+              },
+              {
+                kind: 'conflict-marker',
+                oldLine: 0,
+                newLine: 3,
+                content: '=======',
+                moved: false,
+                inOurs: false,
+                inTheirs: false,
+              },
+              {
+                kind: 'conflict-theirs',
+                oldLine: 0,
+                newLine: 4,
+                content: 'THEIRS',
+                moved: false,
+                inOurs: false,
+                inTheirs: true,
+              },
+              {
+                kind: 'conflict-marker',
+                oldLine: 0,
+                newLine: 5,
+                content: '>>>>>>> feature',
+                moved: false,
+                inOurs: false,
+                inTheirs: false,
+              },
+            ],
+          },
+        ],
+      }),
+    )
+    const workingTree = workingTreeFor([conflictedFile()])
+    render(
+      <DialogProvider>
+        <ChangesView
+          repoPath={REPO}
+          workingTree={workingTree}
+          conflict={
+            new ConflictStateInfo({
+              operation: 'merge',
+              conflictedPaths: ['src/app.ts'],
+              ours: 'main',
+              theirs: 'feature',
+            })
+          }
+        />
+      </DialogProvider>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
+    expect(await screen.findByText('main (current branch)')).toBeInTheDocument()
+    expect(screen.getByText('feature (incoming)')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Split$/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Result$/ }))
+    expect(screen.getByText('=======')).toBeInTheDocument()
+    expect(screen.getByText('Block 1 of 1')).toBeInTheDocument()
   })
 
   it('lists a conflicted file once, in its own section', () => {

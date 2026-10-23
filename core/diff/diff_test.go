@@ -741,3 +741,41 @@ func TestRevisionFileSize(t *testing.T) {
 		t.Error("found a file that doesn't exist")
 	}
 }
+
+func TestParseCombinedDiffSaysWhichSideHasEachLine(t *testing.T) {
+	output := strings.Join([]string{
+		"diff --cc f.txt",
+		"index 1111111,2222222..0000000",
+		"--- a/f.txt",
+		"+++ b/f.txt",
+		"@@@ -1,3 -1,3 +1,7 @@@",
+		"  shared",
+		"- gone from ours",
+		" -gone from theirs",
+		"+ only theirs had",
+		"++<<<<<<< HEAD",
+		" +ours",
+		"++=======",
+		"+ theirs",
+		"++>>>>>>> feature",
+	}, "\n")
+	fd, err := ParseUnifiedDiff(output)
+	if err != nil {
+		t.Fatalf("ParseUnifiedDiff: %v", err)
+	}
+	type sides struct{ ours, theirs bool }
+	want := map[string]sides{
+		"shared":           {true, true},
+		"gone from ours":   {true, false},
+		"gone from theirs": {false, true},
+		"only theirs had":  {false, true},
+		"<<<<<<< HEAD":     {false, false},
+		"ours":             {true, false},
+		"theirs":           {false, true},
+	}
+	for _, l := range fd.Hunks[0].Lines {
+		if w, ok := want[l.Content]; ok && (l.InOurs != w.ours || l.InTheirs != w.theirs) {
+			t.Errorf("%q: InOurs=%v InTheirs=%v, want %v %v", l.Content, l.InOurs, l.InTheirs, w.ours, w.theirs)
+		}
+	}
+}

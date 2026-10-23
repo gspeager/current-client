@@ -9,7 +9,17 @@ const diff = new FileDiff({
     {
       header: '@@ -1 +1 @@',
       raw: 'raw',
-      lines: [{ kind: 'added', oldLine: 0, newLine: 1, content: 'a very long line', moved: false }],
+      lines: [
+        {
+          kind: 'added',
+          oldLine: 0,
+          newLine: 1,
+          content: 'a very long line',
+          moved: false,
+          inOurs: false,
+          inTheirs: false,
+        },
+      ],
     },
   ],
 })

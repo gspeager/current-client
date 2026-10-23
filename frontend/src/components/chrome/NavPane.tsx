@@ -61,9 +61,28 @@ const SECTION_SHORTCUTS: { id: SectionId; label: string; icon: LucideIcon }[] = 
   { id: 'worktrees', label: 'Worktrees', icon: FolderGit2 },
 ]
 
-function RailButton({ label, icon: Icon, onClick }: { label: string; icon: LucideIcon; onClick: () => void }) {
+function RailButton({
+  label,
+  icon: Icon,
+  onClick,
+  disabled = false,
+  reason,
+}: {
+  label: string
+  icon: LucideIcon
+  onClick: () => void
+  disabled?: boolean
+  reason?: string
+}) {
   return (
-    <button type="button" className="nav-pane-rail-button" onClick={onClick} aria-label={label} title={label}>
+    <button
+      type="button"
+      className="nav-pane-rail-button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={reason ?? label}
+    >
       <Icon size={16} strokeWidth={1.75} />
     </button>
   )
@@ -74,7 +93,14 @@ function ActionRow({ label, actions, children }: { label: string; actions: Works
     <div className="nav-pane-action-row">
       <span className="nav-pane-action-row-label">{label}</span>
       {actions.map((action) => (
-        <button key={action.id} type="button" className="nav-pane-action" onClick={action.run} title={action.label}>
+        <button
+          key={action.id}
+          type="button"
+          className="nav-pane-action"
+          onClick={action.run}
+          disabled={action.disabled}
+          title={action.reason ?? action.label}
+        >
           {action.short}
         </button>
       ))}
@@ -134,8 +160,8 @@ function NavPane({
         {(['open', 'tools', 'maintenance'] as const).map((name) => (
           <div key={name} className="nav-pane-rail-group">
             <div className="nav-pane-rail-divider" />
-            {group(name).map(({ id, label, icon, run }) => (
-              <RailButton key={id} label={label} icon={icon} onClick={run} />
+            {group(name).map(({ id, label, icon, run, disabled, reason }) => (
+              <RailButton key={id} label={label} icon={icon} onClick={run} disabled={disabled} reason={reason} />
             ))}
           </div>
         ))}

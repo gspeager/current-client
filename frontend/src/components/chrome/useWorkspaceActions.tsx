@@ -20,6 +20,7 @@ import ReflogPanel from '../../features/history/ReflogPanel'
 import { undoConfirmOptions } from '../../features/history/undoPreview'
 import { errorMessage } from '../../lib/errors'
 import { fileManagerName, revealInFileManagerLabel } from '../../lib/fileManager'
+import { operationNoun } from '../../lib/conflictWords'
 import { baseName } from '../../lib/paths'
 import { useDialogs } from '../../lib/useDialogs'
 
@@ -34,6 +35,9 @@ export interface WorkspaceAction {
   group?: WorkspaceGroup
   icon: LucideIcon
   run: () => void
+  // Set while the action can't run, with the reason for its tooltip.
+  disabled?: boolean
+  reason?: string
 }
 
 export interface WorkspaceFeedback {
@@ -47,6 +51,8 @@ interface WorkspaceActionsOptions {
   hostLinks?: Links | null
   // The editor executable from Settings; empty means VS Code.
   editorPath?: string
+  // The merge, rebase, cherry-pick or revert in progress; undo and bisect wait for it.
+  operation?: string | null
   onBranchChanged: () => void
   onOpenCommit: (sha: string) => void
   onFailure: () => void
@@ -73,6 +79,7 @@ export function useWorkspaceActions({
   onFailure,
   hostLinks = null,
   editorPath = '',
+  operation = null,
 }: WorkspaceActionsOptions): WorkspaceActions {
   const { confirm } = useDialogs()
   const [feedback, setFeedback] = useState<(WorkspaceFeedback & { repoPath: string }) | null>(null)
@@ -113,6 +120,8 @@ export function useWorkspaceActions({
       notice('Cleanup complete.')
       onBranchChanged()
     })
+
+  const blocked = operation ? { disabled: true, reason: `Finish the ${operationNoun(operation)} first` } : {}
 
   const actions: WorkspaceAction[] = [
     {
@@ -158,9 +167,18 @@ export function useWorkspaceActions({
       group: 'tools',
       icon: Undo2,
       run: () => run(undoLast(), 'Could not undo'),
+      ...blocked,
     },
     { id: 'reflog', label: 'Reflog', short: 'Reflog', group: 'tools', icon: History, run: () => setOpen('reflog') },
-    { id: 'bisect', label: 'Bisect', short: 'Bisect', group: 'tools', icon: Split, run: () => setOpen('bisect') },
+    {
+      id: 'bisect',
+      label: 'Bisect',
+      short: 'Bisect',
+      group: 'tools',
+      icon: Split,
+      run: () => setOpen('bisect'),
+      ...blocked,
+    },
     {
       id: 'import-patch',
       label: 'Import patch…',

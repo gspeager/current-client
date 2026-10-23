@@ -11,7 +11,7 @@ import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
-import { operationBadge } from '../../lib/conflictWords'
+import { operationBadge, operationNoun } from '../../lib/conflictWords'
 import { baseName } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
@@ -138,9 +138,16 @@ function HeaderBar({
     disabled = false,
   ) => {
     const name = id[0].toUpperCase() + id.slice(1)
+    const blocked = operation ? `Finish the ${operationNoun(operation)} first` : null
     return (
       <span className={`header-bar-sync-group header-bar-sync-${id}`}>
-        <button type="button" className="header-bar-sync" onClick={disabled ? undefined : onClick} title={title}>
+        <button
+          type="button"
+          className="header-bar-sync"
+          onClick={disabled || blocked ? undefined : onClick}
+          disabled={!!blocked}
+          title={blocked ?? title}
+        >
           <Icon size={12} strokeWidth={1.5} />
           {label}
         </button>
@@ -148,8 +155,8 @@ function HeaderBar({
           type="button"
           className="header-bar-sync header-bar-sync-more"
           aria-label={`${name} options`}
-          title={`${name} options`}
-          disabled={disabled}
+          title={blocked ?? `${name} options`}
+          disabled={disabled || !!blocked}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
             setSyncMenu({ x: rect.left, y: rect.bottom + 4, items })
