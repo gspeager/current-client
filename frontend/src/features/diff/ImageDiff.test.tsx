@@ -59,7 +59,9 @@ describe('image diffs', () => {
         {
           header: '@@ -1 +1 @@',
           raw: '',
-          lines: [{ kind: 'add', oldLine: 0, newLine: 1, content: '<svg/>', moved: false }],
+          lines: [
+            { kind: 'add', oldLine: 0, newLine: 1, content: '<svg/>', moved: false, inOurs: false, inTheirs: false },
+          ],
         },
       ],
     })

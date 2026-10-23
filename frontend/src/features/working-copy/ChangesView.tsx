@@ -7,6 +7,9 @@ import CommitComposer from './CommitComposer'
 import DiffViewer from '../diff/DiffViewer'
 import { DiffWrapToggle } from '../diff/diffWrap'
 import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
+import SegmentedControl from '../../components/controls/SegmentedControl'
+import { Columns2, Rows2 } from 'lucide-react'
+import type { ConflictView } from '../diff/conflictRows'
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
 import { errorMessage } from '../../lib/errors'
@@ -75,6 +78,7 @@ function ChangesView({
   const [forcedPath, setForcedPath] = useState<string | null>(null)
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(defaultIgnoreWhitespace)
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
+  const [conflictView, setConflictView] = useState<ConflictView>('side-by-side')
   const [externalToolError, setExternalToolError] = useState<string | null>(null)
   const [externalToolBusy, setExternalToolBusy] = useState(false)
   const headCommit = useHeadCommit(repoPath)
@@ -265,7 +269,18 @@ function ChangesView({
 
               <div className="changes-diff-header-spacer" />
 
-              <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
+              {openConflict ? (
+                <SegmentedControl
+                  value={conflictView}
+                  onChange={setConflictView}
+                  options={[
+                    { value: 'side-by-side', label: 'Side by side', icon: Columns2 },
+                    { value: 'result', label: 'Result', icon: Rows2 },
+                  ]}
+                />
+              ) : (
+                <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
+              )}
               <Checkbox checked={ignoreWhitespace} onChange={setIgnoreWhitespace} label="Ignore whitespace" />
               <DiffWrapToggle />
               <button
@@ -315,11 +330,20 @@ function ChangesView({
                 threads={reviewThreads.byPath[selectedPath]}
                 outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
                 baseSide={
-                  showsStaged
-                    ? { label: 'HEAD', sha: headCommit?.sha.slice(0, 7) }
-                    : { label: untracked ? 'Untracked' : 'Staged' }
+                  openConflict
+                    ? { label: `${conflict?.ours || 'HEAD'} (current branch)` }
+                    : showsStaged
+                      ? { label: 'HEAD', sha: headCommit?.sha.slice(0, 7) }
+                      : { label: untracked ? 'Untracked' : 'Staged' }
                 }
-                targetSide={showsStaged ? { label: 'Staged' } : { label: 'Working tree' }}
+                targetSide={
+                  openConflict
+                    ? { label: `${conflict?.theirs || 'incoming'} (incoming)` }
+                    : showsStaged
+                      ? { label: 'Staged' }
+                      : { label: 'Working tree' }
+                }
+                conflictView={conflictView}
                 onStageHunk={showsStaged || untracked ? undefined : stageHunk}
                 onUnstageHunk={showsStaged ? unstageHunk : undefined}
                 onDiscardHunk={untracked ? undefined : discardHunk}

@@ -96,7 +96,17 @@ describe('CommitDetailPanel', () => {
               {
                 header: '@@ -1 +1 @@',
                 raw: '',
-                lines: [{ kind: 'added', oldLine: 0, newLine: 1, content: `in ${path}`, moved: false }],
+                lines: [
+                  {
+                    kind: 'added',
+                    oldLine: 0,
+                    newLine: 1,
+                    content: `in ${path}`,
+                    moved: false,
+                    inOurs: false,
+                    inTheirs: false,
+                  },
+                ],
               },
             ],
           }),

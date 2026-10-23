@@ -184,6 +184,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     repoPath: repo.repoPath,
     hostLinks,
     editorPath: settings.settings?.editorPath ?? '',
+    operation: conflictState?.operation ?? null,
     onBranchChanged,
     onOpenCommit: (sha) => openCommit(sha),
     onFailure: () => settings.setNavCollapsed(false),

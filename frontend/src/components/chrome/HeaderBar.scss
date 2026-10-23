@@ -128,6 +128,8 @@
   border-radius: var(--radius);
   font: var(--data-sm);
   cursor: pointer;
+
+  @include patterns.disabled;
 }
 
 .header-bar-sync-cluster {

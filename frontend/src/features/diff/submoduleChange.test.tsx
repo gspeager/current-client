@@ -9,7 +9,11 @@ const B = 'bbbbbbb2222222222222222222222222222222222'
 function diffOf(lines: { kind: string; content: string }[]) {
   return new FileDiff({
     hunks: [
-      { header: '@@ -1 +1 @@', raw: '', lines: lines.map((l) => ({ ...l, oldLine: 1, newLine: 1, moved: false })) },
+      {
+        header: '@@ -1 +1 @@',
+        raw: '',
+        lines: lines.map((l) => ({ ...l, oldLine: 1, newLine: 1, moved: false, inOurs: false, inTheirs: false })),
+      },
     ],
   })
 }

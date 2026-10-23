@@ -20,3 +20,25 @@ describe('useWorkspaceActions', () => {
     expect(action?.label).toBe('Open repository on host')
   })
 })
+
+describe('useWorkspaceActions during a merge', () => {
+  it('disables undo and bisect with the reason, and keeps the rest live', () => {
+    const { result } = renderHook(
+      () =>
+        useWorkspaceActions({
+          repoPath: '/repos/app',
+          operation: 'rebase',
+          onBranchChanged: vi.fn(),
+          onOpenCommit: vi.fn(),
+          onFailure: vi.fn(),
+        }),
+      { wrapper },
+    )
+    const byId = Object.fromEntries(result.current.actions.map((a) => [a.id, a]))
+    expect(byId.undo.disabled).toBe(true)
+    expect(byId.undo.reason).toBe('Finish the rebase first')
+    expect(byId.bisect.disabled).toBe(true)
+    expect(byId.reflog.disabled).toBeUndefined()
+    expect(byId['open-terminal'].disabled).toBeUndefined()
+  })
+})

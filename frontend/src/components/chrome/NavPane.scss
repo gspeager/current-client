@@ -56,10 +56,12 @@
   color: var(--outline);
   cursor: pointer;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--surface-container);
     color: var(--on-surface);
   }
+
+  @include patterns.disabled;
 }
 
 .nav-pane-collapse {
@@ -144,10 +146,12 @@
     color: var(--outline);
   }
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--surface-container);
     color: var(--on-surface);
   }
+
+  @include patterns.disabled;
 }
 
 .nav-pane-feedback {

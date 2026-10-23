@@ -11,7 +11,15 @@ function diffOf(lines: [string, string][]) {
       {
         header: '@@ -1,3 +1,3 @@',
         raw: '',
-        lines: lines.map(([kind, content]) => ({ kind, content, oldLine: 1, newLine: 1, moved: false })),
+        lines: lines.map(([kind, content]) => ({
+          kind,
+          content,
+          oldLine: 1,
+          newLine: 1,
+          moved: false,
+          inOurs: false,
+          inTheirs: false,
+        })),
       },
     ],
   })

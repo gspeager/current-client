@@ -20,7 +20,7 @@ import type { SidebarSections } from '../../lib/useSidebarSections'
 import SetUpstreamDialog from './SetUpstreamDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
-import { operationBadge } from '../../lib/conflictWords'
+import { operationBadge, operationNoun } from '../../lib/conflictWords'
 import { createChangeFor } from '../../lib/createChange'
 import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
@@ -275,7 +275,7 @@ function BranchSidebar({
     setContextMenu({
       ...menuAnchor(e),
       items: [
-        { label: 'Check out', onClick: () => checkoutBranch(b.name), disabled: b.current },
+        { label: 'Check out', onClick: () => checkoutBranch(b.name), disabled: b.current || !!blocked },
         { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
         {
           label: 'Merge into current (no fast-forward)',
@@ -323,7 +323,7 @@ function BranchSidebar({
     setContextMenu({
       ...menuAnchor(e),
       items: [
-        { label: 'Check out', onClick: () => checkoutBranch(localNameFor(name, remoteNames)) },
+        { label: 'Check out', onClick: () => checkoutBranch(localNameFor(name, remoteNames)), disabled: !!blocked },
         {
           label: 'Delete on remote…',
           onClick: () => void deleteRemote.deleteRemoteBranch(name),
@@ -356,12 +356,14 @@ function BranchSidebar({
   const renderLocalRow = (b: BranchInfo) => (
     <li
       key={b.name}
-      className={b.current ? 'branch-row branch-row-current' : 'branch-row'}
-      onClick={() => !b.current && checkoutBranch(b.name)}
+      className={`branch-row${b.current ? ' branch-row-current' : ''}${blocked && !b.current ? ' branch-row-blocked' : ''}`}
+      onClick={() => !b.current && !blocked && checkoutBranch(b.name)}
       onContextMenu={branchContextMenu(b)}
       role="button"
       tabIndex={0}
-      onKeyDown={rowKeys(() => !b.current && checkoutBranch(b.name), branchContextMenu(b))}
+      aria-disabled={blocked && !b.current ? true : undefined}
+      title={blocked && !b.current ? blocked : undefined}
+      onKeyDown={rowKeys(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill
         name={b.name}
@@ -427,12 +429,14 @@ function BranchSidebar({
   const renderRemoteRow = (name: string) => (
     <li
       key={name}
-      className="branch-row branch-row-remote"
-      onClick={() => checkoutBranch(localNameFor(name, remoteNames))}
+      className={blocked ? 'branch-row branch-row-remote branch-row-blocked' : 'branch-row branch-row-remote'}
+      onClick={() => !blocked && checkoutBranch(localNameFor(name, remoteNames))}
       onContextMenu={remoteMenu(name)}
       role="button"
       tabIndex={0}
-      onKeyDown={rowKeys(() => checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
+      aria-disabled={blocked ? true : undefined}
+      title={blocked ?? undefined}
+      onKeyDown={rowKeys(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
       <span className="branch-row-remote-name">{name}</span>
@@ -442,6 +446,8 @@ function BranchSidebar({
     </li>
   )
 
+  // Git refuses a checkout mid-operation, so the rows say so instead of failing.
+  const blocked = conflict ? `Finish the ${operationNoun(conflict.operation)} first` : null
   const localOpen = sections.isOpen('branches-local', true)
   const remoteOpen = sections.isOpen('branches-remote', false)
 
@@ -462,7 +468,8 @@ function BranchSidebar({
                 sections.open('branches')
               }}
               aria-label="New branch"
-              title="New branch"
+              title={blocked ?? 'New branch'}
+              disabled={!!blocked}
             >
               <GitBranchPlus size={18} strokeWidth={1.75} />
             </button>

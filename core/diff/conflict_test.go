@@ -39,13 +39,13 @@ func TestParseCombinedDiffClassifiesConflictSections(t *testing.T) {
 		t.Fatalf("got %d hunks, want 1", len(got.Hunks))
 	}
 	want := []Line{
-		{Kind: LineContext, OldLine: 1, NewLine: 1, Content: "a"},
+		{Kind: LineContext, OldLine: 1, NewLine: 1, Content: "a", InOurs: true, InTheirs: true},
 		{Kind: LineConflictMarker, NewLine: 2, Content: "<<<<<<< HEAD"},
-		{Kind: LineConflictOurs, OldLine: 2, NewLine: 3, Content: "M"},
+		{Kind: LineConflictOurs, OldLine: 2, NewLine: 3, Content: "M", InOurs: true},
 		{Kind: LineConflictMarker, NewLine: 4, Content: "======="},
-		{Kind: LineConflictTheirs, NewLine: 5, Content: "X"},
+		{Kind: LineConflictTheirs, NewLine: 5, Content: "X", InTheirs: true},
 		{Kind: LineConflictMarker, NewLine: 6, Content: ">>>>>>> x"},
-		{Kind: LineContext, OldLine: 3, NewLine: 7, Content: "c"},
+		{Kind: LineContext, OldLine: 3, NewLine: 7, Content: "c", InOurs: true, InTheirs: true},
 	}
 	if !reflect.DeepEqual(got.Hunks[0].Lines, want) {
 		t.Fatalf("lines =\n%+v\nwant\n%+v", got.Hunks[0].Lines, want)

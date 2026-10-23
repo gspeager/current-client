@@ -141,6 +141,43 @@
   box-shadow: inset 2px 0 0 0 var(--primary);
 }
 
+.diff-conflict-block-start {
+  border-top: 1px solid var(--error);
+}
+
+.diff-conflict-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  color: var(--outline);
+  font: var(--data-sm);
+
+  > span {
+    margin-right: var(--space-xs);
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--h-chip);
+    height: var(--h-chip);
+    background: none;
+    border: var(--border-structure);
+    border-radius: var(--radius);
+    color: var(--outline);
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-container);
+      color: var(--on-surface);
+    }
+
+    @include patterns.disabled;
+  }
+}
+
 .diff-hunk-actions {
   flex: 0 0 auto;
   display: flex;
@@ -201,6 +238,11 @@
 
   &-unified {
     grid-template-columns: var(--gutter-width) var(--gutter-width) var(--marker-width) minmax(0, 1fr);
+  }
+
+  // The conflicted file as it is: only the working file's line numbers.
+  &-result {
+    grid-template-columns: var(--gutter-width) var(--marker-width) minmax(0, 1fr);
   }
 
   &-added {

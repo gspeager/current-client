@@ -106,6 +106,30 @@ describe('BranchSidebar groups', () => {
     expect(screen.getByRole('button', { name: /^docs/ })).not.toHaveTextContent('incoming')
   })
 
+  it('blocks checking out and new branches until the merge is finished', async () => {
+    vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
+    render(
+      <DialogProvider>
+        <BranchSidebar
+          repoPath={REPO}
+          dirty={false}
+          refreshKey={0}
+          sections={defaultSections()}
+          conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'feature' })}
+        />
+      </DialogProvider>,
+    )
+
+    const docs = await screen.findByRole('button', { name: /^docs/ })
+    expect(docs).toHaveAttribute('aria-disabled', 'true')
+    expect(docs).toHaveAttribute('title', 'Finish the merge first')
+    await userEvent.click(docs)
+    expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'New branch' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for docs' }))
+    expect(await screen.findByRole('button', { name: 'Check out' })).toBeDisabled()
+  })
+
   it('badges a remote-tracking branch as incoming when that is what is merging', async () => {
     render(
       <DialogProvider>
