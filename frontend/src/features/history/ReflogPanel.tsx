@@ -77,8 +77,8 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
                 <span className="reflog-row-selector">{entry.selector}</span>
                 <span className="reflog-row-sha">{entry.sha.slice(0, 7)}</span>
                 <span className="reflog-row-action">{entry.action}</span>
-                <span className="reflog-row-time">{relativeTime(new Date(entry.date))}</span>
                 <span className="reflog-row-subject">{entry.subject}</span>
+                <span className="reflog-row-time">{relativeTime(new Date(entry.date))}</span>
                 <button
                   type="button"
                   className="reflog-row-recover"
