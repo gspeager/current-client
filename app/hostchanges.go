@@ -120,6 +120,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		if provider == nil {
 			continue
 		}
+		before := snapshotCurrentBranch(info, repoPath)
 		// Pipelines are asked for again after a refresh; the heads of open
 		// changes first, since the list endpoint carries no CI result.
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cachePipeline)
@@ -132,6 +133,9 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
 			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
 			refreshForecast(ctx, info, repoPath, remote.Name, changes)
+			if notices := noticesSince(before, info, repoPath); len(notices) > 0 {
+				hostClient.Cache.Put(info.Hostname, repoPath, cacheNotices, "current", notices)
+			}
 		} else {
 			return err
 		}
