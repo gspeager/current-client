@@ -67,6 +67,7 @@ describe('CurrentChangeSection', () => {
         branch: 'feature',
         upstream: 'origin/feature',
         enabled: true,
+        kind: 'merge request',
         change,
         ci: new CIMark({ status: 'failed', pipelineId: 12, webUrl: 'https://gitlab.example.com/p/12' }),
         failedJobs: ['test', 'lint'],
@@ -91,7 +92,13 @@ describe('CurrentChangeSection', () => {
 
   it('offers to create a merge request when the pushed branch has none', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue(
-      new CurrentChange({ branch: 'feature', upstream: 'origin/feature', enabled: true, change: null }),
+      new CurrentChange({
+        branch: 'feature',
+        upstream: 'origin/feature',
+        enabled: true,
+        kind: 'merge request',
+        change: null,
+      }),
     )
     vi.mocked(RemoteService.CreateChangeLink).mockResolvedValue('https://gitlab.com/g/r/-/merge_requests/new?x')
     vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()

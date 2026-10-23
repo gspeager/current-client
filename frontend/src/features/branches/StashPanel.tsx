@@ -13,7 +13,7 @@ import './StashPanel.scss'
 interface StashPanelProps {
   repoPath: string
   dirty: boolean
-  // Reloads the list when it changes, such as after a stash made from Working Copy.
+  // Reloads the list when it changes, such as after a stash made from Changes.
   refreshKey?: unknown
   onStashChanged?: () => void
 }

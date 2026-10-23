@@ -74,6 +74,9 @@ const SETTINGS_ITEMS = [
 ]
 
 const MAX_FILE_RESULTS = 20
+// At rest the palette shows where you can go, not an inventory: this many
+// local branches, the recent repositories and the actions.
+const MAX_IDLE_BRANCHES = 8
 const MAX_COMMIT_RESULTS = 10
 const COMMIT_SEARCH_DEBOUNCE_MS = 200
 
@@ -191,11 +194,16 @@ function QuickSwitchPalette({
     { id: 'open-settings', label: 'Open Settings', icon: SettingsIcon, run: onOpenSettings },
   ]
 
-  const branchResults = branches.filter((b) => matches(b.name, q))
+  const branchResults = q
+    ? branches.filter((b) => matches(b.name, q))
+    : branches
+        .filter((b) => !b.remote)
+        .sort((a, b) => Number(b.current) - Number(a.current))
+        .slice(0, MAX_IDLE_BRANCHES)
   const repoResults = repos.filter((r) => matches(r.path, q))
   // A large repo has thousands of files, so they only appear once there's a query.
   const fileResults = q ? files.filter((p) => matches(p, q)).slice(0, MAX_FILE_RESULTS) : []
-  const settingsResults = SETTINGS_ITEMS.filter((s) => matches(s.label, q))
+  const settingsResults = q ? SETTINGS_ITEMS.filter((s) => matches(s.label, q)) : []
   const actionResults = actions.filter((a) => matches(a.label, q))
   const resultCount =
     branchResults.length +
@@ -231,14 +239,14 @@ function QuickSwitchPalette({
   const highlight = (text: string) => highlightMatch(text, query, 'search-match')
 
   return (
-    <Modal title="Command palette" onClose={onClose} className="quick-switch-palette" placement="top" hideHeader>
+    <Modal title="Go to anything" onClose={onClose} className="quick-switch-palette" placement="top" hideHeader>
       <Command shouldFilter={false} loop className="quick-switch-command">
         <div className="quick-switch-search">
           <Search size={16} strokeWidth={1.5} />
           <Command.Input
             autoFocus
             aria-label="Search branches, repositories, files, commits, settings, and actions"
-            placeholder="Search branches, files, commits, settings, actions…"
+            placeholder="Go to a branch, file, commit, setting or action…"
             value={query}
             onValueChange={setQuery}
           />

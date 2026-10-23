@@ -14,9 +14,11 @@ import (
 // for the section at the top of the Branches sidebar. Change is nil when
 // the branch has none that the cache knows; Enabled false hides the section.
 type CurrentChange struct {
-	Branch     string        `json:"branch"`
-	Upstream   string        `json:"upstream"`
-	Enabled    bool          `json:"enabled"`
+	Branch   string `json:"branch"`
+	Upstream string `json:"upstream"`
+	Enabled  bool   `json:"enabled"`
+	// Kind is the host's word, "pull request" or "merge request".
+	Kind       string        `json:"kind"`
 	Change     *BranchChange `json:"change"`
 	CI         *CIMark       `json:"ci"`
 	FailedJobs []string      `json:"failedJobs"`
@@ -32,7 +34,7 @@ func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 	if err != nil || !found {
 		return CurrentChange{}, err
 	}
-	result := CurrentChange{Branch: current.Name, Upstream: current.Upstream, Enabled: ok && info.Enabled && providerFor(info) != nil}
+	result := CurrentChange{Branch: current.Name, Upstream: current.Upstream, Enabled: ok && info.Enabled && providerFor(info) != nil, Kind: changeKind(info)}
 	if !result.Enabled || current.Upstream == "" {
 		return result, nil
 	}

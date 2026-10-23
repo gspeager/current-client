@@ -25,6 +25,10 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 - A build without any of the host integration code, `wails3 build EXTRA_TAGS=nohost`, for deployments that must not carry it. **Copy diagnostics** never includes tokens or a host's answers, and can leave out hostnames. ([#150](https://github.com/gspeager/current-client/issues/150))
 - The command palette gained Undo, Reflog, Bisect and Import patch. ([#139](https://github.com/gspeager/current-client/issues/139))
 
+### Changed
+
+- One name per concept across the app: the tabs read **Changes** (with the count of changed files), **History**, **Pull requests** / **Merge requests**, **Activity**, **Changelog**; branch menus say **Check out** like the buttons; the command palette is **Go to anything** and at rest lists local branches, recent repositories and actions rather than everything, with settings appearing once typed for; the sidebar's merge request section and the create dialog use the host's own word; the diff's side labels are **HEAD** and **Staged**. ([#216](https://github.com/gspeager/current-client/issues/216))
+
 ### What works at each level of access
 
 | Feature | Integration off | Read-only token | Write scope |

@@ -320,6 +320,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             onChange={changeTab}
             showChangelog={conventionalCommitsOn}
             changesLabel={changesLabel}
+            changedCount={workingTree.files?.length ?? 0}
           />
 
           {conflictState && (
@@ -345,6 +346,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             <CreateChangeDialog
               repoPath={repo.repoPath}
               branch={createChangeFor}
+              kind={integration?.host.provider === 'gitlab' ? 'merge request' : 'pull request'}
               onCreated={onChangeCreated}
               onClose={() => setCreateChangeFor(null)}
             />

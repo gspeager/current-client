@@ -293,7 +293,7 @@ function HeaderBar({
       {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
 
       <button type="button" className="header-bar-quick-switch" onClick={() => setQuickSwitchOpen(true)}>
-        Quick switch <Kbd>{System.IsMac() ? '⌘K' : 'Ctrl K'}</Kbd>
+        Go to anything <Kbd>{System.IsMac() ? '⌘K' : 'Ctrl K'}</Kbd>
       </button>
 
       {accessory}

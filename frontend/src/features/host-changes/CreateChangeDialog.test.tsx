@@ -18,7 +18,13 @@ const draft = new ChangeDraft({
 function renderDialog(onCreated = vi.fn()) {
   render(
     <DialogProvider>
-      <CreateChangeDialog repoPath="/repos/app" branch="feature" onCreated={onCreated} onClose={vi.fn()} />
+      <CreateChangeDialog
+        repoPath="/repos/app"
+        branch="feature"
+        kind="merge request"
+        onCreated={onCreated}
+        onClose={vi.fn()}
+      />
     </DialogProvider>,
   )
   return onCreated

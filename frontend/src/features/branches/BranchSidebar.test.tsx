@@ -397,7 +397,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'More actions for spike' }))
-    expect(await screen.findByRole('button', { name: 'Checkout' })).toHaveFocus()
+    expect(await screen.findByRole('button', { name: 'Check out' })).toHaveFocus()
     expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
     await user.keyboard('{Escape}')
 

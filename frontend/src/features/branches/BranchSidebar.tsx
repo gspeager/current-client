@@ -259,7 +259,7 @@ function BranchSidebar({
     setContextMenu({
       ...menuAnchor(e),
       items: [
-        { label: 'Checkout', onClick: () => checkoutBranch(b.name), disabled: b.current },
+        { label: 'Check out', onClick: () => checkoutBranch(b.name), disabled: b.current },
         { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
         {
           label: 'Merge into current (no fast-forward)',

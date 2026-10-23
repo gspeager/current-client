@@ -50,7 +50,7 @@ One cache per repository, keyed by host and repository, holding MRs/PRs, CI resu
 
 ## Open on host
 
-With or without integration on, anything in the app can be opened on the host, built from the remote's address alone: a commit (its context menu) opens the commit page; a file in a commit or in Working Copy opens the file at that commit, or at HEAD; a branch opens its merge request / pull request when one is known, else its tree; a tag opens the tag or release page; **Open repository on host** in the command palette opens the repository's home page. The actions are hidden when no remote points at a hosted project, and none of them makes a request.
+With or without integration on, anything in the app can be opened on the host, built from the remote's address alone: a commit (its context menu) opens the commit page; a file in a commit or in Changes opens the file at that commit, or at HEAD; a branch opens its merge request / pull request when one is known, else its tree; a tag opens the tag or release page; **Open repository on host** in the command palette opens the repository's home page. The actions are hidden when no remote points at a hosted project, and none of them makes a request.
 
 ## Create a merge request / pull request, without the API
 
@@ -80,7 +80,7 @@ While the host is on and the checked-out branch's upstream has a merge request /
 
 ## What a refresh found
 
-After a refresh (the tab's button, a fetch or a pull), Current Client compares the new answer for the checked-out branch's merge request / pull request with the last one and, when something changed, shows one line above the views: "2 new comments on !138", "Pipeline failed: test on !138", "!138 was merged". Each goes to the relevant place: the file with the new thread in Working Copy, or the merge request's details. An unchanged answer shows nothing, nothing is shown for other branches, and nothing is modal. The comparison uses only what the refresh already fetched.
+After a refresh (the tab's button, a fetch or a pull), Current Client compares the new answer for the checked-out branch's merge request / pull request with the last one and, when something changed, shows one line above the views: "2 new comments on !138", "Pipeline failed: test on !138", "!138 was merged". Each goes to the relevant place: the file with the new thread in Changes, or the merge request's details. An unchanged answer shows nothing, nothing is shown for other branches, and nothing is modal. The comparison uses only what the refresh already fetched.
 
 ## Conflict forecast
 
@@ -88,7 +88,7 @@ On every refresh, with the host on, Current Client takes the open merge requests
 
 ## Review threads
 
-For the checked-out branch's merge request / pull request, a refresh also fetches its review threads. In the Working Copy diff and in any file diff opened from the History or Compare views, each thread appears under the line it was left on, read-only: who wrote it, when, and the comment rendered through the one sanitizing renderer (images are links). Resolved threads start collapsed to one line. Threads on lines the diff doesn't show, and outdated ones whose code has changed since, are listed under the diff with their original line. File lists show each file's unresolved count, and the sidebar's count opens the first file that has one. Posting, resolving and approving stay on the host.
+For the checked-out branch's merge request / pull request, a refresh also fetches its review threads. In the Changes diff and in any file diff opened from the History or Compare views, each thread appears under the line it was left on, read-only: who wrote it, when, and the comment rendered through the one sanitizing renderer (images are links). Resolved threads start collapsed to one line. Threads on lines the diff doesn't show, and outdated ones whose code has changed since, are listed under the diff with their original line. File lists show each file's unresolved count, and the sidebar's count opens the first file that has one. Posting, resolving and approving stay on the host.
 
 ## CI results
 

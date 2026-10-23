@@ -307,10 +307,10 @@ function ChangesView({
                 outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
                 baseSide={
                   showsStaged
-                    ? { label: 'HEAD · working tree base', sha: headCommit?.sha.slice(0, 7) }
-                    : { label: untracked ? 'Untracked' : 'Staged index' }
+                    ? { label: 'HEAD', sha: headCommit?.sha.slice(0, 7) }
+                    : { label: untracked ? 'Untracked' : 'Staged' }
                 }
-                targetSide={showsStaged ? { label: 'Staged index' } : { label: 'Working tree' }}
+                targetSide={showsStaged ? { label: 'Staged' } : { label: 'Working tree' }}
                 onStageHunk={showsStaged || untracked ? undefined : stageHunk}
                 onUnstageHunk={showsStaged ? unstageHunk : undefined}
                 onDiscardHunk={untracked ? undefined : discardHunk}
