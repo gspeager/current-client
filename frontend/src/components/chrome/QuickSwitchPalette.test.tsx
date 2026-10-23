@@ -201,6 +201,37 @@ describe('QuickSwitchPalette Workspace actions', () => {
     expect(ReflogService.GetReflog).toHaveBeenCalledWith(REPO, expect.any(Number))
   })
 
+  it('acts on a reflog entry from its row', async () => {
+    vi.mocked(ReflogService.GetReflog).mockResolvedValue([
+      {
+        selector: 'HEAD@{0}',
+        sha: 'abc1234def',
+        action: 'commit: Add thing',
+        date: '2026-10-01T00:00:00Z',
+        subject: 'Add thing',
+      },
+    ])
+    vi.mocked(BranchService.CheckoutCommit).mockResolvedValue()
+    renderPalette()
+
+    await userEvent.click(paletteAction('Reflog'))
+    const reflog = await screen.findByRole('dialog', { name: 'Reflog' })
+    expect(reflog).toHaveClass('diff-sheet')
+    await userEvent.click(await within(reflog).findByRole('button', { name: 'More actions for abc1234' }))
+    expect([...document.querySelectorAll('.context-menu button')].map((b) => b.textContent)).toEqual([
+      'Check out',
+      'Branch here',
+      'Cherry-pick',
+      'Revert',
+      'Reset to here…',
+      'Export patch…',
+      'Copy SHA',
+    ])
+    await userEvent.click(screen.getByRole('button', { name: 'Check out' }))
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Check out' }))
+    expect(BranchService.CheckoutCommit).toHaveBeenCalledWith(REPO, 'abc1234def')
+  })
+
   it('opens the Bisect wizard', async () => {
     vi.mocked(BisectService.IsActive).mockResolvedValue(false)
     renderPalette()

@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event'
 import {
   type BranchInfo,
   BranchService,
+  ChangedFile,
   type CommitInfo,
+  DiffService,
+  FileDiff,
   HistoryService,
   PlatformService,
   RemoteService,
@@ -129,6 +132,32 @@ describe('HistoryView', () => {
       'Export patch…',
       'Copy SHA',
     ])
+  })
+
+  it("shows a file's diff in place of the graph, with a way back", async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(HistoryService.GetChangedFiles).mockResolvedValue([new ChangedFile({ status: 'M', path: 'src/app.ts' })])
+    vi.mocked(DiffService.GetRefDiff).mockResolvedValue(new FileDiff({ binary: true }))
+    renderHistory()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Fix login redirect/ }))
+    await userEvent.click(await screen.findByRole('button', { name: /src\/app\.ts/ }))
+
+    expect(await screen.findByText('Binary file changed.')).toBeInTheDocument()
+    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(
+      REPO,
+      'src/app.ts',
+      'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0',
+      'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1',
+      false,
+      false,
+    )
+    expect(screen.queryByPlaceholderText('Search commits, authors, hashes…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(document.querySelector('.history-inspector')).not.toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'History' }))
+    expect(screen.getByPlaceholderText('Search commits, authors, hashes…')).toBeInTheDocument()
   })
 
   it('opens a fixed inspector whose actions match the menu, and says how many commits there are', async () => {

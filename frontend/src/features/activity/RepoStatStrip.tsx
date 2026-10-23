@@ -32,7 +32,8 @@ function statsFor(s: RepoStatsInfo, disk: RepoDiskUsageInfo): Stat[] {
       ? { label: 'Repository age', value: '—' }
       : { label: 'Repository age', value: formatAge(s.repoAgeDays), color: ageColor(s.repoAgeDays) },
     { label: 'Branches', value: String(s.branchCount) },
-    { label: 'Tags / Stashes', value: `${s.tagCount} / ${s.stashCount}` },
+    { label: 'Tags', value: String(s.tagCount) },
+    { label: 'Stashes', value: String(s.stashCount) },
     { label: 'Repo size', value: formatDiskSize(disk.totalSizeKb) },
   ]
 }

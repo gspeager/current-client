@@ -1,8 +1,7 @@
 @use '../../styles/patterns';
 
 .reflog-panel {
-  width: 720px;
-  height: 640px;
+  width: 960px;
 }
 
 .reflog-error {
@@ -41,7 +40,8 @@
   &:hover {
     background: var(--surface-container);
 
-    .reflog-row-recover {
+    .reflog-row-recover,
+    .reflog-row-more {
       opacity: 1;
     }
   }
@@ -61,10 +61,30 @@
 }
 
 .reflog-row-action {
-  flex: 1;
+  flex: 0 1 40%;
   min-width: 0;
   @include patterns.truncate;
   font: var(--data-md);
+}
+
+.reflog-row-subject {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.reflog-row-more {
+  flex-shrink: 0;
+  @include patterns.icon-button;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  opacity: 0;
+
+  &:focus-visible {
+    opacity: 1;
+  }
 }
 
 .reflog-row-time {

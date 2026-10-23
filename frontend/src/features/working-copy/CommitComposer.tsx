@@ -237,14 +237,15 @@ function CommitComposer({
                 </option>
               ))}
             </select>
-            <input
-              className="commit-composer-type-scope"
-              aria-label="Scope"
-              placeholder="scope"
-              value={prefix?.scope ?? ''}
-              disabled={!prefix}
-              onChange={(e) => prefix && setPrefix(prefix.type, e.target.value.replace(/[()\s]/g, ''))}
-            />
+            {prefix && (
+              <input
+                className="commit-composer-type-scope"
+                aria-label="Scope"
+                placeholder="scope"
+                value={prefix.scope ?? ''}
+                onChange={(e) => setPrefix(prefix.type, e.target.value.replace(/[()\s]/g, ''))}
+              />
+            )}
           </div>
         )}
       </div>
@@ -334,7 +335,7 @@ function CommitComposer({
           title={blockReason ?? undefined}
         >
           <GitCommitVertical size={14} strokeWidth={1.75} />
-          Continue {operationNoun(conflict.operation)}
+          {blockReason ? blockReason.replace(/\.$/, '') : `Continue ${operationNoun(conflict.operation)}`}
         </button>
       ) : (
         <SplitButton
@@ -370,14 +371,15 @@ function CommitComposer({
           }
         >
           <GitCommitVertical size={14} strokeWidth={1.75} />
-          {amend
-            ? 'Amend'
-            : stagedCount === 0 && allowEmpty
-              ? 'Commit (empty)'
-              : `Commit ${plural(stagedCount, 'file')}`}
+          {blockReason
+            ? blockReason.replace(/\.$/, '')
+            : amend
+              ? 'Amend'
+              : stagedCount === 0 && allowEmpty
+                ? 'Commit (empty)'
+                : `Commit ${plural(stagedCount, 'file')}`}
         </SplitButton>
       )}
-      {blockReason && <p className="commit-composer-block-hint">{blockReason}</p>}
       {error && <p className="commit-composer-error">{error}</p>}
     </section>
   )

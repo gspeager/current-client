@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { GitBranchPlus } from 'lucide-react'
-import { BranchService, ReflogService, type ReflogEntryInfo } from '@current-client-bindings/app'
+import { Ellipsis, GitBranchPlus } from 'lucide-react'
+import { BranchService, CommitInfo, ReflogService, type ReflogEntryInfo } from '@current-client-bindings/app'
+import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
+import { useCommitActions } from './useCommitActions'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
@@ -27,7 +29,17 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
   const { prompt } = useDialogs()
   const [recoverError, setRecoverError] = useState<string | null>(null)
   const [recovering, setRecovering] = useState<string | null>(null)
-  const error = loadError ?? recoverError
+  const [menu, setMenu] = useState<ContextMenuState | null>(null)
+  const commitActions = useCommitActions(repoPath, onBranchChanged)
+  const error = loadError ?? recoverError ?? commitActions.error
+
+  const openMenu = (entry: ReflogEntryInfo) => (e: React.MouseEvent | React.KeyboardEvent) =>
+    setMenu({
+      ...menuAnchor(e),
+      items: commitActions
+        .actionsFor(new CommitInfo({ sha: entry.sha, subject: entry.subject }))
+        .map((a) => ({ label: a.label, onClick: a.run, destructive: a.destructive })),
+    })
 
   const recover = async (entry: ReflogEntryInfo) => {
     const name = await prompt({
@@ -50,7 +62,7 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
   }
 
   return (
-    <Modal title="Reflog" onClose={onClose} className="reflog-panel">
+    <Modal title="Reflog" onClose={onClose} className="reflog-panel diff-sheet">
       {error && <p className="reflog-error">{error}</p>}
 
       <div className="reflog-body">
@@ -66,6 +78,7 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
                 <span className="reflog-row-sha">{entry.sha.slice(0, 7)}</span>
                 <span className="reflog-row-action">{entry.action}</span>
                 <span className="reflog-row-time">{relativeTime(new Date(entry.date))}</span>
+                <span className="reflog-row-subject">{entry.subject}</span>
                 <button
                   type="button"
                   className="reflog-row-recover"
@@ -77,11 +90,22 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
                   <GitBranchPlus size={14} strokeWidth={1.75} />
                   Recover
                 </button>
+                <button
+                  type="button"
+                  className="reflog-row-more"
+                  onClick={openMenu(entry)}
+                  aria-label={`More actions for ${entry.sha.slice(0, 7)}`}
+                  title="More actions"
+                >
+                  <Ellipsis size={14} strokeWidth={1.75} />
+                </button>
               </li>
             ))}
           </ul>
         )}
       </div>
+      {menu && <ContextMenu state={menu} onClose={() => setMenu(null)} />}
+      {commitActions.overlays}
     </Modal>
   )
 }

@@ -1,6 +1,6 @@
 import { DiffService, StashService, type ChangedFile, type StashInfo } from '@current-client-bindings/app'
 import ChangedFilesBrowser from '../../components/git/ChangedFilesBrowser'
-import Modal from '../../components/chrome/Modal'
+import DiffSheet from '../../components/chrome/DiffSheet'
 import { EMPTY_TREE_SHA } from '../diff/diffMapping'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './StashModal.scss'
@@ -22,9 +22,9 @@ function StashModal({ repoPath, stash, onClose }: StashModalProps) {
   const versions = (file: ChangedFile) =>
     file.status === '?' ? { from: EMPTY_TREE_SHA, to: `${ref}^3` } : { from: `${ref}^1`, to: ref }
 
-  const loadDiff = (file: ChangedFile, force: boolean) => {
+  const loadDiff = (file: ChangedFile, force: boolean, ignoreWhitespace: boolean) => {
     const { from, to } = versions(file)
-    return DiffService.GetRefDiff(repoPath, file.path, from, to, force, false)
+    return DiffService.GetRefDiff(repoPath, file.path, from, to, force, ignoreWhitespace)
   }
 
   const images = (file: ChangedFile) => {
@@ -33,10 +33,9 @@ function StashModal({ repoPath, stash, onClose }: StashModalProps) {
   }
 
   return (
-    <Modal
+    <DiffSheet
       title="Stash"
       onClose={onClose}
-      className="stash-modal"
       headerContent={<span className="stash-modal-message">{stash.message}</span>}
     >
       <ChangedFilesBrowser
@@ -46,7 +45,7 @@ function StashModal({ repoPath, stash, onClose }: StashModalProps) {
         loadDiff={loadDiff}
         images={images}
       />
-    </Modal>
+    </DiffSheet>
   )
 }
 

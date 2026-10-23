@@ -16,13 +16,30 @@ describe('StashModal', () => {
     vi.mocked(DiffService.GetRefDiff).mockResolvedValue(new FileDiff({ binary: true }))
   })
 
-  it("lists the stash's files under its message", async () => {
+  it("lists the stash's files under its message, with the first one open", async () => {
     render(<StashModal repoPath={REPO} stash={stash} onClose={vi.fn()} />)
 
     expect(screen.getByText('On main: wip')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: /tracked\.txt/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /new\.txt/ })).toBeInTheDocument()
     expect(StashService.GetChangedFiles).toHaveBeenCalledWith(REPO, 1)
+    expect(await screen.findByText('Binary file changed.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /tracked\.txt/ }).closest('.changed-file')).toHaveClass(
+      'changed-file-selected',
+    )
+    expect(screen.getByRole('dialog')).toHaveClass('diff-sheet')
+  })
+
+  it('offers ignoring whitespace from the View menu', async () => {
+    render(<StashModal repoPath={REPO} stash={stash} onClose={vi.fn()} />)
+
+    await screen.findByText('Binary file changed.')
+    await userEvent.click(screen.getByText('View'))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Ignore whitespace' }))
+
+    await vi.waitFor(() =>
+      expect(DiffService.GetRefDiff).toHaveBeenCalledWith(REPO, 'tracked.txt', 'stash@{1}^1', 'stash@{1}', false, true),
+    )
   })
 
   it('diffs a tracked file against the commit the stash was made on', async () => {

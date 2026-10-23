@@ -12,7 +12,7 @@ import IdentitySettings from './IdentitySettings'
 import IntegrationsSection from './IntegrationsSection'
 import Modal from '../../components/chrome/Modal'
 import PathSettingRow from './PathSettingRow'
-import SettingsRow, { SettingsGroup } from './SettingsRow'
+import SettingsRow, { SettingsGroup, settingsGroupId } from './SettingsRow'
 import './SettingsPanel.scss'
 
 const LANE_THEME_LABELS: Record<LaneThemeName, string> = {
@@ -60,6 +60,22 @@ function SettingsPanel({
   } = settings
   const [gitPathError, setGitPathError] = useState<string | null>(null)
   const [editorPathError, setEditorPathError] = useState<string | null>(null)
+  const [section, setSection] = useState('Appearance')
+  const groups = [
+    'Appearance',
+    'Git',
+    'Tools and folders',
+    'Diff',
+    'Network',
+    ...(hostIntegration ? ['Integrations'] : []),
+    'Identity colors',
+    'Support',
+  ]
+
+  const showGroup = (title: string) => {
+    setSection(title)
+    document.getElementById(settingsGroupId(title))?.scrollIntoView({ block: 'start' })
+  }
 
   // Picks a file or folder, then saves it; an empty choice (dialog cancelled) does nothing.
   const choosePath =
@@ -86,141 +102,155 @@ function SettingsPanel({
   const activeLaneTheme = toLaneThemeName(values.laneColorTheme)
 
   return (
-    <Modal title="Settings" onClose={onClose} className="settings-panel" placement="top">
-      <div className="settings-body">
-        {error && <p className="settings-error">{error}</p>}
-
-        <SettingsGroup title="Appearance">
-          <SettingsRow label="Theme" hint="System follows the operating system's light or dark setting.">
-            <SegmentedControl
-              value={values.theme}
-              onChange={setTheme}
-              options={[
-                { value: 'system', label: 'System', icon: Monitor },
-                { value: 'dark', label: 'Dark', icon: Moon },
-                { value: 'light', label: 'Light', icon: Sun },
-              ]}
-            />
-          </SettingsRow>
-          <SettingsRow label="Lane colors" hint="Branch colors in the commit graph, branch pills and sidebar dots.">
-            <select
-              className="settings-field"
-              value={activeLaneTheme}
-              onChange={(e) => setLaneColorTheme(e.target.value)}
-              aria-label="Lane colors"
+    <Modal title="Settings" onClose={onClose} className="settings-panel">
+      <div className="settings-layout">
+        <nav className="settings-rail" aria-label="Settings sections">
+          {groups.map((title) => (
+            <button
+              key={title}
+              type="button"
+              className={title === section ? 'settings-rail-item settings-rail-item-active' : 'settings-rail-item'}
+              onClick={() => showGroup(title)}
             >
-              {LANE_THEME_NAMES.map((name) => (
-                <option key={name} value={name}>
-                  {LANE_THEME_LABELS[name]}
-                </option>
-              ))}
-            </select>
-            <div className="settings-lane-swatches" aria-hidden="true">
-              {LANE_THEMES[activeLaneTheme].map((color) => (
-                <span key={color} className="settings-lane-swatch" style={{ background: color }} />
-              ))}
-            </div>
-          </SettingsRow>
-        </SettingsGroup>
+              {title}
+            </button>
+          ))}
+        </nav>
+        <div className="settings-body">
+          {error && <p className="settings-error">{error}</p>}
 
-        <SettingsGroup title="Git">
-          <IdentitySettings />
-          <PathSettingRow
-            label="Git executable"
-            hint="Git 2.23 or newer."
-            path={values.gitExecutablePath}
-            fallback="Found on PATH"
-            error={gitPathError}
-            onChoose={choosePath(SettingsService.PickGitExecutable, setGitExecutablePath, setGitPathError)}
-            onReset={resetPath(setGitExecutablePath, setGitPathError)}
-            resetLabel="Use PATH"
-          />
-          <SettingsRow
-            label="Conventional Commits"
-            hint="Adds the Changelog tab to the tab bar and the type picker to the commit form. History still shows types in repositories that use the format."
-          >
-            <Switch
-              checked={!values.disableConventionalCommits}
-              onChange={(on) => setDisableConventionalCommits(!on)}
-              ariaLabel="Conventional Commits"
-            />
-          </SettingsRow>
-        </SettingsGroup>
-
-        <SettingsGroup title="Tools and folders">
-          <PathSettingRow
-            label="Editor"
-            hint="Opened by Open in Editor."
-            path={values.editorPath}
-            fallback="VS Code (code, on PATH)"
-            error={editorPathError}
-            onChoose={choosePath(SettingsService.PickEditorExecutable, setEditorPath, setEditorPathError)}
-            onReset={resetPath(setEditorPath, setEditorPathError)}
-            resetLabel="Use default"
-          />
-          <PathSettingRow
-            label="Default repository location"
-            hint="Where the Open and Clone dialogs start."
-            path={values.defaultRepoLocation}
-            fallback="Not set"
-            onChoose={choosePath(SettingsService.PickDefaultRepoLocation, setDefaultRepoLocation, () => undefined)}
-          />
-        </SettingsGroup>
-
-        <SettingsGroup title="Diff">
-          <SettingsRow label="Ignore whitespace" hint="The default for new diffs; each diff can still switch it.">
-            <Switch
-              checked={values.diffIgnoreWhitespaceDefault}
-              onChange={setDiffIgnoreWhitespaceDefault}
-              ariaLabel="Ignore whitespace"
-            />
-          </SettingsRow>
-        </SettingsGroup>
-
-        <SettingsGroup title="Network">
-          <SettingsRow
-            label="Prune on fetch"
-            hint="Fetch also forgets remote branches that are gone from the remote. Fetch and prune in the header's Fetch menu does it once."
-          >
-            <Switch checked={values.pruneOnFetch} onChange={setPruneOnFetch} ariaLabel="Prune on fetch" />
-          </SettingsRow>
-          <SettingsRow
-            label="Background fetch"
-            hint={
-              values.autoFetchManaged
-                ? 'Managed by your organization.'
-                : 'Off by default. When off, a remote is only contacted on an explicit fetch, pull or push.'
-            }
-          >
-            <select
-              className="settings-field"
-              value={values.autoFetchIntervalMinutes}
-              onChange={(e) => setAutoFetchIntervalMinutes(Number(e.target.value))}
-              aria-label="Background fetch"
-              disabled={values.autoFetchManaged}
-            >
-              {AUTO_FETCH_OPTIONS.map((o) => (
-                <option key={o.minutes} value={o.minutes}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </SettingsRow>
-        </SettingsGroup>
-
-        {hostIntegration && (
-          <SettingsGroup title="Integrations">
-            <IntegrationsSection repoPath={repoPath} onChanged={onHostsChanged} />
+          <SettingsGroup title="Appearance">
+            <SettingsRow label="Theme" hint="System follows the operating system's light or dark setting.">
+              <SegmentedControl
+                value={values.theme}
+                onChange={setTheme}
+                options={[
+                  { value: 'system', label: 'System', icon: Monitor },
+                  { value: 'dark', label: 'Dark', icon: Moon },
+                  { value: 'light', label: 'Light', icon: Sun },
+                ]}
+              />
+            </SettingsRow>
+            <SettingsRow label="Lane colors" hint="Branch colors in the commit graph, branch pills and sidebar dots.">
+              <select
+                className="settings-field"
+                value={activeLaneTheme}
+                onChange={(e) => setLaneColorTheme(e.target.value)}
+                aria-label="Lane colors"
+              >
+                {LANE_THEME_NAMES.map((name) => (
+                  <option key={name} value={name}>
+                    {LANE_THEME_LABELS[name]}
+                  </option>
+                ))}
+              </select>
+              <div className="settings-lane-swatches" aria-hidden="true">
+                {LANE_THEMES[activeLaneTheme].map((color) => (
+                  <span key={color} className="settings-lane-swatch" style={{ background: color }} />
+                ))}
+              </div>
+            </SettingsRow>
           </SettingsGroup>
-        )}
 
-        <SettingsGroup title="Identity colors">
-          <IdentityColorSettings />
-        </SettingsGroup>
+          <SettingsGroup title="Git">
+            <IdentitySettings />
+            <PathSettingRow
+              label="Git executable"
+              hint="Git 2.23 or newer."
+              path={values.gitExecutablePath}
+              fallback="Found on PATH"
+              error={gitPathError}
+              onChoose={choosePath(SettingsService.PickGitExecutable, setGitExecutablePath, setGitPathError)}
+              onReset={resetPath(setGitExecutablePath, setGitPathError)}
+              resetLabel="Use PATH"
+            />
+            <SettingsRow
+              label="Conventional Commits"
+              hint="Adds the Changelog tab to the tab bar and the type picker to the commit form. History still shows types in repositories that use the format."
+            >
+              <Switch
+                checked={!values.disableConventionalCommits}
+                onChange={(on) => setDisableConventionalCommits(!on)}
+                ariaLabel="Conventional Commits"
+              />
+            </SettingsRow>
+          </SettingsGroup>
 
-        <SettingsGroup title="Support">
-          <DiagnosticsSection />
-        </SettingsGroup>
+          <SettingsGroup title="Tools and folders">
+            <PathSettingRow
+              label="Editor"
+              hint="Opened by Open in Editor."
+              path={values.editorPath}
+              fallback="VS Code (code, on PATH)"
+              error={editorPathError}
+              onChoose={choosePath(SettingsService.PickEditorExecutable, setEditorPath, setEditorPathError)}
+              onReset={resetPath(setEditorPath, setEditorPathError)}
+              resetLabel="Use default"
+            />
+            <PathSettingRow
+              label="Default repository location"
+              hint="Where the Open and Clone dialogs start."
+              path={values.defaultRepoLocation}
+              fallback="Not set"
+              onChoose={choosePath(SettingsService.PickDefaultRepoLocation, setDefaultRepoLocation, () => undefined)}
+            />
+          </SettingsGroup>
+
+          <SettingsGroup title="Diff">
+            <SettingsRow label="Ignore whitespace" hint="The default for new diffs; each diff can still switch it.">
+              <Switch
+                checked={values.diffIgnoreWhitespaceDefault}
+                onChange={setDiffIgnoreWhitespaceDefault}
+                ariaLabel="Ignore whitespace"
+              />
+            </SettingsRow>
+          </SettingsGroup>
+
+          <SettingsGroup title="Network">
+            <SettingsRow
+              label="Prune on fetch"
+              hint="Fetch also forgets remote branches that are gone from the remote. Fetch and prune in the header's Fetch menu does it once."
+            >
+              <Switch checked={values.pruneOnFetch} onChange={setPruneOnFetch} ariaLabel="Prune on fetch" />
+            </SettingsRow>
+            <SettingsRow
+              label="Background fetch"
+              hint={
+                values.autoFetchManaged
+                  ? 'Managed by your organization.'
+                  : 'Off by default. When off, a remote is only contacted on an explicit fetch, pull or push.'
+              }
+            >
+              <select
+                className="settings-field"
+                value={values.autoFetchIntervalMinutes}
+                onChange={(e) => setAutoFetchIntervalMinutes(Number(e.target.value))}
+                aria-label="Background fetch"
+                disabled={values.autoFetchManaged}
+              >
+                {AUTO_FETCH_OPTIONS.map((o) => (
+                  <option key={o.minutes} value={o.minutes}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </SettingsRow>
+          </SettingsGroup>
+
+          {hostIntegration && (
+            <SettingsGroup title="Integrations">
+              <IntegrationsSection repoPath={repoPath} onChanged={onHostsChanged} />
+            </SettingsGroup>
+          )}
+
+          <SettingsGroup title="Identity colors">
+            <IdentityColorSettings />
+          </SettingsGroup>
+
+          <SettingsGroup title="Support">
+            <DiagnosticsSection />
+          </SettingsGroup>
+        </div>
       </div>
     </Modal>
   )
