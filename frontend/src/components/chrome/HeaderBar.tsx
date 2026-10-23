@@ -11,6 +11,7 @@ import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
+import { operationBadge } from '../../lib/conflictWords'
 import { baseName } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
@@ -44,6 +45,8 @@ interface HeaderBarProps {
   onFetched?: () => void
   onOpenCommit: (sha: string, position: number) => void
   syncing: boolean
+  // "merge", "rebase", "cherry-pick", "revert" or "am" while one is in progress.
+  operation?: string | null
   // Supplied by an app embedding Current Client, such as a switch between its views.
   accessory?: ReactNode
 }
@@ -68,6 +71,7 @@ function HeaderBar({
   onFetched,
   onOpenCommit,
   syncing,
+  operation = null,
   accessory,
 }: HeaderBarProps) {
   useClockTick()
@@ -202,6 +206,7 @@ function HeaderBar({
                     </span>
                   </>
                 )}
+                {operation && <span className="header-bar-mode">{operationBadge(operation)}</span>}
                 <ChevronDown size={12} strokeWidth={1.5} className="header-bar-repo-chevron" />
                 {repo.tabs.length > 1 && (
                   <button

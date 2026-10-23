@@ -123,3 +123,11 @@ describe('HeaderBar sync cluster', () => {
     expect(handlers.onPullMerge).toHaveBeenCalled()
   })
 })
+
+describe('HeaderBar during a merge', () => {
+  it('badges the repository chip with the operation', async () => {
+    renderHeader({ operation: 'merge' })
+
+    expect(await screen.findByText('merging')).toHaveClass('header-bar-mode')
+  })
+})

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { TriangleAlert } from 'lucide-react'
 import { ConflictService, type ConflictStateInfo } from '@current-client-bindings/app'
+import { operationNoun, operationSentence } from '../../lib/conflictWords'
 import { errorMessage } from '../../lib/errors'
 import { baseName } from '../../lib/paths'
 import { plural } from '../../lib/plural'
@@ -14,35 +15,19 @@ interface ConflictBannerProps {
   onOpenFile: (path: string) => void
 }
 
-const OPERATION_LABEL: Record<string, string> = {
-  merge: 'Merge',
-  'cherry-pick': 'Cherry-pick',
-  revert: 'Revert',
-  rebase: 'Rebase',
-  am: 'Apply patch',
-}
-
+// Status and the way out; the operation is continued from the commit composer.
 function ConflictBanner({ repoPath, state, onResolved, onOpenFile }: ConflictBannerProps) {
   const { confirm } = useDialogs()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const label = OPERATION_LABEL[state.operation] ?? state.operation
+  const noun = operationNoun(state.operation)
   const remaining = state.conflictedPaths.length
-
-  const continueOp = () => {
-    setError(null)
-    setBusy(true)
-    ConflictService.Continue(repoPath)
-      .then(onResolved)
-      .catch((err: unknown) => setError(errorMessage(err)))
-      .finally(() => setBusy(false))
-  }
 
   const abort = async () => {
     const confirmed = await confirm({
-      title: `Abort ${label.toLowerCase()}`,
-      message: `Abort the ${label.toLowerCase()} and return to the state before it started?`,
+      title: `Abort ${noun}`,
+      message: `Abort the ${noun} and return to the state before it started?`,
       confirmLabel: 'Abort',
       destructive: true,
     })
@@ -56,11 +41,13 @@ function ConflictBanner({ repoPath, state, onResolved, onOpenFile }: ConflictBan
   }
 
   return (
-    <div className="conflict-banner">
+    <div className="conflict-banner" role="status">
       <TriangleAlert size={14} strokeWidth={1.75} className="conflict-banner-icon" />
       <span className="conflict-banner-text">
-        {label} in progress
-        {remaining > 0 ? ` — ${plural(remaining, 'file')} conflicted` : ' — all conflicts resolved'}
+        <span className="conflict-banner-status">
+          {operationSentence(state)}
+          {remaining > 0 ? ` · ${plural(remaining, 'file')} still conflicted` : ' · all conflicts resolved'}
+        </span>
         {state.conflictedPaths.map((path) => (
           <button
             key={path}
@@ -72,16 +59,12 @@ function ConflictBanner({ repoPath, state, onResolved, onOpenFile }: ConflictBan
             {baseName(path)}
           </button>
         ))}
+        <span className="conflict-banner-pointer">
+          {remaining > 0
+            ? `Resolve each file, then continue the ${noun} from the commit message.`
+            : `Continue the ${noun} from the commit message.`}
+        </span>
       </span>
-      <button
-        type="button"
-        className="conflict-banner-continue"
-        onClick={continueOp}
-        disabled={busy || remaining > 0}
-        title={remaining > 0 ? 'Resolve all conflicted files first' : 'Continue'}
-      >
-        Continue
-      </button>
       <button type="button" className="conflict-banner-abort" onClick={abort} disabled={busy}>
         Abort
       </button>

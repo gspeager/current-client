@@ -3,6 +3,7 @@ import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X } from
 import {
   type BranchInfo,
   BranchService,
+  type ConflictStateInfo,
   GitFlowService,
   HostService,
   type OverlapInfo,
@@ -19,6 +20,7 @@ import type { SidebarSections } from '../../lib/useSidebarSections'
 import SetUpstreamDialog from './SetUpstreamDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
+import { operationBadge } from '../../lib/conflictWords'
 import { createChangeFor } from '../../lib/createChange'
 import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
@@ -42,13 +44,23 @@ interface BranchSidebarProps {
   dirty: boolean
   refreshKey: number
   sections: SidebarSections
+  // The operation in progress, for the "merging" and "incoming" badges.
+  conflict?: ConflictStateInfo | null
   onBranchChanged?: () => void
   onCreateChange?: (branch: string) => void
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
 
-function BranchSidebar({ repoPath, dirty, refreshKey, sections, onBranchChanged, onCreateChange }: BranchSidebarProps) {
+function BranchSidebar({
+  repoPath,
+  dirty,
+  refreshKey,
+  sections,
+  conflict = null,
+  onBranchChanged,
+  onCreateChange,
+}: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
   const {
@@ -360,6 +372,8 @@ function BranchSidebar({ repoPath, dirty, refreshKey, sections, onBranchChanged,
         referenceCards={referenceCards}
       />
       {b.current && <span className="branch-row-head">HEAD</span>}
+      {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
+      {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
       <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
       {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
       <ConflictsBadge overlap={overlapFor.get(b.name)} />

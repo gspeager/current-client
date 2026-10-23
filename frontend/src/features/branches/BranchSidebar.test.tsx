@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {
   BranchChange,
   BranchService,
+  ConflictStateInfo,
   HostService,
   MergedBranches,
   OverlapService,
@@ -85,6 +86,24 @@ describe('BranchSidebar groups', () => {
     await userEvent.click(login)
 
     expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'login')
+  })
+
+  it('badges the checked-out branch as merging and the other side as incoming', async () => {
+    render(
+      <DialogProvider>
+        <BranchSidebar
+          repoPath={REPO}
+          dirty={false}
+          refreshKey={0}
+          sections={defaultSections()}
+          conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'feature' })}
+        />
+      </DialogProvider>,
+    )
+
+    expect(await screen.findByText('merging')).toHaveClass('branch-row-mode')
+    expect(screen.getByRole('button', { name: /^feature/ })).toHaveTextContent('incoming')
+    expect(screen.getByRole('button', { name: /^docs/ })).not.toHaveTextContent('incoming')
   })
 
   it('opens Branches when New branch is used on a closed section', async () => {

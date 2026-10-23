@@ -452,3 +452,33 @@ func TestConflictMarkerLineAfterALongLine(t *testing.T) {
 		t.Errorf("clean: line = %d, %v; want 0", line, err)
 	}
 }
+
+func TestDetectConflictStateCarriesThePreparedMessage(t *testing.T) {
+	dir := initConflictRepo(t)
+	runGitExpectFailure(t, dir, "merge", "theirs")
+
+	state, err := DetectConflictState(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("DetectConflictState: %v", err)
+	}
+	if !strings.HasPrefix(state.Message, "Merge branch 'theirs'") {
+		t.Fatalf("Message = %q, want git's prepared merge message", state.Message)
+	}
+	if strings.Contains(state.Message, "#") {
+		t.Fatalf("Message = %q, want the comment lines dropped", state.Message)
+	}
+}
+
+func TestContinueWithMessageCommitsWithIt(t *testing.T) {
+	dir := initConflictRepo(t)
+	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.WriteFile(t, dir, "file.txt", "resolved\n")
+	gittest.Run(t, dir, "add", "file.txt")
+
+	if err := ContinueWithMessage(context.Background(), dir, ConflictMerge, "Bring theirs in\n\nWith a body."); err != nil {
+		t.Fatalf("ContinueWithMessage: %v", err)
+	}
+	if got := gittest.Run(t, dir, "log", "-1", "--format=%B"); !strings.HasPrefix(got, "Bring theirs in\n\nWith a body.") {
+		t.Fatalf("last commit message = %q", got)
+	}
+}

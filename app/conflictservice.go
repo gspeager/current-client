@@ -11,14 +11,33 @@ type ConflictService struct{}
 type ConflictStateInfo struct {
 	Operation       string   `json:"operation"` // "", "merge", "cherry-pick", "revert", "rebase", or "am"
 	ConflictedPaths []string `json:"conflictedPaths"`
+	// The branch names the resolve actions use: ours is the checked-out side.
+	Ours   string `json:"ours"`
+	Theirs string `json:"theirs"`
+	// The message git prepared for the commit that finishes the operation.
+	Message string `json:"message"`
 }
 
 func (s *ConflictService) GetConflictState(repoPath string) (ConflictStateInfo, error) {
-	state, err := git.DetectConflictState(context.Background(), repoPath)
+	ctx := context.Background()
+	state, err := git.DetectConflictState(ctx, repoPath)
 	if err != nil {
 		return ConflictStateInfo{}, err
 	}
-	return ConflictStateInfo{Operation: string(state.Operation), ConflictedPaths: state.ConflictedPaths}, nil
+	info := ConflictStateInfo{Operation: string(state.Operation), ConflictedPaths: state.ConflictedPaths, Message: state.Message}
+	if state.Operation != git.ConflictNone {
+		if sides, err := git.ConflictSides(ctx, repoPath); err == nil {
+			info.Ours, info.Theirs = sides.Ours, sides.Theirs
+		}
+	}
+	return info, nil
+}
+
+// ContinueWith finishes the operation with message as the commit's message.
+func (s *ConflictService) ContinueWith(repoPath, message string) error {
+	return onConflictOperation(repoPath, func(ctx context.Context, repoPath string, op git.ConflictOperation) error {
+		return git.ContinueWithMessage(ctx, repoPath, op, message)
+	})
 }
 
 func (s *ConflictService) Continue(repoPath string) error {

@@ -315,6 +315,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             onFetched={onFetched}
             onOpenCommit={openCommit}
             syncing={pullOp.running || pushOp.running}
+            operation={conflictState?.operation ?? null}
             accessory={headerAccessory}
           />
           <TabBar
@@ -323,6 +324,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             showChangelog={conventionalCommitsOn}
             changesLabel={changesLabel}
             changedCount={workingTree.files?.length ?? 0}
+            conflictCount={conflictState?.conflictedPaths.length ?? 0}
           />
 
           {conflictState && (
@@ -411,6 +413,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               workspaceActions={workspace.actions}
               workspaceFeedback={workspace.feedback}
               onDismissFeedback={workspace.dismissFeedback}
+              conflictState={conflictState}
               onBranchChanged={onBranchChanged}
               onFetched={onFetched}
               pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
@@ -441,6 +444,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   initialCommitDraft={restored.commitDraft}
                   onCommitDraftChange={(message) => remember({ commitDraft: message })}
                   showCommitTypePicker={conventionalCommitsOn}
+                  conflict={conflictState}
                 />
               </KeepAlive>
               <KeepAlive active={activeTab === 'history'}>
