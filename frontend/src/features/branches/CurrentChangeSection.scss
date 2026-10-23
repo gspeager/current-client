@@ -133,3 +133,16 @@
 .current-change-forecast-clean {
   color: var(--outline);
 }
+
+.current-change-threads-link {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--secondary);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

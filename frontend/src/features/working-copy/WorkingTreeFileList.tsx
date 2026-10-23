@@ -23,6 +23,8 @@ interface WorkingTreeFileListProps {
   openPath: string | null
   openSection: WorkingTreeSection
   onOpen: (path: string, section: WorkingTreeSection) => void
+  // Unresolved review threads per path, from the checked-out branch's change.
+  threadCounts?: Record<string, number | undefined>
 }
 
 type ListRow =
@@ -70,6 +72,7 @@ function WorkingTreeFileList({
   openPath,
   openSection,
   onOpen,
+  threadCounts,
 }: WorkingTreeFileListProps) {
   const { files, conflicted, staged, unstaged, error, loadStatus } = workingTree
   const sectionFiles = useMemo<Record<WorkingTreeSection, FileStatus[]>>(
@@ -332,6 +335,7 @@ function WorkingTreeFileList({
         removed={isStaged ? f.indexRemoved : f.workRemoved}
         binary={isStaged ? f.indexBinary : f.workBinary}
         tag={f.submodule ? 'submodule' : f.lfs ? 'LFS' : undefined}
+        threads={threadCounts?.[f.path]}
         onToggleChecked={() =>
           isStaged ? actions.unstage(f) : row.section === 'conflicted' ? conflicts.markResolved(f) : actions.stage(f)
         }

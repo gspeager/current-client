@@ -6,6 +6,7 @@ import DiffStat from '../../components/git/DiffStat'
 import PathText from '../../components/git/PathText'
 import StatusBadge from '../../components/git/StatusBadge'
 import './FileRow.scss'
+import '../diff/ReviewThreadBlock.scss'
 
 interface FileRowProps {
   status: string
@@ -25,6 +26,8 @@ interface FileRowProps {
   binary?: boolean
   // A short label for what kind of entry it is, such as "submodule".
   tag?: string
+  // Unresolved review threads on the file.
+  threads?: number
 }
 
 function FileRow({
@@ -44,6 +47,7 @@ function FileRow({
   removed = 0,
   binary = false,
   tag,
+  threads,
 }: FileRowProps) {
   const rowStyle = indent > 0 ? { ...style, paddingLeft: `calc(var(--space-sm) + ${indent}px)` } : style
 
@@ -70,6 +74,11 @@ function FileRow({
       </button>
       <span className="file-row-stats">
         {tag && <span className="file-row-tag">{tag}</span>}
+        {threads ? (
+          <span className="thread-count" title={`${threads} unresolved review ${threads === 1 ? 'thread' : 'threads'}`}>
+            {threads}
+          </span>
+        ) : null}
         <DiffStat added={added} removed={removed} binary={binary} />
       </span>
       <StatusBadge status={status} />

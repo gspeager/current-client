@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ChangedFile, FileDiff } from '@current-client-bindings/app'
 import ChangedFileRow from '../../features/history/ChangedFileRow'
+import { useReviewThreads } from '../../lib/useReviewThreads'
 import DiffViewer from '../../features/diff/DiffViewer'
 import { DiffWrapToggle } from '../../features/diff/diffWrap'
 import type { ImageSources } from '../../features/diff/ImageDiff'
@@ -32,6 +33,7 @@ function ChangedFilesBrowser({
   initialPath,
   repoPath,
 }: ChangedFilesBrowserProps) {
+  const reviewThreads = useReviewThreads(repoPath ?? '', files)
   const [selected, setSelected] = useState<ChangedFile | null>(() => files?.find((f) => f.path === initialPath) ?? null)
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
   const [forcedPath, setForcedPath] = useState<string | null>(null)
@@ -64,6 +66,7 @@ function ChangedFilesBrowser({
                 file={file}
                 selected={selected?.path === file.path}
                 onSelect={() => setSelected(file)}
+                threads={reviewThreads.counts[file.path]}
               />
             ))}
           </ul>
@@ -85,6 +88,8 @@ function ChangedFilesBrowser({
               diff={diff}
               path={selected.path}
               viewMode={viewMode}
+              threads={reviewThreads.byPath[selected.path]}
+              outdatedThreads={reviewThreads.outdatedByPath[selected.path]}
               images={images?.(selected)}
               repoPath={repoPath}
               onForceLoad={() => setForcedPath(selected.path)}

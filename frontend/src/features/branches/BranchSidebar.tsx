@@ -35,11 +35,12 @@ interface BranchSidebarProps {
   refreshKey: number
   onBranchChanged?: () => void
   onOpenChange?: (number: number) => void
+  onOpenFile?: (path: string) => void
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
 
-function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenChange }: BranchSidebarProps) {
+function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenChange, onOpenFile }: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
   const {
@@ -318,7 +319,12 @@ function BranchSidebar({ repoPath, dirty, refreshKey, onBranchChanged, onOpenCha
           Changes from {squashed} are staged. Commit them to finish the squash.
         </p>
       )}
-      <CurrentChangeSection repoPath={repoPath} refreshKey={refreshKey} onOpenChange={onOpenChange} />
+      <CurrentChangeSection
+        repoPath={repoPath}
+        refreshKey={refreshKey}
+        onOpenChange={onOpenChange}
+        onOpenFile={onOpenFile}
+      />
       {branches === null ? (
         <p className="branch-sidebar-hint">Loading branches…</p>
       ) : branches.length === 0 ? (

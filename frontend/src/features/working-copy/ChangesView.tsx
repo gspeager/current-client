@@ -16,6 +16,7 @@ import { useHeadCommit } from './useHeadCommit'
 import { useResizableWidth } from '../../lib/useResizableWidth'
 import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
+import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
 import { useConflictResolution } from './useConflictResolution'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
@@ -56,6 +57,7 @@ function ChangesView({
   onCommitDraftChange,
   showCommitTypePicker = false,
 }: ChangesViewProps) {
+  const reviewThreads = useReviewThreads(repoPath)
   const { files, conflicted, staged, unstaged, loadStatus } = workingTree
   const actions = useWorkingTreeActions(repoPath, loadStatus, onBranchChanged)
   const conflicts = useConflictResolution(repoPath, conflicted.length > 0, actions.run)
@@ -200,6 +202,7 @@ function ChangesView({
           openPath={selectedPath}
           openSection={openSection}
           onOpen={openFile}
+          threadCounts={reviewThreads.counts}
         />
         <CommitComposer
           repoPath={repoPath}
@@ -293,6 +296,8 @@ function ChangesView({
                 diff={diff}
                 path={selectedPath}
                 viewMode={viewMode}
+                threads={reviewThreads.byPath[selectedPath]}
+                outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
                 baseSide={
                   showsStaged
                     ? { label: 'HEAD · working tree base', sha: headCommit?.sha.slice(0, 7) }
