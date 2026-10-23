@@ -223,11 +223,7 @@ func RangeHistory(ctx context.Context, repoPath, from, to, since string) ([]Hist
 	if since != "" {
 		args = append(args, "--since="+since)
 	}
-	result, err := runResult(ctx, repoPath, append([]string{"log", "-z", "--pretty=format:" + historyFormat}, append(args, rev)...)...)
-	if err != nil {
-		return nil, err
-	}
-	return parseHistory(result.Stdout)
+	return logHistory(ctx, repoPath, append(args, rev)...)
 }
 
 // revRange is "from..to" with both resolved to commits, or just to when from
