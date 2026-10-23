@@ -82,10 +82,12 @@
   font: var(--data-sm);
 }
 
+// Leaves room for the hover button, so the SHA and time never wrap under it.
 .commit-row-hash {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  padding-right: calc(var(--h-row-tree) + var(--space-xs));
   text-align: right;
 }
 
