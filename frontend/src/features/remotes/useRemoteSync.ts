@@ -1,4 +1,4 @@
-import { BranchService, RemoteService } from '@current-client-bindings/app'
+import { BranchService, RemoteService, type PushResult } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { errorMessage } from '../../lib/errors'
 import { useDialogs } from '../../lib/useDialogs'
@@ -7,7 +7,11 @@ const NO_UPSTREAM = 'This branch has no upstream configured.'
 // Matches core/gitexec's divergedMessage.
 export const DIVERGED = 'This branch and its upstream have diverged. Choose Pull (merge) or Pull (rebase).'
 
-export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
+export function useRemoteSync(repoPath: string | null, onSynced: () => void, onPushed?: (result: PushResult) => void) {
+  const pushed = (result: PushResult) => {
+    onSynced()
+    onPushed?.(result)
+  }
   const { confirm } = useDialogs()
   const pullOp = useCancellableOperation(repoPath ?? '')
   const pushOp = useCancellableOperation(repoPath ?? '')
@@ -41,7 +45,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
         confirmLabel: 'Push',
       })
       if (!confirmed) return
-      void pushOp.run((auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth), onSynced)
+      void pushOp.run((auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth), pushed)
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
     }
@@ -51,7 +55,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
     if (!repoPath) return
     void pushOp.run(
       (auth) => RemoteService.Push(repoPath, auth),
-      onSynced,
+      pushed,
       (message) => {
         if (message !== NO_UPSTREAM) return false
         void pushSettingUpstream(repoPath)

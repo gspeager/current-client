@@ -7,6 +7,7 @@ import {
   ForecastReport,
   HostService,
   PlatformService,
+  RemoteService,
 } from '@current-client-bindings/app'
 import CurrentChangeSection from './CurrentChangeSection'
 
@@ -86,6 +87,21 @@ describe('CurrentChangeSection', () => {
     await userEvent.click(within(section).getByRole('button', { name: 'Open on host' }))
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.example.com/g/r/-/merge_requests/138')
     expect(HostService.CurrentChange).toHaveBeenCalledWith('/repos/app')
+  })
+
+  it('offers to create a merge request when the pushed branch has none', async () => {
+    vi.mocked(HostService.CurrentChange).mockResolvedValue(
+      new CurrentChange({ branch: 'feature', upstream: 'origin/feature', enabled: true, change: null }),
+    )
+    vi.mocked(RemoteService.CreateChangeLink).mockResolvedValue('https://gitlab.com/g/r/-/merge_requests/new?x')
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Create merge request' }))
+    expect(RemoteService.CreateChangeLink).toHaveBeenCalledWith('/repos/app', 'feature')
+    await waitFor(() =>
+      expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.com/g/r/-/merge_requests/new?x'),
+    )
   })
 
   it('is absent when the branch has no known merge request or the host is off', async () => {

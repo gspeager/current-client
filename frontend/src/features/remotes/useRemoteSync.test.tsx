@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { act, renderHook, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, RemoteService, type BranchStatusInfo } from '@current-client-bindings/app'
+import { BranchService, type BranchStatusInfo, PushResult, RemoteService } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { DIVERGED, useRemoteSync } from './useRemoteSync'
 
@@ -18,9 +18,9 @@ function wrapper({ children }: { children: ReactNode }) {
 // A push that stays in flight until cancelled, like a Wails CancellablePromise.
 function pendingPush() {
   let reject: (err: Error) => void = () => {}
-  const promise = new Promise<void>((_, r) => {
+  const promise = new Promise<PushResult>((_, r) => {
     reject = r
-  }) as Promise<void> & { cancel: () => Promise<void> }
+  }) as Promise<PushResult> & { cancel: () => Promise<void> }
   const cancel = vi.fn(() => {
     const err = new Error('cancelled')
     err.name = 'CancelError'
@@ -33,7 +33,7 @@ function pendingPush() {
 
 describe('useRemoteSync', () => {
   it('pushes and reports the sync', async () => {
-    vi.mocked(RemoteService.Push).mockResolvedValue()
+    vi.mocked(RemoteService.Push).mockResolvedValue(new PushResult({}))
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
@@ -91,7 +91,7 @@ describe('useRemoteSync', () => {
     vi.mocked(RemoteService.Push).mockRejectedValue(new Error('This branch has no upstream configured.'))
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'feature' } as BranchStatusInfo)
     vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin', fetchUrl: '', pushUrl: '' }])
-    vi.mocked(RemoteService.PushSetUpstream).mockResolvedValue()
+    vi.mocked(RemoteService.PushSetUpstream).mockResolvedValue(new PushResult({}))
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
@@ -108,7 +108,7 @@ describe('useRemoteSync', () => {
     vi.mocked(RemoteService.Push)
       .mockRejectedValueOnce(new Error(NEEDS_CREDENTIALS))
       .mockRejectedValueOnce(new Error(AUTH_FAILED))
-      .mockResolvedValueOnce()
+      .mockResolvedValueOnce(new PushResult({}))
     vi.mocked(RemoteService.CredentialHelper).mockResolvedValue('osxkeychain')
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
@@ -150,7 +150,7 @@ describe('useRemoteSync', () => {
 
   it('stops a push when cancelled, without reporting an error', async () => {
     const { promise, cancel } = pendingPush()
-    vi.mocked(RemoteService.Push).mockReturnValue(promise as ReturnType<typeof RemoteService.Push>)
+    vi.mocked(RemoteService.Push).mockReturnValue(promise as unknown as ReturnType<typeof RemoteService.Push>)
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
@@ -197,7 +197,7 @@ describe('useRemoteSync', () => {
 
   it('keeps a push running in its repository while another is shown, and cancels it there', async () => {
     const { promise, cancel } = pendingPush()
-    vi.mocked(RemoteService.Push).mockReturnValue(promise as ReturnType<typeof RemoteService.Push>)
+    vi.mocked(RemoteService.Push).mockReturnValue(promise as unknown as ReturnType<typeof RemoteService.Push>)
     const { result, rerender } = renderHook(({ repoPath }) => useRemoteSync(repoPath, vi.fn()), {
       wrapper,
       initialProps: { repoPath: REPO },

@@ -52,6 +52,10 @@ One cache per repository, keyed by host and repository, holding MRs/PRs, CI resu
 
 With or without integration on, anything in the app can be opened on the host, built from the remote's address alone: a commit (its context menu) opens the commit page; a file in a commit or in Working Copy opens the file at that commit, or at HEAD; a branch opens its merge request / pull request when one is known, else its tree; a tag opens the tag or release page; **Open repository on host** in the command palette opens the repository's home page. The actions are hidden when no remote points at a hosted project, and none of them makes a request.
 
+## Create a merge request / pull request, without the API
+
+After a push that sets or updates a branch's upstream, and while the branch has no known merge request / pull request, a line above the views offers **Create merge request** (or pull request): the link the host printed in the push output when it did, else the host's pre-filled form built from the remote's address (GitLab's new-merge-request form with the source branch, GitHub's compare page with the default branch as base). The same action is in the branch's context menu and in the sidebar section for the checked-out branch. For a fork, a remote named `upstream` on the same host, GitHub's form lives in the upstream project with the fork's owner on the head; GitLab's form is the fork's own, where the target project is chosen. No request is made to show the link.
+
 ## The merge request / pull request tab
 
 While a host is on for the repository, a tab named **Merge requests** (GitLab) or **Pull requests** (GitHub) lists the open changes from the last refresh: number, title, author as an initials badge, source and target branch, draft, labels, CI result and when it was updated, with an **Authored by me** filter. Opening the tab for the first time in a session refreshes it; after that it reads the cache until **Refresh**, a fetch or a pull. The list stops at the page cap and says so.

@@ -39,6 +39,44 @@ type Links struct {
 	Tree         string `json:"tree"`
 	Tag          string `json:"tag"`
 	Blob         string `json:"blob"`
+	Style        Style  `json:"style"`
+}
+
+// NewChange is the host's pre-filled form for a merge request / pull
+// request from branch into base: no API, no token. For a pull request from
+// a fork, base lives in the upstream project and the head is "owner:branch".
+func (h Host) NewChange(branch, base string) string {
+	project := h.Root + h.Project
+	if h.Style == GitLab {
+		q := url.Values{"merge_request[source_branch]": {branch}}
+		if base != "" {
+			q.Set("merge_request[target_branch]", base)
+		}
+		return project + "/-/merge_requests/new?" + q.Encode()
+	}
+	if base == "" {
+		base = "main"
+	}
+	return project + "/compare/" + escapeRef(base) + "..." + escapeRef(branch) + "?expand=1"
+}
+
+// NewChangeFromFork is NewChange for a GitHub-style fork: the form lives in
+// upstream's project and names the fork's owner on the head. GitLab's form
+// is the fork's own, where the target project is chosen.
+func (h Host) NewChangeFromFork(upstream Host, branch, base string) string {
+	if h.Style == GitLab {
+		return h.NewChange(branch, base)
+	}
+	owner, _, _ := strings.Cut(h.Project, "/")
+	return upstream.NewChange(owner+":"+branch, base)
+}
+
+func escapeRef(ref string) string {
+	parts := strings.Split(ref, "/")
+	for i, part := range parts {
+		parts[i] = url.PathEscape(part)
+	}
+	return strings.Join(parts, "/")
 }
 
 // scpLike matches "git@host:path"; a path can't contain "://", and Windows
@@ -142,5 +180,6 @@ func (h Host) Links() Links {
 		Tree:         pages + "tree/",
 		Tag:          tag,
 		Blob:         pages + "blob/",
+		Style:        h.Style,
 	}
 }
