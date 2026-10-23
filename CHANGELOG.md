@@ -4,12 +4,46 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+Host integration arrives in this release, for GitLab (gitlab.com and Self-Managed 16.0 or newer) and GitHub (github.com and Enterprise Server 3.11 or newer). It is **off until you turn it on, per host**: nothing contacts a host's API before then, and [docs/integrations.md](docs/integrations.md) lists every request it makes, when, and the token scope it needs.
+
 ### Added
 
-- A machine-wide `policy.json` lets an organization lock a host's integration off or force it on, and fix background fetch, for every user of the machine. A managed setting shows disabled in Settings, labeled **Managed by your organization**. The file's place on each platform is in [docs/integrations.md](docs/integrations.md); with none, nothing changes. ([#145](https://github.com/gspeager/current-client/issues/145))
-- Host integration works with GitHub, github.com and GitHub Enterprise Server 3.11 or newer, with the same features as GitLab: pull requests, including ones from forks, review comments beside the code, check runs and commit statuses as one CI result, Actions job logs, issue titles, creating a pull request, protected-branch warnings. [docs/integrations.md](docs/integrations.md) lists every endpoint and the access each needs. ([#152](https://github.com/gspeager/current-client/issues/152))
-- With host integration on, pushing, force-pushing or deleting on the remote a branch the host protects asks first, naming the branch and what the host forbids, instead of the push being rejected afterwards. The rules come from the last refresh; nothing is asked at push time. ([#163](https://github.com/gspeager/current-client/issues/163))
+- **Host integration, per host and off by default.** Settings → Integrations lists every host your remotes point at, with a switch, the provider type and API address worked out from the remote (editable), a token kept by Git's own credential helper (or Git's existing sign-in, with no setup), **Test connection** and **Remove**. A one-time prompt offers to turn a host on when you open a repository there; **Not now** is remembered. The status bar shows the API host actually contacted and when it was last asked. ([#146](https://github.com/gspeager/current-client/issues/146), [#147](https://github.com/gspeager/current-client/issues/147), [#148](https://github.com/gspeager/current-client/issues/148), [#149](https://github.com/gspeager/current-client/issues/149))
+- **A refresh is the only thing that fetches from a host**: the tab's button, opening a host panel for the first time, a fetch or a pull. Everything else reads what was cached, in memory only. ([#170](https://github.com/gspeager/current-client/issues/170))
+- **Merge requests / pull requests on branches**, as a square marker beside the branch in the sidebar and on the graph: the number alone with integration off (from the refs the host publishes, read by the fetch you run), and the state and CI result with it on. Hover cards show the title, author, state and CI; issue and merge request references in commit messages link to the host and show their title. ([#154](https://github.com/gspeager/current-client/issues/154), [#161](https://github.com/gspeager/current-client/issues/161), [#168](https://github.com/gspeager/current-client/issues/168), [#176](https://github.com/gspeager/current-client/issues/176))
+- **A Merge requests / Pull requests tab**: the open changes with author, branches, labels, CI and an **Authored by me** filter; the description rendered safely (images are links, nothing is fetched); **Check out locally**, which fetches the change's head and creates a branch named after it. ([#153](https://github.com/gspeager/current-client/issues/153), [#175](https://github.com/gspeager/current-client/issues/175))
+- **The checked-out branch's merge request** at the top of the Branches sidebar, with its state, CI result and the failed jobs named, unresolved threads, and **Create merge request** when it has none. After a refresh, one line says what changed: new comments, a failed pipeline, the change merged. ([#177](https://github.com/gspeager/current-client/issues/177), [#178](https://github.com/gspeager/current-client/issues/178))
+- **CI results** on commits in History and on branch tips, asked for as commits scroll into view; clicking one lists the jobs, and a failed job shows the end of its log in the app. ([#155](https://github.com/gspeager/current-client/issues/155), [#156](https://github.com/gspeager/current-client/issues/156))
+- **Review threads beside the code**, read-only, under the line they were left on in Working Copy and in any diff, with unresolved counts in the file list. ([#157](https://github.com/gspeager/current-client/issues/157))
+- **A conflict forecast**: on each refresh, the open merge requests that target the same base as your branch are merged with it in memory, and the ones that would conflict are named with the files. ([#160](https://github.com/gspeager/current-client/issues/160))
+- **Open on host**: a commit, a file at a line, a branch, a tag or the repository, from their context menus, built from the remote's address with no request. ([#179](https://github.com/gspeager/current-client/issues/179))
+- **Create a merge request / pull request**: after a push, a line offers the host's pre-filled form, with or without integration; with it on, a form in the app, prefilled from the branch's commits and the repository's template, with a draft toggle. This is the one action that needs write scope, and the app names the scope when the token lacks it. ([#158](https://github.com/gspeager/current-client/issues/158), [#180](https://github.com/gspeager/current-client/issues/180))
 - **Clean up merged branches**, in the Branches sidebar's header, lists local branches whose work is already on the default branch, squash and rebase merges included, and deletes the ones you pick, with **Undo**. With host integration on, a branch whose merge request or pull request was merged on the host is listed with its number. A branch with commits newer than what was merged is marked and left unselected. When the checked-out branch is among them, the default branch is checked out and pulled first. ([#159](https://github.com/gspeager/current-client/issues/159))
+- With host integration on, pushing, force-pushing or deleting on the remote a branch the host protects asks first, naming the branch and what the host forbids, instead of the push being rejected afterwards. The rules come from the last refresh; nothing is asked at push time. ([#163](https://github.com/gspeager/current-client/issues/163))
+- Host integration works with GitHub, github.com and GitHub Enterprise Server 3.11 or newer, with the same features as GitLab: pull requests, including ones from forks, review comments beside the code, check runs and commit statuses as one CI result, Actions job logs, issue titles, creating a pull request, protected-branch warnings. ([#151](https://github.com/gspeager/current-client/issues/151), [#152](https://github.com/gspeager/current-client/issues/152))
+- A machine-wide `policy.json` lets an organization lock a host's integration off or force it on, and fix background fetch, for every user of the machine. A managed setting shows disabled in Settings, labeled **Managed by your organization**. The file's place on each platform is in [docs/integrations.md](docs/integrations.md); with none, nothing changes. ([#145](https://github.com/gspeager/current-client/issues/145))
+- A build without any of the host integration code, `wails3 build EXTRA_TAGS=nohost`, for deployments that must not carry it. **Copy diagnostics** never includes tokens or a host's answers, and can leave out hostnames. ([#150](https://github.com/gspeager/current-client/issues/150))
+- The command palette gained Undo, Reflog, Bisect and Import patch. ([#139](https://github.com/gspeager/current-client/issues/139))
+
+### What works at each level of access
+
+| Feature | Integration off | Read-only token | Write scope |
+| --- | --- | --- | --- |
+| Links from issue and MR/PR references to the host | yes | yes | yes |
+| Open on host: commit, file at line, branch, tag, repository | yes | yes | yes |
+| Create MR/PR link after a push (the host's pre-filled form) | yes | yes | yes |
+| PR numbers on branches, through `git ls-remote` with a fetch | yes (number only) | with state and CI | with state and CI |
+| Clean up branches merged on the host | squash merges found locally | plus merged on the host | plus merged on the host |
+| MR/PR list, details, local checkout | no | yes | yes |
+| The checked-out branch's MR/PR in the sidebar, and what a refresh changed | no | yes | yes |
+| CI status, job list, failed job log | no | yes | yes |
+| Review threads beside the code | no | yes | yes |
+| Conflict forecast against open MRs/PRs | no | yes | yes |
+| Hover cards with title and state | local facts only | yes | yes |
+| Create MR/PR in the app | no | no, says which scope | yes |
+| Warn before pushing to a protected branch | no | yes | yes |
+
+"Off" means the host is never contacted for it. A read-only token is GitLab `read_api`, or GitHub fine-grained read access to pull requests, checks, contents and issues.
 
 ## [0.3.0] - 2026-10-17
 
