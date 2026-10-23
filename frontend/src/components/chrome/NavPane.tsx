@@ -13,6 +13,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
+import type { ConflictStateInfo } from '@current-client-bindings/app'
 import BranchSidebar from '../../features/branches/BranchSidebar'
 import CurrentChangeSection from '../../features/branches/CurrentChangeSection'
 import HeadCommitPanel from '../../features/working-copy/HeadCommitPanel'
@@ -35,6 +36,7 @@ interface NavPaneProps {
   workspaceActions: WorkspaceAction[]
   workspaceFeedback: WorkspaceFeedback | null
   onDismissFeedback: () => void
+  conflictState?: ConflictStateInfo | null
   onBranchChanged: () => void
   onFetched: () => void
   pruneOnFetch?: boolean
@@ -88,6 +90,7 @@ function NavPane({
   workspaceActions,
   workspaceFeedback,
   onDismissFeedback,
+  conflictState = null,
   onBranchChanged,
   onFetched,
   pruneOnFetch,
@@ -174,6 +177,7 @@ function NavPane({
             dirty={dirty}
             refreshKey={repoVersion}
             sections={sections}
+            conflict={conflictState}
             onBranchChanged={onBranchChanged}
             onCreateChange={onCreateChange}
           />

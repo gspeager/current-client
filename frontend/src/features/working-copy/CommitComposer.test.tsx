@@ -1,6 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CommitService, IdentityService, type CurrentUserInfo } from '@current-client-bindings/app'
+import {
+  CommitService,
+  ConflictService,
+  ConflictStateInfo,
+  IdentityService,
+  type CurrentUserInfo,
+} from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import CommitComposer from './CommitComposer'
 
@@ -134,5 +140,54 @@ describe('CommitComposer after a squash merge', () => {
 
     expect(await screen.findByDisplayValue('feat: my own words')).toBeInTheDocument()
     expect(CommitService.GetSquashedSubjects).not.toHaveBeenCalled()
+  })
+})
+
+describe('CommitComposer during a merge', () => {
+  const merge = (conflictedPaths: string[]) =>
+    new ConflictStateInfo({
+      operation: 'merge',
+      conflictedPaths,
+      ours: 'main',
+      theirs: 'feature',
+      message: "Merge branch 'feature'\n\nBody line.",
+    })
+
+  function renderMerging(conflict: ConflictStateInfo, onCommitted = vi.fn()) {
+    vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada', 'ada@example.com'))
+    render(
+      <DialogProvider>
+        <CommitComposer repoPath={REPO} stagedCount={1} onCommitted={onCommitted} showTypePicker conflict={conflict} />
+      </DialogProvider>,
+    )
+    return onCommitted
+  }
+
+  it('is the merge commit: prefilled from git, Continue merge disabled while files are conflicted', async () => {
+    renderMerging(merge(['src/app.ts']))
+
+    expect(screen.getByText('Merge commit')).toBeInTheDocument()
+    await vi.waitFor(() => expect(screen.getByPlaceholderText('Summary')).toHaveValue("Merge branch 'feature'"))
+    expect(screen.getByPlaceholderText('Description')).toHaveValue('Body line.')
+    const button = screen.getByRole('button', { name: 'Continue merge' })
+    expect(button).toBeDisabled()
+    expect(screen.getByText('1 file still conflicted.')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Commit type' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'More commit actions' })).not.toBeInTheDocument()
+  })
+
+  it('continues the merge with the message once everything is resolved', async () => {
+    vi.mocked(ConflictService.ContinueWith).mockResolvedValue()
+    const onCommitted = renderMerging(merge([]))
+
+    await vi.waitFor(() => expect(screen.getByPlaceholderText('Summary')).toHaveValue("Merge branch 'feature'"))
+    await userEvent.clear(screen.getByPlaceholderText('Summary'))
+    await userEvent.type(screen.getByPlaceholderText('Summary'), 'Bring feature in')
+    await userEvent.click(screen.getByRole('button', { name: 'Continue merge' }))
+
+    await vi.waitFor(() =>
+      expect(ConflictService.ContinueWith).toHaveBeenCalledWith(REPO, 'Bring feature in\n\nBody line.'),
+    )
+    await vi.waitFor(() => expect(onCommitted).toHaveBeenCalled())
   })
 })

@@ -264,6 +264,16 @@
   @include patterns.row-actions;
 }
 
+.branch-row-mode {
+  flex-shrink: 0;
+  margin-left: var(--space-xs);
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--error);
+  border-radius: 3px;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
 .branch-conflicts-badge {
   flex-shrink: 0;
   margin-left: var(--space-xs);

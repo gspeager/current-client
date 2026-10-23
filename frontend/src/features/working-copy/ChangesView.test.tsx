@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   ConflictService,
+  ConflictStateInfo,
   DiffService,
   FileContent,
   FileDiff,
@@ -468,6 +469,40 @@ describe('ChangesView file groups', () => {
 
 describe('ChangesView conflicts', () => {
   const conflictedFile = () => file('src/app.ts', { indexStatus: 'U', worktreeStatus: 'U', conflicted: true })
+
+  it('groups files as Conflicted and Resolved during a merge, with Mark resolved as the primary action', async () => {
+    vi.mocked(ConflictService.GetConflictSides).mockResolvedValue({ ours: 'main', theirs: 'feature' })
+    const workingTree = workingTreeFor([
+      conflictedFile(),
+      file('src/done.ts', { indexStatus: 'M', worktreeStatus: '.' }),
+    ])
+    render(
+      <DialogProvider>
+        <ChangesView
+          repoPath={REPO}
+          workingTree={workingTree}
+          conflict={
+            new ConflictStateInfo({
+              operation: 'merge',
+              conflictedPaths: ['src/app.ts'],
+              ours: 'main',
+              theirs: 'feature',
+            })
+          }
+        />
+      </DialogProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Conflicted, 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resolved, 1' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Staged/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue merge' })).toBeDisabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
+    const actions = document.querySelector('.changes-conflict-actions')!
+    expect(actions.querySelector('button')).toHaveTextContent('Mark resolved')
+    expect(actions.querySelector('button')).toHaveClass('changes-conflict-primary')
+  })
 
   it('lists a conflicted file once, in its own section', () => {
     renderChanges([conflictedFile(), file('src/other.ts')])

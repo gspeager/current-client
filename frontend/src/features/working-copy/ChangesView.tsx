@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import { DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
+import { type ConflictStateInfo, DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import Checkbox from '../../components/forms/Checkbox'
 import CommitComposer from './CommitComposer'
@@ -39,6 +39,8 @@ interface ChangesViewProps {
   initialCommitDraft?: string
   onCommitDraftChange?: (message: string) => void
   showCommitTypePicker?: boolean
+  // The merge, rebase, cherry-pick or revert in progress, if any.
+  conflict?: ConflictStateInfo | null
 }
 
 function splitDirFile(path: string): { dir: string; file: string } {
@@ -59,6 +61,7 @@ function ChangesView({
   initialCommitDraft = '',
   onCommitDraftChange,
   showCommitTypePicker = false,
+  conflict = null,
 }: ChangesViewProps) {
   const reviewThreads = useReviewThreads(repoPath)
   const hostLinks = useHostLinks(repoPath)
@@ -212,6 +215,7 @@ function ChangesView({
               ? (path) => void PlatformService.OpenWebPage(filePage(hostLinks, headCommit.sha, path))
               : undefined
           }
+          mergeMode={conflict !== null}
         />
         <CommitComposer
           repoPath={repoPath}
@@ -221,6 +225,7 @@ function ChangesView({
           initialMessage={initialCommitDraft}
           onMessageChange={onCommitDraftChange}
           showTypePicker={showCommitTypePicker}
+          conflict={conflict}
         />
       </div>
 
@@ -281,6 +286,13 @@ function ChangesView({
             </div>
             {openConflict && (
               <div className="changes-conflict-actions">
+                <button
+                  type="button"
+                  className="changes-conflict-primary"
+                  onClick={() => void conflicts.markResolved(openConflict)}
+                >
+                  Mark resolved
+                </button>
                 <button type="button" onClick={() => void conflicts.keep(openConflict, 'ours')}>
                   {conflicts.keepLabel(openConflict, 'ours')}
                 </button>
@@ -289,9 +301,6 @@ function ChangesView({
                 </button>
                 <button type="button" onClick={() => conflicts.openInEditor(openConflict)}>
                   Open in editor
-                </button>
-                <button type="button" onClick={() => void conflicts.markResolved(openConflict)}>
-                  Mark resolved
                 </button>
               </div>
             )}

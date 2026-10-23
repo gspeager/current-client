@@ -1,6 +1,13 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import { GitCommitVertical, UserPlus, X } from 'lucide-react'
-import { CommitService, IdentityService, type AuthorInfo } from '@current-client-bindings/app'
+import {
+  CommitService,
+  ConflictService,
+  type ConflictStateInfo,
+  IdentityService,
+  type AuthorInfo,
+} from '@current-client-bindings/app'
+import { operationNoun } from '../../lib/conflictWords'
 import { COMMIT_TYPES, parsePrefix, withPrefix } from '../../lib/conventionalCommit'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
 import { plural } from '../../lib/plural'
@@ -19,6 +26,9 @@ interface CommitComposerProps {
   initialMessage?: string
   onMessageChange?: (message: string) => void
   showTypePicker?: boolean
+  // While a merge, rebase, cherry-pick or revert is in progress the composer
+  // writes that operation's commit and its button continues the operation.
+  conflict?: ConflictStateInfo | null
 }
 
 const SUBJECT_TARGET = 72
@@ -49,6 +59,7 @@ function CommitComposer({
   initialMessage = '',
   onMessageChange,
   showTypePicker = false,
+  conflict = null,
 }: CommitComposerProps) {
   const initialSplit = splitMessage(initialMessage)
   const [subject, setSubject] = useState(initialSplit.subject)
@@ -80,9 +91,19 @@ function CommitComposer({
     CommitService.GetGPGSignDefault(repoPath).then(setSign).catch(ignoreDecorativeFailure)
   }, [repoPath])
 
+  // The message git prepared for the operation's commit, unless a draft is already there.
+  const preparedMessage = conflict?.message ?? ''
+  useEffect(() => {
+    if (!preparedMessage || initialMessage !== '') return
+    const split = splitMessage(preparedMessage)
+    setMessage(split.subject, split.body)
+    // Seeded once per operation; the draft takes over from there.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preparedMessage])
+
   // After a squash merge, start the message with the squashed commits, unless a draft is already there.
   useEffect(() => {
-    if (initialMessage !== '') return
+    if (initialMessage !== '' || conflict) return
     CommitService.GetSquashedSubjects(repoPath)
       .then((subjects) => {
         if (subjects?.length) setMessage('', subjects.map((s) => `- ${s}`).join('\n'))
@@ -155,26 +176,52 @@ function CommitComposer({
       .catch((err: unknown) => setError(`Could not undo last commit: ${errorMessage(err)}`))
   }
 
-  const blockReason = needsIdentity
-    ? 'Set a name and email to commit.'
-    : subject.trim() === ''
-      ? 'Enter a commit message.'
-      : !amend && !allowEmpty && stagedCount === 0
-        ? 'Nothing is staged.'
-        : null
+  const continueOperation = () => {
+    if (!conflict) return
+    setError(null)
+    ConflictService.ContinueWith(repoPath, joinMessage(subject, withCoAuthorTrailers(body, coAuthors)))
+      .then(() => {
+        setMessage('', '')
+        setCoAuthors([])
+        onCommitted()
+      })
+      .catch((err: unknown) => setError(`Could not continue: ${errorMessage(err)}`))
+  }
+
+  const stillConflicted = conflict?.conflictedPaths.length ?? 0
+  const blockReason = conflict
+    ? stillConflicted > 0
+      ? `${plural(stillConflicted, 'file')} still conflicted.`
+      : needsIdentity
+        ? 'Set a name and email to commit.'
+        : subject.trim() === ''
+          ? 'Enter a commit message.'
+          : null
+    : needsIdentity
+      ? 'Set a name and email to commit.'
+      : subject.trim() === ''
+        ? 'Enter a commit message.'
+        : !amend && !allowEmpty && stagedCount === 0
+          ? 'Nothing is staged.'
+          : null
 
   const onMessageKeyDown = (e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && blockReason === null) {
       e.preventDefault()
-      commit(false)
+      if (conflict) continueOperation()
+      else commit(false)
     }
   }
 
   return (
     <section className="commit-composer">
       <div className="commit-composer-header">
-        <span className="commit-composer-label">Commit message</span>
-        {showTypePicker && (
+        <span className="commit-composer-label">
+          {conflict
+            ? `${operationNoun(conflict.operation)[0].toUpperCase()}${operationNoun(conflict.operation).slice(1)} commit`
+            : 'Commit message'}
+        </span>
+        {showTypePicker && !conflict && (
           <div className="commit-composer-type">
             <select
               className="commit-composer-type-select"
@@ -278,41 +325,58 @@ function CommitComposer({
           onSaved={reloadCurrentUser}
         />
       )}
-      <SplitButton
-        onClick={() => commit(false)}
-        disabled={blockReason !== null}
-        menuLabel="More commit actions"
-        placement="above"
-        open={menuOpen}
-        onOpenChange={setMenuOpen}
-        menu={
-          <>
-            <label className="commit-composer-menu-checkbox">
-              <input type="checkbox" checked={amend} onChange={(e) => toggleAmend(e.target.checked)} />
-              Amend last commit
-            </label>
-            <label className="commit-composer-menu-checkbox">
-              <input type="checkbox" checked={allowEmpty} onChange={(e) => setAllowEmpty(e.target.checked)} />
-              Allow empty commit
-            </label>
-            <label className="commit-composer-menu-checkbox">
-              <input type="checkbox" checked={sign} onChange={(e) => setSign(e.target.checked)} />
-              Sign this commit
-            </label>
-            <div className="split-button-menu-divider" />
-            <button type="button" onClick={() => commit(true)} disabled={blockReason !== null}>
-              Commit and push
-            </button>
-            <div className="split-button-menu-divider" />
-            <button type="button" className="split-button-menu-destructive" onClick={undoLastCommit}>
-              Undo last commit
-            </button>
-          </>
-        }
-      >
-        <GitCommitVertical size={14} strokeWidth={1.75} />
-        {amend ? 'Amend' : stagedCount === 0 && allowEmpty ? 'Commit (empty)' : `Commit ${plural(stagedCount, 'file')}`}
-      </SplitButton>
+      {conflict ? (
+        <button
+          type="button"
+          className="commit-composer-continue"
+          onClick={continueOperation}
+          disabled={blockReason !== null}
+          title={blockReason ?? undefined}
+        >
+          <GitCommitVertical size={14} strokeWidth={1.75} />
+          Continue {operationNoun(conflict.operation)}
+        </button>
+      ) : (
+        <SplitButton
+          onClick={() => commit(false)}
+          disabled={blockReason !== null}
+          menuLabel="More commit actions"
+          placement="above"
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+          menu={
+            <>
+              <label className="commit-composer-menu-checkbox">
+                <input type="checkbox" checked={amend} onChange={(e) => toggleAmend(e.target.checked)} />
+                Amend last commit
+              </label>
+              <label className="commit-composer-menu-checkbox">
+                <input type="checkbox" checked={allowEmpty} onChange={(e) => setAllowEmpty(e.target.checked)} />
+                Allow empty commit
+              </label>
+              <label className="commit-composer-menu-checkbox">
+                <input type="checkbox" checked={sign} onChange={(e) => setSign(e.target.checked)} />
+                Sign this commit
+              </label>
+              <div className="split-button-menu-divider" />
+              <button type="button" onClick={() => commit(true)} disabled={blockReason !== null}>
+                Commit and push
+              </button>
+              <div className="split-button-menu-divider" />
+              <button type="button" className="split-button-menu-destructive" onClick={undoLastCommit}>
+                Undo last commit
+              </button>
+            </>
+          }
+        >
+          <GitCommitVertical size={14} strokeWidth={1.75} />
+          {amend
+            ? 'Amend'
+            : stagedCount === 0 && allowEmpty
+              ? 'Commit (empty)'
+              : `Commit ${plural(stagedCount, 'file')}`}
+        </SplitButton>
+      )}
       {blockReason && <p className="commit-composer-block-hint">{blockReason}</p>}
       {error && <p className="commit-composer-error">{error}</p>}
     </section>

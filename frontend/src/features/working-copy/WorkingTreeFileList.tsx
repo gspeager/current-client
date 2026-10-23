@@ -29,6 +29,8 @@ interface WorkingTreeFileListProps {
   threadCounts?: Record<string, number | undefined>
   // Opens the file as HEAD has it on the host; absent without a parseable remote.
   onOpenOnHost?: (path: string) => void
+  // During a merge the staged group is what's resolved for the merge commit.
+  mergeMode?: boolean
 }
 
 type ListRow =
@@ -78,6 +80,7 @@ function WorkingTreeFileList({
   onOpen,
   threadCounts,
   onOpenOnHost,
+  mergeMode = false,
 }: WorkingTreeFileListProps) {
   const { files, conflicted, staged, unstaged, error, loadStatus } = workingTree
   const sectionFiles = useMemo<Record<WorkingTreeSection, FileStatus[]>>(
@@ -100,6 +103,9 @@ function WorkingTreeFileList({
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [anchorKey, setAnchorKey] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const sectionLabel = (section: WorkingTreeSection) =>
+    mergeMode && section === 'staged' ? 'Resolved' : SECTION_LABEL[section]
 
   const toggleFolder = (section: WorkingTreeSection, path: string) =>
     setCollapsedFolders((prev) => toggled(prev, `${section}:${path}`))
@@ -290,11 +296,11 @@ function WorkingTreeFileList({
             className="changes-section-toggle"
             onClick={() => sections.toggle(`files-${row.section}`, all.length > 0)}
             aria-expanded={open}
-            aria-label={`${SECTION_LABEL[row.section]}, ${filtered[row.section].length}`}
+            aria-label={`${sectionLabel(row.section)}, ${filtered[row.section].length}`}
           >
             {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
             <span className={`changes-section-label changes-section-label-${row.section}`}>
-              {SECTION_LABEL[row.section]} <span className="changes-section-count">{filtered[row.section].length}</span>
+              {sectionLabel(row.section)} <span className="changes-section-count">{filtered[row.section].length}</span>
             </span>
           </button>
           {/* Marking every conflict resolved at once is too easy to do by accident. */}

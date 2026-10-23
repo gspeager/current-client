@@ -144,4 +144,16 @@
       background: var(--surface-container);
     }
   }
+
+  .changes-conflict-primary {
+    background: var(--primary-container);
+    border-color: transparent;
+    color: var(--on-primary-container);
+    font-weight: 600;
+
+    &:hover {
+      background: var(--primary-container);
+      box-shadow: var(--glow-action);
+    }
+  }
 }

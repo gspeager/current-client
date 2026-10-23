@@ -102,6 +102,15 @@
   color: var(--outline);
 }
 
+.header-bar-mode {
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--error);
+  border-radius: 3px;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
 .header-bar-breadcrumb-anchor {
   position: fixed;
   z-index: 10;
