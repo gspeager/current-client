@@ -51,17 +51,36 @@ func (s *HostService) ReviewThreads(repoPath string) (ReviewThreads, error) {
 		return ReviewThreads{}, err
 	}
 	_, info, _, _ := primaryHost(repoPath)
-	result := ReviewThreads{Enabled: true, Prefix: changePrefix(info), Threads: []ReviewThread{}, Unresolved: map[string]int{}}
 	if current.Change == nil {
-		return result, nil
+		return renderThreads(info, 0, nil), nil
 	}
-	result.Number = current.Change.Number
-	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheThreads, strconv.Itoa(current.Change.Number))
-	if !ok {
-		return result, nil
+	var threads []hostapi.Thread
+	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheThreads, strconv.Itoa(current.Change.Number)); ok {
+		threads = cached.([]hostapi.Thread)
 	}
+	return renderThreads(info, current.Change.Number, threads), nil
+}
+
+// ChangeThreads is any change's threads, for the detail's Threads tab:
+// asked of the host once per change until a refresh.
+func (s *HostService) ChangeThreads(repoPath string, number int) (ReviewThreads, error) {
+	_, info, change, err := cachedChange(repoPath, number)
+	if err != nil {
+		return ReviewThreads{}, err
+	}
+	threads, err := cachedOrFetched(info, repoPath, cacheThreads, strconv.Itoa(change.Number), func(ctx context.Context, provider hostapi.Provider) ([]hostapi.Thread, error) {
+		return provider.Threads(ctx, info.Project, change.Number, change.HeadSHA)
+	})
+	if err != nil {
+		return ReviewThreads{}, err
+	}
+	return renderThreads(info, change.Number, threads), nil
+}
+
+func renderThreads(info HostInfo, number int, threads []hostapi.Thread) ReviewThreads {
+	result := ReviewThreads{Enabled: true, Number: number, Prefix: changePrefix(info), Threads: []ReviewThread{}, Unresolved: map[string]int{}}
 	webRoot := "https://" + info.Hostname + "/"
-	for _, thread := range cached.([]hostapi.Thread) {
+	for _, thread := range threads {
 		rendered := ReviewThread{ID: thread.ID, Path: thread.Path, Line: thread.Line, OldLine: thread.OldLine, Resolved: thread.Resolved, Outdated: thread.Outdated}
 		for _, note := range thread.Notes {
 			rendered.Notes = append(rendered.Notes, ReviewNote{
@@ -78,7 +97,7 @@ func (s *HostService) ReviewThreads(repoPath string) (ReviewThreads, error) {
 			}
 		}
 	}
-	return result, nil
+	return result
 }
 
 // fillCurrentBranchThreads fetches the review threads of the checked-out

@@ -72,22 +72,9 @@ func (s *HostService) PipelineJobs(repoPath string, pipelineID int64) ([]hostapi
 	if err != nil || !ok || !info.Enabled {
 		return nil, err
 	}
-	provider := providerFor(info)
-	if provider == nil {
-		return nil, nil
-	}
-	key := strconv.FormatInt(pipelineID, 10)
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheJobs, key); ok {
-		return cached.([]hostapi.Job), nil
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	jobs, err := provider.Jobs(ctx, info.Project, pipelineID)
-	if err != nil {
-		return nil, err
-	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheJobs, key, jobs)
-	return jobs, nil
+	return cachedOrFetched(info, repoPath, cacheJobs, strconv.FormatInt(pipelineID, 10), func(ctx context.Context, provider hostapi.Provider) ([]hostapi.Job, error) {
+		return provider.Jobs(ctx, info.Project, pipelineID)
+	})
 }
 
 func cachedCI(info HostInfo, repoPath string, shas []string) map[string]CIMark {

@@ -330,3 +330,28 @@ func TestAgainstRealGitHub(t *testing.T) {
 type staticToken string
 
 func (s staticToken) Token(context.Context, string) (string, error) { return string(s), nil }
+
+func TestClosedChangesFilesAndCommits(t *testing.T) {
+	p, f := newProvider(t, map[string]string{
+		"GET " + v3 + "/pulls?direction=desc&per_page=50&sort=updated&state=closed": `[{"number": 1, "state": "closed", "merged_at": "2026-10-01T00:00:00Z", "head": {"ref": "a", "sha": "b"}, "base": {"ref": "main"}, "user": {"login": "ada"}}]`,
+		"GET " + v3 + "/pulls/1/files?per_page=100":                                  `[{"filename": "cmd/new.go", "status": "added", "additions": 10, "deletions": 0}, {"filename": "cmd/b.go", "previous_filename": "cmd/a.go", "status": "renamed", "additions": 1, "deletions": 1}, {"filename": "old.go", "status": "removed", "additions": 0, "deletions": 4}]`,
+		"GET " + v3 + "/pulls/1/commits?per_page=100":                                `[{"sha": "abc", "commit": {"message": "feat: add\n\nbody", "author": {"name": "Ada", "date": "2026-10-02T03:04:05Z"}}}]`,
+	})
+	changes, truncated, err := p.ClosedChanges(context.Background(), project)
+	if err != nil || truncated || len(changes) != 1 || changes[0].State != hostapi.ChangeMerged {
+		t.Fatalf("ClosedChanges = %+v, truncated %v, %v", changes, truncated, err)
+	}
+	files, err := p.ChangeFiles(context.Background(), project, 1)
+	if err != nil || len(files) != 3 || files[0] != (hostapi.ChangeFile{Path: "cmd/new.go", Status: "added", Additions: 10}) ||
+		files[1] != (hostapi.ChangeFile{Path: "cmd/b.go", OldPath: "cmd/a.go", Status: "renamed", Additions: 1, Deletions: 1}) ||
+		files[2].Status != "deleted" {
+		t.Fatalf("ChangeFiles = %+v, %v", files, err)
+	}
+	commits, err := p.ChangeCommits(context.Background(), project, 1)
+	if err != nil || len(commits) != 1 || commits[0].SHA != "abc" || commits[0].Subject != "feat: add" || commits[0].Author != "Ada" || commits[0].Date.IsZero() {
+		t.Fatalf("ChangeCommits = %+v, %v", commits, err)
+	}
+	if n := f.count("GET", v3+"/pulls"); n != 1 {
+		t.Fatalf("pulls fetched %d times", n)
+	}
+}

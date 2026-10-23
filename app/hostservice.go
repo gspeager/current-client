@@ -43,9 +43,14 @@ type HostInfo struct {
 	SSLVerifyOff     bool   `json:"sslVerifyOff"`
 }
 
+// HostStatusInfo carries the request budget the host last reported;
+// Limit is 0 when it reported none.
 type HostStatusInfo struct {
 	LastRequest *time.Time `json:"lastRequest"`
 	InFlight    bool       `json:"inFlight"`
+	Remaining   int        `json:"remaining"`
+	Limit       int        `json:"limit"`
+	ResetAt     *time.Time `json:"resetAt"`
 }
 
 func (s *HostService) Detect(repoPath string) ([]HostInfo, error) {
@@ -96,9 +101,12 @@ func (s *HostService) List(repoPaths []string) ([]HostInfo, error) {
 
 func (s *HostService) Status(hostname string) HostStatusInfo {
 	status := hostClient.Status(hostname)
-	info := HostStatusInfo{InFlight: status.InFlight > 0}
+	info := HostStatusInfo{InFlight: status.InFlight > 0, Remaining: status.Remaining, Limit: status.Limit}
 	if !status.LastRequest.IsZero() {
 		info.LastRequest = &status.LastRequest
+	}
+	if !status.ResetAt.IsZero() {
+		info.ResetAt = &status.ResetAt
 	}
 	return info
 }

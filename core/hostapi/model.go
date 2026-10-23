@@ -56,6 +56,23 @@ type Change struct {
 	WebURL            string      `json:"webUrl"`
 }
 
+// ChangeFile is one file a change touches; Status is added, deleted,
+// modified or renamed, OldPath set only for a rename.
+type ChangeFile struct {
+	Path      string `json:"path"`
+	OldPath   string `json:"oldPath"`
+	Status    string `json:"status"`
+	Additions int    `json:"additions"`
+	Deletions int    `json:"deletions"`
+}
+
+type ChangeCommit struct {
+	SHA     string    `json:"sha"`
+	Subject string    `json:"subject"`
+	Author  string    `json:"author"`
+	Date    time.Time `json:"date"`
+}
+
 type NewChange struct {
 	SourceBranch string
 	TargetBranch string
@@ -163,7 +180,12 @@ func MatchRule(rules []BranchRule, branch string) (BranchRule, bool) {
 type Provider interface {
 	// OpenChanges lists open changes; truncated says the page cap cut it.
 	OpenChanges(ctx context.Context, project string) (changes []Change, truncated bool, err error)
+	// ClosedChanges is one page of merged and closed changes, newest
+	// updated first; truncated says there were more.
+	ClosedChanges(ctx context.Context, project string) (changes []Change, truncated bool, err error)
 	Change(ctx context.Context, project string, number int) (Change, error)
+	ChangeFiles(ctx context.Context, project string, number int) ([]ChangeFile, error)
+	ChangeCommits(ctx context.Context, project string, number int) ([]ChangeCommit, error)
 	// Threads needs the change's head SHA to tell which threads are outdated.
 	Threads(ctx context.Context, project string, number int, headSHA string) ([]Thread, error)
 	// LatestPipeline is the newest pipeline for a commit; ok is false when

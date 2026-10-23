@@ -308,3 +308,25 @@ func TestBranchRulesFromRecordedFixtureAndSilentOnForbidden(t *testing.T) {
 		t.Fatalf("without the Maintainer role: %v, %v; want no rules and no error", rules, err)
 	}
 }
+
+func TestClosedChangesFilesAndCommits(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{
+		"GET " + api + "/merge_requests?order_by=updated_at&per_page=25&sort=desc&state=merged": `[{"iid": 1, "state": "merged", "title": "older", "updated_at": "2026-10-01T00:00:00Z", "source_branch": "a", "target_branch": "main", "author": {"username": "ada"}}]`,
+		"GET " + api + "/merge_requests?order_by=updated_at&per_page=25&sort=desc&state=closed": `[{"iid": 2, "state": "closed", "title": "newer", "updated_at": "2026-10-05T00:00:00Z", "source_branch": "b", "target_branch": "main", "author": {"username": "bob"}}]`,
+		"GET " + api + "/merge_requests/2/diffs?per_page=100":                                   `[{"old_path": "a.go", "new_path": "b.go", "renamed_file": true, "diff": "@@ -1,2 +1,2 @@\n-x\n+y\n"}, {"old_path": "n.go", "new_path": "n.go", "new_file": true, "diff": "--- /dev/null\n+++ b/n.go\n@@ -0,0 +1,2 @@\n+a\n+b\n"}]`,
+		"GET " + api + "/merge_requests/2/commits?per_page=100":                                 `[{"id": "abc", "title": "fix: it", "author_name": "Bob", "created_at": "2026-10-02T03:04:05Z"}]`,
+	})
+	changes, truncated, err := p.ClosedChanges(context.Background(), project)
+	if err != nil || truncated || len(changes) != 2 || changes[0].Number != 2 || changes[0].State != hostapi.ChangeClosed || changes[1].State != hostapi.ChangeMerged {
+		t.Fatalf("ClosedChanges = %+v, truncated %v, %v", changes, truncated, err)
+	}
+	files, err := p.ChangeFiles(context.Background(), project, 2)
+	if err != nil || len(files) != 2 || files[0] != (hostapi.ChangeFile{Path: "b.go", OldPath: "a.go", Status: "renamed", Additions: 1, Deletions: 1}) ||
+		files[1] != (hostapi.ChangeFile{Path: "n.go", Status: "added", Additions: 2}) {
+		t.Fatalf("ChangeFiles = %+v, %v", files, err)
+	}
+	commits, err := p.ChangeCommits(context.Background(), project, 2)
+	if err != nil || len(commits) != 1 || commits[0] != (hostapi.ChangeCommit{SHA: "abc", Subject: "fix: it", Author: "Bob", Date: commits[0].Date}) || commits[0].Date.IsZero() {
+		t.Fatalf("ChangeCommits = %+v, %v", commits, err)
+	}
+}

@@ -73,6 +73,25 @@ type label struct {
 	Name string `json:"name"`
 }
 
+type pullFile struct {
+	Filename         string `json:"filename"`
+	PreviousFilename string `json:"previous_filename"`
+	Status           string `json:"status"`
+	Additions        int    `json:"additions"`
+	Deletions        int    `json:"deletions"`
+}
+
+type pullCommit struct {
+	SHA    string `json:"sha"`
+	Commit struct {
+		Message string `json:"message"`
+		Author  struct {
+			Name string    `json:"name"`
+			Date time.Time `json:"date"`
+		} `json:"author"`
+	} `json:"commit"`
+}
+
 type reviewComment struct {
 	ID           int64     `json:"id"`
 	InReplyTo    int64     `json:"in_reply_to_id"`
@@ -139,6 +158,61 @@ func (p *Provider) OpenChanges(ctx context.Context, project string) ([]hostapi.C
 			return nil
 		})
 	return changes, truncated, hostapi.WithScope(err, scope)
+}
+
+// ClosedChanges is one page of 50, closed and merged alike, since GitHub
+// lists both under one state.
+func (p *Provider) ClosedChanges(ctx context.Context, project string) ([]hostapi.Change, bool, error) {
+	resp, err := p.client.Get(ctx, p.host, repoPath(project, "pulls"),
+		url.Values{"state": {"closed"}, "sort": {"updated"}, "direction": {"desc"}, "per_page": {"50"}})
+	if err != nil {
+		return nil, false, hostapi.WithScope(err, scope)
+	}
+	var page []pullRequest
+	if err := hostapi.DecodeJSON(resp, &page); err != nil {
+		return nil, false, err
+	}
+	changes := make([]hostapi.Change, 0, len(page))
+	for _, pr := range page {
+		changes = append(changes, toChange(pr))
+	}
+	return changes, hostapi.HasNextPage(resp), nil
+}
+
+func (p *Provider) ChangeFiles(ctx context.Context, project string, number int) ([]hostapi.ChangeFile, error) {
+	var files []hostapi.ChangeFile
+	_, err := p.client.GetPages(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number), "files"),
+		url.Values{"per_page": {"100"}}, func(resp *hostapi.Response) error {
+			var page []pullFile
+			if err := hostapi.DecodeJSON(resp, &page); err != nil {
+				return err
+			}
+			for _, f := range page {
+				files = append(files, hostapi.ChangeFile{
+					Path: f.Filename, OldPath: f.PreviousFilename, Status: fileStatus(f.Status),
+					Additions: f.Additions, Deletions: f.Deletions,
+				})
+			}
+			return nil
+		})
+	return files, hostapi.WithScope(err, scope)
+}
+
+func (p *Provider) ChangeCommits(ctx context.Context, project string, number int) ([]hostapi.ChangeCommit, error) {
+	var commits []hostapi.ChangeCommit
+	_, err := p.client.GetPages(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number), "commits"),
+		url.Values{"per_page": {"100"}}, func(resp *hostapi.Response) error {
+			var page []pullCommit
+			if err := hostapi.DecodeJSON(resp, &page); err != nil {
+				return err
+			}
+			for _, c := range page {
+				subject, _, _ := strings.Cut(c.Commit.Message, "\n")
+				commits = append(commits, hostapi.ChangeCommit{SHA: c.SHA, Subject: subject, Author: c.Commit.Author.Name, Date: c.Commit.Author.Date})
+			}
+			return nil
+		})
+	return commits, hostapi.WithScope(err, scope)
 }
 
 func (p *Provider) Change(ctx context.Context, project string, number int) (hostapi.Change, error) {
@@ -330,6 +404,18 @@ func toChange(pr pullRequest) hostapi.Change {
 		c.SourceProject = pr.Head.Repo.FullName
 	}
 	return c
+}
+
+func fileStatus(status string) string {
+	switch status {
+	case "added", "copied":
+		return "added"
+	case "removed":
+		return "deleted"
+	case "renamed":
+		return "renamed"
+	}
+	return "modified"
 }
 
 func changeState(pr pullRequest) hostapi.ChangeState {

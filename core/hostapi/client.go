@@ -65,11 +65,15 @@ type Client struct {
 	status  map[string]*HostStatus
 }
 
-// HostStatus is what an indicator shows: when the host was last contacted
-// and whether a request is in flight now.
+// HostStatus is what an indicator shows: when the host was last contacted,
+// whether a request is in flight now, and the request budget the host's
+// last answer reported (Limit is 0 when it reported none).
 type HostStatus struct {
 	LastRequest time.Time
 	InFlight    int
+	Remaining   int
+	Limit       int
+	ResetAt     time.Time
 }
 
 func New(opts Options) *Client {
@@ -266,6 +270,7 @@ func (c *Client) Do(ctx context.Context, host Host, req *http.Request) (*Respons
 		return nil, fmt.Errorf("%s: reading the answer: %w", host.Name, plainError(err))
 	}
 	resp := &Response{Status: raw.StatusCode, Header: raw.Header, Body: body}
+	c.noteBudget(host.Name, raw.Header)
 
 	if resp.Status == http.StatusTooManyRequests ||
 		(resp.Status == http.StatusForbidden && raw.Header.Get("X-RateLimit-Remaining") == "0") {
@@ -303,6 +308,33 @@ func (c *Client) waiting(hostName string) (time.Time, bool) {
 		return time.Time{}, false
 	}
 	return until, true
+}
+
+// noteBudget keeps the budget GitHub (X-RateLimit-*) or GitLab
+// (RateLimit-*) reports with each answer.
+func (c *Client) noteBudget(hostName string, header http.Header) {
+	for _, prefix := range []string{"X-RateLimit-", "RateLimit-"} {
+		limit, err := strconv.Atoi(header.Get(prefix + "Limit"))
+		if err != nil || limit <= 0 {
+			continue
+		}
+		remaining, _ := strconv.Atoi(header.Get(prefix + "Remaining"))
+		var resetAt time.Time
+		if epoch, err := strconv.ParseInt(header.Get(prefix+"Reset"), 10, 64); err == nil {
+			resetAt = time.Unix(epoch, 0)
+		}
+		c.mu.Lock()
+		if status, ok := c.status[hostName]; ok {
+			status.Limit, status.Remaining, status.ResetAt = limit, remaining, resetAt
+		}
+		c.mu.Unlock()
+		return
+	}
+}
+
+// HasNextPage says the answer's Link header points at another page.
+func HasNextPage(resp *Response) bool {
+	return nextLink(resp.Header) != ""
 }
 
 // backOff reads Retry-After (seconds or an HTTP date), then GitHub's
