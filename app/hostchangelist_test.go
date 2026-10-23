@@ -155,3 +155,62 @@ func mustOutput(t *testing.T, dir string, args ...string) []byte {
 	}
 	return out
 }
+
+func TestClosedChangesFilesCommitsAndThreadsAreAskedOnceUntilARefresh(t *testing.T) {
+	useTempSettings(t)
+	repo := t.TempDir()
+	gitIn(t, repo, "init", "-q", "-b", "main")
+	gitIn(t, repo, "remote", "add", "origin", "git@github.com:owner/app.git")
+	if err := updateConfig(func(cfg *config.Config) {
+		cfg.Hosts = map[string]config.HostConfig{"github.com": {Enabled: true}}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	api := "/repos/owner/app"
+	closed := api + "/pulls?direction=desc&per_page=50&sort=updated&state=closed"
+	transport := &routeTransport{routes: map[string]string{
+		api + "/pulls?per_page=100&state=open": `[]`,
+		closed:                                 `[{"number": 3, "title": "Done", "state": "closed", "merged_at": "2026-10-01T00:00:00Z", "head": {"ref": "done", "sha": "abc"}, "base": {"ref": "main"}, "user": {"login": "ada"}}]`,
+		api + "/pulls/3/files?per_page=100":    `[{"filename": "a.go", "status": "modified", "additions": 1, "deletions": 2}]`,
+		api + "/pulls/3/commits?per_page=100":  `[{"sha": "abc", "commit": {"message": "done", "author": {"name": "Ada", "date": "2026-10-02T03:04:05Z"}}}]`,
+		api + "/pulls/3/comments?per_page=100": `[{"id": 1, "path": "a.go", "line": 2, "side": "RIGHT", "body": "Why?", "user": {"login": "bob"}, "commit_id": "abc", "position": 1}]`,
+		"/user":                                `{"login": "ada"}`,
+	}, hits: map[string]int{}}
+	swapHostClient(t, transport)
+	var s HostService
+	if err := s.Refresh(repo); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ChangeFiles(repo, 3); err == nil {
+		t.Fatal("a change the cache doesn't know should be refused")
+	}
+	for range 2 {
+		list, err := s.ClosedChanges(repo)
+		if err != nil || len(list.Changes) != 1 || list.Changes[0].Number != 3 || list.FetchedAt == nil || list.Me != "ada" {
+			t.Fatalf("ClosedChanges = %+v, %v", list, err)
+		}
+		files, err := s.ChangeFiles(repo, 3)
+		if err != nil || len(files) != 1 || files[0].Deletions != 2 {
+			t.Fatalf("ChangeFiles = %+v, %v", files, err)
+		}
+		commits, err := s.ChangeCommits(repo, 3)
+		if err != nil || len(commits) != 1 || commits[0].Author != "Ada" {
+			t.Fatalf("ChangeCommits = %+v, %v", commits, err)
+		}
+		threads, err := s.ChangeThreads(repo, 3)
+		if err != nil || threads.Number != 3 || threads.Total != 1 || threads.Unresolved["a.go"] != 1 || !strings.Contains(threads.Threads[0].Notes[0].BodyHTML, "Why?") {
+			t.Fatalf("ChangeThreads = %+v, %v", threads, err)
+		}
+	}
+	for _, key := range []string{closed, api + "/pulls/3/files?per_page=100", api + "/pulls/3/commits?per_page=100", api + "/pulls/3/comments?per_page=100"} {
+		if transport.hits[key] != 1 {
+			t.Fatalf("%s asked %d times, want once; hits = %v", key, transport.hits[key], transport.hits)
+		}
+	}
+	if err := s.Refresh(repo); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ClosedChanges(repo); err != nil || transport.hits[closed] != 2 {
+		t.Fatalf("after a refresh the closed list should be asked again: %v, hits %v", err, transport.hits)
+	}
+}

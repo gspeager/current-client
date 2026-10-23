@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -100,6 +101,22 @@ type position struct {
 	OldLine int    `json:"old_line"`
 }
 
+type mergeRequestDiff struct {
+	OldPath     string `json:"old_path"`
+	NewPath     string `json:"new_path"`
+	NewFile     bool   `json:"new_file"`
+	RenamedFile bool   `json:"renamed_file"`
+	DeletedFile bool   `json:"deleted_file"`
+	Diff        string `json:"diff"`
+}
+
+type mergeRequestCommit struct {
+	ID         string    `json:"id"`
+	Title      string    `json:"title"`
+	AuthorName string    `json:"author_name"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 type issue struct {
 	IID    int    `json:"iid"`
 	Title  string `json:"title"`
@@ -125,6 +142,66 @@ func (p *Provider) OpenChanges(ctx context.Context, project string) ([]hostapi.C
 			return nil
 		})
 	return changes, truncated, hostapi.WithScope(err, readScope)
+}
+
+// ClosedChanges asks for merged and closed separately, 25 each, since
+// GitLab lists one state per request, and interleaves them newest first.
+func (p *Provider) ClosedChanges(ctx context.Context, project string) ([]hostapi.Change, bool, error) {
+	var changes []hostapi.Change
+	truncated := false
+	for _, state := range []string{"merged", "closed"} {
+		resp, err := p.client.Get(ctx, p.host, projectPath(project, "merge_requests"),
+			url.Values{"state": {state}, "order_by": {"updated_at"}, "sort": {"desc"}, "per_page": {"25"}})
+		if err != nil {
+			return nil, false, hostapi.WithScope(err, readScope)
+		}
+		var page []mergeRequest
+		if err := hostapi.DecodeJSON(resp, &page); err != nil {
+			return nil, false, err
+		}
+		for _, mr := range page {
+			change, err := p.change(ctx, mr)
+			if err != nil {
+				return nil, false, err
+			}
+			changes = append(changes, change)
+		}
+		truncated = truncated || hostapi.HasNextPage(resp)
+	}
+	sort.SliceStable(changes, func(i, j int) bool { return changes[i].UpdatedAt.After(changes[j].UpdatedAt) })
+	return changes, truncated, nil
+}
+
+func (p *Provider) ChangeFiles(ctx context.Context, project string, number int) ([]hostapi.ChangeFile, error) {
+	var files []hostapi.ChangeFile
+	_, err := p.client.GetPages(ctx, p.host, projectPath(project, "merge_requests", strconv.Itoa(number), "diffs"),
+		url.Values{"per_page": {"100"}}, func(resp *hostapi.Response) error {
+			var page []mergeRequestDiff
+			if err := hostapi.DecodeJSON(resp, &page); err != nil {
+				return err
+			}
+			for _, d := range page {
+				files = append(files, toChangeFile(d))
+			}
+			return nil
+		})
+	return files, hostapi.WithScope(err, readScope)
+}
+
+func (p *Provider) ChangeCommits(ctx context.Context, project string, number int) ([]hostapi.ChangeCommit, error) {
+	var commits []hostapi.ChangeCommit
+	_, err := p.client.GetPages(ctx, p.host, projectPath(project, "merge_requests", strconv.Itoa(number), "commits"),
+		url.Values{"per_page": {"100"}}, func(resp *hostapi.Response) error {
+			var page []mergeRequestCommit
+			if err := hostapi.DecodeJSON(resp, &page); err != nil {
+				return err
+			}
+			for _, c := range page {
+				commits = append(commits, hostapi.ChangeCommit{SHA: c.ID, Subject: c.Title, Author: c.AuthorName, Date: c.CreatedAt})
+			}
+			return nil
+		})
+	return commits, hostapi.WithScope(err, readScope)
 }
 
 func (p *Provider) Change(ctx context.Context, project string, number int) (hostapi.Change, error) {
@@ -345,6 +422,34 @@ func toThread(d discussion, headSHA string) (hostapi.Thread, bool) {
 		thread.Notes = append(thread.Notes, hostapi.Note{Author: toUser(n.Author), Body: n.Body, CreatedAt: n.CreatedAt})
 	}
 	return thread, len(thread.Notes) > 0
+}
+
+// toChangeFile counts the diff's lines itself; the diffs endpoint sends
+// no totals. Only lines after the first hunk header count, so a file
+// header or a content line starting with --- is told apart by position.
+func toChangeFile(d mergeRequestDiff) hostapi.ChangeFile {
+	file := hostapi.ChangeFile{Path: d.NewPath, Status: "modified"}
+	switch {
+	case d.NewFile:
+		file.Status = "added"
+	case d.DeletedFile:
+		file.Status = "deleted"
+	case d.RenamedFile:
+		file.Status, file.OldPath = "renamed", d.OldPath
+	}
+	inHunk := false
+	for _, line := range strings.Split(d.Diff, "\n") {
+		switch {
+		case strings.HasPrefix(line, "@@"):
+			inHunk = true
+		case !inHunk:
+		case strings.HasPrefix(line, "+"):
+			file.Additions++
+		case strings.HasPrefix(line, "-"):
+			file.Deletions++
+		}
+	}
+	return file
 }
 
 func toPipeline(pl pipeline) hostapi.Pipeline {

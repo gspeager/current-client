@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { HostService, PlatformService, type CIMark as CIMarkInfo } from '@current-client-bindings/app'
 import type { Job } from '@current-client-bindings/core/hostapi'
@@ -67,24 +67,45 @@ function CICard({ repoPath, mark, label }: { repoPath: string; mark: CIMarkInfo;
   )
 }
 
-function PipelineJobs({ repoPath, mark, onClose }: { repoPath: string; mark: CIMarkInfo; onClose: () => void }) {
+// The jobs of one pipeline, fetched when first shown. onLoaded reports the
+// count for a caller that shows it elsewhere.
+export function PipelineJobList({
+  repoPath,
+  pipelineId,
+  onLoaded,
+}: {
+  repoPath: string
+  pipelineId: number
+  onLoaded?: (count: number) => void
+}) {
   const { data: jobs, error } = useAsyncData(
-    () => HostService.PipelineJobs(repoPath, mark.pipelineId),
-    [repoPath, mark.pipelineId],
+    () => HostService.PipelineJobs(repoPath, pipelineId),
+    [repoPath, pipelineId],
   )
+  useEffect(() => {
+    if (jobs) onLoaded?.(jobs.length)
+  }, [jobs, onLoaded])
+  return (
+    <>
+      {error && <p className="ci-jobs-error">{errorMessage(error)}</p>}
+      {jobs === null && !error && <p className="ci-jobs-hint">Loading jobs…</p>}
+      {jobs?.length === 0 && <p className="ci-jobs-hint">No jobs.</p>}
+      {jobs && jobs.length > 0 && (
+        <ul className="ci-jobs-list" aria-label="Jobs">
+          {jobs.map((job) => (
+            <JobRow key={job.id} job={job} repoPath={repoPath} />
+          ))}
+        </ul>
+      )}
+    </>
+  )
+}
+
+function PipelineJobs({ repoPath, mark, onClose }: { repoPath: string; mark: CIMarkInfo; onClose: () => void }) {
   return (
     <Modal title={ciLabel(mark.status)} onClose={onClose} className="ci-jobs-panel">
       <div className="ci-jobs">
-        {error && <p className="ci-jobs-error">{errorMessage(error)}</p>}
-        {jobs === null && !error && <p className="ci-jobs-hint">Loading jobs…</p>}
-        {jobs?.length === 0 && <p className="ci-jobs-hint">No jobs.</p>}
-        {jobs && jobs.length > 0 && (
-          <ul className="ci-jobs-list" aria-label="Jobs">
-            {jobs.map((job) => (
-              <JobRow key={job.id} job={job} repoPath={repoPath} />
-            ))}
-          </ul>
-        )}
+        <PipelineJobList repoPath={repoPath} pipelineId={mark.pipelineId} />
         <div className="ci-jobs-actions">
           <button
             type="button"

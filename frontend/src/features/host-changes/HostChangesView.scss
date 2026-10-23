@@ -24,6 +24,9 @@
   flex: 1;
   color: var(--outline);
   font: var(--ui-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .host-changes-refresh,
@@ -34,6 +37,15 @@
   height: var(--h-chip);
   padding: 0 var(--space-sm);
   @include patterns.secondary-button;
+}
+
+// The pane's one primary action.
+.host-changes-new {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  @include patterns.primary-button;
+  height: var(--h-field);
 }
 
 .host-changes-error {
@@ -50,19 +62,28 @@
 
 .host-changes-body {
   display: grid;
-  grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: var(--space-md);
   flex: 1;
   min-height: 0;
 }
 
+.host-changes-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--space-sm);
+}
+
 .host-changes-list {
+  flex: 1;
   margin: 0;
   padding: 0;
   list-style: none;
   overflow-y: auto;
-  border: var(--border-structure);
-  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 }
 
 .host-changes-empty {
@@ -71,16 +92,40 @@
   font: var(--ui-sm);
 }
 
-.host-change-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  width: 100%;
-  min-height: var(--h-row);
-  padding: var(--space-xs) var(--space-sm);
+.host-changes-privacy {
+  color: var(--outline);
+  font: var(--ui-xs);
+
+  p {
+    margin: 0;
+  }
+}
+
+.host-changes-privacy-link {
+  padding: 0;
   background: none;
   border: none;
-  border-bottom: var(--border-structure);
+  color: var(--on-surface-variant);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+// A card per change: number and CI, title, branches. No border; the
+// selected one is lifted by its ground.
+.host-change-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
   color: var(--on-surface);
   text-align: left;
   cursor: pointer;
@@ -94,18 +139,15 @@
   }
 }
 
-.host-change-row-main {
+.host-change-row-head {
   display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  gap: 2px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
 }
 
 .host-change-row-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
   font: var(--ui-sm);
 }
 
@@ -116,17 +158,8 @@
   font: var(--data-sm);
 }
 
-.host-change-row-labels {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.host-change-label {
-  padding: 0 var(--space-xs);
-  border: var(--border-structure);
-  border-radius: var(--radius-xs);
-  color: var(--on-surface-variant);
-  font: var(--ui-xs);
+.host-change-row-branches {
+  @include patterns.truncate;
 }
 
 .host-change-row-time {
@@ -191,12 +224,83 @@
   }
 }
 
+.host-change-facts-checks {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 .host-change-actions {
   display: flex;
   gap: var(--space-sm);
 }
 
-.host-change-description {
-  padding-top: var(--space-sm);
-  border-top: var(--border-structure);
+.host-change-tabs {
+  display: flex;
+  height: var(--h-tab-bar);
+  border-bottom: var(--border-structure);
+}
+
+.host-change-tab-count {
+  margin-left: var(--space-xs);
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.host-change-tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.host-change-threads {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.host-change-files,
+.host-change-commits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.host-change-file,
+.host-change-commit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-row-table);
+  border-bottom: var(--border-structure);
+  font: var(--ui-sm);
+}
+
+.host-change-file-path {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  font: var(--data-sm);
+}
+
+.host-change-file-from {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.host-change-commit-sha {
+  flex-shrink: 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.host-change-commit-subject {
+  @include patterns.truncate;
+  flex: 1;
+}
+
+.host-change-commit-meta {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
 }

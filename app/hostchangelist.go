@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,20 +43,105 @@ type CheckoutResult struct {
 	Existed bool   `json:"existed"`
 }
 
+const (
+	cacheClosed  = "closed"
+	cacheFiles   = "files"
+	cacheCommits = "commits"
+)
+
 func (s *HostService) Changes(repoPath string) (ChangeList, error) {
+	list, info, _, err := changeList(repoPath)
+	if err != nil || !list.Enabled {
+		return list, err
+	}
+	fillChangeList(&list, info, repoPath, cacheChanges)
+	return list, nil
+}
+
+// ClosedChanges is the Closed filter's list: asked of the host the first
+// time after a refresh, read from the cache after.
+func (s *HostService) ClosedChanges(repoPath string) (ChangeList, error) {
+	list, info, provider, err := changeList(repoPath)
+	if err != nil || !list.Enabled {
+		return list, err
+	}
+	if _, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheClosed, info.Project); !ok {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		changes, truncated, err := provider.ClosedChanges(ctx, info.Project)
+		if err != nil {
+			return ChangeList{}, err
+		}
+		hostClient.Cache.Put(info.Hostname, repoPath, cacheClosed, info.Project, cachedChanges{changes, truncated})
+	}
+	fillChangeList(&list, info, repoPath, cacheClosed)
+	return list, nil
+}
+
+func changeList(repoPath string) (ChangeList, HostInfo, hostapi.Provider, error) {
 	remote, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled || providerFor(info) == nil {
-		return ChangeList{}, err
+	if err != nil || !ok || !info.Enabled {
+		return ChangeList{}, info, nil, err
+	}
+	provider := providerFor(info)
+	if provider == nil {
+		return ChangeList{}, info, nil, nil
 	}
 	list := ChangeList{Host: info.Hostname, Provider: info.Provider, Project: info.Project, Enabled: true, Prefix: changePrefix(info), Changes: []hostapi.Change{}}
-	if cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project); ok {
-		entry := cached.(cachedChanges)
-		list.Changes, list.Truncated, list.FetchedAt = entry.changes, entry.truncated, &at
-	}
 	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheUser, remote.Name); ok {
 		list.Me = cached.(hostapi.User).Username
 	}
-	return list, nil
+	return list, info, provider, nil
+}
+
+func fillChangeList(list *ChangeList, info HostInfo, repoPath, kind string) {
+	if cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, kind, info.Project); ok {
+		entry := cached.(cachedChanges)
+		list.Changes, list.Truncated, list.FetchedAt = entry.changes, entry.truncated, &at
+	}
+}
+
+// ChangeFiles and ChangeCommits are asked of the host once per change until
+// a refresh, when the detail's Files or Commits tab is opened.
+func (s *HostService) ChangeFiles(repoPath string, number int) ([]hostapi.ChangeFile, error) {
+	_, info, change, err := cachedChange(repoPath, number)
+	if err != nil {
+		return nil, err
+	}
+	return cachedOrFetched(info, repoPath, cacheFiles, strconv.Itoa(change.Number), func(ctx context.Context, provider hostapi.Provider) ([]hostapi.ChangeFile, error) {
+		return provider.ChangeFiles(ctx, info.Project, change.Number)
+	})
+}
+
+func (s *HostService) ChangeCommits(repoPath string, number int) ([]hostapi.ChangeCommit, error) {
+	_, info, change, err := cachedChange(repoPath, number)
+	if err != nil {
+		return nil, err
+	}
+	return cachedOrFetched(info, repoPath, cacheCommits, strconv.Itoa(change.Number), func(ctx context.Context, provider hostapi.Provider) ([]hostapi.ChangeCommit, error) {
+		return provider.ChangeCommits(ctx, info.Project, change.Number)
+	})
+}
+
+// cachedOrFetched reads one cached value, or asks the host for it once and
+// keeps the answer until a refresh clears its kind.
+func cachedOrFetched[T any](info HostInfo, repoPath, kind, key string, fetch func(context.Context, hostapi.Provider) (T, error)) (T, error) {
+	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, kind, key); ok {
+		return cached.(T), nil
+	}
+	var none T
+	provider := providerFor(info)
+	if provider == nil {
+		return none, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	value, err := fetch(ctx, provider)
+	if err != nil {
+		return none, err
+	}
+	hostClient.Cache.Put(info.Hostname, repoPath, kind, key, value)
+	return value, nil
 }
 
 func (s *HostService) ChangeDetails(repoPath string, number int) (ChangeDetails, error) {
@@ -154,11 +240,12 @@ func cachedChange(repoPath string, number int) (git.Remote, HostInfo, hostapi.Ch
 	if !ok || !info.Enabled {
 		return remote, info, hostapi.Change{}, errors.New("integration is off for this repository's host")
 	}
-	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project)
-	if ok {
-		for _, change := range cached.(cachedChanges).changes {
-			if change.Number == number {
-				return remote, info, change, nil
+	for _, kind := range []string{cacheChanges, cacheClosed} {
+		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, kind, info.Project); ok {
+			for _, change := range cached.(cachedChanges).changes {
+				if change.Number == number {
+					return remote, info, change, nil
+				}
 			}
 		}
 	}

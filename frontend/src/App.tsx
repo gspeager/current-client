@@ -463,6 +463,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                     selectedNumber={changeFocus}
                     onRefreshed={collectHostNotices}
                     onBranchChanged={onBranchChanged}
+                    onCreateChange={requestCreateChange}
+                    onOpenSettings={() => setSettingsOpen(true)}
                   />
                 </KeepAlive>
               )}

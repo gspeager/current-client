@@ -339,3 +339,24 @@ type forgettingTokens struct {
 
 func (f *forgettingTokens) Token(context.Context, string) (string, error) { return f.token, nil }
 func (f *forgettingTokens) Forget(string)                                 { f.forgotten = true }
+
+func TestBudgetIsReadFromEachAnswer(t *testing.T) {
+	reset := time.Now().Add(30 * time.Minute).Unix()
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{
+			"X-Ratelimit-Limit": {"60"}, "X-Ratelimit-Remaining": {"42"}, "X-Ratelimit-Reset": {itoa(reset)},
+		}, Body: http.NoBody}, nil
+	})
+	host := Host{Name: "github.com", API: "https://api.github.com"}
+	client := New(Options{Enabled: enabledOnly(host.Name), Transport: transport})
+	if status := client.Status(host.Name); status.Limit != 0 {
+		t.Fatalf("before any request: %+v", status)
+	}
+	if _, err := client.Get(context.Background(), host, "repos/o/r/pulls", nil); err != nil {
+		t.Fatal(err)
+	}
+	status := client.Status(host.Name)
+	if status.Limit != 60 || status.Remaining != 42 || status.ResetAt.Unix() != reset {
+		t.Fatalf("Status = %+v", status)
+	}
+}
