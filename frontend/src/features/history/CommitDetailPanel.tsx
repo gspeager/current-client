@@ -9,7 +9,13 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from 'lucide-react'
-import { HistoryService, type ChangedFile, type IdentityInfo, type CommitInfo } from '@current-client-bindings/app'
+import {
+  type ChangedFile,
+  type CommitInfo,
+  HistoryService,
+  type IdentityInfo,
+  PlatformService,
+} from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
@@ -22,6 +28,7 @@ import CommitFilesModal from './CommitFilesModal'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
+import { filePage } from '../../lib/hostPages'
 import './CommitDetailPanel.scss'
 
 interface CommitDetailPanelProps {
@@ -61,7 +68,17 @@ function CommitDetailPanel({
   )
 
   const fileContextMenu = (f: ChangedFile) => (e: MouseEvent | KeyboardEvent) =>
-    fileTools.openMenu(e, fileTools.pathItems(f.path))
+    fileTools.openMenu(e, [
+      ...fileTools.pathItems(f.path),
+      ...(hostLinks?.blob
+        ? [
+            {
+              label: 'Open on host',
+              onClick: () => void PlatformService.OpenWebPage(filePage(hostLinks, commit.sha, f.path)),
+            },
+          ]
+        : []),
+    ])
 
   return (
     <section className="commit-detail">

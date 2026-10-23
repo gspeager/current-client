@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import { DiffService, type LineSelection } from '@current-client-bindings/app'
+import { DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import Checkbox from '../../components/forms/Checkbox'
 import CommitComposer from './CommitComposer'
@@ -17,6 +17,8 @@ import { useResizableWidth } from '../../lib/useResizableWidth'
 import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import { useReviewThreads } from '../../lib/useReviewThreads'
+import { useHostLinks } from '../../lib/useHostLinks'
+import { filePage } from '../../lib/hostPages'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
 import { useConflictResolution } from './useConflictResolution'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
@@ -58,6 +60,7 @@ function ChangesView({
   showCommitTypePicker = false,
 }: ChangesViewProps) {
   const reviewThreads = useReviewThreads(repoPath)
+  const hostLinks = useHostLinks(repoPath)
   const { files, conflicted, staged, unstaged, loadStatus } = workingTree
   const actions = useWorkingTreeActions(repoPath, loadStatus, onBranchChanged)
   const conflicts = useConflictResolution(repoPath, conflicted.length > 0, actions.run)
@@ -203,6 +206,11 @@ function ChangesView({
           openSection={openSection}
           onOpen={openFile}
           threadCounts={reviewThreads.counts}
+          onOpenOnHost={
+            hostLinks?.blob && headCommit
+              ? (path) => void PlatformService.OpenWebPage(filePage(hostLinks, headCommit.sha, path))
+              : undefined
+          }
         />
         <CommitComposer
           repoPath={repoPath}

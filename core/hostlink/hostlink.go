@@ -26,12 +26,19 @@ type Host struct {
 // Links are the URL prefixes a reference completes: Issue+"123",
 // MergeRequest+"45", and Root+"group/project"+IssuePath+"12" for a
 // reference to another project. MergeRequest is empty where "!45" isn't
-// host syntax.
+// host syntax. Commit+sha, Tree+branch, Tag+name and Blob+sha+"/"+path
+// (+"#L<n>") are the host's pages for those; Project is the repository's
+// home page.
 type Links struct {
 	Issue        string `json:"issue"`
 	MergeRequest string `json:"mergeRequest"`
 	Root         string `json:"root"`
 	IssuePath    string `json:"issuePath"`
+	Project      string `json:"project"`
+	Commit       string `json:"commit"`
+	Tree         string `json:"tree"`
+	Tag          string `json:"tag"`
+	Blob         string `json:"blob"`
 }
 
 // scpLike matches "git@host:path"; a path can't contain "://", and Windows
@@ -116,17 +123,24 @@ func (h Host) API() string {
 	}
 }
 
+// Links builds the host's page addresses in its style: GitLab keeps its
+// pages under "-/", GitHub doesn't, and GitHub's tag page is a release.
 func (h Host) Links() Links {
-	issuePath := "/issues/"
-	mergeRequest := ""
+	project := h.Root + h.Project
+	issuePath, pages, tag, mergeRequest := "/issues/", project+"/", project+"/releases/tag/", ""
 	if h.Style == GitLab {
-		issuePath = "/-/issues/"
-		mergeRequest = h.Root + h.Project + "/-/merge_requests/"
+		issuePath, pages, tag = "/-/issues/", project+"/-/", project+"/-/tags/"
+		mergeRequest = pages + "merge_requests/"
 	}
 	return Links{
-		Issue:        h.Root + h.Project + issuePath,
+		Issue:        project + issuePath,
 		MergeRequest: mergeRequest,
 		Root:         h.Root,
 		IssuePath:    issuePath,
+		Project:      project,
+		Commit:       pages + "commit/",
+		Tree:         pages + "tree/",
+		Tag:          tag,
+		Blob:         pages + "blob/",
 	}
 }

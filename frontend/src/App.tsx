@@ -28,6 +28,7 @@ import HostChangesView, { changesLabelFor } from './features/host-changes/HostCh
 import HostNoticeBanner from './components/chrome/HostNoticeBanner'
 import { useHostPrompt } from './features/settings/useHostPrompt'
 import { useHostIndicator } from './lib/useHostIndicator'
+import { useHostLinks } from './lib/useHostLinks'
 import { useSettings } from './features/settings/useSettings'
 import { useTabMemory } from './features/repositories/useTabMemory'
 import { useWorkingTree } from './features/working-copy/useWorkingTree'
@@ -84,6 +85,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const repo = useRepositoryLifecycle(activeRepoPath)
   const integration = useHostIndicator(repo.repoPath ?? '', hostsVersion, hostIntegration && !!repo.repoPath)
   const changesLabel = integration ? changesLabelFor(integration.host.provider) : null
+  const hostLinks = useHostLinks(repo.repoPath ?? '')
   const { repoVersion, bumpRepoVersion, justBumped } = useRepoVersion()
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
   const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
@@ -166,6 +168,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   // A failed action expands the sidebar, so its message is visible.
   const workspace = useWorkspaceActions({
     repoPath: repo.repoPath,
+    hostLinks,
     onBranchChanged,
     onOpenCommit: (sha) => openCommit(sha),
     onFailure: () => settings.setNavCollapsed(false),

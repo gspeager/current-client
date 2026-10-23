@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  type BranchInfo,
   BranchService,
+  type CommitInfo,
   HistoryService,
   PlatformService,
   RemoteService,
-  type BranchInfo,
-  type CommitInfo,
 } from '@current-client-bindings/app'
 import { Links } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
@@ -120,6 +120,22 @@ describe('HistoryView', () => {
 
     expect(await screen.findByRole('button', { name: 'Copy SHA' })).toHaveFocus()
     expect(screen.getByRole('button', { name: 'Reset (hard) to here' })).toBeInTheDocument()
+  })
+
+  it('offers Open on host for a commit when a remote points at a host', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(RemoteService.HostLinks).mockResolvedValue(new Links({ commit: 'https://github.com/o/r/commit/' }))
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    renderHistory()
+    const user = userEvent.setup()
+
+    ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
+    await user.keyboard('{Shift>}{F10}{/Shift}')
+    await user.click(await screen.findByRole('button', { name: 'Open on host' }))
+
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith(
+      expect.stringMatching(/^https:\/\/github.com\/o\/r\/commit\/[0-9a-f]+$/),
+    )
   })
 
   it('shows why history could not load', async () => {

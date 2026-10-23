@@ -48,6 +48,10 @@ One cache per repository, keyed by host and repository, holding MRs/PRs, CI resu
 - Data stays visible after it goes stale, labeled with its age, until a refresh replaces it. Offline, the last answer shows.
 - The cache is cleared when integration is turned off for the host or the repository is closed.
 
+## Open on host
+
+With or without integration on, anything in the app can be opened on the host, built from the remote's address alone: a commit (its context menu) opens the commit page; a file in a commit or in Working Copy opens the file at that commit, or at HEAD; a branch opens its merge request / pull request when one is known, else its tree; a tag opens the tag or release page; **Open repository on host** in the command palette opens the repository's home page. The actions are hidden when no remote points at a hosted project, and none of them makes a request.
+
 ## The merge request / pull request tab
 
 While a host is on for the repository, a tab named **Merge requests** (GitLab) or **Pull requests** (GitHub) lists the open changes from the last refresh: number, title, author as an initials badge, source and target branch, draft, labels, CI result and when it was updated, with an **Authored by me** filter. Opening the tab for the first time in a session refreshes it; after that it reads the cache until **Refresh**, a fetch or a pull. The list stops at the page cap and says so.
