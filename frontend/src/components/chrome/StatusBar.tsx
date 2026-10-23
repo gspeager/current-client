@@ -1,7 +1,6 @@
 import { System } from '@wailsio/runtime'
 import { PlatformService, type HostStatusInfo } from '@current-client-bindings/app'
-import PathText from '../git/PathText'
-import { tildePath } from '../../lib/paths'
+import { baseName, tildePath } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -14,10 +13,18 @@ interface StatusBarProps {
   repoVersion: number
   gitVersion: string | null
   integration?: HostIndicator | null
+  lastFetchedAt?: Date | null
   onOpenSettings?: () => void
 }
 
-function StatusBar({ repoPath, repoVersion, gitVersion, integration = null, onOpenSettings }: StatusBarProps) {
+function StatusBar({
+  repoPath,
+  repoVersion,
+  gitVersion,
+  integration = null,
+  lastFetchedAt = null,
+  onOpenSettings,
+}: StatusBarProps) {
   const status = useBranchStatus(repoPath, repoVersion)
   const { data: appVersion } = useAsyncData(() => PlatformService.AppVersion(), [])
   const { data: home } = useAsyncData(() => (System.IsWindows() ? null : PlatformService.HomeDir()), [])
@@ -38,6 +45,9 @@ function StatusBar({ repoPath, repoVersion, gitVersion, integration = null, onOp
       </span>
       {branchLabel && <span className="status-bar-branch">{branchLabel}</span>}
       <div className="status-bar-spacer" />
+      <span className="status-bar-fetched">
+        {lastFetchedAt ? `fetched ${relativeTime(lastFetchedAt)}` : 'not fetched yet'}
+      </span>
       {integration && (
         <button
           type="button"
@@ -55,9 +65,9 @@ function StatusBar({ repoPath, repoVersion, gitVersion, integration = null, onOp
         className="status-bar-repo-path"
         onClick={() => copy(repoPath)}
         aria-label={`Copy ${repoPath}`}
-        title={repoPath}
+        title={tildePath(repoPath, home ?? '')}
       >
-        {copied ? 'Copied' : <PathText path={tildePath(repoPath, home ?? '')} />}
+        {copied ? 'Copied' : baseName(repoPath)}
       </button>
       {gitVersion && <span>git {gitVersion}</span>}
       {appVersion && <span>Current Client {appVersion}</span>}

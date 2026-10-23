@@ -79,6 +79,10 @@ func (s *RemoteService) Fetch(ctx context.Context, repoPath, remote string, auth
 	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.Fetch(ctx, repoPath, remote) })
 }
 
+func (s *RemoteService) FetchPrune(ctx context.Context, repoPath, remote string, auth *gitexec.Credential) error {
+	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.FetchPrune(ctx, repoPath, remote) })
+}
+
 func (s *RemoteService) FetchAll(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
 	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.FetchAll(ctx, repoPath) })
 }
@@ -214,6 +218,14 @@ func createLinkIn(output string) string {
 		}
 	}
 	return ""
+}
+
+func (s *RemoteService) PushTags(ctx context.Context, repoPath, remote string, auth *gitexec.Credential) error {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
+	return git.PushTags(ctx, repoPath, remote)
 }
 
 // ForcePush force-pushes the current branch to its configured upstream.

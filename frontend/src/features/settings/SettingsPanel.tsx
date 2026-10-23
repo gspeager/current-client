@@ -56,6 +56,7 @@ function SettingsPanel({
     setAutoFetchIntervalMinutes,
     setLaneColorTheme,
     setDisableConventionalCommits,
+    setPruneOnFetch,
   } = settings
   const [gitPathError, setGitPathError] = useState<string | null>(null)
   const [editorPathError, setEditorPathError] = useState<string | null>(null)
@@ -177,6 +178,12 @@ function SettingsPanel({
         </SettingsGroup>
 
         <SettingsGroup title="Network">
+          <SettingsRow
+            label="Prune on fetch"
+            hint="Fetch also forgets remote branches that are gone from the remote. Fetch and prune in the header's Fetch menu does it once."
+          >
+            <Switch checked={values.pruneOnFetch} onChange={setPruneOnFetch} ariaLabel="Prune on fetch" />
+          </SettingsRow>
           <SettingsRow
             label="Background fetch"
             hint={

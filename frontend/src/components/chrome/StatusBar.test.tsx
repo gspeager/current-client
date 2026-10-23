@@ -107,7 +107,7 @@ describe('StatusBar', () => {
     expect(await screen.findByText('HEAD detached at abc1234')).toBeInTheDocument()
   })
 
-  it('shows the repository path with ~ for home, in full on hover, and copies it', async () => {
+  it('shows the repository name, with the path (~ for home) on hover, and copies the full path', async () => {
     vi.mocked(PlatformService.HomeDir).mockResolvedValue('/Users/sam')
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, { clipboard: { writeText } })
@@ -115,10 +115,25 @@ describe('StatusBar', () => {
     render(<StatusBar repoPath="/Users/sam/projects/acme" repoVersion={0} gitVersion="2.47.0" />)
 
     const path = await screen.findByRole('button', { name: 'Copy /Users/sam/projects/acme' })
-    await vi.waitFor(() => expect(path).toHaveTextContent('~/projects/acme'))
-    expect(path).toHaveAttribute('title', '/Users/sam/projects/acme')
+    expect(path).toHaveTextContent('acme')
+    await vi.waitFor(() => expect(path).toHaveAttribute('title', '~/projects/acme'))
     await userEvent.click(path)
     expect(writeText).toHaveBeenCalledWith('/Users/sam/projects/acme')
     expect(await screen.findByText('Copied')).toBeInTheDocument()
+  })
+
+  it('says when the repository was last fetched', async () => {
+    const { rerender } = render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" />)
+    expect(screen.getByText('not fetched yet')).toBeInTheDocument()
+
+    rerender(
+      <StatusBar
+        repoPath="/repos/app"
+        repoVersion={0}
+        gitVersion="2.47.0"
+        lastFetchedAt={new Date(Date.now() - 2 * 60 * 1000)}
+      />,
+    )
+    expect(screen.getByText('fetched 2m ago')).toBeInTheDocument()
   })
 })

@@ -35,3 +35,39 @@ describe('useFetchAll', () => {
     expect(RemoteService.FetchAll).not.toHaveBeenCalled()
   })
 })
+
+describe('useFetchAll primary remote', () => {
+  it('fetches origin, pruning only when the setting says so', async () => {
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'upstream' }, { name: 'origin' }] as never)
+    vi.mocked(RemoteService.Fetch).mockResolvedValue()
+    const onFetched = vi.fn()
+    const { result } = renderHook(() => useFetchAll(REPO, onFetched), { wrapper })
+
+    act(() => result.current.fetchPrimary())
+    await vi.waitFor(() => expect(onFetched).toHaveBeenCalled())
+
+    expect(RemoteService.Fetch).toHaveBeenCalledWith(REPO, 'origin', null)
+    expect(RemoteService.FetchPrune).not.toHaveBeenCalled()
+  })
+
+  it('prunes once from the menu whatever the setting says', async () => {
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin' }] as never)
+    vi.mocked(RemoteService.FetchPrune).mockResolvedValue()
+    const onFetched = vi.fn()
+    const { result } = renderHook(() => useFetchAll(REPO, onFetched), { wrapper })
+
+    act(() => result.current.fetchPrune())
+    await vi.waitFor(() => expect(onFetched).toHaveBeenCalled())
+
+    expect(RemoteService.FetchPrune).toHaveBeenCalledWith(REPO, 'origin', null)
+  })
+
+  it('says when there is no remote to fetch', async () => {
+    vi.mocked(RemoteService.List).mockResolvedValue([])
+    const { result } = renderHook(() => useFetchAll(REPO), { wrapper })
+
+    act(() => result.current.fetchPrimary())
+
+    await vi.waitFor(() => expect(result.current.error).toBe('No remote configured.'))
+  })
+})

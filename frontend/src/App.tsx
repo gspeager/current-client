@@ -120,7 +120,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   }
 
   // A pull fetches too, so it moves "fetched … ago" as well as the branch.
-  const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(
+  const { pull, pullMerge, pullRebase, push, forcePush, pushTags, pushSetUpstream, pullOp, pushOp } = useRemoteSync(
     repo.repoPath,
     onFetched,
     setPushed,
@@ -300,7 +300,6 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             repoVersion={repoVersion}
             lastFetchedAt={lastFetchedAt}
             pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
-            onPruneOnFetchChange={settings.setPruneOnFetch}
             repo={repo}
             dirty={dirty}
             workspaceActions={workspace.actions}
@@ -310,6 +309,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             onPullRebase={pullRebase}
             onPush={push}
             onForcePush={() => void forcePush()}
+            onPushTags={pushTags}
+            onPushSetUpstream={() => void pushSetUpstream()}
             onBranchChanged={onBranchChanged}
             onFetched={onFetched}
             onOpenCommit={openCommit}
@@ -499,6 +500,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             repoVersion={repoVersion}
             gitVersion={gitVersion}
             integration={integration}
+            lastFetchedAt={lastFetchedAt}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>

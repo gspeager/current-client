@@ -36,6 +36,7 @@ function settingsWith(overrides: Partial<NonNullable<ReturnType<typeof useSettin
     setAutoFetchIntervalMinutes: vi.fn(),
     setLaneColorTheme: vi.fn(),
     setDisableConventionalCommits: vi.fn(),
+    setPruneOnFetch: vi.fn(),
   } as unknown as ReturnType<typeof useSettings>
 }
 
@@ -124,5 +125,16 @@ describe('SettingsPanel', () => {
     await userEvent.click(toggle)
 
     expect(settings.setDisableConventionalCommits).toHaveBeenCalledWith(true)
+  })
+})
+
+describe('SettingsPanel network', () => {
+  it('keeps prune on fetch as a setting', async () => {
+    const settings = settingsWith({ pruneOnFetch: false } as never)
+    renderPanel(settings)
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Prune on fetch' }))
+
+    expect(settings.setPruneOnFetch).toHaveBeenCalledWith(true)
   })
 })
