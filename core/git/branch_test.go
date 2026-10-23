@@ -523,4 +523,13 @@ func TestBranchesContaining(t *testing.T) {
 	if want := []string{"feature"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("branches containing the feature commit = %v, want %v", got, want)
 	}
+
+	gittest.Run(t, dir, "checkout", "-q", "--detach")
+	got, err = BranchesContaining(context.Background(), dir, only)
+	if err != nil {
+		t.Fatalf("BranchesContaining: %v", err)
+	}
+	if want := []string{"feature"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("branches containing the commit on a detached HEAD = %v, want %v", got, want)
+	}
 }
