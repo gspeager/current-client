@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, RemoteService } from '@current-client-bindings/app'
+import { BranchService, RemoteService, RepositoryService } from '@current-client-bindings/app'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import { DialogProvider } from './DialogProvider'
 import HeaderBar from './HeaderBar'
@@ -140,5 +140,18 @@ describe('HeaderBar sync cluster during a merge', () => {
     expect(fetch).toBeDisabled()
     expect(fetch).toHaveAttribute('title', 'Finish the merge first')
     expect(screen.getByRole('button', { name: 'Push options' })).toBeDisabled()
+  })
+})
+
+describe('HeaderBar repository pane', () => {
+  it('switches between recent repositories and opens the dialog for anything else', async () => {
+    vi.mocked(RepositoryService.GetRepoSummaries).mockResolvedValue([])
+    renderHeader()
+
+    await userEvent.click(screen.getByText('app', { selector: '.header-bar-repo-name' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Open another…' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Open repository' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clone' })).toBeInTheDocument()
   })
 })

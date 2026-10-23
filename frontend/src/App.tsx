@@ -275,7 +275,13 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
         ) : (
           <p className="app-welcome-status">Detecting Git installation…</p>
         )}
-        {!gitError && <RepoSwitcher repo={repo} />}
+        {!gitError && (
+          <RepoSwitcher
+            repo={repo}
+            defaultLocation={settings.settings?.defaultRepoLocation ?? ''}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        )}
         {settingsOpen && (
           <SettingsPanel
             settings={settings}
@@ -319,6 +325,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             onOpenCommit={openCommit}
             syncing={pullOp.running || pushOp.running}
             operation={conflictState?.operation ?? null}
+            defaultRepoLocation={settings.settings?.defaultRepoLocation ?? ''}
             accessory={headerAccessory}
           />
           <TabBar

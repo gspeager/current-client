@@ -2,7 +2,7 @@ import { FolderGit2, GitBranch } from 'lucide-react'
 import SegmentedControl from '../controls/SegmentedControl'
 import BranchSwitcher from '../../features/branches/BranchSwitcher'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
-import RepoSwitcher from '../../features/repositories/RepoSwitcher'
+import RepoQuickList from '../../features/repositories/RepoQuickList'
 import './BreadcrumbPanel.scss'
 
 export type PanelView = 'repo' | 'branch'
@@ -15,6 +15,7 @@ interface BreadcrumbPanelProps {
   onBranchChanged?: () => void
   onFetched?: () => void
   pruneOnFetch?: boolean
+  onOpenAnother: () => void
 }
 
 function BreadcrumbPanel({
@@ -25,6 +26,7 @@ function BreadcrumbPanel({
   onBranchChanged,
   onFetched,
   pruneOnFetch,
+  onOpenAnother,
 }: BreadcrumbPanelProps) {
   return (
     <div className="breadcrumb-panel">
@@ -37,7 +39,7 @@ function BreadcrumbPanel({
         ]}
       />
       {view === 'repo' ? (
-        <RepoSwitcher repo={repo} />
+        <RepoQuickList repo={repo} onOpenAnother={onOpenAnother} />
       ) : (
         <BranchSwitcher
           repoPath={repoPath}
