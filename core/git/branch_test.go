@@ -500,3 +500,27 @@ func TestCurrentBranchStatusFollowsChangesMadeOutsideTheApp(t *testing.T) {
 		t.Fatalf("upstream gone: status = %+v, want no upstream", status)
 	}
 }
+
+func TestBranchesContaining(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "shared")
+	shared := strings.TrimSpace(gittest.Run(t, dir, "rev-parse", "HEAD"))
+	gittest.Run(t, dir, "checkout", "-q", "-b", "feature")
+	gittest.CommitFile(t, dir, "feature.txt", "v1", "only on feature")
+	only := strings.TrimSpace(gittest.Run(t, dir, "rev-parse", "HEAD"))
+
+	got, err := BranchesContaining(context.Background(), dir, shared)
+	if err != nil {
+		t.Fatalf("BranchesContaining: %v", err)
+	}
+	if want := []string{"feature", "main"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("branches containing the shared commit = %v, want %v", got, want)
+	}
+	got, err = BranchesContaining(context.Background(), dir, only)
+	if err != nil {
+		t.Fatalf("BranchesContaining: %v", err)
+	}
+	if want := []string{"feature"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("branches containing the feature commit = %v, want %v", got, want)
+	}
+}

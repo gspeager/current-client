@@ -1,0 +1,56 @@
+.reset-dialog-subject {
+  color: var(--on-surface);
+}
+
+.reset-dialog-modes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.reset-dialog-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  input {
+    flex-shrink: 0;
+    margin: 2px 0 0;
+    accent-color: var(--primary);
+  }
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.reset-dialog-mode-on {
+  border-color: var(--outline);
+}
+
+.reset-dialog-mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.reset-dialog-mode-label {
+  color: var(--on-surface);
+  font: var(--ui-md);
+  font-weight: 600;
+}
+
+.reset-dialog-mode-effect {
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.reset-dialog-mode-git {
+  color: var(--outline);
+  font: var(--data-sm);
+}

@@ -195,6 +195,15 @@ func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
 	return slices.Clone(branches), err
 }
 
+// BranchesContaining lists the local branches whose history includes sha.
+func BranchesContaining(ctx context.Context, repoPath, sha string) ([]string, error) {
+	result, err := runResult(ctx, repoPath, "branch", "--contains", sha, "--format=%(refname:short)")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(result.Stdout), nil
+}
+
 func parseRemoteBranches(output string) []string {
 	var branches []string
 	for _, line := range strings.Split(output, "\n") {

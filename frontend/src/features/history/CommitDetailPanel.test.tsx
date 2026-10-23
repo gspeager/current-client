@@ -1,8 +1,10 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ChangedFile, CommitInfo, DiffService, FileDiff, HistoryService } from '@current-client-bindings/app'
+import { Copy } from 'lucide-react'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import CommitDetailPanel from './CommitDetailPanel'
+import type { CommitAction } from './useCommitActions'
 
 const REPO = '/repos/app'
 const commit = new CommitInfo({
@@ -15,6 +17,16 @@ const commit = new CommitInfo({
   body: 'A paragraph.\n\n'.repeat(80),
 })
 
+const ACTIONS: CommitAction[] = [
+  'Check out',
+  'Branch here',
+  'Cherry-pick',
+  'Revert',
+  'Reset to here…',
+  'Export patch…',
+  'Copy SHA',
+].map((label) => ({ id: label, label, icon: Copy, run: vi.fn() }))
+
 function renderPanel() {
   vi.mocked(HistoryService.GetChangedFiles).mockResolvedValue([
     new ChangedFile({ status: 'M', path: 'src/app.ts', added: 3, removed: 1 }),
@@ -22,13 +34,7 @@ function renderPanel() {
   ])
   return render(
     <DialogProvider>
-      <CommitDetailPanel
-        repoPath={REPO}
-        commit={commit}
-        colorError={null}
-        onColorChange={vi.fn()}
-        onCreateBranchHere={vi.fn()}
-      />
+      <CommitDetailPanel repoPath={REPO} commit={commit} colorError={null} onColorChange={vi.fn()} actions={ACTIONS} />
     </DialogProvider>,
   )
 }
@@ -38,6 +44,40 @@ const diffLine = (text: string) => (_: string, el: Element | null) =>
   el?.classList.contains('diff-content') === true && el.textContent === text
 
 describe('CommitDetailPanel', () => {
+  it('shows the first four actions as buttons and the rest under More, in order', async () => {
+    renderPanel()
+
+    const footer = document.querySelector('.commit-detail-actions')!
+    expect([...footer.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Check out',
+      'Branch here',
+      'Cherry-pick',
+      'Revert',
+      'More',
+    ])
+    await userEvent.click(screen.getByRole('button', { name: 'Cherry-pick' }))
+    expect(ACTIONS[2].run).toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'More' }))
+    const menu = document.querySelector('.context-menu')!
+    expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Reset to here…',
+      'Export patch…',
+      'Copy SHA',
+    ])
+    await userEvent.click(screen.getByRole('button', { name: 'Reset to here…' }))
+    expect(ACTIONS[4].run).toHaveBeenCalled()
+  })
+
+  it('counts the changes and names the branches the commit is on', async () => {
+    vi.mocked(HistoryService.BranchesContaining).mockResolvedValue(['feature', 'main'])
+    renderPanel()
+
+    expect(await screen.findByText('2 files', { selector: '.commit-detail-section-count' })).toBeInTheDocument()
+    expect(screen.getByText('Changes').nextElementSibling).toHaveTextContent('2 files')
+    expect((await screen.findByText('On branches')).nextElementSibling).toHaveTextContent('feature, main')
+  })
+
   it('scrolls a long description instead of squeezing out the changed files', async () => {
     renderPanel()
 
@@ -85,13 +125,7 @@ describe('CommitDetailPanel', () => {
     const merge = new CommitInfo({ ...commit, parentShas: ['aaaaaaa1111', 'bbbbbbb2222'], body: '' })
     render(
       <DialogProvider>
-        <CommitDetailPanel
-          repoPath={REPO}
-          commit={merge}
-          colorError={null}
-          onColorChange={vi.fn()}
-          onCreateBranchHere={vi.fn()}
-        />
+        <CommitDetailPanel repoPath={REPO} commit={merge} colorError={null} onColorChange={vi.fn()} actions={ACTIONS} />
       </DialogProvider>,
     )
 

@@ -123,14 +123,42 @@
 }
 
 .commit-detail-color {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   margin-left: auto;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  background: none;
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
   border: var(--border-structure);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
+  color: var(--outline);
   cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+}
+
+.commit-detail-color-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-xs);
+}
+
+.commit-detail-branches {
+  @include patterns.truncate;
 }
 
 .commit-detail-stats {
@@ -149,6 +177,10 @@
     color: var(--on-surface-variant);
     font: var(--data-sm);
     @include patterns.truncate;
+
+    > span {
+      @include patterns.truncate;
+    }
   }
 
   > .commit-detail-coauthors {
@@ -224,4 +256,8 @@
       color: var(--on-surface);
     }
   }
+}
+
+.commit-detail-more {
+  grid-column: 1 / -1;
 }
