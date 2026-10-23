@@ -13,11 +13,19 @@ interface CurrentChangeSectionProps {
   onOpenChange?: (number: number) => void
   // Opens a file in Working Copy, for the first unresolved thread.
   onOpenFile?: (path: string) => void
+  // Opens the in-app create form; without it the host's form is used.
+  onCreateChange?: (branch: string) => void
 }
 
 // The checked-out branch's merge request / pull request, read from the
 // cache: absent while the host is off or the branch has none known.
-function CurrentChangeSection({ repoPath, refreshKey, onOpenChange, onOpenFile }: CurrentChangeSectionProps) {
+function CurrentChangeSection({
+  repoPath,
+  refreshKey,
+  onOpenChange,
+  onOpenFile,
+  onCreateChange,
+}: CurrentChangeSectionProps) {
   const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath], { refreshKey, keepData: true })
   const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath], {
     refreshKey,
@@ -31,9 +39,11 @@ function CurrentChangeSection({ repoPath, refreshKey, onOpenChange, onOpenFile }
   if (!data?.enabled || (!change && conflicts.length === 0 && !canCreate)) return null
 
   const createChange = () =>
-    RemoteService.CreateChangeLink(repoPath, data?.branch ?? '')
-      .then((link) => (link ? PlatformService.OpenWebPage(link) : undefined))
-      .catch(ignoreDecorativeFailure)
+    onCreateChange && data?.branch
+      ? Promise.resolve(onCreateChange(data.branch))
+      : RemoteService.CreateChangeLink(repoPath, data?.branch ?? '')
+          .then((link) => (link ? PlatformService.OpenWebPage(link) : undefined))
+          .catch(ignoreDecorativeFailure)
 
   const kind = change
     ? change.prefix === '!'

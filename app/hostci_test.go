@@ -30,8 +30,11 @@ func (r *routeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	r.hits[key]++
 	body, ok := r.routes[key]
 	status := http.StatusOK
-	if !ok {
+	switch {
+	case !ok:
 		body, status = `{"message":"404 Not Found"}`, http.StatusNotFound
+	case body == "403":
+		body, status = `{"message":"403 Forbidden"}`, http.StatusForbidden
 	}
 	return &http.Response{StatusCode: status, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
 }
