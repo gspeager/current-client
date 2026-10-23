@@ -17,7 +17,6 @@ import { plural } from '../../lib/plural'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useFileTools } from './useFileTools'
 import ChangedFileRow from './ChangedFileRow'
-import CommitFilesModal from './CommitFilesModal'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
@@ -35,6 +34,9 @@ interface CommitDetailPanelProps {
   // The commit's actions, in order; the first few are buttons, the rest under More.
   actions: CommitAction[]
   actionError?: string | null
+  // The file whose diff History shows in place of the graph.
+  openedPath?: string | null
+  onOpenFile?: (path: string) => void
 }
 
 function CommitDetailPanel({
@@ -47,12 +49,11 @@ function CommitDetailPanel({
   onColorChange,
   actions,
   actionError = null,
+  openedPath = null,
+  onOpenFile,
 }: CommitDetailPanelProps) {
   useClockTick()
   const [moreMenu, setMoreMenu] = useState<ContextMenuState | null>(null)
-  // The file whose diff is open; only for the commit it was opened from.
-  const [opened, setOpened] = useState<{ sha: string; path: string } | null>(null)
-  const openedPath = opened?.sha === commit.sha ? opened.path : null
   const { copied: shaCopied, copy } = useCopyToClipboard()
   const fileTools = useFileTools(repoPath)
 
@@ -204,7 +205,7 @@ function CommitDetailPanel({
                 key={f.path}
                 file={f}
                 selected={openedPath === f.path}
-                onSelect={() => setOpened({ sha: commit.sha, path: f.path })}
+                onSelect={() => onOpenFile?.(f.path)}
                 onContextMenu={fileContextMenu(f)}
               />
             ))}
@@ -235,15 +236,6 @@ function CommitDetailPanel({
 
       {moreMenu && <ContextMenu state={moreMenu} onClose={() => setMoreMenu(null)} />}
       {fileTools.overlays}
-      {openedPath && changedFiles && (
-        <CommitFilesModal
-          repoPath={repoPath}
-          commit={commit}
-          files={changedFiles}
-          initialPath={openedPath}
-          onClose={() => setOpened(null)}
-        />
-      )}
     </section>
   )
 }

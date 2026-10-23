@@ -498,7 +498,7 @@ describe('ChangesView conflicts', () => {
     expect(screen.getByRole('button', { name: 'Conflicted, 1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Resolved, 1' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Staged/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Continue merge' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '1 file still conflicted' })).toBeDisabled()
 
     await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
     const actions = document.querySelector('.changes-conflict-actions')!

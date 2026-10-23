@@ -3,7 +3,7 @@ import { CompareService, DiffService } from '@current-client-bindings/app'
 import ChangedFilesBrowser from '../../components/git/ChangedFilesBrowser'
 import RefSelect, { useRefGroups } from '../../components/git/RefSelect'
 import { useAsyncData } from '../../lib/useAsyncData'
-import Modal from '../../components/chrome/Modal'
+import DiffSheet from '../../components/chrome/DiffSheet'
 import './CompareModal.scss'
 
 interface CompareModalProps {
@@ -24,10 +24,9 @@ function CompareModal({ repoPath, initialFromRef, initialToRef, onClose }: Compa
   )
 
   return (
-    <Modal
+    <DiffSheet
       title="Compare"
       onClose={onClose}
-      className="compare-panel"
       headerContent={
         <div className="compare-refs">
           <RefSelect groups={refGroups} value={fromRef} onChange={setFromRef} label="Compare from" />
@@ -46,9 +45,11 @@ function CompareModal({ repoPath, initialFromRef, initialToRef, onClose }: Compa
           before: { kind: 'commit', rev: fromRef },
           after: { kind: 'commit', rev: toRef },
         })}
-        loadDiff={(file, force) => DiffService.GetRefDiff(repoPath, file.path, fromRef, toRef, force, false)}
+        loadDiff={(file, force, ignoreWhitespace) =>
+          DiffService.GetRefDiff(repoPath, file.path, fromRef, toRef, force, ignoreWhitespace)
+        }
       />
-    </Modal>
+    </DiffSheet>
   )
 }
 

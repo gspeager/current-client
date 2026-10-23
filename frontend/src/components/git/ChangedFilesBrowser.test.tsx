@@ -9,15 +9,15 @@ const files = [
 ]
 
 describe('ChangedFilesBrowser', () => {
-  it('loads the diff of the file picked', async () => {
+  it('opens the first file at once, then the one picked', async () => {
     const loadDiff = vi.fn(() => Promise.resolve(new FileDiff({ newPath: 'logo.png', binary: true })))
     render(<ChangedFilesBrowser files={files} error={null} emptyHint="Nothing here." loadDiff={loadDiff} />)
 
-    expect(screen.getByText('Select a file to view its diff.')).toBeInTheDocument()
+    expect(await screen.findByText('Binary file changed.')).toBeInTheDocument()
+    expect(loadDiff).toHaveBeenCalledWith(files[0], false, false)
     await userEvent.click(screen.getByRole('button', { name: /logo\.png/ }))
 
-    expect(await screen.findByText('Binary file changed.')).toBeInTheDocument()
-    expect(loadDiff).toHaveBeenCalledWith(files[1], false)
+    await vi.waitFor(() => expect(loadDiff).toHaveBeenLastCalledWith(files[1], false, false))
   })
 
   it('shows the empty hint when nothing changed', () => {
@@ -37,9 +37,8 @@ describe('ChangedFilesBrowser large files', () => {
     )
     render(<ChangedFilesBrowser files={files} error={null} emptyHint="" loadDiff={loadDiff} />)
 
-    await userEvent.click(screen.getByRole('button', { name: /big\.txt/ }))
     await userEvent.click(await screen.findByRole('button', { name: 'Load anyway' }))
 
-    expect(loadDiff).toHaveBeenLastCalledWith(files[0], true)
+    expect(loadDiff).toHaveBeenLastCalledWith(files[0], true, false)
   })
 })

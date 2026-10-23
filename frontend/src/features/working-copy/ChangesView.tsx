@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { type ConflictStateInfo, DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
-import Checkbox from '../../components/forms/Checkbox'
 import CommitComposer from './CommitComposer'
 import DiffViewer from '../diff/DiffViewer'
-import { DiffWrapToggle } from '../diff/diffWrap'
+import DiffViewMenu from '../diff/DiffViewMenu'
 import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import { Columns2, Rows2 } from 'lucide-react'
@@ -281,8 +280,7 @@ function ChangesView({
               ) : (
                 <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
               )}
-              <Checkbox checked={ignoreWhitespace} onChange={setIgnoreWhitespace} label="Ignore whitespace" />
-              <DiffWrapToggle />
+              <DiffViewMenu ignoreWhitespace={ignoreWhitespace} onIgnoreWhitespaceChange={setIgnoreWhitespace} />
               <button
                 type="button"
                 className="changes-diff-external-tool"

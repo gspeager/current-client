@@ -282,6 +282,16 @@ function ReleaseEditor({
               )
             }
           />
+          <Checkbox
+            checked={options.authors}
+            onChange={(authors) => void regenerate(() => onOptionsChange({ ...options, authors }))}
+            label="Author names"
+          />
+          <Checkbox
+            checked={options.dates}
+            onChange={(dates) => void regenerate(() => onOptionsChange({ ...options, dates }))}
+            label="Dates"
+          />
         </div>
         {visibleCount === 0 && <p className="changelog-hint">Every commit in this range is filtered out.</p>}
         <div ref={listRef} className="changelog-entry-list">
@@ -337,16 +347,6 @@ function ReleaseEditor({
               {version.trim() !== UNRELEASED && <span className="changelog-date">{date}</span>}
             </>
           )}
-          <Checkbox
-            checked={options.authors}
-            onChange={(authors) => void regenerate(() => onOptionsChange({ ...options, authors }))}
-            label="Author names"
-          />
-          <Checkbox
-            checked={options.dates}
-            onChange={(dates) => void regenerate(() => onOptionsChange({ ...options, dates }))}
-            label="Dates"
-          />
           <span className="changelog-spacer" />
           {status && (
             <span className="changelog-status" role="status">

@@ -138,3 +138,27 @@ describe('SettingsPanel network', () => {
     expect(settings.setPruneOnFetch).toHaveBeenCalledWith(true)
   })
 })
+
+describe('SettingsPanel rail', () => {
+  it('lists every group and jumps to the one clicked', async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    renderPanel(settingsWith())
+
+    const rail = screen.getByRole('navigation', { name: 'Settings sections' })
+    expect([...rail.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Appearance',
+      'Git',
+      'Tools and folders',
+      'Diff',
+      'Network',
+      'Integrations',
+      'Identity colors',
+      'Support',
+    ])
+    await userEvent.click(within(rail).getByRole('button', { name: 'Integrations' }))
+
+    expect(within(rail).getByRole('button', { name: 'Integrations' })).toHaveClass('settings-rail-item-active')
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).toHaveClass('settings-panel')
+  })
+})
