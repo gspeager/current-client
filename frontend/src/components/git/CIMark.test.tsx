@@ -48,4 +48,33 @@ describe('CIMark', () => {
     expect(formatDuration(59e9)).toBe('59s')
     expect(formatDuration(3_725e9)).toBe('1h 2m')
   })
+
+  it('fetches a failed job’s log only when the job is clicked, then the full log on request', async () => {
+    vi.mocked(HostService.PipelineJobs).mockResolvedValue([
+      new Job({
+        id: 5,
+        name: 'test',
+        stage: 'unit',
+        status: CIStatus.CIFailed,
+        webUrl: 'https://gitlab.example.com/j/5',
+      }),
+    ])
+    vi.mocked(HostService.JobLog)
+      .mockResolvedValueOnce({ text: 'line 49\nERROR: Job failed', truncated: true, full: false })
+      .mockResolvedValueOnce({ text: 'line 1\n…\nERROR: Job failed', truncated: false, full: true })
+    render(<CIMark repoPath="/repos/app" mark={new CIMarkInfo({ status: 'failed', pipelineId: 12 })} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'CI failed' }))
+    await screen.findByRole('list', { name: 'Jobs' })
+    expect(HostService.JobLog).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: /test/ }))
+    const log = await screen.findByLabelText('Log of test')
+    expect(await within(log).findByText(/ERROR: Job failed/)).toBeInTheDocument()
+    expect(HostService.JobLog).toHaveBeenCalledWith('/repos/app', 5, false)
+
+    await userEvent.click(within(log).getByRole('button', { name: 'Show full log' }))
+    expect(await within(log).findByText(/line 1/)).toBeInTheDocument()
+    expect(HostService.JobLog).toHaveBeenLastCalledWith('/repos/app', 5, true)
+  })
 })

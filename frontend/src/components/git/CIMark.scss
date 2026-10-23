@@ -51,15 +51,65 @@ span.ci-mark {
   flex-direction: column;
 }
 
-.ci-job {
+.ci-job,
+.ci-job-row {
   display: grid;
   grid-template-columns: 8px minmax(0, 1fr) max-content max-content max-content;
   align-items: center;
   gap: var(--space-sm);
   min-height: var(--h-row);
   padding: 0 var(--space-xs);
-  border-bottom: var(--border-structure);
   font: var(--ui-sm);
+}
+
+.ci-job {
+  border-bottom: var(--border-structure);
+}
+
+// A failed job is a button row with its log underneath.
+.ci-job-failed {
+  display: block;
+  padding: 0;
+}
+
+.ci-job-row {
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-high);
+  }
+}
+
+.ci-job-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-xs) var(--space-sm);
+}
+
+// The log keeps its own lines; long ones scroll sideways rather than
+// stretching the panel.
+.ci-job-log-text {
+  margin: 0;
+  max-height: 50vh;
+  padding: var(--space-sm);
+  overflow: auto;
+  background: var(--surface-lowest);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+  white-space: pre;
+}
+
+.ci-job-log-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .ci-job-name {

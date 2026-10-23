@@ -68,7 +68,7 @@ For the checked-out branch's merge request / pull request, a refresh also fetche
 
 ## CI results
 
-With the host on, commits in History and branch tips in the sidebar show a small square in the pipeline's color: passed, failed, canceled, or an outline while running or pending. For commits the result is asked for when the commit scrolls into view, in batches of up to 50 at a time and never twice for the same commit until the next refresh; a commit without a pipeline is remembered as such. Branch tips and open merge requests get theirs on refresh. Clicking a square lists the pipeline's jobs with stage, status and duration, fetched only then, with **Open on host**. HEAD's cyan is never used for CI state.
+With the host on, commits in History and branch tips in the sidebar show a small square in the pipeline's color: passed, failed, canceled, or an outline while running or pending. For commits the result is asked for when the commit scrolls into view, in batches of up to 50 at a time and never twice for the same commit until the next refresh; a commit without a pipeline is remembered as such. Branch tips and open merge requests get theirs on refresh. Clicking a square lists the pipeline's jobs with stage, status and duration, fetched only then, with **Open on host**. Clicking a failed job fetches the last 50 lines of its log, with terminal colors and escape sequences removed; **Show full log** fetches the whole log up to a cap and says when it was cut, and **Open on host** goes to the job. No log is fetched for a passing job or before a click. HEAD's cyan is never used for CI state.
 
 ## Hover cards
 
