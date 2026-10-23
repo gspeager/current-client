@@ -118,7 +118,7 @@ describe('HistoryView', () => {
     ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
 
-    const menu = await vi.waitFor(() => document.querySelector('.context-menu')!)
+    const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
     expect(within(menu).getByRole('button', { name: 'Check out' })).toHaveFocus()
     expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
       'Check out',
