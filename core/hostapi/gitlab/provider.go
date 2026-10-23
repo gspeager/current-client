@@ -425,7 +425,8 @@ func toThread(d discussion, headSHA string) (hostapi.Thread, bool) {
 }
 
 // toChangeFile counts the diff's lines itself; the diffs endpoint sends
-// no totals.
+// no totals. Only lines after the first hunk header count, so a file
+// header or a content line starting with --- is told apart by position.
 func toChangeFile(d mergeRequestDiff) hostapi.ChangeFile {
 	file := hostapi.ChangeFile{Path: d.NewPath, Status: "modified"}
 	switch {
@@ -436,9 +437,12 @@ func toChangeFile(d mergeRequestDiff) hostapi.ChangeFile {
 	case d.RenamedFile:
 		file.Status, file.OldPath = "renamed", d.OldPath
 	}
+	inHunk := false
 	for _, line := range strings.Split(d.Diff, "\n") {
 		switch {
-		case strings.HasPrefix(line, "+++"), strings.HasPrefix(line, "---"):
+		case strings.HasPrefix(line, "@@"):
+			inHunk = true
+		case !inHunk:
 		case strings.HasPrefix(line, "+"):
 			file.Additions++
 		case strings.HasPrefix(line, "-"):

@@ -132,7 +132,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/merge_requests?state=merged` and `?state=closed` | The tab's **Closed** filter, once until the next refresh; one page of 25 each | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/discussions` | Refresh, for the checked-out branch's merge request; a change's **Threads** tab, once per change until the next refresh | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/diffs` and `…/commits` | A change's **Files** or **Commits** tab, once per change until the next refresh | `read_api` |
-| `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads; and as commits scroll into view, once per commit until the next refresh | `read_api` |
+| `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads; as commits scroll into view, once per commit until the next refresh; a change's **Checks** tab when the cache has none for its head | `read_api` |
 | `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark or a change's **Checks** tab; on refresh, for the checked-out branch's merge request when its pipeline failed | `read_api` |
 | `GET /projects/:path/jobs/:id/trace` | Clicking a failed job | `read_api` |
 | `GET /projects/:path/issues/:iid` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | `read_api` |

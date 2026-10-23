@@ -313,7 +313,7 @@ func TestClosedChangesFilesAndCommits(t *testing.T) {
 	p, _ := newProvider(t, map[string]string{
 		"GET " + api + "/merge_requests?order_by=updated_at&per_page=25&sort=desc&state=merged": `[{"iid": 1, "state": "merged", "title": "older", "updated_at": "2026-10-01T00:00:00Z", "source_branch": "a", "target_branch": "main", "author": {"username": "ada"}}]`,
 		"GET " + api + "/merge_requests?order_by=updated_at&per_page=25&sort=desc&state=closed": `[{"iid": 2, "state": "closed", "title": "newer", "updated_at": "2026-10-05T00:00:00Z", "source_branch": "b", "target_branch": "main", "author": {"username": "bob"}}]`,
-		"GET " + api + "/merge_requests/2/diffs?per_page=100":                                   `[{"old_path": "a.go", "new_path": "b.go", "renamed_file": true, "diff": "@@ -1,2 +1,2 @@\n-x\n+y\n"}, {"old_path": "n.go", "new_path": "n.go", "new_file": true, "diff": "--- /dev/null\n+++ b/n.go\n@@ -0,0 +1,2 @@\n+a\n+b\n"}]`,
+		"GET " + api + "/merge_requests/2/diffs?per_page=100":                                   `[{"old_path": "a.go", "new_path": "b.go", "renamed_file": true, "diff": "@@ -1,2 +1,2 @@\n-x\n+y\n"}, {"old_path": "n.go", "new_path": "n.go", "new_file": true, "diff": "--- /dev/null\n+++ b/n.go\n@@ -0,0 +1,2 @@\n+---\n+b\n"}]`,
 		"GET " + api + "/merge_requests/2/commits?per_page=100":                                 `[{"id": "abc", "title": "fix: it", "author_name": "Bob", "created_at": "2026-10-02T03:04:05Z"}]`,
 	})
 	changes, truncated, err := p.ClosedChanges(context.Background(), project)

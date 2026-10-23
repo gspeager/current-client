@@ -173,7 +173,18 @@ describe('HostChangesView', () => {
     const files = await within(detail).findByRole('list', { name: 'Files' })
     expect(within(files).getByText('app/x.go')).toBeInTheDocument()
     expect(within(files).getByText('from app/old.go')).toBeInTheDocument()
-    expect(await within(detail).findByRole('button', { name: /^Files ?2$/ })).toBeInTheDocument()
+    expect(await within(detail).findByRole('button', { name: 'Files 2' })).toBeInTheDocument()
+
+    vi.mocked(HostService.FetchCIStatus).mockResolvedValue({
+      abc1234def: { status: 'failed', pipelineId: 7, webUrl: '' },
+    })
+    vi.mocked(HostService.PipelineJobs).mockResolvedValue([
+      { id: 1, name: 'test', stage: 'ci', status: CIStatus.CIFailed, duration: 0, webUrl: '' },
+    ])
+    await userEvent.click(within(detail).getByRole('button', { name: 'Checks' }))
+    expect(await within(detail).findByText('test')).toBeInTheDocument()
+    expect(HostService.FetchCIStatus).toHaveBeenCalledWith(REPO, ['abc1234def'])
+    expect(await within(detail).findByRole('button', { name: 'Checks 1' })).toBeInTheDocument()
 
     await userEvent.click(within(detail).getByRole('button', { name: 'Commits' }))
     expect(await within(detail).findByText('feat: x')).toBeInTheDocument()

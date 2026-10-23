@@ -55,6 +55,29 @@ describe('StatusBar', () => {
     expect(indicator).toHaveTextContent('42 of 60 requests left · last request just now')
   })
 
+  it('says when a spent budget resets', async () => {
+    vi.mocked(PlatformService.AppVersion).mockResolvedValue('0.1.0')
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', upstream: '' } as never)
+    const resetAt = new Date(Date.now() + 1800_000)
+    const integration = {
+      host: new HostInfo({
+        hostname: 'github.com',
+        provider: 'github',
+        apiUrl: 'https://api.github.com',
+        enabled: true,
+      }),
+      apiHost: 'api.github.com',
+      status: { lastRequest: null, inFlight: false, remaining: 0, limit: 60, resetAt: resetAt.toISOString() },
+    }
+
+    render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" integration={integration} />)
+
+    const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
+    expect(indicator).toHaveTextContent(
+      `0 of 60 requests left · resets at ${resetAt.toLocaleTimeString([], { timeStyle: 'short' })} · no requests yet`,
+    )
+  })
+
   it('shows nothing about hosts while integration is off', async () => {
     vi.mocked(PlatformService.AppVersion).mockResolvedValue('0.1.0')
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', upstream: '' } as never)

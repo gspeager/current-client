@@ -334,8 +334,8 @@ func (s staticToken) Token(context.Context, string) (string, error) { return str
 func TestClosedChangesFilesAndCommits(t *testing.T) {
 	p, f := newProvider(t, map[string]string{
 		"GET " + v3 + "/pulls?direction=desc&per_page=50&sort=updated&state=closed": `[{"number": 1, "state": "closed", "merged_at": "2026-10-01T00:00:00Z", "head": {"ref": "a", "sha": "b"}, "base": {"ref": "main"}, "user": {"login": "ada"}}]`,
-		"GET " + v3 + "/pulls/1/files?per_page=100":                                  `[{"filename": "cmd/new.go", "status": "added", "additions": 10, "deletions": 0}, {"filename": "cmd/b.go", "previous_filename": "cmd/a.go", "status": "renamed", "additions": 1, "deletions": 1}, {"filename": "old.go", "status": "removed", "additions": 0, "deletions": 4}]`,
-		"GET " + v3 + "/pulls/1/commits?per_page=100":                                `[{"sha": "abc", "commit": {"message": "feat: add\n\nbody", "author": {"name": "Ada", "date": "2026-10-02T03:04:05Z"}}}]`,
+		"GET " + v3 + "/pulls/1/files?per_page=100":                                 `[{"filename": "cmd/new.go", "status": "added", "additions": 10, "deletions": 0}, {"filename": "cmd/b.go", "previous_filename": "cmd/a.go", "status": "renamed", "additions": 1, "deletions": 1}, {"filename": "old.go", "status": "removed", "additions": 0, "deletions": 4}]`,
+		"GET " + v3 + "/pulls/1/commits?per_page=100":                               `[{"sha": "abc", "commit": {"message": "feat: add\n\nbody", "author": {"name": "Ada", "date": "2026-10-02T03:04:05Z"}}}]`,
 	})
 	changes, truncated, err := p.ClosedChanges(context.Background(), project)
 	if err != nil || truncated || len(changes) != 1 || changes[0].State != hostapi.ChangeMerged {

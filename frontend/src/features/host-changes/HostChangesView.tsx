@@ -249,11 +249,20 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
     () => (change.headSha ? HostService.CIStatus(repoPath, [change.headSha]) : null),
     [repoPath, change.headSha],
   )
-  const mark = marks?.[change.headSha]
+  const [tab, setTab] = useState<DetailTab>('overview')
+  // The refresh caches no pipeline for a change whose list entry carried its
+  // CI, so the Checks tab asks for the head's once when the cache has none.
+  const { data: fetchedMarks } = useAsyncData(
+    () =>
+      tab === 'checks' && marks && !marks[change.headSha]
+        ? HostService.FetchCIStatus(repoPath, [change.headSha])
+        : null,
+    [tab, marks, repoPath, change.headSha],
+  )
+  const mark = marks?.[change.headSha] ?? fetchedMarks?.[change.headSha]
   const conflict = forecast?.conflicts?.find((c) => c.number === change.number)
   const checkout = useCancellableOperation(`${repoPath}:${change.number}`)
   const [checkedOut, setCheckedOut] = useState<string | null>(null)
-  const [tab, setTab] = useState<DetailTab>('overview')
   const [counts, setCounts] = useState<Partial<Record<DetailTab, number>>>({})
   const countFor = useMemo(() => {
     const setter = (which: DetailTab) => (count: number) =>
@@ -360,9 +369,14 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
       {checkout.error && <p className="host-changes-error">Could not check out: {checkout.error}</p>}
       <nav className="host-change-tabs" aria-label="Detail">
         {tabs.map((t) => (
-          <Tab key={t.id} active={tab === t.id} onClick={() => setTab(t.id)}>
+          <Tab
+            key={t.id}
+            active={tab === t.id}
+            onClick={() => setTab(t.id)}
+            label={t.count !== undefined ? `${t.label} ${t.count}` : t.label}
+          >
             {t.label}
-            {t.count !== undefined && <span className="host-change-tab-count"> {t.count}</span>}
+            {t.count !== undefined && <span className="host-change-tab-count">{t.count}</span>}
           </Tab>
         ))}
       </nav>
@@ -377,8 +391,10 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
         {tab === 'checks' &&
           (mark ? (
             <PipelineJobList repoPath={repoPath} pipelineId={mark.pipelineId} onLoaded={countFor.checks} />
-          ) : (
+          ) : fetchedMarks ? (
             <p className="host-changes-empty">No pipeline for {change.headSha.slice(0, 7)}.</p>
+          ) : (
+            <p className="host-changes-empty">Looking for a pipeline…</p>
           ))}
         {tab === 'threads' && <ThreadsTab repoPath={repoPath} number={change.number} onLoaded={countFor.threads} />}
         {tab === 'files' && <FilesTab repoPath={repoPath} number={change.number} onLoaded={countFor.files} />}
