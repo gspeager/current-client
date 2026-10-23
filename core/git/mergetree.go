@@ -56,6 +56,25 @@ func MergeConflicts(ctx context.Context, repoPath, ours, theirs string) ([]strin
 // MergeConflictsMany merges ours with each of theirs in one process, as
 // MergeConflicts does, and returns their conflicting files in the same order.
 func MergeConflictsMany(ctx context.Context, repoPath, ours string, theirs []string) ([][]string, error) {
+	merges, err := mergeTreeMany(ctx, repoPath, ours, theirs)
+	if err != nil {
+		return nil, err
+	}
+	conflicts := make([][]string, len(merges))
+	for i, merge := range merges {
+		conflicts[i] = merge.files
+	}
+	return conflicts, nil
+}
+
+type mergeTreeResult struct {
+	clean bool
+	tree  string
+	files []string
+}
+
+// mergeTreeMany merges ours with each of theirs in one merge-tree process.
+func mergeTreeMany(ctx context.Context, repoPath, ours string, theirs []string) ([]mergeTreeResult, error) {
 	var input strings.Builder
 	for _, tip := range theirs {
 		fmt.Fprintf(&input, "%s %s\n", ours, tip)
@@ -74,21 +93,7 @@ func MergeConflictsMany(ctx context.Context, repoPath, ours string, theirs []str
 	if result.ExitCode != 0 {
 		return nil, mergeTreeError(result)
 	}
-	merges, err := parseMergeTreeStdin(result.Stdout, len(theirs))
-	if err != nil {
-		return nil, err
-	}
-	conflicts := make([][]string, len(merges))
-	for i, merge := range merges {
-		conflicts[i] = merge.files
-	}
-	return conflicts, nil
-}
-
-type mergeTreeResult struct {
-	clean bool
-	tree  string
-	files []string
+	return parseMergeTreeStdin(result.Stdout, len(theirs))
 }
 
 // Each merge is "<1 clean, 0 conflicted>\0<tree>\0<file>\0…\0".
@@ -113,14 +118,13 @@ func parseMergeTreeStdin(output string, merges int) ([]mergeTreeResult, error) {
 	return results, nil
 }
 
-// SharingHistory returns the commits of local and remote-tracking branches
-// that share history with ours: those that contain one of its root commits.
-func SharingHistory(ctx context.Context, repoPath, ours string) (map[string]bool, error) {
-	return SharingHistoryIn(ctx, repoPath, ours, "refs/heads", "refs/remotes")
-}
-
-// SharingHistoryIn is SharingHistory over the given ref namespaces.
-func SharingHistoryIn(ctx context.Context, repoPath, ours string, namespaces ...string) (map[string]bool, error) {
+// SharingHistory returns the commits of the branches under namespaces
+// (refs/heads and refs/remotes by default) that share history with ours:
+// those that contain one of its root commits.
+func SharingHistory(ctx context.Context, repoPath, ours string, namespaces ...string) (map[string]bool, error) {
+	if len(namespaces) == 0 {
+		namespaces = []string{"refs/heads", "refs/remotes"}
+	}
 	roots, err := runResult(ctx, repoPath, "rev-list", "--max-parents=0", ours)
 	if err != nil {
 		return nil, err

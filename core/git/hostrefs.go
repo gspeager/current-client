@@ -22,8 +22,8 @@ func FetchHostChangeHead(ctx context.Context, repoPath, remote, remoteRef string
 	return err
 }
 
-// FetchHostChangeHeads is FetchHostChangeHead for several changes in one
-// fetch; refs maps each number to its ref on the remote.
+// FetchHostChangeHeads fetches several changes in one go; refs maps each
+// number to its ref on the remote.
 func FetchHostChangeHeads(ctx context.Context, repoPath, remote string, refs map[int]string) error {
 	if len(refs) == 0 {
 		return nil

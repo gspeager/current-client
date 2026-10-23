@@ -1,6 +1,9 @@
 package git
 
-import "context"
+import (
+	"context"
+	"slices"
+)
 
 type GitFlowKind string
 
@@ -29,14 +32,6 @@ func StartGitFlowBranch(ctx context.Context, repoPath string, kind GitFlowKind, 
 }
 
 func gitFlowBase(kind GitFlowKind, branches []Branch) string {
-	has := func(name string) bool {
-		for _, b := range branches {
-			if b.Name == name {
-				return true
-			}
-		}
-		return false
-	}
 	mainLike := defaultBranch(branches, "")
 	if mainLike == "" {
 		mainLike = "main"
@@ -44,8 +39,12 @@ func gitFlowBase(kind GitFlowKind, branches []Branch) string {
 	if kind == GitFlowHotfix {
 		return mainLike
 	}
-	if has("develop") {
+	if hasBranch(branches, "develop") {
 		return "develop"
 	}
 	return mainLike
+}
+
+func hasBranch(branches []Branch, name string) bool {
+	return slices.ContainsFunc(branches, func(b Branch) bool { return b.Name == name })
 }

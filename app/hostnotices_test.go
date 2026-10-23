@@ -25,7 +25,7 @@ func TestNoticesNameWhatARefreshChangedOnTheBranch(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := configOrDefault().Hosts
-	info := infoFor(hostByName("gitlab.example.com", hosts), hosts)
+	info := infoFor(hostByName("gitlab.example.com"), hosts)
 	host, project := "gitlab.example.com", "group/app"
 	put := func(state hostapi.ChangeState, ci hostapi.CIStatus, threads []hostapi.Thread) {
 		hostClient.Cache.Put(host, repo, cacheChanges, project, cachedChanges{changes: []hostapi.Change{

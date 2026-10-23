@@ -5,7 +5,6 @@ package app
 import (
 	"context"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
@@ -86,11 +85,7 @@ func (s *HostService) ReviewThreads(repoPath string) (ReviewThreads, error) {
 // branch's change on refresh, caches them, and writes the unresolved count
 // into the change so markers and the sidebar show it.
 func fillCurrentBranchThreads(ctx context.Context, provider hostapi.Provider, info HostInfo, repoPath, remote string, changes []hostapi.Change) {
-	current, found, err := currentBranch(repoPath)
-	if err != nil || !found || current.Upstream == "" {
-		return
-	}
-	branch, ok := strings.CutPrefix(current.Upstream, remote+"/")
+	branch, ok := currentRemoteBranch(repoPath, remote)
 	if !ok {
 		return
 	}

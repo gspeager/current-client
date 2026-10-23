@@ -64,7 +64,7 @@ func TestForecastNamesTheConflictingChangeAndSkipsTheRest(t *testing.T) {
 		{Number: 3, Title: "Targets release", SourceBranch: "elsewhere", TargetBranch: "release", HeadSHA: elsewhere, UpdatedAt: now},
 	}
 	hosts := configOrDefault().Hosts
-	info := infoFor(hostByName(hostname, hosts), hosts)
+	info := infoFor(hostByName(hostname), hosts)
 	info.Project = "group/app"
 	refreshForecast(context.Background(), info, repo, "origin", changes)
 

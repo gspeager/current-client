@@ -54,8 +54,7 @@ func parseVersion(output string) (string, error) {
 // `git restore` (2.23) is the newest of them.
 const MinimumVersion = "2.23"
 
-// DetectSupported is Detect plus the minimum version check, with both
-// failures worded for display.
+// DetectSupported words both failures for display.
 func DetectSupported(ctx context.Context, override string) (Info, error) {
 	info, err := Detect(ctx, override)
 	if errors.Is(err, ErrCommandLineToolsMissing) {

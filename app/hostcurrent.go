@@ -5,7 +5,6 @@ package app
 import (
 	"context"
 	"strconv"
-	"strings"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
@@ -74,15 +73,21 @@ func currentBranch(repoPath string) (git.Branch, bool, error) {
 	return git.Branch{}, false, nil
 }
 
+// currentRemoteBranch is the checked-out branch's name on remote, when its
+// upstream is there.
+func currentRemoteBranch(repoPath, remote string) (string, bool) {
+	current, found, err := currentBranch(repoPath)
+	if err != nil || !found {
+		return "", false
+	}
+	return cutRemote(current.Upstream, remote)
+}
+
 // fetchCurrentBranchJobs makes a refresh also bring the failed jobs of the
 // checked-out branch's change, so the sidebar section can name them without
 // a click.
 func fetchCurrentBranchJobs(ctx context.Context, provider hostapi.Provider, info HostInfo, repoPath, remote string, changes []hostapi.Change) {
-	current, found, err := currentBranch(repoPath)
-	if err != nil || !found || current.Upstream == "" {
-		return
-	}
-	branch, ok := strings.CutPrefix(current.Upstream, remote+"/")
+	branch, ok := currentRemoteBranch(repoPath, remote)
 	if !ok {
 		return
 	}

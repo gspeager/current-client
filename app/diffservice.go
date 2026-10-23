@@ -196,10 +196,8 @@ func (s *DiffService) GetFileContent(repoPath, path string, source FileSource) (
 	var found bool
 	var err error
 	switch source.Kind {
-	case "commit":
+	case "commit", "index":
 		data, found, err = diff.ReadRevisionFile(context.Background(), repoPath, source.Rev, path, maxFileContentBytes)
-	case "index":
-		data, found, err = diff.ReadRevisionFile(context.Background(), repoPath, "", path, maxFileContentBytes)
 	case "worktree":
 		data, found, err = diff.ReadWorkingFile(repoPath, path, maxFileContentBytes)
 	default:

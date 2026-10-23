@@ -55,6 +55,20 @@ func withAuth(ctx context.Context, auth *gitexec.Credential) (context.Context, e
 	return gitexec.WithCredential(ctx, *auth), nil
 }
 
+// syncWithRemote runs a fetch or pull with auth offered to Git, then refreshes
+// what the host side knows, since a fetch is one of the refresh triggers.
+func syncWithRemote(ctx context.Context, repoPath string, auth *gitexec.Credential, op func(context.Context) error) error {
+	ctx, err := withAuth(ctx, auth)
+	if err != nil {
+		return err
+	}
+	if err := op(ctx); err != nil {
+		return err
+	}
+	afterFetch(ctx, repoPath)
+	return nil
+}
+
 // CredentialHelper names the helper Git stores sign-ins with, or "" when
 // none is set up and a sign-in is used once and forgotten.
 func (s *RemoteService) CredentialHelper() string {
@@ -62,39 +76,15 @@ func (s *RemoteService) CredentialHelper() string {
 }
 
 func (s *RemoteService) Fetch(ctx context.Context, repoPath, remote string, auth *gitexec.Credential) error {
-	ctx, err := withAuth(ctx, auth)
-	if err != nil {
-		return err
-	}
-	if err := git.Fetch(ctx, repoPath, remote); err != nil {
-		return err
-	}
-	afterFetch(ctx, repoPath)
-	return nil
+	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.Fetch(ctx, repoPath, remote) })
 }
 
 func (s *RemoteService) FetchAll(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
-	ctx, err := withAuth(ctx, auth)
-	if err != nil {
-		return err
-	}
-	if err := git.FetchAll(ctx, repoPath); err != nil {
-		return err
-	}
-	afterFetch(ctx, repoPath)
-	return nil
+	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.FetchAll(ctx, repoPath) })
 }
 
 func (s *RemoteService) FetchAllPrune(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
-	ctx, err := withAuth(ctx, auth)
-	if err != nil {
-		return err
-	}
-	if err := git.FetchAllPrune(ctx, repoPath); err != nil {
-		return err
-	}
-	afterFetch(ctx, repoPath)
-	return nil
+	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.FetchAllPrune(ctx, repoPath) })
 }
 
 func (s *RemoteService) LastFetchTime(repoPath string) (*time.Time, error) {
@@ -102,39 +92,15 @@ func (s *RemoteService) LastFetchTime(repoPath string) (*time.Time, error) {
 }
 
 func (s *RemoteService) Pull(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
-	ctx, err := withAuth(ctx, auth)
-	if err != nil {
-		return err
-	}
-	if err := git.Pull(ctx, repoPath); err != nil {
-		return err
-	}
-	afterFetch(ctx, repoPath)
-	return nil
+	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.Pull(ctx, repoPath) })
 }
 
 func (s *RemoteService) PullMerge(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
-	ctx, err := withAuth(ctx, auth)
-	if err != nil {
-		return err
-	}
-	if err := git.PullMerge(ctx, repoPath); err != nil {
-		return err
-	}
-	afterFetch(ctx, repoPath)
-	return nil
+	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.PullMerge(ctx, repoPath) })
 }
 
 func (s *RemoteService) PullRebase(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
-	ctx, err := withAuth(ctx, auth)
-	if err != nil {
-		return err
-	}
-	if err := git.PullRebase(ctx, repoPath); err != nil {
-		return err
-	}
-	afterFetch(ctx, repoPath)
-	return nil
+	return syncWithRemote(ctx, repoPath, auth, func(ctx context.Context) error { return git.PullRebase(ctx, repoPath) })
 }
 
 // PushResult says what was pushed and, when the branch has no known merge
@@ -148,30 +114,25 @@ type PushResult struct {
 }
 
 func (s *RemoteService) Push(ctx context.Context, repoPath string, auth *gitexec.Credential) (PushResult, error) {
-	ctx, err := withAuth(ctx, auth)
-	if err != nil {
-		return PushResult{}, err
-	}
-	output, err := git.PushOutput(ctx, repoPath)
-	if err != nil {
-		return PushResult{}, err
-	}
-	return s.pushResult(ctx, repoPath, output)
+	return s.push(ctx, repoPath, auth, func(ctx context.Context) (string, error) { return git.PushOutput(ctx, repoPath) })
 }
 
 func (s *RemoteService) PushSetUpstream(ctx context.Context, repoPath, remote, branch string, auth *gitexec.Credential) (PushResult, error) {
+	return s.push(ctx, repoPath, auth, func(ctx context.Context) (string, error) {
+		return git.PushSetUpstreamOutput(ctx, repoPath, remote, branch)
+	})
+}
+
+// push runs a push with auth offered to Git and reads what the remote printed.
+func (s *RemoteService) push(ctx context.Context, repoPath string, auth *gitexec.Credential, push func(context.Context) (string, error)) (PushResult, error) {
 	ctx, err := withAuth(ctx, auth)
 	if err != nil {
 		return PushResult{}, err
 	}
-	output, err := git.PushSetUpstreamOutput(ctx, repoPath, remote, branch)
+	output, err := push(ctx)
 	if err != nil {
 		return PushResult{}, err
 	}
-	return s.pushResult(ctx, repoPath, output)
-}
-
-func (s *RemoteService) pushResult(ctx context.Context, repoPath, output string) (PushResult, error) {
 	status, err := git.CurrentBranchStatus(ctx, repoPath)
 	if err != nil {
 		return PushResult{}, err

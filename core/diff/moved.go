@@ -43,7 +43,7 @@ func markMovedLines(fd *FileDiff) {
 		}
 	}
 
-	content := func(fd *FileDiff, block []lineRef) []string {
+	content := func(block []lineRef) []string {
 		lines := make([]string, len(block))
 		for i, ref := range block {
 			lines[i] = fd.Hunks[ref.hunkIdx].Lines[ref.lineIdx].Content
@@ -56,12 +56,12 @@ func markMovedLines(fd *FileDiff) {
 		if len(rb) < minMovedBlockLines {
 			continue
 		}
-		removedContent := content(fd, rb)
+		removedContent := content(rb)
 		for ai, ab := range addedBlocks {
 			if matchedAdded[ai] || len(ab) != len(rb) {
 				continue
 			}
-			if !slices.Equal(content(fd, ab), removedContent) {
+			if !slices.Equal(content(ab), removedContent) {
 				continue
 			}
 			markBlock(fd, rb)

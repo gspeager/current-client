@@ -62,29 +62,14 @@ func History(ctx context.Context, repoPath string, limit, skip int, filter Histo
 	if filter.Type != "" {
 		return typedHistory(ctx, repoPath, limit, skip, filter)
 	}
-	args := append([]string{"log", "-z", "--pretty=format:" + historyFormat}, pageArgs(limit, skip)...)
-	result, err := runResult(ctx, repoPath, append(args, filterArgs(filter)...)...)
-	if err != nil {
-		if hasNoCommits(ctx, repoPath) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return parseHistory(result.Stdout)
+	args := append(pageArgs(limit, skip), filterArgs(filter)...)
+	return logHistory(ctx, repoPath, args...)
 }
 
 // SearchHistory is limited to HEAD's ancestry so every match has a
 // well-defined CommitPosition.
 func SearchHistory(ctx context.Context, repoPath, query string, limit int) ([]HistoryEntry, error) {
-	args := append([]string{"log", "-z", "--pretty=format:" + historyFormat, "-i", "--grep=" + query}, pageArgs(limit, 0)...)
-	result, err := runResult(ctx, repoPath, args...)
-	if err != nil {
-		if hasNoCommits(ctx, repoPath) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return parseHistory(result.Stdout)
+	return logHistory(ctx, repoPath, append([]string{"-i", "--grep=" + query}, pageArgs(limit, 0)...)...)
 }
 
 // CommitPosition returns how many commits on HEAD's ancestry are newer than sha.
@@ -106,9 +91,13 @@ func CountCommits(ctx context.Context, repoPath string, revs ...string) (int, er
 }
 
 func FileHistory(ctx context.Context, repoPath, path string, limit, skip int) ([]HistoryEntry, error) {
-	args := append([]string{"log", "-z", "--follow", "--pretty=format:" + historyFormat}, pageArgs(limit, skip)...)
-	args = append(args, "--", path)
-	result, err := runResult(ctx, repoPath, args...)
+	return logHistory(ctx, repoPath, append(append([]string{"--follow"}, pageArgs(limit, skip)...), "--", path)...)
+}
+
+// logHistory runs git log with the history format; an empty repository has
+// no history rather than an error.
+func logHistory(ctx context.Context, repoPath string, args ...string) ([]HistoryEntry, error) {
+	result, err := runResult(ctx, repoPath, append([]string{"log", "-z", "--pretty=format:" + historyFormat}, args...)...)
 	if err != nil {
 		if hasNoCommits(ctx, repoPath) {
 			return nil, nil
@@ -212,11 +201,7 @@ func typedHistory(ctx context.Context, repoPath string, limit, skip int, filter 
 	if len(shas) == 0 {
 		return nil, nil
 	}
-	page, err := runResult(ctx, repoPath, append([]string{"log", "-z", "--no-walk=unsorted", "--pretty=format:" + historyFormat}, shas...)...)
-	if err != nil {
-		return nil, err
-	}
-	return parseHistory(page.Stdout)
+	return logHistory(ctx, repoPath, append([]string{"--no-walk=unsorted"}, shas...)...)
 }
 
 func typeGrep(commitType string) string {
@@ -230,27 +215,36 @@ func typeGrep(commitType string) string {
 // included, newest first. An empty from means all of to's history; since,
 // when set, is passed to --since.
 func RangeHistory(ctx context.Context, repoPath, from, to, since string) ([]HistoryEntry, error) {
-	toSHA, err := ResolveCommit(ctx, repoPath, to)
+	rev, err := revRange(ctx, repoPath, from, to)
 	if err != nil {
 		return nil, err
 	}
-	rev := toSHA
-	if from != "" {
-		fromSHA, err := ResolveCommit(ctx, repoPath, from)
-		if err != nil {
-			return nil, err
-		}
-		rev = fromSHA + ".." + toSHA
-	}
-	args := []string{"log", "-z", "--pretty=format:" + historyFormat}
+	var args []string
 	if since != "" {
 		args = append(args, "--since="+since)
 	}
-	result, err := runResult(ctx, repoPath, append(args, rev)...)
+	result, err := runResult(ctx, repoPath, append([]string{"log", "-z", "--pretty=format:" + historyFormat}, append(args, rev)...)...)
 	if err != nil {
 		return nil, err
 	}
 	return parseHistory(result.Stdout)
+}
+
+// revRange is "from..to" with both resolved to commits, or just to when from
+// is empty.
+func revRange(ctx context.Context, repoPath, from, to string) (string, error) {
+	toSHA, err := ResolveCommit(ctx, repoPath, to)
+	if err != nil {
+		return "", err
+	}
+	if from == "" {
+		return toSHA, nil
+	}
+	fromSHA, err := ResolveCommit(ctx, repoPath, from)
+	if err != nil {
+		return "", err
+	}
+	return fromSHA + ".." + toSHA, nil
 }
 
 // ResolveCommit returns ref's commit SHA. The ^{commit} suffix also keeps a ref

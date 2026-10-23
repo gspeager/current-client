@@ -111,17 +111,9 @@ type DatedTag struct {
 // first in history order (dates can tie or run backwards). An empty from means
 // every tag reachable from to.
 func TagsInRange(ctx context.Context, repoPath, from, to string) ([]DatedTag, error) {
-	toSHA, err := ResolveCommit(ctx, repoPath, to)
+	rev, err := revRange(ctx, repoPath, from, to)
 	if err != nil {
 		return nil, err
-	}
-	rev := toSHA
-	if from != "" {
-		fromSHA, err := ResolveCommit(ctx, repoPath, from)
-		if err != nil {
-			return nil, err
-		}
-		rev = fromSHA + ".." + toSHA
 	}
 	ordered, err := runResult(ctx, repoPath, "log", "--topo-order", "--decorate-refs=refs/tags/", "--format=%H %D", rev)
 	if err != nil {

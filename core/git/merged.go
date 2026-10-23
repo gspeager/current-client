@@ -3,7 +3,6 @@ package git
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -99,22 +98,7 @@ func MergedInto(ctx context.Context, repoPath, base string, tips []string) ([]bo
 
 // The tree each merge would produce, "" for one that conflicts.
 func mergedTrees(ctx context.Context, repoPath, base string, tips []string) ([]string, error) {
-	var input strings.Builder
-	for _, tip := range tips {
-		fmt.Fprintf(&input, "%s %s\n", base, tip)
-	}
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
-		Dir:   repoPath,
-		Args:  []string{"merge-tree", "--write-tree", "--stdin", "--name-only", "--no-messages", "-z"},
-		Stdin: strings.NewReader(input.String()),
-	})
-	if err != nil {
-		return nil, gitexec.WrapRunError(err)
-	}
-	if result.ExitCode != 0 {
-		return nil, mergeTreeError(result)
-	}
-	merges, err := parseMergeTreeStdin(result.Stdout, len(tips))
+	merges, err := mergeTreeMany(ctx, repoPath, base, tips)
 	if err != nil {
 		return nil, err
 	}

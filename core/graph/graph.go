@@ -1,6 +1,9 @@
 package graph
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 type Commit struct {
 	SHA        string
@@ -132,20 +135,11 @@ func (t *laneTracker) assignParents(lane int, parentSHAs []string) []int {
 func passThroughLanes(before, after map[int]bool, ownLane int, parentLanes []int) []int {
 	var passThrough []int
 	for lane := range before {
-		if lane == ownLane || !after[lane] || isParentLane(lane, parentLanes) {
+		if lane == ownLane || !after[lane] || slices.Contains(parentLanes, lane) {
 			continue
 		}
 		passThrough = append(passThrough, lane)
 	}
 	sort.Ints(passThrough)
 	return passThrough
-}
-
-func isParentLane(lane int, parentLanes []int) bool {
-	for _, pl := range parentLanes {
-		if pl == lane {
-			return true
-		}
-	}
-	return false
 }

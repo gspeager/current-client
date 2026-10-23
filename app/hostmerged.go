@@ -78,7 +78,6 @@ func mergedOnHost(repoPath string) map[string]hostMergedChange {
 	return merged
 }
 
-// cutRemote is the branch's name on the remote, from its remote-tracking name.
 func cutRemote(upstream, remote string) (string, bool) {
 	return strings.CutPrefix(upstream, remote+"/")
 }

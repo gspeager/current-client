@@ -17,8 +17,6 @@ func FetchAll(ctx context.Context, repoPath string) error {
 	return err
 }
 
-// FetchAllPrune is FetchAll that also deletes remote-tracking branches whose
-// branch no longer exists on the remote.
 func FetchAllPrune(ctx context.Context, repoPath string) error {
 	_, err := runResult(ctx, repoPath, "fetch", "--all", "--prune")
 	return err

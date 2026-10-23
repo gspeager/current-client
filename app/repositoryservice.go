@@ -13,7 +13,6 @@ import (
 
 type RepositoryService struct{}
 
-// opened adds a newly opened, initialized or cloned repository to the recent list.
 func opened(repo *repository.Repository, err error) (string, error) {
 	if err != nil {
 		return "", err
