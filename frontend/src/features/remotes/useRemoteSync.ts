@@ -100,5 +100,22 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
     }
   }
 
-  return { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp }
+  const pushTags = () => {
+    if (!repoPath) return
+    primaryRemoteName(repoPath)
+      .then((remote) => pushOp.run((auth) => RemoteService.PushTags(repoPath, remote, auth), onSynced))
+      .catch((err: unknown) => pushOp.setError(errorMessage(err)))
+  }
+
+  return {
+    pull,
+    pullMerge,
+    pullRebase,
+    push,
+    forcePush,
+    pushTags,
+    pushSetUpstream: () => (repoPath ? pushSettingUpstream(repoPath) : Promise.resolve()),
+    pullOp,
+    pushOp,
+  }
 }

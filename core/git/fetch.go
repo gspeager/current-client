@@ -12,6 +12,11 @@ func Fetch(ctx context.Context, repoPath, remote string) error {
 	return err
 }
 
+func FetchPrune(ctx context.Context, repoPath, remote string) error {
+	_, err := runResult(ctx, repoPath, "fetch", "--prune", remote)
+	return err
+}
+
 func FetchAll(ctx context.Context, repoPath string) error {
 	_, err := runResult(ctx, repoPath, "fetch", "--all")
 	return err

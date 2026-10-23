@@ -29,6 +29,11 @@ func PushSetUpstreamOutput(ctx context.Context, repoPath, remote, branch string)
 	return result.Stderr, err
 }
 
+func PushTags(ctx context.Context, repoPath, remote string) error {
+	_, err := runResult(ctx, repoPath, "push", remote, "--tags")
+	return err
+}
+
 // ForcePush uses --force-with-lease so it can't discard commits pushed by
 // someone else since the last fetch.
 func ForcePush(ctx context.Context, repoPath, remote, branch string) error {

@@ -38,6 +38,18 @@ function pendingPush() {
 }
 
 describe('useRemoteSync', () => {
+  it('pushes every tag to the primary remote', async () => {
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin' }] as never)
+    vi.mocked(RemoteService.PushTags).mockResolvedValue()
+    const onSynced = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
+
+    act(() => result.current.pushTags())
+
+    await vi.waitFor(() => expect(onSynced).toHaveBeenCalled())
+    expect(RemoteService.PushTags).toHaveBeenCalledWith(REPO, 'origin', null)
+  })
+
   it('pushes and reports the sync', async () => {
     vi.mocked(RemoteService.Push).mockResolvedValue(new PushResult({}))
     const onSynced = vi.fn()
