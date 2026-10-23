@@ -74,30 +74,43 @@ func MergeConflictsMany(ctx context.Context, repoPath, ours string, theirs []str
 	if result.ExitCode != 0 {
 		return nil, mergeTreeError(result)
 	}
-	return parseMergeTreeStdin(result.Stdout, len(theirs))
+	merges, err := parseMergeTreeStdin(result.Stdout, len(theirs))
+	if err != nil {
+		return nil, err
+	}
+	conflicts := make([][]string, len(merges))
+	for i, merge := range merges {
+		conflicts[i] = merge.files
+	}
+	return conflicts, nil
+}
+
+type mergeTreeResult struct {
+	clean bool
+	tree  string
+	files []string
 }
 
 // Each merge is "<1 clean, 0 conflicted>\0<tree>\0<file>\0…\0".
-func parseMergeTreeStdin(output string, merges int) ([][]string, error) {
+func parseMergeTreeStdin(output string, merges int) ([]mergeTreeResult, error) {
 	fields := strings.Split(output, "\x00")
-	conflicts := make([][]string, 0, merges)
-	for i := 0; len(conflicts) < merges; {
+	results := make([]mergeTreeResult, 0, merges)
+	for i := 0; len(results) < merges; {
 		if i+1 >= len(fields) {
-			return nil, fmt.Errorf("merge-tree answered %d of %d merges", len(conflicts), merges)
+			return nil, fmt.Errorf("merge-tree answered %d of %d merges", len(results), merges)
 		}
-		clean := fields[i] == "1"
+		merge := mergeTreeResult{clean: fields[i] == "1", tree: fields[i+1]}
 		i += 2
-		var files []string
 		for ; i < len(fields) && fields[i] != ""; i++ {
-			files = append(files, fields[i])
+			merge.files = append(merge.files, fields[i])
 		}
 		i++
-		if clean {
-			files = nil
+		if merge.clean {
+			merge.files = nil
 		}
-		conflicts = append(conflicts, files)
+		results = append(results, merge)
 	}
-	return conflicts, nil
+	return results, nil
 }
 
 // SharingHistory returns the commits of local and remote-tracking branches

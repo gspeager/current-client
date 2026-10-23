@@ -4,6 +4,7 @@ import {
   BranchChange,
   BranchService,
   HostService,
+  MergedBranches,
   OverlapService,
   PlatformService,
   RemoteService,
@@ -180,6 +181,36 @@ describe('BranchSidebar', () => {
 
     expect(BranchService.CreateBranchAt).toHaveBeenCalledWith(REPO, 'spike', 'abc1234def')
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('cleans up merged branches from the header, and restores them all on undo', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('a'), branch('b')])
+    vi.mocked(BranchService.MergedBranches).mockResolvedValue(
+      new MergedBranches({
+        default: 'main',
+        base: 'origin/main',
+        branches: [
+          { name: 'a', current: false, upstream: 'origin/a', tip: 'aaa', newer: false, number: 0, prefix: '' },
+          { name: 'b', current: false, upstream: 'origin/b', tip: 'bbb', newer: false, number: 0, prefix: '' },
+        ],
+      }),
+    )
+    vi.mocked(BranchService.DeleteBranch).mockImplementation((_repo, name) => Promise.resolve(`tip-${name}`) as never)
+    vi.mocked(BranchService.CreateBranchAt).mockResolvedValue()
+    const onBranchChanged = renderSidebar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Clean up merged branches' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Clean up merged branches' })
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Delete 2 branches' }))
+
+    const notice = await screen.findByRole('status')
+    expect(notice).toHaveTextContent('Deleted 2 branches')
+    expect(onBranchChanged).toHaveBeenCalled()
+    await userEvent.click(within(notice).getByRole('button', { name: 'Undo' }))
+
+    await waitFor(() => expect(BranchService.CreateBranchAt).toHaveBeenCalledTimes(2))
+    expect(BranchService.CreateBranchAt).toHaveBeenCalledWith(REPO, 'a', 'tip-a')
+    expect(BranchService.CreateBranchAt).toHaveBeenCalledWith(REPO, 'b', 'tip-b')
   })
 
   it('asks before force-deleting a branch with unmerged changes', async () => {

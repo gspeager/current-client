@@ -60,6 +60,10 @@ After a push that sets or updates a branch's upstream, and while the branch has 
 
 With the host on, **Create merge request** opens a form in the app instead of the host's page: the target branch (the default branch, changeable), a title from the branch's commits (one commit: its subject; several: the oldest's), a description from the commit list placed inside the repository's template when it has one (`.gitlab/merge_request_templates/Default.md` or the first template, `.github/pull_request_template.md` and GitHub's other places), and a draft toggle. A branch that isn't pushed yet is pushed first, with Git's credentials. This is the one request that needs write scope (GitLab `api`; GitHub write access to pull requests): a token without it gets a message naming the scope, and the host's own form stays one click away. The created change shows on the branch at once. For a change from a fork, the host's form is used.
 
+## Clean up merged branches
+
+**Clean up merged branches**, in the Branches sidebar's header, lists the local branches whose work is already on the default branch and offers to delete them. Git alone finds them, so this works with integration off: a branch with an upstream is merged when merging it into the default branch's upstream (`origin/main`, or the local branch without a remote) would change nothing, which catches squash and rebase merges as well as merge commits. With the host on, a branch whose merge request / pull request the cache knows as merged is listed with its number as the reason; the host is asked about a change once, on the refresh after it leaves the open list or while Git still publishes its head, and never again. A branch with commits past what was merged is marked **Newer commits** and left unselected. Building the list makes no request. Deleting goes through the same **Undo** as a single deletion; when the checked-out branch is among them, the default branch is checked out and pulled first.
+
 ## The merge request / pull request tab
 
 While a host is on for the repository, a tab named **Merge requests** (GitLab) or **Pull requests** (GitHub) lists the open changes from the last refresh: number, title, author as an initials badge, source and target branch, draft, labels, CI result and when it was updated, with an **Authored by me** filter. Opening the tab for the first time in a session refreshes it; after that it reads the cache until **Refresh**, a fetch or a pull. The list stops at the page cap and says so.
@@ -119,7 +123,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | --- | --- | --- |
 | `GET /user` | Test connection | `read_api` |
 | `GET /projects/:path/merge_requests?state=opened` | Refresh: the open merge requests, paged up to the cap | `read_api` |
-| `GET /projects/:path/merge_requests/:iid` | Refresh of one merge request (the pushed branch's, the checked-out branch's) | `read_api` |
+| `GET /projects/:path/merge_requests/:iid` | Refresh of one merge request (the pushed branch's, the checked-out branch's); once per local branch whose merge request left the open list, to learn whether it was merged | `read_api` |
 | `GET /projects/:id` | Once per fork a merge request comes from, to name it | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/discussions` | Refresh, for the checked-out branch's merge request | `read_api` |
 | `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads; and as commits scroll into view, once per commit until the next refresh | `read_api` |

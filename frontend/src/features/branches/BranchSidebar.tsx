@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
-import { Ellipsis, GitBranchPlus, Pencil, TriangleAlert, X } from 'lucide-react'
+import { BrushCleaning, Ellipsis, GitBranchPlus, Pencil, TriangleAlert, X } from 'lucide-react'
 import {
   type BranchInfo,
   BranchService,
@@ -14,6 +14,7 @@ import CompareModal from '../history/CompareModal'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import SetUpstreamDialog from './SetUpstreamDialog'
+import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
@@ -96,7 +97,8 @@ function BranchSidebar({
     onBranchChanged?.()
   })
   const [compareWith, setCompareWith] = useState<string | null>(null)
-  const [deleted, setDeleted] = useState<{ name: string; tip: string } | null>(null)
+  const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
+  const [cleanUp, setCleanUp] = useState(false)
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 
@@ -186,7 +188,7 @@ function BranchSidebar({
     setDeleted(null)
     BranchService.DeleteBranch(repoPath, name, force)
       .then((tip) => {
-        setDeleted({ name, tip })
+        setDeleted([{ name, tip }])
         loadBranches()
       })
       .catch(async (err: unknown) => {
@@ -216,12 +218,28 @@ function BranchSidebar({
       .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
-  const restoreDeleted = (branch: { name: string; tip: string }) => {
+  const restoreDeleted = (branches: DeletedBranch[]) => {
     setActionError(null)
     setDeleted(null)
-    BranchService.CreateBranchAt(repoPath, branch.name, branch.tip)
-      .then(loadBranches)
-      .catch((err: unknown) => setActionError(`Could not restore ${branch.name}: ${errorMessage(err)}`))
+    Promise.all(
+      branches.map((branch) =>
+        BranchService.CreateBranchAt(repoPath, branch.name, branch.tip).catch((err: unknown) => {
+          throw new Error(`Could not restore ${branch.name}: ${errorMessage(err)}`)
+        }),
+      ),
+    )
+      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .finally(() => {
+        loadBranches()
+        onBranchChanged?.()
+      })
+  }
+
+  const cleanedUp = (branches: DeletedBranch[]) => {
+    setCleanUp(false)
+    setDeleted(branches.length > 0 ? branches : null)
+    loadBranches()
+    onBranchChanged?.()
   }
 
   // The host's pre-filled form for a new merge request / pull request from the branch, built without the API.
@@ -301,6 +319,15 @@ function BranchSidebar({
         >
           <GitBranchPlus size={18} strokeWidth={1.75} />
         </button>
+        <button
+          type="button"
+          className="branch-sidebar-add"
+          onClick={() => setCleanUp(true)}
+          aria-label="Clean up merged branches"
+          title="Clean up merged branches"
+        >
+          <BrushCleaning size={18} strokeWidth={1.75} />
+        </button>
       </div>
 
       {showNewBranch && (
@@ -346,7 +373,12 @@ function BranchSidebar({
       {deleted && (
         <p className="branch-sidebar-deleted" role="status">
           <span>
-            Deleted <span className="branch-sidebar-deleted-name">{deleted.name}</span>
+            Deleted{' '}
+            {deleted.length === 1 ? (
+              <span className="branch-sidebar-deleted-name">{deleted[0].name}</span>
+            ) : (
+              `${deleted.length} branches`
+            )}
           </span>
           <button type="button" onClick={() => restoreDeleted(deleted)}>
             Undo
@@ -470,6 +502,7 @@ function BranchSidebar({
         </div>
       )}
 
+      {cleanUp && <CleanUpBranchesDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setCleanUp(false)} />}
       {upstreamFor && (
         <SetUpstreamDialog
           repoPath={repoPath}

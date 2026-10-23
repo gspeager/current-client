@@ -2,6 +2,12 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [Unreleased]
+
+### Added
+
+- **Clean up merged branches**, in the Branches sidebar's header, lists local branches whose work is already on the default branch, squash and rebase merges included, and deletes the ones you pick, with **Undo**. With host integration on, a branch whose merge request or pull request was merged on the host is listed with its number. A branch with commits newer than what was merged is marked and left unselected. When the checked-out branch is among them, the default branch is checked out and pulled first. ([#159](https://github.com/gspeager/current-client/issues/159))
+
 ## [0.3.0] - 2026-10-17
 
 ### Added
