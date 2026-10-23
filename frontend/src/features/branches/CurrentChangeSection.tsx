@@ -4,22 +4,27 @@ import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark from '../../components/git/CIMark'
 import { ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
+import { useReviewThreads } from '../../lib/useReviewThreads'
 import './CurrentChangeSection.scss'
 
 interface CurrentChangeSectionProps {
   repoPath: string
   refreshKey: number
   onOpenChange?: (number: number) => void
+  // Opens a file in Working Copy, for the first unresolved thread.
+  onOpenFile?: (path: string) => void
 }
 
 // The checked-out branch's merge request / pull request, read from the
 // cache: absent while the host is off or the branch has none known.
-function CurrentChangeSection({ repoPath, refreshKey, onOpenChange }: CurrentChangeSectionProps) {
+function CurrentChangeSection({ repoPath, refreshKey, onOpenChange, onOpenFile }: CurrentChangeSectionProps) {
   const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath], { refreshKey, keepData: true })
   const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath], {
     refreshKey,
     keepData: true,
   })
+  const reviewThreads = useReviewThreads(repoPath, refreshKey)
+  const firstThreadPath = Object.keys(reviewThreads.counts).find((path) => (reviewThreads.counts[path] ?? 0) > 0)
   const change = data?.enabled ? data.change : null
   const conflicts = forecast?.enabled ? (forecast.conflicts ?? []) : []
   if (!data?.enabled || (!change && conflicts.length === 0)) return null
@@ -46,9 +51,18 @@ function CurrentChangeSection({ repoPath, refreshKey, onOpenChange }: CurrentCha
                 {data.failedJobs?.length ? `failed: ${data.failedJobs.join(', ')}` : ciLabel(data.ci.status)}
               </span>
             )}
-            {change.unresolvedThreads > 0 && (
-              <span className="current-change-threads">{change.unresolvedThreads} unresolved</span>
-            )}
+            {change.unresolvedThreads > 0 &&
+              (onOpenFile && firstThreadPath ? (
+                <button
+                  type="button"
+                  className="current-change-threads current-change-threads-link"
+                  onClick={() => onOpenFile(firstThreadPath)}
+                >
+                  {change.unresolvedThreads} unresolved
+                </button>
+              ) : (
+                <span className="current-change-threads">{change.unresolvedThreads} unresolved</span>
+              ))}
           </div>
           <div className="current-change-actions">
             {onOpenChange && (

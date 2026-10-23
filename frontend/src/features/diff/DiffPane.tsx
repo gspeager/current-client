@@ -1,6 +1,7 @@
 import { Fragment, useLayoutEffect, useRef, type Key, type ReactNode, type RefObject } from 'react'
-import type { DiffLine, LineSelection } from '@current-client-bindings/app'
+import type { DiffLine, LineSelection, ReviewThread } from '@current-client-bindings/app'
 import { useDiffWrap } from './diffWrap'
+import ReviewThreadBlock from './ReviewThreadBlock'
 import { unifiedRowsForPair, type DisplayRow, type PairedLine, type UnifiedRow } from './diffRows'
 import { languageForPath, tokenizeLine } from './syntaxHighlight'
 import { diffLineWords } from './wordDiff'
@@ -211,6 +212,8 @@ interface DiffPaneProps extends HunkActions {
   scrollRef: RefObject<HTMLDivElement>
   // Present when lines can be selected for hunk actions.
   lineSelect?: LineSelect & { byHunk: Map<string, LineSelection> }
+  // Review threads pinned under the new-side line they were left on.
+  threadsByLine?: Map<number, ReviewThread[]>
 }
 
 // Split mode is one grid, so hunk headers can span both columns, unless lines
@@ -224,19 +227,29 @@ function DiffPane({
   currentHunkIndex,
   scrollRef,
   lineSelect,
+  threadsByLine,
   ...hunkActions
 }: DiffPaneProps) {
   const { wrap } = useDiffWrap()
   const language = languageForPath(path)
-  const renderPair = (pair: PairedLine, key: Key, side?: Side): ReactNode[] =>
-    side
+  // Threads go after the pair; with each side rendered on its own they can't
+  // span both, so DiffViewer lists them below the diff instead.
+  const threadRows = (pair: PairedLine, key: Key, side?: Side): ReactNode[] => {
+    const line = pair.right?.newLine
+    const threads = !side && line ? threadsByLine?.get(line) : undefined
+    return threads ? threads.map((thread) => <ReviewThreadBlock key={`${key}-t-${thread.id}`} thread={thread} />) : []
+  }
+  const renderPair = (pair: PairedLine, key: Key, side?: Side): ReactNode[] => [
+    ...(side
       ? [splitRow(pair, side, language, key, lineSelect)]
       : mode === 'split'
         ? [
             splitRow(pair, 'left', language, `${key}-l`, lineSelect),
             splitRow(pair, 'right', language, `${key}-r`, lineSelect),
           ]
-        : unifiedRowsForPair(pair).map((row, k) => unifiedRow(row, language, `${key}-${k}`, lineSelect))
+        : unifiedRowsForPair(pair).map((row, k) => unifiedRow(row, language, `${key}-${k}`, lineSelect))),
+    ...threadRows(pair, key, side),
+  ]
 
   // With a side, renders just that side; the right one gets blank rows where
   // the left has a hunk header or collapsed lines.

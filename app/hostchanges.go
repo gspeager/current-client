@@ -125,8 +125,10 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cachePipeline)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheJobs)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheIssue)
+		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheThreads)
 		if changes, truncated, err := provider.OpenChanges(ctx, info.Project); err == nil {
 			fillChangeCI(ctx, provider, info, repoPath, changes)
+			fillCurrentBranchThreads(ctx, provider, info, repoPath, remote.Name, changes)
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
 			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
 			refreshForecast(ctx, info, repoPath, remote.Name, changes)

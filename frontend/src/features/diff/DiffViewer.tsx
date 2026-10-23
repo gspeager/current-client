@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileCode, Image } from 'lucide-react'
-import type { FileDiff, LineSelection } from '@current-client-bindings/app'
+import type { FileDiff, LineSelection, ReviewThread } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
@@ -11,6 +11,7 @@ import SubmoduleDiff from './SubmoduleDiff'
 import { submoduleChange } from './submoduleChange'
 import { buildDisplayRows, diffStats } from './diffRows'
 import DiffPane, { lineKey, type HunkActions } from './DiffPane'
+import ReviewThreadBlock from './ReviewThreadBlock'
 import './DiffViewer.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 
@@ -32,6 +33,9 @@ interface DiffViewerProps extends HunkActions {
   onForceLoad?: () => void
   // Where to read the two versions of an image from; without it images show as binary.
   images?: ImageSources
+  // Review threads for this file: pinned to their lines, outdated ones listed below.
+  threads?: ReviewThread[]
+  outdatedThreads?: ReviewThread[]
   // Lets a submodule's change list the commits between its two versions.
   repoPath?: string
 }
@@ -45,6 +49,8 @@ function DiffViewer({
   onForceLoad,
   images,
   repoPath,
+  threads,
+  outdatedThreads,
   ...hunkActions
 }: DiffViewerProps) {
   const [showImage, setShowImage] = useState(true)
@@ -170,6 +176,19 @@ function DiffViewer({
   // A conflicted file is one working file with both sides inline: there's no
   // second side to split against and no hunk to stage on its own.
   const mode = diff.conflicted ? 'unified' : viewMode
+  // Threads pin to a new-side line the diff shows; the rest, and all of them
+  // when each side scrolls on its own, are listed under the diff.
+  const sidesApart = mode === 'split' && !wrap
+  const shownLines = new Set(diff.hunks.flatMap((h) => h.lines.map((l) => l.newLine).filter(Boolean)))
+  const threadsByLine = new Map<number, ReviewThread[]>()
+  const unplaced: ReviewThread[] = []
+  for (const thread of threads ?? []) {
+    if (!sidesApart && thread.line && shownLines.has(thread.line)) {
+      threadsByLine.set(thread.line, [...(threadsByLine.get(thread.line) ?? []), thread])
+    } else {
+      unplaced.push(thread)
+    }
+  }
 
   return (
     <div>
@@ -208,8 +227,29 @@ function DiffViewer({
           lineSelect={
             canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
           }
+          threadsByLine={threadsByLine}
           {...(diff.conflicted ? {} : hunkActions)}
         />
+        {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
+          <section className="review-threads-outdated" aria-label="Threads not shown at a line">
+            {unplaced.length > 0 && (
+              <span className="review-threads-outdated-label">Threads on lines not in this diff</span>
+            )}
+            {unplaced.map((thread) => (
+              <ReviewThreadBlock key={thread.id} thread={thread} where={`line ${thread.line}`} />
+            ))}
+            {(outdatedThreads?.length ?? 0) > 0 && (
+              <span className="review-threads-outdated-label">Outdated: the code has changed since</span>
+            )}
+            {outdatedThreads?.map((thread) => (
+              <ReviewThreadBlock
+                key={thread.id}
+                thread={thread}
+                where={thread.oldLine ? `old line ${thread.oldLine}` : `line ${thread.line}`}
+              />
+            ))}
+          </section>
+        )}
       </div>
     </div>
   )
