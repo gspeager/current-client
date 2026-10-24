@@ -80,6 +80,12 @@
   border-right: var(--border-structure);
 }
 
+// Pinned to the foot of the rail, where the Toolbox sits in the open sidebar.
+.nav-pane-rail-toolbox {
+  margin-top: auto;
+}
+
+.nav-pane-rail-toolbox,
 .nav-pane-rail-group {
   display: flex;
   flex-direction: column;
@@ -106,6 +112,10 @@
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   border-top: var(--border-structure);
+
+  .sidebar-section-header {
+    margin-bottom: 0;
+  }
 }
 
 // "Open in" and "Tools": a caption over a wrapping row of outlined buttons.

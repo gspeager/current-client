@@ -83,11 +83,32 @@ describe('NavPane collapsed rail', () => {
     expect(screen.queryByText('Branches')).not.toBeInTheDocument()
   })
 
-  it('separates the open, tools, maintenance and section groups with rules', () => {
+  it('follows the sidebar: sections, then the Toolbox groups, each set off by a rule', () => {
     renderNav(true)
 
     const rail = screen.getByRole('navigation', { name: 'Repository' })
     expect(rail.querySelectorAll('.nav-pane-rail-divider')).toHaveLength(4)
+    expect(
+      within(rail)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual([
+      'Expand sidebar',
+      'Show Branches',
+      'Show Stash',
+      'Show Tags',
+      'Show Remotes',
+      'Show Worktrees',
+      'Open Terminal',
+      expect.stringMatching(/^(Reveal in|Open in File Manager)/),
+      'Open in VS Code',
+      'Undo last operation',
+      'Reflog',
+      'Bisect',
+      'Apply patch…',
+      'Check integrity',
+      'Run cleanup',
+    ])
   })
 
   it('expands to a section picked from the rail and opens it', async () => {
@@ -161,6 +182,19 @@ describe('NavPane expanded', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Maintenance' }))
     await userEvent.click(screen.getByRole('button', { name: 'Check integrity' }))
     expect(await screen.findByText('Repository is healthy.')).toBeInTheDocument()
+  })
+
+  it('puts the groups in a Toolbox that starts open and is remembered closed', async () => {
+    vi.mocked(SettingsService.SetSidebarSection).mockResolvedValue()
+    renderNav(false)
+
+    const toolbox = screen.getByRole('button', { name: 'Toolbox' })
+    expect(toolbox).toHaveAttribute('aria-expanded', 'true')
+    await userEvent.click(toolbox)
+
+    expect(toolbox).toHaveAttribute('aria-expanded', 'false')
+    expect(document.querySelector('.nav-pane-footer .nav-pane-tool-group')).toBeNull()
+    expect(SettingsService.SetSidebarSection).toHaveBeenCalledWith(REPO, 'toolbox', false)
   })
 
   it('lets a message be dismissed', async () => {
