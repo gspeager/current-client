@@ -68,20 +68,6 @@ function ContributorsChart({ repoPath, repoVersion }: ContributorsChartProps) {
           <p className="contributors-hint">Loading contributors…</p>
         ) : contributors.length === 0 ? (
           <p className="contributors-hint">No commits in this range.</p>
-        ) : contributors.length === 1 ? (
-          // One author is the whole chart; the number says it.
-          <div className="contributors-single">
-            <IdentityBadge
-              identity={contributors[0]}
-              name={contributors[0].name}
-              email={contributors[0].email}
-              size={32}
-            />
-            <div className="contributors-row-identity">
-              <span className="contributors-row-name">{contributors[0].name}</span>
-              <span className="contributors-row-email">{plural(total, 'commit')} · the only author</span>
-            </div>
-          </div>
         ) : (
           <>
             <div className="contributors-donut-wrap">
