@@ -48,6 +48,7 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 - Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Activity's Contributors card shows its chart for a repository with one author, a full ring, instead of a line in an otherwise empty card. ([#246](https://github.com/gspeager/current-client/issues/246))
 - A merge, rebase, cherry-pick, revert or pull that stops on conflicts no longer also shows "Git command failed."; the conflict banner says what's next. A squash merge or stash pop that stops says the changes conflict. ([#250](https://github.com/gspeager/current-client/issues/250))
+- Review threads show in History too: under their line in a commit's file diff, and as counts in the commit's file list, where the file is the same at that commit as at the pull request's head. ([#252](https://github.com/gspeager/current-client/issues/252))
 
 ### What works at each level of access
 

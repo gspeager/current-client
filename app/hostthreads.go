@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostcontent"
 )
@@ -50,15 +51,49 @@ func (s *HostService) ReviewThreads(repoPath string) (ReviewThreads, error) {
 	if err != nil || !current.Enabled {
 		return ReviewThreads{}, err
 	}
+	return currentThreads(repoPath, current, func(string) bool { return true }), nil
+}
+
+// ReviewThreadsAt is ReviewThreads for History's diff of commit sha. A
+// thread's line is the change head's, so a file keeps its threads only when
+// it's the same at sha as at the head.
+func (s *HostService) ReviewThreadsAt(repoPath, sha string) (ReviewThreads, error) {
+	current, err := s.CurrentChange(repoPath)
+	if err != nil || !current.Enabled {
+		return ReviewThreads{}, err
+	}
+	if current.Change == nil {
+		return currentThreads(repoPath, current, nil), nil
+	}
+	differs, err := git.RefRangeChangedFiles(context.Background(), repoPath, sha, current.Change.HeadSHA)
+	if err != nil {
+		// The head isn't fetched yet, so no file can be compared with it.
+		return currentThreads(repoPath, current, func(string) bool { return false }), nil
+	}
+	changed := map[string]bool{}
+	for _, file := range differs {
+		changed[file.Path] = true
+		changed[file.OrigPath] = true
+	}
+	return currentThreads(repoPath, current, func(path string) bool { return !changed[path] }), nil
+}
+
+// currentThreads renders the cached threads of current's change, leaving out
+// those on files keep refuses.
+func currentThreads(repoPath string, current CurrentChange, keep func(path string) bool) ReviewThreads {
 	_, info, _, _ := primaryHost(repoPath)
 	if current.Change == nil {
-		return renderThreads(info, 0, nil), nil
+		return renderThreads(info, 0, nil)
 	}
 	var threads []hostapi.Thread
 	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheThreads, strconv.Itoa(current.Change.Number)); ok {
-		threads = cached.([]hostapi.Thread)
+		for _, thread := range cached.([]hostapi.Thread) {
+			if thread.Path == "" || keep(thread.Path) {
+				threads = append(threads, thread)
+			}
+		}
 	}
-	return renderThreads(info, current.Change.Number, threads), nil
+	return renderThreads(info, current.Change.Number, threads)
 }
 
 // ChangeThreads is any change's threads, for the detail's Threads tab:

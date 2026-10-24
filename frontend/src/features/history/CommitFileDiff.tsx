@@ -7,17 +7,19 @@ import DiffViewMenu from '../diff/DiffViewMenu'
 import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
 import { diffBaseFor } from '../diff/diffMapping'
 import { useAsyncData } from '../../lib/useAsyncData'
+import type { ReviewThreadsView } from '../../lib/useReviewThreads'
 import './CommitFileDiff.scss'
 
 interface CommitFileDiffProps {
   repoPath: string
   commit: CommitInfo
   path: string
+  reviewThreads: ReviewThreadsView
   onBack: () => void
 }
 
 // A commit's file, in the main column in place of the graph; the inspector stays.
-function CommitFileDiff({ repoPath, commit, path, onBack }: CommitFileDiffProps) {
+function CommitFileDiff({ repoPath, commit, path, reviewThreads, onBack }: CommitFileDiffProps) {
   const base = diffBaseFor(commit.parentShas)
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(false)
@@ -50,6 +52,8 @@ function CommitFileDiff({ repoPath, commit, path, onBack }: CommitFileDiffProps)
             viewMode={viewMode}
             baseSide={{ label: 'Parent', sha: base.slice(0, 7) }}
             targetSide={{ label: 'Commit', sha: commit.sha.slice(0, 7) }}
+            threads={reviewThreads.byPath[path]}
+            outdatedThreads={reviewThreads.outdatedByPath[path]}
             onForceLoad={() => setForced(true)}
             repoPath={repoPath}
             images={{

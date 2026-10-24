@@ -19,6 +19,7 @@ import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useCIStatus } from '../../lib/useCIStatus'
 import { useReferenceCards } from '../../lib/useReferenceCards'
+import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { ALL_BRANCHES, isBranchName } from './branchFilter'
@@ -131,6 +132,7 @@ function HistoryView({
   const onFocusRef = (sha: string) => setFocusedSha((prev) => (prev === sha ? null : sha))
 
   const selectedCommit = selectedSha ? (commits.find((c) => c.sha === selectedSha) ?? null) : null
+  const reviewThreads = useReviewThreads(repoPath, undefined, selectedSha ?? undefined)
   const openedPath = selectedCommit && openedFile?.sha === selectedCommit.sha ? openedFile.path : null
   const selectedIdentity = selectedCommit
     ? identities.get(identityKey(selectedCommit.authorName, selectedCommit.authorEmail))
@@ -223,6 +225,7 @@ function HistoryView({
             repoPath={repoPath}
             commit={selectedCommit}
             path={openedPath}
+            reviewThreads={reviewThreads}
             onBack={() => setOpenedFile(null)}
           />
         ) : (
@@ -305,6 +308,7 @@ function HistoryView({
             actionError={commitActions.error}
             openedPath={openedPath}
             onOpenFile={(path) => setOpenedFile({ sha: selectedCommit.sha, path })}
+            threadCounts={reviewThreads.counts}
           />
         </div>
       )}

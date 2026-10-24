@@ -8,8 +8,11 @@ import {
   DiffService,
   FileDiff,
   HistoryService,
+  HostService,
   PlatformService,
   RemoteService,
+  ReviewThread,
+  ReviewThreads,
 } from '@current-client-bindings/app'
 import { Links } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
@@ -158,6 +161,26 @@ describe('HistoryView', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'History' }))
     expect(screen.getByPlaceholderText('Search commits, authors, hashes…')).toBeInTheDocument()
+  })
+
+  it("counts the branch's review threads on the commit's files, as they are at that commit", async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(HistoryService.GetChangedFiles).mockResolvedValue([new ChangedFile({ status: 'M', path: 'src/app.ts' })])
+    vi.mocked(HostService.ReviewThreadsAt).mockResolvedValue(
+      new ReviewThreads({
+        enabled: true,
+        number: 7,
+        threads: [new ReviewThread({ id: 't1', path: 'src/app.ts', line: 3 })],
+        unresolved: { 'src/app.ts': 1 },
+        total: 1,
+      }),
+    )
+    renderHistory()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Fix login redirect/ }))
+
+    expect(await screen.findByTitle('1 unresolved review thread')).toBeInTheDocument()
+    expect(HostService.ReviewThreadsAt).toHaveBeenCalledWith(REPO, 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1')
   })
 
   it('opens a fixed inspector whose actions match the menu, and says how many commits there are', async () => {
