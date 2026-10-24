@@ -87,7 +87,7 @@ export function PipelineJobList({
   }, [jobs, onLoaded])
   return (
     <>
-      {error && <p className="ci-jobs-error">{errorMessage(error)}</p>}
+      {error && <p className="ci-jobs-error">Could not load the checks: {errorMessage(error)}</p>}
       {jobs === null && !error && <p className="ci-jobs-hint">Loading jobs…</p>}
       {jobs?.length === 0 && <p className="ci-jobs-hint">No jobs.</p>}
       {jobs && jobs.length > 0 && (

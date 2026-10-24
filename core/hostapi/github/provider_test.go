@@ -159,9 +159,11 @@ func TestLatestPipelineCombinesCheckRunsAndStatuses(t *testing.T) {
 		t.Fatalf("LatestPipeline = %+v, %v, %v", pipeline, ok, err)
 	}
 
+	// The id goes back through the commit endpoint for the full SHA; the
+	// checks endpoints refuse the abbreviated one.
 	short := "654d851d8145b29"
-	f.routes["GET "+v3+"/commits/"+short+"/check-runs?per_page=100"] = "check_runs.json"
-	f.routes["GET "+v3+"/commits/"+short+"/status"] = `{"state": "failure", "statuses": [{"id": 7, "context": "ci/circleci", "state": "failure", "target_url": "https://circleci.example.com/1"}]}`
+	f.routes["GET "+v3+"/commits/"+short] = `{"sha": "` + sha + `"}`
+	f.routes["GET "+v3+"/commits/"+sha+"/status"] = `{"state": "failure", "statuses": [{"id": 7, "context": "ci/circleci", "state": "failure", "target_url": "https://circleci.example.com/1"}]}`
 	jobs, err := p.Jobs(context.Background(), project, pipeline.ID)
 	if err != nil || len(jobs) != 6 {
 		t.Fatalf("Jobs = %d, %v", len(jobs), err)
