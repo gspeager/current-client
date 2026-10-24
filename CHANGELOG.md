@@ -41,6 +41,13 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 - **The sidebar is restructured.** HEAD is one line at the top, with your branch's pull request under it; every section folds from its header and keeps its count and add button while closed, empty sections start closed, and what you open or close is remembered per repository (the changed-files groups in Changes fold the same way). Branches come in **Checked out**, **Local** and **Remote** groups with a filter, a **conflicts** badge in place of the warning glyph, and the time on hover. The icon row became **Open in** (Terminal, file manager, your editor, the host) and **Tools** (Undo, Reflog, Bisect, Apply patch, Maintenance) rows at the bottom; messages there can be dismissed. Remotes on disk show the end of their path rather than overflowing. ([#217](https://github.com/gspeager/current-client/issues/217))
 - One name per concept across the app: the tabs read **Changes** (with the count of changed files), **History**, **Pull requests** / **Merge requests**, **Activity**, **Changelog**; branch menus say **Check out** like the buttons; the command palette is **Go to anything** and at rest lists local branches, recent repositories and actions rather than everything, with settings appearing once typed for; the sidebar's merge request section and the create dialog use the host's own word; the diff's side labels are **HEAD** and **Staged**. ([#216](https://github.com/gspeager/current-client/issues/216))
 
+### Fixed
+
+- On GitHub, a pull request's **Checks** tab and a CI mark's job list answered "422 Unprocessable Entity": the mark's id was 60 bits of the commit's SHA, more than a number in the app's frontend keeps exactly, so the job request named a commit that doesn't exist. The id is now 52 bits and comes back intact. The failure, when there is one, reads as a sentence. ([#235](https://github.com/gspeager/current-client/issues/235))
+- Code shows operators as typed. JetBrains Mono drew `<-` as an arrow and `!=` as ≠, and `->`, `>=` and `==` the same way, in diffs and all other monospaced text. ([#242](https://github.com/gspeager/current-client/issues/242))
+- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
+- Activity's Contributors card shows its chart for a repository with one author, a full ring, instead of a line in an otherwise empty card. ([#246](https://github.com/gspeager/current-client/issues/246))
+
 ### What works at each level of access
 
 | Feature | Integration off | Read-only token | Write scope |
@@ -80,10 +87,6 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
-- Activity's Contributors card shows its chart for a repository with one author, a full ring, instead of a line in an otherwise empty card. ([#246](https://github.com/gspeager/current-client/issues/246))
-- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
-- Code shows operators as typed. JetBrains Mono drew `<-` as an arrow and `!=` as ≠, and `->`, `>=` and `==` the same way, in diffs and all other monospaced text. ([#242](https://github.com/gspeager/current-client/issues/242))
-- On GitHub, a pull request's **Checks** tab and a CI mark's job list answered "422 Unprocessable Entity": the mark's id was 60 bits of the commit's SHA, more than a number in the app's frontend keeps exactly, so the job request named a commit that doesn't exist. The id is now 52 bits and comes back intact. The failure, when there is one, reads as a sentence. ([#235](https://github.com/gspeager/current-client/issues/235))
 - Pull and push progress and errors show only in the tab of the repository they're for. Switching tabs no longer leaves another repository's "Could not pull" in view, and its **Pull (merge)** and **Pull (rebase)** pull the repository that diverged. A pull or push keeps running in a background tab. ([#122](https://github.com/gspeager/current-client/issues/122))
 - On macOS, the app goes idle again while files have uncommitted changes. Reading a modified file to show its status counted as a change to it, so the app refreshed about twice a second. ([#109](https://github.com/gspeager/current-client/issues/109))
 - Conflict marks on branches no longer disappear when the repository has a branch with unrelated history, such as an orphan `gh-pages`.
@@ -105,8 +108,6 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
-- Activity's Contributors card shows its chart for a repository with one author, a full ring, instead of a line in an otherwise empty card. ([#246](https://github.com/gspeager/current-client/issues/246))
-- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Pulling a branch that has diverged from its upstream says so and offers Pull (merge) or Pull (rebase), instead of "Git command failed." ([#72](https://github.com/gspeager/current-client/issues/72))
 - When Git fails for a reason the app doesn't recognise, the message and **Copy diagnostics** give Git's own reason instead of only "Git command failed." ([#74](https://github.com/gspeager/current-client/issues/74))
 - Branches, tags, fetches and stashes made outside the app, such as in a terminal, now refresh the sidebar, including in worktrees. ([#81](https://github.com/gspeager/current-client/issues/81))
@@ -148,8 +149,6 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
-- Activity's Contributors card shows its chart for a repository with one author, a full ring, instead of a line in an otherwise empty card. ([#246](https://github.com/gspeager/current-client/issues/246))
-- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Force push now always updates the branch's own upstream. Before, a branch tracking a differently named remote branch (local `feature` tracking `origin/feat-x`) was force-pushed to `origin/feature` instead, and a remote with a `/` in its name wasn't found. ([#24](https://github.com/gspeager/current-client/issues/24))
 - **Revert** and **Cherry-pick** work on merge commits, using the changes the merge brought in, so a merged pull request can be backed out. They used to fail with Git's "no -m option was given" error. ([#35](https://github.com/gspeager/current-client/issues/35))
 - A commit with a long description no longer pushes its changed files out of reach in the Commit detail pane; the pane scrolls instead. ([#58](https://github.com/gspeager/current-client/issues/58))
@@ -167,8 +166,6 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
-- Activity's Contributors card shows its chart for a repository with one author, a full ring, instead of a line in an otherwise empty card. ([#246](https://github.com/gspeager/current-client/issues/246))
-- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Cloning now creates a folder named after the repository inside the destination you choose, as `git clone` does. The folder name can be changed, and the full path is shown before cloning. ([#1](https://github.com/gspeager/current-client/issues/1))
 - Activity, Branch Graph & History and Changelog no longer reload and redraw when you return to them; they refresh only when commits or branches have changed. ([#3](https://github.com/gspeager/current-client/issues/3))
 - Spaces and other characters Git doesn't allow in branch names are turned into dashes, and the name is shown before the branch is created. ([#4](https://github.com/gspeager/current-client/issues/4))
