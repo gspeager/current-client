@@ -1,0 +1,66 @@
+// design-system.md: PRs are squares, --secondary is PR/review state. The lane
+// color of the pill beside it is untouched.
+.change-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  white-space: nowrap;
+  cursor: pointer;
+
+  // A number without a page to open: no pointer, no hover state.
+  &.change-marker-static {
+    cursor: default;
+  }
+
+  &:not(.change-marker-static):hover {
+    background: var(--surface-high);
+    color: var(--on-surface);
+  }
+}
+
+.change-marker-square {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  border: 1.5px solid var(--secondary);
+
+  [data-state='open'] & {
+    background: var(--secondary);
+  }
+
+  [data-state='merged'] & {
+    background: var(--secondary);
+    opacity: 0.55;
+  }
+
+  [data-state='closed'] & {
+    border-color: var(--outline);
+  }
+}
+
+.change-marker-ci {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--outline);
+
+  &.change-marker-ci-success {
+    background: var(--tertiary);
+  }
+
+  &.change-marker-ci-failed {
+    background: var(--error);
+  }
+
+  &.change-marker-ci-canceled {
+    background: var(--warning);
+  }
+}

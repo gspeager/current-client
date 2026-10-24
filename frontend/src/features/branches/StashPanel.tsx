@@ -8,17 +8,20 @@ import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import StashModal from './StashModal'
+import SidebarSection from '../../components/chrome/SidebarSection'
+import type { SidebarSections } from '../../lib/useSidebarSections'
 import './StashPanel.scss'
 
 interface StashPanelProps {
   repoPath: string
   dirty: boolean
-  // Reloads the list when it changes, such as after a stash made from Working Copy.
+  // Reloads the list when it changes, such as after a stash made from Changes.
   refreshKey?: unknown
+  sections: SidebarSections
   onStashChanged?: () => void
 }
 
-function StashPanel({ repoPath, dirty, refreshKey, onStashChanged }: StashPanelProps) {
+function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: StashPanelProps) {
   useClockTick()
   const {
     data: stashes,
@@ -86,92 +89,105 @@ function StashPanel({ repoPath, dirty, refreshKey, onStashChanged }: StashPanelP
       .finally(() => setBusyIndex(null))
   }
 
+  const open = sections.isOpen('stash', (stashes?.length ?? 0) > 0)
+
+  const toggleNewStash = () => {
+    setShowNewStash((v) => !v)
+    sections.open('stash')
+  }
+
   return (
     <div className="stash-panel">
-      <div className="stash-panel-header">
-        <span className="stash-panel-label">Stash</span>
-        <button
-          type="button"
-          className="stash-panel-add"
-          onClick={() => setShowNewStash((v) => !v)}
-          aria-label="Stash changes"
-          title="Stash changes"
-          disabled={!dirty}
-        >
-          <PackagePlus size={18} strokeWidth={1.75} />
-        </button>
-      </div>
-
-      {showNewStash && (
-        <div className="stash-panel-new">
-          <input
-            aria-label="new stash message"
-            placeholder="Stash message (optional)"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            autoFocus
-          />
-          <Checkbox checked={includeUntracked} onChange={setIncludeUntracked} label="Include untracked files" />
-          <Checkbox checked={keepIndex} onChange={setKeepIndex} label="Keep staged changes" />
-          <button type="button" onClick={saveStash}>
-            Stash
+      <SidebarSection
+        label="Stash"
+        count={stashes?.length}
+        open={open}
+        onToggle={() => sections.toggle('stash', (stashes?.length ?? 0) > 0)}
+        actions={
+          <button
+            type="button"
+            className="stash-panel-add"
+            onClick={toggleNewStash}
+            aria-label="Stash changes"
+            title="Stash changes"
+            disabled={!dirty}
+          >
+            <PackagePlus size={18} strokeWidth={1.75} />
           </button>
-        </div>
-      )}
-
-      {error && <p className="stash-panel-error">{error}</p>}
-      {stashes === null ? (
-        <p className="stash-panel-hint">Loading stashes…</p>
-      ) : stashes.length === 0 ? (
-        <p className="stash-panel-hint">No stashes.</p>
-      ) : (
-        <ul className="stash-panel-list">
-          {stashes.map((s) => (
-            <li key={s.index} className="stash-row" title={s.message}>
-              <Package size={14} strokeWidth={1.5} className="stash-row-icon" />
-              <span className="stash-row-message">{s.message}</span>
-              <span className="stash-row-time">{relativeTime(new Date(s.date))}</span>
-              <span className="stash-row-actions">
-                <button
-                  type="button"
-                  onClick={() => setShownStash(s)}
-                  aria-label={`Show changes in stash: ${s.message}`}
-                  title="Show changes"
-                >
-                  <Eye size={16} strokeWidth={1.75} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyStash(s.index)}
-                  disabled={busyIndex !== null}
-                  aria-label={`Apply stash: ${s.message}`}
-                  title="Apply (keep in list)"
-                >
-                  <Download size={16} strokeWidth={1.75} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => popStash(s.index)}
-                  disabled={busyIndex !== null}
-                  aria-label={`Pop stash: ${s.message}`}
-                  title="Pop (apply and remove)"
-                >
-                  <ArrowDownToLine size={16} strokeWidth={1.75} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => dropStash(s.index)}
-                  disabled={busyIndex !== null}
-                  aria-label={`Drop stash: ${s.message}`}
-                  title="Drop"
-                >
-                  <X size={16} strokeWidth={1.75} />
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+        }
+        pinned={
+          showNewStash && (
+            <div className="stash-panel-new">
+              <input
+                aria-label="new stash message"
+                placeholder="Stash message (optional)"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                autoFocus
+              />
+              <Checkbox checked={includeUntracked} onChange={setIncludeUntracked} label="Include untracked files" />
+              <Checkbox checked={keepIndex} onChange={setKeepIndex} label="Keep staged changes" />
+              <button type="button" onClick={saveStash}>
+                Stash
+              </button>
+            </div>
+          )
+        }
+      >
+        {error && <p className="stash-panel-error">{error}</p>}
+        {stashes === null ? (
+          <p className="stash-panel-hint">Loading stashes…</p>
+        ) : stashes.length === 0 ? (
+          <p className="stash-panel-hint">No stashes.</p>
+        ) : (
+          <ul className="stash-panel-list">
+            {stashes.map((s) => (
+              <li key={s.index} className="stash-row" title={s.message}>
+                <Package size={14} strokeWidth={1.5} className="stash-row-icon" />
+                <span className="stash-row-message">{s.message}</span>
+                <span className="stash-row-time">{relativeTime(new Date(s.date))}</span>
+                <span className="stash-row-actions">
+                  <button
+                    type="button"
+                    onClick={() => setShownStash(s)}
+                    aria-label={`Show changes in stash: ${s.message}`}
+                    title="Show changes"
+                  >
+                    <Eye size={16} strokeWidth={1.75} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyStash(s.index)}
+                    disabled={busyIndex !== null}
+                    aria-label={`Apply stash: ${s.message}`}
+                    title="Apply (keep in list)"
+                  >
+                    <Download size={16} strokeWidth={1.75} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => popStash(s.index)}
+                    disabled={busyIndex !== null}
+                    aria-label={`Pop stash: ${s.message}`}
+                    title="Pop (apply and remove)"
+                  >
+                    <ArrowDownToLine size={16} strokeWidth={1.75} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dropStash(s.index)}
+                    disabled={busyIndex !== null}
+                    aria-label={`Drop stash: ${s.message}`}
+                    title="Drop"
+                  >
+                    <X size={16} strokeWidth={1.75} />
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SidebarSection>
       {shownStash && <StashModal repoPath={repoPath} stash={shownStash} onClose={() => setShownStash(null)} />}
     </div>
   )

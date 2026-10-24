@@ -8,12 +8,29 @@ import (
 )
 
 func Push(ctx context.Context, repoPath string) error {
-	_, err := runResult(ctx, repoPath, "push")
+	_, err := PushOutput(ctx, repoPath)
 	return err
 }
 
+// PushOutput is Push that also returns what the remote printed, where a host
+// puts a link to create a merge request / pull request.
+func PushOutput(ctx context.Context, repoPath string) (string, error) {
+	result, err := runResult(ctx, repoPath, "push")
+	return result.Stderr, err
+}
+
 func PushSetUpstream(ctx context.Context, repoPath, remote, branch string) error {
-	_, err := runResult(ctx, repoPath, "push", "--set-upstream", remote, branch)
+	_, err := PushSetUpstreamOutput(ctx, repoPath, remote, branch)
+	return err
+}
+
+func PushSetUpstreamOutput(ctx context.Context, repoPath, remote, branch string) (string, error) {
+	result, err := runResult(ctx, repoPath, "push", "--set-upstream", remote, branch)
+	return result.Stderr, err
+}
+
+func PushTags(ctx context.Context, repoPath, remote string) error {
+	_, err := runResult(ctx, repoPath, "push", remote, "--tags")
 	return err
 }
 

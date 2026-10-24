@@ -60,8 +60,8 @@ func TestMergeBranchCleanMergeCommit(t *testing.T) {
 func TestMergeBranchConflictLeavesConflictState(t *testing.T) {
 	dir := initConflictRepo(t)
 
-	if err := MergeBranch(context.Background(), dir, "theirs"); err == nil {
-		t.Fatal("expected an error merging a conflicting branch")
+	if err := MergeBranch(context.Background(), dir, "theirs"); err != nil {
+		t.Fatalf("MergeBranch stopped on conflicts: %v, want no error", err)
 	}
 
 	state, err := DetectConflictState(context.Background(), dir)
@@ -73,6 +73,15 @@ func TestMergeBranchConflictLeavesConflictState(t *testing.T) {
 	}
 	if len(state.ConflictedPaths) != 1 || state.ConflictedPaths[0] != "file.txt" {
 		t.Fatalf("ConflictedPaths = %v, want [file.txt]", state.ConflictedPaths)
+	}
+}
+
+func TestMergeBranchModeSquashConflictSaysTheChangesConflict(t *testing.T) {
+	dir := initConflictRepo(t)
+
+	err := MergeBranchMode(context.Background(), dir, "theirs", MergeSquash)
+	if err == nil || err.Error() != "The changes conflict. Resolve the conflicted files in Changes." {
+		t.Fatalf("err = %v, want the conflict message", err)
 	}
 }
 

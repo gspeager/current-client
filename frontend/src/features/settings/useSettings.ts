@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { PlatformService, SettingsService, type Settings } from '@current-client-bindings/app'
-import type { ChangelogPrefs } from '@current-client-bindings/internal/config'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
 import { errorMessage } from '../../lib/errors'
 
@@ -46,106 +45,51 @@ export function useSettings() {
     return () => media.removeEventListener('change', apply)
   }, [root, theme, active])
 
-  const setTheme = (theme: string) => {
-    setSettings((prev) => (prev ? { ...prev, theme } : prev))
-    SettingsService.SetTheme(theme).catch((err: unknown) => setError(errorMessage(err)))
-  }
+  const patch = <K extends keyof Settings>(key: K, value: Settings[K]) =>
+    setSettings((prev) => (prev ? { ...prev, [key]: value } : prev))
 
-  const setGitExecutablePath = (path: string) =>
-    SettingsService.SetGitExecutablePath(path)
-      .then(() => {
-        setSettings((prev) => (prev ? { ...prev, gitExecutablePath: path } : prev))
-        setError(null)
-      })
-      .catch((err: unknown) => {
-        setError(errorMessage(err))
-        throw err
-      })
+  // The setting shows its new value at once; a failed save reports and leaves it.
+  const setter =
+    <K extends keyof Settings>(key: K, save: (value: Settings[K]) => Promise<void>) =>
+    (value: Settings[K]) => {
+      patch(key, value)
+      save(value).catch((err: unknown) => setError(errorMessage(err)))
+    }
 
-  const setDefaultRepoLocation = (path: string) => {
-    setSettings((prev) => (prev ? { ...prev, defaultRepoLocation: path } : prev))
-    SettingsService.SetDefaultRepoLocation(path).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setDiffIgnoreWhitespaceDefault = (value: boolean) => {
-    setSettings((prev) => (prev ? { ...prev, diffIgnoreWhitespaceDefault: value } : prev))
-    SettingsService.SetDiffIgnoreWhitespaceDefault(value).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setEditorPath = (path: string) =>
-    SettingsService.SetEditorPath(path)
-      .then(() => {
-        setSettings((prev) => (prev ? { ...prev, editorPath: path } : prev))
-        setError(null)
-      })
-      .catch((err: unknown) => {
-        setError(errorMessage(err))
-        throw err
-      })
-
-  const setAutoFetchIntervalMinutes = (minutes: number) => {
-    setSettings((prev) => (prev ? { ...prev, autoFetchIntervalMinutes: minutes } : prev))
-    SettingsService.SetAutoFetchIntervalMinutes(minutes).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setLaneColorTheme = (theme: string) => {
-    setSettings((prev) => (prev ? { ...prev, laneColorTheme: theme } : prev))
-    SettingsService.SetLaneColorTheme(theme).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setNavCollapsed = (collapsed: boolean) => {
-    setSettings((prev) => (prev ? { ...prev, navCollapsed: collapsed } : prev))
-    SettingsService.SetNavCollapsed(collapsed).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setPruneOnFetch = (prune: boolean) => {
-    setSettings((prev) => (prev ? { ...prev, pruneOnFetch: prune } : prev))
-    SettingsService.SetPruneOnFetch(prune).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setHistoryBranchFilter = (filter: string) => {
-    setSettings((prev) => (prev ? { ...prev, historyBranchFilter: filter } : prev))
-    SettingsService.SetHistoryBranchFilter(filter).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setDiffExpanded = (expanded: boolean) => {
-    setSettings((prev) => (prev ? { ...prev, diffExpanded: expanded } : prev))
-    SettingsService.SetDiffExpanded(expanded).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setDiffNoWrap = (noWrap: boolean) => {
-    setSettings((prev) => (prev ? { ...prev, diffNoWrap: noWrap } : prev))
-    SettingsService.SetDiffNoWrap(noWrap).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setChangelogPrefs = (changelog: ChangelogPrefs) => {
-    setSettings((prev) => (prev ? { ...prev, changelog } : prev))
-    SettingsService.SetChangelogPrefs(changelog).catch((err: unknown) => setError(errorMessage(err)))
-  }
-
-  const setDisableConventionalCommits = (disable: boolean) => {
-    setSettings((prev) => (prev ? { ...prev, disableConventionalCommits: disable } : prev))
-    SettingsService.SetDisableConventionalCommits(disable).catch((err: unknown) => setError(errorMessage(err)))
-  }
+  // Paths are checked by the backend first, so they only show once saved.
+  const checkedSetter =
+    (key: 'gitExecutablePath' | 'editorPath', save: (path: string) => Promise<void>) => (path: string) =>
+      save(path)
+        .then(() => {
+          patch(key, path)
+          setError(null)
+        })
+        .catch((err: unknown) => {
+          setError(errorMessage(err))
+          throw err
+        })
 
   return {
     settings,
     error,
     resetNotice,
     dismissResetNotice: () => setResetNotice(''),
-    setNavCollapsed,
-    setDiffExpanded,
-    setDiffNoWrap,
-    setPruneOnFetch,
-    setHistoryBranchFilter,
-    setDisableConventionalCommits,
-    setChangelogPrefs,
-    setTheme,
-    setGitExecutablePath,
-    setDefaultRepoLocation,
-    setDiffIgnoreWhitespaceDefault,
-    setEditorPath,
-    setAutoFetchIntervalMinutes,
-    setLaneColorTheme,
+    setNavCollapsed: setter('navCollapsed', SettingsService.SetNavCollapsed),
+    setDiffExpanded: setter('diffExpanded', SettingsService.SetDiffExpanded),
+    setDiffNoWrap: setter('diffNoWrap', SettingsService.SetDiffNoWrap),
+    setPruneOnFetch: setter('pruneOnFetch', SettingsService.SetPruneOnFetch),
+    setHistoryBranchFilter: setter('historyBranchFilter', SettingsService.SetHistoryBranchFilter),
+    setDisableConventionalCommits: setter('disableConventionalCommits', SettingsService.SetDisableConventionalCommits),
+    setChangelogPrefs: setter('changelog', SettingsService.SetChangelogPrefs),
+    setTheme: setter('theme', SettingsService.SetTheme),
+    setGitExecutablePath: checkedSetter('gitExecutablePath', SettingsService.SetGitExecutablePath),
+    setDefaultRepoLocation: setter('defaultRepoLocation', SettingsService.SetDefaultRepoLocation),
+    setDiffIgnoreWhitespaceDefault: setter(
+      'diffIgnoreWhitespaceDefault',
+      SettingsService.SetDiffIgnoreWhitespaceDefault,
+    ),
+    setEditorPath: checkedSetter('editorPath', SettingsService.SetEditorPath),
+    setAutoFetchIntervalMinutes: setter('autoFetchIntervalMinutes', SettingsService.SetAutoFetchIntervalMinutes),
+    setLaneColorTheme: setter('laneColorTheme', SettingsService.SetLaneColorTheme),
   }
 }

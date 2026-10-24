@@ -1,6 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CommitService, IdentityService, type CurrentUserInfo } from '@current-client-bindings/app'
+import {
+  CommitService,
+  ConflictService,
+  ConflictStateInfo,
+  IdentityService,
+  type CurrentUserInfo,
+} from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import CommitComposer from './CommitComposer'
 
@@ -28,7 +34,7 @@ describe('CommitComposer identity', () => {
     await userEvent.type(screen.getByPlaceholderText('Summary'), 'First commit')
 
     expect(await screen.findByText('Commits need a name and email.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Commit 1 file/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Set a name and email to commit' })).toBeDisabled()
 
     await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), ' Ada Lovelace ')
     await userEvent.type(screen.getByRole('textbox', { name: 'Email' }), 'ada@example.com')
@@ -87,7 +93,7 @@ describe('CommitComposer type picker', () => {
 
     await userEvent.selectOptions(type(), 'No type')
     expect(subject()).toHaveValue('filter by type again')
-    expect(screen.getByRole('textbox', { name: 'Scope' })).toBeDisabled()
+    expect(screen.queryByRole('textbox', { name: 'Scope' })).not.toBeInTheDocument()
   })
 
   it('follows a prefix typed by hand, keeping its breaking mark', async () => {
@@ -134,5 +140,75 @@ describe('CommitComposer after a squash merge', () => {
 
     expect(await screen.findByDisplayValue('feat: my own words')).toBeInTheDocument()
     expect(CommitService.GetSquashedSubjects).not.toHaveBeenCalled()
+  })
+})
+
+describe('CommitComposer during a merge', () => {
+  const merge = (conflictedPaths: string[]) =>
+    new ConflictStateInfo({
+      operation: 'merge',
+      conflictedPaths,
+      ours: 'main',
+      theirs: 'feature',
+      message: "Merge branch 'feature'\n\nBody line.",
+    })
+
+  function renderMerging(conflict: ConflictStateInfo, onCommitted = vi.fn()) {
+    vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada', 'ada@example.com'))
+    render(
+      <DialogProvider>
+        <CommitComposer repoPath={REPO} stagedCount={1} onCommitted={onCommitted} showTypePicker conflict={conflict} />
+      </DialogProvider>,
+    )
+    return onCommitted
+  }
+
+  it('is the merge commit: prefilled from git, Continue merge disabled while files are conflicted', async () => {
+    renderMerging(merge(['src/app.ts']))
+
+    expect(screen.getByText('Merge commit')).toBeInTheDocument()
+    await vi.waitFor(() => expect(screen.getByPlaceholderText('Summary')).toHaveValue("Merge branch 'feature'"))
+    expect(screen.getByPlaceholderText('Description')).toHaveValue('Body line.')
+    const button = screen.getByRole('button', { name: '1 file still conflicted' })
+    expect(button).toBeDisabled()
+    expect(screen.queryByText('1 file still conflicted.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Commit type' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'More commit actions' })).not.toBeInTheDocument()
+  })
+
+  it('continues the merge with the message once everything is resolved', async () => {
+    vi.mocked(ConflictService.ContinueWith).mockResolvedValue()
+    const onCommitted = renderMerging(merge([]))
+
+    await vi.waitFor(() => expect(screen.getByPlaceholderText('Summary')).toHaveValue("Merge branch 'feature'"))
+    await userEvent.clear(screen.getByPlaceholderText('Summary'))
+    await userEvent.type(screen.getByPlaceholderText('Summary'), 'Bring feature in')
+    await userEvent.click(screen.getByRole('button', { name: 'Continue merge' }))
+
+    await vi.waitFor(() =>
+      expect(ConflictService.ContinueWith).toHaveBeenCalledWith(REPO, 'Bring feature in\n\nBody line.'),
+    )
+    await vi.waitFor(() => expect(onCommitted).toHaveBeenCalled())
+  })
+})
+
+describe('CommitComposer button', () => {
+  it('says what is missing instead of a helper line, and hides the scope until a type is set', async () => {
+    vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada', 'ada@example.com'))
+    render(
+      <DialogProvider>
+        <CommitComposer repoPath={REPO} stagedCount={0} onCommitted={vi.fn()} showTypePicker />
+      </DialogProvider>,
+    )
+
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Enter a commit message' })).toBeDisabled())
+    expect(screen.queryByText('Enter a commit message.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Scope' })).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByPlaceholderText('Summary'), 'Add thing')
+    expect(screen.getByRole('button', { name: 'Nothing is staged' })).toBeDisabled()
+
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Commit type' }), 'feat')
+    expect(screen.getByRole('textbox', { name: 'Scope' })).toBeInTheDocument()
   })
 })

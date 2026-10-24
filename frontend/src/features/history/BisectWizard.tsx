@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Search, SkipForward, Target, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { BisectService, HistoryService, type BisectStatusInfo, type CommitInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
+import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -30,10 +31,6 @@ function stageFromStatus(status: BisectStatusInfo): Stage {
         revisionsLeft: status.revisionsLeft,
         stepsRemaining: status.stepsRemaining,
       }
-}
-
-function plural(count: number, word: string): string {
-  return `${count} ${word}${count === 1 ? '' : 's'}`
 }
 
 function Candidate({ sha, commit }: { sha: string; commit: CommitInfo | null }) {

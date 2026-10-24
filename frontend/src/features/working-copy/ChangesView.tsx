@@ -1,21 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import { DiffService, type LineSelection } from '@current-client-bindings/app'
+import { type ConflictStateInfo, DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
-import Checkbox from '../../components/forms/Checkbox'
 import CommitComposer from './CommitComposer'
 import DiffViewer from '../diff/DiffViewer'
-import { DiffWrapToggle } from '../diff/diffWrap'
+import DiffViewMenu from '../diff/DiffViewMenu'
 import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
+import SegmentedControl from '../../components/controls/SegmentedControl'
+import { Columns2, Rows2 } from 'lucide-react'
+import type { ConflictView } from '../diff/conflictRows'
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
 import { errorMessage } from '../../lib/errors'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHeadCommit } from './useHeadCommit'
 import { useResizableWidth } from '../../lib/useResizableWidth'
 import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
+import { useReviewThreads } from '../../lib/useReviewThreads'
+import { useHostLinks } from '../../lib/useHostLinks'
+import { filePage } from '../../lib/hostPages'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
 import { useConflictResolution } from './useConflictResolution'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
@@ -35,6 +41,8 @@ interface ChangesViewProps {
   initialCommitDraft?: string
   onCommitDraftChange?: (message: string) => void
   showCommitTypePicker?: boolean
+  // The merge, rebase, cherry-pick or revert in progress, if any.
+  conflict?: ConflictStateInfo | null
 }
 
 function splitDirFile(path: string): { dir: string; file: string } {
@@ -55,7 +63,10 @@ function ChangesView({
   initialCommitDraft = '',
   onCommitDraftChange,
   showCommitTypePicker = false,
+  conflict = null,
 }: ChangesViewProps) {
+  const reviewThreads = useReviewThreads(repoPath)
+  const hostLinks = useHostLinks(repoPath)
   const { files, conflicted, staged, unstaged, loadStatus } = workingTree
   const actions = useWorkingTreeActions(repoPath, loadStatus, onBranchChanged)
   const conflicts = useConflictResolution(repoPath, conflicted.length > 0, actions.run)
@@ -66,6 +77,7 @@ function ChangesView({
   const [forcedPath, setForcedPath] = useState<string | null>(null)
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(defaultIgnoreWhitespace)
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
+  const [conflictView, setConflictView] = useState<ConflictView>('side-by-side')
   const [externalToolError, setExternalToolError] = useState<string | null>(null)
   const [externalToolBusy, setExternalToolBusy] = useState(false)
   const headCommit = useHeadCommit(repoPath)
@@ -200,6 +212,13 @@ function ChangesView({
           openPath={selectedPath}
           openSection={openSection}
           onOpen={openFile}
+          threadCounts={reviewThreads.counts}
+          onOpenOnHost={
+            hostLinks?.blob && headCommit
+              ? (path) => void PlatformService.OpenWebPage(filePage(hostLinks, headCommit.sha, path))
+              : undefined
+          }
+          mergeMode={conflict !== null}
         />
         <CommitComposer
           repoPath={repoPath}
@@ -209,6 +228,7 @@ function ChangesView({
           initialMessage={initialCommitDraft}
           onMessageChange={onCommitDraftChange}
           showTypePicker={showCommitTypePicker}
+          conflict={conflict}
         />
       </div>
 
@@ -242,17 +262,25 @@ function ChangesView({
                 <span className="changes-diff-stats">
                   <span className="changes-diff-stat-added">+{stats.added}</span>
                   <span className="changes-diff-stat-removed">-{stats.removed}</span>
-                  <span className="changes-diff-stat-hunks">
-                    {stats.hunks} hunk{stats.hunks === 1 ? '' : 's'}
-                  </span>
+                  <span className="changes-diff-stat-hunks">{plural(stats.hunks, 'hunk')}</span>
                 </span>
               )}
 
               <div className="changes-diff-header-spacer" />
 
-              <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
-              <Checkbox checked={ignoreWhitespace} onChange={setIgnoreWhitespace} label="Ignore whitespace" />
-              <DiffWrapToggle />
+              {openConflict ? (
+                <SegmentedControl
+                  value={conflictView}
+                  onChange={setConflictView}
+                  options={[
+                    { value: 'side-by-side', label: 'Side by side', icon: Columns2 },
+                    { value: 'result', label: 'Result', icon: Rows2 },
+                  ]}
+                />
+              ) : (
+                <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
+              )}
+              <DiffViewMenu ignoreWhitespace={ignoreWhitespace} onIgnoreWhitespaceChange={setIgnoreWhitespace} />
               <button
                 type="button"
                 className="changes-diff-external-tool"
@@ -271,6 +299,13 @@ function ChangesView({
             </div>
             {openConflict && (
               <div className="changes-conflict-actions">
+                <button
+                  type="button"
+                  className="changes-conflict-primary"
+                  onClick={() => void conflicts.markResolved(openConflict)}
+                >
+                  Mark resolved
+                </button>
                 <button type="button" onClick={() => void conflicts.keep(openConflict, 'ours')}>
                   {conflicts.keepLabel(openConflict, 'ours')}
                 </button>
@@ -279,9 +314,6 @@ function ChangesView({
                 </button>
                 <button type="button" onClick={() => conflicts.openInEditor(openConflict)}>
                   Open in editor
-                </button>
-                <button type="button" onClick={() => void conflicts.markResolved(openConflict)}>
-                  Mark resolved
                 </button>
               </div>
             )}
@@ -293,12 +325,23 @@ function ChangesView({
                 diff={diff}
                 path={selectedPath}
                 viewMode={viewMode}
+                threads={reviewThreads.byPath[selectedPath]}
+                outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
                 baseSide={
-                  showsStaged
-                    ? { label: 'HEAD · working tree base', sha: headCommit?.sha.slice(0, 7) }
-                    : { label: untracked ? 'Untracked' : 'Staged index' }
+                  openConflict
+                    ? { label: `${conflict?.ours || 'HEAD'} (current branch)` }
+                    : showsStaged
+                      ? { label: 'HEAD', sha: headCommit?.sha.slice(0, 7) }
+                      : { label: untracked ? 'Untracked' : 'Staged' }
                 }
-                targetSide={showsStaged ? { label: 'Staged index' } : { label: 'Working tree' }}
+                targetSide={
+                  openConflict
+                    ? { label: `${conflict?.theirs || 'incoming'} (incoming)` }
+                    : showsStaged
+                      ? { label: 'Staged' }
+                      : { label: 'Working tree' }
+                }
+                conflictView={conflictView}
                 onStageHunk={showsStaged || untracked ? undefined : stageHunk}
                 onUnstageHunk={showsStaged ? unstageHunk : undefined}
                 onDiscardHunk={untracked ? undefined : discardHunk}

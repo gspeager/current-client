@@ -8,6 +8,19 @@
   flex-direction: column;
 }
 
+.nav-pane-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-xs) 0 var(--space-md);
+
+  .head-commit-panel {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .nav-pane-scroll {
   flex: 1;
   min-height: 0;
@@ -16,6 +29,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+
+  > .current-change,
+  > .current-change-slot {
+    margin: 0 var(--space-md);
+  }
 }
 
 .nav-pane-section {
@@ -23,110 +41,6 @@
   flex-direction: column;
   gap: 2px;
   padding: 0 var(--space-md);
-}
-
-.nav-pane-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
-.nav-pane-section-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  width: 100%;
-  height: var(--h-micro);
-  margin-bottom: var(--space-xs);
-  padding: 0;
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-
-  &:hover .nav-pane-label {
-    color: var(--on-surface);
-  }
-}
-
-.nav-pane-section-chevron {
-  flex-shrink: 0;
-  color: var(--outline);
-}
-
-.nav-pane-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  width: 100%;
-  height: var(--h-row-tree);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
-  font: var(--ui-sm);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--surface-container);
-  }
-}
-
-.nav-pane-row-label {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-}
-
-.nav-pane-row-icon {
-  flex-shrink: 0;
-  color: var(--outline);
-}
-
-.nav-pane-error {
-  margin: 0;
-  padding: 0 var(--space-sm);
-  color: var(--error);
-  font: var(--ui-xs);
-}
-
-.nav-pane-success {
-  margin: 0;
-  padding: 0 var(--space-sm);
-  color: var(--tertiary);
-  font: var(--ui-xs);
-}
-
-.nav-pane-fsck-issues {
-  padding: var(--space-xs) var(--space-sm);
-  background: color-mix(in srgb, var(--warning) 12%, transparent);
-  border-radius: var(--radius-xs);
-  color: var(--warning);
-  font: var(--ui-xs);
-
-  p {
-    margin: 0;
-
-    & + p {
-      margin-top: 2px;
-    }
-  }
-}
-
-.nav-pane-section-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-
-  > .nav-pane-label {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .nav-pane-section-toggle {
-    flex: 1;
-    min-width: 0;
-  }
 }
 
 .nav-pane-collapse,
@@ -142,16 +56,17 @@
   color: var(--outline);
   cursor: pointer;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--surface-container);
     color: var(--on-surface);
   }
+
+  @include patterns.disabled;
 }
 
 .nav-pane-collapse {
   width: var(--h-chip);
   height: var(--h-chip);
-  margin-bottom: var(--space-xs);
 }
 
 // Icon-only rail: one row-tree-sized button per action, centered in the column.
@@ -163,6 +78,19 @@
   padding: var(--space-md) 0;
   overflow-y: auto;
   border-right: var(--border-structure);
+}
+
+// Pinned to the foot of the rail, where the Toolbox sits in the open sidebar.
+.nav-pane-rail-toolbox {
+  margin-top: auto;
+}
+
+.nav-pane-rail-toolbox,
+.nav-pane-rail-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
 }
 
 .nav-pane-rail-button {
@@ -177,9 +105,88 @@
   background: var(--surface-highest);
 }
 
-// Wraps rather than overflows when the pane is narrowed to its minimum.
-.nav-pane-workspace {
+.nav-pane-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-top: var(--border-structure);
+
+  .sidebar-section-header {
+    margin-bottom: 0;
+  }
+}
+
+// "Open in" and "Tools": a caption over a wrapping row of outlined buttons.
+.nav-pane-tool-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.nav-pane-tool-caption {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.nav-pane-tool-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: var(--space-xs);
+}
+
+.nav-pane-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-table);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius-md);
+  color: var(--on-surface);
+  font: 500 12px/16px var(--font-chrome);
+  cursor: pointer;
+
+  svg {
+    color: var(--outline);
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--surface-low);
+  }
+
+  // The outline stays; only the text goes quiet.
+  &:disabled {
+    color: var(--outline);
+    cursor: default;
+  }
+}
+
+.nav-pane-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: 0;
+  font: var(--ui-xs);
+  white-space: pre-line;
+
+  > span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  > button {
+    @include patterns.tab-close;
+  }
+}
+
+.nav-pane-feedback-error {
+  color: var(--error);
+}
+
+.nav-pane-feedback-notice {
+  color: var(--tertiary);
 }

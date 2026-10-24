@@ -75,13 +75,13 @@ describe('CurrentClientApp embedding', () => {
     )
   })
 
-  it('opens a repository on Working Copy, the first view', async () => {
+  it('opens a repository on Changes, the first view', async () => {
     stubStartup(['/repos/app'], '/repos/app')
     render(<CurrentClientApp />)
-    const workingCopy = await screen.findByRole('button', { name: 'Working Copy' })
+    const workingCopy = await screen.findByRole('button', { name: /^Changes/ })
 
     const views = [...document.querySelectorAll('.tab-bar button')].map((b) => b.textContent)
-    expect(views).toEqual(['Working Copy', 'Branch Graph & History', 'Activity', 'Changelog'])
+    expect(views).toEqual([expect.stringMatching(/^Changes/), 'History', 'Activity', 'Changelog'])
     expect(workingCopy).toHaveClass('tab-active')
   })
 
@@ -89,7 +89,7 @@ describe('CurrentClientApp embedding', () => {
     stubStartup(['/repos/app'], '/repos/app')
     vi.mocked(HistoryService.GetHistory).mockResolvedValue([])
     render(<CurrentClientApp />)
-    const historyTab = await screen.findByRole('button', { name: 'Branch Graph & History' })
+    const historyTab = await screen.findByRole('button', { name: 'History' })
 
     await userEvent.click(historyTab)
     await waitFor(() => expect(HistoryService.GetHistory).toHaveBeenCalled())

@@ -5,9 +5,13 @@ interface SettingsGroupProps {
   children: ReactNode
 }
 
+export function settingsGroupId(title: string): string {
+  return `settings-${title.toLowerCase().replace(/[^a-z]+/g, '-')}`
+}
+
 export function SettingsGroup({ title, children }: SettingsGroupProps) {
   return (
-    <section className="settings-group" aria-label={title}>
+    <section className="settings-group" id={settingsGroupId(title)} aria-label={title}>
       <h3 className="settings-group-title">{title}</h3>
       <div className="settings-group-rows">{children}</div>
     </section>

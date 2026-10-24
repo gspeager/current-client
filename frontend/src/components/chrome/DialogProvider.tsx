@@ -25,7 +25,7 @@ function ConfirmDialog({ options, onSettle }: { options: ConfirmOptions; onSettl
             <div className="dialog-body">
               <AlertDialog.Description className="dialog-message">{options.message}</AlertDialog.Description>
               <div className="dialog-actions">
-                <AlertDialog.Cancel className="dialog-button">Cancel</AlertDialog.Cancel>
+                <AlertDialog.Cancel className="dialog-button">{options.cancelLabel ?? 'Cancel'}</AlertDialog.Cancel>
                 <AlertDialog.Action
                   className={`dialog-button ${options.destructive ? 'dialog-button-destructive' : 'dialog-button-primary'}`}
                   onClick={() => onSettle(true)}
@@ -57,7 +57,13 @@ function PromptDialog({ options, onSettle }: { options: PromptOptions; onSettle:
       <form className="dialog-body" onSubmit={submit}>
         <label className="dialog-field">
           <span className="dialog-message">{options.label}</span>
-          <input className="dialog-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+          <input
+            className="dialog-input"
+            type={options.secret ? 'password' : 'text'}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            autoFocus
+          />
         </label>
         {result !== '' && result !== trimmed && (
           <p className="dialog-message" role="status">

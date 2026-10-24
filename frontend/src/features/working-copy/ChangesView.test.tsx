@@ -2,10 +2,12 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   ConflictService,
+  ConflictStateInfo,
   DiffService,
   FileContent,
   FileDiff,
   PlatformService,
+  SettingsService,
   StashService,
   StatusService,
   type FileStatus,
@@ -116,8 +118,8 @@ describe('ChangesView staging', () => {
           header: '@@ -1,1 +1,2 @@',
           raw: 'raw-hunk',
           lines: [
-            { kind: 'added', oldLine: 0, newLine: 1, content: 'keep', moved: false },
-            { kind: 'added', oldLine: 0, newLine: 2, content: 'later', moved: false },
+            { kind: 'added', oldLine: 0, newLine: 1, content: 'keep', moved: false, inOurs: false, inTheirs: false },
+            { kind: 'added', oldLine: 0, newLine: 2, content: 'later', moved: false, inOurs: false, inTheirs: false },
           ],
         },
       ],
@@ -191,7 +193,9 @@ describe('ChangesView untracked files', () => {
           {
             header: '@@ -0,0 +1 @@',
             raw: 'raw',
-            lines: [{ kind: 'added', oldLine: 0, newLine: 1, content: 'hello', moved: false }],
+            lines: [
+              { kind: 'added', oldLine: 0, newLine: 1, content: 'hello', moved: false, inOurs: false, inTheirs: false },
+            ],
           },
         ],
       }),
@@ -442,8 +446,152 @@ describe('ChangesView expanded diff', () => {
   })
 })
 
+describe('ChangesView file groups', () => {
+  it('folds a group from its header and remembers the choice for the repository', async () => {
+    vi.mocked(SettingsService.SetSidebarSection).mockResolvedValue()
+    renderChanges([file('src/app.ts'), file('src/lib.ts', { indexStatus: 'M', worktreeStatus: '.' })])
+
+    const unstaged = screen.getByRole('button', { name: 'Unstaged, 1' })
+    expect(unstaged).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Staged, 1' })).toHaveAttribute('aria-expanded', 'true')
+    await userEvent.click(unstaged)
+
+    expect(screen.getByRole('button', { name: 'Unstaged, 1' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('button', { name: 'src/app.ts' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'src/lib.ts' })).toBeInTheDocument()
+    expect(SettingsService.SetSidebarSection).toHaveBeenCalledWith(REPO, 'files-unstaged', false)
+  })
+
+  it('starts an empty group closed', () => {
+    renderChanges([file('src/app.ts')])
+
+    expect(screen.getByRole('button', { name: 'Staged, 0' })).toHaveAttribute('aria-expanded', 'false')
+  })
+})
+
 describe('ChangesView conflicts', () => {
   const conflictedFile = () => file('src/app.ts', { indexStatus: 'U', worktreeStatus: 'U', conflicted: true })
+
+  it('groups files as Conflicted and Resolved during a merge, with Mark resolved as the primary action', async () => {
+    vi.mocked(ConflictService.GetConflictSides).mockResolvedValue({ ours: 'main', theirs: 'feature' })
+    const workingTree = workingTreeFor([
+      conflictedFile(),
+      file('src/done.ts', { indexStatus: 'M', worktreeStatus: '.' }),
+    ])
+    render(
+      <DialogProvider>
+        <ChangesView
+          repoPath={REPO}
+          workingTree={workingTree}
+          conflict={
+            new ConflictStateInfo({
+              operation: 'merge',
+              conflictedPaths: ['src/app.ts'],
+              ours: 'main',
+              theirs: 'feature',
+            })
+          }
+        />
+      </DialogProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Conflicted, 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resolved, 1' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Staged/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '1 file still conflicted' })).toBeDisabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
+    const actions = document.querySelector('.changes-conflict-actions')!
+    expect(actions.querySelector('button')).toHaveTextContent('Mark resolved')
+    expect(actions.querySelector('button')).toHaveClass('changes-conflict-primary')
+  })
+
+  it('offers Side by side and Result for a conflicted file, with the columns named by branch', async () => {
+    vi.mocked(ConflictService.GetConflictSides).mockResolvedValue({ ours: 'main', theirs: 'feature' })
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue(
+      new FileDiff({
+        conflicted: true,
+        hunks: [
+          {
+            header: '@@@ -1 -1 +1,5 @@@',
+            raw: '',
+            lines: [
+              {
+                kind: 'conflict-marker',
+                oldLine: 0,
+                newLine: 1,
+                content: '<<<<<<< HEAD',
+                moved: false,
+                inOurs: false,
+                inTheirs: false,
+              },
+              {
+                kind: 'conflict-ours',
+                oldLine: 1,
+                newLine: 2,
+                content: 'OURS',
+                moved: false,
+                inOurs: true,
+                inTheirs: false,
+              },
+              {
+                kind: 'conflict-marker',
+                oldLine: 0,
+                newLine: 3,
+                content: '=======',
+                moved: false,
+                inOurs: false,
+                inTheirs: false,
+              },
+              {
+                kind: 'conflict-theirs',
+                oldLine: 0,
+                newLine: 4,
+                content: 'THEIRS',
+                moved: false,
+                inOurs: false,
+                inTheirs: true,
+              },
+              {
+                kind: 'conflict-marker',
+                oldLine: 0,
+                newLine: 5,
+                content: '>>>>>>> feature',
+                moved: false,
+                inOurs: false,
+                inTheirs: false,
+              },
+            ],
+          },
+        ],
+      }),
+    )
+    const workingTree = workingTreeFor([conflictedFile()])
+    render(
+      <DialogProvider>
+        <ChangesView
+          repoPath={REPO}
+          workingTree={workingTree}
+          conflict={
+            new ConflictStateInfo({
+              operation: 'merge',
+              conflictedPaths: ['src/app.ts'],
+              ours: 'main',
+              theirs: 'feature',
+            })
+          }
+        />
+      </DialogProvider>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
+    expect(await screen.findByText('main (current branch)')).toBeInTheDocument()
+    expect(screen.getByText('feature (incoming)')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Split$/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^Result$/ }))
+    expect(screen.getByText('=======')).toBeInTheDocument()
+    expect(screen.getByText('Block 1 of 1')).toBeInTheDocument()
+  })
 
   it('lists a conflicted file once, in its own section', () => {
     renderChanges([conflictedFile(), file('src/other.ts')])

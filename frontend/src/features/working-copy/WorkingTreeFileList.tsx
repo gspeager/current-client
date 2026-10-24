@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
 import { PatchService, type FileStatus } from '@current-client-bindings/app'
@@ -8,6 +8,8 @@ import { errorMessage } from '../../lib/errors'
 import { buildFileTreeRows } from './fileTree'
 import { baseName } from '../../lib/paths'
 import { suggestedWorkingTreePatchFilename } from '../../lib/patchFilename'
+import { toggled } from '../../lib/sets'
+import { useSidebarSections } from '../../lib/useSidebarSections'
 import { useFileTools } from '../history/useFileTools'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import type { WorkingTreeActions } from './useWorkingTreeActions'
@@ -23,6 +25,12 @@ interface WorkingTreeFileListProps {
   openPath: string | null
   openSection: WorkingTreeSection
   onOpen: (path: string, section: WorkingTreeSection) => void
+  // Unresolved review threads per path, from the checked-out branch's change.
+  threadCounts?: Record<string, number | undefined>
+  // Opens the file as HEAD has it on the host; absent without a parseable remote.
+  onOpenOnHost?: (path: string) => void
+  // During a merge the staged group is what's resolved for the merge commit.
+  mergeMode?: boolean
 }
 
 type ListRow =
@@ -70,6 +78,9 @@ function WorkingTreeFileList({
   openPath,
   openSection,
   onOpen,
+  threadCounts,
+  onOpenOnHost,
+  mergeMode = false,
 }: WorkingTreeFileListProps) {
   const { files, conflicted, staged, unstaged, error, loadStatus } = workingTree
   const sectionFiles = useMemo<Record<WorkingTreeSection, FileStatus[]>>(
@@ -79,6 +90,12 @@ function WorkingTreeFileList({
   const [viewMode, setViewMode] = useState<'flat' | 'tree'>('flat')
   const [filter, setFilter] = useState('')
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set())
+  const sections = useSidebarSections(repoPath)
+  // A group with files starts open and an empty one closed, until the user decides.
+  const sectionOpen = useCallback(
+    (section: WorkingTreeSection) => sections.isOpen(`files-${section}`, sectionFiles[section].length > 0),
+    [sections, sectionFiles],
+  )
   const fileTools = useFileTools(repoPath)
   const [patchError, setPatchError] = useState<string | null>(null)
   const [patchBusy, setPatchBusy] = useState(false)
@@ -87,15 +104,11 @@ function WorkingTreeFileList({
   const [anchorKey, setAnchorKey] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const toggleFolder = (section: WorkingTreeSection, path: string) => {
-    const key = `${section}:${path}`
-    setCollapsedFolders((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
+  const sectionLabel = (section: WorkingTreeSection) =>
+    mergeMode && section === 'staged' ? 'Resolved' : SECTION_LABEL[section]
+
+  const toggleFolder = (section: WorkingTreeSection, path: string) =>
+    setCollapsedFolders((prev) => toggled(prev, `${section}:${path}`))
 
   const query = filter.trim().toLowerCase()
   const filtered = useMemo(() => {
@@ -107,6 +120,7 @@ function WorkingTreeFileList({
   // One flattened list, so every section shares a single virtualized scroll region.
   const listRows = useMemo<ListRow[]>(() => {
     const sectionRows = (section: WorkingTreeSection, sectionFiles: FileStatus[]): ListRow[] => {
+      if (!sectionOpen(section)) return []
       if (viewMode === 'flat') {
         return sectionFiles.map((file): ListRow => ({ kind: 'file', section, file, depth: 0 }))
       }
@@ -128,7 +142,7 @@ function WorkingTreeFileList({
       { kind: 'header', section: 'unstaged' },
       ...sectionRows('unstaged', filtered.unstaged),
     ]
-  }, [hasConflicts, filtered, viewMode, collapsedFolders])
+  }, [hasConflicts, filtered, viewMode, collapsedFolders, sectionOpen])
 
   const orderedRowKeys = (): string[] =>
     listRows.flatMap((r) => (r.kind === 'file' ? [rowKey(r.section, r.file.path)] : []))
@@ -166,12 +180,7 @@ function WorkingTreeFileList({
 
   const toggleSelected = (section: WorkingTreeSection, path: string) => {
     const key = rowKey(section, path)
-    setSelectedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+    setSelectedKeys((prev) => toggled(prev, key))
     setAnchorKey(key)
   }
 
@@ -259,6 +268,7 @@ function WorkingTreeFileList({
     ]
     if (untracked) {
       items.push({ label: 'Add to .gitignore', onClick: () => actions.addToGitignore(f.path) })
+      if (onOpenOnHost) items.push({ label: 'Open on host', onClick: () => onOpenOnHost(f.path) })
       const ext = fileExtension(f.path)
       if (ext) {
         items.push({ label: `Add *.${ext} to .gitignore`, onClick: () => actions.addToGitignore(`*.${ext}`) })
@@ -278,11 +288,21 @@ function WorkingTreeFileList({
 
     if (row.kind === 'header') {
       const all = sectionFiles[row.section]
+      const open = sectionOpen(row.section)
       return (
         <div key={`header-${row.section}`} className="changes-section-header" style={style}>
-          <span className={`changes-section-label changes-section-label-${row.section}`}>
-            {SECTION_LABEL[row.section]} <span className="changes-section-count">{filtered[row.section].length}</span>
-          </span>
+          <button
+            type="button"
+            className="changes-section-toggle"
+            onClick={() => sections.toggle(`files-${row.section}`, all.length > 0)}
+            aria-expanded={open}
+            aria-label={`${sectionLabel(row.section)}, ${filtered[row.section].length}`}
+          >
+            {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
+            <span className={`changes-section-label changes-section-label-${row.section}`}>
+              {sectionLabel(row.section)} <span className="changes-section-count">{filtered[row.section].length}</span>
+            </span>
+          </button>
           {/* Marking every conflict resolved at once is too easy to do by accident. */}
           {row.section !== 'conflicted' && all.length > 0 && (
             <button
@@ -332,6 +352,7 @@ function WorkingTreeFileList({
         removed={isStaged ? f.indexRemoved : f.workRemoved}
         binary={isStaged ? f.indexBinary : f.workBinary}
         tag={f.submodule ? 'submodule' : f.lfs ? 'LFS' : undefined}
+        threads={threadCounts?.[f.path]}
         onToggleChecked={() =>
           isStaged ? actions.unstage(f) : row.section === 'conflicted' ? conflicts.markResolved(f) : actions.stage(f)
         }
@@ -346,7 +367,7 @@ function WorkingTreeFileList({
   return (
     <>
       <div className="changes-files-header">
-        <span className="changes-files-title">Working tree</span>
+        <span className="changes-files-title">Changed files</span>
         <div className="changes-files-header-spacer" />
         <SegmentedControl
           value={viewMode}

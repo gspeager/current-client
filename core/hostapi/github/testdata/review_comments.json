@@ -1,0 +1,279 @@
+[
+  {
+    "url": "https://api.github.com/repos/cli/cli/pulls/comments/4339733038",
+    "pull_request_review_id": 5603453798,
+    "id": 4339733038,
+    "node_id": "PRRC_kwDODKw3uc8AAAABAqsSLg",
+    "diff_hunk": "@@ -412,17 +594,23 @@ func (w *destinationWriter) makePath(name string) string {\n \treturn w.file\n }\n \n+// isStdout reports whether output goes to standard output. Only an explicit\n+// \"--output -\" means that; an asset that happens to be named \"-\" is a file.\n+func (w *destinationWriter) isStdout() bool {\n+\treturn w.file == \"-\"",
+    "path": "pkg/cmd/release/download/download.go",
+    "commit_id": "654d851d8145b2912fe474ceb0a47681854b37e2",
+    "original_commit_id": "654d851d8145b2912fe474ceb0a47681854b37e2",
+    "user": {
+      "login": "Copilot",
+      "id": 175728472,
+      "node_id": "BOT_kgDOCnlnWA",
+      "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Copilot",
+      "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+      "followers_url": "https://api.github.com/users/Copilot/followers",
+      "following_url": "https://api.github.com/users/Copilot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Copilot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Copilot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Copilot/subscriptions",
+      "organizations_url": "https://api.github.com/users/Copilot/orgs",
+      "repos_url": "https://api.github.com/users/Copilot/repos",
+      "events_url": "https://api.github.com/users/Copilot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Copilot/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": "\ud83d\uded1 Requirement: Preserve stdout behavior without --verify\n\nDownloading an asset named `-` into the current directory now creates a file instead of streaming its bytes to stdout, even without `--verify`. Existing pipelines receive no data, and an existing file can make a previously successful invocation fail. The description documents this break but supplies no maintainer approval, as required by docs/command-development.md:66-69. Preserve the legacy route for ordinary downloads and keep staging file-only, or obtain explicit approval for the compatibility change. Update the regression test to reflect the agreed behavior.",
+    "created_at": "2026-10-21T17:13:36Z",
+    "updated_at": "2026-10-21T17:13:38Z",
+    "html_url": "https://github.com/cli/cli/pull/14783#discussion_r4339733038",
+    "pull_request_url": "https://api.github.com/repos/cli/cli/pulls/14783",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/cli/cli/pulls/comments/4339733038"
+      },
+      "html": {
+        "href": "https://github.com/cli/cli/pull/14783#discussion_r4339733038"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/cli/cli/pulls/14783"
+      }
+    },
+    "reactions": {
+      "url": "https://api.github.com/repos/cli/cli/pulls/comments/4339733038/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "start_line": 599,
+    "original_start_line": 599,
+    "start_side": "RIGHT",
+    "line": 600,
+    "original_line": 600,
+    "side": "RIGHT",
+    "author_association": "CONTRIBUTOR",
+    "original_position": 356,
+    "position": 356,
+    "subject_type": "line"
+  },
+  {
+    "url": "https://api.github.com/repos/cli/cli/pulls/comments/4339733147",
+    "pull_request_review_id": 5603453798,
+    "id": 4339733147,
+    "node_id": "PRRC_kwDODKw3uc8AAAABAqsSmw",
+    "diff_hunk": "@@ -0,0 +1,458 @@\n+package download\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"net/http\"\n+\t\"net/url\"\n+\t\"regexp\"\n+\t\"strconv\"\n+\t\"strings\"\n+\n+\t\"github.com/cli/cli/v2/api\"\n+\t\"github.com/cli/cli/v2/internal/ghinstance\"\n+\t\"github.com/cli/cli/v2/internal/ghrepo\"\n+\t\"github.com/cli/cli/v2/internal/text\"\n+\tattapi \"github.com/cli/cli/v2/pkg/cmd/attestation/api\"\n+\t\"github.com/cli/cli/v2/pkg/cmd/attestation/artifact\"\n+\t\"github.com/cli/cli/v2/pkg/cmd/attestation/auth\"\n+\tatt_io \"github.com/cli/cli/v2/pkg/cmd/attestation/io\"\n+\t\"github.com/cli/cli/v2/pkg/cmd/attestation/verification\"\n+\t\"github.com/cli/cli/v2/pkg/cmd/release/shared\"\n+\t\"github.com/cli/cli/v2/pkg/cmdutil\"\n+\t\"github.com/sigstore/sigstore-go/pkg/fulcio/certificate\"\n+\t\"github.com/sigstore/sigstore-go/pkg/verify\"\n+)\n+\n+var errNoProvenance = errors.New(\"no build provenance attestation found\")\n+\n+// workflowRefSuffix matches the \"@<ref>\" that terminates a workflow URI in a\n+// Fulcio certificate, e.g. \".../release.yml@refs/heads/main\".\n+var workflowRefSuffix = regexp.MustCompile(`@(refs/.*|[0-9a-fA-F]+)$`)\n+\n+// parseReleaseAssetURL parses a URL of the form\n+// https://HOST/OWNER/REPO/releases/download/TAG/ASSET\n+func parseReleaseAssetURL(s string) (ghrepo.Interface, string, string, error) {\n+\tu, err := url.Parse(s)\n+\tif err != nil || u.Host == \"\" {\n+\t\treturn nil, \"\", \"\", fmt.Errorf(\"invalid release asset URL %q\", s)\n+\t}\n+\tsegments := strings.Split(strings.Trim(u.Path, \"/\"), \"/\")\n+\tif len(segments) < 6 || segments[2] != \"releases\" || segments[3] != \"download\" {\n+\t\treturn nil, \"\", \"\", fmt.Errorf(\"expected a release asset URL like https://github.com/OWNER/REPO/releases/download/TAG/ASSET, got %q\", s)\n+\t}\n+\ttag := strings.Join(segments[4:len(segments)-1], \"/\")\n+\tasset := segments[len(segments)-1]\n+\tif segments[0] == \"\" || segments[1] == \"\" || tag == \"\" || asset == \"\" {\n+\t\treturn nil, \"\", \"\", fmt.Errorf(\"invalid release asset URL %q\", s)\n+\t}\n+\treturn ghrepo.NewWithHost(segments[0], segments[1], u.Hostname()), tag, asset, nil\n+}\n+\n+func isURLArg(s string) bool {\n+\treturn strings.HasPrefix(s, \"https://\") || strings.HasPrefix(s, \"http://\")\n+}\n+\n+type provenanceResult struct {\n+\tasset    shared.ReleaseAsset\n+\tdigest   string // hex-encoded sha256\n+\tverified *verification.AttestationProcessingResult\n+\terr      error\n+}\n+\n+type provenanceChecker struct {\n+\thttpClient      *http.Client\n+\tattClient       attapi.Client\n+\tverifier        verification.SigstoreVerifier\n+\treleaseVerifier shared.Verifier\n+\trepo            ghrepo.Interface\n+\ttenant          string\n+}\n+\n+// checkVerifySupported fails before any network request when the host has no\n+// attestation support, i.e. GitHub Enterprise Server.\n+func checkVerifySupported(repo ghrepo.Interface) error {\n+\thost := repo.RepoHost()\n+\tif err := auth.IsHostSupported(host); err != nil {\n+\t\treturn fmt.Errorf(\"`--verify` is not supported for %s: artifact attestations are not available on GitHub Enterprise Server\", host)\n+\t}\n+\treturn nil\n+}\n+\n+func newProvenanceChecker(opts *DownloadOptions, httpClient *http.Client, repo ghrepo.Interface) (*provenanceChecker, error) {\n+\thost := repo.RepoHost()\n+\ttenant, isTenant := ghinstance.TenantName(host)\n+\tif !isTenant {\n+\t\ttenant = \"\"\n+\t}\n+\tc := &provenanceChecker{\n+\t\thttpClient:      httpClient,\n+\t\tattClient:       opts.AttClient,\n+\t\tverifier:        opts.SigstoreVerifier,\n+\t\treleaseVerifier: opts.ReleaseVerifier,\n+\t\trepo:            repo,\n+\t\ttenant:          tenant,\n+\t}\n+\tif c.attClient != nil && c.verifier != nil && c.releaseVerifier != nil {\n+\t\treturn c, nil\n+\t}\n+\n+\texternalClient, err := opts.ExternalHttpClient()\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tlogger := att_io.NewHandler(opts.IO)\n+\tif c.attClient == nil {\n+\t\tc.attClient = attapi.NewLiveClient(httpClient, externalClient, host, logger)\n+\t}\n+\tif c.releaseVerifier == nil {\n+\t\tc.releaseVerifier = &shared.AttestationVerifier{\n+\t\t\tAttClient:          c.attClient,\n+\t\t\tExternalHttpClient: externalClient,\n+\t\t\tIO:                 opts.IO,\n+\t\t}\n+\t}\n+\tif c.verifier == nil {\n+\t\tconfig := verification.SigstoreConfig{\n+\t\t\tExternalHttpClient: externalClient,\n+\t\t\tLogger:             logger,\n+\t\t}\n+\t\tif tenant != \"\" {\n+\t\t\ttd, err := c.attClient.GetTrustDomain()\n+\t\t\tif err != nil {\n+\t\t\t\treturn nil, fmt.Errorf(\"error getting trust domain: %w\", err)\n+\t\t\t}\n+\t\t\tconfig.TrustDomain = td\n+\t\t}\n+\t\tc.verifier, err = verification.NewLiveSigstoreVerifier(config)\n+\t\tif err != nil {\n+\t\t\treturn nil, fmt.Errorf(\"error creating Sigstore verifier: %w\", err)\n+\t\t}\n+\t}\n+\treturn c, nil\n+}\n+\n+func (c *provenanceChecker) hostURL() string {\n+\tif c.tenant == \"\" {\n+\t\treturn \"https://github.com\"\n+\t}\n+\treturn fmt.Sprintf(\"https://%s.ghe.com\", c.tenant)\n+}\n+\n+type releaseCheck struct {\n+\t// subjects maps asset name to the hex-encoded sha256 GitHub signed for it.\n+\tsubjects map[string]string\n+\terr      error\n+}\n+\n+// checkRelease verifies the attestation GitHub signs when an immutable release\n+// is published, and returns the asset digests it records.\n+func (c *provenanceChecker) checkRelease(release *shared.Release) releaseCheck {\n+\ttag := release.TagName\n+\tref, err := shared.FetchRefSHA(context.Background(), c.httpClient, c.repo, tag)\n+\tif err != nil {\n+\t\treturn releaseCheck{err: fmt.Errorf(\"failed to resolve tag %s: %w\", tag, err)}\n+\t}\n+\trefArt := artifact.NewDigestedArtifactForRelease(ref, shared.DigestAlgForRef(ref))\n+\n+\tattestations, err := c.attClient.GetByDigest(attapi.FetchParams{\n+\t\tDigest:        refArt.DigestWithAlg(),\n+\t\tPredicateType: \"release\",\n+\t\tRepo:          ghrepo.FullName(c.repo),\n+\t\tInitiator:     \"github\",\n+\t\tLimit:         100,\n+\t})\n+\tif err != nil && !isNotFoundErr(err) {\n+\t\treturn releaseCheck{err: fmt.Errorf(\"failed to fetch release attestation: %w\", err)}\n+\t}\n+\tif err == nil {\n+\t\tattestations, err = shared.FilterAttestationsByTag(attestations, tag)\n+\t\tif err != nil {\n+\t\t\treturn releaseCheck{err: fmt.Errorf(\"failed to parse release attestation: %w\", err)}\n+\t\t}\n+\t}\n+\tif len(attestations) == 0 {\n+\t\treturn releaseCheck{err: errors.New(\"no signed release attestation found\")}\n+\t}\n+\n+\tverified, err := c.releaseVerifier.VerifyAttestation(refArt, attestations[0])\n+\tif err != nil {\n+\t\treturn releaseCheck{err: fmt.Errorf(\"release attestation verification failed: %w\", err)}\n+\t}\n+\n+\tstatement := verified.VerificationResult.Statement\n+\tfields := statement.GetPredicate().GetFields()\n+\tif got := fields[\"tag\"].GetStringValue(); got != tag {\n+\t\treturn releaseCheck{err: fmt.Errorf(\"release attestation is for tag %q, not %q\", got, tag)}\n+\t}\n+\t// Release predicate v0.1 records the release ID as \"releaseId\"; v0.2 as \"databaseId\".\n+\treleaseID := fields[\"databaseId\"].GetStringValue()\n+\tif releaseID == \"\" {\n+\t\treleaseID = fields[\"releaseId\"].GetStringValue()\n+\t}\n+\tif releaseID != strconv.FormatInt(release.DatabaseID, 10) {\n+\t\treturn releaseCheck{err: fmt.Errorf(\"release attestation is for release ID %q, not %d\", releaseID, release.DatabaseID)}\n+\t}\n+\n+\tsubjects := make(map[string]string)\n+\tfor _, s := range statement.GetSubject() {\n+\t\tif d := s.GetDigest()[\"sha256\"]; s.GetName() != \"\" && d != \"\" {\n+\t\t\tsubjects[s.GetName()] = d\n+\t\t}\n+\t}\n+\treturn releaseCheck{subjects: subjects}\n+}\n+\n+func isNotFoundErr(err error) bool {\n+\tvar httpErr api.HTTPError\n+\treturn errors.Is(err, attapi.ErrNoAttestationsFound) ||\n+\t\t(errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound)\n+}\n+\n+// check verifies the SLSA build provenance for an asset using the digest\n+// reported by the API, so it can run before the asset is downloaded. The\n+// downloaded bytes are compared against the same digest afterwards.\n+func (c *provenanceChecker) check(asset shared.ReleaseAsset) provenanceResult {\n+\tres := provenanceResult{asset: asset}\n+\n+\tif asset.Digest == nil || !strings.HasPrefix(*asset.Digest, \"sha256:\") {\n+\t\tres.err = errors.New(\"GitHub did not report a sha256 digest for this asset\")\n+\t\treturn res\n+\t}\n+\tres.digest = strings.TrimPrefix(*asset.Digest, \"sha256:\")\n+\tart := artifact.NewDigestedArtifactForRelease(res.digest, \"sha256\")\n+\n+\tattestations, err := c.attClient.GetByDigest(attapi.FetchParams{\n+\t\tDigest:        art.DigestWithAlg(),\n+\t\tRepo:          ghrepo.FullName(c.repo),\n+\t\tPredicateType: verification.SLSAPredicateV1,\n+\t\tLimit:         attapi.DefaultLimit,\n+\t})\n+\tif err != nil {\n+\t\tif isNotFoundErr(err) {\n+\t\t\tres.err = errNoProvenance\n+\t\t} else {\n+\t\t\tres.err = fmt.Errorf(\"failed to fetch attestations: %w\", err)\n+\t\t}\n+\t\treturn res\n+\t}\n+\n+\thostURL := c.hostURL()\n+\tissuer := verification.GitHubOIDCIssuer\n+\tif c.tenant != \"\" {\n+\t\tissuer = fmt.Sprintf(verification.GitHubTenantOIDCIssuer, c.tenant)\n+\t}\n+\tec := verification.EnforcementCriteria{\n+\t\tPredicateType: verification.SLSAPredicateV1,\n+\t\t// Any GitHub Actions workflow may sign, which allows reusable workflows\n+\t\t// in other repositories. The source repository is pinned below via the\n+\t\t// certificate extensions, which come from the OIDC token.\n+\t\tSANRegex: \"^\" + regexp.QuoteMeta(hostURL+\"/\"),\n+\t\tCertificate: certificate.Summary{\n+\t\t\tIssuer:                   issuer,\n+\t\t\tSourceRepositoryOwnerURI: fmt.Sprintf(\"%s/%s\", hostURL, c.repo.RepoOwner()),\n+\t\t\tSourceRepositoryURI:      fmt.Sprintf(\"%s/%s\", hostURL, ghrepo.FullName(c.repo)),\n+\t\t},\n+\t}\n+\n+\tpolicy, err := buildPolicy(ec, *art)\n+\tif err != nil {\n+\t\tres.err = err\n+\t\treturn res\n+\t}\n+\n+\tverified, err := c.verifier.Verify(attestations, policy)\n+\tif err != nil {\n+\t\tres.err = fmt.Errorf(\"attestation signature verification failed: %w\", err)\n+\t\treturn res\n+\t}\n+\tverified, err = verification.VerifyCertExtensions(verified, ec)\n+\tif err != nil {\n+\t\tres.err = fmt.Errorf(\"attestation was not built from %s: %w\", ghrepo.FullName(c.repo), err)\n+\t\treturn res\n+\t}\n+\tfor _, v := range verified {\n+\t\tif v.VerificationResult.Statement.GetPredicateType() == verification.SLSAPredicateV1 {\n+\t\t\tres.verified = v\n+\t\t\treturn res\n+\t\t}\n+\t}\n+\tres.err = errNoProvenance\n+\treturn res\n+}\n+\n+func buildPolicy(ec verification.EnforcementCriteria, art artifact.DigestedArtifact) (verify.PolicyBuilder, error) {\n+\tdigestOption, err := verification.BuildDigestPolicyOption(art)\n+\tif err != nil {\n+\t\treturn verify.PolicyBuilder{}, err\n+\t}\n+\tsanMatcher, err := verify.NewSANMatcher(ec.SAN, ec.SANRegex)\n+\tif err != nil {\n+\t\treturn verify.PolicyBuilder{}, err\n+\t}\n+\t// The issuer is enforced by VerifyCertExtensions.\n+\tissuerMatcher, err := verify.NewIssuerMatcher(\"\", \".*\")\n+\tif err != nil {\n+\t\treturn verify.PolicyBuilder{}, err\n+\t}\n+\tcertID, err := verify.NewCertificateIdentity(sanMatcher, issuerMatcher, certificate.Extensions{})\n+\tif err != nil {\n+\t\treturn verify.PolicyBuilder{}, err\n+\t}\n+\treturn verify.NewPolicy(digestOption, verify.WithCertificateIdentity(certID)), nil",
+    "path": "pkg/cmd/release/download/provenance.go",
+    "commit_id": "654d851d8145b2912fe474ceb0a47681854b37e2",
+    "original_commit_id": "654d851d8145b2912fe474ceb0a47681854b37e2",
+    "user": {
+      "login": "Copilot",
+      "id": 175728472,
+      "node_id": "BOT_kgDOCnlnWA",
+      "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Copilot",
+      "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+      "followers_url": "https://api.github.com/users/Copilot/followers",
+      "following_url": "https://api.github.com/users/Copilot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Copilot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Copilot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Copilot/subscriptions",
+      "organizations_url": "https://api.github.com/users/Copilot/orgs",
+      "repos_url": "https://api.github.com/users/Copilot/repos",
+      "events_url": "https://api.github.com/users/Copilot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Copilot/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": "\ud83d\uded1 Requirement: Test the policy passed to Sigstore\n\nAll new download verification tests use a stub that ignores the policy argument (provenance_test.go:178-179). They therefore cannot detect removal or misconfiguration of the attested-digest binding or signer certificate identity constraint; the tampered-download cases test only the later byte hash. Add offline policy-level tests showing that mismatched attested digests and signer identities are rejected, and that an allowed reusable-workflow signer is accepted. Use isolated fixtures or policy inspection to exercise this command's assembled policy, consistent with docs/testing.md:49-50.",
+    "created_at": "2026-10-21T17:13:37Z",
+    "updated_at": "2026-10-21T17:13:38Z",
+    "html_url": "https://github.com/cli/cli/pull/14783#discussion_r4339733147",
+    "pull_request_url": "https://api.github.com/repos/cli/cli/pulls/14783",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/cli/cli/pulls/comments/4339733147"
+      },
+      "html": {
+        "href": "https://github.com/cli/cli/pull/14783#discussion_r4339733147"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/cli/cli/pulls/14783"
+      }
+    },
+    "reactions": {
+      "url": "https://api.github.com/repos/cli/cli/pulls/comments/4339733147/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "start_line": null,
+    "original_start_line": null,
+    "start_side": null,
+    "line": 303,
+    "original_line": 303,
+    "side": "RIGHT",
+    "author_association": "CONTRIBUTOR",
+    "original_position": 303,
+    "position": 303,
+    "subject_type": "line"
+  },
+  {
+    "url": "https://api.github.com/repos/cli/cli/pulls/comments/4339733201",
+    "pull_request_review_id": 5603453798,
+    "id": 4339733201,
+    "node_id": "PRRC_kwDODKw3uc8AAAABAqsS0Q",
+    "diff_hunk": "@@ -116,6 +173,7 @@ func NewCmdDownload(f *cmdutil.Factory, runF func(*DownloadOptions) error) *cobr\n \tcmd.Flags().BoolVar(&opts.OverwriteExisting, \"clobber\", false, \"Overwrite existing files of the same name\")\n \tcmd.Flags().BoolVar(&opts.SkipExisting, \"skip-existing\", false, \"Skip downloading when files of the same name exist\")\n \tcmd.Flags().BoolVar(&opts.AllowEscapeSequences, \"allow-escape-sequences\", false, \"Allow printing terminal escape sequences when writing an asset to standard output\")\n+\tcmd.Flags().BoolVar(&opts.Verify, \"verify\", false, \"Check release immutability and verify build provenance before downloading\")",
+    "path": "pkg/cmd/release/download/download.go",
+    "commit_id": "654d851d8145b2912fe474ceb0a47681854b37e2",
+    "original_commit_id": "654d851d8145b2912fe474ceb0a47681854b37e2",
+    "user": {
+      "login": "Copilot",
+      "id": 175728472,
+      "node_id": "BOT_kgDOCnlnWA",
+      "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Copilot",
+      "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+      "followers_url": "https://api.github.com/users/Copilot/followers",
+      "following_url": "https://api.github.com/users/Copilot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Copilot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Copilot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Copilot/subscriptions",
+      "organizations_url": "https://api.github.com/users/Copilot/orgs",
+      "repos_url": "https://api.github.com/users/Copilot/repos",
+      "events_url": "https://api.github.com/users/Copilot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Copilot/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": "\ud83d\uded1 Requirement: Establish contribution eligibility\n\nThe description says there is no tracking issue, and the supplied context does not establish maintainer authorization. .github/CONTRIBUTING.md:5 requires external contributions to target an issue labelled help wanted with explicit acceptance criteria. Please obtain clarification from `@cli/code-reviewers` through an issue/discussion, or establish trusted maintainer authorization for this scope before continuing the upstream implementation. Draft status does not satisfy this prerequisite.",
+    "created_at": "2026-10-21T17:13:37Z",
+    "updated_at": "2026-10-21T17:13:38Z",
+    "html_url": "https://github.com/cli/cli/pull/14783#discussion_r4339733201",
+    "pull_request_url": "https://api.github.com/repos/cli/cli/pulls/14783",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/cli/cli/pulls/comments/4339733201"
+      },
+      "html": {
+        "href": "https://github.com/cli/cli/pull/14783#discussion_r4339733201"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/cli/cli/pulls/14783"
+      }
+    },
+    "reactions": {
+      "url": "https://api.github.com/repos/cli/cli/pulls/comments/4339733201/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "start_line": null,
+    "original_start_line": null,
+    "start_side": null,
+    "line": 176,
+    "original_line": 176,
+    "side": "RIGHT",
+    "author_association": "CONTRIBUTOR",
+    "original_position": 143,
+    "position": 143,
+    "subject_type": "line"
+  },
+  {
+    "url": "https://api.github.com/repos/cli/cli/pulls/comments/4339733038",
+    "pull_request_review_id": 5603453798,
+    "id": 4339733039,
+    "node_id": "PRRC_kwDODKw3uc8AAAABAqsSLg",
+    "diff_hunk": "@@ -412,17 +594,23 @@ func (w *destinationWriter) makePath(name string) string {\n \treturn w.file\n }\n \n+// isStdout reports whether output goes to standard output. Only an explicit\n+// \"--output -\" means that; an asset that happens to be named \"-\" is a file.\n+func (w *destinationWriter) isStdout() bool {\n+\treturn w.file == \"-\"",
+    "path": "pkg/cmd/release/download/download.go",
+    "commit_id": "654d851d8145b2912fe474ceb0a47681854b37e2",
+    "original_commit_id": "654d851d8145b2912fe474ceb0a47681854b37e2",
+    "user": {
+      "login": "mrecachinas",
+      "id": 175728472,
+      "node_id": "BOT_kgDOCnlnWA",
+      "avatar_url": "https://avatars.githubusercontent.com/in/946600?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Copilot",
+      "html_url": "https://github.com/apps/copilot-pull-request-reviewer",
+      "followers_url": "https://api.github.com/users/Copilot/followers",
+      "following_url": "https://api.github.com/users/Copilot/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Copilot/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Copilot/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Copilot/subscriptions",
+      "organizations_url": "https://api.github.com/users/Copilot/orgs",
+      "repos_url": "https://api.github.com/users/Copilot/repos",
+      "events_url": "https://api.github.com/users/Copilot/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Copilot/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": "Agreed, will change.",
+    "created_at": "2026-10-21T19:00:00Z",
+    "updated_at": "2026-10-21T17:13:38Z",
+    "html_url": "https://github.com/cli/cli/pull/14783#discussion_r4339733038",
+    "pull_request_url": "https://api.github.com/repos/cli/cli/pulls/14783",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/cli/cli/pulls/comments/4339733038"
+      },
+      "html": {
+        "href": "https://github.com/cli/cli/pull/14783#discussion_r4339733038"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/cli/cli/pulls/14783"
+      }
+    },
+    "reactions": {
+      "url": "https://api.github.com/repos/cli/cli/pulls/comments/4339733038/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "start_line": 599,
+    "original_start_line": 599,
+    "start_side": "RIGHT",
+    "line": 600,
+    "original_line": 600,
+    "side": "RIGHT",
+    "author_association": "CONTRIBUTOR",
+    "original_position": 356,
+    "position": 356,
+    "subject_type": "line",
+    "in_reply_to_id": 4339733038
+  }
+]

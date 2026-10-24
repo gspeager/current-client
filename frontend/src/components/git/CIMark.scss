@@ -1,0 +1,152 @@
+@use '../../styles/patterns';
+
+// design-system.md: CI is a 3px square in the status color; never HEAD's cyan.
+.ci-mark {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: var(--outline);
+  cursor: pointer;
+
+  &.ci-mark-success {
+    background: var(--tertiary);
+  }
+
+  &.ci-mark-failed {
+    background: var(--error);
+  }
+
+  &.ci-mark-canceled {
+    background: var(--warning);
+  }
+
+  &.ci-mark-running,
+  &.ci-mark-pending {
+    background: transparent;
+    border: 1.5px solid var(--outline);
+  }
+}
+
+span.ci-mark {
+  cursor: default;
+}
+
+.ci-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  min-width: 360px;
+}
+
+.ci-jobs-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.ci-job,
+.ci-job-row {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) max-content max-content max-content;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-row);
+  padding: 0 var(--space-xs);
+  font: var(--ui-sm);
+}
+
+.ci-job {
+  border-bottom: var(--border-structure);
+}
+
+// A failed job is a button row with its log underneath.
+.ci-job-failed {
+  display: block;
+  padding: 0;
+}
+
+.ci-job-row {
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-high);
+  }
+}
+
+.ci-job-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-xs) var(--space-sm);
+}
+
+// The log keeps its own lines; long ones scroll sideways rather than
+// stretching the panel.
+.ci-job-log-text {
+  margin: 0;
+  max-height: 50vh;
+  padding: var(--space-sm);
+  overflow: auto;
+  background: var(--surface-lowest);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+  white-space: pre;
+}
+
+.ci-job-log-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ci-job-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--data-sm);
+}
+
+.ci-job-stage,
+.ci-job-status,
+.ci-job-duration {
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.ci-jobs-hint,
+.ci-jobs-error {
+  margin: 0;
+  font: var(--ui-sm);
+  color: var(--outline);
+}
+
+.ci-jobs-error {
+  color: var(--error);
+}
+
+.ci-jobs-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ci-jobs-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  @include patterns.secondary-button;
+}

@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -151,5 +152,28 @@ func TestLastFetchTimeReflectsMostRecentFetch(t *testing.T) {
 	}
 	if got.Before(before) {
 		t.Fatalf("got %v, want a time at or after %v", got, before)
+	}
+}
+
+func TestFetchPruneDeletesGoneBranchesOnOneRemote(t *testing.T) {
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	seed := gittest.InitRepo(t)
+	gittest.Run(t, seed, "remote", "add", "origin", remoteDir)
+	gittest.CommitFile(t, seed, "file.txt", "v1", "initial")
+	gittest.Run(t, seed, "push", "-q", "origin", "main", "main:gone")
+
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	if err := Fetch(context.Background(), dir, "origin"); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	gittest.Run(t, seed, "push", "-q", "origin", "--delete", "gone")
+
+	if err := FetchPrune(context.Background(), dir, "origin"); err != nil {
+		t.Fatalf("FetchPrune: %v", err)
+	}
+	if refs := gittest.Run(t, dir, "branch", "-r"); strings.Contains(refs, "origin/gone") {
+		t.Errorf("origin/gone survived the prune: %q", refs)
 	}
 }

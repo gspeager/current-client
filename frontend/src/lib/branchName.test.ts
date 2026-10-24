@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toBranchName } from './branchName'
+import { issueBranchName, toBranchName } from './branchName'
 
 describe('toBranchName', () => {
   it.each([
@@ -25,5 +25,17 @@ describe('toBranchName', () => {
     ['already-valid/name_1.2', 'already-valid/name_1.2'],
   ])('%j → %j', (input, expected) => {
     expect(toBranchName(input)).toBe(expected)
+  })
+})
+
+describe('issueBranchName', () => {
+  it.each([
+    [12, 'Login fails on Windows', '12-login-fails-on-windows'],
+    [7, 'Fix: the `--force` flag (again)!', '7-fix-the-force-flag-again'],
+    [3, 'One two three four five six seven eight nine ten', '3-one-two-three-four-five-six-seven-eight'],
+    [9, 'Überprüfung für Ärger', '9-überprüfung-für-ärger'],
+    [5, '???', '5-issue'],
+  ])('%j %j → %j', (number, title, expected) => {
+    expect(issueBranchName(number, title)).toBe(expected)
   })
 })

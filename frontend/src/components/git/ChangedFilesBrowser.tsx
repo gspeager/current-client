@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ChangedFile, FileDiff } from '@current-client-bindings/app'
 import ChangedFileRow from '../../features/history/ChangedFileRow'
+import { useReviewThreads } from '../../lib/useReviewThreads'
 import DiffViewer from '../../features/diff/DiffViewer'
-import { DiffWrapToggle } from '../../features/diff/diffWrap'
+import DiffViewMenu from '../../features/diff/DiffViewMenu'
 import type { ImageSources } from '../../features/diff/ImageDiff'
 import DiffViewModeToggle, { type DiffViewMode } from '../../features/diff/DiffViewModeToggle'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -13,7 +14,7 @@ interface ChangedFilesBrowserProps {
   error: string | null
   emptyHint: string
   // force loads a file over the large-file limit.
-  loadDiff: (file: ChangedFile, force: boolean) => Promise<FileDiff>
+  loadDiff: (file: ChangedFile, force: boolean, ignoreWhitespace: boolean) => Promise<FileDiff>
   // Where to read a file's two versions for the image view.
   images?: (file: ChangedFile) => ImageSources
   // The file to show first, when the list is already loaded.
@@ -32,16 +33,25 @@ function ChangedFilesBrowser({
   initialPath,
   repoPath,
 }: ChangedFilesBrowserProps) {
+  const reviewThreads = useReviewThreads(repoPath ?? '', files)
   const [selected, setSelected] = useState<ChangedFile | null>(() => files?.find((f) => f.path === initialPath) ?? null)
   const [viewMode, setViewMode] = useState<DiffViewMode>('split')
+  const [ignoreWhitespace, setIgnoreWhitespace] = useState(false)
   const [forcedPath, setForcedPath] = useState<string | null>(null)
   const force = selected !== null && forcedPath === selected.path
   const { data: diff, error: diffError } = useAsyncData(
-    () => (selected ? loadDiff(selected, force) : null),
+    () => (selected ? loadDiff(selected, force, ignoreWhitespace) : null),
     // loadDiff is a new function every render; the key above covers what it depends on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selected, force],
+    [selected, force, ignoreWhitespace],
   )
+
+  // The first file (or the one asked for) opens with the list, so the sheet is useful at once.
+  useEffect(() => {
+    if (selected === null && files && files.length > 0) {
+      setSelected(files.find((f) => f.path === initialPath) ?? files[0])
+    }
+  }, [files, initialPath, selected])
 
   return (
     <div className="changed-files-browser">
@@ -64,6 +74,7 @@ function ChangedFilesBrowser({
                 file={file}
                 selected={selected?.path === file.path}
                 onSelect={() => setSelected(file)}
+                threads={reviewThreads.counts[file.path]}
               />
             ))}
           </ul>
@@ -78,13 +89,15 @@ function ChangedFilesBrowser({
         ) : diff ? (
           <>
             <div className="changed-files-browser-toolbar">
-              <DiffWrapToggle />
               <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
+              <DiffViewMenu ignoreWhitespace={ignoreWhitespace} onIgnoreWhitespaceChange={setIgnoreWhitespace} />
             </div>
             <DiffViewer
               diff={diff}
               path={selected.path}
               viewMode={viewMode}
+              threads={reviewThreads.byPath[selected.path]}
+              outdatedThreads={reviewThreads.outdatedByPath[selected.path]}
               images={images?.(selected)}
               repoPath={repoPath}
               onForceLoad={() => setForcedPath(selected.path)}

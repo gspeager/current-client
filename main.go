@@ -28,7 +28,8 @@ func main() {
 		Description: "A privacy-first, cross-platform desktop Git client.",
 		Services:    app.Services(),
 		Assets: application.AssetOptions{
-			Handler: application.AssetFileServerFS(assets),
+			Handler:    application.AssetFileServerFS(assets),
+			Middleware: app.CSPMiddleware(),
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,

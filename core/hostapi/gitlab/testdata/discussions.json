@@ -1,0 +1,187 @@
+[
+ {
+  "id": "d1",
+  "individual_note": false,
+  "notes": [
+   {
+    "id": 11,
+    "type": "DiffNote",
+    "body": "Rename this to `client`.",
+    "author": {
+     "id": 1,
+     "username": "ada",
+     "name": "Ada Lovelace",
+     "state": "active",
+     "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/1/avatar.png",
+     "web_url": "https://gitlab.com/ada"
+    },
+    "created_at": "2026-10-20T10:00:00.000Z",
+    "updated_at": "2026-10-20T10:00:00.000Z",
+    "system": false,
+    "noteable_type": "MergeRequest",
+    "resolvable": true,
+    "resolved": false,
+    "position": {
+     "base_sha": "aaaa",
+     "start_sha": "bbbb",
+     "head_sha": "bef4c38e0000000000000000000000000000000000",
+     "old_path": "app/remoteservice.go",
+     "new_path": "app/remoteservice.go",
+     "position_type": "text",
+     "old_line": null,
+     "new_line": 42
+    }
+   },
+   {
+    "id": 12,
+    "type": "DiscussionNote",
+    "body": "Will do.",
+    "author": {
+     "id": 1,
+     "username": "ada",
+     "name": "Ada Lovelace",
+     "state": "active",
+     "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/1/avatar.png",
+     "web_url": "https://gitlab.com/ada"
+    },
+    "created_at": "2026-10-20T10:00:00.000Z",
+    "updated_at": "2026-10-20T10:00:00.000Z",
+    "system": false,
+    "noteable_type": "MergeRequest",
+    "resolvable": true,
+    "resolved": false,
+    "position": null
+   }
+  ]
+ },
+ {
+  "id": "d2",
+  "individual_note": false,
+  "notes": [
+   {
+    "id": 21,
+    "type": "DiffNote",
+    "body": "Typo here.",
+    "author": {
+     "id": 1,
+     "username": "ada",
+     "name": "Ada Lovelace",
+     "state": "active",
+     "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/1/avatar.png",
+     "web_url": "https://gitlab.com/ada"
+    },
+    "created_at": "2026-10-20T10:00:00.000Z",
+    "updated_at": "2026-10-20T10:00:00.000Z",
+    "system": false,
+    "noteable_type": "MergeRequest",
+    "resolvable": true,
+    "resolved": true,
+    "position": {
+     "base_sha": "aaaa",
+     "start_sha": "bbbb",
+     "head_sha": "bef4c38e0000000000000000000000000000000000",
+     "old_path": "README.md",
+     "new_path": "README.md",
+     "position_type": "text",
+     "old_line": 7,
+     "new_line": 7
+    },
+    "resolved_by": {
+     "id": 1,
+     "username": "ada",
+     "name": "Ada Lovelace",
+     "state": "active",
+     "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/1/avatar.png",
+     "web_url": "https://gitlab.com/ada"
+    }
+   }
+  ]
+ },
+ {
+  "id": "d3",
+  "individual_note": false,
+  "notes": [
+   {
+    "id": 31,
+    "type": "DiffNote",
+    "body": "This moved since.",
+    "author": {
+     "id": 1,
+     "username": "ada",
+     "name": "Ada Lovelace",
+     "state": "active",
+     "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/1/avatar.png",
+     "web_url": "https://gitlab.com/ada"
+    },
+    "created_at": "2026-10-20T10:00:00.000Z",
+    "updated_at": "2026-10-20T10:00:00.000Z",
+    "system": false,
+    "noteable_type": "MergeRequest",
+    "resolvable": true,
+    "resolved": false,
+    "position": {
+     "base_sha": "aaaa",
+     "start_sha": "bbbb",
+     "head_sha": "0ld0000000000000000000000000000000000000",
+     "old_path": "core/git/refs.go",
+     "new_path": "core/git/refs.go",
+     "position_type": "text",
+     "old_line": 15,
+     "new_line": null
+    }
+   }
+  ]
+ },
+ {
+  "id": "d4",
+  "individual_note": true,
+  "notes": [
+   {
+    "id": 41,
+    "type": "DiscussionNote",
+    "body": "Overall looks good.",
+    "author": {
+     "id": 1,
+     "username": "ada",
+     "name": "Ada Lovelace",
+     "state": "active",
+     "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/1/avatar.png",
+     "web_url": "https://gitlab.com/ada"
+    },
+    "created_at": "2026-10-20T10:00:00.000Z",
+    "updated_at": "2026-10-20T10:00:00.000Z",
+    "system": false,
+    "noteable_type": "MergeRequest",
+    "resolvable": false,
+    "resolved": false,
+    "position": null
+   }
+  ]
+ },
+ {
+  "id": "d5",
+  "individual_note": true,
+  "notes": [
+   {
+    "id": 51,
+    "type": null,
+    "body": "added 1 commit",
+    "author": {
+     "id": 1,
+     "username": "ada",
+     "name": "Ada Lovelace",
+     "state": "active",
+     "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/1/avatar.png",
+     "web_url": "https://gitlab.com/ada"
+    },
+    "created_at": "2026-10-20T10:00:00.000Z",
+    "updated_at": "2026-10-20T10:00:00.000Z",
+    "system": true,
+    "noteable_type": "MergeRequest",
+    "resolvable": false,
+    "resolved": false,
+    "position": null
+   }
+  ]
+ }
+]

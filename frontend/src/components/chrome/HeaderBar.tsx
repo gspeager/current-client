@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { System } from '@wailsio/runtime'
-import { ArrowDown, ArrowUp, ChevronDown, Plus, RefreshCw, Settings, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, Plus, RefreshCw, Settings, X, type LucideIcon } from 'lucide-react'
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
-import Checkbox from '../forms/Checkbox'
-import ContextMenu, { type ContextMenuState } from '../controls/ContextMenu'
+import ContextMenu, { type ContextMenuItem, type ContextMenuState } from '../controls/ContextMenu'
 import FileHistoryPanel from '../../features/history/FileHistoryPanel'
 import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
@@ -12,12 +11,14 @@ import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
+import { operationBadge, operationNoun } from '../../lib/conflictWords'
 import { baseName } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
 import QuickSwitchPalette from './QuickSwitchPalette'
+import type { WorkspaceAction } from './useWorkspaceActions'
 import RepoPickerModal from '../../features/repositories/RepoPickerModal'
 import RepoTabChip from '../../features/repositories/RepoTabChip'
 import SearchModal from '../../features/search/SearchModal'
@@ -29,19 +30,25 @@ interface HeaderBarProps {
   repoVersion: number
   lastFetchedAt: Date | null
   pruneOnFetch: boolean
-  onPruneOnFetchChange: (prune: boolean) => void
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
+  workspaceActions: WorkspaceAction[]
   onOpenSettings: () => void
   onPull: () => void
   onPullMerge: () => void
   onPullRebase: () => void
   onPush: () => void
   onForcePush: () => void
+  onPushTags: () => void
+  onPushSetUpstream: () => void
   onBranchChanged?: () => void
   onFetched?: () => void
   onOpenCommit: (sha: string, position: number) => void
   syncing: boolean
+  // "merge", "rebase", "cherry-pick", "revert" or "am" while one is in progress.
+  operation?: string | null
+  // Settings' default repository location, shown in the Open repository dialog.
+  defaultRepoLocation?: string
   // Supplied by an app embedding Current Client, such as a switch between its views.
   accessory?: ReactNode
 }
@@ -51,19 +58,23 @@ function HeaderBar({
   repoVersion,
   lastFetchedAt,
   pruneOnFetch,
-  onPruneOnFetchChange,
   repo,
   dirty,
+  workspaceActions,
   onOpenSettings,
   onPull,
   onPullMerge,
   onPullRebase,
   onPush,
   onForcePush,
+  onPushTags,
+  onPushSetUpstream,
   onBranchChanged,
   onFetched,
   onOpenCommit,
   syncing,
+  operation = null,
+  defaultRepoLocation = '',
   accessory,
 }: HeaderBarProps) {
   useClockTick()
@@ -78,7 +89,7 @@ function HeaderBar({
   const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [pullMenu, setPullMenu] = useState<ContextMenuState | null>(null)
+  const [syncMenu, setSyncMenu] = useState<ContextMenuState | null>(null)
   const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null)
   const branchSwitcherRef = useRef<HTMLDetailsElement>(null)
 
@@ -111,6 +122,53 @@ function HeaderBar({
     const next = [...withoutDragged.slice(0, targetIndex), dragPath, ...withoutDragged.slice(targetIndex)]
     repo.reorderTabs(next)
     setDragPath(null)
+  }
+
+  const fetchedLabel = fetchAllOp.running
+    ? 'Fetching…'
+    : lastFetchedAt
+      ? `Fetched ${relativeTime(lastFetchedAt)}`
+      : 'Not fetched yet'
+
+  // A sync button with a chevron beside it that drops the rest of its choices.
+  const syncButton = (
+    id: 'fetch' | 'pull' | 'push',
+    label: string,
+    Icon: LucideIcon,
+    title: string,
+    onClick: (e: React.MouseEvent) => void,
+    items: ContextMenuItem[],
+    disabled = false,
+  ) => {
+    const name = id[0].toUpperCase() + id.slice(1)
+    const blocked = operation ? `Finish the ${operationNoun(operation)} first` : null
+    return (
+      <span className={`header-bar-sync-group header-bar-sync-${id}`}>
+        <button
+          type="button"
+          className="header-bar-sync"
+          onClick={disabled || blocked ? undefined : onClick}
+          disabled={!!blocked}
+          title={blocked ?? title}
+        >
+          <Icon size={12} strokeWidth={1.5} />
+          {label}
+        </button>
+        <button
+          type="button"
+          className="header-bar-sync header-bar-sync-more"
+          aria-label={`${name} options`}
+          title={blocked ?? `${name} options`}
+          disabled={disabled || !!blocked}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            setSyncMenu({ x: rect.left, y: rect.bottom + 4, items })
+          }}
+        >
+          <ChevronDown size={12} strokeWidth={1.5} />
+        </button>
+      </span>
+    )
   }
 
   useWindowKeydown((e) => {
@@ -158,6 +216,7 @@ function HeaderBar({
                     </span>
                   </>
                 )}
+                {operation && <span className="header-bar-mode">{operationBadge(operation)}</span>}
                 <ChevronDown size={12} strokeWidth={1.5} className="header-bar-repo-chevron" />
                 {repo.tabs.length > 1 && (
                   <button
@@ -187,6 +246,10 @@ function HeaderBar({
                     onBranchChanged={onBranchChanged}
                     onFetched={onFetched}
                     pruneOnFetch={pruneOnFetch}
+                    onOpenAnother={() => {
+                      setBranchSwitcherOpen(false)
+                      setPickerOpen(true)
+                    }}
                   />
                 </div>
               )}
@@ -215,82 +278,51 @@ function HeaderBar({
         </button>
       </div>
 
-      {branchStatus && branchStatus.behind > 0 && (
-        <span className="header-bar-sync-group">
-          <button
-            type="button"
-            className="header-bar-sync header-bar-sync-behind"
-            onClick={syncing ? undefined : (e) => (e.shiftKey ? onPullRebase() : onPull())}
-            title="Pull (shift-click to rebase)"
-          >
-            <ArrowDown size={12} strokeWidth={1.5} />
-            Pull {branchStatus.behind}
-          </button>
-          <button
-            type="button"
-            className="header-bar-sync header-bar-sync-behind header-bar-sync-more"
-            aria-label="Pull options"
-            title="Pull options"
-            disabled={syncing}
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect()
-              setPullMenu({
-                x: rect.left,
-                y: rect.bottom + 4,
-                items: [
-                  { label: 'Pull (merge)', onClick: onPullMerge },
-                  { label: 'Pull (rebase)', onClick: onPullRebase },
-                ],
-              })
-            }}
-          >
-            <ChevronDown size={12} strokeWidth={1.5} />
-          </button>
-        </span>
-      )}
-      {pullMenu && <ContextMenu state={pullMenu} onClose={() => setPullMenu(null)} />}
-
-      {branchStatus && branchStatus.ahead > 0 && (
-        <button
-          type="button"
-          className="header-bar-sync header-bar-sync-ahead"
-          onClick={syncing ? undefined : (e) => (e.shiftKey ? onForcePush() : onPush())}
-          title="Push (shift-click to force push)"
-        >
-          <ArrowUp size={12} strokeWidth={1.5} />
-          Push {branchStatus.ahead}
-        </button>
-      )}
-
-      <span className="header-bar-fetch-status">
-        {fetchAllOp.running
-          ? 'Fetching…'
-          : syncing
-            ? 'Syncing…'
-            : lastFetchedAt
-              ? `fetched ${relativeTime(lastFetchedAt)}`
-              : 'Not fetched yet'}
-      </span>
-      <button
-        type="button"
-        className="header-bar-fetch"
-        onClick={fetchAllOp.running ? fetchAllOp.cancel : fetchAllOp.fetchAll}
-        disabled={syncing}
-        title={fetchAllOp.running ? 'Cancel fetch' : 'Fetch all remotes'}
-      >
-        <RefreshCw size={12} strokeWidth={1.5} />
-        {fetchAllOp.running ? 'Cancel' : 'Fetch'}
-      </button>
-      <span
-        className="header-bar-fetch-prune"
-        title="Delete remote branches that are gone from the remote when fetching"
-      >
-        <Checkbox checked={pruneOnFetch} onChange={onPruneOnFetchChange} label="Prune" />
-      </span>
-      {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
+      <div className="header-bar-sync-cluster">
+        {syncButton(
+          'fetch',
+          fetchAllOp.running ? 'Cancel' : 'Fetch',
+          RefreshCw,
+          fetchAllOp.running ? 'Cancel fetch' : `${fetchedLabel}. Fetch${pruneOnFetch ? ' and prune' : ''}`,
+          fetchAllOp.running ? fetchAllOp.cancel : () => fetchAllOp.fetchPrimary(),
+          [
+            { label: 'Fetch and prune', onClick: fetchAllOp.fetchPrune },
+            { label: 'Fetch all remotes', onClick: fetchAllOp.fetchAll },
+          ],
+          syncing,
+        )}
+        {syncButton(
+          'pull',
+          branchStatus && branchStatus.behind > 0 ? `Pull ${branchStatus.behind}` : 'Pull',
+          ArrowDown,
+          'Pull (shift-click to rebase)',
+          (e?: React.MouseEvent) => (e?.shiftKey ? onPullRebase() : onPull()),
+          [
+            { label: 'Pull (merge)', onClick: onPullMerge },
+            { label: 'Pull (rebase)', onClick: onPullRebase },
+          ],
+          syncing,
+        )}
+        {syncButton(
+          'push',
+          branchStatus && branchStatus.ahead > 0 ? `Push ${branchStatus.ahead}` : 'Push',
+          ArrowUp,
+          'Push (shift-click to force-push)',
+          (e?: React.MouseEvent) => (e?.shiftKey ? onForcePush() : onPush()),
+          [
+            { label: 'Push tags', onClick: onPushTags },
+            { label: 'Set upstream…', onClick: onPushSetUpstream },
+            { label: 'Force-push (with lease)…', onClick: onForcePush, destructive: true },
+          ],
+          syncing,
+        )}
+        {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
+      </div>
+      {syncMenu && <ContextMenu state={syncMenu} onClose={() => setSyncMenu(null)} />}
+      <span className="header-bar-divider" />
 
       <button type="button" className="header-bar-quick-switch" onClick={() => setQuickSwitchOpen(true)}>
-        Quick switch <Kbd>{System.IsMac() ? '⌘K' : 'Ctrl K'}</Kbd>
+        Go to anything <Kbd>{System.IsMac() ? '⌘K' : 'Ctrl K'}</Kbd>
       </button>
 
       {accessory}
@@ -313,6 +345,7 @@ function HeaderBar({
           repo={repo}
           onClose={() => setQuickSwitchOpen(false)}
           onBranchChanged={onBranchChanged}
+          workspaceActions={workspaceActions}
           onOpenSettings={onOpenSettings}
           onPull={onPull}
           onPullMerge={onPullMerge}
@@ -337,7 +370,17 @@ function HeaderBar({
           }}
         />
       )}
-      {pickerOpen && <RepoPickerModal repo={repo} onClose={() => setPickerOpen(false)} />}
+      {pickerOpen && (
+        <RepoPickerModal
+          repo={repo}
+          defaultLocation={defaultRepoLocation}
+          onOpenSettings={() => {
+            setPickerOpen(false)
+            onOpenSettings()
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </header>
   )
 }

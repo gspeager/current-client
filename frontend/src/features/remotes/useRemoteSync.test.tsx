@@ -1,7 +1,13 @@
 import type { ReactNode } from 'react'
 import { act, renderHook, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, RemoteService, type BranchStatusInfo } from '@current-client-bindings/app'
+import {
+  BranchService,
+  type BranchStatusInfo,
+  PushResult,
+  PushWarning,
+  RemoteService,
+} from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { DIVERGED, useRemoteSync } from './useRemoteSync'
 
@@ -18,9 +24,9 @@ function wrapper({ children }: { children: ReactNode }) {
 // A push that stays in flight until cancelled, like a Wails CancellablePromise.
 function pendingPush() {
   let reject: (err: Error) => void = () => {}
-  const promise = new Promise<void>((_, r) => {
+  const promise = new Promise<PushResult>((_, r) => {
     reject = r
-  }) as Promise<void> & { cancel: () => Promise<void> }
+  }) as Promise<PushResult> & { cancel: () => Promise<void> }
   const cancel = vi.fn(() => {
     const err = new Error('cancelled')
     err.name = 'CancelError'
@@ -32,8 +38,20 @@ function pendingPush() {
 }
 
 describe('useRemoteSync', () => {
+  it('pushes every tag to the primary remote', async () => {
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin' }] as never)
+    vi.mocked(RemoteService.PushTags).mockResolvedValue()
+    const onSynced = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
+
+    act(() => result.current.pushTags())
+
+    await vi.waitFor(() => expect(onSynced).toHaveBeenCalled())
+    expect(RemoteService.PushTags).toHaveBeenCalledWith(REPO, 'origin', null)
+  })
+
   it('pushes and reports the sync', async () => {
-    vi.mocked(RemoteService.Push).mockResolvedValue()
+    vi.mocked(RemoteService.Push).mockResolvedValue(new PushResult({}))
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
@@ -42,6 +60,65 @@ describe('useRemoteSync', () => {
     expect(RemoteService.Push).toHaveBeenCalledWith(REPO, null)
     expect(onSynced).toHaveBeenCalled()
     expect(result.current.pushOp.error).toBeNull()
+  })
+
+  it('asks before pushing to a branch the host protects, and leaves the push unrun on cancel', async () => {
+    vi.mocked(RemoteService.PushWarning).mockResolvedValue(
+      new PushWarning({
+        host: 'gitlab.com',
+        branch: 'main',
+        pattern: 'main',
+        noPush: true,
+        noForcePush: true,
+        noDelete: true,
+      }),
+    )
+    vi.mocked(RemoteService.Push).mockResolvedValue(new PushResult({}))
+    const onSynced = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
+
+    act(() => {
+      void result.current.push()
+    })
+    let dialog = await screen.findByRole('alertdialog', { name: 'Push to a protected branch' })
+    expect(dialog).toHaveTextContent('gitlab.com protects main and forbids direct pushes. The push may be rejected.')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(RemoteService.Push).not.toHaveBeenCalled()
+
+    act(() => {
+      void result.current.push()
+    })
+    dialog = await screen.findByRole('alertdialog', { name: 'Push to a protected branch' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Push anyway' }))
+
+    await vi.waitFor(() => expect(onSynced).toHaveBeenCalled())
+    expect(RemoteService.PushWarning).toHaveBeenCalledWith(REPO, '')
+  })
+
+  it('names what the host forbids in the force-push confirmation', async () => {
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({
+      current: 'release/1.0',
+      upstream: 'origin/release/1.0',
+    } as BranchStatusInfo)
+    vi.mocked(RemoteService.PushWarning).mockResolvedValue(
+      new PushWarning({
+        host: 'gitlab.com',
+        branch: 'release/1.0',
+        pattern: 'release/*',
+        restrictedPush: true,
+        noForcePush: true,
+        noDelete: true,
+      }),
+    )
+    const { result } = renderHook(() => useRemoteSync(REPO, vi.fn()), { wrapper })
+
+    act(() => void result.current.forcePush())
+    const dialog = await screen.findByRole('alertdialog', { name: 'Force-push' })
+
+    expect(dialog).toHaveTextContent(
+      'gitlab.com protects release/1.0 (rule release/*) and forbids pushes except by some roles and force-pushes.',
+    )
+    expect(RemoteService.PushWarning).toHaveBeenCalledWith(REPO, 'origin/release/1.0')
   })
 
   it('force-pushes to the upstream it names, after confirming', async () => {
@@ -87,15 +164,36 @@ describe('useRemoteSync', () => {
     expect(RemoteService.Pull).not.toHaveBeenCalled()
   })
 
+  it('pushes with an upstream on request and hands the result on instead of reporting it', async () => {
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'topic' } as never)
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin' }] as never)
+    vi.mocked(RemoteService.PushSetUpstream).mockResolvedValue(new PushResult({ branch: 'topic' }))
+    const onSynced = vi.fn()
+    const onPushed = vi.fn()
+    const then = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced, onPushed), { wrapper })
+
+    act(() => void result.current.pushSetUpstream(then))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Set upstream' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Push' }))
+
+    await vi.waitFor(() => expect(then).toHaveBeenCalledWith(expect.objectContaining({ branch: 'topic' })))
+    expect(RemoteService.PushSetUpstream).toHaveBeenCalledWith(REPO, 'origin', 'topic', null)
+    expect(onSynced).toHaveBeenCalled()
+    expect(onPushed).not.toHaveBeenCalled()
+  })
+
   it('sets the upstream after confirming when the branch has none', async () => {
     vi.mocked(RemoteService.Push).mockRejectedValue(new Error('This branch has no upstream configured.'))
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'feature' } as BranchStatusInfo)
     vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin', fetchUrl: '', pushUrl: '' }])
-    vi.mocked(RemoteService.PushSetUpstream).mockResolvedValue()
+    vi.mocked(RemoteService.PushSetUpstream).mockResolvedValue(new PushResult({}))
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
-    act(() => result.current.push())
+    act(() => {
+      void result.current.push()
+    })
     const dialog = await screen.findByRole('alertdialog', { name: 'Set upstream' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Push' }))
 
@@ -108,12 +206,14 @@ describe('useRemoteSync', () => {
     vi.mocked(RemoteService.Push)
       .mockRejectedValueOnce(new Error(NEEDS_CREDENTIALS))
       .mockRejectedValueOnce(new Error(AUTH_FAILED))
-      .mockResolvedValueOnce()
+      .mockResolvedValueOnce(new PushResult({}))
     vi.mocked(RemoteService.CredentialHelper).mockResolvedValue('osxkeychain')
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
-    act(() => result.current.push())
+    act(() => {
+      void result.current.push()
+    })
     let dialog = await screen.findByRole('dialog', { name: 'Sign in to remote' })
     expect(await within(dialog).findByText(/osxkeychain credential helper/)).toBeInTheDocument()
     await userEvent.type(within(dialog).getByLabelText('Username'), 'alice')
@@ -138,7 +238,9 @@ describe('useRemoteSync', () => {
     vi.mocked(RemoteService.CredentialHelper).mockResolvedValue('')
     const { result } = renderHook(() => useRemoteSync(REPO, vi.fn()), { wrapper })
 
-    act(() => result.current.push())
+    act(() => {
+      void result.current.push()
+    })
     const dialog = await screen.findByRole('dialog', { name: 'Sign in to remote' })
     expect(await within(dialog).findByText(/used once and not saved/)).toBeInTheDocument()
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
@@ -150,11 +252,11 @@ describe('useRemoteSync', () => {
 
   it('stops a push when cancelled, without reporting an error', async () => {
     const { promise, cancel } = pendingPush()
-    vi.mocked(RemoteService.Push).mockReturnValue(promise as ReturnType<typeof RemoteService.Push>)
+    vi.mocked(RemoteService.Push).mockReturnValue(promise as unknown as ReturnType<typeof RemoteService.Push>)
     const onSynced = vi.fn()
     const { result } = renderHook(() => useRemoteSync(REPO, onSynced), { wrapper })
 
-    act(() => result.current.push())
+    await act(async () => result.current.push())
     expect(result.current.pushOp.running).toBe(true)
     await act(async () => result.current.pushOp.cancel())
 
@@ -197,13 +299,13 @@ describe('useRemoteSync', () => {
 
   it('keeps a push running in its repository while another is shown, and cancels it there', async () => {
     const { promise, cancel } = pendingPush()
-    vi.mocked(RemoteService.Push).mockReturnValue(promise as ReturnType<typeof RemoteService.Push>)
+    vi.mocked(RemoteService.Push).mockReturnValue(promise as unknown as ReturnType<typeof RemoteService.Push>)
     const { result, rerender } = renderHook(({ repoPath }) => useRemoteSync(repoPath, vi.fn()), {
       wrapper,
       initialProps: { repoPath: REPO },
     })
 
-    act(() => result.current.push())
+    await act(async () => result.current.push())
     rerender({ repoPath: OTHER_REPO })
     expect(result.current.pushOp.running).toBe(false)
     await act(async () => result.current.pushOp.cancel())

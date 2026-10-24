@@ -60,39 +60,14 @@ func predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 			branches = append(branches, ref)
 		}
 	}
-
-	files := make([][]string, len(branches))
-	var missing []int
-	var tips []string
-	cache.Lock()
+	tips := make([]string, len(branches))
 	for i, ref := range branches {
-		if cached, ok := cache.results[[2]string{head, ref.SHA}]; ok {
-			files[i] = cached
-		} else {
-			missing = append(missing, i)
-			tips = append(tips, ref.SHA)
-		}
+		tips[i] = ref.SHA
 	}
-	cache.Unlock()
-	if len(tips) > 0 {
-		merged, err := merge(ctx, repoPath, head, tips)
-		if errors.Is(err, git.ErrUnrelatedHistories) {
-			merged, err = mergeSharingHistory(ctx, repoPath, head, tips)
-		}
-		if err != nil {
-			return nil, err
-		}
-		cache.Lock()
-		if len(cache.results)+len(tips) > cacheLimit {
-			clear(cache.results)
-		}
-		for k, i := range missing {
-			files[i] = merged[k]
-			cache.results[[2]string{head, tips[k]}] = merged[k]
-		}
-		cache.Unlock()
+	files, err := conflictFiles(ctx, repoPath, head, tips)
+	if err != nil {
+		return nil, err
 	}
-
 	var overlaps []Overlap
 	for i, ref := range branches {
 		if len(files[i]) > 0 {
@@ -100,6 +75,46 @@ func predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 		}
 	}
 	return overlaps, nil
+}
+
+// conflictFiles merges each tip with head, answering from the cache where it
+// can, and merging only the tips that share history with head where the
+// batch refuses: an orphan branch such as gh-pages can't be merged, so it
+// can't conflict either.
+func conflictFiles(ctx context.Context, repoPath, head string, tips []string, namespaces ...string) ([][]string, error) {
+	files := make([][]string, len(tips))
+	var missing []int
+	var toMerge []string
+	cache.Lock()
+	for i, tip := range tips {
+		if cached, ok := cache.results[[2]string{head, tip}]; ok {
+			files[i] = cached
+		} else {
+			missing = append(missing, i)
+			toMerge = append(toMerge, tip)
+		}
+	}
+	cache.Unlock()
+	if len(toMerge) == 0 {
+		return files, nil
+	}
+	merged, err := merge(ctx, repoPath, head, toMerge)
+	if errors.Is(err, git.ErrUnrelatedHistories) {
+		merged, err = mergeSharingHistory(ctx, repoPath, head, toMerge, namespaces...)
+	}
+	if err != nil {
+		return nil, err
+	}
+	cache.Lock()
+	if len(cache.results)+len(toMerge) > cacheLimit {
+		clear(cache.results)
+	}
+	for k, i := range missing {
+		files[i] = merged[k]
+		cache.results[[2]string{head, toMerge[k]}] = merged[k]
+	}
+	cache.Unlock()
+	return files, nil
 }
 
 // merge merges every tip in one process, or one per process on Git 2.38 and 2.39.
@@ -111,11 +126,8 @@ func merge(ctx context.Context, repoPath, head string, tips []string) ([][]strin
 	return merged, err
 }
 
-// mergeSharingHistory merges only the tips that share history with head.
-// The others, such as an orphan gh-pages branch, can't be merged, so they
-// can't conflict either.
-func mergeSharingHistory(ctx context.Context, repoPath, head string, tips []string) ([][]string, error) {
-	related, err := git.SharingHistory(ctx, repoPath, head)
+func mergeSharingHistory(ctx context.Context, repoPath, head string, tips []string, namespaces ...string) ([][]string, error) {
+	related, err := git.SharingHistory(ctx, repoPath, head, namespaces...)
 	if err != nil {
 		return nil, err
 	}
@@ -157,10 +169,5 @@ func mergeEach(ctx context.Context, repoPath, head string, tips []string) ([][]s
 		})
 	}
 	wg.Wait()
-	for _, err := range errs {
-		if err != nil {
-			return nil, err
-		}
-	}
-	return files, nil
+	return files, errors.Join(errs...)
 }

@@ -29,14 +29,22 @@ func ChangedFiles(ctx context.Context, repoPath, sha string) ([]ChangedFile, err
 // commitTrees is what diff-tree compares for a commit: the commit alone, which
 // diffs it against its parent, or a merge's first parent and the merge.
 func commitTrees(ctx context.Context, repoPath, sha string) ([]string, error) {
-	parents, err := runResult(ctx, repoPath, "rev-list", "--parents", "-n", "1", sha)
+	parents, err := parentCount(ctx, repoPath, sha)
 	if err != nil {
 		return nil, err
 	}
-	if len(strings.Fields(parents.Stdout)) > 2 {
+	if parents > 1 {
 		return []string{sha + "^1", sha}, nil
 	}
 	return []string{sha}, nil
+}
+
+func parentCount(ctx context.Context, repoPath, rev string) (int, error) {
+	result, err := runResult(ctx, repoPath, "rev-list", "--parents", "-n", "1", rev)
+	if err != nil {
+		return 0, err
+	}
+	return len(strings.Fields(result.Stdout)) - 1, nil
 }
 
 // RefRangeChangedFiles compares the two tips directly (not against their

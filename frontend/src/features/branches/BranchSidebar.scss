@@ -6,20 +6,52 @@
   gap: 2px;
 }
 
-.branch-sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-xs);
-}
-
-.branch-sidebar-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
 .branch-sidebar-add {
   @include patterns.icon-button;
+}
+
+.branch-sidebar-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-field);
+  margin-bottom: var(--space-xs);
+  padding: 0 var(--space-xs);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--outline);
+
+  input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    color: var(--on-surface);
+    font: var(--data-sm);
+    outline: none;
+  }
+}
+
+.branch-sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  & + & {
+    margin-top: var(--space-xs);
+  }
+
+  .sidebar-section-header {
+    margin-bottom: 0;
+  }
+}
+
+.branch-sidebar-group-label {
+  @include patterns.eyebrow;
+  height: var(--h-micro);
+  line-height: var(--h-micro);
+  color: var(--outline);
 }
 
 .branch-sidebar-new {
@@ -171,6 +203,11 @@
   cursor: default;
 }
 
+.branch-row-blocked {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .branch-row-meta {
   flex-shrink: 0;
   margin-left: auto;
@@ -180,6 +217,33 @@
   padding-right: var(--space-xs);
   color: var(--outline);
   font: var(--data-sm);
+}
+
+// The time is for the checked-out branch and the row under the pointer; the
+// rest of the list keeps to the name and counts.
+.branch-row-time {
+  display: none;
+}
+
+.branch-row:hover .branch-row-time,
+.branch-row-current .branch-row-time {
+  display: inline;
+}
+
+.branch-row-remote {
+  gap: var(--space-xs);
+  color: var(--on-surface-variant);
+}
+
+.branch-row-remote-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.branch-row-remote-name {
+  min-width: 0;
+  @include patterns.truncate;
+  font: var(--data-md);
 }
 
 .branch-row-ahead {
@@ -205,41 +269,24 @@
   @include patterns.row-actions;
 }
 
-.branch-overlap-mark {
+.branch-row-mode {
   flex-shrink: 0;
-  display: inline-flex;
+  margin-left: var(--space-xs);
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--error);
+  border-radius: 3px;
   color: var(--error);
+  font: var(--ui-xs);
 }
 
-.branch-sidebar-overlaps {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-
-  ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    min-height: var(--h-micro);
-  }
-}
-
-.branch-sidebar-overlaps-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
-.branch-sidebar-overlaps-name {
-  min-width: 0;
-  @include patterns.truncate;
-  color: var(--on-surface-variant);
-  font: var(--data-sm);
+.branch-conflicts-badge {
+  flex-shrink: 0;
+  margin-left: var(--space-xs);
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--error);
+  border-radius: 3px;
+  color: var(--error);
+  font: var(--ui-xs);
 }
 
 // Git won't check out a branch that's already checked out in another worktree.

@@ -1,0 +1,88 @@
+// A thread sits between diff rows; it spans the whole grid and takes the
+// height it needs, like a hunk header, so the 20px row grid around it holds.
+.review-thread {
+  grid-column: 1 / -1;
+  margin: 2px var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-left: 2px solid var(--secondary);
+  border-radius: var(--radius);
+  font: var(--ui-sm);
+  white-space: normal;
+
+  &.review-thread-resolved {
+    border-left-color: var(--outline);
+  }
+}
+
+.review-thread-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  min-height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-thread-chevron {
+  transition: transform var(--dur-fast) var(--ease);
+
+  &.review-thread-chevron-open {
+    transform: rotate(90deg);
+  }
+}
+
+.review-thread-notes {
+  margin: 0;
+  padding: 0 var(--space-sm) var(--space-sm);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.review-note-meta {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: 2px;
+  font: var(--ui-xs);
+}
+
+.review-note-author {
+  color: var(--on-surface);
+}
+
+.review-note-time {
+  color: var(--outline);
+}
+
+.review-threads-outdated {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-top: var(--border-structure);
+}
+
+.review-threads-outdated-label {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.thread-count {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--space-xs);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--secondary) 18%, transparent);
+  color: var(--secondary);
+  font: var(--data-sm);
+}

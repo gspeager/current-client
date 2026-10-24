@@ -7,6 +7,7 @@ import Checkbox from '../../components/forms/Checkbox'
 import PathText from '../../components/git/PathText'
 import RefSelect, { useRefGroups } from '../../components/git/RefSelect'
 import { errorMessage } from '../../lib/errors'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { matchRanges, type SearchFlags } from './matchRanges'
 import './SearchModal.scss'
@@ -109,7 +110,7 @@ function SearchModal({ repoPath, onClose, onOpenFileHistory }: SearchModalProps)
             <p className="search-summary" role="status">
               {data.truncated
                 ? `Showing the first ${data.matches.length} matches. Narrow the search to see more.`
-                : `${data.matches.length} ${data.matches.length === 1 ? 'match' : 'matches'} in ${groups.length} ${groups.length === 1 ? 'file' : 'files'}`}
+                : `${plural(data.matches.length, 'match', 'matches')} in ${plural(groups.length, 'file')}`}
               {loading && ' · Searching…'}
             </p>
             {openError && <p className="search-error">Could not open: {openError}</p>}

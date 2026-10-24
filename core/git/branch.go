@@ -18,6 +18,7 @@ type Branch struct {
 	LastCommitDate string
 	// WorktreePath is the worktree the branch is checked out in, if any.
 	WorktreePath string
+	Tip          string
 }
 
 func ListBranches(ctx context.Context, repoPath string) ([]Branch, error) {
@@ -66,8 +67,11 @@ func parseLocalBranches(output string) branchList {
 			Behind:         behind,
 			LastCommitDate: fields[4],
 		})
-		if len(fields) >= 6 && fields[0] == "*" && !strings.HasPrefix(fields[1], "(") {
-			list.head = fields[5]
+		if len(fields) >= 6 {
+			list.branches[len(list.branches)-1].Tip = fields[5]
+			if fields[0] == "*" && !strings.HasPrefix(fields[1], "(") {
+				list.head = fields[5]
+			}
 		}
 		if len(fields) == 7 && fields[6] != "" {
 			list.branches[len(list.branches)-1].WorktreePath = filepath.FromSlash(fields[6])
@@ -191,6 +195,16 @@ func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
 	return slices.Clone(branches), err
 }
 
+// BranchesContaining lists the local branches whose history includes sha.
+// for-each-ref, not branch, so a detached HEAD isn't listed as "(HEAD detached at …)".
+func BranchesContaining(ctx context.Context, repoPath, sha string) ([]string, error) {
+	result, err := runResult(ctx, repoPath, "for-each-ref", "refs/heads", "--contains", sha, "--format=%(refname:short)")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(result.Stdout), nil
+}
+
 func parseRemoteBranches(output string) []string {
 	var branches []string
 	for _, line := range strings.Split(output, "\n") {
@@ -231,13 +245,8 @@ func originHead(ctx context.Context, repoPath string) string {
 
 func defaultBranch(branches []Branch, remoteHead string) string {
 	for _, candidate := range []string{remoteHead, "main", "master"} {
-		if candidate == "" {
-			continue
-		}
-		for _, b := range branches {
-			if b.Name == candidate {
-				return candidate
-			}
+		if candidate != "" && hasBranch(branches, candidate) {
+			return candidate
 		}
 	}
 	return ""

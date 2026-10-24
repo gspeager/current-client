@@ -13,8 +13,9 @@ Before starting something large, open an issue to talk it through. Small fixes c
 These are not negotiable, and a change that breaks one won't be merged:
 
 - No telemetry, analytics, tracking, advertising or remote logging.
-- The only network traffic is Git talking to a repository's own remotes. Git traffic the user didn't start (such as background fetch) sits behind a setting that is off by default.
-- No other network calls: no websites, CDNs, host APIs (GitHub/GitLab REST or GraphQL), AI services or other third parties. An optional integration must be off by default, opt-in, clearly visible when on, and work with self-hosted servers.
+- Current Client never chooses a network destination itself. It only connects to destinations the user or their company configured: a repository's Git remotes and the servers those remotes are hosted on, cloud or self-hosted. On a network where every remote is internal, nothing Current Client does leaves that network.
+- No vendor or third-party endpoints: no websites, CDNs, AI services, update servers or sign-in through an outside provider.
+- Any network traffic beyond a Git operation the user starts is off by default. That covers background fetch and integrations such as the GitHub or GitLab API on a remote's own host. Each one is turned on only by a deliberate choice, is clearly visible when on, and works with self-hosted servers. How host integration keeps to this is in [docs/integrations.md](docs/integrations.md).
 - No automatic update checks or crash-report uploads.
 - No avatars or downloaded images; people are shown as local initials badges.
 - No custom credential storage. Use Git's own mechanisms (credential helpers, SSH agent). Never log credentials, tokens or keys.
@@ -91,6 +92,7 @@ All Git commands go through `core/gitexec`. Arguments are always passed as a lis
 - Sign off every commit (`git commit -s`). This certifies the [Developer Certificate of Origin](https://developercertificate.org/): that you wrote the change or have the right to submit it under the project's license.
 - By contributing you agree your work is licensed under the [Apache License 2.0](LICENSE).
 - Keep pull requests focused on one change, and fill in the template.
+- Documentation moves with the code but is published at release. Don't edit CHANGELOG.md in a pull request; its section is written in the release step from the squash titles. After a user-facing pull request merges, update the [wiki](https://github.com/gspeager/current-client/wiki) in its own clone on a branch named after the next version (for example `0.4.0`), one commit per page topic. GitHub renders only the wiki's `master`, which receives that branch in the release step, so the published wiki always describes the released app.
 
 ## Reporting bugs and security issues
 

@@ -1,6 +1,20 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, HistoryService, type BranchInfo, type CommitInfo } from '@current-client-bindings/app'
+import {
+  type BranchInfo,
+  BranchService,
+  ChangedFile,
+  type CommitInfo,
+  DiffService,
+  FileDiff,
+  HistoryService,
+  HostService,
+  PlatformService,
+  RemoteService,
+  ReviewThread,
+  ReviewThreads,
+} from '@current-client-bindings/app'
+import { Links } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { giveElementsLayout } from '../../test/bindings'
 import HistoryView from './HistoryView'
@@ -51,6 +65,25 @@ describe('HistoryView', () => {
     expect(screen.getByRole('button', { name: 'Copy full commit hash' }).parentElement).toHaveTextContent('a1b2c3d')
   })
 
+  it('links issue references in the row and the inspector to the host', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue([{ ...history[0], subject: 'Fix login (#12)' }, history[1]])
+    vi.mocked(RemoteService.HostLinks).mockResolvedValue(
+      new Links({ issue: 'https://github.com/o/r/issues/', root: 'https://github.com/', issuePath: '/issues/' }),
+    )
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    const onSelectedShaChange = vi.fn()
+    renderHistory({ onSelectedShaChange })
+
+    const rowLink = await screen.findByRole('link', { name: '#12' })
+    expect(rowLink).toHaveAttribute('href', 'https://github.com/o/r/issues/12')
+    await userEvent.click(rowLink)
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://github.com/o/r/issues/12')
+    expect(onSelectedShaChange).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: /Fix login/ }))
+    expect(screen.getAllByRole('link', { name: '#12' })).toHaveLength(2)
+  })
+
   it('lists co-authors in the inspector', async () => {
     const paired = {
       ...history[1],
@@ -91,8 +124,99 @@ describe('HistoryView', () => {
     ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
 
-    expect(await screen.findByRole('button', { name: 'Copy SHA' })).toHaveFocus()
-    expect(screen.getByRole('button', { name: 'Reset (hard) to here' })).toBeInTheDocument()
+    const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
+    expect(within(menu).getByRole('button', { name: 'Check out' })).toHaveFocus()
+    expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Check out',
+      'Branch here',
+      'Cherry-pick',
+      'Revert',
+      'Reset to here…',
+      'Export patch…',
+      'Copy SHA',
+    ])
+  })
+
+  it("shows a file's diff in place of the graph, with a way back", async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(HistoryService.GetChangedFiles).mockResolvedValue([new ChangedFile({ status: 'M', path: 'src/app.ts' })])
+    vi.mocked(DiffService.GetRefDiff).mockResolvedValue(new FileDiff({ binary: true }))
+    renderHistory()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Fix login redirect/ }))
+    await userEvent.click(await screen.findByRole('button', { name: /src\/app\.ts/ }))
+
+    expect(await screen.findByText('Binary file changed.')).toBeInTheDocument()
+    expect(DiffService.GetRefDiff).toHaveBeenCalledWith(
+      REPO,
+      'src/app.ts',
+      'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0',
+      'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1',
+      false,
+      false,
+    )
+    expect(screen.queryByPlaceholderText('Search commits, authors, hashes…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(document.querySelector('.history-inspector')).not.toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'History' }))
+    expect(screen.getByPlaceholderText('Search commits, authors, hashes…')).toBeInTheDocument()
+  })
+
+  it("counts the branch's review threads on the commit's files, as they are at that commit", async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(HistoryService.GetChangedFiles).mockResolvedValue([new ChangedFile({ status: 'M', path: 'src/app.ts' })])
+    vi.mocked(HostService.ReviewThreadsAt).mockResolvedValue(
+      new ReviewThreads({
+        enabled: true,
+        number: 7,
+        threads: [new ReviewThread({ id: 't1', path: 'src/app.ts', line: 3 })],
+        unresolved: { 'src/app.ts': 1 },
+        total: 1,
+      }),
+    )
+    renderHistory()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Fix login redirect/ }))
+
+    expect(await screen.findByTitle('1 unresolved review thread')).toBeInTheDocument()
+    expect(HostService.ReviewThreadsAt).toHaveBeenCalledWith(REPO, 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1')
+  })
+
+  it('opens a fixed inspector whose actions match the menu, and says how many commits there are', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    renderHistory()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Initial commit/ }))
+
+    const inspector = document.querySelector('.history-inspector')!
+    expect(inspector).not.toHaveAttribute('style')
+    expect(screen.queryByRole('separator', { name: 'Resize commit inspector' })).not.toBeInTheDocument()
+    expect([...inspector.querySelectorAll('.commit-detail-actions > button')].map((b) => b.textContent)).toEqual([
+      'Check out',
+      'Branch here',
+      'Cherry-pick',
+      'Revert',
+    ])
+    expect(inspector.querySelector('.commit-detail-more-toggle')).toHaveTextContent('More')
+    expect(await screen.findByText('2 commits · stashes hidden')).toBeInTheDocument()
+  })
+
+  it('offers Open on host for a commit when a remote points at a host', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(RemoteService.HostLinks).mockResolvedValue(new Links({ commit: 'https://github.com/o/r/commit/' }))
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    renderHistory()
+    const user = userEvent.setup()
+
+    ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
+    await user.keyboard('{Shift>}{F10}{/Shift}')
+    const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
+    await user.click(within(menu).getByRole('button', { name: 'Open on host' }))
+
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith(
+      expect.stringMatching(/^https:\/\/github.com\/o\/r\/commit\/[0-9a-f]+$/),
+    )
   })
 
   it('shows why history could not load', async () => {
@@ -111,7 +235,9 @@ describe('HistoryView', () => {
       const prefix = await screen.findByText('feat(history):', { exact: false, selector: '.commit-row-type' })
       expect(prefix.parentElement).toHaveTextContent('feat(history): filter by type')
 
+      await userEvent.click(screen.getByText('Filters'))
       await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Type filter' }), 'Breaking changes')
+      expect(screen.getByText('Filters').closest('summary')).toHaveAttribute('aria-label', 'Filters, 1 on')
       expect(HistoryService.GetHistory).toHaveBeenLastCalledWith(
         REPO,
         expect.any(Number),
@@ -126,7 +252,9 @@ describe('HistoryView', () => {
 
       await screen.findByText('feat(history): filter by type')
       expect(document.querySelector('.commit-row-type')).toBeNull()
+      await userEvent.click(screen.getByText('Filters'))
       expect(screen.queryByRole('combobox', { name: 'Type filter' })).toBeNull()
+      expect(screen.getByRole('combobox', { name: 'Date filter' })).toBeInTheDocument()
     })
   })
 })

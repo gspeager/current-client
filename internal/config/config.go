@@ -20,6 +20,21 @@ type ChangelogPrefs struct {
 	SplitByRelease bool     `json:"splitByRelease,omitempty"`
 }
 
+// HostConfig is the user's choice for one Git host, keyed by hostname (with
+// its port when the remote has one). Empty Provider means the type detected
+// from the remote URL; empty APIURL means the address derived from the type.
+// Enabled is the only thing that lets the app contact the host's API.
+// HasToken records that an API token was saved with Git's credential
+// helper; the token itself is never written here.
+type HostConfig struct {
+	Provider string `json:"provider,omitempty"`
+	APIURL   string `json:"apiUrl,omitempty"`
+	Enabled  bool   `json:"enabled,omitempty"`
+	HasToken bool   `json:"hasToken,omitempty"`
+	// Dismissed remembers "Not now" on the first-use prompt.
+	Dismissed bool `json:"dismissed,omitempty"`
+}
+
 type Config struct {
 	Version            int               `json:"version"`
 	RecentRepositories []string          `json:"recentRepositories,omitempty"`
@@ -38,6 +53,10 @@ type Config struct {
 
 	// Keyed by the storage key passed to the frontend's useResizableWidth.
 	PaneWidths map[string]int `json:"paneWidths,omitempty"`
+
+	// Sidebar sections the user opened or closed, by repository path then
+	// section id; a section not listed falls back to its default.
+	SidebarSections map[string]map[string]bool `json:"sidebarSections,omitempty"`
 
 	WindowWidth  int `json:"windowWidth,omitempty"`
 	WindowHeight int `json:"windowHeight,omitempty"`
@@ -63,6 +82,8 @@ type Config struct {
 	DisableConventionalCommits bool `json:"disableConventionalCommits,omitempty"`
 
 	Changelog *ChangelogPrefs `json:"changelog,omitempty"`
+
+	Hosts map[string]HostConfig `json:"hosts,omitempty"`
 }
 
 func Default() Config {

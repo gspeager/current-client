@@ -267,6 +267,32 @@ func TestContinueConflictOperationFailsWhileConflictsRemain(t *testing.T) {
 	}
 }
 
+func TestContinueConflictOperationStoppingOnTheNextCommitIsNoError(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "base\n", "initial a")
+	gittest.CommitFile(t, dir, "b.txt", "base\n", "initial b")
+	gittest.Run(t, dir, "checkout", "-q", "-b", "theirs")
+	gittest.CommitFile(t, dir, "a.txt", "theirs\n", "theirs a")
+	gittest.CommitFile(t, dir, "b.txt", "theirs\n", "theirs b")
+	gittest.Run(t, dir, "checkout", "-q", "main")
+	gittest.CommitFile(t, dir, "a.txt", "ours\n", "ours a")
+	gittest.CommitFile(t, dir, "b.txt", "ours\n", "ours b")
+	runGitExpectFailure(t, dir, "rebase", "theirs")
+	gittest.WriteFile(t, dir, "a.txt", "resolved\n")
+	gittest.Run(t, dir, "add", "a.txt")
+
+	if err := ContinueConflictOperation(context.Background(), dir, ConflictRebase); err != nil {
+		t.Fatalf("ContinueConflictOperation stopped on b.txt: %v, want no error", err)
+	}
+	state, err := DetectConflictState(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("DetectConflictState: %v", err)
+	}
+	if state.Operation != ConflictRebase || len(state.ConflictedPaths) != 1 || state.ConflictedPaths[0] != "b.txt" {
+		t.Fatalf("got %+v, want the rebase stopped on b.txt", state)
+	}
+}
+
 func TestContinueConflictOperationNoOperationInProgress(t *testing.T) {
 	dir := initConflictRepo(t)
 	if err := ContinueConflictOperation(context.Background(), dir, ConflictNone); err == nil {
@@ -450,5 +476,35 @@ func TestConflictMarkerLineAfterALongLine(t *testing.T) {
 	gittest.WriteFile(t, dir, "clean.txt", "no markers")
 	if line, err := ConflictMarkerLine(dir, "clean.txt"); err != nil || line != 0 {
 		t.Errorf("clean: line = %d, %v; want 0", line, err)
+	}
+}
+
+func TestDetectConflictStateCarriesThePreparedMessage(t *testing.T) {
+	dir := initConflictRepo(t)
+	runGitExpectFailure(t, dir, "merge", "theirs")
+
+	state, err := DetectConflictState(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("DetectConflictState: %v", err)
+	}
+	if !strings.HasPrefix(state.Message, "Merge branch 'theirs'") {
+		t.Fatalf("Message = %q, want git's prepared merge message", state.Message)
+	}
+	if strings.Contains(state.Message, "#") {
+		t.Fatalf("Message = %q, want the comment lines dropped", state.Message)
+	}
+}
+
+func TestContinueWithMessageCommitsWithIt(t *testing.T) {
+	dir := initConflictRepo(t)
+	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.WriteFile(t, dir, "file.txt", "resolved\n")
+	gittest.Run(t, dir, "add", "file.txt")
+
+	if err := ContinueWithMessage(context.Background(), dir, ConflictMerge, "Bring theirs in\n\nWith a body."); err != nil {
+		t.Fatalf("ContinueWithMessage: %v", err)
+	}
+	if got := gittest.Run(t, dir, "log", "-1", "--format=%B"); !strings.HasPrefix(got, "Bring theirs in\n\nWith a body.") {
+		t.Fatalf("last commit message = %q", got)
 	}
 }

@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/gspeager/current-client/core/internal/gittest"
@@ -67,5 +68,25 @@ func TestDeleteRemoteBranchRemovesBranchAndTrackingRef(t *testing.T) {
 	}
 	if out := gittest.Run(t, "", "--git-dir", remoteDir, "tag", "--list", "feature"); out != "feature" {
 		t.Fatalf("the remote's feature tag was deleted too: %q", out)
+	}
+}
+
+func TestPushTagsPublishesEveryTag(t *testing.T) {
+	remoteDir := t.TempDir() + "/remote.git"
+	gittest.Run(t, "", "init", "--bare", "-b", "main", remoteDir)
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "tag", "v1.0.0")
+	gittest.Run(t, dir, "tag", "-a", "v1.1.0", "-m", "release")
+
+	if err := PushTags(context.Background(), dir, "origin"); err != nil {
+		t.Fatalf("PushTags: %v", err)
+	}
+	tags := gittest.Run(t, "", "ls-remote", "--tags", remoteDir)
+	for _, tag := range []string{"refs/tags/v1.0.0", "refs/tags/v1.1.0"} {
+		if !strings.Contains(tags, tag) {
+			t.Errorf("%s missing on the remote: %q", tag, tags)
+		}
 	}
 }

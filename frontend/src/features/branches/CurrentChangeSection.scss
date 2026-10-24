@@ -1,0 +1,206 @@
+@use '../../styles/patterns';
+
+.current-change {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+}
+
+.current-change-slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  .current-change-forecast {
+    padding: 0 var(--space-xs);
+    border-top: none;
+  }
+}
+
+// Reads like a branch row: no header, no box.
+.current-change-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  @include patterns.disabled;
+}
+
+.current-change-row-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
+.current-change-row-text {
+  min-width: 0;
+  @include patterns.truncate;
+}
+
+.current-change-row-sep {
+  color: var(--outline);
+}
+
+.current-change-row-action {
+  color: var(--on-surface);
+  font-weight: 600;
+}
+
+.current-change-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.current-change-label {
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.current-change-state {
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--secondary);
+  border-radius: 3px;
+  color: var(--secondary);
+  font: var(--ui-xs);
+
+  &.current-change-state-closed {
+    border-color: var(--outline);
+    color: var(--outline);
+  }
+}
+
+.current-change-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.current-change-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.current-change-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.current-change-target {
+  font: var(--data-sm);
+}
+
+.current-change-ci {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.current-change-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.current-change-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  font: var(--ui-xs);
+  @include patterns.secondary-button;
+}
+
+.current-change-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: var(--border-structure);
+  font: var(--ui-xs);
+  color: var(--on-surface-variant);
+}
+
+.current-change-conflicts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+}
+
+.current-change-conflict-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--error);
+}
+
+.current-change-conflict {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.current-change-conflict-files {
+  font: var(--data-sm);
+}
+
+.current-change-forecast-cap,
+.current-change-forecast-clean {
+  color: var(--outline);
+}
+
+.current-change-threads-link {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--secondary);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

@@ -22,7 +22,7 @@ Branch `release/x.y.z` from `develop`, then:
 
 Afterwards, `grep -rn "<old version>" build` should find nothing.
 
-**Add the changelog entry** to `CHANGELOG.md`: a `## [x.y.z] - YYYY-MM-DD` section in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) form, written for users, plus the `[x.y.z]:` link at the bottom. Pull requests don't touch `CHANGELOG.md`, so they never conflict over it; the whole section is written here. Draft it from the Conventional Commit titles since the last tag with the Changelog tab, then rewrite it for someone upgrading: take the wording from the squash commits' bodies, leave out fixes to features new in this release, and fold them into those features' entries.
+**Finish the changelog entry** in `CHANGELOG.md`: pull requests add their user-facing changes under `## [Unreleased]` as they merge, so rename that heading to `## [x.y.z] - YYYY-MM-DD` in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) form and add the `[x.y.z]:` link at the bottom. Read it as someone upgrading would: fold fixes to features new in this release into those features' entries, and check the Conventional Commit titles since the last tag (the Changelog tab lists them) for anything a pull request left out.
 
 **Check the library API:** `wails3 task api:check` compares `core/` against the newest tag.
 
@@ -96,6 +96,88 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/app" current-client-linux
 
 This gives `bin/current-client-x86_64.AppImage`, `bin/current-client.deb` and `bin/current-client.rpm`. Check the package version with `dpkg-deb -f bin/current-client.deb Version`.
 
+## 3b. Check that nothing leaves the network
+
+Run this on each platform's built package, before upload, so the [privacy model](README.md#privacy) is shown rather than assumed: with only local remotes, nothing Current Client does leaves the network, and with host integration on for one local host, the only API traffic goes to that host. Record the result in the table at the end; the release is held until all three platforms pass.
+
+**A local server.** A bare repository served by `git daemon` is enough for the integration-off case:
+
+```
+git init --bare /tmp/remote/app.git
+git daemon --base-path=/tmp/remote --export-all --enable=receive-pack --reuseaddr --listen=127.0.0.1 --port=9418
+```
+
+and the remote is `git://127.0.0.1/app.git`. The integration-on case needs a host with an API: a GitLab CE container, `docker run --rm -p 8929:8929 -p 2224:22 -e GITLAB_OMNIBUS_CONFIG="external_url 'http://127.0.0.1:8929'" gitlab/gitlab-ce` (several minutes to start; the root password is in `/etc/gitlab/initial_root_password` inside the container), a project pushed to it, one merge request with a description that embeds an image hosted elsewhere (`![](https://example.com/image.png)`), and a `read_api` token. Add `127.0.0.1:8929` in Settings → Integrations as a GitLab host and turn it on. Docker's own traffic is on the host side of the firewall and shows as `docker` or `com.docker`, not as the app.
+
+**What to exercise**, in the packaged app and not `wails3 dev`:
+
+1. Integration off, every remote local: open the repository, fetch, pull, commit, push, browse History and diffs, open Settings and Diagnostics, leave the app idle for ten minutes with background fetch off and then ten with it on. Type a misspelled word in the commit message field, since the embedded browser may try to fetch a spelling dictionary.
+2. Integration on for the local host: open the Merge requests tab, **Refresh**, hover a marker, open the merge request whose description embeds the remote image, check out a merge request, open Settings → Integrations and **Test connection**.
+
+Pass only if the log shows no connection to anything but the local server's address (the Git port, and the API port in case 2), and in case 2 nothing to the image's host.
+
+**Connections the operating system makes for itself** are not the app's, but they appear in the same log, so recognise them rather than fail on them: macOS Gatekeeper and notarization checks (`api.apple-cloudkit.com`, `ocsp.apple.com`, `*.apple.com` from `trustd`, `syspolicyd`, `nsurlsessiond`), Windows certificate revocation and update traffic (`ctldl.windowsupdate.com`, `*.microsoft.com` from `svchost`), and anything from `docker`. A connection from the app's own process to any of those is a failure.
+
+### macOS
+
+`pf` logs what it blocks. Allow loopback and the local server, block and log everything else from the app's process by its user is not possible, so block all outbound and read the process name from the log:
+
+```
+cat > /tmp/current-client.pf <<'RULES'
+set skip on lo0
+block out log all
+pass out quick proto tcp to 127.0.0.1 port { 9418, 8929, 2224 }
+RULES
+sudo pfctl -F all -f /tmp/current-client.pf
+sudo pfctl -e
+sudo tcpdump -n -e -ttt -i pflog0 'action block'
+```
+
+Open the app from `bin/Current Client.app`, work through the list, then `sudo pfctl -d` and `sudo pfctl -F all` to restore. Every blocked packet prints with its destination; `sudo lsof -i -nP | grep -i "current client"` while the app runs shows what it has open and confirms the process names in the log. Little Snitch's connection list for the app, with its rules set to ask, is an equivalent check.
+
+### Windows
+
+The firewall log records dropped connections with the process path. In an administrator PowerShell:
+
+```
+netsh advfirewall set allprofiles state on
+netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
+netsh advfirewall set allprofiles logging droppedconnections enable
+netsh advfirewall set allprofiles logging filename %SystemRoot%\system32\LogFiles\Firewall\pfirewall.log
+netsh advfirewall firewall add rule name="Current Client check: local git" dir=out action=allow protocol=TCP remoteip=127.0.0.1 remoteport=9418,8929,2224
+```
+
+Install from `current-client-X.Y.Z-windows-x64-setup.exe`, work through the list, then read `C:\Windows\System32\LogFiles\Firewall\pfirewall.log`: every `DROP` line names the destination and, in the last column, the process. Restore with `netsh advfirewall set allprofiles firewallpolicy blockinbound,allowoutbound` and delete the rule. On the WebView2 side, watch for `edge.microsoft.com`, `msedge.b.tlu.dl.delivery.mp.microsoft.com` and `*.smartscreen.microsoft.com` from `msedgewebview2.exe`: the app turns SmartScreen off, so a hit there is a regression.
+
+### Linux
+
+A network namespace holds the app and the local server together with nothing else, and nftables logs what the app tries:
+
+```
+sudo unshare --net --mount-proc bash -c '
+  ip link set lo up
+  nft add table inet guard
+  nft add chain inet guard out "{ type filter hook output priority 0; policy accept; }"
+  nft add rule inet guard out ip daddr != 127.0.0.0/8 log prefix \"current-client: \" drop
+  nft add rule inet guard out ip6 daddr != ::1 log prefix \"current-client: \" drop
+  git daemon --base-path=/tmp/remote --export-all --enable=receive-pack --listen=127.0.0.1 --port=9418 &
+  sudo -u "$SUDO_USER" ./current-client-X.Y.Z-linux-x86_64.AppImage
+'
+sudo journalctl -k -f | grep current-client:
+```
+
+The namespace has no route out, so any attempt is logged and fails at once; the app must show no error for it either. For case 2 run the GitLab container's port forward inside the same namespace, or point the app at a GitLab on the machine's own interface and allow that address in the rule.
+
+### Results
+
+Paste this into the release pull request, filled in:
+
+| Platform | Package | Integration off | Integration on | Notes |
+|---|---|---|---|---|
+| macOS | `current-client-X.Y.Z-macos-universal.dmg` | pass / fail | pass / fail | OS traffic seen, if any |
+| Windows x64 | `current-client-X.Y.Z-windows-x64-setup.exe` | | | |
+| Linux | `current-client-X.Y.Z-linux-x86_64.AppImage` | | | |
+
 ## 4. Publish
 
 Copy the packages into one folder under their release names:
@@ -124,5 +206,5 @@ Create the GitHub release for the tag as a **draft**, paste the version's `CHANG
 
 Finally, update what users read about the release:
 
-- the wiki, for anything the release changes for users
+- the wiki: merge its version branch (`0.4.0`, kept current as PRs merged) into `master`, which is what GitHub renders, and check it against the changelog for anything missed
 - the website's Current Client page, `current-client.html`: the version beside the name, on both **Download** buttons and in the footer; the release date under the hero; and **What's new**, which lists the release's main changes and links to the changelog

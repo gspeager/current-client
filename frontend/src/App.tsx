@@ -2,7 +2,14 @@ import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
-import { GitService, HistoryService } from '@current-client-bindings/app'
+import {
+  GitService,
+  HistoryService,
+  type HostNotice,
+  HostService,
+  PlatformService,
+  type PushResult,
+} from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
 import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './components/chrome/HeaderBar'
@@ -13,6 +20,7 @@ import ResizeHandle from './components/chrome/ResizeHandle'
 import SettingsPanel from './features/settings/SettingsPanel'
 import StatusBar from './components/chrome/StatusBar'
 import TabBar, { type AppTab } from './features/repositories/TabBar'
+import { useWorkspaceActions } from './components/chrome/useWorkspaceActions'
 import { LaneThemeContext, toLaneThemeName } from './lib/laneColor'
 import { useAsyncData } from './lib/useAsyncData'
 import { useAutoFetch } from './features/remotes/useAutoFetch'
@@ -23,6 +31,13 @@ import { DIVERGED, useRemoteSync } from './features/remotes/useRemoteSync'
 import { useRepositoryLifecycle } from './features/repositories/useRepositoryLifecycle'
 import { useRepoVersion } from './features/repositories/useRepoVersion'
 import { useResizableWidth } from './lib/useResizableWidth'
+import HostChangesView, { changesLabelFor } from './features/host-changes/HostChangesView'
+import HostNoticeBanner from './components/chrome/HostNoticeBanner'
+import CreateChangeDialog from './features/host-changes/CreateChangeDialog'
+import { useHostPrompt } from './features/settings/useHostPrompt'
+import { useHostIndicator } from './lib/useHostIndicator'
+import { useHostLinks } from './lib/useHostLinks'
+import { useBranchChanges } from './lib/useBranchChanges'
 import { useSettings } from './features/settings/useSettings'
 import { useTabMemory } from './features/repositories/useTabMemory'
 import { useWorkingTree } from './features/working-copy/useWorkingTree'
@@ -64,26 +79,60 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     reload: reloadGitVersion,
   } = useAsyncData(() => GitService.GetGitVersion(), [])
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Bumped when a host switch may have changed, so the status bar's indicator follows.
+  const [hostsVersion, setHostsVersion] = useState(0)
+  const [changeFocus, setChangeFocus] = useState<number | null>(null)
+  const [hostNotices, setHostNotices] = useState<HostNotice[]>([])
+  const [pushed, setPushed] = useState<PushResult | null>(null)
+  // The branch the in-app create form is open for.
+  const [createChangeFor, setCreateChangeFor] = useState<string | null>(null)
+  const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
+  // false only in a build made with the nohost tag; until known, assume the full build.
+  const { data: hostIntegrationBuilt } = useAsyncData(() => PlatformService.HostIntegrationAvailable(), [])
+  const hostIntegration = hostIntegrationBuilt !== false
   const [commitFocus, setCommitFocus] = useState<CommitFocus | null>(null)
   // Bumped to remount Changes on a newly requested file, as commitFocus does for History.
   const [fileFocus, setFileFocus] = useState(0)
 
   const repo = useRepositoryLifecycle(activeRepoPath)
+  const integration = useHostIndicator(repo.repoPath ?? '', hostsVersion, hostIntegration && !!repo.repoPath)
+  const changesLabel = integration ? changesLabelFor(integration.host.provider) : null
+  const hostLinks = useHostLinks(repo.repoPath ?? '')
   const { repoVersion, bumpRepoVersion, justBumped } = useRepoVersion()
+  // The branch's known change, to offer a create link only while it has none.
+  const changes = useBranchChanges(repo.repoPath ?? '', repoVersion)
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
   const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
-  // A pull fetches too, so it moves "fetched … ago" as well as the branch.
-  const { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp } = useRemoteSync(repo.repoPath, () => {
+  // A refresh may have found something changed on the checked-out branch's change.
+  const collectHostNotices = () => {
+    if (!repo.repoPath || !hostIntegration) return
+    HostService.TakeNotices(repo.repoPath)
+      .then((notices) => notices.length > 0 && setHostNotices(notices))
+      .catch(() => undefined)
+  }
+
+  const onFetched = () => {
     bumpRepoVersion()
     reloadLastFetchTime()
-  })
+    collectHostNotices()
+  }
+
+  // A pull fetches too, so it moves "fetched … ago" as well as the branch.
+  const { pull, pullMerge, pullRebase, push, forcePush, pushTags, pushSetUpstream, pullOp, pushOp } = useRemoteSync(
+    repo.repoPath,
+    onFetched,
+    setPushed,
+  )
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
   const { activeTab: rememberedTab, setActiveTab, restored, remember } = useTabMemory(repo.repoPath)
-  const activeTab = rememberedTab === 'changelog' && !conventionalCommitsOn ? 'working-copy' : rememberedTab
+  const activeTab =
+    (rememberedTab === 'changelog' && !conventionalCommitsOn) || (rememberedTab === 'changes' && !changesLabel)
+      ? 'working-copy'
+      : rememberedTab
   const { data: conventional } = useAsyncData(
     () => (repo.repoPath ? HistoryService.FollowsConventionalCommits(repo.repoPath) : null),
     [repo.repoPath],
@@ -93,11 +142,6 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const onBranchChanged = () => {
     bumpRepoVersion()
     workingTree.loadStatus()
-  }
-
-  const onFetched = () => {
-    bumpRepoVersion()
-    reloadLastFetchTime()
   }
 
   // Only ref moves bump repoVersion, since that remounts History and refetches Activity,
@@ -115,6 +159,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
   useAutoFetch(repo.repoPath, settings.settings?.autoFetchIntervalMinutes ?? 0, onFetched)
   useFileWatcher(repo.repoPath, onFileWatcherChanged)
+  useHostPrompt(hostIntegration ? repo.repoPath : null, bumpHostsVersion)
 
   // Settings may have changed the git executable path.
   const closeSettings = () => {
@@ -133,6 +178,17 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
     setActiveTab('history')
     setCommitFocus((prev) => ({ repoPath: repo.repoPath, position, ref, request: (prev?.request ?? 0) + 1 }))
   }
+
+  // A failed action expands the sidebar, so its message is visible.
+  const workspace = useWorkspaceActions({
+    repoPath: repo.repoPath,
+    hostLinks,
+    editorPath: settings.settings?.editorPath ?? '',
+    operation: conflictState?.operation ?? null,
+    onBranchChanged,
+    onOpenCommit: (sha) => openCommit(sha),
+    onFailure: () => settings.setNavCollapsed(false),
+  })
 
   useImperativeHandle(handle, () => ({
     openCommit: async (sha) => {
@@ -157,13 +213,33 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   const reportActiveRepo = useEventCallback((path: string | null) => onActiveRepoChange?.(path))
   useEffect(() => reportActiveRepo(repo.repoPath), [repo.repoPath, reportActiveRepo])
 
+  useEffect(() => setPushed(null), [repo.repoPath])
+
+  const openChange = (number: number) => {
+    setChangeFocus(number)
+    setActiveTab('changes')
+  }
+
+  // With the host on, the in-app form; otherwise the host's pre-filled page.
+  const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
+  const [hostRefresh, setHostRefresh] = useState(0)
+
+  const onChangeCreated = (number: number) => {
+    setCreateChangeFor(null)
+    setPushed(null)
+    onBranchChanged()
+    openChange(number)
+  }
+
   const openWorkingFile = (path: string) => {
     remember({ selectedFilePath: path })
     setActiveTab('working-copy')
     setFileFocus((n) => n + 1)
   }
 
+  // Only Abort reaches here now; the message the composer held was the aborted operation's.
   const onConflictResolved = () => {
+    remember({ commitDraft: '' })
     reloadConflictState()
     onBranchChanged()
   }
@@ -200,8 +276,22 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
         ) : (
           <p className="app-welcome-status">Detecting Git installation…</p>
         )}
-        {!gitError && <RepoSwitcher repo={repo} />}
-        {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
+        {!gitError && (
+          <RepoSwitcher
+            repo={repo}
+            defaultLocation={settings.settings?.defaultRepoLocation ?? ''}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        )}
+        {settingsOpen && (
+          <SettingsPanel
+            settings={settings}
+            repoPath={repo.repoPath}
+            hostIntegration={hostIntegration}
+            onClose={closeSettings}
+            onHostsChanged={bumpHostsVersion}
+          />
+        )}
       </div>
     )
   }
@@ -220,22 +310,33 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             repoVersion={repoVersion}
             lastFetchedAt={lastFetchedAt}
             pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
-            onPruneOnFetchChange={settings.setPruneOnFetch}
             repo={repo}
             dirty={dirty}
+            workspaceActions={workspace.actions}
             onOpenSettings={() => setSettingsOpen(true)}
             onPull={pull}
             onPullMerge={pullMerge}
             onPullRebase={pullRebase}
             onPush={push}
             onForcePush={() => void forcePush()}
+            onPushTags={pushTags}
+            onPushSetUpstream={() => void pushSetUpstream()}
             onBranchChanged={onBranchChanged}
             onFetched={onFetched}
             onOpenCommit={openCommit}
             syncing={pullOp.running || pushOp.running}
+            operation={conflictState?.operation ?? null}
+            defaultRepoLocation={settings.settings?.defaultRepoLocation ?? ''}
             accessory={headerAccessory}
           />
-          <TabBar active={activeTab} onChange={changeTab} showChangelog={conventionalCommitsOn} />
+          <TabBar
+            active={activeTab}
+            onChange={changeTab}
+            showChangelog={conventionalCommitsOn}
+            changesLabel={changesLabel}
+            changedCount={workingTree.files?.length ?? 0}
+            conflictCount={conflictState?.conflictedPaths.length ?? 0}
+          />
 
           {conflictState && (
             <ConflictBanner
@@ -246,9 +347,33 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             />
           )}
 
-          {settingsOpen && <SettingsPanel settings={settings} onClose={closeSettings} />}
+          {settingsOpen && (
+            <SettingsPanel
+              settings={settings}
+              repoPath={repo.repoPath}
+              hostIntegration={hostIntegration}
+              onClose={closeSettings}
+              onHostsChanged={bumpHostsVersion}
+            />
+          )}
+          {workspace.modals}
+          {createChangeFor && repo.repoPath && (
+            <CreateChangeDialog
+              repoPath={repo.repoPath}
+              branch={createChangeFor}
+              kind={integration?.host.provider === 'gitlab' ? 'merge request' : 'pull request'}
+              onCreated={onChangeCreated}
+              onClose={() => setCreateChangeFor(null)}
+            />
+          )}
 
           {resetNotice}
+          <HostNoticeBanner
+            notices={hostNotices}
+            onOpenChange={openChange}
+            onOpenFile={openWorkingFile}
+            onDismiss={() => setHostNotices([])}
+          />
           {pullOp.running && (
             <p className="app-inline-notice">
               Pulling… <button onClick={pullOp.cancel}>Cancel</button>
@@ -271,6 +396,24 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             </p>
           )}
           {pushOp.error && <p className="app-inline-error">Could not push: {pushOp.error}</p>}
+          {pushed?.createLink && !changes[pushed.upstream]?.state && (
+            <p className="app-inline-notice" role="status">
+              Pushed {pushed.branch}.{' '}
+              <button
+                type="button"
+                onClick={() =>
+                  requestCreateChange
+                    ? requestCreateChange(pushed.branch)
+                    : void PlatformService.OpenWebPage(pushed.createLink)
+                }
+              >
+                Create {pushed.kind}
+              </button>
+              <button type="button" onClick={() => setPushed(null)} aria-label="Dismiss">
+                Dismiss
+              </button>
+            </p>
+          )}
 
           <div className="app-body">
             <NavPane
@@ -278,10 +421,23 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               repoPath={repo.repoPath}
               repoVersion={repoVersion}
               workingTree={workingTree}
+              workspaceActions={workspace.actions}
+              workspaceFeedback={workspace.feedback}
+              onDismissFeedback={workspace.dismissFeedback}
+              hostVersion={hostRefresh}
+              onPushToCreate={
+                requestCreateChange
+                  ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))
+                  : undefined
+              }
+              conflictState={conflictState}
               onBranchChanged={onBranchChanged}
               onFetched={onFetched}
               pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
               onOpenHeadCommit={openCommit}
+              onOpenChange={openChange}
+              onOpenFile={openWorkingFile}
+              onCreateChange={requestCreateChange}
               onOpenRepository={repo.openRecent}
               width={navWidth.width}
               collapsed={navCollapsed}
@@ -305,6 +461,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   initialCommitDraft={restored.commitDraft}
                   onCommitDraftChange={(message) => remember({ commitDraft: message })}
                   showCommitTypePicker={conventionalCommitsOn}
+                  conflict={conflictState}
                 />
               </KeepAlive>
               <KeepAlive active={activeTab === 'history'}>
@@ -323,6 +480,23 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
                 />
               </KeepAlive>
+              {changesLabel && (
+                <KeepAlive active={activeTab === 'changes'}>
+                  <HostChangesView
+                    key={`${repo.repoPath}-${hostsVersion}`}
+                    repoPath={repo.repoPath}
+                    label={changesLabel}
+                    selectedNumber={changeFocus}
+                    onRefreshed={() => {
+                      collectHostNotices()
+                      setHostRefresh((n) => n + 1)
+                    }}
+                    onBranchChanged={onBranchChanged}
+                    onCreateChange={requestCreateChange}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                  />
+                </KeepAlive>
+              )}
               <KeepAlive active={activeTab === 'changelog'}>
                 <ChangelogView
                   key={repo.repoPath}
@@ -345,7 +519,14 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             </main>
           </div>
 
-          <StatusBar repoPath={repo.repoPath} repoVersion={repoVersion} gitVersion={gitVersion} />
+          <StatusBar
+            repoPath={repo.repoPath}
+            repoVersion={repoVersion}
+            gitVersion={gitVersion}
+            integration={integration}
+            lastFetchedAt={lastFetchedAt}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
         </div>
       </DiffWrapContext.Provider>
     </LaneThemeContext.Provider>

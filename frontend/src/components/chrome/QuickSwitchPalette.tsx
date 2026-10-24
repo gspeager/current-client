@@ -5,25 +5,16 @@ import {
   ArrowDown,
   ArrowUp,
   Cloud,
-  Code2,
   CornerDownLeft,
   FileText,
   FolderGit2,
-  FolderOpen,
   GitBranch,
   GitCommitVertical,
   Search,
   Settings as SettingsIcon,
-  Terminal,
   type LucideIcon,
 } from 'lucide-react'
-import {
-  BranchService,
-  HistoryService,
-  PlatformService,
-  RemoteService,
-  StatusService,
-} from '@current-client-bindings/app'
+import { BranchService, HistoryService, RemoteService, StatusService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { highlightMatch } from '../../lib/highlightMatch'
 import { localNameFor } from '../../features/branches/branches'
@@ -37,7 +28,7 @@ import type { useRepositoryLifecycle } from '../../features/repositories/useRepo
 import Kbd from '../controls/Kbd'
 import PathText from '../git/PathText'
 import Modal from './Modal'
-import { revealInFileManagerLabel } from '../../lib/fileManager'
+import type { WorkspaceAction } from './useWorkspaceActions'
 import './QuickSwitchPalette.scss'
 
 interface QuickSwitchPaletteProps {
@@ -45,6 +36,7 @@ interface QuickSwitchPaletteProps {
   repo: ReturnType<typeof useRepositoryLifecycle>
   onClose: () => void
   onBranchChanged?: () => void
+  workspaceActions: WorkspaceAction[]
   onOpenSettings: () => void
   onPull: () => void
   onPullMerge: () => void
@@ -70,13 +62,6 @@ interface RepoResult {
   currentBranch: string
 }
 
-interface Action {
-  id: string
-  label: string
-  icon: LucideIcon
-  run: () => void
-}
-
 const SETTINGS_ITEMS = [
   { id: 'theme', label: 'Theme', hint: 'Light, dark, or system' },
   { id: 'git-path', label: 'Git executable path', hint: 'Settings' },
@@ -89,6 +74,9 @@ const SETTINGS_ITEMS = [
 ]
 
 const MAX_FILE_RESULTS = 20
+// At rest the palette shows where you can go, not an inventory: this many
+// local branches, the recent repositories and the actions.
+const MAX_IDLE_BRANCHES = 8
 const MAX_COMMIT_RESULTS = 10
 const COMMIT_SEARCH_DEBOUNCE_MS = 200
 
@@ -159,6 +147,7 @@ function QuickSwitchPalette({
   repo,
   onClose,
   onBranchChanged,
+  workspaceActions,
   onOpenSettings,
   onPull,
   onPullMerge,
@@ -194,29 +183,27 @@ function QuickSwitchPalette({
   ).data
   const commits = q ? (searchResults ?? []) : []
 
-  const actions: Action[] = [
+  const actions: WorkspaceAction[] = [
     { id: 'search-files', label: 'Search in files', icon: Search, run: onSearchFiles },
     { id: 'fetch-all', label: 'Fetch all remotes', icon: Cloud, run: onFetchAll },
     { id: 'pull', label: 'Pull', icon: ArrowDown, run: onPull },
     { id: 'pull-merge', label: 'Pull (merge)', icon: ArrowDown, run: onPullMerge },
     { id: 'pull-rebase', label: 'Pull (rebase)', icon: ArrowDown, run: onPullRebase },
     { id: 'push', label: 'Push', icon: ArrowUp, run: onPush },
-    { id: 'open-terminal', label: 'Open Terminal', icon: Terminal, run: () => PlatformService.OpenTerminal(repoPath) },
-    {
-      id: 'reveal-file-manager',
-      label: revealInFileManagerLabel(),
-      icon: FolderOpen,
-      run: () => PlatformService.RevealInFileManager(repoPath),
-    },
-    { id: 'open-editor', label: 'Open in Editor', icon: Code2, run: () => PlatformService.OpenInEditor(repoPath) },
+    ...workspaceActions.filter((a) => !a.disabled),
     { id: 'open-settings', label: 'Open Settings', icon: SettingsIcon, run: onOpenSettings },
   ]
 
-  const branchResults = branches.filter((b) => matches(b.name, q))
+  const branchResults = q
+    ? branches.filter((b) => matches(b.name, q))
+    : branches
+        .filter((b) => !b.remote)
+        .sort((a, b) => Number(b.current) - Number(a.current))
+        .slice(0, MAX_IDLE_BRANCHES)
   const repoResults = repos.filter((r) => matches(r.path, q))
   // A large repo has thousands of files, so they only appear once there's a query.
   const fileResults = q ? files.filter((p) => matches(p, q)).slice(0, MAX_FILE_RESULTS) : []
-  const settingsResults = SETTINGS_ITEMS.filter((s) => matches(s.label, q))
+  const settingsResults = q ? SETTINGS_ITEMS.filter((s) => matches(s.label, q)) : []
   const actionResults = actions.filter((a) => matches(a.label, q))
   const resultCount =
     branchResults.length +
@@ -252,14 +239,14 @@ function QuickSwitchPalette({
   const highlight = (text: string) => highlightMatch(text, query, 'search-match')
 
   return (
-    <Modal title="Command palette" onClose={onClose} className="quick-switch-palette" placement="top" hideHeader>
+    <Modal title="Go to anything" onClose={onClose} className="quick-switch-palette" placement="top" hideHeader>
       <Command shouldFilter={false} loop className="quick-switch-command">
         <div className="quick-switch-search">
           <Search size={16} strokeWidth={1.5} />
           <Command.Input
             autoFocus
             aria-label="Search branches, repositories, files, commits, settings, and actions"
-            placeholder="Search branches, files, commits, settings, actions…"
+            placeholder="Go to a branch, file, commit, setting or action…"
             value={query}
             onValueChange={setQuery}
           />

@@ -35,8 +35,8 @@ func TestCherryPickConflictLeavesConflictState(t *testing.T) {
 	dir := initConflictRepo(t)
 	theirsSHA := gittest.Run(t, dir, "rev-parse", "theirs")
 
-	if err := CherryPick(context.Background(), dir, theirsSHA); err == nil {
-		t.Fatal("expected an error cherry-picking a conflicting commit")
+	if err := CherryPick(context.Background(), dir, theirsSHA); err != nil {
+		t.Fatalf("CherryPick stopped on conflicts: %v, want no error", err)
 	}
 
 	state, err := DetectConflictState(context.Background(), dir)
@@ -73,8 +73,8 @@ func TestRevertConflictLeavesConflictState(t *testing.T) {
 	gittest.CommitFile(t, dir, "file.txt", "v3\n", "v3")
 	v2SHA := gittest.Run(t, dir, "rev-parse", "HEAD~1")
 
-	if err := Revert(context.Background(), dir, v2SHA); err == nil {
-		t.Fatal("expected an error reverting a commit that conflicts with a later edit")
+	if err := Revert(context.Background(), dir, v2SHA); err != nil {
+		t.Fatalf("Revert stopped on conflicts: %v, want no error", err)
 	}
 
 	state, err := DetectConflictState(context.Background(), dir)

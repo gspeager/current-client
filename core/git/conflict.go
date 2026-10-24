@@ -28,6 +28,8 @@ const (
 type ConflictState struct {
 	Operation       ConflictOperation
 	ConflictedPaths []string
+	// The message git prepared for the commit that finishes the operation.
+	Message string
 }
 
 // DetectConflictState reports an in-progress operation even once every
@@ -53,7 +55,78 @@ func DetectConflictState(ctx context.Context, repoPath string) (ConflictState, e
 			paths = append(paths, s.Path)
 		}
 	}
-	return ConflictState{Operation: op, ConflictedPaths: paths}, nil
+	return ConflictState{Operation: op, ConflictedPaths: paths, Message: preparedMessage(dir, op)}, nil
+}
+
+// preparedMessage is what git would open in the editor on continue: MERGE_MSG
+// for a merge, cherry-pick or revert, the rebase's own file for a rebase.
+func preparedMessage(dir string, op ConflictOperation) string {
+	var path string
+	switch op {
+	case ConflictMerge, ConflictCherryPick, ConflictRevert:
+		path = filepath.Join(dir, "MERGE_MSG")
+	case ConflictRebase:
+		path = filepath.Join(dir, "rebase-merge", "message")
+	default:
+		return ""
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(stripCommentLines(string(data)))
+}
+
+func stripCommentLines(message string) string {
+	var kept []string
+	for _, line := range strings.Split(message, "\n") {
+		if !strings.HasPrefix(line, "#") {
+			kept = append(kept, line)
+		}
+	}
+	return strings.Join(kept, "\n")
+}
+
+// ContinueWithMessage finishes the operation with message as the commit's
+// message, by replacing what git prepared before continuing.
+func ContinueWithMessage(ctx context.Context, repoPath string, op ConflictOperation, message string) error {
+	if strings.TrimSpace(message) != "" {
+		dir, err := GitDir(ctx, repoPath)
+		if err != nil {
+			return err
+		}
+		var path string
+		switch op {
+		case ConflictMerge, ConflictCherryPick, ConflictRevert:
+			path = filepath.Join(dir, "MERGE_MSG")
+		case ConflictRebase:
+			path = filepath.Join(dir, "rebase-merge", "message")
+		}
+		if path != "" {
+			if err := os.WriteFile(path, []byte(message+"\n"), 0o644); err != nil {
+				return err
+			}
+		}
+	}
+	return ContinueConflictOperation(ctx, repoPath, op)
+}
+
+// runStoppable runs a command that can stop on conflicts. A stop that leaves
+// the operation in progress isn't a failure: the conflict banner finishes it.
+func runStoppable(ctx context.Context, cmd gitexec.Command) (gitexec.Result, error) {
+	result, err := gitexec.NewExecutor("").Run(ctx, cmd)
+	if err != nil {
+		return gitexec.Result{}, gitexec.WrapRunError(err)
+	}
+	if result.ExitCode == 0 {
+		return result, nil
+	}
+	if strings.Contains(result.Stdout, "CONFLICT (") {
+		if state, err := DetectConflictState(ctx, cmd.Dir); err == nil && state.Operation != ConflictNone {
+			return result, nil
+		}
+	}
+	return gitexec.Result{}, gitexec.WrapResult(result)
 }
 
 func conflictOperation(dir string) ConflictOperation {
@@ -234,7 +307,7 @@ func ContinueConflictOperation(ctx context.Context, repoPath string, op Conflict
 	if err != nil {
 		return err
 	}
-	_, err = gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	_, err = runStoppable(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: args,
 		Env:  []string{"GIT_EDITOR=true"},

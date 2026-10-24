@@ -5,6 +5,7 @@ import Checkbox from '../../components/forms/Checkbox'
 import DiffStat from '../../components/git/DiffStat'
 import PathText from '../../components/git/PathText'
 import StatusBadge from '../../components/git/StatusBadge'
+import ThreadCount from '../../components/git/ThreadCount'
 import './FileRow.scss'
 
 interface FileRowProps {
@@ -25,6 +26,8 @@ interface FileRowProps {
   binary?: boolean
   // A short label for what kind of entry it is, such as "submodule".
   tag?: string
+  // Unresolved review threads on the file.
+  threads?: number
 }
 
 function FileRow({
@@ -44,6 +47,7 @@ function FileRow({
   removed = 0,
   binary = false,
   tag,
+  threads,
 }: FileRowProps) {
   const rowStyle = indent > 0 ? { ...style, paddingLeft: `calc(var(--space-sm) + ${indent}px)` } : style
 
@@ -70,6 +74,7 @@ function FileRow({
       </button>
       <span className="file-row-stats">
         {tag && <span className="file-row-tag">{tag}</span>}
+        <ThreadCount count={threads} />
         <DiffStat added={added} removed={removed} binary={binary} />
       </span>
       <StatusBadge status={status} />

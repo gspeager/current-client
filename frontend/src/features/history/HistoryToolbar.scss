@@ -1,7 +1,6 @@
 .history-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   border-bottom: var(--border-structure);
@@ -10,7 +9,7 @@
 .history-toolbar-search-wrap {
   position: relative;
   flex: 1;
-  min-width: 0;
+  min-width: 120px;
 }
 
 .history-toolbar-search-icon {
@@ -40,7 +39,9 @@
 }
 
 .history-toolbar-filter {
+  flex-shrink: 0;
   min-width: 0;
+  max-width: 160px;
   height: var(--h-field);
   padding: 0 var(--space-sm);
   background: var(--surface);
@@ -55,25 +56,78 @@
   }
 }
 
-.history-toolbar-author {
+.history-toolbar-filters {
   position: relative;
-  flex: 0 1 140px;
-  min-width: 90px;
+  flex-shrink: 0;
 }
 
-.history-toolbar-author-icon {
+.history-toolbar-filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-field);
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  list-style: none;
+  cursor: pointer;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.history-toolbar-filters-count {
+  min-width: 16px;
+  padding: 0 var(--space-xs);
+  background: var(--surface-highest);
+  border-radius: var(--radius-full);
+  color: var(--on-surface);
+  font: var(--data-sm);
+  text-align: center;
+}
+
+.history-toolbar-filters-menu {
   position: absolute;
-  top: 50%;
-  left: var(--space-sm);
-  transform: translateY(-50%);
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 260px;
+  padding: var(--space-sm);
+  background: var(--surface-high);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-modal);
+}
+
+.history-toolbar-filters-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  gap: var(--space-sm);
   color: var(--outline);
-  pointer-events: none;
+  font: var(--ui-sm);
+
+  .history-toolbar-filter {
+    max-width: none;
+  }
 }
 
 .history-toolbar-author-input {
   width: 100%;
   height: var(--h-field);
-  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
+  padding: 0 var(--space-sm);
   background: var(--surface);
   border: var(--border-structure);
   border-radius: var(--radius);
@@ -83,16 +137,6 @@
   &::placeholder {
     color: var(--outline);
   }
-}
-
-.history-toolbar-hide-merges {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.history-toolbar-hide-merges-icon {
-  color: var(--outline);
 }
 
 .history-toolbar-copy-graph {

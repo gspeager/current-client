@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { RemoteService, TagInfo, TagService } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import TagsPanel from './TagsPanel'
+import { defaultSections } from '../../test/sections'
 
 const REPO = '/repos/app'
 
@@ -16,7 +17,7 @@ function renderPanel() {
   ])
   render(
     <DialogProvider>
-      <TagsPanel repoPath={REPO} />
+      <TagsPanel sections={defaultSections()} repoPath={REPO} />
     </DialogProvider>,
   )
 }
@@ -51,7 +52,7 @@ describe('TagsPanel', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Delete tag v1.0 on remote' }))
 
-    expect(await screen.findByText('No remote configured to push to.')).toBeInTheDocument()
+    expect(await screen.findByText('No remote configured.')).toBeInTheDocument()
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
   })
 })

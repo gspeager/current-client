@@ -40,7 +40,11 @@
   }
 }
 
-.conflict-banner-continue,
+.conflict-banner-pointer {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
 .conflict-banner-abort {
   flex-shrink: 0;
   height: var(--h-chip);
@@ -49,24 +53,11 @@
   font: var(--ui-xs);
   font-weight: 600;
   cursor: pointer;
-
-  @include patterns.disabled;
-}
-
-.conflict-banner-continue {
-  background: var(--primary-container);
-  border: none;
-  color: var(--on-primary-container);
-
-  &:hover:not(:disabled) {
-    box-shadow: var(--glow-action);
-  }
-}
-
-.conflict-banner-abort {
   background: none;
   border: 1px solid var(--error);
   color: var(--error);
+
+  @include patterns.disabled;
 
   &:hover:not(:disabled) {
     background: color-mix(in srgb, var(--error) 12%, transparent);

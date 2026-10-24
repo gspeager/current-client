@@ -4,11 +4,12 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/internal/config"
 	"github.com/gspeager/current-client/internal/platform"
+	"github.com/gspeager/current-client/internal/policy"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func Services() []application.Service {
-	return []application.Service{
+	return append([]application.Service{
 		application.NewService(&GitService{}),
 		application.NewService(&RepositoryService{}),
 		application.NewService(&StatusService{}),
@@ -39,13 +40,14 @@ func Services() []application.Service {
 		application.NewService(&SearchService{}),
 		application.NewService(&WorktreeService{}),
 		application.NewService(&SubmoduleService{}),
-	}
+	}, hostServices()...)
 }
 
 // Startup applies saved settings before any service runs and returns the saved
 // window size, or zeros when there is none.
 func Startup() (width, height int) {
 	platform.UseLoginShellPath()
+	policy.Load()
 	cfg, _, err := loadCurrentConfig()
 	if err != nil {
 		return 0, 0

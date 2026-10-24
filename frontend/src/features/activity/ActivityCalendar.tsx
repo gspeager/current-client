@@ -1,6 +1,7 @@
 import { ActivityService } from '@current-client-bindings/app'
 import { ACTIVITY_INTENSITY_STEPS, activityIntensity, layoutActivityCalendar } from './calendarLayout'
 import { peakDayCommits } from './activityStats'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './ActivityCalendar.scss'
 
@@ -10,10 +11,6 @@ interface ActivityCalendarProps {
 }
 
 const DAYS = 371 // 53 full weeks, GitHub-contribution-graph shape
-
-function formatCommits(commits: number): string {
-  return `${commits} ${commits === 1 ? 'commit' : 'commits'}`
-}
 
 function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
   const { data: activity, error } = useAsyncData(() => ActivityService.GetCommitActivity(repoPath, DAYS), [repoPath], {
@@ -28,11 +25,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
     <div className="activity-calendar">
       <div className="activity-header">
         <span className="activity-title">Activity</span>
-        {activity && (
-          <span className="activity-badge">
-            {totalCommits} commit{totalCommits === 1 ? '' : 's'} in the last year
-          </span>
-        )}
+        {activity && <span className="activity-badge">{plural(totalCommits, 'commit')} in the last year</span>}
         <div className="activity-header-meta">
           <div className="activity-legend">
             <span className="activity-legend-label">Less</span>
@@ -65,7 +58,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
                   gridRow: cell.dayOfWeek + 1,
                   background: `color-mix(in srgb, var(--tertiary) ${activityIntensity(cell.commits)}%, var(--surface-container))`,
                 }}
-                title={`${cell.date}: ${cell.commits} commit${cell.commits === 1 ? '' : 's'}`}
+                title={`${cell.date}: ${plural(cell.commits, 'commit')}`}
               />
             ))}
           </div>
@@ -77,7 +70,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
           <div className="activity-footer-stats">
             <span className="activity-footer-stat">
               <span className="activity-footer-dot activity-footer-dot-peak" />
-              Peak day: <strong>{formatCommits(peakDayCommits(activity))}</strong>
+              Peak day: <strong>{plural(peakDayCommits(activity), 'commit')}</strong>
             </span>
           </div>
           <span className="activity-footer-hint">Hover over any square for daily counts</span>

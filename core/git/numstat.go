@@ -16,37 +16,29 @@ type NumstatEntry struct {
 }
 
 func WorkingTreeNumstat(ctx context.Context, repoPath string) ([]NumstatEntry, error) {
-	result, err := runResult(ctx, repoPath, "diff", "-M", "--numstat", "-z")
-	if err != nil {
-		return nil, err
-	}
-	return parseNumstat(result.Stdout)
+	return numstat(ctx, repoPath, "diff")
 }
 
 func IndexNumstat(ctx context.Context, repoPath string) ([]NumstatEntry, error) {
-	result, err := runResult(ctx, repoPath, "diff", "--cached", "-M", "--numstat", "-z")
-	if err != nil {
-		return nil, err
-	}
-	return parseNumstat(result.Stdout)
+	return numstat(ctx, repoPath, "diff", "--cached")
 }
 
-// CommitNumstat passes -M so a renamed-and-edited file counts as a small edit
-// rather than a full delete plus a full add.
 func CommitNumstat(ctx context.Context, repoPath, sha string) ([]NumstatEntry, error) {
 	trees, err := commitTrees(ctx, repoPath, sha)
 	if err != nil {
 		return nil, err
 	}
-	result, err := runResult(ctx, repoPath, append([]string{"diff-tree", "--no-commit-id", "-M", "--numstat", "-r", "-z", "--root"}, trees...)...)
-	if err != nil {
-		return nil, err
-	}
-	return parseNumstat(result.Stdout)
+	return numstat(ctx, repoPath, append([]string{"diff-tree", "--no-commit-id", "-r", "--root"}, trees...)...)
 }
 
 func RefRangeNumstat(ctx context.Context, repoPath, fromRef, toRef string) ([]NumstatEntry, error) {
-	result, err := runResult(ctx, repoPath, "diff", "-M", "--numstat", "-z", fromRef, toRef)
+	return numstat(ctx, repoPath, "diff", fromRef, toRef)
+}
+
+// numstat runs the diff command in args with -M, so a renamed-and-edited file
+// counts as a small edit rather than a full delete plus a full add.
+func numstat(ctx context.Context, repoPath string, args ...string) ([]NumstatEntry, error) {
+	result, err := runResult(ctx, repoPath, append([]string{args[0], "-M", "--numstat", "-z"}, args[1:]...)...)
 	if err != nil {
 		return nil, err
 	}

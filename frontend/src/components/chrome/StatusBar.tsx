@@ -1,19 +1,30 @@
 import { System } from '@wailsio/runtime'
-import { PlatformService } from '@current-client-bindings/app'
-import PathText from '../git/PathText'
-import { tildePath } from '../../lib/paths'
+import { PlatformService, type HostStatusInfo } from '@current-client-bindings/app'
+import { baseName, tildePath } from '../../lib/paths'
+import { relativeTime } from '../../lib/relativeTime'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
+import type { HostIndicator } from '../../lib/useHostIndicator'
 import './StatusBar.scss'
 
 interface StatusBarProps {
   repoPath: string
   repoVersion: number
   gitVersion: string | null
+  integration?: HostIndicator | null
+  lastFetchedAt?: Date | null
+  onOpenSettings?: () => void
 }
 
-function StatusBar({ repoPath, repoVersion, gitVersion }: StatusBarProps) {
+function StatusBar({
+  repoPath,
+  repoVersion,
+  gitVersion,
+  integration = null,
+  lastFetchedAt = null,
+  onOpenSettings,
+}: StatusBarProps) {
   const status = useBranchStatus(repoPath, repoVersion)
   const { data: appVersion } = useAsyncData(() => PlatformService.AppVersion(), [])
   const { data: home } = useAsyncData(() => (System.IsWindows() ? null : PlatformService.HomeDir()), [])
@@ -34,19 +45,50 @@ function StatusBar({ repoPath, repoVersion, gitVersion }: StatusBarProps) {
       </span>
       {branchLabel && <span className="status-bar-branch">{branchLabel}</span>}
       <div className="status-bar-spacer" />
+      <span className="status-bar-fetched">
+        {lastFetchedAt ? `fetched ${relativeTime(lastFetchedAt)}` : 'not fetched yet'}
+      </span>
+      {integration && (
+        <button
+          type="button"
+          className={integration.status?.inFlight ? 'status-bar-host status-bar-host-busy' : 'status-bar-host'}
+          onClick={onOpenSettings}
+          title={`Integration is on for ${integration.host.hostname}. Opens Settings.`}
+        >
+          <span className="status-bar-host-dot" />
+          <span className="status-bar-host-name">{integration.apiHost}</span>
+          <span>{hostRequestLabel(integration.status)}</span>
+        </button>
+      )}
       <button
         type="button"
         className="status-bar-repo-path"
         onClick={() => copy(repoPath)}
         aria-label={`Copy ${repoPath}`}
-        title={repoPath}
+        title={tildePath(repoPath, home ?? '')}
       >
-        {copied ? 'Copied' : <PathText path={tildePath(repoPath, home ?? '')} />}
+        {copied ? 'Copied' : baseName(repoPath)}
       </button>
       {gitVersion && <span>git {gitVersion}</span>}
       {appVersion && <span>Current Client {appVersion}</span>}
     </footer>
   )
+}
+
+// The budget the host reported with its last answer, then when it was
+// last asked.
+function hostRequestLabel(status: HostStatusInfo | null): string {
+  const parts: string[] = []
+  if (status?.limit) {
+    parts.push(`${status.remaining} of ${status.limit} requests left`)
+    if (status.remaining === 0 && status.resetAt) {
+      parts.push(`resets at ${new Date(status.resetAt).toLocaleTimeString([], { timeStyle: 'short' })}`)
+    }
+  }
+  if (status?.inFlight) parts.push('request in flight')
+  else if (status?.lastRequest) parts.push(`last request ${relativeTime(new Date(status.lastRequest))}`)
+  else parts.push('no requests yet')
+  return parts.join(' · ')
 }
 
 export default StatusBar

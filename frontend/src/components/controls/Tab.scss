@@ -18,3 +18,14 @@
   color: var(--on-surface);
   font-weight: 600;
 }
+
+.tab-count {
+  margin-left: var(--space-xs);
+  color: var(--outline);
+  font: var(--data-sm);
+  font-weight: 400;
+}
+
+.tab-count-conflict {
+  color: var(--error);
+}

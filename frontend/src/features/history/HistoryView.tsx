@@ -1,26 +1,27 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type KeyboardEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { BranchService, CommitService, PatchService, type CommitInfo } from '@current-client-bindings/app'
-import ResizeHandle from '../../components/chrome/ResizeHandle'
+import { BranchService, type CommitInfo } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import CommitDetailPanel from './CommitDetailPanel'
+import CommitFileDiff from './CommitFileDiff'
 import CommitRow from './CommitRow'
 import HistoryToolbar from './HistoryToolbar'
 import { buildAsciiGraph } from './asciiGraph'
 import { ancestorShas } from './commitAncestry'
-import { errorMessage } from '../../lib/errors'
 import { identityKey } from './identityKey'
-import { suggestedPatchFilename } from '../../lib/patchFilename'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
-import { useCreateBranchFromCommit } from './useCreateBranchFromCommit'
-import { useDialogs } from '../../lib/useDialogs'
+import { useHostLinks } from '../../lib/useHostLinks'
+import { useBranchChanges } from '../../lib/useBranchChanges'
+import { useCIStatus } from '../../lib/useCIStatus'
+import { useReferenceCards } from '../../lib/useReferenceCards'
+import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
-import { useResizableWidth } from '../../lib/useResizableWidth'
 import { ALL_BRANCHES, isBranchName } from './branchFilter'
 import './HistoryView.scss'
 
@@ -59,27 +60,29 @@ function HistoryView({
   onTopShaChange,
   onSelectedShaChange,
 }: HistoryViewProps) {
-  const { confirm } = useDialogs()
   const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef })
   const { commits, loading, done, error, loadMore } = useCommitHistory(repoPath, filter, initialLoadThrough)
   const graphNodes = useCommitGraph(commits)
   const refsBySha = useRefBadges(repoPath)
+  const hostLinks = useHostLinks(repoPath)
+  // History remounts on every ref move, so the repository path is the only key.
+  const changes = useBranchChanges(repoPath)
+  const commitTexts = useMemo(() => commits.map((c) => c.subject + '\n' + c.body), [commits])
+  const referenceCards = useReferenceCards(repoPath, commitTexts, changes)
   const { identities, colorError, setAuthorColor } = useIdentities(commits)
-  const { createBranchFrom, branchError } = useCreateBranchFromCommit(repoPath, onBranchChanged)
+  const commitActions = useCommitActions(repoPath, onBranchChanged, hostLinks)
 
   const [selectedSha, setSelectedSha] = useState<string | null>(initialSelectedSha)
   const [search, setSearch] = useState('')
   const [hideMerges, setHideMerges] = useState(false)
   const [focusedSha, setFocusedSha] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
-  const [resetError, setResetError] = useState<string | null>(null)
-  const { checkoutCommit, actionError: checkoutError } = useCommitActions(repoPath, onBranchChanged)
-  const [patchError, setPatchError] = useState<string | null>(null)
+  // A file opened from the inspector; it only counts for the commit it was opened from.
+  const [openedFile, setOpenedFile] = useState<{ sha: string; path: string } | null>(null)
   const { copied: graphCopied, copy } = useCopyToClipboard()
   const [newShas, setNewShas] = useState<Set<string>>(new Set())
   const hasComputedNewShas = useRef(false)
   const parentRef = useRef<HTMLDivElement>(null)
-  const inspectorWidth = useResizableWidth('pane-width-inspector', 376, 280, 640, 'grow-left')
 
   // Only the first load counts; no overlap with previousTopSha (a rebase or
   // first open) flashes nothing.
@@ -129,6 +132,8 @@ function HistoryView({
   const onFocusRef = (sha: string) => setFocusedSha((prev) => (prev === sha ? null : sha))
 
   const selectedCommit = selectedSha ? (commits.find((c) => c.sha === selectedSha) ?? null) : null
+  const reviewThreads = useReviewThreads(repoPath, undefined, selectedSha ?? undefined)
+  const openedPath = selectedCommit && openedFile?.sha === selectedCommit.sha ? openedFile.path : null
   const selectedIdentity = selectedCommit
     ? identities.get(identityKey(selectedCommit.authorName, selectedCommit.authorEmail))
     : undefined
@@ -154,6 +159,10 @@ function HistoryView({
     overscan: 10,
   })
   const virtualItems = virtualizer.getVirtualItems()
+  const ciMarks = useCIStatus(
+    repoPath,
+    virtualItems.map((row) => rows[row.index].commit.sha),
+  )
 
   useEffect(() => {
     const last = virtualItems[virtualItems.length - 1]
@@ -182,29 +191,6 @@ function HistoryView({
 
   const laneCount = graphNodes.reduce((max, n) => Math.max(max, n.lane + 1, ...n.passThrough.map((l) => l + 1)), 1)
 
-  const resetTo = async (sha: string, mode: 'soft' | 'mixed' | 'hard') => {
-    const confirmed =
-      mode !== 'hard' ||
-      (await confirm({
-        title: 'Reset (hard)',
-        message: 'Reset (hard) discards all uncommitted changes and any commits after this one.',
-        confirmLabel: 'Reset',
-        destructive: true,
-      }))
-    if (!confirmed) return
-    setResetError(null)
-    CommitService.Reset(repoPath, sha, mode)
-      .then(() => onBranchChanged?.())
-      .catch((err: unknown) => setResetError(errorMessage(err)))
-  }
-
-  const exportPatch = (sha: string, subject: string) => {
-    setPatchError(null)
-    PatchService.ExportCommit(repoPath, sha, suggestedPatchFilename(sha, subject)).catch((err: unknown) =>
-      setPatchError(errorMessage(err)),
-    )
-  }
-
   // Copies the visible, filtered rows rather than a fresh git log --graph.
   const copyAsciiGraph = () => {
     copy(
@@ -225,94 +211,109 @@ function HistoryView({
     selectSha(commit.sha)
     setContextMenu({
       ...menuAnchor(e),
-      items: [
-        { label: 'Copy SHA', onClick: () => void navigator.clipboard.writeText(commit.sha) },
-        { label: 'Check out', onClick: () => void checkoutCommit(commit.sha) },
-        { label: 'Branch here', onClick: () => createBranchFrom(commit.sha) },
-        { label: 'Export patch…', onClick: () => exportPatch(commit.sha, commit.subject) },
-        { label: 'Reset (soft) to here', onClick: () => resetTo(commit.sha, 'soft') },
-        { label: 'Reset (mixed) to here', onClick: () => resetTo(commit.sha, 'mixed') },
-        { label: 'Reset (hard) to here', onClick: () => resetTo(commit.sha, 'hard'), destructive: true },
-      ],
+      items: commitActions
+        .actionsFor(commit)
+        .map((a) => ({ label: a.label, onClick: a.run, destructive: a.destructive })),
     })
   }
 
   return (
     <div className="history-view">
       <div className="history-canvas">
-        <HistoryToolbar
-          search={search}
-          onSearchChange={setSearch}
-          hideMerges={hideMerges}
-          onHideMergesChange={setHideMerges}
-          branches={branches ?? []}
-          filter={filter}
-          onFilterChange={changeFilter}
-          showTypeFilter={conventional}
-          onCopyAsciiGraph={copyAsciiGraph}
-          copied={graphCopied}
-        />
+        {selectedCommit && openedPath ? (
+          <CommitFileDiff
+            repoPath={repoPath}
+            commit={selectedCommit}
+            path={openedPath}
+            reviewThreads={reviewThreads}
+            onBack={() => setOpenedFile(null)}
+          />
+        ) : (
+          <>
+            <HistoryToolbar
+              search={search}
+              onSearchChange={setSearch}
+              hideMerges={hideMerges}
+              onHideMergesChange={setHideMerges}
+              branches={branches ?? []}
+              filter={filter}
+              onFilterChange={changeFilter}
+              showTypeFilter={conventional}
+              onCopyAsciiGraph={copyAsciiGraph}
+              copied={graphCopied}
+            />
 
-        {branchError && <p className="history-error">Could not create branch: {branchError}</p>}
-        {resetError && <p className="history-error">Could not reset: {resetError}</p>}
-        {checkoutError && <p className="history-error">Could not check out: {checkoutError}</p>}
-        {patchError && <p className="history-error">Could not export patch: {patchError}</p>}
-
-        <div ref={parentRef} className="history-scroll">
-          <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
-            {virtualItems.map((row) => {
-              const { commit, graphNode } = rows[row.index]
-              return (
-                <CommitRow
-                  key={commit.sha}
-                  commit={commit}
-                  graphNode={graphNode}
-                  laneCount={laneCount}
-                  rowHeight={ROW_HEIGHT}
-                  identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
-                  refs={refsBySha.get(commit.sha)}
-                  selected={commit.sha === selectedSha}
-                  dimmed={focusedAncestors !== null && !focusedAncestors.has(commit.sha)}
-                  isNew={newShas.has(commit.sha)}
-                  focusedSha={focusedSha}
-                  conventional={conventional}
-                  onFocusRef={onFocusRef}
-                  searchQuery={query}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: ROW_HEIGHT,
-                    transform: `translateY(${row.start}px)`,
-                  }}
-                  onSelect={() => selectSha(commit.sha)}
-                  onContextMenu={commitContextMenu(commit)}
-                />
-              )
-            })}
-          </div>
-          {loading && <p className="history-loading">Loading…</p>}
-        </div>
+            <div ref={parentRef} className="history-scroll">
+              <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+                {virtualItems.map((row) => {
+                  const { commit, graphNode } = rows[row.index]
+                  return (
+                    <CommitRow
+                      key={commit.sha}
+                      commit={commit}
+                      graphNode={graphNode}
+                      laneCount={laneCount}
+                      hostLinks={hostLinks}
+                      changes={changes}
+                      repoPath={repoPath}
+                      ci={ciMarks[commit.sha]}
+                      referenceCards={referenceCards}
+                      rowHeight={ROW_HEIGHT}
+                      identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
+                      refs={refsBySha.get(commit.sha)}
+                      selected={commit.sha === selectedSha}
+                      dimmed={focusedAncestors !== null && !focusedAncestors.has(commit.sha)}
+                      isNew={newShas.has(commit.sha)}
+                      focusedSha={focusedSha}
+                      conventional={conventional}
+                      onFocusRef={onFocusRef}
+                      searchQuery={query}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: ROW_HEIGHT,
+                        transform: `translateY(${row.start}px)`,
+                      }}
+                      onSelect={() => selectSha(commit.sha)}
+                      onContextMenu={commitContextMenu(commit)}
+                    />
+                  )
+                })}
+              </div>
+              {loading && <p className="history-loading">Loading…</p>}
+              {done && !loading && (
+                <p className="history-footer">
+                  {plural(commits.length, 'commit')}
+                  {filter.ref === ALL_BRANCHES && ' · stashes hidden'}
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {selectedCommit && (
-        <>
-          <ResizeHandle onDragStart={inspectorWidth.onDragStart} ariaLabel="Resize commit inspector" />
-          <div className="history-inspector" style={{ width: inspectorWidth.width, minWidth: inspectorWidth.width }}>
-            <CommitDetailPanel
-              repoPath={repoPath}
-              commit={selectedCommit}
-              identity={selectedIdentity}
-              colorError={colorError}
-              onColorChange={(color) => setAuthorColor(selectedCommit.authorName, selectedCommit.authorEmail, color)}
-              onCreateBranchHere={() => createBranchFrom(selectedCommit.sha)}
-              onBranchChanged={onBranchChanged}
-            />
-          </div>
-        </>
+        <div className="history-inspector">
+          <CommitDetailPanel
+            repoPath={repoPath}
+            commit={selectedCommit}
+            identity={selectedIdentity}
+            hostLinks={hostLinks}
+            referenceCards={referenceCards}
+            colorError={colorError}
+            onColorChange={(color) => setAuthorColor(selectedCommit.authorName, selectedCommit.authorEmail, color)}
+            actions={commitActions.actionsFor(selectedCommit)}
+            actionError={commitActions.error}
+            openedPath={openedPath}
+            onOpenFile={(path) => setOpenedFile({ sha: selectedCommit.sha, path })}
+            threadCounts={reviewThreads.counts}
+          />
+        </div>
       )}
 
+      {commitActions.overlays}
       {contextMenu && <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />}
     </div>
   )

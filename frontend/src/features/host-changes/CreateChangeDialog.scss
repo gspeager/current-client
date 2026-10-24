@@ -1,0 +1,14 @@
+.create-change-panel {
+  width: min(640px, 90vw);
+}
+
+.create-change-target {
+  font: var(--data-sm);
+}
+
+.create-change-description {
+  min-height: 160px;
+  resize: vertical;
+  font: var(--ui-sm);
+  line-height: 1.5;
+}

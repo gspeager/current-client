@@ -1,13 +1,19 @@
-import { BranchService, RemoteService } from '@current-client-bindings/app'
+import { BranchService, RemoteService, type PushResult } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { errorMessage } from '../../lib/errors'
+import { protectionFor } from '../../lib/protection'
+import { primaryRemoteName } from '../../lib/remotes'
 import { useDialogs } from '../../lib/useDialogs'
 
 const NO_UPSTREAM = 'This branch has no upstream configured.'
 // Matches core/gitexec's divergedMessage.
 export const DIVERGED = 'This branch and its upstream have diverged. Choose Pull (merge) or Pull (rebase).'
 
-export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
+export function useRemoteSync(repoPath: string | null, onSynced: () => void, onPushed?: (result: PushResult) => void) {
+  const pushed = (result: PushResult) => {
+    onSynced()
+    onPushed?.(result)
+  }
   const { confirm } = useDialogs()
   const pullOp = useCancellableOperation(repoPath ?? '')
   const pushOp = useCancellableOperation(repoPath ?? '')
@@ -27,31 +33,46 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
     pullOp.run((auth) => RemoteService.PullRebase(repoPath, auth), onSynced)
   }
 
-  const pushSettingUpstream = async (path: string) => {
+  // then, when given, replaces the post-push report so the caller can carry on
+  // (the sidebar opens the create form).
+  const pushSettingUpstream = async (path: string, then?: (result: PushResult) => void) => {
     try {
-      const [status, remotes] = await Promise.all([BranchService.CurrentBranchStatus(path), RemoteService.List(path)])
-      const remoteName = remotes.find((r) => r.name === 'origin')?.name ?? remotes[0]?.name
-      if (!remoteName) {
-        pushOp.setError('No remote configured to push to.')
-        return
-      }
+      const [status, remoteName] = await Promise.all([BranchService.CurrentBranchStatus(path), primaryRemoteName(path)])
+      const protection = await protectionFor(path, `${remoteName}/${status.current}`, 'push')
       const confirmed = await confirm({
         title: 'Set upstream',
-        message: `Push and set upstream to ${remoteName}/${status.current}?`,
+        message: [`Push and set upstream to ${remoteName}/${status.current}?`, protection].filter(Boolean).join(' '),
         confirmLabel: 'Push',
       })
       if (!confirmed) return
-      void pushOp.run((auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth), onSynced)
+      await pushOp.run(
+        (auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth),
+        (result) => {
+          if (!then) return pushed(result)
+          onSynced()
+          then(result)
+        },
+      )
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
     }
   }
 
-  const push = () => {
+  // A branch the host protects is confirmed first; the host still decides.
+  const push = async () => {
     if (!repoPath) return
+    const protection = await protectionFor(repoPath, '', 'push')
+    if (protection) {
+      const confirmed = await confirm({
+        title: 'Push to a protected branch',
+        message: protection,
+        confirmLabel: 'Push anyway',
+      })
+      if (!confirmed) return
+    }
     void pushOp.run(
       (auth) => RemoteService.Push(repoPath, auth),
-      onSynced,
+      pushed,
       (message) => {
         if (message !== NO_UPSTREAM) return false
         void pushSettingUpstream(repoPath)
@@ -69,9 +90,15 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
         pushOp.setError('No upstream configured to force-push to.')
         return
       }
+      const protection = await protectionFor(repoPath, status.upstream, 'force-push')
       const confirmed = await confirm({
         title: 'Force-push',
-        message: `Force-push ${status.current} to ${status.upstream}? This rewrites remote history and can discard commits other people have pushed.`,
+        message: [
+          `Force-push ${status.current} to ${status.upstream}? This rewrites remote history and can discard commits other people have pushed.`,
+          protection,
+        ]
+          .filter(Boolean)
+          .join(' '),
         confirmLabel: 'Force-push',
         destructive: true,
       })
@@ -82,5 +109,23 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void) {
     }
   }
 
-  return { pull, pullMerge, pullRebase, push, forcePush, pullOp, pushOp }
+  const pushTags = () => {
+    if (!repoPath) return
+    primaryRemoteName(repoPath)
+      .then((remote) => pushOp.run((auth) => RemoteService.PushTags(repoPath, remote, auth), onSynced))
+      .catch((err: unknown) => pushOp.setError(errorMessage(err)))
+  }
+
+  return {
+    pull,
+    pullMerge,
+    pullRebase,
+    push,
+    forcePush,
+    pushTags,
+    pushSetUpstream: (then?: (result: PushResult) => void) =>
+      repoPath ? pushSettingUpstream(repoPath, then) : Promise.resolve(),
+    pullOp,
+    pushOp,
+  }
 }

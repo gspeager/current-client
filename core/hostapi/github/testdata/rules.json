@@ -1,0 +1,12 @@
+[
+  {
+    "type": "copilot_code_review",
+    "parameters": {
+      "review_on_push": false,
+      "review_draft_pull_requests": true
+    },
+    "ruleset_source_type": "Repository",
+    "ruleset_source": "cli/cli",
+    "ruleset_id": 4898070
+  }
+]

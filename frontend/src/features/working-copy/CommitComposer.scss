@@ -264,14 +264,19 @@
   }
 }
 
-.commit-composer-block-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-xs);
-}
-
 .commit-composer-error {
   margin: 0;
   color: var(--error);
   font: var(--ui-xs);
+}
+
+// The one primary action while a merge, rebase, cherry-pick or revert is in progress.
+.commit-composer-continue {
+  @include patterns.primary-button;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: 100%;
+  height: var(--h-action);
 }

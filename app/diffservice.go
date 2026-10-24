@@ -16,6 +16,9 @@ type DiffLine struct {
 	NewLine int    `json:"newLine"`
 	Content string `json:"content"`
 	Moved   bool   `json:"moved"`
+	// Which side of a conflicted file has the line.
+	InOurs   bool `json:"inOurs"`
+	InTheirs bool `json:"inTheirs"`
 }
 
 type DiffHunk struct {
@@ -138,11 +141,13 @@ func toFileDiff(fd diff.FileDiff) FileDiff {
 		lines := make([]DiffLine, len(h.Lines))
 		for j, l := range h.Lines {
 			lines[j] = DiffLine{
-				Kind:    lineKindString(l.Kind),
-				OldLine: l.OldLine,
-				NewLine: l.NewLine,
-				Content: l.Content,
-				Moved:   l.Moved,
+				Kind:     lineKindString(l.Kind),
+				OldLine:  l.OldLine,
+				NewLine:  l.NewLine,
+				Content:  l.Content,
+				Moved:    l.Moved,
+				InOurs:   l.InOurs,
+				InTheirs: l.InTheirs,
 			}
 		}
 		hunks[i] = DiffHunk{Header: h.Header, Raw: h.Raw, Lines: lines}
@@ -196,10 +201,8 @@ func (s *DiffService) GetFileContent(repoPath, path string, source FileSource) (
 	var found bool
 	var err error
 	switch source.Kind {
-	case "commit":
+	case "commit", "index":
 		data, found, err = diff.ReadRevisionFile(context.Background(), repoPath, source.Rev, path, maxFileContentBytes)
-	case "index":
-		data, found, err = diff.ReadRevisionFile(context.Background(), repoPath, "", path, maxFileContentBytes)
 	case "worktree":
 		data, found, err = diff.ReadWorkingFile(repoPath, path, maxFileContentBytes)
 	default:

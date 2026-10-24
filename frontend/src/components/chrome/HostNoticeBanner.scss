@@ -1,0 +1,45 @@
+.host-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.host-notice-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.host-notice-separator {
+  color: var(--outline);
+}
+
+.host-notice-link {
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+.host-notice-dismiss {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 2px;
+  background: none;
+  border: none;
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}

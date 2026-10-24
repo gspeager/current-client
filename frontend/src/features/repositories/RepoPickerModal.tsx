@@ -6,10 +6,12 @@ import './RepoPickerModal.scss'
 
 interface RepoPickerModalProps {
   repo: ReturnType<typeof useRepositoryLifecycle>
+  defaultLocation?: string
+  onOpenSettings?: () => void
   onClose: () => void
 }
 
-function RepoPickerModal({ repo, onClose }: RepoPickerModalProps) {
+function RepoPickerModal({ repo, defaultLocation, onOpenSettings, onClose }: RepoPickerModalProps) {
   const openedWith = useRef(repo.repoPath)
 
   useEffect(() => {
@@ -21,7 +23,7 @@ function RepoPickerModal({ repo, onClose }: RepoPickerModalProps) {
   return (
     <Modal title="Open repository" onClose={onClose} className="repo-picker-panel" placement="top">
       <div className="repo-picker-body">
-        <RepoSwitcher repo={repo} />
+        <RepoSwitcher repo={repo} defaultLocation={defaultLocation} onOpenSettings={onOpenSettings} />
       </div>
     </Modal>
   )

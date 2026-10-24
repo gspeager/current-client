@@ -6,9 +6,14 @@ import { highlightMatch } from '../../lib/highlightMatch'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
-import type { CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
+import type { CIMark as CIMarkInfo, CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
+import type { Links } from '@current-client-bindings/core/hostlink'
+import type { BranchChanges } from '../../lib/useBranchChanges'
+import type { ReferenceCards } from '../../lib/useReferenceCards'
 import CommitGraph from './CommitGraph'
 import IdentityBadge from '../../components/git/IdentityBadge'
+import ReferenceText from '../../components/git/ReferenceText'
+import CIMark from '../../components/git/CIMark'
 import RefBadge from './RefBadge'
 import './CommitRow.scss'
 
@@ -26,6 +31,11 @@ interface CommitRowProps {
   onFocusRef?: (sha: string) => void
   searchQuery?: string
   conventional?: boolean
+  hostLinks?: Links | null
+  changes?: BranchChanges
+  repoPath?: string
+  ci?: CIMarkInfo
+  referenceCards?: ReferenceCards
   style: CSSProperties
   onSelect: () => void
   onContextMenu: (e: MouseEvent | KeyboardEvent) => void
@@ -45,6 +55,11 @@ function CommitRow({
   onFocusRef,
   searchQuery = '',
   conventional = false,
+  hostLinks = null,
+  changes,
+  repoPath = '',
+  ci,
+  referenceCards,
   style,
   onSelect,
   onContextMenu,
@@ -90,13 +105,19 @@ function CommitRow({
                 color={laneColor(graphNode?.lane ?? 0)}
                 onClick={onFocusRef}
                 active={focusedSha === r.sha}
+                change={r.kind === 'remote' ? changes?.[r.name] : undefined}
               />
             ))}
           </span>
         )}
         <span className="commit-row-subject">
           {prefix && <span className="commit-row-type">{highlightMatch(prefix, searchQuery, 'search-match')}</span>}
-          {highlightMatch(commit.subject.slice(prefix.length), searchQuery, 'search-match')}
+          <ReferenceText
+            text={commit.subject.slice(prefix.length)}
+            links={hostLinks}
+            cards={referenceCards}
+            render={(segment) => highlightMatch(segment, searchQuery, 'search-match')}
+          />
         </span>
       </div>
 
@@ -109,6 +130,7 @@ function CommitRow({
 
       <div className="commit-row-hash">
         <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
+        <CIMark repoPath={repoPath} mark={ci} />
         <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
       </div>
 

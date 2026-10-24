@@ -1,0 +1,53 @@
+{
+  "id": 553382054,
+  "iid": 4178,
+  "project_id": 34675721,
+  "title": "fix(df): fail closed when the policy API stops answering",
+  "description": "## Description\n\nIf the Dependency Firewall API accepts the connection and never answers (for example behind a stalled load balancer), a package manager under `glab df` hangs until the user presses Ctrl-C. It should fail closed after `policy.CheckTimeout` (60s), as that constant's doc comment promises.\n\nThe callers do pass a 60s deadline. `CachingChecker` then runs the shared check under `context.WithoutCancel`, so that one caller walking away doesn't cancel the check for every caller waiting on the same coordinate. `WithoutCancel` also drops the deadline, and the API client has no overall or response-header timeout, so nothing ends the call.\n\n`CachingChecker` now puts the caller's deadline back on the shared check and still ignores the caller's cancellation. A stalled check ends at the deadline as `policy check failed: \u2026 context deadline exceeded`, which blocks the package. As with any other failure, the entry is dropped, so a later request retries it.\n\nThis affects every ecosystem that goes through the MITM proxy, and the Go module gate in !4168. It was found in review of !4168.\n\n## How has this been tested?\n\n- `TestCacheStalledCheckFailsClosedAtCallerDeadline`: a checker that returns only when its context ends. It hung past the 5s guard before the fix, and now returns Blocked at the 50ms deadline.\n- `TestCacheCallerCancellationDoesNotEndSharedCheck` pins the existing behaviour this must keep: a cancelled caller doesn't fail the shared check. Passing the caller's context straight through would break it.\n- `glab df npm install left-pad@1.3.0` against a fake GitLab API that accepts connections and never answers:\n\n| Build | Result |\n|---|---|\n| `main` | still hung when `timeout` killed it at 150s |\n| this branch | exit 1 after 61s: `npm error 403 \u2026 policy check failed: dependency firewall evaluation failed: context deadline exceeded` |",
+  "state": "merged",
+  "created_at": "2026-10-22T09:47:46.964Z",
+  "updated_at": "2026-10-23T02:35:04.857Z",
+  "merge_status": "can_be_merged",
+  "approved": true,
+  "approvals_required": 1,
+  "approvals_left": 0,
+  "require_password_to_approve": false,
+  "approved_by": [
+    {
+      "user": {
+        "id": 21826781,
+        "username": "GitLabDuo",
+        "public_email": null,
+        "name": "GitLab Duo",
+        "state": "active",
+        "locked": false,
+        "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/21826781/duo-bot.png?v=1792265836",
+        "web_url": "https://gitlab.com/GitLabDuo"
+      },
+      "approved_at": "2026-10-22T10:29:51.614Z"
+    },
+    {
+      "user": {
+        "id": 12294975,
+        "username": "jhebden",
+        "public_email": "",
+        "name": "James Hebden",
+        "state": "active",
+        "locked": false,
+        "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/12294975/avatar.png?v=1792800244",
+        "web_url": "https://gitlab.com/jhebden"
+      },
+      "approved_at": "2026-10-23T00:57:39.487Z"
+    }
+  ],
+  "suggested_approvers": [],
+  "approvers": [],
+  "approver_groups": [],
+  "user_has_approved": false,
+  "user_can_approve": false,
+  "approval_rules_left": [],
+  "has_approval_rules": true,
+  "merge_request_approvers_available": true,
+  "multiple_approval_rules_available": true,
+  "invalid_approvers_rules": []
+}

@@ -1,50 +1,62 @@
-import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
+import { Check, ChevronDown, Copy, GitCommitVertical, Palette, ShieldAlert, ShieldCheck } from 'lucide-react'
 import {
-  Check,
-  Cherry,
-  Copy,
-  GitBranchPlus,
-  GitCommitVertical,
-  RotateCcw,
-  ShieldAlert,
-  ShieldCheck,
-} from 'lucide-react'
-import { HistoryService, type ChangedFile, type IdentityInfo, type CommitInfo } from '@current-client-bindings/app'
+  type ChangedFile,
+  type CommitInfo,
+  HistoryService,
+  type IdentityInfo,
+  PlatformService,
+} from '@current-client-bindings/app'
+import type { Links } from '@current-client-bindings/core/hostlink'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
-import { useCommitActions } from './useCommitActions'
+import { PRIMARY_COMMIT_ACTIONS, type CommitAction } from './useCommitActions'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
+import { plural } from '../../lib/plural'
+import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
 import { useFileTools } from './useFileTools'
 import ChangedFileRow from './ChangedFileRow'
-import CommitFilesModal from './CommitFilesModal'
 import IdentityBadge from '../../components/git/IdentityBadge'
+import ReferenceText from '../../components/git/ReferenceText'
+import type { ReferenceCards } from '../../lib/useReferenceCards'
+import { filePage } from '../../lib/hostPages'
 import './CommitDetailPanel.scss'
 
 interface CommitDetailPanelProps {
   repoPath: string
   commit: CommitInfo
   identity?: IdentityInfo
+  hostLinks?: Links | null
+  referenceCards?: ReferenceCards
   colorError: string | null
   onColorChange: (color: string) => void
-  onCreateBranchHere: () => void
-  onBranchChanged?: () => void
+  // The commit's actions, in order; the first few are buttons, the rest under More.
+  actions: CommitAction[]
+  actionError?: string | null
+  // The file whose diff History shows in place of the graph.
+  openedPath?: string | null
+  onOpenFile?: (path: string) => void
+  // Unresolved review threads per file.
+  threadCounts?: Record<string, number | undefined>
 }
 
 function CommitDetailPanel({
   repoPath,
   commit,
   identity,
+  hostLinks = null,
+  referenceCards,
   colorError,
   onColorChange,
-  onCreateBranchHere,
-  onBranchChanged,
+  actions,
+  actionError = null,
+  openedPath = null,
+  onOpenFile,
+  threadCounts,
 }: CommitDetailPanelProps) {
   useClockTick()
-  const { cherryPick, revert, checkoutCommit, actionError } = useCommitActions(repoPath, onBranchChanged)
-  // The file whose diff is open; only for the commit it was opened from.
-  const [opened, setOpened] = useState<{ sha: string; path: string } | null>(null)
-  const openedPath = opened?.sha === commit.sha ? opened.path : null
+  const moreRef = useDismissibleDetails()
   const { copied: shaCopied, copy } = useCopyToClipboard()
   const fileTools = useFileTools(repoPath)
 
@@ -52,9 +64,28 @@ function CommitDetailPanel({
     () => HistoryService.GetChangedFiles(repoPath, commit.sha),
     [repoPath, commit.sha],
   )
+  const { data: branches } = useAsyncData(
+    () => HistoryService.BranchesContaining(repoPath, commit.sha),
+    [repoPath, commit.sha],
+  )
+
+  const runMore = (run: () => void) => {
+    if (moreRef.current) moreRef.current.open = false
+    run()
+  }
 
   const fileContextMenu = (f: ChangedFile) => (e: MouseEvent | KeyboardEvent) =>
-    fileTools.openMenu(e, fileTools.pathItems(f.path))
+    fileTools.openMenu(e, [
+      ...fileTools.pathItems(f.path),
+      ...(hostLinks?.blob
+        ? [
+            {
+              label: 'Open on host',
+              onClick: () => void PlatformService.OpenWebPage(filePage(hostLinks, commit.sha, f.path)),
+            },
+          ]
+        : []),
+    ])
 
   return (
     <section className="commit-detail">
@@ -95,13 +126,16 @@ function CommitDetailPanel({
             <span className="commit-detail-author-email">{commit.authorEmail}</span>
           </div>
           {identity && (
-            <input
-              type="color"
-              className="commit-detail-color"
-              aria-label="Badge color"
-              value={identity.color}
-              onChange={(e) => onColorChange(e.target.value)}
-            />
+            <label className="commit-detail-color" title="Change the author's badge color">
+              <Palette size={14} strokeWidth={1.75} />
+              <span className="commit-detail-color-swatch" style={{ background: identity.color }} />
+              <input
+                type="color"
+                aria-label="Badge color"
+                value={identity.color}
+                onChange={(e) => onColorChange(e.target.value)}
+              />
+            </label>
           )}
         </div>
         {colorError && <p className="commit-detail-error">Could not set color: {colorError}</p>}
@@ -119,6 +153,16 @@ function CommitDetailPanel({
                 : 'None (root commit)'}
             </span>
           </div>
+          <div>
+            <span className="commit-detail-stat-label">Changes</span>
+            <span>{changedFiles ? plural(changedFiles.length, 'file') : '…'}</span>
+          </div>
+          <div>
+            <span className="commit-detail-stat-label">On branches</span>
+            <span className="commit-detail-branches" title={branches?.join(', ')}>
+              {branches === null ? '…' : branches.length === 0 ? 'None' : branches.join(', ')}
+            </span>
+          </div>
           {commit.coAuthors.length > 0 && (
             <div className="commit-detail-coauthors">
               <span className="commit-detail-stat-label">Co-authors</span>
@@ -134,12 +178,18 @@ function CommitDetailPanel({
           )}
         </div>
 
-        <p className="commit-detail-subject">{commit.subject}</p>
-        {commit.body && <p className="commit-detail-body">{commit.body}</p>}
+        <p className="commit-detail-subject">
+          <ReferenceText text={commit.subject} links={hostLinks} cards={referenceCards} />
+        </p>
+        {commit.body && (
+          <p className="commit-detail-body">
+            <ReferenceText text={commit.body} links={hostLinks} cards={referenceCards} />
+          </p>
+        )}
 
         <div className="commit-detail-section-header">
           <span className="commit-detail-label">Changed files</span>
-          {changedFiles && <span className="commit-detail-section-count">{changedFiles.length} files</span>}
+          {changedFiles && <span className="commit-detail-section-count">{plural(changedFiles.length, 'file')}</span>}
         </div>
         {commit.parentShas.length > 1 && (
           <p className="commit-detail-hint">Compared with the first parent, {commit.parentShas[0].slice(0, 7)}.</p>
@@ -157,8 +207,9 @@ function CommitDetailPanel({
                 key={f.path}
                 file={f}
                 selected={openedPath === f.path}
-                onSelect={() => setOpened({ sha: commit.sha, path: f.path })}
+                onSelect={() => onOpenFile?.(f.path)}
                 onContextMenu={fileContextMenu(f)}
+                threads={threadCounts?.[f.path]}
               />
             ))}
           </ul>
@@ -170,36 +221,33 @@ function CommitDetailPanel({
           <span className="commit-detail-label">Actions</span>
         </div>
         <div className="commit-detail-actions">
-          <button type="button" onClick={onCreateBranchHere}>
-            <GitBranchPlus size={14} strokeWidth={1.75} />
-            Branch here
-          </button>
-          <button type="button" onClick={() => void checkoutCommit(commit.sha)}>
-            <GitCommitVertical size={14} strokeWidth={1.75} />
-            Check out
-          </button>
-          <button type="button" onClick={() => cherryPick(commit.sha)}>
-            <Cherry size={14} strokeWidth={1.75} />
-            Cherry-pick
-          </button>
-          <button type="button" onClick={() => revert(commit.sha)}>
-            <RotateCcw size={14} strokeWidth={1.75} />
-            Revert
-          </button>
+          {actions.slice(0, PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run }) => (
+            <button key={id} type="button" onClick={run}>
+              <Icon size={14} strokeWidth={1.75} />
+              {label}
+            </button>
+          ))}
+          {actions.length > PRIMARY_COMMIT_ACTIONS && (
+            <details ref={moreRef} className="commit-detail-more">
+              <summary className="commit-detail-more-toggle" aria-label="More actions" title="More actions">
+                More
+                <ChevronDown size={14} strokeWidth={1.75} />
+              </summary>
+              <div className="commit-detail-more-menu">
+                {actions.slice(PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run }) => (
+                  <button key={id} type="button" onClick={() => runMore(run)}>
+                    <Icon size={14} strokeWidth={1.75} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
-        {actionError && <p className="commit-detail-error">Could not apply: {actionError}</p>}
+        {actionError && <p className="commit-detail-error">{actionError}</p>}
       </div>
 
       {fileTools.overlays}
-      {openedPath && changedFiles && (
-        <CommitFilesModal
-          repoPath={repoPath}
-          commit={commit}
-          files={changedFiles}
-          initialPath={openedPath}
-          onClose={() => setOpened(null)}
-        />
-      )}
     </section>
   )
 }

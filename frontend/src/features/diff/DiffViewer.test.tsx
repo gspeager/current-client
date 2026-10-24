@@ -14,17 +14,23 @@ const diff: FileDiff = {
     {
       header: '@@ -1,3 +1,3 @@ first',
       raw: 'raw-hunk-1',
-      lines: [{ kind: 'context', oldLine: 1, newLine: 1, content: 'foo', moved: false }],
+      lines: [
+        { kind: 'context', oldLine: 1, newLine: 1, content: 'foo', moved: false, inOurs: false, inTheirs: false },
+      ],
     },
     {
       header: '@@ -10,3 +10,3 @@ second',
       raw: 'raw-hunk-2',
-      lines: [{ kind: 'context', oldLine: 10, newLine: 10, content: 'bar', moved: false }],
+      lines: [
+        { kind: 'context', oldLine: 10, newLine: 10, content: 'bar', moved: false, inOurs: false, inTheirs: false },
+      ],
     },
     {
       header: '@@ -20,3 +20,3 @@ third',
       raw: 'raw-hunk-3',
-      lines: [{ kind: 'context', oldLine: 20, newLine: 20, content: 'baz', moved: false }],
+      lines: [
+        { kind: 'context', oldLine: 20, newLine: 20, content: 'baz', moved: false, inOurs: false, inTheirs: false },
+      ],
     },
   ],
 }
@@ -102,9 +108,25 @@ describe('DiffViewer content rendering', () => {
         header: '@@ -1,2 +1,2 @@',
         raw: 'raw-hunk',
         lines: [
-          { kind: 'removed', oldLine: 1, newLine: 0, content: 'old line', moved: false },
-          { kind: 'added', oldLine: 0, newLine: 1, content: 'new line', moved: false },
-          { kind: 'context', oldLine: 2, newLine: 2, content: 'unchanged line', moved: false },
+          {
+            kind: 'removed',
+            oldLine: 1,
+            newLine: 0,
+            content: 'old line',
+            moved: false,
+            inOurs: false,
+            inTheirs: false,
+          },
+          { kind: 'added', oldLine: 0, newLine: 1, content: 'new line', moved: false, inOurs: false, inTheirs: false },
+          {
+            kind: 'context',
+            oldLine: 2,
+            newLine: 2,
+            content: 'unchanged line',
+            moved: false,
+            inOurs: false,
+            inTheirs: false,
+          },
         ],
       },
     ],
@@ -208,26 +230,109 @@ describe('DiffViewer conflicted file', () => {
         header: '@@@ -1,3 -1,3 +1,7 @@@',
         raw: 'raw',
         lines: [
-          { kind: 'conflict-marker', oldLine: 0, newLine: 1, content: '<<<<<<< HEAD', moved: false },
-          { kind: 'conflict-ours', oldLine: 1, newLine: 2, content: 'OURS', moved: false },
-          { kind: 'conflict-marker', oldLine: 0, newLine: 3, content: '=======', moved: false },
-          { kind: 'conflict-theirs', oldLine: 0, newLine: 4, content: 'THEIRS', moved: false },
-          { kind: 'conflict-marker', oldLine: 0, newLine: 5, content: '>>>>>>> theirs', moved: false },
+          { kind: 'context', oldLine: 1, newLine: 1, content: 'shared', moved: false, inOurs: true, inTheirs: true },
+          {
+            kind: 'conflict-marker',
+            oldLine: 0,
+            newLine: 2,
+            content: '<<<<<<< HEAD',
+            moved: false,
+            inOurs: false,
+            inTheirs: false,
+          },
+          {
+            kind: 'conflict-ours',
+            oldLine: 2,
+            newLine: 3,
+            content: 'OURS',
+            moved: false,
+            inOurs: true,
+            inTheirs: false,
+          },
+          {
+            kind: 'conflict-marker',
+            oldLine: 0,
+            newLine: 4,
+            content: '=======',
+            moved: false,
+            inOurs: false,
+            inTheirs: false,
+          },
+          {
+            kind: 'conflict-theirs',
+            oldLine: 0,
+            newLine: 5,
+            content: 'THEIRS',
+            moved: false,
+            inOurs: false,
+            inTheirs: true,
+          },
+          {
+            kind: 'conflict-marker',
+            oldLine: 0,
+            newLine: 6,
+            content: '>>>>>>> theirs',
+            moved: false,
+            inOurs: false,
+            inTheirs: false,
+          },
         ],
       },
     ],
   }
 
-  it('shows both sides and the markers inline, even when split view is chosen', () => {
-    const { container } = render(<DiffViewer diff={conflict} path="f.txt" viewMode="split" />)
+  it('shows the working file with the markers inline in the Result view, with one line-number column and no hunk header', () => {
+    const { container } = render(<DiffViewer diff={conflict} path="f.txt" viewMode="split" conflictView="result" />)
 
-    expect(
-      screen.getByText('Conflicted. Edit the marked sections to resolve, then stage the file.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/^Conflicted\. Edit the marked sections/)).toBeInTheDocument()
     expect(container.querySelector('.diff-pane-unified')).not.toBeNull()
-    expect(screen.getByText('OURS').closest('.diff-row')).toHaveClass('diff-row-conflict-ours')
+    expect(container.querySelector('.diff-hunk-header')).toBeNull()
+    const ours = screen.getByText('OURS').closest('.diff-row')!
+    expect(ours).toHaveClass('diff-row-conflict-ours')
+    expect(ours).toHaveClass('diff-row-result')
+    expect(ours.querySelectorAll('.diff-line-number')).toHaveLength(1)
+    expect(ours.querySelector('.diff-line-number')).toHaveTextContent('3')
     expect(screen.getByText('THEIRS').closest('.diff-row')).toHaveClass('diff-row-conflict-theirs')
     expect(screen.getByText('=======').closest('.diff-row')).toHaveClass('diff-row-conflict-marker')
+    expect(screen.getByText('<<<<<<< HEAD').closest('.diff-row')).toHaveClass('diff-conflict-block-start')
+  })
+
+  it('puts each side in its own column, labelled by branch, in the Side by side view', () => {
+    const { container } = render(
+      <DiffViewer
+        diff={conflict}
+        path="f.txt"
+        viewMode="unified"
+        conflictView="side-by-side"
+        baseSide={{ label: 'main (current branch)' }}
+        targetSide={{ label: 'feature (incoming)' }}
+      />,
+    )
+
+    expect(screen.getByText('main (current branch)')).toBeInTheDocument()
+    expect(screen.getByText('feature (incoming)')).toBeInTheDocument()
+    expect(screen.queryByText(/removed$/)).not.toBeInTheDocument()
+    expect(screen.queryByText('=======')).not.toBeInTheDocument()
+    expect(container.querySelector('.diff-pane-split')).not.toBeNull()
+    expect(screen.getByText('OURS').closest('.diff-row')).toHaveClass('diff-row-split-left')
+    expect(screen.getByText('THEIRS').closest('.diff-row')).toHaveClass('diff-row-split-right')
+    expect(screen.getAllByText('shared')).toHaveLength(2)
+  })
+
+  it('walks the conflict blocks from the footer', async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    const twoBlocks = {
+      ...conflict,
+      hunks: [{ ...conflict.hunks[0], lines: [...conflict.hunks[0].lines, ...conflict.hunks[0].lines] }],
+    }
+    render(<DiffViewer diff={twoBlocks} path="f.txt" viewMode="unified" conflictView="result" />)
+
+    expect(screen.getByText('Block 1 of 2')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous block' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Next block' }))
+    expect(screen.getByText('Block 2 of 2')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next block' })).toBeDisabled()
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
   })
 
   it('offers no hunk actions', () => {
@@ -246,11 +351,11 @@ describe('DiffViewer line selection', () => {
         header: '@@ -1,3 +1,4 @@',
         raw: 'raw-changed',
         lines: [
-          { kind: 'context', oldLine: 1, newLine: 1, content: 'one', moved: false },
-          { kind: 'removed', oldLine: 2, newLine: 0, content: 'two', moved: false },
-          { kind: 'added', oldLine: 0, newLine: 2, content: 'TWO', moved: false },
-          { kind: 'added', oldLine: 0, newLine: 3, content: 'extra', moved: false },
-          { kind: 'context', oldLine: 3, newLine: 4, content: 'three', moved: false },
+          { kind: 'context', oldLine: 1, newLine: 1, content: 'one', moved: false, inOurs: false, inTheirs: false },
+          { kind: 'removed', oldLine: 2, newLine: 0, content: 'two', moved: false, inOurs: false, inTheirs: false },
+          { kind: 'added', oldLine: 0, newLine: 2, content: 'TWO', moved: false, inOurs: false, inTheirs: false },
+          { kind: 'added', oldLine: 0, newLine: 3, content: 'extra', moved: false, inOurs: false, inTheirs: false },
+          { kind: 'context', oldLine: 3, newLine: 4, content: 'three', moved: false, inOurs: false, inTheirs: false },
         ],
       },
     ],

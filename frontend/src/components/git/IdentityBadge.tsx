@@ -1,4 +1,7 @@
+import type { CSSProperties } from 'react'
 import type { IdentityInfo } from '@current-client-bindings/app'
+import './IdentityBadge.scss'
+
 interface IdentityBadgeProps {
   identity: IdentityInfo
   name: string
@@ -7,25 +10,9 @@ interface IdentityBadgeProps {
 }
 
 function IdentityBadge({ identity, name, email, size = 22 }: IdentityBadgeProps) {
+  const style = { '--badge-size': `${size}px`, background: identity.color } as CSSProperties
   return (
-    <span
-      title={email ? `${name} <${email}>` : name}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: identity.color,
-        color: '#0a0e16',
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
-        fontSize: Math.round(size * 0.42),
-        fontWeight: 600,
-        lineHeight: 1,
-        flexShrink: 0,
-      }}
-    >
+    <span className="identity-badge" title={email ? `${name} <${email}>` : name} style={style}>
       {identity.initials}
     </span>
   )

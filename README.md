@@ -2,7 +2,7 @@
 
 A privacy-first Git client for developers, on Windows, macOS and Linux.
 
-Current Client runs entirely on your machine and talks only to your repositories' own Git remotes: no account, no telemetry, no update checks. It works the same with GitHub, GitLab, Bitbucket, a self-hosted server or a plain SSH remote, including on air-gapped networks.
+Current Client runs entirely on your machine and connects only to the servers your repositories already use: no account, no telemetry, no update checks. It works the same with GitHub, GitLab, Bitbucket, a self-hosted server or a plain SSH remote, including on air-gapped networks.
 
 ## Features
 
@@ -15,6 +15,7 @@ Current Client runs entirely on your machine and talks only to your repositories
 - Repository tabs, to keep several repositories open at once, and worktrees for several branches of one.
 - An activity dashboard: commit calendar and velocity, contributors, file churn, languages, and stale branches or unpushed commits.
 - A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF.
+- Optional host integration with GitLab and GitHub, off until you turn it on per host: merge requests and pull requests on branches and in a tab with their reviews and approvals, CI results, review threads beside the code, a conflict forecast, creating a merge request from the app, and starting a branch from an issue assigned to you. [docs/integrations.md](docs/integrations.md) lists every request it makes.
 
 Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app or do a visual interactive rebase.
 
@@ -35,10 +36,12 @@ Download your platform's file from the [latest release](../../releases/latest). 
 
 ## Privacy
 
-- **Only your Git remotes.** The only network traffic is Git talking to a repository's configured remotes. Background fetch is off until you turn it on in Settings.
-- **Nothing else.** No telemetry, analytics, update checks, crash uploads or host APIs.
+- **Only destinations you chose.** Current Client connects to your repositories' Git remotes and the servers they're hosted on, never to a vendor, CDN or other third party. If all your remotes are on an internal network, nothing leaves it.
+- **Off until you turn it on.** Anything beyond the Git operations you start, such as background fetch, stays off until you enable it in Settings.
+- **Nothing else.** No telemetry, analytics, update checks or crash uploads.
 - **No accounts, no avatars.** People are shown as initials badges made on your machine.
 - **No stored credentials.** Credentials stay with Git's credential helpers and your SSH agent; Current Client never stores or logs them.
+- **Host integration is off until you turn it on, per host.** GitLab and GitHub features contact only the host your remote already points at, and only once you enable that host in Settings. [docs/integrations.md](docs/integrations.md) lists exactly what is contacted and when, and how to build without the code at all.
 
 ## Connecting to remotes
 
