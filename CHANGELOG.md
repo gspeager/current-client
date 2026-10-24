@@ -26,10 +26,12 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 - A machine-wide `policy.json` lets an organization lock a host's integration off or force it on, and fix background fetch, for every user of the machine. A managed setting shows disabled in Settings, labeled **Managed by your organization**. The file's place on each platform is in [docs/integrations.md](docs/integrations.md); with none, nothing changes. ([#145](https://github.com/gspeager/current-client/issues/145))
 - A build without any of the host integration code, `wails3 build EXTRA_TAGS=nohost`, for deployments that must not carry it. **Copy diagnostics** never includes tokens or a host's answers, and can leave out hostnames. ([#150](https://github.com/gspeager/current-client/issues/150))
 - The command palette gained Undo, Reflog, Bisect and Apply patch. ([#139](https://github.com/gspeager/current-client/issues/139))
+- **Toolbox.** The sidebar's Open in and Tools groups fold into a **Toolbox** section, open until you close it and remembered per repository. ([#244](https://github.com/gspeager/current-client/issues/244))
 
 ### Changed
 
 - **Sidebar polish.** HEAD is a card at the top with the commit icon, the SHA and the subject; the pull request card is one row under it unless the branch has an open change: **No pull request · Create…** for a pushed branch, or **Push to create a pull request**, which pushes with an upstream and then opens the create form. The Open in and Tools actions are outlined buttons with their icons under captions; the tab bar separates the core tabs from Activity and Changelog with a rule; the inspector's More menu opens above its button at its width. ([#233](https://github.com/gspeager/current-client/issues/233))
+- The collapsed sidebar lists its icons in the open sidebar's order: sections first, then the Toolbox's actions at the bottom. **No pull request · Create…** lines up with the HEAD card and is left out on the default branch and on a branch with no commits beyond it. ([#244](https://github.com/gspeager/current-client/issues/244))
 - **Sheets and dialogs follow one shape.** Stash and Compare open a full-height sheet with the first file already shown and the same header controls; a file picked in the History inspector shows its diff in place of the graph, with a way back, instead of a window over it; Reflog is a sheet whose rows carry the commit's actions. The diff header's Ignore whitespace and Wrap lines live in a **View** menu so the file path keeps its room. The commit button says what is missing instead of a helper line, and the scope field appears only with a type. Activity shows a single author as a line rather than a chart and lists Tags and Stashes apart; the Changelog's Author names and Dates sit beside the filters; Settings has a left rail of its groups. ([#223](https://github.com/gspeager/current-client/issues/223))
 - **Opening a repository is one dialog with Open, Clone and New tabs.** Open is a filter box, Browse and the recent cards (open repositories badged); Clone and New keep their fields on their own tabs; the footer shows the default location from Settings. The repository name in the header drops a list of recent repositories to switch to, with **Open another…** for the rest, instead of a second copy of the dialog; the branch list beside it groups branches as Checked out, Local and Remote like the sidebar. ([#222](https://github.com/gspeager/current-client/issues/222))
 - **The conflict diff names its sides.** A conflicted file shows **Side by side** (your branch's version and the incoming branch's, each column named after its branch) or **Result** (the file as it is, markers included, with one line-number column and no hunk header), and a footer walks the conflict blocks. While a merge, rebase, cherry-pick or revert is in progress, checking out, new branch, Undo, Bisect and the header's Fetch / Pull / Push are dimmed with the reason. ([#221](https://github.com/gspeager/current-client/issues/221))
@@ -78,6 +80,7 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
+- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Code shows operators as typed. JetBrains Mono drew `<-` as an arrow and `!=` as ≠, and `->`, `>=` and `==` the same way, in diffs and all other monospaced text. ([#242](https://github.com/gspeager/current-client/issues/242))
 - On GitHub, a pull request's **Checks** tab and a CI mark's job list answered "422 Unprocessable Entity": the mark's id was 60 bits of the commit's SHA, more than a number in the app's frontend keeps exactly, so the job request named a commit that doesn't exist. The id is now 52 bits and comes back intact. The failure, when there is one, reads as a sentence. ([#235](https://github.com/gspeager/current-client/issues/235))
 - Pull and push progress and errors show only in the tab of the repository they're for. Switching tabs no longer leaves another repository's "Could not pull" in view, and its **Pull (merge)** and **Pull (rebase)** pull the repository that diverged. A pull or push keeps running in a background tab. ([#122](https://github.com/gspeager/current-client/issues/122))
@@ -101,6 +104,7 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
+- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Pulling a branch that has diverged from its upstream says so and offers Pull (merge) or Pull (rebase), instead of "Git command failed." ([#72](https://github.com/gspeager/current-client/issues/72))
 - When Git fails for a reason the app doesn't recognise, the message and **Copy diagnostics** give Git's own reason instead of only "Git command failed." ([#74](https://github.com/gspeager/current-client/issues/74))
 - Branches, tags, fetches and stashes made outside the app, such as in a terminal, now refresh the sidebar, including in worktrees. ([#81](https://github.com/gspeager/current-client/issues/81))
@@ -142,6 +146,7 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
+- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Force push now always updates the branch's own upstream. Before, a branch tracking a differently named remote branch (local `feature` tracking `origin/feat-x`) was force-pushed to `origin/feature` instead, and a remote with a `/` in its name wasn't found. ([#24](https://github.com/gspeager/current-client/issues/24))
 - **Revert** and **Cherry-pick** work on merge commits, using the changes the merge brought in, so a merged pull request can be backed out. They used to fail with Git's "no -m option was given" error. ([#35](https://github.com/gspeager/current-client/issues/35))
 - A commit with a long description no longer pushes its changed files out of reach in the Commit detail pane; the pane scrolls instead. ([#58](https://github.com/gspeager/current-client/issues/58))
@@ -159,6 +164,7 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
+- Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Cloning now creates a folder named after the repository inside the destination you choose, as `git clone` does. The folder name can be changed, and the full path is shown before cloning. ([#1](https://github.com/gspeager/current-client/issues/1))
 - Activity, Branch Graph & History and Changelog no longer reload and redraw when you return to them; they refresh only when commits or branches have changed. ([#3](https://github.com/gspeager/current-client/issues/3))
 - Spaces and other characters Git doesn't allow in branch names are turned into dashes, and the name is shown before the branch is created. ([#4](https://github.com/gspeager/current-client/issues/4))

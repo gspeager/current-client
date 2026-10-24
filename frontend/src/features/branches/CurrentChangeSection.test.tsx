@@ -96,6 +96,7 @@ describe('CurrentChangeSection', () => {
         branch: 'feature',
         upstream: 'origin/feature',
         enabled: true,
+        proposable: true,
         kind: 'merge request',
         change: null,
       }),
@@ -116,7 +117,7 @@ describe('CurrentChangeSection', () => {
 
   it('is one row, "Push to create a pull request", when the branch has no upstream, and pushes from it', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue(
-      new CurrentChange({ branch: 'topic', enabled: true, kind: 'pull request', change: null }),
+      new CurrentChange({ branch: 'topic', enabled: true, proposable: true, kind: 'pull request', change: null }),
     )
     const onPushToCreate = vi.fn()
     render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} onPushToCreate={onPushToCreate} />)
@@ -125,6 +126,16 @@ describe('CurrentChangeSection', () => {
     expect(row).toHaveClass('current-change-row')
     await userEvent.click(row)
     expect(onPushToCreate).toHaveBeenCalled()
+  })
+
+  it('is absent on a branch with nothing to propose', async () => {
+    vi.mocked(HostService.CurrentChange).mockResolvedValue(
+      new CurrentChange({ branch: 'main', upstream: 'origin/main', enabled: true, proposable: false, change: null }),
+    )
+    const { container } = render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} />)
+
+    await waitFor(() => expect(HostService.Forecast).toHaveBeenCalled())
+    expect(container).toBeEmptyDOMElement()
   })
 
   it('is absent when the host is off', async () => {

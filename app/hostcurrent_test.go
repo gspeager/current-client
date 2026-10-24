@@ -50,3 +50,38 @@ func TestCurrentChangeReadsTheCheckedOutBranchFromTheCache(t *testing.T) {
 		t.Fatalf("CI of the current change = %+v, jobs %v", got.CI, got.FailedJobs)
 	}
 }
+
+func TestCurrentChangeOffersAChangeOnlyForCommitsBeyondTheDefaultBranch(t *testing.T) {
+	useTempSettings(t)
+	swapHostClient(t, hostapitest.Forbid(t))
+	repo := t.TempDir()
+	gitIn(t, repo, "init", "-q", "-b", "main")
+	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	if err := updateConfig(func(cfg *config.Config) {
+		cfg.Hosts = map[string]config.HostConfig{"gitlab.example.com": {Provider: "gitlab", Enabled: true}}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var s HostService
+	proposable := func() bool {
+		t.Helper()
+		got, err := s.CurrentChange(repo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got.Proposable
+	}
+
+	if proposable() {
+		t.Fatal("main offers a change to itself")
+	}
+	gitIn(t, repo, "switch", "-q", "-c", "feature")
+	if proposable() {
+		t.Fatal("a branch with no commits of its own offers a change")
+	}
+	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "second")
+	if !proposable() {
+		t.Fatal("a branch with a commit beyond main offers no change")
+	}
+}

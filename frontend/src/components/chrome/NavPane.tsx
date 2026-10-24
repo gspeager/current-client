@@ -22,6 +22,7 @@ import StashPanel from '../../features/branches/StashPanel'
 import TagsPanel from '../../features/branches/TagsPanel'
 import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
 import SubmodulesPanel from '../../features/submodules/SubmodulesPanel'
+import SidebarSection from './SidebarSection'
 import { useSidebarSections } from '../../lib/useSidebarSections'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import type { WorkspaceAction, WorkspaceFeedback, WorkspaceGroup } from './useWorkspaceActions'
@@ -165,18 +166,20 @@ function NavPane({
     return (
       <nav className="nav-pane nav-pane-collapsed" aria-label="Repository">
         <RailButton label="Expand sidebar" icon={PanelLeftOpen} onClick={() => onCollapsedChange(false)} />
-        {(['open', 'tools', 'maintenance'] as const).map((name) => (
-          <div key={name} className="nav-pane-rail-group">
-            <div className="nav-pane-rail-divider" />
-            {group(name).map(({ id, label, icon, run, disabled, reason }) => (
-              <RailButton key={id} label={label} icon={icon} onClick={run} disabled={disabled} reason={reason} />
-            ))}
-          </div>
-        ))}
         <div className="nav-pane-rail-divider" />
         {SECTION_SHORTCUTS.map(({ id, label, icon }) => (
           <RailButton key={id} label={`Show ${label}`} icon={icon} onClick={() => showSection(id)} />
         ))}
+        <div className="nav-pane-rail-toolbox">
+          {(['open', 'tools', 'maintenance'] as const).map((name) => (
+            <div key={name} className="nav-pane-rail-group">
+              <div className="nav-pane-rail-divider" />
+              {group(name).map(({ id, label, icon, run, disabled, reason }) => (
+                <RailButton key={id} label={label} icon={icon} onClick={run} disabled={disabled} reason={reason} />
+              ))}
+            </div>
+          ))}
+        </div>
       </nav>
     )
   }
@@ -263,25 +266,31 @@ function NavPane({
             </button>
           </p>
         )}
-        <ToolGroup label="Open in" actions={group('open')} />
-        <ToolGroup label="Tools" actions={group('tools')}>
-          <button
-            type="button"
-            className="nav-pane-tool"
-            onClick={() => setMaintenanceOpen((open) => !open)}
-            aria-expanded={maintenanceOpen}
-            title="Check integrity, run cleanup"
-          >
-            <Wrench size={14} strokeWidth={1.75} />
-            Maintenance
-            {maintenanceOpen ? (
-              <ChevronDown size={12} strokeWidth={1.5} />
-            ) : (
-              <ChevronRight size={12} strokeWidth={1.5} />
-            )}
-          </button>
-        </ToolGroup>
-        {maintenanceOpen && <ToolGroup label="Maintenance" actions={group('maintenance')} />}
+        <SidebarSection
+          label="Toolbox"
+          open={sections.isOpen('toolbox', true)}
+          onToggle={() => sections.toggle('toolbox', true)}
+        >
+          <ToolGroup label="Open in" actions={group('open')} />
+          <ToolGroup label="Tools" actions={group('tools')}>
+            <button
+              type="button"
+              className="nav-pane-tool"
+              onClick={() => setMaintenanceOpen((open) => !open)}
+              aria-expanded={maintenanceOpen}
+              title="Check integrity, run cleanup"
+            >
+              <Wrench size={14} strokeWidth={1.75} />
+              Maintenance
+              {maintenanceOpen ? (
+                <ChevronDown size={12} strokeWidth={1.5} />
+              ) : (
+                <ChevronRight size={12} strokeWidth={1.5} />
+              )}
+            </button>
+          </ToolGroup>
+          {maintenanceOpen && <ToolGroup label="Maintenance" actions={group('maintenance')} />}
+        </SidebarSection>
       </div>
     </nav>
   )
