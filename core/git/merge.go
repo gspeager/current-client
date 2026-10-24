@@ -34,7 +34,7 @@ func MergeBranchMode(ctx context.Context, repoPath, branch string, mode MergeMod
 	case MergeSquash:
 		args = append(args, "--squash")
 	}
-	result, err := runResult(ctx, repoPath, append(args, branch)...)
+	result, err := runStoppable(ctx, gitexec.Command{Dir: repoPath, Args: append(args, branch)})
 	if err == nil && strings.Contains(result.Stdout, "Already up to date") {
 		return &gitexec.AppError{Message: "Already up to date. Nothing to merge.", Detail: branch}
 	}
