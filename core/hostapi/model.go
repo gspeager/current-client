@@ -226,6 +226,9 @@ type Provider interface {
 	// JobLog returns up to maxBytes from the end of a job's log.
 	JobLog(ctx context.Context, project string, jobID int64, maxBytes int) (log string, truncated bool, err error)
 	Issue(ctx context.Context, project string, number int) (Issue, error)
+	// AssignedIssues is one page of the open issues assigned to username,
+	// most recently updated first.
+	AssignedIssues(ctx context.Context, project, username string) ([]Issue, error)
 	CreateChange(ctx context.Context, project string, change NewChange) (Change, error)
 	// BranchRules are the host's protection rules; branches names the ones
 	// to ask about on a host whose endpoint takes a branch. A host that

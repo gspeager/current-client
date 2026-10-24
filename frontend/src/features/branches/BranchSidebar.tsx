@@ -37,6 +37,7 @@ import CIMark from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
 import { branchPage, remoteBranchName } from '../../lib/hostPages'
+import IssuePicker from './IssuePicker'
 import './BranchSidebar.scss'
 
 interface BranchSidebarProps {
@@ -511,6 +512,7 @@ function BranchSidebar({
                   Create
                 </button>
               </div>
+              {newBranchKind === 'branch' && <IssuePicker repoPath={repoPath} onPick={setNewBranchName} />}
               {newBranch !== '' && newBranch !== newBranchName.trim() && (
                 <p className="branch-sidebar-new-result" role="status">
                   Will be created as{' '}

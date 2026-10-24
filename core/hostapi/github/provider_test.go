@@ -270,6 +270,20 @@ func TestIssueFromRecordedFixture(t *testing.T) {
 	}
 }
 
+func TestAssignedIssuesLeaveOutPullRequests(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{"GET " + v3 + "/issues?assignee=BagToad&per_page=50&sort=updated&state=open": "assigned_issues.json"})
+	issues, err := p.AssignedIssues(context.Background(), project, "BagToad")
+	if err != nil || len(issues) != 4 || issues[0].Number != 13968 || issues[0].State != "open" || issues[0].WebURL != "https://github.com/cli/cli/issues/13968" {
+		t.Fatalf("AssignedIssues = %+v, %v", issues, err)
+	}
+
+	p, _ = newProvider(t, map[string]string{"GET " + v3 + "/issues?assignee=ada&per_page=50&sort=updated&state=open": `[{"number": 1, "title": "A pull", "pull_request": {"url": "x"}}, {"number": 2, "title": "An issue"}]`})
+	issues, err = p.AssignedIssues(context.Background(), project, "ada")
+	if err != nil || len(issues) != 1 || issues[0].Number != 2 {
+		t.Fatalf("AssignedIssues = %+v, %v", issues, err)
+	}
+}
+
 func TestCreateChangeSendsHeadBaseAndDraft(t *testing.T) {
 	p, f := newProvider(t, map[string]string{"POST " + v3 + "/pulls": "pull.json"})
 	change, err := p.CreateChange(context.Background(), project, hostapi.NewChange{

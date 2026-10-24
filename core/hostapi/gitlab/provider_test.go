@@ -243,6 +243,14 @@ func TestIssueFromRecordedFixture(t *testing.T) {
 	}
 }
 
+func TestAssignedIssuesFromRecordedFixture(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{"GET " + api + "/issues?assignee_username=jhebden&order_by=updated_at&per_page=50&state=opened": "assigned_issues.json"})
+	issues, err := p.AssignedIssues(context.Background(), project, "jhebden")
+	if err != nil || len(issues) != 3 || issues[0].Number != 8493 || issues[0].State != "open" || !strings.HasSuffix(issues[0].WebURL, "/8493") {
+		t.Fatalf("AssignedIssues = %+v, %v", issues, err)
+	}
+}
+
 func TestCreateChangeSendsADraftTitle(t *testing.T) {
 	p, f := newProvider(t, map[string]string{"POST " + api + "/merge_requests": "created_merge_request.json"})
 	change, err := p.CreateChange(context.Background(), project, hostapi.NewChange{

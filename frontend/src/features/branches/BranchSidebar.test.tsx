@@ -4,6 +4,7 @@ import {
   BranchChange,
   BranchService,
   ConflictStateInfo,
+  CurrentChange,
   HostService,
   MergedBranches,
   OverlapService,
@@ -272,6 +273,43 @@ describe('BranchSidebar', () => {
 
     expect(BranchService.CreateBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
     expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'fix-login-bug')
+  })
+
+  it('names a new branch after an assigned issue, asking the host only when the list opens', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true)])
+    vi.mocked(BranchService.CreateBranch).mockResolvedValue()
+    vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
+    vi.mocked(HostService.CurrentChange).mockResolvedValue(
+      new CurrentChange({ branch: 'main', upstream: '', enabled: true, change: null }),
+    )
+    vi.mocked(HostService.AssignedIssues).mockResolvedValue([
+      { number: 12, title: 'Login fails on Windows', state: 'open', webUrl: '' },
+    ])
+    renderSidebar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New branch' }))
+    const fromIssue = await screen.findByRole('button', { name: 'From an issue' })
+    expect(HostService.AssignedIssues).not.toHaveBeenCalled()
+    await userEvent.click(fromIssue)
+    const list = await screen.findByRole('list', { name: 'Assigned issues' })
+    await userEvent.click(within(list).getByRole('button', { name: /Login fails on Windows/ }))
+
+    expect(screen.getByRole('textbox', { name: 'new branch name' })).toHaveValue('12-login-fails-on-windows')
+    expect(screen.queryByRole('list', { name: 'Assigned issues' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+    expect(BranchService.CreateBranch).toHaveBeenCalledWith(REPO, '12-login-fails-on-windows')
+  })
+
+  it('offers no issue picker while the host is off', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true)])
+    vi.mocked(HostService.CurrentChange).mockResolvedValue(
+      new CurrentChange({ branch: 'main', upstream: '', enabled: false, change: null }),
+    )
+    renderSidebar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New branch' }))
+    await waitFor(() => expect(HostService.CurrentChange).toHaveBeenCalled())
+    expect(screen.queryByRole('button', { name: 'From an issue' })).not.toBeInTheDocument()
   })
 
   it('marks a branch checked out in another worktree', async () => {

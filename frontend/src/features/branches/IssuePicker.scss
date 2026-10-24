@@ -1,0 +1,70 @@
+@use '../../styles/patterns';
+
+.issue-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.issue-picker-toggle {
+  @include patterns.secondary-button;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-xs);
+  height: var(--h-row-tree);
+
+  &[aria-expanded='true'] .issue-picker-chevron {
+    transform: rotate(180deg);
+  }
+}
+
+.issue-picker-list {
+  max-height: 208px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+}
+
+.issue-picker-issue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--surface-container);
+  }
+}
+
+.issue-picker-number {
+  flex-shrink: 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.issue-picker-title {
+  @include patterns.truncate;
+  font: var(--ui-sm);
+}
+
+.issue-picker-note {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+
+  &.issue-picker-error {
+    color: var(--error);
+  }
+}
