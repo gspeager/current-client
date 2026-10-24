@@ -17,9 +17,11 @@ describe('shared styles', () => {
     expect(selectors.filter((s) => PAGE_SELECTOR.test(s))).toEqual([])
   })
 
-  it('turn off the mono font\'s operator ligatures in a way no font shorthand undoes', () => {
+  it("turn off the mono font's operator ligatures in a way no font shorthand undoes", () => {
     const { css } = compile(resolve('src/styles/styles.scss'))
 
-    expect(css).toMatch(/\.current-client,\s*\.current-client \*\s*\{\s*font-variant-ligatures: no-contextual !important;/)
+    expect(css).toMatch(
+      /\.current-client,\s*\.current-client \*\s*\{\s*font-variant-ligatures: no-contextual !important;/,
+    )
   })
 })
