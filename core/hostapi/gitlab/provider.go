@@ -56,6 +56,18 @@ type mergeRequest struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 	WebURL          string    `json:"web_url"`
 	HeadPipeline    *pipeline `json:"head_pipeline"`
+	Reviewers       []user    `json:"reviewers"`
+}
+
+type reviewer struct {
+	User  user   `json:"user"`
+	State string `json:"state"`
+}
+
+type approvals struct {
+	ApprovedBy []struct {
+		User user `json:"user"`
+	} `json:"approved_by"`
 }
 
 // user reads only what the model keeps; avatar_url is never decoded.
@@ -230,6 +242,41 @@ func (p *Provider) Threads(ctx context.Context, project string, number int, head
 	return threads, hostapi.WithScope(err, readScope)
 }
 
+// Reviews reads the reviewers' states, then the approvals, since anyone may
+// approve and an approval doesn't always reach the approver's reviewer state.
+func (p *Provider) Reviews(ctx context.Context, project string, change hostapi.Change) ([]hostapi.Review, error) {
+	number := strconv.Itoa(change.Number)
+	var reviewers []reviewer
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "merge_requests", number, "reviewers"), nil, &reviewers); err != nil {
+		return nil, hostapi.WithScope(err, readScope)
+	}
+	var approved approvals
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "merge_requests", number, "approvals"), nil, &approved); err != nil {
+		return nil, hostapi.WithScope(err, readScope)
+	}
+	reviews := make([]hostapi.Review, 0, len(reviewers))
+	for _, r := range reviewers {
+		reviews = append(reviews, hostapi.Review{Reviewer: toUser(r.User), State: reviewState(r.State)})
+	}
+	for _, a := range approved.ApprovedBy {
+		reviews = hostapi.SetReview(reviews, hostapi.Review{Reviewer: toUser(a.User), State: hostapi.ReviewApproved})
+	}
+	return reviews, nil
+}
+
+// reviewState reads a withdrawn approval as having reviewed.
+func reviewState(state string) hostapi.ReviewState {
+	switch state {
+	case "approved":
+		return hostapi.ReviewApproved
+	case "requested_changes":
+		return hostapi.ReviewChangesRequested
+	case "reviewed", "unapproved":
+		return hostapi.ReviewCommented
+	}
+	return hostapi.ReviewRequested
+}
+
 func (p *Provider) LatestPipeline(ctx context.Context, project, sha string) (hostapi.Pipeline, bool, error) {
 	var pipelines []pipeline
 	err := p.client.GetJSON(ctx, p.host, projectPath(project, "pipelines"), url.Values{"sha": {sha}, "per_page": {"1"}}, &pipelines)
@@ -366,6 +413,9 @@ func (p *Provider) change(ctx context.Context, mr mergeRequest) (hostapi.Change,
 		HasConflicts: mr.HasConflicts,
 		UpdatedAt:    mr.UpdatedAt,
 		WebURL:       mr.WebURL,
+	}
+	for _, r := range mr.Reviewers {
+		change.Reviews = append(change.Reviews, hostapi.Review{Reviewer: toUser(r), State: hostapi.ReviewRequested})
 	}
 	if mr.HeadPipeline != nil {
 		change.CI = ciStatus(mr.HeadPipeline.Status)

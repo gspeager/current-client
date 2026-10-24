@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ChangeList, CurrentChange, ForecastReport, HostService, PlatformService } from '@current-client-bindings/app'
-import { Change, ChangeState, CIStatus } from '@current-client-bindings/core/hostapi'
+import { Change, ChangeState, CIStatus, ReviewState } from '@current-client-bindings/core/hostapi'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import HostChangesView from './HostChangesView'
 
@@ -84,6 +84,46 @@ describe('HostChangesView', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Mine 1' }))
     expect(within(rows).queryByText('Fix a typo')).not.toBeInTheDocument()
     expect(HostService.ClosedChanges).not.toHaveBeenCalled()
+  })
+
+  it('shows where reviews stand and filters to the changes waiting on mine', async () => {
+    const reviewer = (username: string, state: ReviewState) => ({ reviewer: { name: username, username }, state })
+    vi.mocked(HostService.Changes).mockResolvedValue(
+      list({
+        changes: [
+          change({
+            reviews: [reviewer('bob', ReviewState.ReviewApproved), reviewer('cy', ReviewState.ReviewApproved)],
+          }),
+          change({
+            number: 140,
+            title: 'Fix a typo',
+            author: { name: 'Bob', username: 'bob' },
+            reviews: [reviewer('ada', ReviewState.ReviewRequested), reviewer('cy', ReviewState.ReviewChangesRequested)],
+          }),
+          change({
+            number: 141,
+            title: 'Tidy',
+            author: { name: 'Bob', username: 'bob' },
+            reviews: [reviewer('ada', ReviewState.ReviewRequested)],
+          }),
+        ],
+      }),
+    )
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '' })
+    renderView()
+
+    const rows = await screen.findByRole('list', { name: 'Merge requests list' })
+    expect(within(rows).getByText('2 approved')).toBeInTheDocument()
+    expect(within(rows).getByText('Changes requested')).toBeInTheDocument()
+    expect(within(rows).getByText('Review requested')).toBeInTheDocument()
+    expect(screen.getByRole('article', { name: '!138' })).toHaveTextContent('ReviewsApproved: bob, cy')
+
+    await userEvent.click(screen.getByRole('button', { name: 'To review 2' }))
+    expect(within(rows).queryByText('Add the thing')).not.toBeInTheDocument()
+    expect(within(rows).getByText('Fix a typo')).toBeInTheDocument()
+    const detail = screen.getByRole('article', { name: '!140' })
+    expect(within(detail).getByText('Changes requested: cy')).toBeInTheDocument()
+    expect(within(detail).getByText('Requested: ada')).toBeInTheDocument()
   })
 
   it('asks for closed changes only when that filter is chosen', async () => {

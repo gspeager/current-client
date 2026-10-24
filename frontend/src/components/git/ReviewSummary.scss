@@ -1,0 +1,16 @@
+.review-summary {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+
+  &.review-summary-approved {
+    color: var(--tertiary);
+  }
+
+  &.review-summary-changes {
+    color: var(--error);
+  }
+}

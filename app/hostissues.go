@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
@@ -65,26 +64,18 @@ func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	var wg sync.WaitGroup
-	slots := make(chan struct{}, ciParallel)
-	for _, number := range missing {
-		wg.Add(1)
-		slots <- struct{}{}
-		go func(number int) {
-			defer wg.Done()
-			defer func() { <-slots }()
-			issue, err := provider.Issue(ctx, info.Project, number)
-			var hostErr *hostapi.HostError
-			switch {
-			case err == nil:
-				hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number),
-					IssueInfo{Number: number, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
-			case errors.As(err, &hostErr) && hostErr.Status == 404:
-				hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number), IssueInfo{Number: number, Known: true})
-			}
-		}(number)
-	}
-	wg.Wait()
+	inParallel(len(missing), func(i int) {
+		number := missing[i]
+		issue, err := provider.Issue(ctx, info.Project, number)
+		var hostErr *hostapi.HostError
+		switch {
+		case err == nil:
+			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number),
+				IssueInfo{Number: number, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
+		case errors.As(err, &hostErr) && hostErr.Status == 404:
+			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number), IssueInfo{Number: number, Known: true})
+		}
+	})
 	return cachedIssues(info, repoPath, numbers), nil
 }
 

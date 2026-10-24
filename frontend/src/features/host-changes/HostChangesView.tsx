@@ -7,6 +7,7 @@ import CIMark, { ciLabel, PipelineJobList } from '../../components/git/CIMark'
 import DiffStat from '../../components/git/DiffStat'
 import HostMarkdown from '../../components/git/HostMarkdown'
 import PathText from '../../components/git/PathText'
+import ReviewSummary, { reviewGroups, reviewRequestedOf } from '../../components/git/ReviewSummary'
 import StatusBadge from '../../components/git/StatusBadge'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import Tab from '../../components/controls/Tab'
@@ -20,7 +21,7 @@ import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { useClockTick } from '../../lib/useClockTick'
 import './HostChangesView.scss'
 
-type Filter = 'open' | 'mine' | 'closed'
+type Filter = 'open' | 'mine' | 'review' | 'closed'
 type DetailTab = 'overview' | 'checks' | 'threads' | 'files' | 'commits'
 
 interface HostChangesViewProps {
@@ -101,13 +102,19 @@ function HostChangesView({
   const kind = list.prefix === '!' ? 'merge request' : 'pull request'
   const open = list.changes ?? []
   const mine = open.filter((c) => c.author.username === list.me)
-  const shown = filter === 'closed' ? (closedList?.changes ?? []) : filter === 'mine' ? mine : open
+  const toReview = open.filter((c) => reviewRequestedOf(c.reviews, list.me))
+  const shown = { open, mine, review: toReview, closed: closedList?.changes ?? [] }[filter]
   const active = shown.find((c) => c.number === selected) ?? shown[0] ?? null
   const currentHasChange = !!current?.change
   const newLabel = `New ${kind}`
   const filters = [
     { value: 'open' as const, label: `Open ${open.length}` },
-    ...(list.me ? [{ value: 'mine' as const, label: `Mine ${mine.length}` }] : []),
+    ...(list.me
+      ? [
+          { value: 'mine' as const, label: `Mine ${mine.length}` },
+          { value: 'review' as const, label: `To review ${toReview.length}` },
+        ]
+      : []),
     { value: 'closed' as const, label: 'Closed' },
   ]
 
@@ -160,7 +167,9 @@ function HostChangesView({
                     ? 'None closed.'
                     : 'Loading…'
                   : list.fetchedAt
-                    ? 'None open.'
+                    ? filter === 'review'
+                      ? 'None waiting on a review from you.'
+                      : 'None open.'
                     : 'Refresh to load.'}
               </li>
             )}
@@ -221,7 +230,10 @@ function ChangeRow({ change, prefix, selected, onSelect }: ChangeRowProps) {
             new BranchChange({ number: change.number, prefix, state: change.state, draft: change.draft, ci: change.ci })
           }
         />
-        <span className="host-change-row-time">{relativeTime(new Date(change.updatedAt))}</span>
+        <span className="host-change-row-meta">
+          <ReviewSummary reviews={change.reviews} open={change.state === 'open'} />
+          <span className="host-change-row-time">{relativeTime(new Date(change.updatedAt))}</span>
+        </span>
       </span>
       <span className="host-change-row-title">{change.title}</span>
       <span className="host-change-row-branches">
@@ -270,6 +282,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
     return { checks: setter('checks'), threads: setter('threads'), files: setter('files'), commits: setter('commits') }
   }, [])
   const state = change.draft ? 'draft' : change.state
+  const reviews = reviewGroups(change.reviews, change.state === 'open')
   const threadCount = counts.threads ?? (change.unresolvedThreads > 0 ? change.unresolvedThreads : undefined)
 
   const checkOut = () =>
@@ -308,6 +321,16 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
         <dd className="host-change-facts-branches">
           {change.sourceProject ? `${change.sourceProject}:` : ''}
           {change.sourceBranch} → {change.targetBranch}
+        </dd>
+        <dt>Reviews</dt>
+        <dd className="host-change-facts-reviews">
+          {reviews.length > 0
+            ? reviews.map((group) => (
+                <span key={group.label}>
+                  {group.label}: {group.names.join(', ')}
+                </span>
+              ))
+            : 'None requested'}
         </dd>
         <dt>Checks</dt>
         <dd className="host-change-facts-checks">

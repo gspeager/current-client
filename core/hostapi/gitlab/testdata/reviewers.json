@@ -1,0 +1,30 @@
+[
+  {
+    "user": {
+      "id": 12294975,
+      "username": "jhebden",
+      "public_email": "",
+      "name": "James Hebden",
+      "state": "active",
+      "locked": false,
+      "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/12294975/avatar.png?v=1792800244",
+      "web_url": "https://gitlab.com/jhebden"
+    },
+    "state": "approved",
+    "created_at": "2026-10-22T10:19:02.579Z"
+  },
+  {
+    "user": {
+      "id": 21826781,
+      "username": "GitLabDuo",
+      "public_email": null,
+      "name": "GitLab Duo",
+      "state": "active",
+      "locked": false,
+      "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/21826781/duo-bot.png?v=1792265836",
+      "web_url": "https://gitlab.com/GitLabDuo"
+    },
+    "state": "approved",
+    "created_at": "2026-10-22T10:17:50.770Z"
+  }
+]

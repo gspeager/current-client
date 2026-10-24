@@ -43,7 +43,7 @@ With integration off, the only host-related traffic is Git's own: a fetch the us
 
 ## What is cached
 
-One cache per repository, keyed by host and repository, holding MRs/PRs, CI results, review threads and issue titles with the time each was fetched. It lives in memory only; nothing from a host is written to disk.
+One cache per repository, keyed by host and repository, holding MRs/PRs with their reviews, CI results, review threads and issue titles with the time each was fetched. It lives in memory only; nothing from a host is written to disk.
 
 - Data stays visible after it goes stale, labeled with its age, until a refresh replaces it. Offline, the last answer shows.
 - The cache is cleared when integration is turned off for the host or the repository is closed.
@@ -70,9 +70,9 @@ With the host on, a push, force-push, push that sets an upstream, or deletion on
 
 ## The merge request / pull request tab
 
-While a host is on for the repository, a tab named **Merge requests** (GitLab) or **Pull requests** (GitHub) lists the open changes from the last refresh as cards: number, draft, CI result, title, source and target branch and when it was updated. The header names the host and the time of the last refresh, filters the list to **Open**, **Mine** or **Closed**, and holds **Refresh** and **New merge request** (the in-app form, from the checked-out branch). Opening the tab for the first time in a session refreshes it; after that it reads the cache until **Refresh**, a fetch or a pull. **Closed** asks the host for one page of merged and closed changes the first time it is chosen, then reads the cache. The list stops at the page cap and says so, and a line at its foot says when the host is contacted and links to the integration settings.
+While a host is on for the repository, a tab named **Merge requests** (GitLab) or **Pull requests** (GitHub) lists the open changes from the last refresh as cards: number, draft, CI result, where its reviews stand (changes requested, approvals, or review requested), title, source and target branch and when it was updated. The header names the host and the time of the last refresh, filters the list to **Open**, **Mine**, **To review** (open changes that ask for your review) or **Closed**, and holds **Refresh** and **New merge request** (the in-app form, from the checked-out branch). Opening the tab for the first time in a session refreshes it; after that it reads the cache until **Refresh**, a fetch or a pull. **Closed** asks the host for one page of merged and closed changes the first time it is chosen, then reads the cache. The list stops at the page cap and says so, and a line at its foot says when the host is contacted and links to the integration settings.
 
-Selecting a change shows its author, branches, checks, conflict state and labels, **Check out locally** and **Open on <host>**, then five tabs: **Overview** (the description, rendered through the one sanitizing renderer: images are links, nothing is fetched), **Checks** (the head pipeline's jobs), **Threads** (its review threads), **Files** and **Commits**. Each of the last four asks the host once per change, the first time it is opened, until the next refresh. Checking out fetches the change's head from the remote into `refs/current-client/<remote>/mr/<number>` (ordinary Git traffic, with Git's own credentials) and creates a local branch at it named after the source branch, or `<owner>/<branch>` for a change from a fork; a branch that already exists is checked out as it is. The diff, history and blame views then work on it as on any branch.
+Selecting a change shows its author, branches, each reviewer by state, checks, conflict state and labels, **Check out locally** and **Open on <host>**, then five tabs: **Overview** (the description, rendered through the one sanitizing renderer: images are links, nothing is fetched), **Checks** (the head pipeline's jobs), **Threads** (its review threads), **Files** and **Commits**. Each of the last four asks the host once per change, the first time it is opened, until the next refresh. Checking out fetches the change's head from the remote into `refs/current-client/<remote>/mr/<number>` (ordinary Git traffic, with Git's own credentials) and creates a local branch at it named after the source branch, or `<owner>/<branch>` for a change from a fork; a branch that already exists is checked out as it is. The diff, history and blame views then work on it as on any branch.
 
 ## The checked-out branch's merge request
 
@@ -130,6 +130,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/merge_requests/:iid` | Refresh of one merge request (the pushed branch's, the checked-out branch's); once per local branch whose merge request left the open list, to learn whether it was merged | `read_api` |
 | `GET /projects/:id` | Once per fork a merge request comes from, to name it | `read_api` |
 | `GET /projects/:path/merge_requests?state=merged` and `?state=closed` | The tab's **Closed** filter, once until the next refresh; one page of 25 each | `read_api` |
+| `GET /projects/:path/merge_requests/:iid/reviewers` and `…/approvals` | Refresh, for each open merge request, at most 50; the approvals too, since anyone may approve | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/discussions` | Refresh, for the checked-out branch's merge request; a change's **Threads** tab, once per change until the next refresh | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/diffs` and `…/commits` | A change's **Files** or **Commits** tab, once per change until the next refresh | `read_api` |
 | `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads; as commits scroll into view, once per commit until the next refresh; a change's **Checks** tab when the cache has none for its head | `read_api` |
@@ -149,6 +150,7 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `GET /repos/:owner/:repo/pulls?state=open` | Refresh: the open pull requests, paged up to the cap | pull requests: read |
 | `GET /repos/:owner/:repo/pulls/:number` | Refresh of one pull request; once per local branch whose pull request left the open list | pull requests: read |
 | `GET /repos/:owner/:repo/pulls?state=closed` | The tab's **Closed** filter, once until the next refresh; one page of 50 | pull requests: read |
+| `GET /repos/:owner/:repo/pulls/:number/reviews` | Refresh, for each open pull request, at most 50; requested reviewers come with the open list | pull requests: read |
 | `GET /repos/:owner/:repo/pulls/:number/comments` | Refresh, for the checked-out branch's pull request; a change's **Threads** tab, once per change until the next refresh (review comments; the REST API doesn't say whether a thread is resolved, so none shows as resolved) | pull requests: read |
 | `GET /repos/:owner/:repo/pulls/:number/files` and `…/commits` | A change's **Files** or **Commits** tab, once per change until the next refresh | pull requests: read |
 | `GET /repos/:owner/:repo/commits/:sha/check-runs` and `…/status` | Refresh, for open pull requests' heads; as commits scroll into view, once per commit until the next refresh; clicking a CI mark or a change's **Checks** tab for the job list. Check runs and commit statuses are read as one result | checks, commit statuses: read |
@@ -171,6 +173,7 @@ Avatar URLs in these answers are never decoded.
 | MR/PR list, details, local checkout | no | yes | yes |
 | The checked-out branch's MR/PR in the sidebar, and what a refresh changed | no | yes | yes |
 | CI status, job list, failed job log | no | yes | yes |
+| Reviewers, approvals and the **To review** filter | no | yes | yes |
 | Review threads beside the code | no | yes | yes |
 | Conflict forecast against open MRs/PRs | no | yes | yes |
 | Hover cards with title and state | local facts only | yes | yes |

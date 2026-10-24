@@ -93,24 +93,32 @@ func cachedCI(info HostInfo, repoPath string, shas []string) map[string]CIMark {
 // and caches every answer including "none". A failed request is left
 // uncached, so the next batch tries it again.
 func fetchPipelines(ctx context.Context, provider hostapi.Provider, info HostInfo, repoPath string, shas []string) {
+	inParallel(len(shas), func(i int) {
+		pipeline, ok, err := provider.LatestPipeline(ctx, info.Project, shas[i])
+		if err != nil {
+			return
+		}
+		mark := CIMark{}
+		if ok {
+			mark = CIMark{Status: string(pipeline.Status), PipelineID: pipeline.ID, WebURL: pipeline.WebURL}
+		}
+		hostClient.Cache.Put(info.Hostname, repoPath, cachePipeline, shas[i], mark)
+	})
+}
+
+// inParallel runs request for 0..count-1, ciParallel at a time, and waits
+// for all of them.
+func inParallel(count int, request func(i int)) {
 	var wg sync.WaitGroup
 	slots := make(chan struct{}, ciParallel)
-	for _, sha := range shas {
+	for i := range count {
 		wg.Add(1)
 		slots <- struct{}{}
-		go func(sha string) {
+		go func() {
 			defer wg.Done()
 			defer func() { <-slots }()
-			pipeline, ok, err := provider.LatestPipeline(ctx, info.Project, sha)
-			if err != nil {
-				return
-			}
-			mark := CIMark{}
-			if ok {
-				mark = CIMark{Status: string(pipeline.Status), PipelineID: pipeline.ID, WebURL: pipeline.WebURL}
-			}
-			hostClient.Cache.Put(info.Hostname, repoPath, cachePipeline, sha, mark)
-		}(sha)
+			request(i)
+		}()
 	}
 	wg.Wait()
 }
@@ -133,4 +141,15 @@ func fillChangeCI(ctx context.Context, provider hostapi.Provider, info HostInfo,
 			changes[i].CI = hostapi.CIStatus(cached.(CIMark).Status)
 		}
 	}
+}
+
+// fillChangeReviews asks for each open change's reviews, up to the batch
+// cap. A change whose request fails keeps the requested reviewers its list
+// entry carried.
+func fillChangeReviews(ctx context.Context, provider hostapi.Provider, info HostInfo, changes []hostapi.Change) {
+	inParallel(min(len(changes), ciBatchCap), func(i int) {
+		if reviews, err := provider.Reviews(ctx, info.Project, changes[i]); err == nil {
+			changes[i].Reviews = reviews
+		}
+	})
 }
