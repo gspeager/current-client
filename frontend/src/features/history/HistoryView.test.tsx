@@ -169,13 +169,13 @@ describe('HistoryView', () => {
     const inspector = document.querySelector('.history-inspector')!
     expect(inspector).not.toHaveAttribute('style')
     expect(screen.queryByRole('separator', { name: 'Resize commit inspector' })).not.toBeInTheDocument()
-    expect([...inspector.querySelectorAll('.commit-detail-actions button')].map((b) => b.textContent)).toEqual([
+    expect([...inspector.querySelectorAll('.commit-detail-actions > button')].map((b) => b.textContent)).toEqual([
       'Check out',
       'Branch here',
       'Cherry-pick',
       'Revert',
-      'More',
     ])
+    expect(inspector.querySelector('.commit-detail-more-toggle')).toHaveTextContent('More')
     expect(await screen.findByText('2 commits · stashes hidden')).toBeInTheDocument()
   })
 
@@ -188,7 +188,8 @@ describe('HistoryView', () => {
 
     ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
-    await user.click(await screen.findByRole('button', { name: 'Open on host' }))
+    const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
+    await user.click(within(menu).getByRole('button', { name: 'Open on host' }))
 
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith(
       expect.stringMatching(/^https:\/\/github.com\/o\/r\/commit\/[0-9a-f]+$/),

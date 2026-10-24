@@ -181,8 +181,8 @@ export function useWorkspaceActions({
     },
     {
       id: 'import-patch',
-      label: 'Import patch…',
-      short: 'Import patch',
+      label: 'Apply patch…',
+      short: 'Apply patch',
       group: 'tools',
       icon: Import,
       run: () => run(importPatch(), 'Could not import patch'),

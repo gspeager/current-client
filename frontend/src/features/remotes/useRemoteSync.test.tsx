@@ -164,6 +164,25 @@ describe('useRemoteSync', () => {
     expect(RemoteService.Pull).not.toHaveBeenCalled()
   })
 
+  it('pushes with an upstream on request and hands the result on instead of reporting it', async () => {
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'topic' } as never)
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin' }] as never)
+    vi.mocked(RemoteService.PushSetUpstream).mockResolvedValue(new PushResult({ branch: 'topic' }))
+    const onSynced = vi.fn()
+    const onPushed = vi.fn()
+    const then = vi.fn()
+    const { result } = renderHook(() => useRemoteSync(REPO, onSynced, onPushed), { wrapper })
+
+    act(() => void result.current.pushSetUpstream(then))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Set upstream' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Push' }))
+
+    await vi.waitFor(() => expect(then).toHaveBeenCalledWith(expect.objectContaining({ branch: 'topic' })))
+    expect(RemoteService.PushSetUpstream).toHaveBeenCalledWith(REPO, 'origin', 'topic', null)
+    expect(onSynced).toHaveBeenCalled()
+    expect(onPushed).not.toHaveBeenCalled()
+  })
+
   it('sets the upstream after confirming when the branch has none', async () => {
     vi.mocked(RemoteService.Push).mockRejectedValue(new Error('This branch has no upstream configured.'))
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'feature' } as BranchStatusInfo)

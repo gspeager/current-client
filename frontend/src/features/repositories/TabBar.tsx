@@ -53,6 +53,7 @@ function TabBar({
           {changesLabel}
         </Tab>
       )}
+      <span className="tab-bar-divider" aria-hidden="true" />
       <Tab active={active === 'activity'} onClick={() => onChange('activity')}>
         Activity
       </Tab>

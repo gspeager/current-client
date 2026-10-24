@@ -128,7 +128,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
   it('lists every sidebar action by its sidebar name', () => {
     renderPalette()
 
-    const sidebar = [...document.querySelectorAll('.nav-pane-action:not([aria-expanded])')].map((b) =>
+    const sidebar = [...document.querySelectorAll('.nav-pane-tool:not([aria-expanded])')].map((b) =>
       b.getAttribute('title'),
     )
     const options = within(palette())
@@ -141,7 +141,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       'Undo last operation',
       'Reflog',
       'Bisect',
-      'Import patch…',
+      'Apply patch…',
     ])
     for (const name of sidebar) expect(options).toContain(name)
     expect(options).toContain('Check integrity')
@@ -246,7 +246,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
     renderPalette()
 
-    await userEvent.click(paletteAction('Import patch…'))
+    await userEvent.click(paletteAction('Apply patch…'))
 
     expect((await screen.findByText('Patch applied to the working tree.')).parentElement).toHaveClass(
       'nav-pane-feedback-notice',

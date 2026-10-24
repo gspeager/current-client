@@ -222,6 +222,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
+  const [hostRefresh, setHostRefresh] = useState(0)
 
   const onChangeCreated = (number: number) => {
     setCreateChangeFor(null)
@@ -423,6 +424,12 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               workspaceActions={workspace.actions}
               workspaceFeedback={workspace.feedback}
               onDismissFeedback={workspace.dismissFeedback}
+              hostVersion={hostRefresh}
+              onPushToCreate={
+                requestCreateChange
+                  ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))
+                  : undefined
+              }
               conflictState={conflictState}
               onBranchChanged={onBranchChanged}
               onFetched={onFetched}
@@ -480,7 +487,10 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                     repoPath={repo.repoPath}
                     label={changesLabel}
                     selectedNumber={changeFocus}
-                    onRefreshed={collectHostNotices}
+                    onRefreshed={() => {
+                      collectHostNotices()
+                      setHostRefresh((n) => n + 1)
+                    }}
                     onBranchChanged={onBranchChanged}
                     onCreateChange={requestCreateChange}
                     onOpenSettings={() => setSettingsOpen(true)}

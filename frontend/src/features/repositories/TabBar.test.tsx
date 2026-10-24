@@ -11,3 +11,17 @@ describe('TabBar', () => {
     expect(tab.querySelector('.tab-count-conflict')).toHaveTextContent('1')
   })
 })
+
+describe('TabBar divider', () => {
+  it('separates the core tabs from the reports, with or without the host tab', () => {
+    const { container, rerender } = render(<TabBar active="working-copy" onChange={vi.fn()} showChangelog />)
+
+    const divider = container.querySelector('.tab-bar-divider')!
+    expect(divider).toHaveAttribute('aria-hidden', 'true')
+    expect(divider.previousElementSibling).toHaveTextContent('History')
+    expect(divider.nextElementSibling).toHaveTextContent('Activity')
+
+    rerender(<TabBar active="working-copy" onChange={vi.fn()} showChangelog changesLabel="Pull requests" />)
+    expect(container.querySelector('.tab-bar-divider')!.previousElementSibling).toHaveTextContent('Pull requests')
+  })
+})

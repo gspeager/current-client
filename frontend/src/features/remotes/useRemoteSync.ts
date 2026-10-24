@@ -33,7 +33,9 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
     pullOp.run((auth) => RemoteService.PullRebase(repoPath, auth), onSynced)
   }
 
-  const pushSettingUpstream = async (path: string) => {
+  // then, when given, replaces the post-push report so the caller can carry on
+  // (the sidebar opens the create form).
+  const pushSettingUpstream = async (path: string, then?: (result: PushResult) => void) => {
     try {
       const [status, remoteName] = await Promise.all([BranchService.CurrentBranchStatus(path), primaryRemoteName(path)])
       const protection = await protectionFor(path, `${remoteName}/${status.current}`, 'push')
@@ -43,7 +45,14 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
         confirmLabel: 'Push',
       })
       if (!confirmed) return
-      void pushOp.run((auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth), pushed)
+      await pushOp.run(
+        (auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth),
+        (result) => {
+          if (!then) return pushed(result)
+          onSynced()
+          then(result)
+        },
+      )
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
     }
@@ -114,7 +123,8 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
     push,
     forcePush,
     pushTags,
-    pushSetUpstream: () => (repoPath ? pushSettingUpstream(repoPath) : Promise.resolve()),
+    pushSetUpstream: (then?: (result: PushResult) => void) =>
+      repoPath ? pushSettingUpstream(repoPath, then) : Promise.resolve(),
     pullOp,
     pushOp,
   }

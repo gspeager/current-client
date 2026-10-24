@@ -44,18 +44,20 @@ describe('CommitDetailPanel', () => {
     renderPanel()
 
     const footer = document.querySelector('.commit-detail-actions')!
-    expect([...footer.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+    expect([...footer.querySelectorAll(':scope > button')].map((b) => b.textContent)).toEqual([
       'Check out',
       'Branch here',
       'Cherry-pick',
       'Revert',
-      'More',
     ])
     await userEvent.click(screen.getByRole('button', { name: 'Cherry-pick' }))
     expect(ACTIONS[2].run).toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole('button', { name: 'More' }))
-    const menu = document.querySelector('.context-menu')!
+    const more = footer.querySelector<HTMLDetailsElement>('.commit-detail-more')!
+    expect(more.open).toBe(false)
+    await userEvent.click(screen.getByText('More'))
+    expect(more.open).toBe(true)
+    const menu = more.querySelector('.commit-detail-more-menu')!
     expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
       'Reset to here…',
       'Export patch…',
@@ -63,6 +65,7 @@ describe('CommitDetailPanel', () => {
     ])
     await userEvent.click(screen.getByRole('button', { name: 'Reset to here…' }))
     expect(ACTIONS[4].run).toHaveBeenCalled()
+    expect(more.open).toBe(false)
   })
 
   it('counts the changes and names the branches the commit is on', async () => {

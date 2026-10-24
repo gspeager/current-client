@@ -259,5 +259,73 @@
 }
 
 .commit-detail-more {
+  position: relative;
   grid-column: 1 / -1;
+
+  > summary {
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+}
+
+.commit-detail-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: 100%;
+  height: var(--h-action);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+// Opens upward, the width of the button, like the commit button's menu.
+.commit-detail-more-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + var(--space-xs));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-xs);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-modal);
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-xs);
+    width: 100%;
+    height: var(--h-row-tree);
+    padding: 0 var(--space-sm);
+    background: none;
+    border: none;
+    border-radius: var(--radius-xs);
+    color: var(--on-surface);
+    font: var(--ui-sm);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface-container);
+    }
+  }
 }
