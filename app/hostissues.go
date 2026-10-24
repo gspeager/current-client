@@ -23,6 +23,7 @@ type IssueInfo struct {
 
 const (
 	cacheIssue    = "issue"
+	cacheAssigned = "assigned"
 	issueBatchCap = 50
 )
 
@@ -77,6 +78,31 @@ func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]
 		}
 	})
 	return cachedIssues(info, repoPath, numbers), nil
+}
+
+// AssignedIssues is the issue picker's list, asked of the host when the
+// picker first opens and read from the cache until a refresh. Each title is
+// kept for hover cards too.
+func (s *HostService) AssignedIssues(repoPath string) ([]hostapi.Issue, error) {
+	remote, info, ok, err := primaryHost(repoPath)
+	if err != nil || !ok || !info.Enabled {
+		return nil, err
+	}
+	return cachedOrFetched(info, repoPath, cacheAssigned, info.Project, func(ctx context.Context, provider hostapi.Provider) ([]hostapi.Issue, error) {
+		me, err := currentUser(ctx, provider, info, repoPath, remote.Name)
+		if err != nil {
+			return nil, err
+		}
+		issues, err := provider.AssignedIssues(ctx, info.Project, me.Username)
+		if err != nil {
+			return nil, err
+		}
+		for _, is := range issues {
+			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(is.Number),
+				IssueInfo{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.WebURL, Known: true})
+		}
+		return issues, nil
+	})
 }
 
 func cachedIssues(info HostInfo, repoPath string, numbers []int) map[int]IssueInfo {

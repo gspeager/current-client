@@ -88,6 +88,19 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 	return changes, nil
 }
 
+// currentUser is the token's user, asked of the host once per remote.
+func currentUser(ctx context.Context, provider hostapi.Provider, info HostInfo, repoPath, remote string) (hostapi.User, error) {
+	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheUser, remote); ok {
+		return cached.(hostapi.User), nil
+	}
+	user, err := provider.CurrentUser(ctx)
+	if err != nil {
+		return hostapi.User{}, err
+	}
+	hostClient.Cache.Put(info.Hostname, repoPath, cacheUser, remote, user)
+	return user, nil
+}
+
 // Refresh is what a fetch or pull does for the host side: one ls-remote per
 // remote for the change numbers Git publishes, and the open changes from
 // each host that is on. A failed host request is returned so the panel can
@@ -122,6 +135,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cachePipeline)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheJobs)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheIssue)
+		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheAssigned)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheThreads)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheClosed)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheFiles)
@@ -145,11 +159,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		} else {
 			return err
 		}
-		if _, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheUser, remote.Name); !ok {
-			if user, err := provider.CurrentUser(ctx); err == nil {
-				hostClient.Cache.Put(info.Hostname, repoPath, cacheUser, remote.Name, user)
-			}
-		}
+		_, _ = currentUser(ctx, provider, info, repoPath, remote.Name)
 	}
 	return nil
 }

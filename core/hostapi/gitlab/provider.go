@@ -320,11 +320,28 @@ func (p *Provider) Issue(ctx context.Context, project string, number int) (hosta
 	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "issues", strconv.Itoa(number)), nil, &is); err != nil {
 		return hostapi.Issue{}, hostapi.WithScope(err, readScope)
 	}
+	return toIssue(is), nil
+}
+
+func (p *Provider) AssignedIssues(ctx context.Context, project, username string) ([]hostapi.Issue, error) {
+	var page []issue
+	query := url.Values{"assignee_username": {username}, "state": {"opened"}, "order_by": {"updated_at"}, "per_page": {"50"}}
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "issues"), query, &page); err != nil {
+		return nil, hostapi.WithScope(err, readScope)
+	}
+	issues := make([]hostapi.Issue, 0, len(page))
+	for _, is := range page {
+		issues = append(issues, toIssue(is))
+	}
+	return issues, nil
+}
+
+func toIssue(is issue) hostapi.Issue {
 	state := "open"
 	if is.State == "closed" {
 		state = "closed"
 	}
-	return hostapi.Issue{Number: is.IID, Title: is.Title, State: state, WebURL: is.WebURL}, nil
+	return hostapi.Issue{Number: is.IID, Title: is.Title, State: state, WebURL: is.WebURL}
 }
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {

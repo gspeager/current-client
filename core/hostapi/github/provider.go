@@ -140,10 +140,13 @@ type commitStatus struct {
 }
 
 type issue struct {
-	Number  int    `json:"number"`
-	Title   string `json:"title"`
-	State   string `json:"state"`
-	HTMLURL string `json:"html_url"`
+	Number      int    `json:"number"`
+	Title       string `json:"title"`
+	State       string `json:"state"`
+	HTMLURL     string `json:"html_url"`
+	PullRequest *struct {
+		URL string `json:"url"`
+	} `json:"pull_request"`
 }
 
 type rule struct {
@@ -374,7 +377,27 @@ func (p *Provider) Issue(ctx context.Context, project string, number int) (hosta
 	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", strconv.Itoa(number)), nil, &is); err != nil {
 		return hostapi.Issue{}, hostapi.WithScope(err, scope)
 	}
-	return hostapi.Issue{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}, nil
+	return toIssue(is), nil
+}
+
+// AssignedIssues leaves out pull requests, which GitHub lists as issues too.
+func (p *Provider) AssignedIssues(ctx context.Context, project, username string) ([]hostapi.Issue, error) {
+	var page []issue
+	query := url.Values{"assignee": {username}, "state": {"open"}, "sort": {"updated"}, "per_page": {"50"}}
+	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues"), query, &page); err != nil {
+		return nil, hostapi.WithScope(err, scope)
+	}
+	issues := make([]hostapi.Issue, 0, len(page))
+	for _, is := range page {
+		if is.PullRequest == nil {
+			issues = append(issues, toIssue(is))
+		}
+	}
+	return issues, nil
+}
+
+func toIssue(is issue) hostapi.Issue {
+	return hostapi.Issue{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}
 }
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {

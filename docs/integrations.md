@@ -37,7 +37,7 @@ A **refresh** is the only thing that fetches from a host:
 - A Git fetch or pull the user starts.
 - A push refreshes only the pushed branch's MR/PR and its CI.
 
-Nothing else does, with bounded exceptions that each follow a click: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh; the merge request tab's **Closed** filter asks for one page of closed changes the first time it is chosen; and a change's **Checks**, **Threads**, **Files** and **Commits** tabs ask for what the refresh didn't bring, each once per change until the next refresh. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
+Nothing else does, with bounded exceptions that each follow a click: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh; the merge request tab's **Closed** filter asks for one page of closed changes the first time it is chosen; a change's **Checks**, **Threads**, **Files** and **Commits** tabs ask for what the refresh didn't bring, each once per change until the next refresh; and the new-branch form's **From an issue** asks for the issues assigned to you the first time it opens, until the next refresh. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
 
 With integration off, the only host-related traffic is Git's own: a fetch the user starts also runs one `git ls-remote` against the remote, which lists the pull request / merge request heads the host publishes (`refs/pull/*` on GitHub, Gitea and Forgejo, `refs/merge-requests/*` on GitLab) and gives each branch its open change's number. Bitbucket publishes none, so it gives nothing. A change counts only while its head is still a branch tip, which drops every change whose branch was deleted on merge. GitHub also publishes `refs/pull/N/merge` only while a pull request is open, so there the number is an open one. GitLab keeps merge refs after closing, so Git alone cannot tell a closed merge request whose branch was kept from an open one: with integration off the branch shows the number without a state, and the state comes from the API once integration is on.
 
@@ -125,7 +125,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 
 | Endpoint | When | Scope |
 | --- | --- | --- |
-| `GET /user` | Test connection | `read_api` |
+| `GET /user` | Test connection; once per session on the first refresh or the first **From an issue**, to know whose changes are **Mine** and whose issues to list | `read_api` |
 | `GET /projects/:path/merge_requests?state=opened` | Refresh: the open merge requests, paged up to the cap | `read_api` |
 | `GET /projects/:path/merge_requests/:iid` | Refresh of one merge request (the pushed branch's, the checked-out branch's); once per local branch whose merge request left the open list, to learn whether it was merged | `read_api` |
 | `GET /projects/:id` | Once per fork a merge request comes from, to name it | `read_api` |
@@ -137,6 +137,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark or a change's **Checks** tab; on refresh, for the checked-out branch's merge request when its pipeline failed | `read_api` |
 | `GET /projects/:path/jobs/:id/trace` | Clicking a failed job | `read_api` |
 | `GET /projects/:path/issues/:iid` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | `read_api` |
+| `GET /projects/:path/issues?assignee_username=&state=opened` | The new-branch form's **From an issue**, once until the next refresh; one page of 50 | `read_api` |
 | `GET /projects/:path/protected_branches` | Refresh; a 403 (not a Maintainer) means no warnings | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
 
@@ -146,7 +147,7 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 
 | Endpoint | When | Access |
 | --- | --- | --- |
-| `GET /user` | Test connection | read |
+| `GET /user` | Test connection; once per session on the first refresh or the first **From an issue**, to know whose changes are **Mine** and whose issues to list | read |
 | `GET /repos/:owner/:repo/pulls?state=open` | Refresh: the open pull requests, paged up to the cap | pull requests: read |
 | `GET /repos/:owner/:repo/pulls/:number` | Refresh of one pull request; once per local branch whose pull request left the open list | pull requests: read |
 | `GET /repos/:owner/:repo/pulls?state=closed` | The tab's **Closed** filter, once until the next refresh; one page of 50 | pull requests: read |
@@ -156,6 +157,7 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `GET /repos/:owner/:repo/commits/:sha/check-runs` and `…/status` | Refresh, for open pull requests' heads; as commits scroll into view, once per commit until the next refresh; clicking a CI mark or a change's **Checks** tab for the job list. Check runs and commit statuses are read as one result | checks, commit statuses: read |
 | `GET /repos/:owner/:repo/actions/jobs/:id/logs` | Clicking a failed job; the host redirects to the log's storage, which is followed without the token | actions: read |
 | `GET /repos/:owner/:repo/issues/:number` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | issues: read |
+| `GET /repos/:owner/:repo/issues?assignee=&state=open` | The new-branch form's **From an issue**, once until the next refresh; one page of 50, pull requests left out | issues: read |
 | `GET /repos/:owner/:repo/rules/branches/:branch` | Refresh, once per local branch's upstream, at most 25; a 404 (no rulesets) or 403 means no warnings | metadata: read |
 | `POST /repos/:owner/:repo/pulls` | Create pull request | pull requests: write |
 
@@ -174,6 +176,7 @@ Avatar URLs in these answers are never decoded.
 | The checked-out branch's MR/PR in the sidebar, and what a refresh changed | no | yes | yes |
 | CI status, job list, failed job log | no | yes | yes |
 | Reviewers, approvals and the **To review** filter | no | yes | yes |
+| A new branch named after an issue assigned to you | no | yes | yes |
 | Review threads beside the code | no | yes | yes |
 | Conflict forecast against open MRs/PRs | no | yes | yes |
 | Hover cards with title and state | local facts only | yes | yes |

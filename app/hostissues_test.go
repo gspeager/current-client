@@ -37,3 +37,27 @@ func TestFetchIssueTitlesAsksOnceAndRemembersMissingOnes(t *testing.T) {
 		t.Fatalf("CachedPipelineJobs without a click = %+v, %v", jobs, err)
 	}
 }
+
+func TestAssignedIssuesAskOnceAndFillHoverCards(t *testing.T) {
+	repo := enabledGitLab(t)
+	api := "/api/v4/projects/group%2Fapp"
+	assigned := api + "/issues?assignee_username=ada&order_by=updated_at&per_page=50&state=opened"
+	transport := &routeTransport{routes: map[string]string{
+		"/api/v4/user": `{"username": "ada", "name": "Ada"}`,
+		assigned:       `[{"iid": 12, "title": "Login fails on Windows", "state": "opened", "web_url": "https://gitlab.example.com/group/app/-/issues/12"}]`,
+	}, hits: map[string]int{}}
+	swapHostClient(t, transport)
+	var s HostService
+
+	issues, err := s.AssignedIssues(repo)
+	if err != nil || len(issues) != 1 || issues[0].Number != 12 || issues[0].Title != "Login fails on Windows" {
+		t.Fatalf("AssignedIssues = %+v, %v", issues, err)
+	}
+	s.AssignedIssues(repo)
+	if transport.hits[assigned] != 1 || transport.hits["/api/v4/user"] != 1 {
+		t.Fatalf("hits = %v", transport.hits)
+	}
+	if cached, _ := s.IssueTitles(repo, []int{12}); cached[12].Title != "Login fails on Windows" {
+		t.Fatalf("IssueTitles = %+v", cached)
+	}
+}
