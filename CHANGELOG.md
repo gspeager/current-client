@@ -78,6 +78,7 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 
 ### Fixed
 
+- Code shows operators as typed. JetBrains Mono drew `<-` as an arrow and `!=` as ≠, and `->`, `>=` and `==` the same way, in diffs and all other monospaced text. ([#242](https://github.com/gspeager/current-client/issues/242))
 - On GitHub, a pull request's **Checks** tab and a CI mark's job list answered "422 Unprocessable Entity": the mark's id was 60 bits of the commit's SHA, more than a number in the app's frontend keeps exactly, so the job request named a commit that doesn't exist. The id is now 52 bits and comes back intact. The failure, when there is one, reads as a sentence. ([#235](https://github.com/gspeager/current-client/issues/235))
 - Pull and push progress and errors show only in the tab of the repository they're for. Switching tabs no longer leaves another repository's "Could not pull" in view, and its **Pull (merge)** and **Pull (rebase)** pull the repository that diverged. A pull or push keeps running in a background tab. ([#122](https://github.com/gspeager/current-client/issues/122))
 - On macOS, the app goes idle again while files have uncommitted changes. Reading a modified file to show its status counted as a change to it, so the app refreshed about twice a second. ([#109](https://github.com/gspeager/current-client/issues/109))
