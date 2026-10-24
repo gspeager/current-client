@@ -154,16 +154,19 @@ func TestLatestPipelineCombinesCheckRunsAndStatuses(t *testing.T) {
 		"GET " + v3 + "/commits/" + sha + "/status":                  "status.json",
 	})
 	pipeline, ok, err := p.LatestPipeline(context.Background(), project, sha)
-	if err != nil || !ok || pipeline.Status != hostapi.CISkipped || pipeline.ID != 0x654d851d8145b29 ||
+	if err != nil || !ok || pipeline.Status != hostapi.CISkipped || pipeline.ID != 0x654d851d8145b ||
 		pipeline.WebURL != "https://github.example.com/cli/cli/commit/"+sha+"/checks" {
 		t.Fatalf("LatestPipeline = %+v, %v, %v", pipeline, ok, err)
 	}
 
-	// The id goes back through the commit endpoint for the full SHA; the
-	// checks endpoints refuse the abbreviated one.
-	short := "654d851d8145b29"
-	f.routes["GET "+v3+"/commits/"+short] = `{"sha": "` + sha + `"}`
-	f.routes["GET "+v3+"/commits/"+sha+"/status"] = `{"state": "failure", "statuses": [{"id": 7, "context": "ci/circleci", "state": "failure", "target_url": "https://circleci.example.com/1"}]}`
+	// The id is 13 hex digits, exact as a JavaScript number, and the host
+	// takes the abbreviated SHA back.
+	if float64(pipeline.ID) > 1<<53 {
+		t.Fatalf("pipeline id %d is not exact as a JavaScript number", pipeline.ID)
+	}
+	short := "654d851d8145b"
+	f.routes["GET "+v3+"/commits/"+short+"/check-runs?per_page=100"] = "check_runs.json"
+	f.routes["GET "+v3+"/commits/"+short+"/status"] = `{"state": "failure", "statuses": [{"id": 7, "context": "ci/circleci", "state": "failure", "target_url": "https://circleci.example.com/1"}]}`
 	jobs, err := p.Jobs(context.Background(), project, pipeline.ID)
 	if err != nil || len(jobs) != 6 {
 		t.Fatalf("Jobs = %d, %v", len(jobs), err)
