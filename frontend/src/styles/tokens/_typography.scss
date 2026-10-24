@@ -25,7 +25,7 @@
   --kbd-tracking: 0.04em;
 }
 
-// `font` doesn't set font-variant-numeric, so mono tokens include this for aligned digits.
+// Aligned digits; include it after the `font` shorthand, which resets it.
 @mixin mono-numeric {
   font-variant-numeric: tabular-nums;
 }

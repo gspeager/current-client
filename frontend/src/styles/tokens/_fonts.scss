@@ -3,3 +3,11 @@
   --font-chrome: 'Geist Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+
+// JetBrains Mono's contextual alternates draw `<-` as an arrow and `!=` as ≠;
+// code must read as typed. Every `font` shorthand resets the property, so it
+// only holds with !important.
+.current-client,
+.current-client * {
+  font-variant-ligatures: no-contextual !important;
+}
