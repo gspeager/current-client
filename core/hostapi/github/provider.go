@@ -267,8 +267,17 @@ func (p *Provider) LatestPipeline(ctx context.Context, project, sha string) (hos
 	return hostapi.Pipeline{ID: id, Status: combine(statuses), WebURL: p.webRoot() + project + "/commit/" + sha + "/checks"}, true, nil
 }
 
+// Jobs gets back the commit the pipeline id was made from. The checks
+// endpoints refuse an abbreviated SHA, so the commit endpoint, which accepts
+// one, supplies the full id first.
 func (p *Provider) Jobs(ctx context.Context, project string, pipelineID int64) ([]hostapi.Job, error) {
-	return p.commitJobs(ctx, project, fmt.Sprintf("%015x", pipelineID))
+	var c struct {
+		SHA string `json:"sha"`
+	}
+	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "commits", fmt.Sprintf("%015x", pipelineID)), nil, &c); err != nil {
+		return nil, hostapi.WithScope(err, scope)
+	}
+	return p.commitJobs(ctx, project, c.SHA)
 }
 
 func (p *Provider) commitJobs(ctx context.Context, project, ref string) ([]hostapi.Job, error) {
