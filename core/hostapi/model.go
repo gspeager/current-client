@@ -52,8 +52,36 @@ type Change struct {
 	CI                CIStatus    `json:"ci"`
 	UnresolvedThreads int         `json:"unresolvedThreads"`
 	HasConflicts      bool        `json:"hasConflicts"`
+	Reviews           []Review    `json:"reviews"`
 	UpdatedAt         time.Time   `json:"updatedAt"`
 	WebURL            string      `json:"webUrl"`
+}
+
+type ReviewState string
+
+const (
+	ReviewRequested        ReviewState = "requested"
+	ReviewApproved         ReviewState = "approved"
+	ReviewChangesRequested ReviewState = "changes_requested"
+	ReviewCommented        ReviewState = "commented"
+)
+
+// Review is where one reviewer stands on a change: asked and not yet done,
+// or their latest verdict.
+type Review struct {
+	Reviewer User        `json:"reviewer"`
+	State    ReviewState `json:"state"`
+}
+
+// SetReview puts a reviewer's state in place of what reviews had for them.
+func SetReview(reviews []Review, review Review) []Review {
+	for i := range reviews {
+		if reviews[i].Reviewer.Username == review.Reviewer.Username {
+			reviews[i].State = review.State
+			return reviews
+		}
+	}
+	return append(reviews, review)
 }
 
 // ChangeFile is one file a change touches; Status is added, deleted,
@@ -188,6 +216,9 @@ type Provider interface {
 	ChangeCommits(ctx context.Context, project string, number int) ([]ChangeCommit, error)
 	// Threads needs the change's head SHA to tell which threads are outdated.
 	Threads(ctx context.Context, project string, number int, headSHA string) ([]Thread, error)
+	// Reviews is the change's reviewers, starting from the requested ones
+	// its list entry carried.
+	Reviews(ctx context.Context, project string, change Change) ([]Review, error)
 	// LatestPipeline is the newest pipeline for a commit; ok is false when
 	// the host has none for it.
 	LatestPipeline(ctx context.Context, project, sha string) (pipeline Pipeline, ok bool, err error)

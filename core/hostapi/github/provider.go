@@ -67,6 +67,12 @@ type pullRequest struct {
 	Labels    []label   `json:"labels"`
 	UpdatedAt time.Time `json:"updated_at"`
 	HTMLURL   string    `json:"html_url"`
+	Reviewers []user    `json:"requested_reviewers"`
+}
+
+type review struct {
+	User  user   `json:"user"`
+	State string `json:"state"`
 }
 
 type label struct {
@@ -248,6 +254,58 @@ func (p *Provider) Threads(ctx context.Context, project string, number int, head
 	return threads, hostapi.WithScope(err, scope)
 }
 
+// Reviews keeps each reviewer's latest verdict, where a later comment
+// doesn't undo an approval or a request for changes. A reviewer asked again
+// is shown as requested, as the host does.
+func (p *Provider) Reviews(ctx context.Context, project string, change hostapi.Change) ([]hostapi.Review, error) {
+	var reviews []hostapi.Review
+	_, err := p.client.GetPages(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(change.Number), "reviews"),
+		url.Values{"per_page": {"100"}}, func(resp *hostapi.Response) error {
+			var page []review
+			if err := hostapi.DecodeJSON(resp, &page); err != nil {
+				return err
+			}
+			for _, r := range page {
+				state, ok := reviewState(r.State)
+				if !ok || (state == hostapi.ReviewCommented && hasVerdict(reviews, r.User.Login)) {
+					continue
+				}
+				reviews = hostapi.SetReview(reviews, hostapi.Review{Reviewer: toUser(r.User), State: state})
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, hostapi.WithScope(err, scope)
+	}
+	for _, requested := range change.Reviews {
+		reviews = hostapi.SetReview(reviews, requested)
+	}
+	return reviews, nil
+}
+
+// reviewState reads a dismissed review as a comment; a pending one is a
+// draft nobody else sees.
+func reviewState(state string) (hostapi.ReviewState, bool) {
+	switch state {
+	case "APPROVED":
+		return hostapi.ReviewApproved, true
+	case "CHANGES_REQUESTED":
+		return hostapi.ReviewChangesRequested, true
+	case "COMMENTED", "DISMISSED":
+		return hostapi.ReviewCommented, true
+	}
+	return "", false
+}
+
+func hasVerdict(reviews []hostapi.Review, login string) bool {
+	for _, r := range reviews {
+		if r.Reviewer.Username == login {
+			return r.State == hostapi.ReviewApproved || r.State == hostapi.ReviewChangesRequested
+		}
+	}
+	return false
+}
+
 // LatestPipeline is the commit's check runs and commit statuses read as one
 // result. GitHub has no pipeline id, so the id is the start of the SHA,
 // which Jobs turns back into a commit reference.
@@ -401,6 +459,9 @@ func toChange(pr pullRequest) hostapi.Change {
 	}
 	for _, l := range pr.Labels {
 		c.Labels = append(c.Labels, l.Name)
+	}
+	for _, r := range pr.Reviewers {
+		c.Reviews = append(c.Reviews, hostapi.Review{Reviewer: toUser(r), State: hostapi.ReviewRequested})
 	}
 	if pr.Head.Repo != nil && pr.Base.Repo != nil && pr.Head.Repo.FullName != pr.Base.Repo.FullName {
 		c.SourceProject = pr.Head.Repo.FullName

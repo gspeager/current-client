@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -144,6 +145,42 @@ func TestThreadsGroupRepliesAndMarkOutdatedOnes(t *testing.T) {
 	threads, err = p.Threads(context.Background(), project, 14783, "0000000")
 	if err != nil || !threads[0].Outdated {
 		t.Fatalf("against another head: %+v, %v", threads[0], err)
+	}
+}
+
+func TestReviewsKeepEachReviewersVerdict(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{"GET " + v3 + "/pulls/14716/reviews?per_page=100": "reviews.json"})
+	requested := hostapi.Review{Reviewer: hostapi.User{Name: "niik", Username: "niik"}, State: hostapi.ReviewRequested}
+	reviews, err := p.Reviews(context.Background(), project, hostapi.Change{Number: 14716, Reviews: []hostapi.Review{requested}})
+	want := []hostapi.Review{{Reviewer: hostapi.User{Name: "babakks", Username: "babakks"}, State: hostapi.ReviewApproved}, requested}
+	if err != nil || !reflect.DeepEqual(reviews, want) {
+		t.Fatalf("Reviews = %+v, %v", reviews, err)
+	}
+
+	p, _ = newProvider(t, map[string]string{"GET " + v3 + "/pulls/1/reviews?per_page=100": `[
+		{"user": {"login": "ada"}, "state": "COMMENTED"},
+		{"user": {"login": "ada"}, "state": "APPROVED"},
+		{"user": {"login": "ada"}, "state": "COMMENTED"},
+		{"user": {"login": "bo"}, "state": "CHANGES_REQUESTED"},
+		{"user": {"login": "cy"}, "state": "DISMISSED"},
+		{"user": {"login": "di"}, "state": "PENDING"}]`})
+	again := hostapi.Review{Reviewer: hostapi.User{Name: "bo", Username: "bo"}, State: hostapi.ReviewRequested}
+	reviews, err = p.Reviews(context.Background(), project, hostapi.Change{Number: 1, Reviews: []hostapi.Review{again}})
+	want = []hostapi.Review{
+		{Reviewer: hostapi.User{Name: "ada", Username: "ada"}, State: hostapi.ReviewApproved},
+		again,
+		{Reviewer: hostapi.User{Name: "cy", Username: "cy"}, State: hostapi.ReviewCommented},
+	}
+	if err != nil || !reflect.DeepEqual(reviews, want) {
+		t.Fatalf("Reviews = %+v, %v", reviews, err)
+	}
+}
+
+func TestOpenChangesCarryRequestedReviewers(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{"GET " + v3 + "/pulls?per_page=100&state=open": `[{"number": 2, "state": "open", "head": {"ref": "a"}, "base": {"ref": "main"}, "user": {"login": "ada"}, "requested_reviewers": [{"login": "bo", "avatar_url": "https://avatars.example/bo"}]}]`})
+	changes, _, err := p.OpenChanges(context.Background(), project)
+	if err != nil || len(changes) != 1 || !reflect.DeepEqual(changes[0].Reviews, []hostapi.Review{{Reviewer: hostapi.User{Name: "bo", Username: "bo"}, State: hostapi.ReviewRequested}}) {
+		t.Fatalf("OpenChanges = %+v, %v", changes, err)
 	}
 }
 
@@ -327,8 +364,12 @@ func TestAgainstRealGitHub(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Threads(%d): %v", change.Number, err)
 		}
+		reviews, err := p.Reviews(ctx, realProject, change)
+		if err != nil {
+			t.Fatalf("Reviews(%d): %v", change.Number, err)
+		}
 		pipeline, ok, err := p.LatestPipeline(ctx, realProject, change.HeadSHA)
-		t.Logf("#%d %s by %s, %d threads, CI %v %q %v", change.Number, change.Title, change.Author.Username, len(threads), ok, pipeline.Status, err)
+		t.Logf("#%d %s by %s, %d threads, reviews %v, CI %v %q %v", change.Number, change.Title, change.Author.Username, len(threads), reviews, ok, pipeline.Status, err)
 	}
 }
 

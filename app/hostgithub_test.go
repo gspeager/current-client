@@ -11,7 +11,7 @@ import (
 
 // The same refresh, cache and warnings as GitLab, against GitHub-shaped
 // answers: the provider is the only thing that differs.
-func TestGitHubRefreshFillsChangesCIAndRules(t *testing.T) {
+func TestGitHubRefreshFillsChangesCIReviewsAndRules(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
 	gitIn(t, repo, "init", "-q", "-b", "main")
@@ -30,6 +30,7 @@ func TestGitHubRefreshFillsChangesCIAndRules(t *testing.T) {
 		api + "/pulls?per_page=100&state=open":               `[{"number": 5, "title": "Add login", "state": "open", "head": {"ref": "feature", "sha": "` + sha + `", "repo": {"full_name": "owner/app"}}, "base": {"ref": "main", "repo": {"full_name": "owner/app"}}, "user": {"login": "ada"}, "html_url": "https://github.com/owner/app/pull/5"}]`,
 		api + "/commits/" + sha + "/check-runs?per_page=100": `{"total_count": 1, "check_runs": [{"id": 9, "name": "test", "status": "completed", "conclusion": "failure", "html_url": "https://github.com/owner/app/runs/9", "app": {"slug": "github-actions"}}]}`,
 		api + "/commits/" + sha + "/status":                  `{"state": "success", "statuses": [{"id": 1, "context": "lint", "state": "success"}]}`,
+		api + "/pulls/5/reviews?per_page=100":                `[{"user": {"login": "bo"}, "state": "APPROVED"}]`,
 		api + "/rules/branches/main":                         `[{"type": "pull_request"}, {"type": "deletion"}]`,
 		"/user":                                              `{"login": "ada", "name": "Ada"}`,
 	}, hits: map[string]int{}}
@@ -46,6 +47,10 @@ func TestGitHubRefreshFillsChangesCIAndRules(t *testing.T) {
 	got := changes["origin/feature"]
 	if got.Number != 5 || got.Prefix != "#" || got.State != string(hostapi.ChangeOpen) || got.CI != string(hostapi.CIFailed) || got.Author != "ada" || got.HeadSHA != sha {
 		t.Fatalf("origin/feature = %+v", got)
+	}
+	list, err := s.Changes(repo)
+	if err != nil || len(list.Changes) != 1 || len(list.Changes[0].Reviews) != 1 || list.Changes[0].Reviews[0] != (hostapi.Review{Reviewer: hostapi.User{Name: "bo", Username: "bo"}, State: hostapi.ReviewApproved}) {
+		t.Fatalf("Changes = %+v, %v", list, err)
 	}
 	var remotes RemoteService
 	warning, err := remotes.PushWarning(repo, "")

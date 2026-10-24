@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -93,6 +94,9 @@ func TestOpenChangesFromRecordedFixture(t *testing.T) {
 		t.Fatalf("OpenChanges = %d changes, truncated=%v, err=%v", len(changes), truncated, err)
 	}
 	first := changes[0]
+	if len(first.Reviews) != 1 || first.Reviews[0].Reviewer.Username != "GitLabDuo" || first.Reviews[0].State != hostapi.ReviewRequested {
+		t.Fatalf("first change's reviews = %+v", first.Reviews)
+	}
 	if first.Number != 4179 || !first.Draft || first.State != hostapi.ChangeOpen || first.SourceProject != "" ||
 		first.Author.Username == "" || first.Author.Name == "" || len(first.HeadSHA) != 40 || first.TargetBranch != "main" ||
 		first.UpdatedAt.IsZero() || !strings.HasPrefix(first.WebURL, "https://gitlab.com/gitlab-org/cli/-/merge_requests/") {
@@ -104,6 +108,36 @@ func TestOpenChangesFromRecordedFixture(t *testing.T) {
 	}
 	if n := f.count("GET", api+"/merge_requests"); n != 1 {
 		t.Fatalf("merge requests fetched %d times", n)
+	}
+}
+
+func TestReviewsReadReviewersThenApprovals(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{
+		"GET " + api + "/merge_requests/4178/reviewers": "reviewers.json",
+		"GET " + api + "/merge_requests/4178/approvals": "approvals.json",
+	})
+	reviews, err := p.Reviews(context.Background(), project, hostapi.Change{Number: 4178})
+	if err != nil || len(reviews) != 2 || reviews[0].Reviewer.Username != "jhebden" || reviews[0].State != hostapi.ReviewApproved ||
+		reviews[1].Reviewer.Username != "GitLabDuo" || reviews[1].State != hostapi.ReviewApproved {
+		t.Fatalf("Reviews = %+v, %v", reviews, err)
+	}
+
+	p, _ = newProvider(t, map[string]string{
+		"GET " + api + "/merge_requests/1/reviewers": `[
+			{"user": {"username": "ada", "name": "Ada"}, "state": "unreviewed"},
+			{"user": {"username": "bo", "name": "Bo"}, "state": "requested_changes"},
+			{"user": {"username": "cy", "name": "Cy"}, "state": "reviewed"}]`,
+		"GET " + api + "/merge_requests/1/approvals": `{"approved_by": [{"user": {"username": "ada", "name": "Ada"}}, {"user": {"username": "di", "name": "Di"}}]}`,
+	})
+	reviews, err = p.Reviews(context.Background(), project, hostapi.Change{Number: 1})
+	want := []hostapi.Review{
+		{Reviewer: hostapi.User{Name: "Ada", Username: "ada"}, State: hostapi.ReviewApproved},
+		{Reviewer: hostapi.User{Name: "Bo", Username: "bo"}, State: hostapi.ReviewChangesRequested},
+		{Reviewer: hostapi.User{Name: "Cy", Username: "cy"}, State: hostapi.ReviewCommented},
+		{Reviewer: hostapi.User{Name: "Di", Username: "di"}, State: hostapi.ReviewApproved},
+	}
+	if err != nil || !reflect.DeepEqual(reviews, want) {
+		t.Fatalf("Reviews = %+v, %v", reviews, err)
 	}
 }
 
@@ -274,7 +308,11 @@ func TestAgainstRealGitLab(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Threads(%d): %v", change.Number, err)
 		}
-		t.Logf("!%d %s by %s, %d threads", change.Number, change.Title, change.Author.Username, len(threads))
+		reviews, err := p.Reviews(ctx, realProject, change)
+		if err != nil {
+			t.Fatalf("Reviews(%d): %v", change.Number, err)
+		}
+		t.Logf("!%d %s by %s, %d threads, reviews %v", change.Number, change.Title, change.Author.Username, len(threads), reviews)
 	}
 }
 

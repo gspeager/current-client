@@ -132,6 +132,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		}
 		if changes, truncated, err := provider.OpenChanges(ctx, info.Project); err == nil {
 			fillChangeCI(ctx, provider, info, repoPath, changes)
+			fillChangeReviews(ctx, provider, info, changes)
 			refreshMergedChanges(ctx, provider, info, repoPath, remote.Name, lastOpen, changes)
 			fillCurrentBranchThreads(ctx, provider, info, repoPath, remote.Name, changes)
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})

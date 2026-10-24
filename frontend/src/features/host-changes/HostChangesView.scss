@@ -162,6 +162,13 @@
   @include patterns.truncate;
 }
 
+.host-change-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
 .host-change-row-time {
   flex-shrink: 0;
   color: var(--outline);
@@ -222,6 +229,11 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
+}
+
+.host-change-facts-reviews {
+  display: flex;
+  flex-direction: column;
 }
 
 .host-change-facts-checks {
