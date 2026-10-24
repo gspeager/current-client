@@ -85,8 +85,9 @@ function CurrentChangeSection({
   )
 
   if (!change) {
+    if (!data.proposable && conflicts.length === 0) return null
     // Without an upstream there is nothing on the host to open a change from.
-    const row = data.upstream ? (
+    const row = !data.proposable ? null : data.upstream ? (
       <button type="button" className="current-change-row" onClick={() => void createChange()}>
         <GitPullRequest size={14} strokeWidth={1.75} className="current-change-row-icon" />
         <span className="current-change-row-text">

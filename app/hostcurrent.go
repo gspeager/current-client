@@ -17,6 +17,9 @@ type CurrentChange struct {
 	Branch   string `json:"branch"`
 	Upstream string `json:"upstream"`
 	Enabled  bool   `json:"enabled"`
+	// Proposable is false on the default branch and on a branch with no
+	// commits beyond it, where there is nothing to open a change for.
+	Proposable bool `json:"proposable"`
 	// Kind is the host's word, "pull request" or "merge request".
 	Kind       string        `json:"kind"`
 	Change     *BranchChange `json:"change"`
@@ -35,15 +38,19 @@ func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 		return CurrentChange{}, err
 	}
 	result := CurrentChange{Branch: current.Name, Upstream: current.Upstream, Enabled: ok && info.Enabled && providerFor(info) != nil, Kind: changeKind(info)}
-	if !result.Enabled || current.Upstream == "" {
+	if !result.Enabled {
 		return result, nil
 	}
-	changes, err := s.BranchChanges(repoPath)
-	if err != nil {
-		return CurrentChange{}, err
+	var change BranchChange
+	if current.Upstream != "" {
+		changes, err := s.BranchChanges(repoPath)
+		if err != nil {
+			return CurrentChange{}, err
+		}
+		change = changes[current.Upstream]
 	}
-	change, ok := changes[current.Upstream]
-	if !ok || change.State == "" {
+	if change.State == "" {
+		result.Proposable = proposable(repoPath, current.Name)
 		return result, nil
 	}
 	result.Change = &change
@@ -60,6 +67,21 @@ func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 		}
 	}
 	return result, nil
+}
+
+// proposable is true when the default branch is unknown, so the section
+// still offers a change rather than guessing there is nothing to propose.
+func proposable(repoPath, branch string) bool {
+	ctx := context.Background()
+	base, err := git.DefaultBranch(ctx, repoPath)
+	if err != nil || base == "" {
+		return true
+	}
+	if base == branch {
+		return false
+	}
+	ahead, err := git.CountCommits(ctx, repoPath, "refs/heads/"+base+"..HEAD")
+	return err != nil || ahead > 0
 }
 
 func currentBranch(repoPath string) (git.Branch, bool, error) {
