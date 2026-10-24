@@ -267,17 +267,10 @@ func (p *Provider) LatestPipeline(ctx context.Context, project, sha string) (hos
 	return hostapi.Pipeline{ID: id, Status: combine(statuses), WebURL: p.webRoot() + project + "/commit/" + sha + "/checks"}, true, nil
 }
 
-// Jobs gets back the commit the pipeline id was made from. The checks
-// endpoints refuse an abbreviated SHA, so the commit endpoint, which accepts
-// one, supplies the full id first.
+// Jobs gets back the abbreviated commit the pipeline id was made from; the
+// host resolves it like any short SHA.
 func (p *Provider) Jobs(ctx context.Context, project string, pipelineID int64) ([]hostapi.Job, error) {
-	var c struct {
-		SHA string `json:"sha"`
-	}
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "commits", fmt.Sprintf("%015x", pipelineID)), nil, &c); err != nil {
-		return nil, hostapi.WithScope(err, scope)
-	}
-	return p.commitJobs(ctx, project, c.SHA)
+	return p.commitJobs(ctx, project, fmt.Sprintf("%0*x", pipelineIDChars, pipelineID))
 }
 
 func (p *Provider) commitJobs(ctx context.Context, project, ref string) ([]hostapi.Job, error) {
@@ -526,11 +519,16 @@ func duration(started, completed *string) time.Duration {
 
 // pipelineID is the first 15 hex digits of the SHA, which fit an int64 and
 // still name the commit to the host.
+// GitHub has no pipeline id, so a commit's is its SHA's first hex digits:
+// 13 of them, 52 bits, so the id survives being a JavaScript number in the
+// frontend (a 53-bit mantissa) and comes back exact.
+const pipelineIDChars = 13
+
 func pipelineID(sha string) (int64, error) {
-	if len(sha) < 15 {
+	if len(sha) < pipelineIDChars {
 		return 0, fmt.Errorf("%q is not a full commit id", sha)
 	}
-	return strconv.ParseInt(sha[:15], 16, 64)
+	return strconv.ParseInt(sha[:pipelineIDChars], 16, 64)
 }
 
 // webRoot is the pages' address: github.com for its own API host, else

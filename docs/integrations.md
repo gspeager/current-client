@@ -151,7 +151,6 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `GET /repos/:owner/:repo/pulls?state=closed` | The tab's **Closed** filter, once until the next refresh; one page of 50 | pull requests: read |
 | `GET /repos/:owner/:repo/pulls/:number/comments` | Refresh, for the checked-out branch's pull request; a change's **Threads** tab, once per change until the next refresh (review comments; the REST API doesn't say whether a thread is resolved, so none shows as resolved) | pull requests: read |
 | `GET /repos/:owner/:repo/pulls/:number/files` and `…/commits` | A change's **Files** or **Commits** tab, once per change until the next refresh | pull requests: read |
-| `GET /repos/:owner/:repo/commits/:sha` | Clicking a CI mark or a change's **Checks** tab: the full SHA for the abbreviated one the mark carries, before the job list below | repository: read |
 | `GET /repos/:owner/:repo/commits/:sha/check-runs` and `…/status` | Refresh, for open pull requests' heads; as commits scroll into view, once per commit until the next refresh; clicking a CI mark or a change's **Checks** tab for the job list. Check runs and commit statuses are read as one result | checks, commit statuses: read |
 | `GET /repos/:owner/:repo/actions/jobs/:id/logs` | Clicking a failed job; the host redirects to the log's storage, which is followed without the token | actions: read |
 | `GET /repos/:owner/:repo/issues/:number` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | issues: read |
