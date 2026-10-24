@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HostService, IdentityService, SettingsService } from '@current-client-bindings/app'
 import { DialogContext, type Dialogs } from '../../lib/useDialogs'
@@ -160,5 +160,45 @@ describe('SettingsPanel rail', () => {
     expect(within(rail).getByRole('button', { name: 'Integrations' })).toHaveClass('settings-rail-item-active')
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
     expect(screen.getByRole('dialog')).toHaveClass('settings-panel')
+  })
+
+  it('follows the scroll, reaching the last group at the end', async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    renderPanel(settingsWith())
+    const rail = screen.getByRole('navigation', { name: 'Settings sections' })
+    const body = document.querySelector('.settings-body') as HTMLElement
+    let tops: Record<string, number> = { Appearance: -400, Git: -100, 'Tools and folders': 200 }
+    for (const group of document.querySelectorAll('.settings-group')) {
+      vi.spyOn(group, 'getBoundingClientRect').mockImplementation(
+        () => ({ top: tops[group.getAttribute('aria-label') ?? ''] ?? 900 }) as DOMRect,
+      )
+    }
+    Object.defineProperties(body, {
+      scrollHeight: { value: 2000, configurable: true },
+      clientHeight: { value: 600, configurable: true },
+    })
+    const active = () => rail.querySelector('.settings-rail-item-active')
+
+    body.scrollTop = 100
+    fireEvent.scroll(body)
+    expect(active()).toHaveTextContent('Git')
+
+    tops = {
+      Appearance: -1200,
+      Git: -900,
+      'Tools and folders': -600,
+      Diff: -300,
+      Network: 0,
+      Integrations: 150,
+      'Identity colors': 300,
+      Support: 500,
+    }
+    body.scrollTop = 1400
+    fireEvent.scroll(body)
+    expect(active()).toHaveTextContent('Support')
+
+    await userEvent.click(within(rail).getByRole('button', { name: 'Integrations' }))
+    fireEvent.scroll(body)
+    expect(active()).toHaveTextContent('Integrations')
   })
 })

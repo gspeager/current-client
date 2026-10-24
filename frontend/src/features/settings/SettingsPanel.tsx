@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState, type UIEvent } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { SettingsService } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
@@ -72,9 +72,29 @@ function SettingsPanel({
     'Support',
   ]
 
+  // The scroll a pick causes keeps the pick, even for a group that can't reach the top.
+  const picked = useRef<string | null>(null)
+
   const showGroup = (title: string) => {
+    picked.current = title
     setSection(title)
     document.getElementById(settingsGroupId(title))?.scrollIntoView({ block: 'start' })
+  }
+
+  // The reading line slides to the bottom as the body nears its end, so the
+  // last groups, which never reach the top, still get their turn.
+  const followScroll = (e: UIEvent<HTMLDivElement>) => {
+    if (picked.current) {
+      picked.current = null
+      return
+    }
+    const body = e.currentTarget
+    const progress = body.scrollTop / Math.max(1, body.scrollHeight - body.clientHeight)
+    const line = body.getBoundingClientRect().top + 8 + progress * (body.clientHeight - 8)
+    const passed = groups.filter(
+      (title) => (document.getElementById(settingsGroupId(title))?.getBoundingClientRect().top ?? Infinity) <= line,
+    )
+    setSection(passed[passed.length - 1] ?? groups[0])
   }
 
   // Picks a file or folder, then saves it; an empty choice (dialog cancelled) does nothing.
@@ -116,7 +136,7 @@ function SettingsPanel({
             </button>
           ))}
         </nav>
-        <div className="settings-body">
+        <div className="settings-body" onScroll={followScroll}>
           {error && <p className="settings-error">{error}</p>}
 
           <SettingsGroup title="Appearance">
