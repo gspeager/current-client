@@ -207,6 +207,14 @@ func TestWrapResultNothingToCommitReadsStdoutNotStderr(t *testing.T) {
 	}
 }
 
+func TestWrapResultConflictReadsStdout(t *testing.T) {
+	stdout := "Auto-merging f\nCONFLICT (content): Merge conflict in f\nThe stash entry is kept in case you need it again."
+	err := WrapResult(Result{Stdout: stdout})
+	if err.Message != "The changes conflict. Resolve the conflicted files in Changes." {
+		t.Fatalf("Message = %q", err.Message)
+	}
+}
+
 func TestWrapResultUnknownFailureFallsBackToGenericMessage(t *testing.T) {
 	stderr := "some completely novel git error we've never seen before"
 	err := WrapResult(Result{Stderr: stderr})

@@ -37,8 +37,8 @@ func TestRebaseOntoLinearReplay(t *testing.T) {
 func TestRebaseOntoConflictLeavesConflictState(t *testing.T) {
 	dir := initConflictRepo(t)
 
-	if err := RebaseOnto(context.Background(), dir, "theirs"); err == nil {
-		t.Fatal("expected an error rebasing onto a conflicting branch")
+	if err := RebaseOnto(context.Background(), dir, "theirs"); err != nil {
+		t.Fatalf("RebaseOnto stopped on conflicts: %v, want no error", err)
 	}
 
 	state, err := DetectConflictState(context.Background(), dir)

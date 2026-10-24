@@ -1,6 +1,10 @@
 package git
 
-import "context"
+import (
+	"context"
+
+	"github.com/gspeager/current-client/core/gitexec"
+)
 
 func CherryPick(ctx context.Context, repoPath, sha string) error {
 	return applyCommit(ctx, repoPath, "cherry-pick", sha)
@@ -21,6 +25,6 @@ func applyCommit(ctx context.Context, repoPath, command, sha string) error {
 	if parents > 1 {
 		args = append(args, "-m", "1")
 	}
-	_, err = runResult(ctx, repoPath, append(args, sha)...)
+	_, err = runStoppable(ctx, gitexec.Command{Dir: repoPath, Args: append(args, sha)})
 	return err
 }

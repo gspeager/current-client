@@ -267,6 +267,32 @@ func TestContinueConflictOperationFailsWhileConflictsRemain(t *testing.T) {
 	}
 }
 
+func TestContinueConflictOperationStoppingOnTheNextCommitIsNoError(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "base\n", "initial a")
+	gittest.CommitFile(t, dir, "b.txt", "base\n", "initial b")
+	gittest.Run(t, dir, "checkout", "-q", "-b", "theirs")
+	gittest.CommitFile(t, dir, "a.txt", "theirs\n", "theirs a")
+	gittest.CommitFile(t, dir, "b.txt", "theirs\n", "theirs b")
+	gittest.Run(t, dir, "checkout", "-q", "main")
+	gittest.CommitFile(t, dir, "a.txt", "ours\n", "ours a")
+	gittest.CommitFile(t, dir, "b.txt", "ours\n", "ours b")
+	runGitExpectFailure(t, dir, "rebase", "theirs")
+	gittest.WriteFile(t, dir, "a.txt", "resolved\n")
+	gittest.Run(t, dir, "add", "a.txt")
+
+	if err := ContinueConflictOperation(context.Background(), dir, ConflictRebase); err != nil {
+		t.Fatalf("ContinueConflictOperation stopped on b.txt: %v, want no error", err)
+	}
+	state, err := DetectConflictState(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("DetectConflictState: %v", err)
+	}
+	if state.Operation != ConflictRebase || len(state.ConflictedPaths) != 1 || state.ConflictedPaths[0] != "b.txt" {
+		t.Fatalf("got %+v, want the rebase stopped on b.txt", state)
+	}
+}
+
 func TestContinueConflictOperationNoOperationInProgress(t *testing.T) {
 	dir := initConflictRepo(t)
 	if err := ContinueConflictOperation(context.Background(), dir, ConflictNone); err == nil {

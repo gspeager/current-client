@@ -47,6 +47,7 @@ Host integration arrives in this release, for GitLab (gitlab.com and Self-Manage
 - Code shows operators as typed. JetBrains Mono drew `<-` as an arrow and `!=` as ≠, and `->`, `>=` and `==` the same way, in diffs and all other monospaced text. ([#242](https://github.com/gspeager/current-client/issues/242))
 - Settings' side list selects the group you've scrolled to, instead of only the one last clicked. ([#244](https://github.com/gspeager/current-client/issues/244))
 - Activity's Contributors card shows its chart for a repository with one author, a full ring, instead of a line in an otherwise empty card. ([#246](https://github.com/gspeager/current-client/issues/246))
+- A merge, rebase, cherry-pick, revert or pull that stops on conflicts no longer also shows "Git command failed."; the conflict banner says what's next. A squash merge or stash pop that stops says the changes conflict. ([#250](https://github.com/gspeager/current-client/issues/250))
 
 ### What works at each level of access
 

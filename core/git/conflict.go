@@ -111,6 +111,24 @@ func ContinueWithMessage(ctx context.Context, repoPath string, op ConflictOperat
 	return ContinueConflictOperation(ctx, repoPath, op)
 }
 
+// runStoppable runs a command that can stop on conflicts. A stop that leaves
+// the operation in progress isn't a failure: the conflict banner finishes it.
+func runStoppable(ctx context.Context, cmd gitexec.Command) (gitexec.Result, error) {
+	result, err := gitexec.NewExecutor("").Run(ctx, cmd)
+	if err != nil {
+		return gitexec.Result{}, gitexec.WrapRunError(err)
+	}
+	if result.ExitCode == 0 {
+		return result, nil
+	}
+	if strings.Contains(result.Stdout, "CONFLICT (") {
+		if state, err := DetectConflictState(ctx, cmd.Dir); err == nil && state.Operation != ConflictNone {
+			return result, nil
+		}
+	}
+	return gitexec.Result{}, gitexec.WrapResult(result)
+}
+
 func conflictOperation(dir string) ConflictOperation {
 	switch {
 	case fileExists(filepath.Join(dir, "MERGE_HEAD")):
@@ -289,7 +307,7 @@ func ContinueConflictOperation(ctx context.Context, repoPath string, op Conflict
 	if err != nil {
 		return err
 	}
-	_, err = gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	_, err = runStoppable(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: args,
 		Env:  []string{"GIT_EDITOR=true"},
