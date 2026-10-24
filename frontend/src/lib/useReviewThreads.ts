@@ -26,9 +26,14 @@ const NONE: ReviewThreadsView = {
 }
 
 // The checked-out branch's review threads, from the last refresh. Reading
-// them never contacts the host.
-export function useReviewThreads(repoPath: string, refreshKey?: unknown): ReviewThreadsView {
-  const { data } = useAsyncData(() => HostService.ReviewThreads(repoPath), [repoPath], { refreshKey, keepData: true })
+// them never contacts the host. With at, only those on files that are the same
+// at that commit as at the change's head, where their lines still match.
+export function useReviewThreads(repoPath: string, refreshKey?: unknown, at?: string): ReviewThreadsView {
+  const { data } = useAsyncData(
+    () => (at === undefined ? HostService.ReviewThreads(repoPath) : HostService.ReviewThreadsAt(repoPath, at)),
+    [repoPath, at],
+    { refreshKey, keepData: at === undefined },
+  )
   return useMemo(() => (data ? groupThreads(data) : NONE), [data])
 }
 

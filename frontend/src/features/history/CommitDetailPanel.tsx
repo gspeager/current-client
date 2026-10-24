@@ -37,6 +37,8 @@ interface CommitDetailPanelProps {
   // The file whose diff History shows in place of the graph.
   openedPath?: string | null
   onOpenFile?: (path: string) => void
+  // Unresolved review threads per file.
+  threadCounts?: Record<string, number | undefined>
 }
 
 function CommitDetailPanel({
@@ -51,6 +53,7 @@ function CommitDetailPanel({
   actionError = null,
   openedPath = null,
   onOpenFile,
+  threadCounts,
 }: CommitDetailPanelProps) {
   useClockTick()
   const moreRef = useDismissibleDetails()
@@ -206,6 +209,7 @@ function CommitDetailPanel({
                 selected={openedPath === f.path}
                 onSelect={() => onOpenFile?.(f.path)}
                 onContextMenu={fileContextMenu(f)}
+                threads={threadCounts?.[f.path]}
               />
             ))}
           </ul>
