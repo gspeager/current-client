@@ -6,6 +6,9 @@ import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark, { ciLabel, PipelineJobList } from '../../components/git/CIMark'
 import DiffStat from '../../components/git/DiffStat'
 import HostMarkdown from '../../components/git/HostMarkdown'
+import ReferenceText from '../../components/git/ReferenceText'
+import { useHostLinks } from '../../lib/useHostLinks'
+import { useReferenceCards } from '../../lib/useReferenceCards'
 import PathText from '../../components/git/PathText'
 import ReviewSummary, { reviewGroups, reviewRequestedOf } from '../../components/git/ReviewSummary'
 import StatusBadge from '../../components/git/StatusBadge'
@@ -251,11 +254,16 @@ interface ChangeDetailProps {
   onBranchChanged: () => void
 }
 
+const NO_CHANGES = {}
+
 function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailProps) {
   const { data: details } = useAsyncData(
     () => HostService.ChangeDetails(repoPath, change.number),
     [repoPath, change.number],
   )
+  const hostLinks = useHostLinks(repoPath)
+  const closes = useMemo(() => details?.closes ?? [], [details?.closes])
+  const closesCards = useReferenceCards(repoPath, closes, NO_CHANGES)
   const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath])
   const { data: marks } = useAsyncData(
     () => (change.headSha ? HostService.CIStatus(repoPath, [change.headSha]) : null),
@@ -322,6 +330,14 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
           {change.sourceProject ? `${change.sourceProject}:` : ''}
           {change.sourceBranch} → {change.targetBranch}
         </dd>
+        {closes.length > 0 && (
+          <>
+            <dt>Closes</dt>
+            <dd className="host-change-facts-closes">
+              <ReferenceText text={closes.join(', ')} links={hostLinks} cards={closesCards} />
+            </dd>
+          </>
+        )}
         <dt>Reviews</dt>
         <dd className="host-change-facts-reviews">
           {reviews.length > 0

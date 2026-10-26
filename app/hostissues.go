@@ -5,10 +5,12 @@ package app
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
+	"github.com/gspeager/current-client/core/hostcontent"
 )
 
 // IssueInfo is what a hover card shows for an issue reference. Title is
@@ -22,10 +24,83 @@ type IssueInfo struct {
 }
 
 const (
-	cacheIssue    = "issue"
-	cacheAssigned = "assigned"
-	issueBatchCap = 50
+	cacheIssue         = "issue"
+	cacheAssigned      = "assigned"
+	cacheIssueDetails  = "issueDetails"
+	cacheIssueComments = "issueComments"
+	issueBatchCap      = 50
 )
+
+// IssueDetails is the issue panel: the issue with its description rendered,
+// and its comments. Both are asked for the first time the panel opens and
+// kept until the next refresh.
+type IssueDetails struct {
+	Issue           hostapi.IssueDetails `json:"issue"`
+	Reference       string               `json:"reference"`
+	DescriptionHTML string               `json:"descriptionHtml"`
+	Comments        []IssueComment       `json:"comments"`
+}
+
+type IssueComment struct {
+	Author    hostapi.User `json:"author"`
+	BodyHTML  string       `json:"bodyHtml"`
+	CreatedAt time.Time    `json:"createdAt"`
+}
+
+func (s *HostService) IssueDetails(repoPath, key string) (IssueDetails, error) {
+	_, info, ok, err := primaryHost(repoPath)
+	if err != nil {
+		return IssueDetails{}, err
+	}
+	if !ok || !info.Enabled {
+		return IssueDetails{}, errors.New("integration is off for this repository's host")
+	}
+	tracker := issueTrackerFor(info)
+	if tracker == nil {
+		return IssueDetails{}, errors.New("no issue tracker for this host yet")
+	}
+	issue, err := cachedOrFetched(info, repoPath, cacheIssueDetails, key, func(ctx context.Context, _ hostapi.Provider) (hostapi.IssueDetails, error) {
+		issue, err := tracker.IssueDetails(ctx, info.Project, key)
+		if err == nil {
+			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, key,
+				IssueInfo{Number: issue.Number, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
+		}
+		return issue, err
+	})
+	if err != nil {
+		return IssueDetails{}, err
+	}
+	notes, err := cachedOrFetched(info, repoPath, cacheIssueComments, key, func(ctx context.Context, _ hostapi.Provider) ([]hostapi.Note, error) {
+		return tracker.IssueComments(ctx, info.Project, key)
+	})
+	if err != nil {
+		return IssueDetails{}, err
+	}
+	webRoot := "https://" + info.Hostname + "/"
+	details := IssueDetails{Issue: issue, Reference: tracker.Reference(key), DescriptionHTML: hostcontent.RenderMarkdown(issue.Description, webRoot)}
+	for _, n := range notes {
+		details.Comments = append(details.Comments, IssueComment{Author: n.Author, BodyHTML: hostcontent.RenderMarkdown(n.Body, webRoot), CreatedAt: n.CreatedAt})
+	}
+	return details, nil
+}
+
+var closingWords = `(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+`
+
+// closedIssues is the references a description says the change closes,
+// each once, in order: "Closes #12", "fixes #7", "Resolves: #3".
+func closedIssues(description string, tracker hostapi.IssueTracker) []string {
+	pattern := regexp.MustCompile(closingWords + tracker.KeyPattern().String())
+	var refs []string
+	seen := map[string]bool{}
+	for _, m := range pattern.FindAllStringSubmatch(description, -1) {
+		ref := tracker.Reference(m[1])
+		if !seen[ref] {
+			seen[ref] = true
+			refs = append(refs, ref)
+		}
+	}
+	return refs
+}
 
 // IssueTitles reads the cache only: what the last fetch learned about each
 // number, keyed by number.

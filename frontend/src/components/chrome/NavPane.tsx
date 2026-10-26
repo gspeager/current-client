@@ -16,6 +16,7 @@ import {
 import type { ConflictStateInfo } from '@current-client-bindings/app'
 import BranchSidebar from '../../features/branches/BranchSidebar'
 import CurrentChangeSection from '../../features/branches/CurrentChangeSection'
+import CurrentIssueSection from '../../features/branches/CurrentIssueSection'
 import HeadCommitPanel from '../../features/working-copy/HeadCommitPanel'
 import RemotesPanel from '../../features/remotes/RemotesPanel'
 import StashPanel from '../../features/branches/StashPanel'
@@ -208,6 +209,7 @@ function NavPane({
           onCreateChange={onCreateChange}
           onPushToCreate={onPushToCreate}
         />
+        <CurrentIssueSection repoPath={repoPath} refreshKey={`${repoVersion}:${hostVersion}`} />
 
         <section className="nav-pane-section" ref={sectionRef('branches')}>
           <BranchSidebar

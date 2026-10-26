@@ -148,6 +148,22 @@ type issue struct {
 	PullRequest *struct {
 		URL string `json:"url"`
 	} `json:"pull_request"`
+	Body   string `json:"body"`
+	Labels []struct {
+		Name string `json:"name"`
+	} `json:"labels"`
+	Milestone *struct {
+		Title string `json:"title"`
+	} `json:"milestone"`
+	User      user      `json:"user"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type issueComment struct {
+	User      user      `json:"user"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type rule struct {
@@ -411,8 +427,57 @@ func (p *Provider) KeyPattern() *regexp.Regexp {
 	return hostapi.NumberedKeys
 }
 
+func (p *Provider) KeyInBranch(branch string) string {
+	return hostapi.NumberedBranchKey(branch)
+}
+
+func (p *Provider) Reference(key string) string {
+	return hostapi.NumberedReference(key)
+}
+
+func (p *Provider) IssueDetails(ctx context.Context, project, key string) (hostapi.IssueDetails, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return hostapi.IssueDetails{}, err
+	}
+	var is issue
+	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", strconv.Itoa(number)), nil, &is); err != nil {
+		return hostapi.IssueDetails{}, hostapi.WithScope(err, scope)
+	}
+	return toIssueDetails(is), nil
+}
+
+func (p *Provider) IssueComments(ctx context.Context, project, key string) ([]hostapi.Note, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return nil, err
+	}
+	var page []issueComment
+	query := url.Values{"per_page": {"100"}}
+	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", strconv.Itoa(number), "comments"), query, &page); err != nil {
+		return nil, hostapi.WithScope(err, scope)
+	}
+	notes := make([]hostapi.Note, 0, len(page))
+	for _, c := range page {
+		notes = append(notes, hostapi.Note{Author: toUser(c.User), Body: c.Body, CreatedAt: c.CreatedAt})
+	}
+	return notes, nil
+}
+
 func toIssue(is issue) hostapi.Issue {
 	return hostapi.Issue{Key: strconv.Itoa(is.Number), Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}
+}
+
+func toIssueDetails(is issue) hostapi.IssueDetails {
+	labels := make([]string, 0, len(is.Labels))
+	for _, l := range is.Labels {
+		labels = append(labels, l.Name)
+	}
+	out := hostapi.IssueDetails{Issue: toIssue(is), Description: is.Body, Labels: labels, Author: toUser(is.User), CreatedAt: is.CreatedAt, UpdatedAt: is.UpdatedAt}
+	if is.Milestone != nil {
+		out.Milestone = is.Milestone.Title
+	}
+	return out
 }
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {

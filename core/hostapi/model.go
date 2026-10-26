@@ -155,6 +155,18 @@ type Issue struct {
 	WebURL string `json:"webUrl"`
 }
 
+// IssueDetails is what an issue's panel shows beyond the summary. It is a
+// type of its own so Issue stays comparable.
+type IssueDetails struct {
+	Issue
+	Description string    `json:"description"`
+	Labels      []string  `json:"labels"`
+	Milestone   string    `json:"milestone"`
+	Author      User      `json:"author"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
 // IssueTracker is where a repository's issues live: the code host itself,
 // or a tracker beside it such as Jira. Every issue feature reads through
 // it, so a tracker that isn't the host has somewhere to go. It adds no
@@ -166,9 +178,19 @@ type IssueTracker interface {
 	// most recently updated first.
 	AssignedIssues(ctx context.Context, project, username string) ([]Issue, error)
 	// KeyPattern matches one reference in text, with the key in group 1,
-	// so the app can find issues in branch names, commit messages and
-	// change titles.
+	// so the app can find issues in commit messages and change titles.
 	KeyPattern() *regexp.Regexp
+	// KeyInBranch is the key a branch is named after ("123-fix-login",
+	// "PROJ-123-fix-login"), or "".
+	KeyInBranch(branch string) string
+	// Reference is how text names the key: "#123", "PROJ-123".
+	Reference(key string) string
+	// IssueDetails is the issue with its description, labels, milestone
+	// and author, for its panel.
+	IssueDetails(ctx context.Context, project, key string) (IssueDetails, error)
+	// IssueComments is the discussion on an issue, oldest first, without
+	// the tracker's own system notes.
+	IssueComments(ctx context.Context, project, key string) ([]Note, error)
 }
 
 // BranchRule is what the host forbids on branches matching Pattern, which

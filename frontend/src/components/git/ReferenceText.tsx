@@ -4,6 +4,7 @@ import type { Links } from '@current-client-bindings/core/hostlink'
 import { splitReferences, type HostReference } from '../../lib/hostReferences'
 import type { ReferenceCardInfo, ReferenceCards } from '../../lib/useReferenceCards'
 import HoverCard from '../chrome/HoverCard'
+import { useOpenIssue } from '../../lib/issuePanel'
 import './ReferenceText.scss'
 
 interface ReferenceLinkProps {
@@ -13,13 +14,17 @@ interface ReferenceLinkProps {
   children?: ReactNode
 }
 
-// The page opens in the user's browser; the row underneath must not also act
-// on the click.
+// An issue reference opens its panel while the host is on; anything else,
+// or with the host off, opens the page in the user's browser. The row
+// underneath must not also act on the click.
 export function ReferenceLink({ reference, card, children }: ReferenceLinkProps) {
+  const openIssue = useOpenIssue()
+  const issueKey = /^#(\d+)$/.exec(reference.text)?.[1]
   const open = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    void PlatformService.OpenWebPage(reference.url)
+    if (openIssue && issueKey) openIssue(issueKey)
+    else void PlatformService.OpenWebPage(reference.url)
   }
   const link = (
     <a className="reference-link" href={reference.url} title={card ? undefined : reference.url} onClick={open}>
