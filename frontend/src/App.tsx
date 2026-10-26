@@ -369,14 +369,16 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               defaultRepoLocation={settings.settings?.defaultRepoLocation ?? ''}
               accessory={headerAccessory}
             />
-            <TabBar
-              active={activeTab}
-              onChange={changeTab}
-              showChangelog={conventionalCommitsOn}
-              changesLabel={changesLabel}
-              changedCount={workingTree.files?.length ?? 0}
-              conflictCount={conflictState?.conflictedPaths.length ?? 0}
-            />
+            {!inboxOpen && (
+              <TabBar
+                active={activeTab}
+                onChange={changeTab}
+                showChangelog={conventionalCommitsOn}
+                changesLabel={changesLabel}
+                changedCount={workingTree.files?.length ?? 0}
+                conflictCount={conflictState?.conflictedPaths.length ?? 0}
+              />
+            )}
 
             {conflictState && (
               <ConflictBanner
