@@ -1,38 +1,33 @@
 @use '../../styles/patterns';
 
-// design-system.md: CI is a 3px square in the status color; never HEAD's cyan.
-.ci-mark {
+// design-system.md: a CI result is an icon in its status color, never color
+// alone, and never HEAD's cyan.
+.ci-icon {
   flex-shrink: 0;
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border: none;
-  border-radius: 3px;
-  background: var(--outline);
-  cursor: pointer;
+  color: var(--outline);
 
-  &.ci-mark-success {
-    background: var(--tertiary);
+  &.ci-icon-success {
+    color: var(--tertiary);
   }
 
-  &.ci-mark-failed {
-    background: var(--error);
+  &.ci-icon-failed {
+    color: var(--error);
   }
 
-  &.ci-mark-canceled {
-    background: var(--warning);
-  }
-
-  &.ci-mark-running,
-  &.ci-mark-pending {
-    background: transparent;
-    border: 1.5px solid var(--outline);
+  &.ci-icon-canceled {
+    color: var(--warning);
   }
 }
 
-span.ci-mark {
-  cursor: default;
+.ci-mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
 }
 
 .ci-jobs {
@@ -54,7 +49,7 @@ span.ci-mark {
 .ci-job,
 .ci-job-row {
   display: grid;
-  grid-template-columns: 8px minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: 14px minmax(0, 1fr) max-content max-content max-content;
   align-items: center;
   gap: var(--space-sm);
   min-height: var(--h-row);

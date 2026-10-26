@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, SyntheticEvent } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
@@ -14,6 +14,10 @@ interface ModalProps {
   children: ReactNode
 }
 
+// A dialog opened from inside a clickable row is portaled out of it in the
+// DOM, but React still bubbles its events up the component tree.
+const stopPropagation = (e: SyntheticEvent) => e.stopPropagation()
+
 function Modal({
   title,
   onClose,
@@ -27,7 +31,11 @@ function Modal({
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal container={element}>
-        <Dialog.Overlay className={`modal-overlay modal-overlay-${placement}`}>
+        <Dialog.Overlay
+          className={`modal-overlay modal-overlay-${placement}`}
+          onClick={stopPropagation}
+          onContextMenu={stopPropagation}
+        >
           <Dialog.Content className={`modal-panel ${className}`} aria-describedby={undefined}>
             {hideHeader ? (
               <Dialog.Title className="modal-hidden-title">{title}</Dialog.Title>

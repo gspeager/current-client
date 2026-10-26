@@ -181,6 +181,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: var(--space-xs);
   height: var(--h-row-tree);
   padding: 0 var(--space-xs);
   border-radius: var(--radius);
@@ -231,7 +232,6 @@
 }
 
 .branch-row-remote {
-  gap: var(--space-xs);
   color: var(--on-surface-variant);
 }
 
@@ -256,7 +256,6 @@
 
 .branch-row-head {
   flex-shrink: 0;
-  margin-left: var(--space-xs);
   padding: 1px var(--space-xs);
   background: var(--primary);
   border-radius: var(--radius-xs);
@@ -271,7 +270,6 @@
 
 .branch-row-mode {
   flex-shrink: 0;
-  margin-left: var(--space-xs);
   padding: 0 var(--space-xs);
   border: 1px solid var(--error);
   border-radius: 3px;
@@ -281,7 +279,6 @@
 
 .branch-conflicts-badge {
   flex-shrink: 0;
-  margin-left: var(--space-xs);
   padding: 0 var(--space-xs);
   border: 1px solid var(--error);
   border-radius: 3px;
