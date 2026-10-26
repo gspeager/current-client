@@ -105,9 +105,11 @@ function HistoryView({
     return () => clearTimeout(timeout)
   }, [newShas])
 
-  const { data: branches } = useAsyncData(
-    () => BranchService.ListLocal(repoPath).then((result) => result.map((b) => b.name)),
-    [repoPath],
+  const { data: localBranches } = useAsyncData(() => BranchService.ListLocal(repoPath), [repoPath])
+  const branches = useMemo(() => localBranches?.map((b) => b.name), [localBranches])
+  const upstreams = useMemo(
+    () => Object.fromEntries((localBranches ?? []).filter((b) => b.upstream).map((b) => [b.name, b.upstream])),
+    [localBranches],
   )
 
   // A saved branch that's since been deleted, or belongs to another repository.
@@ -261,6 +263,7 @@ function HistoryView({
                       rowHeight={ROW_HEIGHT}
                       identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
                       refs={refsBySha.get(commit.sha)}
+                      upstreams={upstreams}
                       selected={commit.sha === selectedSha}
                       dimmed={focusedAncestors !== null && !focusedAncestors.has(commit.sha)}
                       isNew={newShas.has(commit.sha)}
