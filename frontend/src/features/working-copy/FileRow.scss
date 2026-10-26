@@ -51,6 +51,15 @@
   gap: var(--space-xs);
 }
 
+// Owners shorten before the counts do.
+.file-row-owners {
+  min-width: 0;
+  max-width: 140px;
+  @include patterns.truncate;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
 .file-row-tag {
   flex-shrink: 0;
   color: var(--outline);

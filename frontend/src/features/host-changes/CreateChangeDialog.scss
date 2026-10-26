@@ -12,3 +12,15 @@
   font: var(--ui-sm);
   line-height: 1.5;
 }
+
+.create-change-reviewers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.create-change-reviewers-hint {
+  color: var(--outline);
+  font: var(--ui-xs);
+}

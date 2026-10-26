@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { HostService, RemoteService, type ChangeDraft } from '@current-client-bindings/app'
+import { CodeownersService, HostService, RemoteService, type ChangeDraft } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
 import Switch from '../../components/forms/Switch'
 import { errorMessage } from '../../lib/errors'
@@ -58,6 +58,12 @@ function CreateChangeForm({ repoPath, draft, onCreated, onClose }: CreateChangeF
   const [error, setError] = useState<string | null>(null)
   const kind = draft.kind
   const needsPush = !draft.hasUpstream
+  // CODEOWNERS owners of what the branch changes against the target; local only.
+  const { data: reviewers } = useAsyncData(
+    () => CodeownersService.SuggestedReviewers(repoPath, draft.branch, target.trim()).catch(() => []),
+    [repoPath, draft.branch, target],
+    { keepData: true },
+  )
   const canSubmit = title.trim() !== '' && target.trim() !== '' && !running
 
   // A branch without an upstream is pushed first, with Git's own sign-in prompt if the remote asks.
@@ -100,6 +106,12 @@ function CreateChangeForm({ repoPath, draft, onCreated, onClose }: CreateChangeF
             spellCheck={false}
           />
         </label>
+        {reviewers && reviewers.length > 0 && (
+          <p className="dialog-message create-change-reviewers">
+            Suggested reviewers <span className="dialog-result">{reviewers.join(' ')}</span>
+            <span className="create-change-reviewers-hint">Code owners of the changed files</span>
+          </p>
+        )}
         <label className="dialog-field">
           <span className="dialog-message">Description</span>
           <textarea

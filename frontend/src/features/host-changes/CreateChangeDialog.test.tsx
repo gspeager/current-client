@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ChangeDraft, HostService, RemoteService } from '@current-client-bindings/app'
+import { ChangeDraft, CodeownersService, HostService, RemoteService } from '@current-client-bindings/app'
 import { Change } from '@current-client-bindings/core/hostapi'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import CreateChangeDialog from './CreateChangeDialog'
@@ -31,6 +31,23 @@ function renderDialog(onCreated = vi.fn()) {
 }
 
 describe('CreateChangeDialog', () => {
+  it('suggests the code owners of the changed files as reviewers, for the typed target', async () => {
+    vi.mocked(HostService.ChangeDraft).mockResolvedValue(draft)
+    vi.mocked(CodeownersService.SuggestedReviewers).mockResolvedValue(['@alice', '@docs/team'])
+    renderDialog()
+
+    expect(await screen.findByText('@alice @docs/team')).toBeInTheDocument()
+    expect(CodeownersService.SuggestedReviewers).toHaveBeenCalledWith('/repos/app', 'feature', 'main')
+    expect(screen.getByText('Code owners of the changed files')).toBeInTheDocument()
+
+    const target = screen.getByRole('textbox', { name: 'Target branch' })
+    await userEvent.clear(target)
+    await userEvent.type(target, 'develop')
+    await vi.waitFor(() =>
+      expect(CodeownersService.SuggestedReviewers).toHaveBeenLastCalledWith('/repos/app', 'feature', 'develop'),
+    )
+  })
+
   it('prefills from the draft and creates with what was entered', async () => {
     vi.mocked(HostService.ChangeDraft).mockResolvedValue(draft)
     vi.mocked(HostService.CreateChange).mockResolvedValue(new Change({ number: 9 }))
