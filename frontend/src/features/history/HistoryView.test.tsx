@@ -141,6 +141,27 @@ describe('HistoryView', () => {
     ])
   })
 
+  it('follows only first parents when the toggle is on, saving the choice and drawing one lane', async () => {
+    const merge = commit('c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2', 'Merge feature', [history[0].sha, 'side'])
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue([merge, ...history])
+    vi.mocked(HistoryService.ComputeGraphLayout).mockResolvedValue([])
+    const onFirstParentChange = vi.fn()
+    renderHistory({ onFirstParentChange })
+
+    await screen.findByRole('button', { name: /Merge feature/ })
+    expect(vi.mocked(HistoryService.GetHistory).mock.lastCall?.[3]).toMatchObject({ firstParent: false })
+    expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].parentShas).toHaveLength(2)
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'First parent only' }))
+    expect(onFirstParentChange).toHaveBeenCalledWith(true)
+    await vi.waitFor(() =>
+      expect(vi.mocked(HistoryService.GetHistory).mock.lastCall?.[3]).toMatchObject({ firstParent: true }),
+    )
+    await vi.waitFor(() =>
+      expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].parentShas).toEqual([history[0].sha]),
+    )
+  })
+
   it('highlights one author’s commits, dimming the rest with the graph unchanged, and clears again', async () => {
     const byGrace = {
       ...commit('c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2', 'Add tests', [history[0].sha]),

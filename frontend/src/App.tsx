@@ -474,6 +474,8 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   initialRef={focus?.ref ?? null}
                   defaultRef={refFromSaved(settings.settings?.historyBranchFilter)}
                   onRefChange={(ref) => settings.setHistoryBranchFilter(savedFromRef(ref))}
+                  firstParent={settings.settings?.historyFirstParent ?? false}
+                  onFirstParentChange={settings.setHistoryFirstParent}
                   onBranchChanged={onBranchChanged}
                   previousTopSha={restored.historyTopSha}
                   onTopShaChange={(sha) => remember({ historyTopSha: sha })}

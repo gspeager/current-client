@@ -37,6 +37,8 @@ interface HistoryViewProps {
   // The branch filter to open with, and where a change to it is saved.
   defaultRef?: string
   onRefChange?: (ref: string) => void
+  firstParent?: boolean
+  onFirstParentChange?: (on: boolean) => void
   onBranchChanged?: () => void
   // App keeps the last-seen top SHA across remounts so new commits can flash.
   previousTopSha?: string | null
@@ -56,14 +58,16 @@ function HistoryView({
   initialRef = null,
   defaultRef = ALL_BRANCHES,
   onRefChange,
+  firstParent = false,
+  onFirstParentChange,
   onBranchChanged,
   previousTopSha,
   onTopShaChange,
   onSelectedShaChange,
 }: HistoryViewProps) {
-  const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef })
+  const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef, firstParent })
   const { commits, loading, done, error, loadMore } = useCommitHistory(repoPath, filter, initialLoadThrough)
-  const graphNodes = useCommitGraph(commits)
+  const graphNodes = useCommitGraph(commits, filter.firstParent)
   const refsBySha = useRefBadges(repoPath)
   const hostLinks = useHostLinks(repoPath)
   // History remounts on every ref move, so the repository path is the only key.
@@ -125,6 +129,7 @@ function HistoryView({
 
   const changeFilter = (next: typeof filter) => {
     if (next.ref !== filter.ref) onRefChange?.(next.ref)
+    if (next.firstParent !== filter.firstParent) onFirstParentChange?.(next.firstParent)
     setFilter(next)
   }
 
