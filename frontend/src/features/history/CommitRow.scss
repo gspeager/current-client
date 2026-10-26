@@ -1,26 +1,64 @@
 @use '../../styles/patterns';
 
-// design-system.md §5.4 commit row grid contract.
+// design-system.md §5.4 commit row grid contract: graph, commit, author,
+// hash, CI, time. The More actions button takes the time's cell while the
+// row is hovered or focused.
 .commit-row {
   display: grid;
-  grid-template-columns: 108px minmax(0, 1fr) 150px 116px;
+  grid-template-columns: 108px minmax(0, 1fr) 150px 64px 20px 72px;
   align-items: center;
   gap: var(--space-sm);
   padding: 0 var(--space-md);
   cursor: pointer;
   color: var(--on-surface);
 
-  &:hover {
+  &:hover,
+  &:focus-within {
     background: var(--surface-container);
 
+    .commit-row-time {
+      display: none;
+    }
+
     .commit-row-actions {
-      opacity: 1;
+      display: flex;
     }
   }
 }
 
+// Narrow lists keep the subject: the author column drops to the badge.
+@container (max-width: 720px) {
+  .commit-row {
+    grid-template-columns: 108px minmax(0, 1fr) 18px 64px 20px 72px;
+  }
+
+  .commit-row-author-name {
+    display: none;
+  }
+}
+
 .commit-row-actions {
-  @include patterns.row-actions;
+  grid-column: 6;
+  display: none;
+  justify-content: flex-end;
+  height: 100%;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--h-row-tree);
+    height: 100%;
+    background: none;
+    border: none;
+    color: var(--outline);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface-high);
+      color: var(--on-surface);
+    }
+  }
 }
 
 .commit-row-selected {
@@ -82,23 +120,23 @@
   font: var(--data-sm);
 }
 
-// Leaves room for the hover button, so the SHA and time never wrap under it.
-.commit-row-hash {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  padding-right: calc(var(--h-row-tree) + var(--space-xs));
-  text-align: right;
-}
-
 .commit-row-sha {
   color: var(--primary);
   font: var(--data-sm);
 }
 
+// Always rendered, so the icons line up down the list.
+.commit-row-ci {
+  display: flex;
+  justify-content: center;
+}
+
 .commit-row-time {
+  grid-column: 6;
+  text-align: right;
   color: var(--outline);
   font: var(--ui-xs);
+  white-space: nowrap;
 }
 
 .commit-row-type {

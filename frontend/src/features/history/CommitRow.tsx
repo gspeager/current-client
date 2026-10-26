@@ -15,6 +15,7 @@ import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import CIMark from '../../components/git/CIMark'
 import RefBadge from './RefBadge'
+import { pairUpstreams } from './refPills'
 import './CommitRow.scss'
 
 interface CommitRowProps {
@@ -24,6 +25,7 @@ interface CommitRowProps {
   rowHeight: number
   identity?: IdentityInfo
   refs?: RefInfo[]
+  upstreams?: Record<string, string>
   selected: boolean
   dimmed?: boolean
   isNew?: boolean
@@ -48,6 +50,7 @@ function CommitRow({
   rowHeight,
   identity,
   refs,
+  upstreams,
   selected,
   dimmed = false,
   isNew = false,
@@ -98,14 +101,15 @@ function CommitRow({
       <div className="commit-row-commit">
         {refs && refs.length > 0 && (
           <span className="commit-row-refs">
-            {refs.map((r) => (
+            {pairUpstreams(refs, upstreams).map(({ ref: r, upstream }) => (
               <RefBadge
                 key={`${r.kind}-${r.name}`}
                 refInfo={r}
+                upstream={upstream}
                 color={laneColor(graphNode?.lane ?? 0)}
                 onClick={onFocusRef}
                 active={focusedSha === r.sha}
-                change={r.kind === 'remote' ? changes?.[r.name] : undefined}
+                change={changes?.[upstream?.name ?? (r.kind === 'remote' ? r.name : '')]}
               />
             ))}
           </span>
@@ -128,12 +132,11 @@ function CommitRow({
         <span className="commit-row-author-name">{highlightMatch(commit.authorName, searchQuery, 'search-match')}</span>
       </div>
 
-      <div className="commit-row-hash">
-        <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
+      <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
+      <span className="commit-row-ci">
         <CIMark repoPath={repoPath} mark={ci} />
-        <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
-      </div>
-
+      </span>
+      <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
       <span className="commit-row-actions">
         <button
           type="button"
