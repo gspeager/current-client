@@ -192,18 +192,6 @@ function HeaderBar({
 
   return (
     <header className="header-bar">
-      {onToggleInbox && (
-        <button
-          type="button"
-          className={inboxOpen ? 'header-bar-inbox header-bar-inbox-open' : 'header-bar-inbox'}
-          aria-pressed={inboxOpen}
-          title="What waits on you across the open repositories"
-          onClick={onToggleInbox}
-        >
-          <Inbox size={14} strokeWidth={1.5} />
-          Inbox
-        </button>
-      )}
       <div className="header-bar-tabs" aria-label="Open repositories">
         {repo.tabs.map((path) =>
           path === repoPath ? (
@@ -348,6 +336,19 @@ function HeaderBar({
       </button>
 
       {accessory}
+
+      {onToggleInbox && (
+        <button
+          type="button"
+          className={inboxOpen ? 'header-bar-icon-button header-bar-icon-button-active' : 'header-bar-icon-button'}
+          aria-pressed={inboxOpen}
+          aria-label="Inbox"
+          title="Inbox: what waits on you across the open repositories"
+          onClick={onToggleInbox}
+        >
+          <Inbox size={18} strokeWidth={1.75} />
+        </button>
+      )}
 
       <button
         type="button"

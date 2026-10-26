@@ -142,8 +142,10 @@ function InboxRepoSection({ repo, onGo }: { repo: InboxRepo; onGo: (target: Inbo
                   onClick={() => onGo(targetOf(repo.path, row))}
                 >
                   <Icon size={14} strokeWidth={1.75} className="inbox-row-icon" />
-                  <span className="inbox-row-subject">{subject}</span>
-                  <span className="inbox-row-reason">{reason}</span>
+                  <span className="inbox-row-text">
+                    <span className="inbox-row-subject">{subject}</span>
+                    <span className="inbox-row-reason">{reason}</span>
+                  </span>
                   {row.fetchedAt && (
                     <span className="inbox-row-age">from the host {relativeTime(new Date(row.fetchedAt))}</span>
                   )}
