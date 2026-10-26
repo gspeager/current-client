@@ -16,7 +16,8 @@ type Tag struct {
 func ListTags(ctx context.Context, repoPath string) ([]Tag, error) {
 	tags, err := cachedByRefs(ctx, repoPath, "tags", func() ([]Tag, error) {
 		result, err := runResult(ctx, repoPath, "for-each-ref",
-			"--format=%(refname:short)%09%(objectname)%09%(*objectname)%09%(creatordate:iso-strict)", "refs/tags")
+			"--format=%(refname:short)%09%(objectname)%09%(*objectname)%09%(creatordate:iso-strict)",
+			"--sort=-v:refname", "--sort=-creatordate", "refs/tags")
 		if err != nil {
 			return nil, err
 		}

@@ -2,6 +2,12 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [Unreleased]
+
+### Changed
+
+- Tags are listed newest first, by the date they were made, in the sidebar's Tags section and wherever tags are offered, instead of alphabetically, so `v0.10.0` no longer sorts before `v0.2.0`. ([#275](https://github.com/gspeager/current-client/issues/275))
+
 ## [0.4.0] - 2026-10-24
 
 Host integration arrives in this release, for GitLab (gitlab.com and Self-Managed 16.0 or newer) and GitHub (github.com and Enterprise Server 3.11 or newer). It is **off until you turn it on, per host**: nothing contacts a host's API before then, and [docs/integrations.md](docs/integrations.md) lists every request it makes, when, and the token scope it needs.
