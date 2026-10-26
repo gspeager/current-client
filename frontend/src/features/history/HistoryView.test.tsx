@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   type BranchInfo,
@@ -141,6 +141,38 @@ describe('HistoryView', () => {
     ])
   })
 
+  it('shows a working-changes row above HEAD that opens Changes, and hides it when clean or filtered', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(HistoryService.ComputeGraphLayout).mockImplementation(
+      (refs) =>
+        Promise.resolve(
+          refs.map((r, i) => new GraphNode({ sha: r.sha, lane: 0, hasChild: i > 0, parentLanes: [0] })),
+        ) as never,
+    )
+    const onOpenChanges = vi.fn()
+    const user = userEvent.setup()
+    renderHistory({ changedFiles: 3, onOpenChanges })
+
+    const row = await screen.findByRole('button', { name: '3 files changed' })
+    expect(row.querySelector('circle')).toHaveAttribute('stroke-dasharray')
+    expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0]).toEqual({
+      sha: 'working-tree',
+      parentShas: [history[0].sha],
+    })
+    await user.click(row)
+    expect(onOpenChanges).toHaveBeenCalled()
+
+    await user.click(screen.getByText('Filters'))
+    await user.type(screen.getByRole('textbox', { name: 'Author filter' }), 'Ada')
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: '3 files changed' })).not.toBeInTheDocument())
+    expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].sha).toBe(history[0].sha)
+
+    cleanup()
+    renderHistory({ changedFiles: 0, onOpenChanges })
+    await screen.findByRole('button', { name: /Fix login redirect/ })
+    expect(screen.queryByText(/files changed/)).not.toBeInTheDocument()
+  })
+
   it('follows only first parents when the toggle is on, saving the choice and drawing one lane', async () => {
     const merge = commit('c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2', 'Merge feature', [history[0].sha, 'side'])
     vi.mocked(HistoryService.GetHistory).mockResolvedValue([merge, ...history])
@@ -193,7 +225,8 @@ describe('HistoryView', () => {
     expect(rows.grace).toHaveStyle({ opacity: '0.4' })
     expect(rows.ada).toHaveStyle({ opacity: '1' })
     expect(graph()).toEqual(before)
-    expect(HistoryService.GetHistory).toHaveBeenCalledTimes(1)
+    // One page; the second call is the one-commit HEAD lookup.
+    expect(vi.mocked(HistoryService.GetHistory).mock.calls.filter((c) => c[1] !== 1)).toHaveLength(1)
 
     await user.click(within(rows.ada).getByRole('button', { name: 'Clear the highlight of Ada Lovelace' }))
     expect(rows.grace).toHaveStyle({ opacity: '1' })

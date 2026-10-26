@@ -6,6 +6,8 @@ interface CommitGraphProps {
   laneCount: number
   rowHeight: number
   laneWidth?: number
+  // The working tree's node: outlined and dashed, not a commit.
+  dashed?: boolean
 }
 
 function laneX(lane: number, laneWidth: number): number {
@@ -14,7 +16,7 @@ function laneX(lane: number, laneWidth: number): number {
 
 const NODE_RADIUS = 4
 
-function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18 }: CommitGraphProps) {
+function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = false }: CommitGraphProps) {
   const { laneColor } = useLaneColors()
   const mid = rowHeight / 2
   const ownX = laneX(node.lane, laneWidth)
@@ -79,7 +81,19 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18 }: CommitGraph
         )
       })}
 
-      <circle cx={ownX} cy={mid} r={NODE_RADIUS} style={{ fill: laneColor(node.lane) }} />
+      {dashed ? (
+        <circle
+          cx={ownX}
+          cy={mid}
+          r={NODE_RADIUS}
+          fill="none"
+          strokeWidth={1.5}
+          strokeDasharray="2 2"
+          style={{ stroke: laneColor(node.lane) }}
+        />
+      ) : (
+        <circle cx={ownX} cy={mid} r={NODE_RADIUS} style={{ fill: laneColor(node.lane) }} />
+      )}
     </svg>
   )
 }

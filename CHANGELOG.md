@@ -8,6 +8,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 - **Highlight one author's commits** in History without hiding the rest: click a commit's initials badge, or choose **Highlight author's commits** from its menu, and every other commit dims while the graph keeps its shape. Click the badge again, or press Escape, to clear it. Choosing a branch's lane clears an author highlight, and the other way round. ([#281](https://github.com/gspeager/current-client/issues/281))
 
+- **A working-changes row above HEAD in History.** While the working tree has changes, a dashed node in HEAD's lane sits at the top of the graph, joined to HEAD and labelled with the count of changed files, so you can see where the next commit will go; clicking it opens Changes. It appears when HEAD is in the list (all branches, or the current branch) and no date, author or type filter is on, and it reads the status the app already has. ([#280](https://github.com/gspeager/current-client/issues/280))
 - **First parent only** in History's toolbar, beside the branch filter, follows only each merge's first parent, so a repository that merges everything reads as its main line of merges without every side branch's commits in between. The graph draws the main line as one lane, a merge's details still list every parent, and the choice is remembered with History's other settings. For Go code that embeds `core/`, `git.HistoryFilter` gained `FirstParent`. ([#282](https://github.com/gspeager/current-client/issues/282))
 
 ### Changed
