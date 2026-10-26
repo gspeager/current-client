@@ -43,11 +43,16 @@ type InboxRow struct {
 	FetchedAt *time.Time `json:"fetchedAt"`
 }
 
+// InboxRepo is one open repository's rows. HostEnabled with no FetchedAt
+// means the host is on but nothing has refreshed it this session, so the
+// host rows aren't known yet rather than empty.
 type InboxRepo struct {
-	Path  string     `json:"path"`
-	Name  string     `json:"name"`
-	Rows  []InboxRow `json:"rows"`
-	Error string     `json:"error"`
+	Path        string     `json:"path"`
+	Name        string     `json:"name"`
+	Rows        []InboxRow `json:"rows"`
+	Error       string     `json:"error"`
+	HostEnabled bool       `json:"hostEnabled"`
+	FetchedAt   *time.Time `json:"fetchedAt"`
 }
 
 // Rows is the Inbox's list. With markSeen, the host rows it returns count
@@ -62,7 +67,9 @@ func (s *InboxService) Rows(paths []string, markSeen bool) []InboxRepo {
 			repo.Error = err.Error()
 		}
 		repo.Rows = append(repo.Rows, rows...)
-		repo.Rows = append(repo.Rows, s.flagNew(path, hostInboxRows(path), markSeen)...)
+		hostRows, enabled, fetchedAt := hostInboxRows(path)
+		repo.HostEnabled, repo.FetchedAt = enabled, fetchedAt
+		repo.Rows = append(repo.Rows, s.flagNew(path, hostRows, markSeen)...)
 		repos = append(repos, repo)
 	}
 	return repos
@@ -73,7 +80,8 @@ func (s *InboxService) Rows(paths []string, markSeen bool) []InboxRepo {
 func (s *InboxService) Unseen(paths []string) int {
 	n := 0
 	for _, path := range paths {
-		for _, row := range s.flagNew(path, hostInboxRows(path), false) {
+		hostRows, _, _ := hostInboxRows(path)
+		for _, row := range s.flagNew(path, hostRows, false) {
 			if row.New {
 				n++
 			}
