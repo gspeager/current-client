@@ -18,6 +18,7 @@ import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import { useHeadCommit } from '../working-copy/useHeadCommit'
+import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useCIStatus } from '../../lib/useCIStatus'
@@ -76,6 +77,8 @@ function HistoryView({
   const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef, firstParent })
   const { commits, loading, done, error, loadMore } = useCommitHistory(repoPath, filter, initialLoadThrough)
   const head = useHeadCommit(repoPath)
+  // Read only where a working-changes row can appear.
+  const currentUser = useCurrentUser(changedFiles > 0 && onOpenChanges ? repoPath : null)
   // Only where HEAD is in the list, and no filter narrows it.
   const workingTreeParent =
     changedFiles > 0 &&
@@ -317,6 +320,7 @@ function HistoryView({
                         laneCount={laneCount}
                         rowHeight={ROW_HEIGHT}
                         changedFiles={changedFiles}
+                        user={currentUser}
                         style={rowStyle}
                         onOpen={onOpenChanges!}
                       />

@@ -20,6 +20,8 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
   const { laneColor } = useLaneColors()
   const mid = rowHeight / 2
   const ownX = laneX(node.lane, laneWidth)
+  // An outlined node has no fill to hide the line, so it starts at the rim.
+  const below = dashed ? mid + NODE_RADIUS : mid
 
   return (
     <svg width={Math.max(laneCount, node.lane + 1) * laneWidth} height={rowHeight} style={{ display: 'block' }}>
@@ -61,7 +63,7 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
             <line
               key={`pl-${i}`}
               x1={ownX}
-              y1={mid}
+              y1={below}
               x2={ownX}
               y2={rowHeight}
               style={{ stroke: laneColor(lane) }}
@@ -73,7 +75,7 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
         return (
           <path
             key={`pl-${i}`}
-            d={`M ${ownX} ${mid} C ${ownX} ${mid}, ${x} ${mid}, ${x} ${rowHeight}`}
+            d={`M ${ownX} ${below} C ${ownX} ${mid}, ${x} ${mid}, ${x} ${rowHeight}`}
             fill="none"
             style={{ stroke: laneColor(lane) }}
             strokeWidth={1.5}
