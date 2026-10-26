@@ -14,6 +14,8 @@ const row = (overrides: Record<string, unknown>) => ({
   count: 0,
   webUrl: '',
   fetchedAt: null,
+  id: '',
+  new: false,
   ...overrides,
 })
 
@@ -27,7 +29,15 @@ describe('InboxView', () => {
         rows: [
           row({ kind: 'dirty', count: 3 }),
           row({ kind: 'unpushed', branch: 'feature', count: 2 }),
-          row({ kind: 'review', number: 7, prefix: '!', title: 'Add the thing', fetchedAt: new Date().toISOString() }),
+          row({
+            kind: 'review',
+            number: 7,
+            prefix: '!',
+            title: 'Add the thing',
+            fetchedAt: new Date().toISOString(),
+            id: 'review:7',
+            new: true,
+          }),
           row({
             kind: 'assigned',
             key: '12',
@@ -44,7 +54,7 @@ describe('InboxView', () => {
 
     const app = await screen.findByRole('region', { name: 'app' })
     expect(screen.getByText('4 items')).toBeInTheDocument()
-    expect(InboxService.Rows).toHaveBeenCalledWith(['/repos/app', '/repos/lib'])
+    expect(InboxService.Rows).toHaveBeenCalledWith(['/repos/app', '/repos/lib'], true)
     expect(within(screen.getByRole('region', { name: 'lib' })).getByText('Nothing waiting.')).toBeInTheDocument()
 
     await userEvent.click(within(app).getByRole('button', { name: /3 changed files/ }))
@@ -53,6 +63,8 @@ describe('InboxView', () => {
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'branch', branch: 'feature' })
     const review = within(app).getByRole('button', { name: /!7 Add the thing/ })
     expect(review).toHaveTextContent('from the host')
+    expect(within(review).getByText('new')).toBeInTheDocument()
+    expect(within(within(app).getByRole('button', { name: /3 changed files/ })).queryByText('new')).toBeNull()
     await userEvent.click(review)
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'change', number: 7 })
     await userEvent.click(within(app).getByRole('button', { name: /#12 Login fails/ }))

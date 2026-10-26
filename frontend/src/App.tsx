@@ -9,6 +9,7 @@ import {
   HostService,
   PlatformService,
   type PushResult,
+  InboxService,
 } from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
 import GitMissing from './features/repositories/GitMissing'
@@ -260,6 +261,19 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
   const [hostRefresh, setHostRefresh] = useState(0)
+  // Host rows the Inbox hasn't shown: counted after each refresh, and again
+  // once the Inbox closes, since showing them counts as seeing them.
+  const [inboxUnseen, setInboxUnseen] = useState(0)
+  useEffect(() => {
+    if (inboxOpen || repo.tabs.length === 0) return
+    let active = true
+    InboxService.Unseen(repo.tabs)
+      .then((n) => active && setInboxUnseen(n))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [inboxOpen, repo.tabs, hostRefresh])
 
   const onChangeCreated = (number: number) => {
     setCreateChangeFor(null)
@@ -351,6 +365,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
               repo={repo}
               dirty={dirty}
               inboxOpen={inboxOpen}
+              inboxUnseen={inboxUnseen}
               onToggleInbox={() => setInboxOpen((open) => !open)}
               workspaceActions={workspace.actions}
               onOpenSettings={() => setSettingsOpen(true)}

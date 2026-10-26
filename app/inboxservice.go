@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
@@ -11,8 +12,13 @@ import (
 
 // InboxService lists what waits on the user across the open repositories.
 // The local rows come from Git; the host rows come from the cache a refresh
-// filled, so opening the Inbox never contacts a host.
-type InboxService struct{}
+// filled, so opening the Inbox never contacts a host. It remembers which
+// host rows the Inbox has shown, so a refresh that brings something new can
+// say so.
+type InboxService struct {
+	mu   sync.Mutex
+	seen map[string]map[string]bool
+}
 
 const staleAfter = 30 * 24 * time.Hour
 
@@ -21,6 +27,10 @@ const staleAfter = 30 * 24 * time.Hour
 // ci-failed, assigned (host). FetchedAt is set on host rows: when the
 // cache learned it.
 type InboxRow struct {
+	// ID names a host row across refreshes; local rows have none.
+	ID string `json:"id"`
+	// New is a host row the Inbox hasn't shown yet.
+	New       bool       `json:"new"`
 	Kind      string     `json:"kind"`
 	Branch    string     `json:"branch"`
 	Number    int        `json:"number"`
@@ -40,7 +50,9 @@ type InboxRepo struct {
 	Error string     `json:"error"`
 }
 
-func (s *InboxService) Rows(paths []string) []InboxRepo {
+// Rows is the Inbox's list. With markSeen, the host rows it returns count
+// as shown from now on; the view passes true, a count for a badge doesn't.
+func (s *InboxService) Rows(paths []string, markSeen bool) []InboxRepo {
 	ctx := context.Background()
 	repos := make([]InboxRepo, 0, len(paths))
 	for _, path := range paths {
@@ -50,10 +62,44 @@ func (s *InboxService) Rows(paths []string) []InboxRepo {
 			repo.Error = err.Error()
 		}
 		repo.Rows = append(repo.Rows, rows...)
-		repo.Rows = append(repo.Rows, hostInboxRows(path)...)
+		repo.Rows = append(repo.Rows, s.flagNew(path, hostInboxRows(path), markSeen)...)
 		repos = append(repos, repo)
 	}
 	return repos
+}
+
+// Unseen counts the host rows the Inbox hasn't shown, for the header's
+// badge after a refresh. Cache only.
+func (s *InboxService) Unseen(paths []string) int {
+	n := 0
+	for _, path := range paths {
+		for _, row := range s.flagNew(path, hostInboxRows(path), false) {
+			if row.New {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+func (s *InboxService) flagNew(path string, rows []InboxRow, markSeen bool) []InboxRow {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	seen := s.seen[path]
+	if seen == nil {
+		seen = map[string]bool{}
+		if s.seen == nil {
+			s.seen = map[string]map[string]bool{}
+		}
+		s.seen[path] = seen
+	}
+	for i := range rows {
+		rows[i].New = !seen[rows[i].ID]
+		if markSeen {
+			seen[rows[i].ID] = true
+		}
+	}
+	return rows
 }
 
 // localInboxRows needs the branch list; everything else is best effort, so

@@ -32,8 +32,30 @@ func TestInboxHostRowsComeFromTheCacheAlone(t *testing.T) {
 	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{changes, false})
 	hostClient.Cache.Put(info.Hostname, repo, cacheAssigned, info.Project, []hostapi.Issue{{Key: "12", Number: 12, Title: "Login fails", WebURL: "https://gitlab.example.com/group/app/-/issues/12"}})
 
-	repos := (&InboxService{}).Rows([]string{repo})
+	var inbox InboxService
+	if n := inbox.Unseen([]string{repo}); n != 4 {
+		t.Fatalf("Unseen before the Inbox opened = %d, want 4", n)
+	}
+	repos := inbox.Rows([]string{repo}, true)
 	rows := inboxKinds(repos[0].Rows)
+	for _, r := range repos[0].Rows {
+		if !r.New || r.ID == "" {
+			t.Errorf("first showing: every host row is new with an id: %+v", r)
+		}
+	}
+	if n := inbox.Unseen([]string{repo}); n != 0 {
+		t.Fatalf("Unseen after the Inbox showed them = %d, want 0", n)
+	}
+	changes = append(changes, hostapi.Change{Number: 6, Title: "Another for me", SourceBranch: "six", Author: bob, Reviews: []hostapi.Review{{Reviewer: me, State: hostapi.ReviewRequested}}})
+	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{changes, false})
+	if n := inbox.Unseen([]string{repo}); n != 1 {
+		t.Fatalf("Unseen after a refresh brought one more = %d, want 1", n)
+	}
+	for _, r := range inbox.Rows([]string{repo}, false)[0].Rows {
+		if r.New != (r.ID == "review:6") {
+			t.Errorf("only the newcomer is new: %+v", r)
+		}
+	}
 	if r := rows["review/bobs"]; r.Number != 1 || r.Prefix != "!" || r.FetchedAt == nil || time.Since(*r.FetchedAt) > time.Minute {
 		t.Errorf("review row = %+v", r)
 	}
@@ -70,7 +92,7 @@ func TestRefreshBringsTheAssignedIssues(t *testing.T) {
 	if transport.hits[assigned] != 1 {
 		t.Fatalf("assigned issues asked %d times on refresh, want once", transport.hits[assigned])
 	}
-	repos := (&InboxService{}).Rows([]string{repo})
+	repos := (&InboxService{}).Rows([]string{repo}, true)
 	if r := inboxKinds(repos[0].Rows)["assigned/"]; r.Title != "Login fails on Windows" {
 		t.Fatalf("assigned row = %+v (rows %+v)", r, repos[0].Rows)
 	}

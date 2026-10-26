@@ -43,7 +43,7 @@ func TestInboxLocalRowsWithEveryHostOff(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	repos := (&InboxService{}).Rows([]string{repo, filepath.Join(t.TempDir(), "missing")})
+	repos := (&InboxService{}).Rows([]string{repo, filepath.Join(t.TempDir(), "missing")}, true)
 	if len(repos) != 2 || repos[0].Error != "" || repos[1].Error == "" {
 		t.Fatalf("Rows = %+v", repos)
 	}

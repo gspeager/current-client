@@ -70,6 +70,10 @@ describe('HeaderBar sync cluster', () => {
     expect(button).toHaveAttribute('aria-pressed', 'true')
     await userEvent.click(button)
     expect(onToggleInbox).toHaveBeenCalled()
+
+    cleanup()
+    renderHeader({ onToggleInbox, inboxUnseen: 3 } as never)
+    expect(await screen.findByRole('button', { name: 'Inbox, 3 new' })).toHaveTextContent('3')
   })
 
   it('colors Pull only while behind and Push only while ahead, on both segments', async () => {

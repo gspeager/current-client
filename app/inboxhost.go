@@ -22,20 +22,21 @@ func hostInboxRows(repoPath string) []InboxRow {
 	var rows []InboxRow
 	for _, change := range list.Changes {
 		row := InboxRow{Number: change.Number, Prefix: list.Prefix, Branch: change.SourceBranch, Title: change.Title, WebURL: change.WebURL, FetchedAt: list.FetchedAt}
+		number := strconv.Itoa(change.Number)
 		if list.Me != "" && change.Author.Username == list.Me {
 			if hasReview(change.Reviews, hostapi.ReviewChangesRequested) {
-				row.Kind, row.Detail = "changes-requested", reviewerNames(change.Reviews, hostapi.ReviewChangesRequested)
+				row.ID, row.Kind, row.Detail = "changes-requested:"+number, "changes-requested", reviewerNames(change.Reviews, hostapi.ReviewChangesRequested)
 				rows = append(rows, row)
 			}
 			if change.CI == hostapi.CIFailed {
-				row.Kind, row.Detail = "ci-failed", ""
+				row.ID, row.Kind, row.Detail = "ci-failed:"+number, "ci-failed", ""
 				rows = append(rows, row)
 			}
 			continue
 		}
 		for _, r := range change.Reviews {
 			if r.State == hostapi.ReviewRequested && r.Reviewer.Username == list.Me && list.Me != "" {
-				row.Kind = "review"
+				row.ID, row.Kind = "review:"+number, "review"
 				rows = append(rows, row)
 				break
 			}
@@ -44,7 +45,7 @@ func hostInboxRows(repoPath string) []InboxRow {
 	if cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheAssigned, info.Project); ok {
 		fetched := at
 		for _, issue := range cached.([]hostapi.Issue) {
-			rows = append(rows, InboxRow{Kind: "assigned", Key: issue.Key, Title: issue.Title, Detail: issueBranchState(repoPath, info, list, issue.Key), WebURL: issue.WebURL, FetchedAt: &fetched})
+			rows = append(rows, InboxRow{ID: "assigned:" + issue.Key, Kind: "assigned", Key: issue.Key, Title: issue.Title, Detail: issueBranchState(repoPath, info, list, issue.Key), WebURL: issue.WebURL, FetchedAt: &fetched})
 		}
 	}
 	return rows
