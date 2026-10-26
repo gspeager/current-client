@@ -7,7 +7,10 @@ import {
   type CommitInfo,
   DiffService,
   FileDiff,
+  GraphNode,
   HistoryService,
+  IdentityInfo,
+  IdentityService,
   HostService,
   PlatformService,
   RemoteService,
@@ -134,7 +137,50 @@ describe('HistoryView', () => {
       'Reset to here…',
       'Export patch…',
       'Copy SHA',
+      'Highlight author’s commits',
     ])
+  })
+
+  it('highlights one author’s commits, dimming the rest with the graph unchanged, and clears again', async () => {
+    const byGrace = {
+      ...commit('c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2', 'Add tests', [history[0].sha]),
+      authorName: 'Grace Hopper',
+      authorEmail: 'grace@example.com',
+    }
+    const commits = [byGrace, ...history]
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(commits)
+    vi.mocked(HistoryService.ComputeGraphLayout).mockResolvedValue(
+      commits.map(
+        (c) => new GraphNode({ sha: c.sha, lane: 0, parentLanes: [0], convergingLanes: [], passThrough: [] }),
+      ),
+    )
+    vi.mocked(IdentityService.GetIdentities).mockResolvedValue(
+      ['G', 'A'].map((initials) => new IdentityInfo({ initials, color: 'red' })),
+    )
+    renderHistory()
+    const user = userEvent.setup()
+
+    const rows = {
+      grace: await screen.findByRole('button', { name: /Add tests/ }),
+      ada: await screen.findByRole('button', { name: /Fix login redirect/ }),
+    }
+    const graph = () => [...document.querySelectorAll('.commit-row-graph svg')].map((s) => s.outerHTML)
+    const before = graph()
+    expect(before).toHaveLength(3)
+
+    await user.click(await within(rows.ada).findByRole('button', { name: 'Highlight commits by Ada Lovelace' }))
+    expect(rows.grace).toHaveStyle({ opacity: '0.4' })
+    expect(rows.ada).toHaveStyle({ opacity: '1' })
+    expect(graph()).toEqual(before)
+    expect(HistoryService.GetHistory).toHaveBeenCalledTimes(1)
+
+    await user.click(within(rows.ada).getByRole('button', { name: 'Clear the highlight of Ada Lovelace' }))
+    expect(rows.grace).toHaveStyle({ opacity: '1' })
+
+    await user.click(within(rows.grace).getByRole('button', { name: 'Highlight commits by Grace Hopper' }))
+    expect(rows.ada).toHaveStyle({ opacity: '0.4' })
+    await user.keyboard('{Escape}')
+    expect(rows.ada).toHaveStyle({ opacity: '1' })
   })
 
   it("shows a file's diff in place of the graph, with a way back", async () => {
