@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -336,12 +337,26 @@ func (p *Provider) AssignedIssues(ctx context.Context, project, username string)
 	return issues, nil
 }
 
+var _ hostapi.IssueTracker = (*Provider)(nil)
+
+func (p *Provider) IssueByKey(ctx context.Context, project, key string) (hostapi.Issue, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return hostapi.Issue{}, err
+	}
+	return p.Issue(ctx, project, number)
+}
+
+func (p *Provider) KeyPattern() *regexp.Regexp {
+	return hostapi.NumberedKeys
+}
+
 func toIssue(is issue) hostapi.Issue {
 	state := "open"
 	if is.State == "closed" {
 		state = "closed"
 	}
-	return hostapi.Issue{Number: is.IID, Title: is.Title, State: state, WebURL: is.WebURL}
+	return hostapi.Issue{Key: strconv.Itoa(is.IID), Number: is.IID, Title: is.Title, State: state, WebURL: is.WebURL}
 }
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {

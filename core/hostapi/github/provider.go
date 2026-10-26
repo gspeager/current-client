@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -396,8 +397,22 @@ func (p *Provider) AssignedIssues(ctx context.Context, project, username string)
 	return issues, nil
 }
 
+var _ hostapi.IssueTracker = (*Provider)(nil)
+
+func (p *Provider) IssueByKey(ctx context.Context, project, key string) (hostapi.Issue, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return hostapi.Issue{}, err
+	}
+	return p.Issue(ctx, project, number)
+}
+
+func (p *Provider) KeyPattern() *regexp.Regexp {
+	return hostapi.NumberedKeys
+}
+
 func toIssue(is issue) hostapi.Issue {
-	return hostapi.Issue{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}
+	return hostapi.Issue{Key: strconv.Itoa(is.Number), Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}
 }
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {
