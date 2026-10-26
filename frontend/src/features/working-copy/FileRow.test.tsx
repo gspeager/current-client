@@ -21,6 +21,21 @@ describe('FileRow staging interactions', () => {
     expect(onToggleChecked).toHaveBeenCalledTimes(1)
   })
 
+  it('shows the file’s code owners, all of them on hover', () => {
+    render(
+      <FileRow
+        status="M"
+        label="src/app.ts"
+        selected={false}
+        checked={false}
+        onToggleChecked={vi.fn()}
+        onSelect={vi.fn()}
+        owners={['@alice', '@web/team']}
+      />,
+    )
+    expect(screen.getByText('@alice @web/team')).toHaveAttribute('title', 'Owners: @alice, @web/team')
+  })
+
   it('labels the checkbox for unstaging once the file is checked', () => {
     render(
       <FileRow status="M" label="src/app.ts" selected={false} checked onToggleChecked={vi.fn()} onSelect={vi.fn()} />,

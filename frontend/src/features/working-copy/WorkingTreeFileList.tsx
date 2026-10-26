@@ -15,6 +15,7 @@ import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import type { WorkingTreeActions } from './useWorkingTreeActions'
 import type { ConflictResolution } from './useConflictResolution'
 import FileRow from './FileRow'
+import { useFileOwners } from '../../lib/useFileOwners'
 import './WorkingTreeFileList.scss'
 
 interface WorkingTreeFileListProps {
@@ -83,6 +84,8 @@ function WorkingTreeFileList({
   mergeMode = false,
 }: WorkingTreeFileListProps) {
   const { files, conflicted, staged, unstaged, error, loadStatus } = workingTree
+  const ownerPaths = useMemo(() => (files ?? []).map((f) => f.path), [files])
+  const owners = useFileOwners(repoPath, ownerPaths)
   const sectionFiles = useMemo<Record<WorkingTreeSection, FileStatus[]>>(
     () => ({ conflicted, staged, unstaged }),
     [conflicted, staged, unstaged],
@@ -353,6 +356,7 @@ function WorkingTreeFileList({
         binary={isStaged ? f.indexBinary : f.workBinary}
         tag={f.submodule ? 'submodule' : f.lfs ? 'LFS' : undefined}
         threads={threadCounts?.[f.path]}
+        owners={owners[f.path]}
         onToggleChecked={() =>
           isStaged ? actions.unstage(f) : row.section === 'conflicted' ? conflicts.markResolved(f) : actions.stage(f)
         }

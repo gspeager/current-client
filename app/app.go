@@ -40,6 +40,7 @@ func Services() []application.Service {
 		application.NewService(&SearchService{}),
 		application.NewService(&WorktreeService{}),
 		application.NewService(&SubmoduleService{}),
+		application.NewService(&CodeownersService{}),
 	}, hostServices()...)
 }
 

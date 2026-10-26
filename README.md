@@ -12,6 +12,7 @@ Current Client runs entirely on your machine and connects only to the servers yo
 - Search across every file's contents, now or at any commit.
 - Undo the last operation — a commit, amend, merge, pull, rebase, reset or branch switch — after a preview of what will move.
 - Conflict prediction: branches that would conflict with yours are marked, with the files, before you merge (Git 2.38 or newer).
+- Code owners from the repository's `CODEOWNERS`, read locally: each changed file's owners in Changes, and the owners of a branch's changes suggested as reviewers when creating a merge request.
 - Repository tabs, to keep several repositories open at once, and worktrees for several branches of one.
 - An activity dashboard: commit calendar and velocity, contributors, file churn, languages, and stale branches or unpushed commits.
 - A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF.
