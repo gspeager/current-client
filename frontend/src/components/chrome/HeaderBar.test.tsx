@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, RemoteService, RepositoryService } from '@current-client-bindings/app'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
@@ -61,6 +61,32 @@ describe('HeaderBar sync cluster', () => {
     expect(screen.queryByRole('checkbox', { name: 'Prune' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Fetch' })).toHaveAttribute('title', 'Fetched 26m ago. Fetch')
     expect(screen.queryByText(/fetched 26m ago/)).not.toBeInTheDocument()
+  })
+
+  it('colors Pull only while behind and Push only while ahead, on both segments', async () => {
+    renderHeader()
+    await screen.findByRole('button', { name: 'Pull 1' })
+    for (const name of ['Pull 1', 'Pull options', 'Push 2', 'Push options']) {
+      expect(screen.getByRole('button', { name })).toHaveClass('header-bar-sync-due')
+    }
+    expect(screen.getByRole('button', { name: 'Fetch' })).not.toHaveClass('header-bar-sync-due')
+    cleanup()
+
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', ahead: 0, behind: 1 } as never)
+    renderHeader()
+    await screen.findByRole('button', { name: 'Pull 1' })
+    expect(screen.getByRole('button', { name: 'Pull options' })).toHaveClass('header-bar-sync-due')
+    expect(screen.getByRole('button', { name: 'Push' })).not.toHaveClass('header-bar-sync-due')
+    expect(screen.getByRole('button', { name: 'Push options' })).not.toHaveClass('header-bar-sync-due')
+  })
+
+  it('opens a chevron’s menu with its right edge at the chevron’s right edge', async () => {
+    const rect = { left: 500, right: 540, top: 10, bottom: 30, width: 40, height: 20 }
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ ...rect, x: 500, y: 10, toJSON: () => rect })
+    renderHeader()
+    await userEvent.click(await screen.findByRole('button', { name: 'Push options' }))
+    const items = await menu()
+    expect(items.style.left).toBe(`${540 - 40}px`)
   })
 
   it('fetches origin from the button, and prunes or fetches every remote from the menu', async () => {

@@ -126,6 +126,7 @@
   background: none;
   border: var(--border-structure);
   border-radius: var(--radius);
+  color: var(--on-surface-variant);
   font: var(--data-sm);
   cursor: pointer;
 
@@ -153,15 +154,13 @@
   }
 }
 
-.header-bar-sync-fetch {
-  color: var(--on-surface-variant);
-}
-
-.header-bar-sync-pull {
+// Both segments color only while the branch is behind or ahead; buttons
+// don't inherit color, so the class sits on them, not the group.
+.header-bar-sync-pull .header-bar-sync-due {
   color: var(--warning);
 }
 
-.header-bar-sync-push {
+.header-bar-sync-push .header-bar-sync-due {
   color: var(--tertiary);
 }
 

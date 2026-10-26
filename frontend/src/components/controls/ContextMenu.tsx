@@ -12,6 +12,9 @@ export interface ContextMenuState {
   x: number
   y: number
   items: ContextMenuItem[]
+  // With 'end', x is the menu's right edge, for a menu under a control's
+  // right-hand chevron.
+  align?: 'start' | 'end'
 }
 
 // Shift+F10 and the context-menu key open a row's menu from the keyboard.
@@ -35,7 +38,7 @@ interface ContextMenuProps {
 // Clamped to the viewport once its rendered size is known. It takes focus,
 // moves with the arrow keys, and gives focus back to what opened it.
 function ContextMenu({ state, onClose }: ContextMenuProps) {
-  const { x, y, items } = state
+  const { x, y, items, align = 'start' } = state
   const ref = useRef<HTMLDivElement>(null)
   const opener = useRef(document.activeElement)
   const [position, setPosition] = useState({ left: x, top: y, visible: false })
@@ -44,12 +47,13 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
     const el = ref.current
     if (!el) return
     const { width, height } = el.getBoundingClientRect()
+    const left = align === 'end' ? x - width : x
     setPosition({
-      left: Math.min(x, window.innerWidth - width - 4),
+      left: Math.max(4, Math.min(left, window.innerWidth - width - 4)),
       top: Math.min(y, window.innerHeight - height - 4),
       visible: true,
     })
-  }, [x, y])
+  }, [x, y, align])
 
   const enabledItems = () => [...(ref.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
 
