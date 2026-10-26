@@ -103,6 +103,14 @@ describe('InboxView', () => {
     await vi.waitFor(() => expect(onRefreshed).toHaveBeenCalled())
   })
 
+  it('closes from its own header', async () => {
+    vi.mocked(InboxService.Rows).mockResolvedValue([])
+    const onClose = vi.fn()
+    render(<InboxView paths={['/repos/app']} refreshKey={0} onGo={vi.fn()} onClose={onClose} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Close Inbox' }))
+    expect(onClose).toHaveBeenCalled()
+  })
+
   it('shows a repository that could not be read, and says when nothing is open', async () => {
     vi.mocked(InboxService.Rows).mockResolvedValue([
       { path: '/repos/gone', name: 'gone', error: 'not a git repository', rows: [] },

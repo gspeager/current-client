@@ -13,6 +13,7 @@ import {
   MessageSquare,
   TriangleAlert,
   Upload,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { HostService, InboxService, type InboxRepo, type InboxRow } from '@current-client-bindings/app'
@@ -38,6 +39,7 @@ interface InboxViewProps {
   onGo: (target: InboxTarget) => void
   // Called after a group's own Refresh, so the rest of the app re-reads too.
   onRefreshed?: () => void
+  onClose?: () => void
 }
 
 const ICONS: Record<string, LucideIcon> = {
@@ -102,7 +104,7 @@ function describe(row: InboxRow): { subject: string; reason: string } {
 
 // Everything waiting on you across the open repositories: local facts from
 // Git, host facts from the last refresh's cache, each row a jump to it.
-function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed }: InboxViewProps) {
+function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, onClose }: InboxViewProps) {
   useClockTick()
   const key = paths.join('\n')
   // Showing the rows counts as seeing them: the header's badge clears.
@@ -123,6 +125,12 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed }: 
         <span className="inbox-summary">
           {repos ? (total === 0 ? 'Nothing waiting' : plural(total, 'item')) : 'Looking…'}
         </span>
+        {onClose && (
+          <button type="button" className="inbox-close" onClick={onClose} aria-label="Close Inbox" title="Close Inbox">
+            <X size={14} strokeWidth={1.75} />
+            Close
+          </button>
+        )}
       </header>
       {error && <p className="inbox-error">Could not read the repositories: {error}</p>}
       {paths.length === 0 && <p className="inbox-hint">Open a repository to see what waits in it.</p>}
