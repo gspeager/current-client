@@ -1,0 +1,125 @@
+.inbox {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-xl);
+  overflow-y: auto;
+}
+
+.inbox-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+
+.inbox-title {
+  margin: 0;
+  font: var(--title-md);
+  color: var(--on-surface);
+}
+
+.inbox-summary,
+.inbox-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.inbox-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-sm);
+}
+
+.inbox-repo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.inbox-repo-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  font: var(--data-md);
+  color: var(--on-surface);
+}
+
+.inbox-repo-count {
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-full);
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.inbox-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+// One line per item, like a commit row: what, why, and how old the fact is.
+.inbox-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) max-content max-content;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-table);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.inbox-row-icon {
+  color: var(--outline);
+
+  .inbox-row-operation &,
+  .inbox-row-conflict &,
+  .inbox-row-ci-failed &,
+  .inbox-row-changes-requested & {
+    color: var(--error);
+  }
+
+  .inbox-row-review &,
+  .inbox-row-assigned & {
+    color: var(--secondary);
+  }
+
+  .inbox-row-unpushed & {
+    color: var(--tertiary);
+  }
+}
+
+.inbox-row-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--ui-sm);
+}
+
+.inbox-row-reason {
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
+
+.inbox-row-age {
+  color: var(--outline);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
