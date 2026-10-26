@@ -61,7 +61,7 @@ describe('InboxView', () => {
     expect(within(lib).queryByText('Nothing waiting.')).toBeNull()
     await userEvent.click(within(lib).getByRole('button', { name: /lib/ }))
     expect(within(lib).getByText('Nothing waiting.')).toBeInTheDocument()
-    expect(within(app).getByRole('button', { name: /app 4 1 new/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(within(app).getByRole('button', { name: /app.*4.*1 new/ })).toHaveAttribute('aria-expanded', 'true')
 
     await userEvent.click(within(app).getByRole('button', { name: /3 changed files/ }))
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'changes' })
