@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
@@ -26,7 +27,13 @@ const (
 	// run at once against the host.
 	ciBatchCap = 50
 	ciParallel = 4
+	// ciTipsCap bounds the branch tips a refresh asks about.
+	ciTipsCap = 25
 )
+
+// ciRunningTTL is how long a running or pending result stands before a read
+// that fetches asks for it again: it will change, unlike a finished one.
+var ciRunningTTL = 2 * time.Minute
 
 // CIStatus is the cached pipeline result for each SHA that has one; it
 // never contacts the host.
@@ -50,19 +57,47 @@ func (s *HostService) FetchCIStatus(repoPath string, shas []string) (map[string]
 	if provider == nil {
 		return map[string]CIMark{}, nil
 	}
-	var missing []string
-	for _, sha := range shas {
-		if _, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, sha); !ok {
-			missing = append(missing, sha)
-		}
-	}
-	if len(missing) > ciBatchCap {
-		missing = missing[:ciBatchCap]
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	fetchPipelines(ctx, provider, info, repoPath, missing)
+	fetchPipelines(ctx, provider, info, repoPath, unknownPipelines(info, repoPath, shas, ciBatchCap))
 	return cachedCI(info, repoPath, shas), nil
+}
+
+// unknownPipelines is the SHAs worth asking about: never answered, or
+// answered running or pending longer than ciRunningTTL ago.
+func unknownPipelines(info HostInfo, repoPath string, shas []string, limit int) []string {
+	var missing []string
+	for _, sha := range shas {
+		cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, sha)
+		if ok {
+			status := cached.(CIMark).Status
+			if (status != string(hostapi.CIRunning) && status != string(hostapi.CIPending)) || time.Since(at) < ciRunningTTL {
+				continue
+			}
+		}
+		missing = append(missing, sha)
+	}
+	if len(missing) > limit {
+		missing = missing[:limit]
+	}
+	return missing
+}
+
+// refreshBranchTipCI asks for the local branch tips' pipelines on a
+// refresh, so the sidebar's marks follow a pipeline to its end without
+// History having to scroll past the commit.
+func refreshBranchTipCI(ctx context.Context, provider hostapi.Provider, info HostInfo, repoPath string) {
+	branches, err := git.ListBranches(ctx, repoPath)
+	if err != nil {
+		return
+	}
+	var tips []string
+	for _, b := range branches {
+		if b.Tip != "" {
+			tips = append(tips, b.Tip)
+		}
+	}
+	fetchPipelines(ctx, provider, info, repoPath, unknownPipelines(info, repoPath, tips, ciTipsCap))
 }
 
 // PipelineJobs lists a pipeline's jobs, asked for once per pipeline until a
