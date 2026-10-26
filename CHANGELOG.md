@@ -6,7 +6,12 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- CI results are icons in the status color instead of colored squares, so passed and failed read apart without color: a check for passed, a cross for failed, a dashed circle while running, a clock while pending, a slash for canceled and a minus for skipped. The same icons appear on commits, branch tips, the pull request marker, the pull request list and the job list. ([#285](https://github.com/gspeager/current-client/issues/285))
 - Tags are listed newest first, by the date they were made, in the sidebar's Tags section and wherever tags are offered, instead of alphabetically, so `v0.10.0` no longer sorts before `v0.2.0`. ([#275](https://github.com/gspeager/current-client/issues/275))
+
+### Fixed
+
+- Clicking inside a CI result's job list, or closing it, no longer checks out that branch in the sidebar or selects that commit in History. The CI mark and pull request marker also sit a step apart from `HEAD` instead of touching it. ([#276](https://github.com/gspeager/current-client/issues/276))
 
 ## [0.4.0] - 2026-10-24
 

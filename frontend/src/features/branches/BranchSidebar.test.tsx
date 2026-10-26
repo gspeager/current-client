@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {
   BranchChange,
   BranchService,
+  CIMark as CIMarkInfo,
   ConflictStateInfo,
   CurrentChange,
   HostService,
@@ -13,6 +14,7 @@ import {
   type BranchInfo,
   type BranchStatusInfo,
 } from '@current-client-bindings/app'
+import { CIStatus, Job } from '@current-client-bindings/core/hostapi'
 import { Links, Style } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchSidebar from './BranchSidebar'
@@ -229,6 +231,28 @@ describe('BranchSidebar', () => {
     expect(within(row).getByRole('button', { name: '!138 · Add the thing · open' })).toBeInTheDocument()
     expect(within(screen.getByRole('button', { name: /^other/ })).queryByText(/!/)).not.toBeInTheDocument()
     expect(HostService.BranchChanges).toHaveBeenCalledWith(REPO)
+  })
+
+  // The job list is portaled out of the row but React still bubbles its
+  // clicks up the tree; the modal stops them before they reach the row.
+  it('opens a branch’s CI jobs and closes them without checking the branch out', async () => {
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), { ...branch('feature'), tip: 'abc' }])
+    vi.mocked(HostService.CIStatus).mockResolvedValue({ abc: new CIMarkInfo({ status: 'failed', pipelineId: 12 }) })
+    vi.mocked(HostService.PipelineJobs).mockResolvedValue([
+      new Job({ id: 5, name: 'test', stage: 'unit', status: CIStatus.CIFailed }),
+    ])
+    vi.mocked(HostService.JobLog).mockResolvedValue({ text: 'ERROR', truncated: false, full: true })
+    vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
+    renderSidebar()
+
+    const row = await screen.findByRole('button', { name: /^feature/ })
+    await userEvent.click(within(row).getByRole('button', { name: 'CI failed' }))
+    const dialog = await screen.findByRole('dialog', { name: 'CI failed' })
+    await userEvent.click(within(dialog).getByRole('button', { name: /test/ }))
+    await within(dialog).findByText('ERROR')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
   })
 
   it('checks out a branch when its row is clicked', async () => {

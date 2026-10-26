@@ -1,5 +1,14 @@
 import { useEffect, useState, type MouseEvent } from 'react'
-import { ExternalLink } from 'lucide-react'
+import {
+  CircleCheck,
+  CircleDashed,
+  CircleMinus,
+  CircleSlash,
+  CircleX,
+  Clock,
+  ExternalLink,
+  type LucideIcon,
+} from 'lucide-react'
 import { HostService, PlatformService, type CIMark as CIMarkInfo } from '@current-client-bindings/app'
 import type { Job } from '@current-client-bindings/core/hostapi'
 import HoverCard from '../chrome/HoverCard'
@@ -8,17 +17,24 @@ import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './CIMark.scss'
 
-const LABELS: Record<string, string> = {
-  success: 'CI passed',
-  failed: 'CI failed',
-  running: 'CI running',
-  pending: 'CI pending',
-  canceled: 'CI canceled',
-  skipped: 'CI skipped',
+// One map for every place that shows a CI result, so the mark, the PR
+// marker and the job rows always agree. The running icon doesn't spin.
+const STATUSES: Record<string, { icon: LucideIcon; label: string }> = {
+  success: { icon: CircleCheck, label: 'CI passed' },
+  failed: { icon: CircleX, label: 'CI failed' },
+  running: { icon: CircleDashed, label: 'CI running' },
+  pending: { icon: Clock, label: 'CI pending' },
+  canceled: { icon: CircleSlash, label: 'CI canceled' },
+  skipped: { icon: CircleMinus, label: 'CI skipped' },
 }
 
 export function ciLabel(status: string): string {
-  return LABELS[status] ?? `CI ${status}`
+  return STATUSES[status]?.label ?? `CI ${status}`
+}
+
+export function CIIcon({ status, size = 14 }: { status: string; size?: number }) {
+  const Icon = STATUSES[status]?.icon ?? CircleDashed
+  return <Icon className={`ci-icon ci-icon-${status}`} size={size} strokeWidth={1.75} aria-hidden="true" />
 }
 
 interface CIMarkProps {
@@ -26,8 +42,8 @@ interface CIMarkProps {
   mark: CIMarkInfo | undefined
 }
 
-// The pipeline result for a commit or branch tip: a 3px square in the status
-// color. Clicking lists the jobs, fetched then, with Open on host.
+// The pipeline result for a commit or branch tip. Clicking lists the jobs,
+// fetched then, with Open on host.
 function CIMark({ repoPath, mark }: CIMarkProps) {
   const [open, setOpen] = useState(false)
   if (!mark?.status) return null
@@ -39,7 +55,9 @@ function CIMark({ repoPath, mark }: CIMarkProps) {
   return (
     <>
       <HoverCard card={<CICard repoPath={repoPath} mark={mark} label={label} />}>
-        <button type="button" className={`ci-mark ci-mark-${mark.status}`} aria-label={label} onClick={onClick} />
+        <button type="button" className="ci-mark" aria-label={label} onClick={onClick}>
+          <CIIcon status={mark.status} />
+        </button>
       </HoverCard>
       {open && <PipelineJobs repoPath={repoPath} mark={mark} onClose={() => setOpen(false)} />}
     </>
@@ -135,7 +153,7 @@ function JobRow({ job, repoPath }: { job: Job; repoPath: string }) {
   )
   const row = (
     <>
-      <span className={`ci-mark ci-mark-${job.status}`} aria-hidden="true" />
+      <CIIcon status={job.status} />
       <span className="ci-job-name">{job.name}</span>
       <span className="ci-job-stage">{job.stage}</span>
       <span className="ci-job-status">{job.status}</span>

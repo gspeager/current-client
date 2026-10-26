@@ -23,7 +23,7 @@ describe('ChangeMarker', () => {
     )
     const marker = screen.getByRole('button', { name: '!138 · Add the thing · draft · CI failed' })
     expect(marker).toHaveAttribute('data-state', 'draft')
-    expect(marker.querySelector('.change-marker-ci-failed')).not.toBeNull()
+    expect(marker.querySelector('.ci-icon-failed')).not.toBeNull()
     await userEvent.click(marker)
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.example.com/g/r/-/merge_requests/138')
   })
@@ -33,7 +33,7 @@ describe('ChangeMarker', () => {
     const marker = screen.getByRole('button', { name: '#42' })
     expect(marker).toHaveAttribute('data-state', 'unknown')
     expect(marker).toHaveClass('change-marker-static')
-    expect(marker.querySelector('.change-marker-ci')).toBeNull()
+    expect(marker.querySelector('.ci-icon')).toBeNull()
   })
 
   it('shows the cached facts in a hover card, and says what is unknown with the host off', async () => {
