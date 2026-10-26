@@ -131,6 +131,7 @@ function HeaderBar({
       : 'Not fetched yet'
 
   // A sync button with a chevron beside it that drops the rest of its choices.
+  // `due` colors it while there is something to pull or push.
   const syncButton = (
     id: 'fetch' | 'pull' | 'push',
     label: string,
@@ -139,14 +140,16 @@ function HeaderBar({
     onClick: (e: React.MouseEvent) => void,
     items: ContextMenuItem[],
     disabled = false,
+    due = false,
   ) => {
     const name = id[0].toUpperCase() + id.slice(1)
     const blocked = operation ? `Finish the ${operationNoun(operation)} first` : null
+    const className = due ? 'header-bar-sync header-bar-sync-due' : 'header-bar-sync'
     return (
       <span className={`header-bar-sync-group header-bar-sync-${id}`}>
         <button
           type="button"
-          className="header-bar-sync"
+          className={className}
           onClick={disabled || blocked ? undefined : onClick}
           disabled={!!blocked}
           title={blocked ?? title}
@@ -156,13 +159,13 @@ function HeaderBar({
         </button>
         <button
           type="button"
-          className="header-bar-sync header-bar-sync-more"
+          className={`${className} header-bar-sync-more`}
           aria-label={`${name} options`}
           title={blocked ?? `${name} options`}
           disabled={disabled || !!blocked}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
-            setSyncMenu({ x: rect.left, y: rect.bottom + 4, items })
+            setSyncMenu({ x: rect.right, y: rect.bottom + 4, items, align: 'end' })
           }}
         >
           <ChevronDown size={12} strokeWidth={1.5} />
@@ -302,6 +305,7 @@ function HeaderBar({
             { label: 'Pull (rebase)', onClick: onPullRebase },
           ],
           syncing,
+          !!branchStatus && branchStatus.behind > 0,
         )}
         {syncButton(
           'push',
@@ -315,6 +319,7 @@ function HeaderBar({
             { label: 'Force-push (with lease)…', onClick: onForcePush, destructive: true },
           ],
           syncing,
+          !!branchStatus && branchStatus.ahead > 0,
         )}
         {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
       </div>
