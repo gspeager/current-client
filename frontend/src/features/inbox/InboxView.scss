@@ -40,12 +40,34 @@
 }
 
 .inbox-repo-name {
-  display: flex;
+  margin: 0;
+}
+
+.inbox-repo-toggle {
+  display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  margin: 0;
-  font: var(--data-md);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
   color: var(--on-surface);
+  font: var(--data-md);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+
+  svg {
+    color: var(--outline);
+  }
+}
+
+.inbox-repo-new {
+  color: var(--secondary);
+  font: var(--ui-xs);
 }
 
 .inbox-repo-count {

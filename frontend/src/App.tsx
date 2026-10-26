@@ -477,7 +477,12 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
 
             {inboxOpen ? (
               <div className="app-body">
-                <InboxView paths={repo.tabs} refreshKey={`${repoVersion}:${hostRefresh}`} onGo={goFromInbox} />
+                <InboxView
+                  paths={repo.tabs}
+                  activePath={repo.repoPath}
+                  refreshKey={`${repoVersion}:${hostRefresh}`}
+                  onGo={goFromInbox}
+                />
               </div>
             ) : (
               <div className="app-body">
