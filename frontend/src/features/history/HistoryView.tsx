@@ -5,6 +5,7 @@ import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components
 import CommitDetailPanel from './CommitDetailPanel'
 import CommitFileDiff from './CommitFileDiff'
 import CommitRow from './CommitRow'
+import WorkingChangesRow from './WorkingChangesRow'
 import HistoryToolbar from './HistoryToolbar'
 import { buildAsciiGraph } from './asciiGraph'
 import { ancestorShas } from './commitAncestry'
@@ -16,6 +17,7 @@ import { useCommitGraph } from './useCommitGraph'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { useHeadCommit } from '../working-copy/useHeadCommit'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useCIStatus } from '../../lib/useCIStatus'
@@ -39,6 +41,10 @@ interface HistoryViewProps {
   onRefChange?: (ref: string) => void
   firstParent?: boolean
   onFirstParentChange?: (on: boolean) => void
+  // The working tree's changed files, from the status App already holds;
+  // with any, a row above HEAD says so and opens Changes.
+  changedFiles?: number
+  onOpenChanges?: () => void
   onBranchChanged?: () => void
   // App keeps the last-seen top SHA across remounts so new commits can flash.
   previousTopSha?: string | null
@@ -60,6 +66,8 @@ function HistoryView({
   onRefChange,
   firstParent = false,
   onFirstParentChange,
+  changedFiles = 0,
+  onOpenChanges,
   onBranchChanged,
   previousTopSha,
   onTopShaChange,
@@ -67,7 +75,20 @@ function HistoryView({
 }: HistoryViewProps) {
   const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef, firstParent })
   const { commits, loading, done, error, loadMore } = useCommitHistory(repoPath, filter, initialLoadThrough)
-  const graphNodes = useCommitGraph(commits, filter.firstParent)
+  const head = useHeadCommit(repoPath)
+  // Only where HEAD is in the list, and no filter narrows it.
+  const workingTreeParent =
+    changedFiles > 0 &&
+    onOpenChanges &&
+    head &&
+    (filter.ref === ALL_BRANCHES || filter.ref === '') &&
+    !filter.since &&
+    !filter.author &&
+    !filter.type &&
+    commits.some((c) => c.sha === head.sha)
+      ? head.sha
+      : null
+  const { graphNodes, workingNode } = useCommitGraph(commits, filter.firstParent, workingTreeParent)
   const refsBySha = useRefBadges(repoPath)
   const hostLinks = useHostLinks(repoPath)
   // History remounts on every ref move, so the repository path is the only key.
@@ -175,8 +196,10 @@ function HistoryView({
       )
     })
 
+  const workingRow = workingNode && workingTreeParent && !query ? workingNode : null
+  const offset = workingRow ? 1 : 0
   const virtualizer = useVirtualizer({
-    count: rows.length,
+    count: rows.length + offset,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 10,
@@ -184,7 +207,7 @@ function HistoryView({
   const virtualItems = virtualizer.getVirtualItems()
   const ciMarks = useCIStatus(
     repoPath,
-    virtualItems.map((row) => rows[row.index].commit.sha),
+    virtualItems.flatMap((row) => (row.index < offset ? [] : [rows[row.index - offset].commit.sha])),
   )
 
   useEffect(() => {
@@ -202,8 +225,8 @@ function HistoryView({
     const index = rows.findIndex((r) => r.commit.sha === initialSelectedSha)
     if (index === -1) return
     hasScrolledToInitial.current = true
-    virtualizer.scrollToIndex(index, { align: 'center' })
-  }, [rows, initialSelectedSha, virtualizer])
+    virtualizer.scrollToIndex(index + offset, { align: 'center' })
+  }, [rows, offset, initialSelectedSha, virtualizer])
 
   if (error) {
     return <p className="history-empty-state history-empty-state-error">Could not load history: {error}</p>
@@ -212,7 +235,10 @@ function HistoryView({
     return <p className="history-empty-state">No commits.</p>
   }
 
-  const laneCount = graphNodes.reduce((max, n) => Math.max(max, n.lane + 1, ...n.passThrough.map((l) => l + 1)), 1)
+  const laneCount = [...graphNodes, ...(workingNode ? [workingNode] : [])].reduce(
+    (max, n) => Math.max(max, n.lane + 1, ...n.passThrough.map((l) => l + 1)),
+    1,
+  )
 
   // Copies the visible, filtered rows rather than a fresh git log --graph.
   const copyAsciiGraph = () => {
@@ -275,7 +301,28 @@ function HistoryView({
             <div ref={parentRef} className="history-scroll">
               <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
                 {virtualItems.map((row) => {
-                  const { commit, graphNode } = rows[row.index]
+                  const rowStyle = {
+                    position: 'absolute' as const,
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: ROW_HEIGHT,
+                    transform: `translateY(${row.start}px)`,
+                  }
+                  if (workingRow && row.index === 0) {
+                    return (
+                      <WorkingChangesRow
+                        key="working-tree"
+                        node={workingRow}
+                        laneCount={laneCount}
+                        rowHeight={ROW_HEIGHT}
+                        changedFiles={changedFiles}
+                        style={rowStyle}
+                        onOpen={onOpenChanges!}
+                      />
+                    )
+                  }
+                  const { commit, graphNode } = rows[row.index - offset]
                   return (
                     <CommitRow
                       key={commit.sha}
@@ -298,14 +345,7 @@ function HistoryView({
                       conventional={conventional}
                       onFocusRef={onFocusRef}
                       searchQuery={query}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: ROW_HEIGHT,
-                        transform: `translateY(${row.start}px)`,
-                      }}
+                      style={rowStyle}
                       onSelect={() => selectSha(commit.sha)}
                       onContextMenu={commitContextMenu(commit)}
                       onHighlightAuthor={() => highlightAuthor(commit.authorEmail)}
