@@ -5,6 +5,7 @@ import {
   BranchService,
   ChangedFile,
   type CommitInfo,
+  CurrentUserInfo,
   DiffService,
   FileDiff,
   GraphNode,
@@ -149,12 +150,19 @@ describe('HistoryView', () => {
           refs.map((r, i) => new GraphNode({ sha: r.sha, lane: 0, hasChild: i > 0, parentLanes: [0] })),
         ) as never,
     )
+    vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(
+      new CurrentUserInfo({ name: 'Grace Hopper', email: 'grace@example.com', initials: 'GH', color: 'teal' }),
+    )
     const onOpenChanges = vi.fn()
     const user = userEvent.setup()
     renderHistory({ changedFiles: 3, onOpenChanges })
 
-    const row = await screen.findByRole('button', { name: '3 files changed' })
+    const row = await screen.findByRole('button', { name: /3 files changed/ })
     expect(row.querySelector('circle')).toHaveAttribute('stroke-dasharray')
+    // The lane line starts at the node's rim, not its centre.
+    expect(row.querySelector('line')).toHaveAttribute('y1', String(38 / 2 + 4))
+    expect(await within(row).findByText('Grace Hopper')).toBeInTheDocument()
+    expect(within(row).getByText('GH')).toBeInTheDocument()
     expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0]).toEqual({
       sha: 'working-tree',
       parentShas: [history[0].sha],
@@ -164,7 +172,7 @@ describe('HistoryView', () => {
 
     await user.click(screen.getByText('Filters'))
     await user.type(screen.getByRole('textbox', { name: 'Author filter' }), 'Ada')
-    await vi.waitFor(() => expect(screen.queryByRole('button', { name: '3 files changed' })).not.toBeInTheDocument())
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: /3 files changed/ })).not.toBeInTheDocument())
     expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].sha).toBe(history[0].sha)
 
     cleanup()
