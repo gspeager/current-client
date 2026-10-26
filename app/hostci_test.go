@@ -121,3 +121,53 @@ func TestCIStatusIsEmptyWhileTheHostIsOff(t *testing.T) {
 		t.Fatalf("FetchCIStatus while off = %+v, %v", marks, err)
 	}
 }
+
+func TestFetchCIStatusAsksAgainForAStaleRunningResult(t *testing.T) {
+	repo := enabledGitLab(t)
+	api := "/api/v4/projects/group%2Fapp"
+	transport := &routeTransport{routes: map[string]string{
+		api + "/pipelines?per_page=1&sha=aaa": `[{"id": 11, "status": "running", "web_url": "https://gitlab.example.com/group/app/-/pipelines/11"}]`,
+		api + "/pipelines?per_page=1&sha=bbb": `[{"id": 12, "status": "success", "web_url": "https://gitlab.example.com/group/app/-/pipelines/12"}]`,
+	}, hits: map[string]int{}}
+	swapHostClient(t, transport)
+	var s HostService
+
+	s.FetchCIStatus(repo, []string{"aaa", "bbb"})
+	s.FetchCIStatus(repo, []string{"aaa", "bbb"})
+	if transport.hits[api+"/pipelines?per_page=1&sha=aaa"] != 1 {
+		t.Fatalf("a fresh running result is not asked for again at once: hits %v", transport.hits)
+	}
+
+	previous := ciRunningTTL
+	ciRunningTTL = 0
+	t.Cleanup(func() { ciRunningTTL = previous })
+	transport.routes[api+"/pipelines?per_page=1&sha=aaa"] = `[{"id": 11, "status": "success", "web_url": "https://gitlab.example.com/group/app/-/pipelines/11"}]`
+	marks, _ := s.FetchCIStatus(repo, []string{"aaa", "bbb"})
+	if transport.hits[api+"/pipelines?per_page=1&sha=aaa"] != 2 || transport.hits[api+"/pipelines?per_page=1&sha=bbb"] != 1 {
+		t.Fatalf("a running result past its time is asked again, a finished one never: hits %v", transport.hits)
+	}
+	if marks["aaa"].Status != "success" {
+		t.Fatalf("the mark follows the pipeline: %+v", marks["aaa"])
+	}
+}
+
+func TestRefreshAsksForTheBranchTipsPipelines(t *testing.T) {
+	repo := enabledGitLab(t)
+	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	tip := strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD"))
+	api := "/api/v4/projects/group%2Fapp"
+	pipelines := api + "/pipelines?per_page=1&sha=" + tip
+	transport := &routeTransport{routes: map[string]string{
+		api + "/merge_requests?per_page=100&state=opened": `[]`,
+		pipelines: `[{"id": 7, "status": "success", "web_url": "https://gitlab.example.com/group/app/-/pipelines/7"}]`,
+	}, hits: map[string]int{}}
+	swapHostClient(t, transport)
+	var s HostService
+	if err := s.Refresh(repo); err != nil {
+		t.Fatal(err)
+	}
+	marks, _ := s.CIStatus(repo, []string{tip})
+	if transport.hits[pipelines] != 1 || marks[tip].Status != "success" {
+		t.Fatalf("the refresh should bring the tip's pipeline once: hits %v, marks %+v", transport.hits, marks)
+	}
+}

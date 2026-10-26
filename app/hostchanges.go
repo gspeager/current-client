@@ -153,6 +153,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
 			refreshBranchRules(ctx, provider, info, repoPath, remote.Name)
 			refreshAssignedIssues(ctx, provider, info, repoPath, remote.Name)
+			refreshBranchTipCI(ctx, provider, info, repoPath)
 			refreshForecast(ctx, info, repoPath, remote.Name, changes)
 			if notices := noticesSince(before, info, repoPath); len(notices) > 0 {
 				hostClient.Cache.Put(info.Hostname, repoPath, cacheNotices, "current", notices)

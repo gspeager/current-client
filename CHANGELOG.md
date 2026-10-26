@@ -23,6 +23,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- A CI mark no longer stays at running after the pipeline ended: a refresh (fetch, pull, or Refresh in the Pull requests tab) now asks for the local branch tips' pipelines, not only the open pull requests' heads, and a running or pending result older than two minutes is asked for again the next time History reads it. ([#155](https://github.com/gspeager/current-client/issues/155))
 - The header's **Pull** turns amber again while the branch is behind its upstream and **Push** green while it is ahead, on both the button and its chevron; otherwise they match Fetch. The menus under the three chevrons line up their right edge with the chevron instead of hanging off to the right. ([#279](https://github.com/gspeager/current-client/issues/279))
 - Clicking inside a CI result's job list, or closing it, no longer checks out that branch in the sidebar or selects that commit in History. The CI mark and pull request marker also sit a step apart from `HEAD` instead of touching it. ([#276](https://github.com/gspeager/current-client/issues/276))
 
