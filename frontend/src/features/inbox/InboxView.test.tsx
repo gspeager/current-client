@@ -50,12 +50,18 @@ describe('InboxView', () => {
       { path: '/repos/lib', name: 'lib', error: '', rows: [] },
     ] as never)
     const onGo = vi.fn()
-    render(<InboxView paths={['/repos/app', '/repos/lib']} refreshKey={0} onGo={onGo} />)
+    render(<InboxView paths={['/repos/app', '/repos/lib']} activePath="/repos/app" refreshKey={0} onGo={onGo} />)
 
     const app = await screen.findByRole('region', { name: 'app' })
     expect(screen.getByText('4 items')).toBeInTheDocument()
     expect(InboxService.Rows).toHaveBeenCalledWith(['/repos/app', '/repos/lib'], true)
-    expect(within(screen.getByRole('region', { name: 'lib' })).getByText('Nothing waiting.')).toBeInTheDocument()
+    // Only the open repository starts expanded; the rest fold to a header.
+    const lib = screen.getByRole('region', { name: 'lib' })
+    expect(within(lib).getByRole('button', { name: /lib/ })).toHaveAttribute('aria-expanded', 'false')
+    expect(within(lib).queryByText('Nothing waiting.')).toBeNull()
+    await userEvent.click(within(lib).getByRole('button', { name: /lib/ }))
+    expect(within(lib).getByText('Nothing waiting.')).toBeInTheDocument()
+    expect(within(app).getByRole('button', { name: /app 4 1 new/ })).toHaveAttribute('aria-expanded', 'true')
 
     await userEvent.click(within(app).getByRole('button', { name: /3 changed files/ }))
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'changes' })

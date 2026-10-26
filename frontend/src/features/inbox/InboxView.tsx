@@ -1,6 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Check,
+  ChevronDown,
+  ChevronRight,
   CircleDot,
   CircleX,
   Clock,
@@ -27,6 +29,8 @@ export type InboxTarget =
 
 interface InboxViewProps {
   paths: string[]
+  // The repository whose group starts open; the rest start folded.
+  activePath?: string | null
   // Rows are read again when this changes; opening the view fetches nothing.
   refreshKey: unknown
   onGo: (target: InboxTarget) => void
@@ -94,7 +98,7 @@ function describe(row: InboxRow): { subject: string; reason: string } {
 
 // Everything waiting on you across the open repositories: local facts from
 // Git, host facts from the last refresh's cache, each row a jump to it.
-function InboxView({ paths, refreshKey, onGo }: InboxViewProps) {
+function InboxView({ paths, activePath = null, refreshKey, onGo }: InboxViewProps) {
   useClockTick()
   const key = paths.join('\n')
   // Showing the rows counts as seeing them: the header's badge clears.
@@ -103,6 +107,10 @@ function InboxView({ paths, refreshKey, onGo }: InboxViewProps) {
     keepData: true,
   })
   const total = useMemo(() => (repos ?? []).reduce((n, r) => n + r.rows.length, 0), [repos])
+  // Only the open repository starts expanded, so many repositories with
+  // work waiting stay a short list of headers; a header click overrides.
+  const [folded, setFolded] = useState<Record<string, boolean>>({})
+  const isOpen = (path: string) => folded[path] ?? path === activePath
 
   return (
     <section className="inbox" aria-label="Inbox">
@@ -115,22 +123,40 @@ function InboxView({ paths, refreshKey, onGo }: InboxViewProps) {
       {error && <p className="inbox-error">Could not read the repositories: {error}</p>}
       {paths.length === 0 && <p className="inbox-hint">Open a repository to see what waits in it.</p>}
       {repos?.map((repo) => (
-        <InboxRepoSection key={repo.path} repo={repo} onGo={onGo} />
+        <InboxRepoSection
+          key={repo.path}
+          repo={repo}
+          open={isOpen(repo.path)}
+          onToggle={() => setFolded((f) => ({ ...f, [repo.path]: !isOpen(repo.path) }))}
+          onGo={onGo}
+        />
       ))}
     </section>
   )
 }
 
-function InboxRepoSection({ repo, onGo }: { repo: InboxRepo; onGo: (target: InboxTarget) => void }) {
+interface InboxRepoSectionProps {
+  repo: InboxRepo
+  open: boolean
+  onToggle: () => void
+  onGo: (target: InboxTarget) => void
+}
+
+function InboxRepoSection({ repo, open, onToggle, onGo }: InboxRepoSectionProps) {
+  const fresh = repo.rows.filter((row) => row.new).length
   return (
     <section className="inbox-repo" aria-label={repo.name}>
       <h3 className="inbox-repo-name">
-        {repo.name}
-        <span className="inbox-repo-count">{repo.rows.length}</span>
+        <button type="button" className="inbox-repo-toggle" aria-expanded={open} onClick={onToggle}>
+          {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
+          {repo.name}
+          <span className="inbox-repo-count">{repo.rows.length}</span>
+          {fresh > 0 && <span className="inbox-repo-new">{fresh} new</span>}
+        </button>
       </h3>
-      {repo.error && <p className="inbox-error">{repo.error}</p>}
-      {!repo.error && repo.rows.length === 0 && <p className="inbox-hint">Nothing waiting.</p>}
-      {repo.rows.length > 0 && (
+      {open && repo.error && <p className="inbox-error">{repo.error}</p>}
+      {open && !repo.error && repo.rows.length === 0 && <p className="inbox-hint">Nothing waiting.</p>}
+      {open && repo.rows.length > 0 && (
         <ul className="inbox-rows">
           {repo.rows.map((row, i) => {
             const Icon = ICONS[row.kind] ?? CircleDot
