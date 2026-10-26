@@ -4,6 +4,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Highlight one author's commits** in History without hiding the rest: click a commit's initials badge, or choose **Highlight author's commits** from its menu, and every other commit dims while the graph keeps its shape. Click the badge again, or press Escape, to clear it. Choosing a branch's lane clears an author highlight, and the other way round. ([#281](https://github.com/gspeager/current-client/issues/281))
+
 ### Changed
 
 - CI results are icons in the status color instead of colored squares, so passed and failed read apart without color: a check for passed, a cross for failed, a dashed circle while running, a clock while pending, a slash for canceled and a minus for skipped. The same icons appear on commits, branch tips, the pull request marker, the pull request list and the job list. ([#285](https://github.com/gspeager/current-client/issues/285))

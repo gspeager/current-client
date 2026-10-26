@@ -41,6 +41,8 @@ interface CommitRowProps {
   style: CSSProperties
   onSelect: () => void
   onContextMenu: (e: MouseEvent | KeyboardEvent) => void
+  onHighlightAuthor?: () => void
+  authorHighlighted?: boolean
 }
 
 function CommitRow({
@@ -66,6 +68,8 @@ function CommitRow({
   style,
   onSelect,
   onContextMenu,
+  onHighlightAuthor,
+  authorHighlighted = false,
 }: CommitRowProps) {
   useClockTick()
   const { laneColor } = useLaneColors()
@@ -127,7 +131,14 @@ function CommitRow({
 
       <div className="commit-row-author">
         {identity && (
-          <IdentityBadge identity={identity} name={commit.authorName} email={commit.authorEmail} size={18} />
+          <IdentityBadge
+            identity={identity}
+            name={commit.authorName}
+            email={commit.authorEmail}
+            size={18}
+            onClick={onHighlightAuthor}
+            pressed={authorHighlighted}
+          />
         )}
         <span className="commit-row-author-name">{highlightMatch(commit.authorName, searchQuery, 'search-match')}</span>
       </div>

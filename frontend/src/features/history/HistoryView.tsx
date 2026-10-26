@@ -15,6 +15,7 @@ import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
+import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useCIStatus } from '../../lib/useCIStatus'
@@ -76,6 +77,8 @@ function HistoryView({
   const [search, setSearch] = useState('')
   const [hideMerges, setHideMerges] = useState(false)
   const [focusedSha, setFocusedSha] = useState<string | null>(null)
+  // One highlight at a time: an author (by mailmapped email) or a lane.
+  const [highlightedAuthor, setHighlightedAuthor] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   // A file opened from the inspector; it only counts for the commit it was opened from.
   const [openedFile, setOpenedFile] = useState<{ sha: string; path: string } | null>(null)
@@ -131,7 +134,20 @@ function HistoryView({
   }
 
   const focusedAncestors = useMemo(() => (focusedSha ? ancestorShas(commits, focusedSha) : null), [commits, focusedSha])
-  const onFocusRef = (sha: string) => setFocusedSha((prev) => (prev === sha ? null : sha))
+  const onFocusRef = (sha: string) => {
+    setHighlightedAuthor(null)
+    setFocusedSha((prev) => (prev === sha ? null : sha))
+  }
+  const highlightAuthor = (email: string) => {
+    setFocusedSha(null)
+    setHighlightedAuthor((prev) => (prev === email ? null : email))
+  }
+  useWindowKeydown((e) => {
+    if (e.key === 'Escape' && highlightedAuthor) setHighlightedAuthor(null)
+  })
+  const isDimmed = (commit: CommitInfo) =>
+    (focusedAncestors !== null && !focusedAncestors.has(commit.sha)) ||
+    (highlightedAuthor !== null && commit.authorEmail !== highlightedAuthor)
 
   const selectedCommit = selectedSha ? (commits.find((c) => c.sha === selectedSha) ?? null) : null
   const reviewThreads = useReviewThreads(repoPath, undefined, selectedSha ?? undefined)
@@ -213,9 +229,15 @@ function HistoryView({
     selectSha(commit.sha)
     setContextMenu({
       ...menuAnchor(e),
-      items: commitActions
-        .actionsFor(commit)
-        .map((a) => ({ label: a.label, onClick: a.run, destructive: a.destructive })),
+      items: [
+        ...commitActions
+          .actionsFor(commit)
+          .map((a) => ({ label: a.label, onClick: a.run, destructive: a.destructive })),
+        {
+          label: highlightedAuthor === commit.authorEmail ? 'Clear author highlight' : 'Highlight author’s commits',
+          onClick: () => highlightAuthor(commit.authorEmail),
+        },
+      ],
     })
   }
 
@@ -265,7 +287,7 @@ function HistoryView({
                       refs={refsBySha.get(commit.sha)}
                       upstreams={upstreams}
                       selected={commit.sha === selectedSha}
-                      dimmed={focusedAncestors !== null && !focusedAncestors.has(commit.sha)}
+                      dimmed={isDimmed(commit)}
                       isNew={newShas.has(commit.sha)}
                       focusedSha={focusedSha}
                       conventional={conventional}
@@ -281,6 +303,8 @@ function HistoryView({
                       }}
                       onSelect={() => selectSha(commit.sha)}
                       onContextMenu={commitContextMenu(commit)}
+                      onHighlightAuthor={() => highlightAuthor(commit.authorEmail)}
+                      authorHighlighted={highlightedAuthor === commit.authorEmail}
                     />
                   )
                 })}
