@@ -35,6 +35,34 @@ func initTagRepo(t *testing.T) (dir string) {
 	return dir
 }
 
+// The last --sort key is the primary one: newest creatordate first, then the
+// highest version among tags made in the same second.
+func TestListTagsNewestFirst(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	t.Setenv("GIT_COMMITTER_DATE", "2024-01-01T10:00:00+00:00")
+	gittest.CommitFile(t, dir, "file.txt", "v1", "first")
+	gittest.Run(t, dir, "tag", "v0.2.0")
+	t.Setenv("GIT_COMMITTER_DATE", "2024-02-01T10:00:00+00:00")
+	gittest.Run(t, dir, "tag", "-a", "-m", "older by name", "v0.1.0")
+	t.Setenv("GIT_COMMITTER_DATE", "2024-03-01T10:00:00+00:00")
+	gittest.CommitFile(t, dir, "file.txt", "v2", "second")
+	gittest.Run(t, dir, "tag", "-a", "-m", "nine", "v0.9.0")
+	gittest.Run(t, dir, "tag", "-a", "-m", "ten", "v0.10.0")
+
+	tags, err := ListTags(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("ListTags: %v", err)
+	}
+	var names []string
+	for _, tag := range tags {
+		names = append(names, tag.Name)
+	}
+	want := []string{"v0.10.0", "v0.9.0", "v0.1.0", "v0.2.0"}
+	if !reflect.DeepEqual(names, want) {
+		t.Fatalf("got %v, want %v", names, want)
+	}
+}
+
 func TestCreateTagLightweight(t *testing.T) {
 	dir := initTagRepo(t)
 
