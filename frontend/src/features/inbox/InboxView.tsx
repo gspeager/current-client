@@ -154,7 +154,7 @@ function InboxRepoSection({ repo, open, onToggle, onGo }: InboxRepoSectionProps)
           {fresh > 0 && <span className="inbox-repo-new">{fresh} new</span>}
         </button>
       </h3>
-      {open && repo.error && <p className="inbox-error">{repo.error}</p>}
+      {repo.error && <p className="inbox-error">{repo.error}</p>}
       {open && !repo.error && repo.rows.length === 0 && <p className="inbox-hint">Nothing waiting.</p>}
       {open && repo.rows.length > 0 && (
         <ul className="inbox-rows">
