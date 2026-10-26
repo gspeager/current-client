@@ -89,9 +89,13 @@ func localInboxRows(ctx context.Context, repoPath string) ([]InboxRow, error) {
 			rows = append(rows, InboxRow{Kind: "stale", Branch: b.Name, Count: int(now.Sub(last).Hours() / 24)})
 		}
 	}
+	// Local branches only: a remote-tracking ref that would conflict isn't
+	// the user's to act on, and the sidebar still flags it.
 	if overlaps, err := overlap.Predict(ctx, repoPath); err == nil {
 		for _, o := range overlaps {
-			rows = append(rows, InboxRow{Kind: "conflict", Branch: o.Branch, Count: len(o.Files), Detail: joinFiles(o.Files)})
+			if !o.Remote {
+				rows = append(rows, InboxRow{Kind: "conflict", Branch: o.Branch, Count: len(o.Files), Detail: joinFiles(o.Files)})
+			}
 		}
 	}
 	return rows, nil
