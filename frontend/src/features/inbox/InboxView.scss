@@ -14,6 +14,26 @@
   gap: var(--space-md);
 }
 
+.inbox-close {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-left: auto;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
 .inbox-title {
   margin: 0;
   font: var(--title-md);
