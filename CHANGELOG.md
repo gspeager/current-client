@@ -8,6 +8,8 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 - **Highlight one author's commits** in History without hiding the rest: click a commit's initials badge, or choose **Highlight author's commits** from its menu, and every other commit dims while the graph keeps its shape. Click the badge again, or press Escape, to clear it. Choosing a branch's lane clears an author highlight, and the other way round. ([#281](https://github.com/gspeager/current-client/issues/281))
 
+- **First parent only** in History's toolbar, beside the branch filter, follows only each merge's first parent, so a repository that merges everything reads as its main line of merges without every side branch's commits in between. The graph draws the main line as one lane, a merge's details still list every parent, and the choice is remembered with History's other settings. For Go code that embeds `core/`, `git.HistoryFilter` gained `FirstParent`. ([#282](https://github.com/gspeager/current-client/issues/282))
+
 ### Changed
 
 - CI results are icons in the status color instead of colored squares, so passed and failed read apart without color: a check for passed, a cross for failed, a dashed circle while running, a clock while pending, a slash for canceled and a minus for skipped. The same icons appear on commits, branch tips, the pull request marker, the pull request list and the job list. ([#285](https://github.com/gspeager/current-client/issues/285))
