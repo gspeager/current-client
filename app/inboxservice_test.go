@@ -63,6 +63,9 @@ func TestInboxLocalRowsWithEveryHostOff(t *testing.T) {
 	if _, ok := rows["stale/done"]; ok {
 		t.Error("a merged branch is not also stale")
 	}
+	if repos[0].HostEnabled || repos[0].FetchedAt != nil {
+		t.Fatalf("no host: %+v", repos[0])
+	}
 	for _, r := range repos[0].Rows {
 		if r.FetchedAt != nil {
 			t.Errorf("no host row with the host off: %+v", r)

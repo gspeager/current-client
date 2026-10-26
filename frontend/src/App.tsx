@@ -482,6 +482,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   activePath={repo.repoPath}
                   refreshKey={`${repoVersion}:${hostRefresh}`}
                   onGo={goFromInbox}
+                  onRefreshed={() => setHostRefresh((n) => n + 1)}
                 />
               </div>
             ) : (

@@ -6,6 +6,7 @@ import {
   CircleDot,
   CircleX,
   Clock,
+  RefreshCw,
   Eye,
   FileDiff,
   GitMerge,
@@ -14,7 +15,8 @@ import {
   Upload,
   type LucideIcon,
 } from 'lucide-react'
-import { InboxService, type InboxRepo, type InboxRow } from '@current-client-bindings/app'
+import { HostService, InboxService, type InboxRepo, type InboxRow } from '@current-client-bindings/app'
+import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -34,6 +36,8 @@ interface InboxViewProps {
   // Rows are read again when this changes; opening the view fetches nothing.
   refreshKey: unknown
   onGo: (target: InboxTarget) => void
+  // Called after a group's own Refresh, so the rest of the app re-reads too.
+  onRefreshed?: () => void
 }
 
 const ICONS: Record<string, LucideIcon> = {
@@ -98,7 +102,7 @@ function describe(row: InboxRow): { subject: string; reason: string } {
 
 // Everything waiting on you across the open repositories: local facts from
 // Git, host facts from the last refresh's cache, each row a jump to it.
-function InboxView({ paths, activePath = null, refreshKey, onGo }: InboxViewProps) {
+function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed }: InboxViewProps) {
   useClockTick()
   const key = paths.join('\n')
   // Showing the rows counts as seeing them: the header's badge clears.
@@ -129,6 +133,7 @@ function InboxView({ paths, activePath = null, refreshKey, onGo }: InboxViewProp
           open={isOpen(repo.path)}
           onToggle={() => setFolded((f) => ({ ...f, [repo.path]: !isOpen(repo.path) }))}
           onGo={onGo}
+          onRefreshed={onRefreshed}
         />
       ))}
     </section>
@@ -140,10 +145,25 @@ interface InboxRepoSectionProps {
   open: boolean
   onToggle: () => void
   onGo: (target: InboxTarget) => void
+  onRefreshed?: () => void
 }
 
-function InboxRepoSection({ repo, open, onToggle, onGo }: InboxRepoSectionProps) {
+function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepoSectionProps) {
   const fresh = repo.rows.filter((row) => row.new).length
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
+  // A host that is on but hasn't been refreshed this session: its rows
+  // aren't empty, they aren't known yet, and this is the one place the
+  // Inbox offers a request, on a click.
+  const unrefreshed = repo.hostEnabled && !repo.fetchedAt
+  const refresh = () => {
+    setRefreshing(true)
+    setRefreshError(null)
+    HostService.Refresh(repo.path)
+      .then(() => onRefreshed?.())
+      .catch((err: unknown) => setRefreshError(errorMessage(err)))
+      .finally(() => setRefreshing(false))
+  }
   return (
     <section className="inbox-repo" aria-label={repo.name}>
       <h3 className="inbox-repo-name">
@@ -155,7 +175,19 @@ function InboxRepoSection({ repo, open, onToggle, onGo }: InboxRepoSectionProps)
         </button>
       </h3>
       {repo.error && <p className="inbox-error">{repo.error}</p>}
-      {open && !repo.error && repo.rows.length === 0 && <p className="inbox-hint">Nothing waiting.</p>}
+      {open && unrefreshed && (
+        <p className="inbox-hint inbox-unrefreshed">
+          {refreshing ? 'Refreshing from the host…' : 'The host hasn’t been refreshed yet, so its rows aren’t known.'}
+          {!refreshing && (
+            <button type="button" className="inbox-refresh" onClick={refresh}>
+              <RefreshCw size={12} strokeWidth={1.75} />
+              Refresh
+            </button>
+          )}
+        </p>
+      )}
+      {refreshError && <p className="inbox-error">Could not refresh: {refreshError}</p>}
+      {open && !repo.error && !unrefreshed && repo.rows.length === 0 && <p className="inbox-hint">Nothing waiting.</p>}
       {open && repo.rows.length > 0 && (
         <ul className="inbox-rows">
           {repo.rows.map((row, i) => {

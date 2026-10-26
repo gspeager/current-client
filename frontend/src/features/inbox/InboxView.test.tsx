@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { InboxService } from '@current-client-bindings/app'
+import { HostService, InboxService } from '@current-client-bindings/app'
 import InboxView from './InboxView'
 
 const row = (overrides: Record<string, unknown>) => ({
@@ -26,6 +26,8 @@ describe('InboxView', () => {
         path: '/repos/app',
         name: 'app',
         error: '',
+        hostEnabled: true,
+        fetchedAt: new Date().toISOString(),
         rows: [
           row({ kind: 'dirty', count: 3 }),
           row({ kind: 'unpushed', branch: 'feature', count: 2 }),
@@ -47,7 +49,7 @@ describe('InboxView', () => {
           }),
         ],
       },
-      { path: '/repos/lib', name: 'lib', error: '', rows: [] },
+      { path: '/repos/lib', name: 'lib', error: '', rows: [], hostEnabled: false, fetchedAt: null },
     ] as never)
     const onGo = vi.fn()
     render(<InboxView paths={['/repos/app', '/repos/lib']} activePath="/repos/app" refreshKey={0} onGo={onGo} />)
@@ -76,6 +78,29 @@ describe('InboxView', () => {
     await userEvent.click(within(app).getByRole('button', { name: /#12 Login fails/ }))
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'issue', key: '12' })
     expect(within(app).getByText('assigned, !4 failing CI')).toBeInTheDocument()
+  })
+
+  it('says when a host is on but not refreshed yet, and refreshes it on request', async () => {
+    vi.mocked(InboxService.Rows).mockResolvedValue([
+      { path: '/repos/app', name: 'app', error: '', rows: [], hostEnabled: true, fetchedAt: null },
+    ] as never)
+    vi.mocked(HostService.Refresh).mockResolvedValue()
+    const onRefreshed = vi.fn()
+    render(
+      <InboxView
+        paths={['/repos/app']}
+        activePath="/repos/app"
+        refreshKey={0}
+        onGo={vi.fn()}
+        onRefreshed={onRefreshed}
+      />,
+    )
+
+    expect(await screen.findByText(/hasn’t been refreshed yet/)).toBeInTheDocument()
+    expect(screen.queryByText('Nothing waiting.')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(HostService.Refresh).toHaveBeenCalledWith('/repos/app')
+    await vi.waitFor(() => expect(onRefreshed).toHaveBeenCalled())
   })
 
   it('shows a repository that could not be read, and says when nothing is open', async () => {

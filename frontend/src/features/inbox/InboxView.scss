@@ -165,3 +165,27 @@
   font: var(--ui-xs);
   text-transform: lowercase;
 }
+
+.inbox-unrefreshed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.inbox-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}

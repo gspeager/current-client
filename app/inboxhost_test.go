@@ -37,6 +37,9 @@ func TestInboxHostRowsComeFromTheCacheAlone(t *testing.T) {
 		t.Fatalf("Unseen before the Inbox opened = %d, want 4", n)
 	}
 	repos := inbox.Rows([]string{repo}, true)
+	if !repos[0].HostEnabled || repos[0].FetchedAt == nil {
+		t.Fatalf("a refreshed host: enabled with a time, got %+v", repos[0])
+	}
 	rows := inboxKinds(repos[0].Rows)
 	for _, r := range repos[0].Rows {
 		if !r.New || r.ID == "" {
@@ -86,6 +89,9 @@ func TestRefreshBringsTheAssignedIssues(t *testing.T) {
 	}, hits: map[string]int{}}
 	swapHostClient(t, transport)
 	var s HostService
+	if before := (&InboxService{}).Rows([]string{repo}, false)[0]; !before.HostEnabled || before.FetchedAt != nil || len(before.Rows) != 0 {
+		t.Fatalf("before the first refresh the host is on with no time and no rows: %+v", before)
+	}
 	if err := s.Refresh(repo); err != nil {
 		t.Fatal(err)
 	}

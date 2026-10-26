@@ -5,6 +5,7 @@ package app
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
@@ -13,13 +14,12 @@ import (
 // hostInboxRows reads the cache only: review requests waiting on the user,
 // their own changes with changes requested or failing CI, and the issues
 // assigned to them, each with the age of the refresh that brought it.
-func hostInboxRows(repoPath string) []InboxRow {
+func hostInboxRows(repoPath string) (rows []InboxRow, enabled bool, fetchedAt *time.Time) {
 	list, info, _, err := changeList(repoPath)
 	if err != nil || !list.Enabled {
-		return nil
+		return nil, false, nil
 	}
 	fillChangeList(&list, info, repoPath, cacheChanges)
-	var rows []InboxRow
 	for _, change := range list.Changes {
 		row := InboxRow{Number: change.Number, Prefix: list.Prefix, Branch: change.SourceBranch, Title: change.Title, WebURL: change.WebURL, FetchedAt: list.FetchedAt}
 		number := strconv.Itoa(change.Number)
@@ -48,7 +48,7 @@ func hostInboxRows(repoPath string) []InboxRow {
 			rows = append(rows, InboxRow{ID: "assigned:" + issue.Key, Kind: "assigned", Key: issue.Key, Title: issue.Title, Detail: issueBranchState(repoPath, info, list, issue.Key), WebURL: issue.WebURL, FetchedAt: &fetched})
 		}
 	}
-	return rows
+	return rows, true, list.FetchedAt
 }
 
 // issueBranchState says what a local branch named after the issue is
