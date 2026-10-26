@@ -11,6 +11,7 @@ Current Client runs entirely on your machine and connects only to the servers yo
 - A commit graph with search across the full history, blame and file history.
 - Search across every file's contents, now or at any commit.
 - Undo the last operation — a commit, amend, merge, pull, rebase, reset or branch switch — after a preview of what will move.
+- An Inbox of what waits on you across every open repository: uncommitted work, stopped operations, unpushed, stale and merged branches, and with host integration on, reviews, failing CI and assigned issues.
 - Conflict prediction: branches that would conflict with yours are marked, with the files, before you merge (Git 2.38 or newer).
 - Code owners from the repository's `CODEOWNERS`, read locally: each changed file's owners in Changes, and the owners of a branch's changes suggested as reviewers when creating a merge request.
 - Repository tabs, to keep several repositories open at once, and worktrees for several branches of one.

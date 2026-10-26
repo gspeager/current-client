@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { System } from '@wailsio/runtime'
-import { ArrowDown, ArrowUp, ChevronDown, Plus, RefreshCw, Settings, X, type LucideIcon } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, Inbox, Plus, RefreshCw, Settings, type LucideIcon, X } from 'lucide-react'
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
 import ContextMenu, { type ContextMenuItem, type ContextMenuState } from '../controls/ContextMenu'
@@ -32,6 +32,9 @@ interface HeaderBarProps {
   pruneOnFetch: boolean
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
+  // The Inbox, a view across every open repository, beside the tabs.
+  inboxOpen?: boolean
+  onToggleInbox?: () => void
   workspaceActions: WorkspaceAction[]
   onOpenSettings: () => void
   onPull: () => void
@@ -60,6 +63,8 @@ function HeaderBar({
   pruneOnFetch,
   repo,
   dirty,
+  inboxOpen = false,
+  onToggleInbox,
   workspaceActions,
   onOpenSettings,
   onPull,
@@ -187,6 +192,18 @@ function HeaderBar({
 
   return (
     <header className="header-bar">
+      {onToggleInbox && (
+        <button
+          type="button"
+          className={inboxOpen ? 'header-bar-inbox header-bar-inbox-open' : 'header-bar-inbox'}
+          aria-pressed={inboxOpen}
+          title="What waits on you across the open repositories"
+          onClick={onToggleInbox}
+        >
+          <Inbox size={14} strokeWidth={1.5} />
+          Inbox
+        </button>
+      )}
       <div className="header-bar-tabs" aria-label="Open repositories">
         {repo.tabs.map((path) =>
           path === repoPath ? (

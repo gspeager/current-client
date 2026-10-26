@@ -63,6 +63,15 @@ describe('HeaderBar sync cluster', () => {
     expect(screen.queryByText(/fetched 26m ago/)).not.toBeInTheDocument()
   })
 
+  it('shows the Inbox button when given a toggle, pressed while the Inbox is open', async () => {
+    const onToggleInbox = vi.fn()
+    renderHeader({ inboxOpen: true, onToggleInbox } as never)
+    const button = await screen.findByRole('button', { name: 'Inbox' })
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(button)
+    expect(onToggleInbox).toHaveBeenCalled()
+  })
+
   it('colors Pull only while behind and Push only while ahead, on both segments', async () => {
     renderHeader()
     await screen.findByRole('button', { name: 'Pull 1' })

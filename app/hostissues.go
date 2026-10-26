@@ -176,12 +176,17 @@ func (s *HostService) AssignedIssues(repoPath string) ([]hostapi.Issue, error) {
 		if err != nil {
 			return nil, err
 		}
-		for _, is := range issues {
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(is.Number),
-				IssueInfo{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.WebURL, Known: true})
-		}
+		rememberIssueTitles(info, repoPath, issues)
 		return issues, nil
 	})
+}
+
+// rememberIssueTitles keeps each issue for hover cards too.
+func rememberIssueTitles(info HostInfo, repoPath string, issues []hostapi.Issue) {
+	for _, is := range issues {
+		hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(is.Number),
+			IssueInfo{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.WebURL, Known: true})
+	}
 }
 
 func cachedIssues(info HostInfo, repoPath string, numbers []int) map[int]IssueInfo {

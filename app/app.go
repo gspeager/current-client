@@ -41,6 +41,7 @@ func Services() []application.Service {
 		application.NewService(&WorktreeService{}),
 		application.NewService(&SubmoduleService{}),
 		application.NewService(&CodeownersService{}),
+		application.NewService(&InboxService{}),
 	}, hostServices()...)
 }
 
