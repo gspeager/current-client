@@ -54,6 +54,9 @@ type HistoryFilter struct {
 	Until  string
 	Author string
 	Type   string
+	// FirstParent follows only each merge's first parent, so a side branch's
+	// commits are left out.
+	FirstParent bool
 }
 
 const BreakingType = "!"
@@ -162,6 +165,9 @@ func filterArgs(filter HistoryFilter) []string {
 	if filter.Author != "" {
 		// --use-mailmap so the canonical name also finds an alias's commits.
 		args = append(args, "--use-mailmap", "--author="+filter.Author)
+	}
+	if filter.FirstParent {
+		args = append(args, "--first-parent")
 	}
 	if filter.Ref == "--all" {
 		// Stash entries are commits under refs/stash; they aren't history.

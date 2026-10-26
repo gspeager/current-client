@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -109,6 +110,40 @@ func TestHistoryRealRepoPagination(t *testing.T) {
 	}
 	if len(all) != 5 {
 		t.Fatalf("got %d commits, want 5", len(all))
+	}
+}
+
+func TestHistoryFirstParentLeavesOutTheSideBranch(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
+	gittest.Run(t, dir, "checkout", "-q", "-b", "feature")
+	gittest.CommitFile(t, dir, "feature.txt", "v1", "feature work")
+	gittest.Run(t, dir, "checkout", "-q", "main")
+	gittest.Run(t, dir, "merge", "--no-ff", "-q", "-m", "merge feature", "feature")
+
+	subjects := func(filter HistoryFilter) []string {
+		t.Helper()
+		commits, err := History(context.Background(), dir, 0, 0, filter)
+		if err != nil {
+			t.Fatalf("History(%+v): %v", filter, err)
+		}
+		var out []string
+		for _, c := range commits {
+			out = append(out, c.Subject)
+		}
+		return out
+	}
+	if got, want := subjects(HistoryFilter{FirstParent: true}), []string{"merge feature", "initial"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("first parent: got %v, want %v", got, want)
+	}
+	if got, want := subjects(HistoryFilter{Ref: "main", FirstParent: true}), []string{"merge feature", "initial"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("first parent on main: got %v, want %v", got, want)
+	}
+	// The side commit and the root share a commit date, so their order is Git's.
+	all := subjects(HistoryFilter{})
+	sort.Strings(all)
+	if want := []string{"feature work", "initial", "merge feature"}; !reflect.DeepEqual(all, want) {
+		t.Fatalf("all parents: got %v, want %v", all, want)
 	}
 }
 

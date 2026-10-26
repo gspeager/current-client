@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { HistoryService, type CommitInfo, type HistoryFilterInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 
-export const EMPTY_HISTORY_FILTER: HistoryFilterInfo = { ref: '', since: '', until: '', author: '', type: '' }
+export const EMPTY_HISTORY_FILTER: HistoryFilterInfo = {
+  ref: '',
+  since: '',
+  until: '',
+  author: '',
+  type: '',
+  firstParent: false,
+}
 
 const PAGE_SIZE = 200
 
@@ -48,7 +55,7 @@ export function useCommitHistory(
     setError(null)
     fetchPage(0, initialLoadThrough ? initialLoadThrough + 50 : PAGE_SIZE)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoPath, filter.ref, filter.since, filter.until, filter.author, filter.type])
+  }, [repoPath, filter.ref, filter.since, filter.until, filter.author, filter.type, filter.firstParent])
 
   return { commits, loading, done, error, loadMore }
 }

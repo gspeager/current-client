@@ -79,6 +79,7 @@ export function useSettings() {
     setDiffNoWrap: setter('diffNoWrap', SettingsService.SetDiffNoWrap),
     setPruneOnFetch: setter('pruneOnFetch', SettingsService.SetPruneOnFetch),
     setHistoryBranchFilter: setter('historyBranchFilter', SettingsService.SetHistoryBranchFilter),
+    setHistoryFirstParent: setter('historyFirstParent', SettingsService.SetHistoryFirstParent),
     setDisableConventionalCommits: setter('disableConventionalCommits', SettingsService.SetDisableConventionalCommits),
     setChangelogPrefs: setter('changelog', SettingsService.SetChangelogPrefs),
     setTheme: setter('theme', SettingsService.SetTheme),

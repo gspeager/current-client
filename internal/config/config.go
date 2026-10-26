@@ -74,6 +74,8 @@ type Config struct {
 	// History's branch filter: "" is all branches, "HEAD" the current branch,
 	// anything else a branch name.
 	HistoryBranchFilter string `json:"historyBranchFilter,omitempty"`
+	// Whether History follows only each merge's first parent.
+	HistoryFirstParent bool `json:"historyFirstParent,omitempty"`
 
 	// Whether the header's fetch also deletes remote-tracking branches gone from the remote.
 	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`
