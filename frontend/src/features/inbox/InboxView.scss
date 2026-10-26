@@ -133,3 +133,13 @@
   font: var(--ui-xs);
   white-space: nowrap;
 }
+
+// A host row the Inbox hasn't shown before this refresh.
+.inbox-row-new {
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--secondary);
+  border-radius: 3px;
+  color: var(--secondary);
+  font: var(--ui-xs);
+  text-transform: lowercase;
+}

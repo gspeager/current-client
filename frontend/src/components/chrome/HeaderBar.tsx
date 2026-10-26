@@ -35,6 +35,8 @@ interface HeaderBarProps {
   // The Inbox, a view across every open repository, beside the tabs.
   inboxOpen?: boolean
   onToggleInbox?: () => void
+  // Host rows the Inbox hasn't shown yet, after a refresh.
+  inboxUnseen?: number
   workspaceActions: WorkspaceAction[]
   onOpenSettings: () => void
   onPull: () => void
@@ -65,6 +67,7 @@ function HeaderBar({
   dirty,
   inboxOpen = false,
   onToggleInbox,
+  inboxUnseen = 0,
   workspaceActions,
   onOpenSettings,
   onPull,
@@ -342,11 +345,16 @@ function HeaderBar({
           type="button"
           className={inboxOpen ? 'header-bar-icon-button header-bar-icon-button-active' : 'header-bar-icon-button'}
           aria-pressed={inboxOpen}
-          aria-label="Inbox"
-          title="Inbox: what waits on you across the open repositories"
+          aria-label={inboxUnseen > 0 ? `Inbox, ${inboxUnseen} new` : 'Inbox'}
+          title={
+            inboxUnseen > 0
+              ? `Inbox: ${inboxUnseen} new since the last refresh`
+              : 'Inbox: what waits on you across the open repositories'
+          }
           onClick={onToggleInbox}
         >
           <Inbox size={18} strokeWidth={1.75} />
+          {inboxUnseen > 0 && <span className="header-bar-inbox-count">{inboxUnseen}</span>}
         </button>
       )}
 

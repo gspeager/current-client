@@ -97,7 +97,8 @@ function describe(row: InboxRow): { subject: string; reason: string } {
 function InboxView({ paths, refreshKey, onGo }: InboxViewProps) {
   useClockTick()
   const key = paths.join('\n')
-  const { data: repos, error } = useAsyncData(() => (key ? InboxService.Rows(key.split('\n')) : null), [key], {
+  // Showing the rows counts as seeing them: the header's badge clears.
+  const { data: repos, error } = useAsyncData(() => (key ? InboxService.Rows(key.split('\n'), true) : null), [key], {
     refreshKey,
     keepData: true,
   })
@@ -145,6 +146,7 @@ function InboxRepoSection({ repo, onGo }: { repo: InboxRepo; onGo: (target: Inbo
                   <span className="inbox-row-text">
                     <span className="inbox-row-subject">{subject}</span>
                     <span className="inbox-row-reason">{reason}</span>
+                    {row.new && <span className="inbox-row-new">new</span>}
                   </span>
                   {row.fetchedAt && (
                     <span className="inbox-row-age">from the host {relativeTime(new Date(row.fetchedAt))}</span>
