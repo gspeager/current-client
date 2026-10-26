@@ -11,6 +11,15 @@ import (
 
 // providerFor is the host's API through the one client, or nil for a
 // provider type without one.
+// issueTrackerFor is the host's own issues; a tracker beside the host
+// would be chosen here once there is one.
+func issueTrackerFor(info HostInfo) hostapi.IssueTracker {
+	if tracker, ok := providerFor(info).(hostapi.IssueTracker); ok {
+		return tracker
+	}
+	return nil
+}
+
 func providerFor(info HostInfo) hostapi.Provider {
 	host := hostapi.Host{Name: info.Hostname, API: info.APIURL}
 	switch hostlink.Style(info.Provider) {

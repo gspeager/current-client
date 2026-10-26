@@ -2,6 +2,7 @@ package hostapi
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -143,11 +144,31 @@ type Note struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// Issue is one issue on a tracker. Key is how its references name it:
+// "123" for a host's #123, "PROJ-123" for Jira. Number is the host's
+// number, 0 on a tracker whose keys aren't numbers.
 type Issue struct {
+	Key    string `json:"key"`
 	Number int    `json:"number"`
 	Title  string `json:"title"`
 	State  string `json:"state"`
 	WebURL string `json:"webUrl"`
+}
+
+// IssueTracker is where a repository's issues live: the code host itself,
+// or a tracker beside it such as Jira. Every issue feature reads through
+// it, so a tracker that isn't the host has somewhere to go. It adds no
+// trigger for requests: callers keep their cache and refresh rules.
+type IssueTracker interface {
+	// IssueByKey reads one issue by the key its references use.
+	IssueByKey(ctx context.Context, project, key string) (Issue, error)
+	// AssignedIssues is one page of the open issues assigned to username,
+	// most recently updated first.
+	AssignedIssues(ctx context.Context, project, username string) ([]Issue, error)
+	// KeyPattern matches one reference in text, with the key in group 1,
+	// so the app can find issues in branch names, commit messages and
+	// change titles.
+	KeyPattern() *regexp.Regexp
 }
 
 // BranchRule is what the host forbids on branches matching Pattern, which
@@ -225,9 +246,10 @@ type Provider interface {
 	Jobs(ctx context.Context, project string, pipelineID int64) ([]Job, error)
 	// JobLog returns up to maxBytes from the end of a job's log.
 	JobLog(ctx context.Context, project string, jobID int64, maxBytes int) (log string, truncated bool, err error)
+	// Issue reads one issue by number. Deprecated: IssueTracker.IssueByKey
+	// takes the key a reference carries and works for every tracker.
 	Issue(ctx context.Context, project string, number int) (Issue, error)
-	// AssignedIssues is one page of the open issues assigned to username,
-	// most recently updated first.
+	// AssignedIssues is IssueTracker's, kept here so a Provider is one.
 	AssignedIssues(ctx context.Context, project, username string) ([]Issue, error)
 	CreateChange(ctx context.Context, project string, change NewChange) (Change, error)
 	// BranchRules are the host's protection rules; branches names the ones

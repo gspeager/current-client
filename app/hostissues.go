@@ -45,8 +45,8 @@ func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]
 	if err != nil || !ok || !info.Enabled {
 		return map[int]IssueInfo{}, err
 	}
-	provider := providerFor(info)
-	if provider == nil {
+	tracker := issueTrackerFor(info)
+	if tracker == nil {
 		return map[int]IssueInfo{}, nil
 	}
 	var missing []int
@@ -67,7 +67,7 @@ func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]
 	defer cancel()
 	inParallel(len(missing), func(i int) {
 		number := missing[i]
-		issue, err := provider.Issue(ctx, info.Project, number)
+		issue, err := tracker.IssueByKey(ctx, info.Project, strconv.Itoa(number))
 		var hostErr *hostapi.HostError
 		switch {
 		case err == nil:
@@ -93,7 +93,11 @@ func (s *HostService) AssignedIssues(repoPath string) ([]hostapi.Issue, error) {
 		if err != nil {
 			return nil, err
 		}
-		issues, err := provider.AssignedIssues(ctx, info.Project, me.Username)
+		tracker, ok := provider.(hostapi.IssueTracker)
+		if !ok {
+			return nil, nil
+		}
+		issues, err := tracker.AssignedIssues(ctx, info.Project, me.Username)
 		if err != nil {
 			return nil, err
 		}
