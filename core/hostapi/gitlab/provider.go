@@ -131,10 +131,25 @@ type mergeRequestCommit struct {
 }
 
 type issue struct {
-	IID    int    `json:"iid"`
-	Title  string `json:"title"`
-	State  string `json:"state"`
-	WebURL string `json:"web_url"`
+	IID         int      `json:"iid"`
+	Title       string   `json:"title"`
+	State       string   `json:"state"`
+	WebURL      string   `json:"web_url"`
+	Description string   `json:"description"`
+	Labels      []string `json:"labels"`
+	Milestone   *struct {
+		Title string `json:"title"`
+	} `json:"milestone"`
+	Author    user      `json:"author"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type issueNote struct {
+	Author    user      `json:"author"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
+	System    bool      `json:"system"`
 }
 
 func (p *Provider) OpenChanges(ctx context.Context, project string) ([]hostapi.Change, bool, error) {
@@ -351,12 +366,65 @@ func (p *Provider) KeyPattern() *regexp.Regexp {
 	return hostapi.NumberedKeys
 }
 
+func (p *Provider) KeyInBranch(branch string) string {
+	return hostapi.NumberedBranchKey(branch)
+}
+
+func (p *Provider) Reference(key string) string {
+	return hostapi.NumberedReference(key)
+}
+
+func (p *Provider) IssueDetails(ctx context.Context, project, key string) (hostapi.IssueDetails, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return hostapi.IssueDetails{}, err
+	}
+	var is issue
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "issues", strconv.Itoa(number)), nil, &is); err != nil {
+		return hostapi.IssueDetails{}, hostapi.WithScope(err, readScope)
+	}
+	return toIssueDetails(is), nil
+}
+
+// IssueComments leaves out system notes, GitLab's own record of label and
+// state changes.
+func (p *Provider) IssueComments(ctx context.Context, project, key string) ([]hostapi.Note, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return nil, err
+	}
+	var page []issueNote
+	query := url.Values{"sort": {"asc"}, "order_by": {"created_at"}, "per_page": {"100"}}
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "issues", strconv.Itoa(number), "notes"), query, &page); err != nil {
+		return nil, hostapi.WithScope(err, readScope)
+	}
+	notes := make([]hostapi.Note, 0, len(page))
+	for _, n := range page {
+		if !n.System {
+			notes = append(notes, hostapi.Note{Author: toUser(n.Author), Body: n.Body, CreatedAt: n.CreatedAt})
+		}
+	}
+	return notes, nil
+}
+
 func toIssue(is issue) hostapi.Issue {
 	state := "open"
 	if is.State == "closed" {
 		state = "closed"
 	}
 	return hostapi.Issue{Key: strconv.Itoa(is.IID), Number: is.IID, Title: is.Title, State: state, WebURL: is.WebURL}
+}
+
+func toIssueDetails(is issue) hostapi.IssueDetails {
+	labels := is.Labels
+	if labels == nil {
+		labels = []string{}
+	}
+	out := hostapi.IssueDetails{Issue: toIssue(is), Description: is.Description, Labels: labels, Author: toUser(is.Author), CreatedAt: is.CreatedAt, UpdatedAt: is.UpdatedAt}
+	if is.Milestone != nil {
+		out.Milestone = is.Milestone.Title
+	}
+	return out
 }
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {

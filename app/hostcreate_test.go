@@ -44,6 +44,17 @@ func TestChangeDraftComesFromTheCommitsAndTheTemplate(t *testing.T) {
 	if draft.Description != want {
 		t.Fatalf("description =\n%s\nwant\n%s", draft.Description, want)
 	}
+
+	// A branch named after an issue closes it.
+	gitIn(t, repo, "switch", "-q", "-c", "12-fix-login")
+	draft, err = s.ChangeDraft(repo, "12-fix-login")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = "- feat(login): add the login form\n- fix(login): handle an empty password\n\nCloses #12\n\n## Checklist\n\n- [ ] Tests"
+	if draft.Description != want {
+		t.Fatalf("description =\n%s\nwant\n%s", draft.Description, want)
+	}
 }
 
 func TestCreateChangeGoesToTheHostAndIntoTheCache(t *testing.T) {

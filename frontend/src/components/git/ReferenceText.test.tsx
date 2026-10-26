@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { PlatformService } from '@current-client-bindings/app'
 import { Links } from '@current-client-bindings/core/hostlink'
 import ReferenceText from './ReferenceText'
+import { IssuePanelContext } from '../../lib/issuePanel'
 
 const links = new Links({ issue: 'https://github.com/o/r/issues/', root: 'https://github.com/', issuePath: '/issues/' })
 
@@ -24,6 +25,25 @@ describe('ReferenceText', () => {
 
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://github.com/o/r/issues/12')
     expect(onRowClick).not.toHaveBeenCalled()
+  })
+
+  it('opens an issue’s panel while the host is on, and a merge request on the host', async () => {
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    const openIssue = vi.fn()
+    render(
+      <IssuePanelContext.Provider value={openIssue}>
+        <ReferenceText
+          text="Fix #12 via !45"
+          links={new Links({ ...links, mergeRequest: 'https://github.com/o/r/pull/' })}
+        />
+      </IssuePanelContext.Provider>,
+    )
+    await userEvent.click(screen.getByRole('link', { name: '#12' }))
+    expect(openIssue).toHaveBeenCalledWith('12')
+    expect(PlatformService.OpenWebPage).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('link', { name: '!45' }))
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://github.com/o/r/pull/45')
   })
 
   it('decorates linked and plain text alike', () => {

@@ -1,7 +1,15 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ChangeList, CurrentChange, ForecastReport, HostService, PlatformService } from '@current-client-bindings/app'
+import {
+  ChangeList,
+  CurrentChange,
+  ForecastReport,
+  HostService,
+  PlatformService,
+  RemoteService,
+} from '@current-client-bindings/app'
 import { Change, ChangeState, CIStatus, ReviewState } from '@current-client-bindings/core/hostapi'
+import { Links } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import HostChangesView from './HostChangesView'
 
@@ -72,7 +80,11 @@ function renderView({ onBranchChanged = vi.fn(), onCreateChange = vi.fn(), onOpe
 describe('HostChangesView', () => {
   it('lists the open changes from the cache and filters to mine', async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
-    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '<p>Body</p>' })
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({
+      change: change({}),
+      descriptionHtml: '<p>Body</p>',
+      closes: [],
+    })
     renderView()
 
     const rows = await screen.findByRole('list', { name: 'Merge requests list' })
@@ -109,7 +121,7 @@ describe('HostChangesView', () => {
         ],
       }),
     )
-    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '' })
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
     renderView()
 
     const rows = await screen.findByRole('list', { name: 'Merge requests list' })
@@ -128,7 +140,7 @@ describe('HostChangesView', () => {
 
   it('asks for closed changes only when that filter is chosen', async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
-    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '' })
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
     vi.mocked(HostService.ClosedChanges).mockResolvedValue(
       list({ changes: [change({ number: 99, title: 'Shipped it', state: ChangeState.ChangeMerged })] }),
     )
@@ -147,7 +159,7 @@ describe('HostChangesView', () => {
       .mockResolvedValueOnce(list({ fetchedAt: null, changes: [] }))
       .mockResolvedValue(list())
     vi.mocked(HostService.Refresh).mockResolvedValue()
-    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '' })
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
     renderView()
 
     await waitFor(() => expect(HostService.Refresh).toHaveBeenCalledTimes(1))
@@ -162,6 +174,7 @@ describe('HostChangesView', () => {
     vi.mocked(HostService.ChangeDetails).mockResolvedValue({
       change: change({}),
       descriptionHtml: '<p>See <a href="https://gitlab.example.com/g/r/-/issues/4">#4</a></p>',
+      closes: [],
     })
     vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
     renderView()
@@ -178,7 +191,7 @@ describe('HostChangesView', () => {
 
   it('fetches threads, files and commits only when their tab is opened', async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
-    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '' })
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
     vi.mocked(HostService.ChangeFiles).mockResolvedValue([
       { path: 'app/x.go', oldPath: '', status: 'modified', additions: 3, deletions: 1 },
       { path: 'app/y.go', oldPath: 'app/old.go', status: 'renamed', additions: 0, deletions: 0 },
@@ -239,7 +252,7 @@ describe('HostChangesView', () => {
 
   it('starts a new change from the checked-out branch, unless it already has one', async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
-    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '' })
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
     const { onCreateChange } = renderView()
 
     const create = await screen.findByRole('button', { name: 'New merge request' })
@@ -250,7 +263,7 @@ describe('HostChangesView', () => {
 
   it('names the host in the privacy line and opens the integration settings from it', async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
-    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '' })
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
     const { onOpenSettings } = renderView()
 
     expect(await screen.findByText(/gitlab\.example\.com is contacted on Refresh/)).toBeInTheDocument()
@@ -260,7 +273,7 @@ describe('HostChangesView', () => {
 
   it('checks a change out locally and tells the app the branch changed', async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
-    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '' })
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
     vi.mocked(HostService.CheckoutChange).mockResolvedValue({ branch: 'feature', existed: false })
     const { onBranchChanged } = renderView()
 
@@ -276,5 +289,28 @@ describe('HostChangesView', () => {
     renderView()
     await waitFor(() => expect(HostService.Changes).toHaveBeenCalled())
     expect(screen.queryByRole('region')).not.toBeInTheDocument()
+  })
+})
+
+describe('HostChangesView closes', () => {
+  it('lists the issues a change closes as references', async () => {
+    vi.mocked(HostService.Changes).mockResolvedValue(list())
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({
+      change: change({}),
+      descriptionHtml: '',
+      closes: ['#12', '#7'],
+    })
+    vi.mocked(RemoteService.HostLinks).mockResolvedValue(
+      new Links({
+        root: 'https://gitlab.example.com/',
+        issue: 'https://gitlab.example.com/g/r/-/issues/',
+        issuePath: '/-/issues/',
+      }),
+    )
+    renderView()
+    await userEvent.click(await screen.findByRole('button', { name: /Add the thing/ }))
+    const closes = await screen.findByRole('link', { name: '#12' })
+    expect(closes).toHaveAttribute('href', 'https://gitlab.example.com/g/r/-/issues/12')
+    expect(screen.getByRole('link', { name: '#7' })).toBeInTheDocument()
   })
 })

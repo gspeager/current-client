@@ -74,6 +74,13 @@ func (s *HostService) ChangeDraft(repoPath, branch string) (ChangeDraft, error) 
 		fmt.Fprintf(&list, "- %s\n", commits[i].Subject)
 	}
 	draft.Description = strings.TrimRight(list.String(), "\n")
+	// A branch named after an issue closes it: the host links the two and
+	// closes the issue when the change merges.
+	if tracker := issueTrackerFor(info); tracker != nil {
+		if key := tracker.KeyInBranch(branch); key != "" {
+			draft.Description += "\n\nCloses " + tracker.Reference(key)
+		}
+	}
 	if template := changeTemplate(repoPath, info); template != "" {
 		draft.Description += "\n\n" + template
 	}

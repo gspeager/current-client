@@ -36,6 +36,9 @@ type ChangeList struct {
 type ChangeDetails struct {
 	Change          hostapi.Change `json:"change"`
 	DescriptionHTML string         `json:"descriptionHtml"`
+	// Closes is the issue references the description says the change
+	// closes, found locally.
+	Closes []string `json:"closes"`
 }
 
 type CheckoutResult struct {
@@ -150,7 +153,11 @@ func (s *HostService) ChangeDetails(repoPath string, number int) (ChangeDetails,
 		return ChangeDetails{}, err
 	}
 	webRoot := "https://" + info.Hostname + "/"
-	return ChangeDetails{Change: change, DescriptionHTML: hostcontent.RenderMarkdown(change.Description, webRoot)}, nil
+	details := ChangeDetails{Change: change, DescriptionHTML: hostcontent.RenderMarkdown(change.Description, webRoot)}
+	if tracker := issueTrackerFor(info); tracker != nil {
+		details.Closes = closedIssues(change.Description, tracker)
+	}
+	return details, nil
 }
 
 // CheckoutChange fetches the change's head into refs/current-client/ and
