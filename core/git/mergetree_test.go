@@ -122,3 +122,58 @@ func TestMergeConflictsWithUnrelatedHistory(t *testing.T) {
 		t.Errorf("SharingHistory = %v, want related and main but not gh-pages", related)
 	}
 }
+
+func TestMergePairsOneByOneMatchesTheBatch(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a\n", "base")
+	gittest.Run(t, dir, "switch", "-q", "-c", "one")
+	gittest.CommitFile(t, dir, "a.txt", "one\n", "one")
+	gittest.Run(t, dir, "switch", "-q", "-c", "two", "main")
+	gittest.CommitFile(t, dir, "a.txt", "two\n", "two")
+	gittest.Run(t, dir, "switch", "-q", "-c", "three", "main")
+	gittest.CommitFile(t, dir, "b.txt", "three\n", "three")
+	gittest.Run(t, dir, "switch", "-q", "main")
+	ctx := context.Background()
+	pairs := [][2]string{{"one", "two"}, {"two", "one"}, {"one", "three"}, {"main", "main"}, {"three", "two"}}
+
+	batch, err := mergeTreeBatch(ctx, dir, pairs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	each, err := mergePairsEach(ctx, dir, pairs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(batch, each) {
+		t.Fatalf("batch %+v != one by one %+v", batch, each)
+	}
+	if !reflect.DeepEqual(batch[0].Files, []string{"a.txt"}) || !batch[2].Clean || batch[2].Tree == "" || !batch[3].Clean {
+		t.Errorf("merges = %+v", batch)
+	}
+	conflicts, err := MergeConflictsPairs(ctx, dir, pairs)
+	if err != nil || !reflect.DeepEqual(conflicts, [][]string{{"a.txt"}, {"a.txt"}, nil, nil, nil}) {
+		t.Errorf("MergeConflictsPairs = %v, %v", conflicts, err)
+	}
+}
+
+func TestMergePairsAnswersAroundUnrelatedHistory(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a\n", "base")
+	gittest.Run(t, dir, "switch", "-q", "--orphan", "gh-pages")
+	gittest.CommitFile(t, dir, "index.html", "site\n", "site")
+	gittest.Run(t, dir, "switch", "-q", "-c", "related", "main")
+	gittest.CommitFile(t, dir, "a.txt", "b\n", "related")
+	gittest.Run(t, dir, "switch", "-q", "main")
+	gittest.CommitFile(t, dir, "a.txt", "c\n", "ours")
+
+	merges, err := MergePairs(context.Background(), dir, [][2]string{{"main", "related"}, {"main", "gh-pages"}, {"gh-pages", "main"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(merges[0].Files, []string{"a.txt"}) || merges[0].Unrelated {
+		t.Errorf("related = %+v, want a.txt conflicting", merges[0])
+	}
+	if !merges[1].Unrelated || !merges[2].Unrelated || merges[1].Tree != "" {
+		t.Errorf("unrelated = %+v %+v", merges[1], merges[2])
+	}
+}
