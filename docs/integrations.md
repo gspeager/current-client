@@ -158,13 +158,14 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `PUT /projects/:path/merge_requests/:iid/merge` | **Merge** in that dialog, with the head the last refresh saw, so a merge request that moved since is refused rather than merged | `api` |
 | `POST /projects/:path/jobs/:id/retry` | **Re-run job** under a failed job's log | `api` |
 | `POST /projects/:path/pipelines/:id/retry` | **Re-run failed jobs** under a pipeline's job list | `api` |
+| `POST /projects/:path/releases` | **Publish release** for a tag, after the tag is pushed; no `ref` is sent, so GitLab refuses a tag it doesn't have rather than making one | `api` |
 | `POST /projects/:path/issues` | **Create issue** in the New issue dialog: title, description and labels | `api` |
 | `POST /projects/:path/issues/:iid/notes` | **Comment** in an issue's panel | `api` |
 | `PUT /projects/:path/issues/:iid` | **Close issue** or **Reopen issue** in an issue's panel | `api` |
 
 ### GitHub (github.com and Enterprise Server 3.11 or newer)
 
-Under `https://api.github.com` or the server's `/api/v3`. A classic token needs the `repo` scope; a fine-grained one, read access to pull requests, checks, contents and issues, write access to pull requests for creating, reviewing and merging one, write access to issues for creating, commenting on and closing one, and write access to actions for re-running a job. The two differ only in address; Enterprise Server before 3.11 has no repository rulesets, so it gets everything but the protected-branch warning.
+Under `https://api.github.com` or the server's `/api/v3`. A classic token needs the `repo` scope; a fine-grained one, read access to pull requests, checks, contents and issues, write access to pull requests for creating, reviewing and merging one, write access to issues for creating, commenting on and closing one, write access to actions for re-running a job, and write access to contents for publishing a release. The two differ only in address; Enterprise Server before 3.11 has no repository rulesets, so it gets everything but the protected-branch warning.
 
 | Endpoint | When | Access |
 | --- | --- | --- |
@@ -191,6 +192,7 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `PUT /repos/:owner/:repo/pulls/:number/merge` | **Merge** in that dialog, with the head the last refresh saw, so a pull request that moved since is refused rather than merged | pull requests: write |
 | `POST /repos/:owner/:repo/actions/jobs/:id/rerun` | **Re-run job** under a failed GitHub Actions job's log | actions: write |
 | `POST /repos/:owner/:repo/actions/runs/:id/rerun-failed-jobs` | **Re-run failed jobs** under a job list, once per workflow run with a failed job; the run is read from the job's address | actions: write |
+| `GET /repos/:owner/:repo/git/ref/tags/:tag` and `POST /repos/:owner/:repo/releases` | **Publish release** for a tag, after the tag is pushed; the tag is checked first, since GitHub would make a missing one at the default branch | contents: read, contents: write |
 | `POST /repos/:owner/:repo/issues` | **Create issue** in the New issue dialog: title, description and labels | issues: write |
 | `POST /repos/:owner/:repo/issues/:number/comments` | **Comment** in an issue's panel | issues: write |
 | `PATCH /repos/:owner/:repo/issues/:number` | **Close issue** or **Reopen issue** in an issue's panel | issues: write |
@@ -209,6 +211,7 @@ Avatar URLs in these answers are never decoded.
 | MR/PR list, details, local checkout | no | yes | yes |
 | The checked-out branch's MR/PR in the sidebar, and what a refresh changed | no | yes | yes |
 | CI status, job list, failed job log | no | yes | yes |
+| Publish a release for a tag, with notes from the changelog | no | no, says which scope | yes |
 | Re-run a failed job or a pipeline's failed jobs | no | no, says which scope | yes; GitHub: Actions jobs only |
 | Reviewers, approvals and the **To review** filter | no | yes | yes |
 | A new branch named after an issue assigned to you | no | yes | yes |
@@ -234,7 +237,7 @@ Current Client stores no credentials of its own. Two ways to a token, both throu
 
 The token is saved under its own key, `https://current-client-api@api.<host>`, not under the host itself. A fetch or push asks the helper for the host alone, and a helper answers with any entry it has for that host, so a read-only token stored under the host would be tried for a push, rejected, and erased by Git. No Git operation ever asks for `api.<host>`, so the two can't collide. The token reaches Git on standard input, never on a command line, and never appears in logs or Diagnostics.
 
-**Scopes.** Read-only is enough for everything but the writes (creating, reviewing and merging a merge request / pull request, writing to issues, re-running CI, and **Done** in the Inbox): GitLab `read_api`; GitHub fine-grained read access to pull requests, checks, contents and issues. The per-endpoint table below names the scope each feature needs.
+**Scopes.** Read-only is enough for everything but the writes (creating, reviewing and merging a merge request / pull request, writing to issues, re-running CI, publishing releases, and **Done** in the Inbox): GitLab `read_api`; GitHub fine-grained read access to pull requests, checks, contents and issues. The per-endpoint table below names the scope each feature needs.
 
 **Errors** are plain messages, never the host's answer: a rejected token (401) says "The token for `<host>` was rejected. Update it in Settings → Integrations."; a missing scope (403) names the scope the action needs. A rejected token is forgotten so the next request asks Git again, which is how a sign-in renewed in Git Credential Manager gets picked up.
 
