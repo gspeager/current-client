@@ -37,7 +37,7 @@ A **refresh** is the only thing that fetches from a host:
 - A Git fetch or pull the user starts.
 - A push refreshes only the pushed branch's MR/PR and its CI.
 
-Nothing else does, with bounded exceptions that each follow a click: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh; the merge request tab's **Closed** filter asks for one page of closed changes the first time it is chosen; a change's **Checks**, **Threads**, **Files** and **Commits** tabs ask for what the refresh didn't bring, each once per change until the next refresh; the new-branch form's **From an issue** asks for the issues assigned to you the first time it opens, until the next refresh; and opening an issue's panel asks for that issue and its comments, once per issue until the next refresh. The Inbox, across every open repository, reads Git and the cache only: opening it fetches nothing; its **Done** button is the one write it makes, on the host's own to-do list. A refresh also reads the host's to-do list once, for the Inbox, and keeps only the entries about repositories open in the app. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
+Nothing else does, with bounded exceptions that each follow a click: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh; the merge request tab's **Closed** filter asks for one page of closed changes the first time it is chosen; a change's **Checks**, **Threads**, **Files** and **Commits** tabs ask for what the refresh didn't bring, each once per change until the next refresh; the new-branch form's **From an issue** asks for the issues assigned to you the first time it opens, until the next refresh; and opening an issue's panel asks for that issue and its comments, once per issue until the next refresh. Creating an issue, commenting on one and closing or reopening it are one write each, sent on that button's click; the panel then shows what the host answered without asking again. The Inbox, across every open repository, reads Git and the cache only: opening it fetches nothing; its **Done** button is the one write it makes, on the host's own to-do list. A refresh also reads the host's to-do list once, for the Inbox, and keeps only the entries about repositories open in the app. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
 
 With integration off, the only host-related traffic is Git's own: a fetch the user starts also runs one `git ls-remote` against the remote, which lists the pull request / merge request heads the host publishes (`refs/pull/*` on GitHub, Gitea and Forgejo, `refs/merge-requests/*` on GitLab) and gives each branch its open change's number. Bitbucket publishes none, so it gives nothing. A change counts only while its head is still a branch tip, which drops every change whose branch was deleted on merge. GitHub also publishes `refs/pull/N/merge` only while a pull request is open, so there the number is an open one. GitLab keeps merge refs after closing, so Git alone cannot tell a closed merge request whose branch was kept from an open one: with integration off the branch shows the number without a state, and the state comes from the API once integration is on.
 
@@ -156,10 +156,13 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `POST /projects/:path/merge_requests/:iid/approve` | A submitted review's **Approve** | `api` |
 | `GET /projects/:path` | **Merge…** on a merge request's details, when the dialog opens: the squash setting and whether the source branch is removed after merging | `read_api` |
 | `PUT /projects/:path/merge_requests/:iid/merge` | **Merge** in that dialog, with the head the last refresh saw, so a merge request that moved since is refused rather than merged | `api` |
+| `POST /projects/:path/issues` | **Create issue** in the New issue dialog: title, description and labels | `api` |
+| `POST /projects/:path/issues/:iid/notes` | **Comment** in an issue's panel | `api` |
+| `PUT /projects/:path/issues/:iid` | **Close issue** or **Reopen issue** in an issue's panel | `api` |
 
 ### GitHub (github.com and Enterprise Server 3.11 or newer)
 
-Under `https://api.github.com` or the server's `/api/v3`. A classic token needs the `repo` scope; a fine-grained one, read access to pull requests, checks, contents and issues, and write access to pull requests for creating one. The two differ only in address; Enterprise Server before 3.11 has no repository rulesets, so it gets everything but the protected-branch warning.
+Under `https://api.github.com` or the server's `/api/v3`. A classic token needs the `repo` scope; a fine-grained one, read access to pull requests, checks, contents and issues, write access to pull requests for creating, reviewing and merging one, and write access to issues for creating, commenting on and closing one. The two differ only in address; Enterprise Server before 3.11 has no repository rulesets, so it gets everything but the protected-branch warning.
 
 | Endpoint | When | Access |
 | --- | --- | --- |
@@ -184,6 +187,9 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `POST /repos/:owner/:repo/pulls/:number/reviews` | **Submit review**: the verdict, summary and drafted comments as one review | pull requests: write |
 | `GET /repos/:owner/:repo` | **Merge…** on a pull request's details, when the dialog opens: which merge methods the repository allows and whether it deletes the head branch after merging | metadata: read |
 | `PUT /repos/:owner/:repo/pulls/:number/merge` | **Merge** in that dialog, with the head the last refresh saw, so a pull request that moved since is refused rather than merged | pull requests: write |
+| `POST /repos/:owner/:repo/issues` | **Create issue** in the New issue dialog: title, description and labels | issues: write |
+| `POST /repos/:owner/:repo/issues/:number/comments` | **Comment** in an issue's panel | issues: write |
+| `PATCH /repos/:owner/:repo/issues/:number` | **Close issue** or **Reopen issue** in an issue's panel | issues: write |
 
 Avatar URLs in these answers are never decoded.
 
@@ -207,6 +213,7 @@ Avatar URLs in these answers are never decoded.
 | Conflict forecast against open MRs/PRs | no | yes | yes |
 | Hover cards with title and state | local facts only | yes | yes |
 | Create MR/PR in the app | no | no, says which scope | yes |
+| Create, comment on, close and reopen issues (GitLab and GitHub, not Jira) | no | no, says which scope | yes |
 | Merge an MR/PR from the app, with a readiness summary | no | the summary; the merge says which scope | yes |
 | Warn before pushing to a protected branch | no | yes | yes |
 | Managed policy: lock a host off or force it on | applies | applies | applies |
@@ -222,7 +229,7 @@ Current Client stores no credentials of its own. Two ways to a token, both throu
 
 The token is saved under its own key, `https://current-client-api@api.<host>`, not under the host itself. A fetch or push asks the helper for the host alone, and a helper answers with any entry it has for that host, so a read-only token stored under the host would be tried for a push, rejected, and erased by Git. No Git operation ever asks for `api.<host>`, so the two can't collide. The token reaches Git on standard input, never on a command line, and never appears in logs or Diagnostics.
 
-**Scopes.** Read-only is enough for everything but creating a merge request / pull request: GitLab `read_api`; GitHub fine-grained read access to pull requests, checks, contents and issues. The per-endpoint table below names the scope each feature needs.
+**Scopes.** Read-only is enough for everything but the writes (creating, reviewing and merging a merge request / pull request, writing to issues, and **Done** in the Inbox): GitLab `read_api`; GitHub fine-grained read access to pull requests, checks, contents and issues. The per-endpoint table below names the scope each feature needs.
 
 **Errors** are plain messages, never the host's answer: a rejected token (401) says "The token for `<host>` was rejected. Update it in Settings → Integrations."; a missing scope (403) names the scope the action needs. A rejected token is forgotten so the next request asks Git again, which is how a sign-in renewed in Git Credential Manager gets picked up.
 
