@@ -39,7 +39,7 @@ Download your platform's file from the [latest release](../../releases/latest). 
 
 ## Privacy
 
-- **Only destinations you chose.** Current Client connects to your repositories' Git remotes and the servers they're hosted on, never to a vendor, CDN or other third party. If all your remotes are on an internal network, nothing leaves it.
+- **Only destinations you chose.** Current Client connects to your repositories' Git remotes, the servers they're hosted on, and an issue tracker you configure by its address, such as your team's Jira site. Never to a vendor, CDN or other third party. If all your remotes and trackers are on an internal network, nothing leaves it.
 - **Off until you turn it on.** Anything beyond the Git operations you start, such as background fetch, stays off until you enable it in Settings.
 - **Nothing else.** No telemetry, analytics, automatic update checks or crash uploads. Settings has a **Check for updates** button that contacts github.com only when you click it, reads the newest release's version and date, and downloads nothing; the releases address is shown beside it for checking from another computer.
 - **No accounts, no avatars.** People are shown as initials badges made on your machine.

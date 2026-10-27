@@ -2,7 +2,7 @@
 
 Current Client can show what a Git host knows about a repository: merge requests / pull requests, CI results and review threads, from GitLab (gitlab.com or Self-Managed) and GitHub (github.com or Enterprise Server). This guide says exactly when it talks to a host, what it asks for, what it keeps and how to turn it off or keep it off. It covers 0.4.0 in full: every endpoint, its trigger and its scope, the refresh and cache model, what works at each level of access, credentials, certificates and proxies, the managed policy, the build without the code, and what Diagnostics may contain.
 
-The rules it works under are the [privacy rules](../CONTRIBUTING.md#privacy-rules): the only destination is the host the repository's remotes already point at, and nothing is contacted until someone turns integration on for that host.
+The rules it works under are the [privacy rules](../CONTRIBUTING.md#privacy-rules): the only destinations are the host the repository's remotes already point at and an issue tracker the user configures by its address, and nothing is contacted until someone turns integration on for that host or tracker. The same opt-in, off-by-default and `policy.json` lock apply to both.
 
 ## Off until turned on
 

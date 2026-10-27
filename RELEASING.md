@@ -100,7 +100,7 @@ This gives `bin/current-client-x86_64.AppImage`, `bin/current-client.deb` and `b
 
 ## 3b. Check that nothing leaves the network
 
-Run this on each platform's built package, before upload, so the [privacy model](README.md#privacy) is shown rather than assumed: with only local remotes, nothing Current Client does leaves the network, and with host integration on for one local host, the only API traffic goes to that host. Record the result in the table at the end; the release is held until all three platforms pass.
+Run this on each platform's built package, before upload, so the [privacy model](README.md#privacy) is shown rather than assumed: with only local remotes, nothing Current Client does leaves the network; with host integration on for one local host, the only API traffic goes to that host; and with an issue tracker configured, nothing goes to it until its integration is on, and then only to its address. Record the result in the table at the end; the release is held until all three platforms pass.
 
 **A local server.** A bare repository served by `git daemon` is enough for the integration-off case:
 
@@ -115,8 +115,9 @@ and the remote is `git://127.0.0.1/app.git`. The integration-on case needs a hos
 
 1. Integration off, every remote local: open the repository, fetch, pull, commit, push, browse History and diffs, open Settings and Diagnostics, leave the app idle for ten minutes with background fetch off and then ten with it on. Type a misspelled word in the commit message field, since the embedded browser may try to fetch a spelling dictionary.
 2. Integration on for the local host: open the Merge requests tab, **Refresh**, hover a marker, open the merge request whose description embeds the remote image, check out a merge request, open Settings → Integrations and **Test connection**.
+3. An issue tracker: add one in Settings → Integrations → Issue trackers at a local address that answers nothing (`http://127.0.0.1:8930/`), give it the repository, and with its integration off, rest on and open an issue key in a commit message. Then turn its integration on, **Refresh**, and open a key's issue panel.
 
-Pass only if the log shows no connection to anything but the local server's address (the Git port, and the API port in case 2), and in case 2 nothing to the image's host.
+Pass only if the log shows no connection to anything but the local server's address (the Git port, the API port in case 2, and the tracker's port in case 3, only once its integration is on), and in case 2 nothing to the image's host. Opening a key in the browser is the browser's connection, not the app's.
 
 **Connections the operating system makes for itself** are not the app's, but they appear in the same log, so recognise them rather than fail on them: macOS Gatekeeper and notarization checks (`api.apple-cloudkit.com`, `ocsp.apple.com`, `*.apple.com` from `trustd`, `syspolicyd`, `nsurlsessiond`), Windows certificate revocation and update traffic (`ctldl.windowsupdate.com`, `*.microsoft.com` from `svchost`), and anything from `docker`. A connection from the app's own process to any of those is a failure.
 
@@ -128,7 +129,7 @@ Pass only if the log shows no connection to anything but the local server's addr
 cat > /tmp/current-client.pf <<'RULES'
 set skip on lo0
 block out log all
-pass out quick proto tcp to 127.0.0.1 port { 9418, 8929, 2224 }
+pass out quick proto tcp to 127.0.0.1 port { 9418, 8929, 2224, 8930 }
 RULES
 sudo pfctl -F all -f /tmp/current-client.pf
 sudo pfctl -e
@@ -146,7 +147,7 @@ netsh advfirewall set allprofiles state on
 netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
 netsh advfirewall set allprofiles logging droppedconnections enable
 netsh advfirewall set allprofiles logging filename %SystemRoot%\system32\LogFiles\Firewall\pfirewall.log
-netsh advfirewall firewall add rule name="Current Client check: local git" dir=out action=allow protocol=TCP remoteip=127.0.0.1 remoteport=9418,8929,2224
+netsh advfirewall firewall add rule name="Current Client check: local git" dir=out action=allow protocol=TCP remoteip=127.0.0.1 remoteport=9418,8929,2224,8930
 ```
 
 Install from `current-client-X.Y.Z-windows-x64-setup.exe`, work through the list, then read `C:\Windows\System32\LogFiles\Firewall\pfirewall.log`: every `DROP` line names the destination and, in the last column, the process. Restore with `netsh advfirewall set allprofiles firewallpolicy blockinbound,allowoutbound` and delete the rule. On the WebView2 side, watch for `edge.microsoft.com`, `msedge.b.tlu.dl.delivery.mp.microsoft.com` and `*.smartscreen.microsoft.com` from `msedgewebview2.exe`: the app turns SmartScreen off, so a hit there is a regression.
@@ -174,11 +175,11 @@ The namespace has no route out, so any attempt is logged and fails at once; the 
 
 Paste this into the release pull request, filled in:
 
-| Platform | Package | Integration off | Integration on | Notes |
-|---|---|---|---|---|
-| macOS | `current-client-X.Y.Z-macos-universal.dmg` | pass / fail | pass / fail | OS traffic seen, if any |
-| Windows x64 | `current-client-X.Y.Z-windows-x64-setup.exe` | | | |
-| Linux | `current-client-X.Y.Z-linux-x86_64.AppImage` | | | |
+| Platform | Package | Integration off | Integration on | Tracker | Notes |
+|---|---|---|---|---|---|
+| macOS | `current-client-X.Y.Z-macos-universal.dmg` | pass / fail | pass / fail | pass / fail | OS traffic seen, if any |
+| Windows x64 | `current-client-X.Y.Z-windows-x64-setup.exe` | | | | |
+| Linux | `current-client-X.Y.Z-linux-x86_64.AppImage` | | | | |
 
 ## 4. Publish
 
