@@ -17,6 +17,7 @@ Current Client runs entirely on your machine and connects only to the servers yo
 - Repository tabs, to keep several repositories open at once, and worktrees for several branches of one.
 - An activity dashboard: commit calendar and velocity, contributors, file churn, languages, and stale branches or unpushed commits.
 - A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF, and a release readiness checklist for a candidate before you tag it.
+- Jira issue keys in commits and branch names link to your team's Jira site, built in the app with no request.
 - Optional host integration with GitLab and GitHub, off until you turn it on per host: merge requests and pull requests on branches and in a tab with their reviews and approvals, CI results, review threads beside the code with replies, line comments and reviews from the app, a conflict forecast, re-running failed CI jobs, publishing a release from a tag, creating and merging a merge request from the app, starting a branch from an issue assigned to you, and reading, creating, commenting on and closing issues in the app. [docs/integrations.md](docs/integrations.md) lists every request it makes.
 
 Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app or do a visual interactive rebase.

@@ -48,6 +48,12 @@ One cache per repository, keyed by host and repository, holding MRs/PRs with the
 - Data stays visible after it goes stale, labeled with its age, until a refresh replaces it. Offline, the last answer shows.
 - The cache is cleared when integration is turned off for the host or the repository is closed.
 
+## Issue trackers
+
+A team whose code is on GitLab or GitHub but whose issues are in Jira adds the Jira site under Settings → Integrations → **Issue trackers**: the site address (Jira Cloud, `https://<company>.atlassian.net`, or a Jira Data Center address, path included), optional project keys, and the repositories that use it. A repository uses one tracker at most, and its host's own `#123` issues keep working beside it. Keys in commit messages, titles and branch names (`PROJ-123`) then link to `<site>/browse/PROJ-123`. Without project keys any `ABC-123`-shaped key links, so listing them avoids linking things like `UTF-8`.
+
+The address is built in the app from what was entered, and clicking it opens the browser, as **Open on host** does. Nothing is sent to the tracker or to Atlassian: there is no tracker request to list, and none is made with the host on or off. The settings are kept in the app's settings file, never in the repository. A `policy.json` default is described under [Managed policy](#managed-policy).
+
 ## Open on host
 
 With or without integration on, anything in the app can be opened on the host, built from the remote's address alone: a commit (its context menu) opens the commit page; a file in a commit or in Changes opens the file at that commit, or at HEAD; a branch opens its merge request / pull request when one is known, else its tree; a tag opens the tag or release page; **Open repository on host** in the command palette opens the repository's home page. The actions are hidden when no remote points at a hosted project, and none of them makes a request.
@@ -204,6 +210,7 @@ Avatar URLs in these answers are never decoded.
 | Feature | Integration off | Read-only token | Write scope |
 | --- | --- | --- | --- |
 | Links from issue and MR/PR references to the host | yes | yes | yes |
+| Links from Jira issue keys to the team's Jira site | yes | yes | yes |
 | Open on host: commit, file at line, branch, tag, repository | yes | yes | yes |
 | Create MR/PR link after a push (the host's pre-filled form) | yes | yes | yes |
 | PR numbers on branches, through `git ls-remote` with a fetch | yes (number only) | with state and CI | with state and CI |
@@ -269,11 +276,12 @@ An organization can fix the networked switches for every user of a machine with 
     "gitlab.example.com": { "enabled": true },
     "github.com": { "enabled": false }
   },
-  "autoFetch": { "enabled": true, "intervalMinutes": 15 }
+  "autoFetch": { "enabled": true, "intervalMinutes": 15 },
+  "tracker": { "site": "https://example.atlassian.net", "kind": "jira-cloud", "keys": ["PROJ", "OPS"] }
 }
 ```
 
-A host with `enabled: false` is locked off: its switch in Settings is disabled and labeled **Managed by your organization**, the prompt to turn it on never shows, and the HTTP client refuses it whatever the user's settings say. With `enabled: true` it is forced on, with the same label. A host the file doesn't name is the user's to decide, as is everything with no file at all. `autoFetch` works the same for background fetch; forced on without an interval fetches every five minutes. A file that can't be read or parsed is ignored, as if absent. The Windows registry and macOS configuration profiles are for a later release.
+A host with `enabled: false` is locked off: its switch in Settings is disabled and labeled **Managed by your organization**, the prompt to turn it on never shows, and the HTTP client refuses it whatever the user's settings say. With `enabled: true` it is forced on, with the same label. A host the file doesn't name is the user's to decide, as is everything with no file at all. `autoFetch` works the same for background fetch; forced on without an interval fetches every five minutes. `tracker` is the organization's issue tracker: every repository without one of its own links its issue keys there, and Settings shows it as **Set by your organization**. A file that can't be read or parsed is ignored, as if absent. The Windows registry and macOS configuration profiles are for a later release.
 
 ## Building without host integration
 
