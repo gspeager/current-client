@@ -62,6 +62,34 @@
   color: var(--outline);
 }
 
+.review-thread-actions {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 0 var(--space-sm) var(--space-sm);
+}
+
+.review-thread-action {
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+}
+
+.review-thread-error {
+  margin: 0;
+  padding: 0 var(--space-sm) var(--space-sm);
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
 .review-threads-outdated {
   display: flex;
   flex-direction: column;

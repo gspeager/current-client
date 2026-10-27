@@ -2,6 +2,7 @@ import { forwardRef, useMemo, useState } from 'react'
 import { System } from '@wailsio/runtime'
 import App, { type AppProps, type CurrentClientAppHandle } from './App'
 import { DialogProvider } from './components/chrome/DialogProvider'
+import { ReviewDraftProvider } from './lib/reviewDraft'
 import { CurrentClientRootContext } from './lib/currentClientRoot'
 // Bundled locally so fonts never load from a CDN.
 import '@fontsource/geist-sans/400.css'
@@ -39,7 +40,9 @@ const CurrentClientApp = forwardRef<CurrentClientAppHandle, CurrentClientAppProp
     >
       <CurrentClientRootContext.Provider value={root}>
         <DialogProvider>
-          <App {...appProps} handle={handle} />
+          <ReviewDraftProvider>
+            <App {...appProps} handle={handle} />
+          </ReviewDraftProvider>
         </DialogProvider>
       </CurrentClientRootContext.Provider>
     </div>

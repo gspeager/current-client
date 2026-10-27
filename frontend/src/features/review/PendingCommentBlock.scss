@@ -1,0 +1,42 @@
+// Sits between diff rows like a thread, in the warning color: not sent yet.
+.pending-comment {
+  grid-column: 1 / -1;
+  margin: 2px var(--space-sm);
+  padding: 0 var(--space-sm) var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-left: 2px solid var(--warning);
+  border-radius: var(--radius);
+  font: var(--ui-sm);
+  white-space: pre-wrap;
+}
+
+.pending-comment-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--h-chip);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.pending-comment-remove {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.pending-comment-body {
+  margin: 0;
+  color: var(--on-surface);
+}

@@ -334,6 +334,33 @@ describe('HostChangesView', () => {
     expect(screen.queryByRole('button', { name: 'Merge…' })).toBeNull()
   })
 
+  it('submits a review from the details when the host takes one', async () => {
+    vi.mocked(HostService.Changes).mockResolvedValue(list())
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
+    vi.mocked(HostService.ReviewCapabilities).mockResolvedValue({
+      reply: true,
+      resolve: true,
+      lineComments: true,
+      approve: true,
+      requestChanges: false,
+    } as never)
+    vi.mocked(HostService.SubmitReview).mockResolvedValue({} as never)
+    renderView()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Review…' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Review !138' })
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Submit review' }))
+    await waitFor(() =>
+      expect(HostService.SubmitReview).toHaveBeenCalledWith(REPO, 138, {
+        verdict: 'approve',
+        summary: '',
+        comments: [],
+      }),
+    )
+    expect(await screen.findByRole('status')).toHaveTextContent('Review submitted.')
+    expect(HostService.Changes).toHaveBeenCalledTimes(2)
+  })
+
   it('checks a change out locally and tells the app the branch changed', async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
     vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })

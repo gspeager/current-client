@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, GitBranch, GitMerge, Plus, RefreshCw } from 'lucide-react'
+import { ClipboardCheck, ExternalLink, GitBranch, GitMerge, Plus, RefreshCw } from 'lucide-react'
 import {
   BranchChange,
   HostService,
@@ -21,6 +21,9 @@ import StatusBadge from '../../components/git/StatusBadge'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import Tab from '../../components/controls/Tab'
 import ReviewThreadBlock from '../diff/ReviewThreadBlock'
+import ReviewDialog from '../review/ReviewDialog'
+import { useReviewActions } from '../review/useReviewActions'
+import { useReviewDraft } from '../../lib/reviewDraft'
 import MergeChangeDialog from './MergeChangeDialog'
 import { createChangeFor } from '../../lib/createChange'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
@@ -217,6 +220,7 @@ function HostChangesView({
             list={list}
             onBranchChanged={onBranchChanged}
             onMerged={onMerged}
+            onReviewed={reload}
           />
         )}
       </div>
@@ -264,11 +268,12 @@ interface ChangeDetailProps {
   list: ChangeList
   onBranchChanged: () => void
   onMerged?: (result: MergeResult) => void
+  onReviewed?: () => void
 }
 
 const NO_CHANGES = {}
 
-function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged }: ChangeDetailProps) {
+function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onReviewed }: ChangeDetailProps) {
   const { data: details } = useAsyncData(
     () => HostService.ChangeDetails(repoPath, change.number),
     [repoPath, change.number],
@@ -302,6 +307,9 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged }: Cha
   )
   const [merging, setMerging] = useState(false)
   const [merged, setMerged] = useState<string | null>(null)
+  const reviewActions = useReviewActions(repoPath, change.number)
+  const [reviewing, setReviewing] = useState(false)
+  const [reviewed, setReviewed] = useState(false)
   const [counts, setCounts] = useState<Partial<Record<DetailTab, number>>>({})
   const countFor = useMemo(() => {
     const setter = (which: DetailTab) => (count: number) =>
@@ -419,6 +427,12 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged }: Cha
           <GitBranch size={14} strokeWidth={1.75} />
           {checkout.running ? 'Checking out…' : 'Check out locally'}
         </button>
+        {change.state === 'open' && !merged && reviewActions && (
+          <button type="button" className="host-change-button" onClick={() => setReviewing(true)}>
+            <ClipboardCheck size={14} strokeWidth={1.75} />
+            Review…
+          </button>
+        )}
         {change.state === 'open' && !merged && (
           <button type="button" className="host-change-button" onClick={() => setMerging(true)}>
             <GitMerge size={14} strokeWidth={1.75} />
@@ -449,6 +463,24 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged }: Cha
         <p className="host-changes-notice" role="status">
           {merged}
         </p>
+      )}
+      {reviewed && !merged && (
+        <p className="host-changes-notice" role="status">
+          Review submitted.
+        </p>
+      )}
+      {reviewing && (
+        <ReviewDialog
+          repoPath={repoPath}
+          number={change.number}
+          prefix={list.prefix}
+          onSubmitted={() => {
+            setReviewing(false)
+            setReviewed(true)
+            onReviewed?.()
+          }}
+          onClose={() => setReviewing(false)}
+        />
       )}
       {merging && (
         <MergeChangeDialog
@@ -513,7 +545,12 @@ interface TabProps {
 }
 
 function ThreadsTab({ repoPath, number, onLoaded }: TabProps) {
-  const { data, error } = useAsyncData(() => HostService.ChangeThreads(repoPath, number), [repoPath, number])
+  const actions = useReviewActions(repoPath, number)
+  const { version } = useReviewDraft()
+  const { data, error } = useAsyncData(() => HostService.ChangeThreads(repoPath, number), [repoPath, number], {
+    refreshKey: version,
+    keepData: true,
+  })
   useEffect(() => {
     if (data) onLoaded(data.threads?.length ?? 0)
   }, [data, onLoaded])
@@ -527,6 +564,7 @@ function ThreadsTab({ repoPath, number, onLoaded }: TabProps) {
           key={thread.id}
           thread={thread}
           where={thread.path ? `${thread.path}${thread.line ? `:${thread.line}` : ''}` : undefined}
+          actions={actions?.threadActions}
         />
       ))}
     </div>
