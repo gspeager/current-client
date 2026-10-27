@@ -50,6 +50,8 @@ interface NavPaneProps {
   onOpenChange?: (number: number) => void
   onOpenFile?: (path: string) => void
   onCreateChange?: (branch: string) => void
+  // Opens Clean up merged branches when it changes, after a merge from the app.
+  cleanUpRequest?: number
   // Opens a repository (such as a worktree or submodule) as a tab.
   onOpenRepository: (path: string) => void
   width: number
@@ -138,6 +140,7 @@ function NavPane({
   onOpenChange,
   onOpenFile,
   onCreateChange,
+  cleanUpRequest = 0,
 }: NavPaneProps) {
   const sections = useSidebarSections(repoPath)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
@@ -220,6 +223,7 @@ function NavPane({
             conflict={conflictState}
             onBranchChanged={onBranchChanged}
             onCreateChange={onCreateChange}
+            cleanUpRequest={cleanUpRequest}
           />
         </section>
 

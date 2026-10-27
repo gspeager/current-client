@@ -54,9 +54,12 @@ type Change struct {
 	CI                CIStatus    `json:"ci"`
 	UnresolvedThreads int         `json:"unresolvedThreads"`
 	HasConflicts      bool        `json:"hasConflicts"`
-	Reviews           []Review    `json:"reviews"`
-	UpdatedAt         time.Time   `json:"updatedAt"`
-	WebURL            string      `json:"webUrl"`
+	// ConflictsKnown says HasConflicts came from the host; GitHub's list
+	// entries carry no answer.
+	ConflictsKnown bool      `json:"conflictsKnown"`
+	Reviews        []Review  `json:"reviews"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	WebURL         string    `json:"webUrl"`
 }
 
 type ReviewState string
@@ -282,6 +285,52 @@ type TodoList interface {
 // ErrTodosUnavailable means the host won't list to-dos for this token, which
 // is the case for GitHub's notifications with a fine-grained token.
 var ErrTodosUnavailable = errors.New("the host won't list to-dos for this token")
+
+// Merge methods a host may allow.
+const (
+	MergeMethodMerge  = "merge"
+	MergeMethodSquash = "squash"
+	MergeMethodRebase = "rebase"
+)
+
+// MergeOptions is how a host merges: the methods it allows, the one it
+// prefers first, and whether it deletes the source branch after.
+// DeleteBranchFixed means the host decides that for every merge, as GitHub
+// does; otherwise each merge may say.
+type MergeOptions struct {
+	Methods           []string `json:"methods"`
+	DeleteBranch      bool     `json:"deleteBranch"`
+	DeleteBranchFixed bool     `json:"deleteBranchFixed"`
+}
+
+// MergeRequest is one merge: the method, whether to delete the source
+// branch where the host lets a merge say, and the head the merge is meant
+// for, so a change that moved since is refused rather than merged blind.
+type MergeRequest struct {
+	Method       string
+	DeleteBranch bool
+	HeadSHA      string
+}
+
+// MergeRefusedError is a merge the host declined, with its reason in plain
+// words from the status it gave; the response body is never read.
+type MergeRefusedError struct {
+	Host   string
+	Status int
+	Reason string
+}
+
+func (e *MergeRefusedError) Error() string {
+	return e.Host + " refused the merge: " + e.Reason + "."
+}
+
+// Merger is a host that merges changes, which a Provider may also be.
+type Merger interface {
+	// MergeOptions is one request for the project's settings.
+	MergeOptions(ctx context.Context, project string) (MergeOptions, error)
+	// Merge needs write scope.
+	Merge(ctx context.Context, project string, number int, how MergeRequest) error
+}
 
 // Provider is what a host offers this release's features. Every method
 // goes through the one Client, so the enabled set, Git's trust settings,

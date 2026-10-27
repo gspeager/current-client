@@ -5,6 +5,7 @@ package app
 import (
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -33,8 +34,10 @@ func (r *routeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	switch {
 	case !ok:
 		body, status = `{"message":"404 Not Found"}`, http.StatusNotFound
-	case body == "403":
-		body, status = `{"message":"403 Forbidden"}`, http.StatusForbidden
+	case len(body) == 3 && body >= "400" && body <= "599":
+		// A refusal: the status alone, as "403" or "405".
+		status, _ = strconv.Atoi(body)
+		body = `{"message":"` + http.StatusText(status) + `"}`
 	}
 	return &http.Response{StatusCode: status, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
 }

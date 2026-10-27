@@ -264,6 +264,9 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
   const [hostRefresh, setHostRefresh] = useState(0)
+  // Bumped after a merge from the app whose branch is local, so the sidebar
+  // opens Clean up merged branches.
+  const [cleanUpRequest, setCleanUpRequest] = useState(0)
   // Host rows the Inbox hasn't shown: counted after each refresh, and again
   // once the Inbox closes, since showing them counts as seeing them.
   const [inboxUnseen, setInboxUnseen] = useState(0)
@@ -500,6 +503,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                   workspaceFeedback={workspace.feedback}
                   onDismissFeedback={workspace.dismissFeedback}
                   hostVersion={hostRefresh}
+                  cleanUpRequest={cleanUpRequest}
                   onPushToCreate={
                     requestCreateChange
                       ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))
@@ -573,6 +577,11 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                         onBranchChanged={onBranchChanged}
                         onCreateChange={requestCreateChange}
                         onOpenSettings={() => setSettingsOpen(true)}
+                        onMerged={(result) => {
+                          onBranchChanged()
+                          setHostRefresh((n) => n + 1)
+                          if (result.localBranch) setCleanUpRequest((n) => n + 1)
+                        }}
                       />
                     </KeepAlive>
                   )}

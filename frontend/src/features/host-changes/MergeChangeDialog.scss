@@ -1,0 +1,38 @@
+.merge-change-panel {
+  width: min(520px, 90vw);
+}
+
+.merge-change-warnings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font: var(--ui-sm);
+}
+
+.merge-change-warning-warn {
+  color: var(--warning);
+}
+
+.merge-change-warning-unknown {
+  color: var(--outline);
+}
+
+.merge-change-methods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.merge-change-method {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font: var(--ui-sm);
+  color: var(--on-surface);
+}

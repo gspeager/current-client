@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -29,7 +30,8 @@ type fixtures struct {
 	mu       sync.Mutex
 	requests []request
 	// routes map "METHOD /api/v4/<escaped path>?<query>" to a testdata file,
-	// a literal body when it starts with "[" or "{", or "403" for a refusal.
+	// a literal body when it starts with "[" or "{", or a status such as
+	// "403" for a refusal.
 	routes map[string]string
 }
 
@@ -46,8 +48,10 @@ func (f *fixtures) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case !ok:
 		http.Error(w, `{"message":"404 Not Found"}`, http.StatusNotFound)
-	case route == "403":
-		http.Error(w, `{"message":"403 Forbidden"}`, http.StatusForbidden)
+	case len(route) == 3 && route >= "400" && route <= "599":
+		// A refusal: the status alone, as "403" or "405".
+		status, _ := strconv.Atoi(route)
+		http.Error(w, `{"message":"`+route+` `+http.StatusText(status)+`"}`, status)
 	case strings.HasPrefix(route, "[") || strings.HasPrefix(route, "{"):
 		w.Write([]byte(route))
 	default:

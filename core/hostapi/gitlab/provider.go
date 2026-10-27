@@ -500,19 +500,20 @@ func toUser(u user) hostapi.User {
 
 func (p *Provider) change(ctx context.Context, mr mergeRequest) (hostapi.Change, error) {
 	change := hostapi.Change{
-		Number:       mr.IID,
-		Title:        mr.Title,
-		Description:  mr.Description,
-		State:        changeState(mr.State),
-		Draft:        mr.Draft,
-		SourceBranch: mr.SourceBranch,
-		TargetBranch: mr.TargetBranch,
-		Author:       toUser(mr.Author),
-		Labels:       mr.Labels,
-		HeadSHA:      mr.SHA,
-		HasConflicts: mr.HasConflicts,
-		UpdatedAt:    mr.UpdatedAt,
-		WebURL:       mr.WebURL,
+		Number:         mr.IID,
+		Title:          mr.Title,
+		Description:    mr.Description,
+		State:          changeState(mr.State),
+		Draft:          mr.Draft,
+		SourceBranch:   mr.SourceBranch,
+		TargetBranch:   mr.TargetBranch,
+		Author:         toUser(mr.Author),
+		Labels:         mr.Labels,
+		HeadSHA:        mr.SHA,
+		HasConflicts:   mr.HasConflicts,
+		ConflictsKnown: true,
+		UpdatedAt:      mr.UpdatedAt,
+		WebURL:         mr.WebURL,
 	}
 	for _, r := range mr.Reviewers {
 		change.Reviews = append(change.Reviews, hostapi.Review{Reviewer: toUser(r), State: hostapi.ReviewRequested})

@@ -60,6 +60,10 @@ After a push that sets or updates a branch's upstream, and while the branch has 
 
 With the host on, **Create merge request** opens a form in the app instead of the host's page: the target branch (the default branch, changeable), a title from the branch's commits (one commit: its subject; several: the oldest's), a description from the commit list placed inside the repository's template when it has one (`.gitlab/merge_request_templates/Default.md` or the first template, `.github/pull_request_template.md` and GitHub's other places), and a draft toggle. A branch that isn't pushed yet is pushed first, with Git's credentials. This is the one request that needs write scope (GitLab `api`; GitHub write access to pull requests): a token without it gets a message naming the scope, and the host's own form stays one click away. The created change shows on the branch at once. For a change from a fork, the host's form is used.
 
+## Merge a merge request / pull request in the app
+
+A change's details list what the last refresh knows about merging it, from the cache and Git alone: its checks, where its reviews stand, unresolved threads, conflicts (GitHub's list carries no answer, so that reads as not known until the change is opened on the host), how many commits it is behind its target as of the last fetch (from the remote-tracking branch, when the change's head is fetched), and whether the target is protected. A fact the cache lacks is said to be unknown, never guessed. **Merge…** opens a dialog that asks the host once how it merges (GitLab: the project's squash setting and whether the source branch is removed; GitHub: the allowed methods and whether the head branch is deleted), repeats the facts that stand in the way, and merges on the button, naming the head the refresh saw so a change that moved since is refused rather than merged blind. The host's own rules still apply: a merge it refuses comes back as its reason in plain words (not mergeable yet, conflicts, the head moved, no permission), from the status alone; the response body is never read. After a merge the change leaves the open list and, when a local branch tracks it, **Clean up merged branches** opens with that branch. Merging needs write scope (GitLab `api`; GitHub write access to pull requests), named when it is missing.
+
 ## Clean up merged branches
 
 **Clean up merged branches**, in the Branches sidebar's header, lists the local branches whose work is already on the default branch and offers to delete them. Git alone finds them, so this works with integration off: a branch with an upstream is merged when merging it into the default branch's upstream (`origin/main`, or the local branch without a remote) would change nothing, which catches squash and rebase merges as well as merge commits. With the host on, a branch whose merge request / pull request the cache knows as merged is listed with its number as the reason; the host is asked about a change once, on the refresh after it leaves the open list or while Git still publishes its head, and never again. A branch with commits past what was merged is marked **Newer commits** and left unselected. Building the list makes no request. Deleting goes through the same **Undo** as a single deletion; when the checked-out branch is among them, the default branch is checked out and pulled first.
@@ -117,7 +121,7 @@ The release check in RELEASING.md opens a description containing an image hosted
 
 ## Endpoints and scopes
 
-Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating a merge request / pull request and marking a to-do done. Nothing is called before integration is on for the host and one of the triggers happens.
+Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating or merging a merge request / pull request and marking a to-do done. Nothing is called before integration is on for the host and one of the triggers happens.
 
 ### GitLab (gitlab.com and Self-Managed, 16.0 or newer)
 
@@ -143,6 +147,8 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /todos?state=pending` | Refresh, once per host however many repositories are open: the To-Do List for the Inbox, one page of 100; only the to-dos about repositories open in the app are kept | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
 | `POST /todos/:id/mark_as_done` | **Done** on an Inbox row that is on the To-Do List | `api` |
+| `GET /projects/:path` | **Merge…** on a merge request's details, when the dialog opens: the squash setting and whether the source branch is removed after merging | `read_api` |
+| `PUT /projects/:path/merge_requests/:iid/merge` | **Merge** in that dialog, with the head the last refresh saw, so a merge request that moved since is refused rather than merged | `api` |
 
 ### GitHub (github.com and Enterprise Server 3.11 or newer)
 
@@ -166,6 +172,8 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `GET /notifications` | Refresh, once per host however many repositories are open: the unread notifications for the Inbox, one page of 50; only those about repositories open in the app are kept. Fine-grained tokens can't read this endpoint: the Inbox says so once and leaves the source out | classic token: `notifications` (or `repo`) |
 | `POST /repos/:owner/:repo/pulls` | Create pull request | pull requests: write |
 | `PATCH /notifications/threads/:id` | **Done** on an Inbox row that is a notification | classic token: `notifications` (or `repo`) |
+| `GET /repos/:owner/:repo` | **Merge…** on a pull request's details, when the dialog opens: which merge methods the repository allows and whether it deletes the head branch after merging | metadata: read |
+| `PUT /repos/:owner/:repo/pulls/:number/merge` | **Merge** in that dialog, with the head the last refresh saw, so a pull request that moved since is refused rather than merged | pull requests: write |
 
 Avatar URLs in these answers are never decoded.
 
@@ -188,6 +196,7 @@ Avatar URLs in these answers are never decoded.
 | Conflict forecast against open MRs/PRs | no | yes | yes |
 | Hover cards with title and state | local facts only | yes | yes |
 | Create MR/PR in the app | no | no, says which scope | yes |
+| Merge an MR/PR from the app, with a readiness summary | no | the summary; the merge says which scope | yes |
 | Warn before pushing to a protected branch | no | yes | yes |
 | Managed policy: lock a host off or force it on | applies | applies | applies |
 

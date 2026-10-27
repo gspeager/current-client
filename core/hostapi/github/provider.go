@@ -547,18 +547,19 @@ func (p *Provider) CurrentUser(ctx context.Context) (hostapi.User, error) {
 
 func toChange(pr pullRequest) hostapi.Change {
 	c := hostapi.Change{
-		Number:       pr.Number,
-		Title:        pr.Title,
-		Description:  pr.Body,
-		State:        changeState(pr),
-		Draft:        pr.Draft,
-		SourceBranch: pr.Head.Ref,
-		TargetBranch: pr.Base.Ref,
-		Author:       toUser(pr.User),
-		HeadSHA:      pr.Head.SHA,
-		HasConflicts: pr.Mergeable != nil && !*pr.Mergeable,
-		UpdatedAt:    pr.UpdatedAt,
-		WebURL:       pr.HTMLURL,
+		Number:         pr.Number,
+		Title:          pr.Title,
+		Description:    pr.Body,
+		State:          changeState(pr),
+		Draft:          pr.Draft,
+		SourceBranch:   pr.Head.Ref,
+		TargetBranch:   pr.Base.Ref,
+		Author:         toUser(pr.User),
+		HeadSHA:        pr.Head.SHA,
+		HasConflicts:   pr.Mergeable != nil && !*pr.Mergeable,
+		ConflictsKnown: pr.Mergeable != nil,
+		UpdatedAt:      pr.UpdatedAt,
+		WebURL:         pr.HTMLURL,
 	}
 	for _, l := range pr.Labels {
 		c.Labels = append(c.Labels, l.Name)
