@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { RemoteService, TagInfo, TagService } from '@current-client-bindings/app'
+import { HostService, RemoteService, TagInfo, TagService } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import TagsPanel from './TagsPanel'
 import { defaultSections } from '../../test/sections'
@@ -54,5 +54,30 @@ describe('TagsPanel', () => {
 
     expect(await screen.findByText('No remote configured.')).toBeInTheDocument()
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  })
+
+  it('offers Publish release on host only where the host can publish one', async () => {
+    vi.mocked(HostService.CanPublishReleases).mockResolvedValue(true)
+    vi.mocked(HostService.ReleaseDraft).mockResolvedValue({
+      tag: 'v1.0',
+      name: 'v1.0',
+      notes: '- First.',
+      notesFrom: 'commits',
+      since: '',
+      remote: 'origin',
+    })
+    renderPanel()
+    await userEvent.click(await screen.findByRole('button', { name: 'Publish release for v1.0 on host' }))
+    expect(await screen.findByRole('dialog', { name: 'Publish release' })).toHaveTextContent(
+      'From every commit up to the tag',
+    )
+    expect(HostService.PublishRelease).not.toHaveBeenCalled()
+  })
+
+  it('leaves Publish release out with the host off', async () => {
+    vi.mocked(HostService.CanPublishReleases).mockResolvedValue(false)
+    renderPanel()
+    await screen.findByRole('button', { name: 'Push tag v1.0' })
+    expect(screen.queryByRole('button', { name: 'Publish release for v1.0 on host' })).not.toBeInTheDocument()
   })
 })

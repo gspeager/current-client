@@ -1,6 +1,12 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, CloudOff, ExternalLink, Plus, Tag, Upload, X } from 'lucide-react'
-import { PlatformService, type TagInfo, type TagMessageInfo, TagService } from '@current-client-bindings/app'
+import { ChevronDown, ChevronRight, CloudOff, ExternalLink, PackagePlus, Plus, Tag, Upload, X } from 'lucide-react'
+import {
+  HostService,
+  PlatformService,
+  type TagInfo,
+  type TagMessageInfo,
+  TagService,
+} from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { primaryRemoteName } from '../../lib/remotes'
 import { relativeTime } from '../../lib/relativeTime'
@@ -12,6 +18,7 @@ import './TagsPanel.scss'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { tagPage } from '../../lib/hostPages'
 import SidebarSection from '../../components/chrome/SidebarSection'
+import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 
 interface TagsPanelProps {
@@ -37,6 +44,11 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
   const [busyName, setBusyName] = useState<string | null>(null)
   const [expandedName, setExpandedName] = useState<string | null>(null)
   const [messages, setMessages] = useState<Map<string, TagMessageInfo>>(new Map())
+  const [releaseTag, setReleaseTag] = useState<string | null>(null)
+  const { data: canPublish } = useAsyncData(
+    () => HostService.CanPublishReleases(repoPath).catch(() => false),
+    [repoPath],
+  )
 
   const createTag = () => {
     setActionError(null)
@@ -198,6 +210,20 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
                         <ExternalLink size={16} strokeWidth={1.75} />
                       </button>
                     )}
+                    {canPublish && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setReleaseTag(t.name)
+                        }}
+                        disabled={busyName !== null}
+                        aria-label={`Publish release for ${t.name} on host`}
+                        title="Publish release on host"
+                      >
+                        <PackagePlus size={16} strokeWidth={1.75} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -255,6 +281,7 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
           </ul>
         )}
       </SidebarSection>
+      {releaseTag && <PublishReleaseDialog repoPath={repoPath} tag={releaseTag} onClose={() => setReleaseTag(null)} />}
     </div>
   )
 }
