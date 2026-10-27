@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useRef, type Key, type ReactNode, type RefObject } from 'react'
+import { Fragment, useLayoutEffect, useRef, type Key, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { MessageSquarePlus } from 'lucide-react'
 import type { DiffLine, LineSelection } from '@current-client-bindings/app'
 import { useDiffWrap } from './diffWrap'
@@ -150,7 +150,11 @@ function splitRow(
   // The new side takes comments; the old side only for a line that is gone.
   const commentable = onComment && line && (side === 'right' ? line.newLine > 0 : line.kind === 'removed')
   return (
-    <div key={key} className={`${rowClass(line)} diff-row-split-${side}${selectedClass(line, select)}${extraClass}`}>
+    <div
+      key={key}
+      className={`${rowClass(line)} diff-row-split-${side}${selectedClass(line, select)}${extraClass}`}
+      data-line={line?.newLine || undefined}
+    >
       <LineNumber line={line} side={side} select={select} />
       <span className="diff-marker">{marker(line)}</span>
       <DiffContent pair={pair} side={side} language={language} />
@@ -191,6 +195,7 @@ function unifiedRow(
     <div
       key={key}
       className={`${rowClass(activeLine)} diff-row-unified${selectedClass(activeLine, select)}${extraClass}`}
+      data-line={activeLine?.newLine || undefined}
     >
       {isContext || side === 'left' ? (
         <LineNumber line={pair.left} side="left" select={select} />
@@ -288,6 +293,8 @@ interface DiffPaneProps extends HunkActions {
   blocksByLine?: Map<string, ReactNode[]>
   // Present when a line can take a review comment.
   onCommentLine?: CommentOnLine
+  // Present when a new-side line's context menu has something to offer.
+  onLineMenu?: (e: MouseEvent, line: number, content: string) => void
   // Rows that open a conflict block, marked so the footer can walk to them.
   blockStarts?: Set<number>
   // The conflicted file as it is: one line-number column, the working file's.
@@ -307,6 +314,7 @@ function DiffPane({
   lineSelect,
   blocksByLine,
   onCommentLine,
+  onLineMenu,
   blockStarts,
   resultView = false,
   ...hunkActions
@@ -373,16 +381,23 @@ function DiffPane({
     })
   }
 
+  const lineMenu = (e: MouseEvent) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-line]')
+    if (!onLineMenu || !row) return
+    e.preventDefault()
+    onLineMenu(e, Number(row.dataset.line), row.querySelector('.diff-content')?.textContent ?? '')
+  }
+
   if (mode === 'split' && !wrap) {
     return (
-      <div className="diff-pane diff-pane-sides" ref={scrollRef}>
+      <div className="diff-pane diff-pane-sides" ref={scrollRef} onContextMenu={lineMenu}>
         <SyncedSides left={renderRows('left')} right={renderRows('right')} />
       </div>
     )
   }
 
   return (
-    <div className={`diff-pane diff-pane-${mode}`} ref={scrollRef}>
+    <div className={`diff-pane diff-pane-${mode}`} ref={scrollRef} onContextMenu={lineMenu}>
       {renderRows()}
     </div>
   )

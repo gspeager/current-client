@@ -197,6 +197,21 @@ type IssueTracker interface {
 	IssueComments(ctx context.Context, project, key string) ([]Note, error)
 }
 
+type NewIssue struct {
+	Title       string
+	Description string
+	Labels      []string
+}
+
+// IssueWriter is a tracker the app can write to: GitLab and GitHub. Jira
+// isn't one, since teams move Jira issues through their host's own Jira
+// integration.
+type IssueWriter interface {
+	CreateIssue(ctx context.Context, project string, issue NewIssue) (Issue, error)
+	CommentOnIssue(ctx context.Context, project, key, body string) (Note, error)
+	SetIssueState(ctx context.Context, project, key string, open bool) (IssueDetails, error)
+}
+
 // BranchRule is what the host forbids on branches matching Pattern, which
 // may end in a wildcard ("release/*"). NoPush means nobody pushes directly;
 // RestrictedPush that only some roles or people may.

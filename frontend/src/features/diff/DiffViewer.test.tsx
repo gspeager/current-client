@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { FileDiff } from '@current-client-bindings/app'
+import { NewIssueContext } from '../../lib/issuePanel'
 import DiffViewer from './DiffViewer'
 
 const diff: FileDiff = {
@@ -406,5 +407,49 @@ describe('DiffViewer line selection', () => {
     render(<DiffViewer diff={changed} path="a.ts" viewMode="unified" />)
 
     expect(screen.queryByRole('button', { name: /Select line/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('DiffViewer issue from a line', () => {
+  const todo: FileDiff = {
+    ...diff,
+    hunks: [
+      {
+        header: '@@ -1 +1 @@',
+        raw: 'raw',
+        lines: [
+          {
+            kind: 'added',
+            oldLine: 0,
+            newLine: 7,
+            content: '  // TODO: drop the shim',
+            moved: false,
+            inOurs: false,
+            inTheirs: false,
+          },
+        ],
+      },
+    ],
+  }
+
+  it('offers a new issue from a line, prefilled from its TODO', async () => {
+    const newIssue = vi.fn()
+    render(
+      <NewIssueContext.Provider value={newIssue}>
+        <DiffViewer diff={todo} path="src/a.ts" viewMode="unified" />
+      </NewIssueContext.Provider>,
+    )
+    fireEvent.contextMenu(screen.getByText(/drop the shim/))
+    await userEvent.click(screen.getByRole('button', { name: 'Create issue from line…' }))
+    expect(newIssue).toHaveBeenCalledWith({
+      title: 'drop the shim',
+      description: '`src/a.ts` line 7\n\n```\n// TODO: drop the shim\n```',
+    })
+  })
+
+  it('leaves the line menu alone without issue writes', () => {
+    render(<DiffViewer diff={todo} path="src/a.ts" viewMode="unified" />)
+    fireEvent.contextMenu(screen.getByText(/drop the shim/))
+    expect(screen.queryByRole('button', { name: 'Create issue from line…' })).not.toBeInTheDocument()
   })
 })

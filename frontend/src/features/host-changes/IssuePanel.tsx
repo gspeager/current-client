@@ -1,8 +1,10 @@
-import { ExternalLink } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { ExternalLink, Plus } from 'lucide-react'
 import { HostService, PlatformService } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
 import HostMarkdown from '../../components/git/HostMarkdown'
-import { ignoreDecorativeFailure } from '../../lib/errors'
+import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
+import { useNewIssue } from '../../lib/issuePanel'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -14,11 +16,36 @@ interface IssuePanelProps {
   onClose: () => void
 }
 
-// An issue, read-only: fetched the first time it opens and kept until the
-// next refresh. Replying and closing stay on the host.
+// An issue, fetched the first time it opens and kept until the next refresh.
+// Where the tracker takes writes, it takes a comment and closes or reopens;
+// each is one request on a click, and the panel then reads the cache again.
 function IssuePanel({ repoPath, issueKey, onClose }: IssuePanelProps) {
-  const { data, error } = useAsyncData(() => HostService.IssueDetails(repoPath, issueKey), [repoPath, issueKey])
+  const { data, error, reload } = useAsyncData(
+    () => HostService.IssueDetails(repoPath, issueKey),
+    [repoPath, issueKey],
+    { keepData: true },
+  )
+  const newIssue = useNewIssue()
+  const [comment, setComment] = useState('')
+  const [running, setRunning] = useState<'comment' | 'state' | null>(null)
+  const [writeError, setWriteError] = useState<string | null>(null)
   const issue = data?.issue
+  const write = (kind: 'comment' | 'state', request: () => Promise<unknown>) => {
+    setRunning(kind)
+    setWriteError(null)
+    request()
+      .then(() => {
+        if (kind === 'comment') setComment('')
+        reload()
+      })
+      .catch((err: unknown) => setWriteError(errorMessage(err)))
+      .finally(() => setRunning(null))
+  }
+  const submitComment = (e: FormEvent) => {
+    e.preventDefault()
+    if (comment.trim()) write('comment', () => HostService.CommentOnIssue(repoPath, issueKey, comment))
+  }
+  const closed = issue?.state === 'closed'
   return (
     <Modal
       title={data?.reference ?? issueKey}
@@ -79,7 +106,48 @@ function IssuePanel({ repoPath, issueKey, onClose }: IssuePanelProps) {
                 </article>
               ))}
             </section>
+            {newIssue && (
+              <form className="issue-panel-reply" onSubmit={submitComment}>
+                <textarea
+                  className="dialog-input issue-panel-reply-input"
+                  aria-label="Comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
+                />
+                <div className="issue-panel-reply-actions">
+                  <button
+                    type="button"
+                    className="dialog-button"
+                    disabled={running !== null}
+                    onClick={() => write('state', () => HostService.SetIssueState(repoPath, issueKey, closed))}
+                  >
+                    {running === 'state'
+                      ? closed
+                        ? 'Reopening…'
+                        : 'Closing…'
+                      : closed
+                        ? 'Reopen issue'
+                        : 'Close issue'}
+                  </button>
+                  <button type="submit" className="dialog-button" disabled={!comment.trim() || running !== null}>
+                    {running === 'comment' ? 'Commenting…' : 'Comment'}
+                  </button>
+                </div>
+                {writeError && (
+                  <p className="dialog-error" role="alert">
+                    {writeError}
+                  </p>
+                )}
+              </form>
+            )}
             <div className="issue-panel-actions">
+              {newIssue && (
+                <button type="button" className="dialog-button" onClick={() => newIssue()}>
+                  <Plus size={14} strokeWidth={1.75} />
+                  New issue
+                </button>
+              )}
               <button
                 type="button"
                 className="dialog-button"

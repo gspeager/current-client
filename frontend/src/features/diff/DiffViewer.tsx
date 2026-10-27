@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image } from 'lucide-react'
 import type { FileDiff, LineSelection, ReviewThread } from '@current-client-bindings/app'
+import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
@@ -17,6 +18,7 @@ import PendingCommentBlock from '../review/PendingCommentBlock'
 import ReviewComposer from '../review/ReviewComposer'
 import ReviewDialog from '../review/ReviewDialog'
 import { useReviewActions } from '../review/useReviewActions'
+import { issueDraftFromLine, useNewIssue } from '../../lib/issuePanel'
 import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import { plural } from '../../lib/plural'
 import { toggled } from '../../lib/sets'
@@ -75,6 +77,8 @@ function DiffViewer({
   const [composer, setComposer] = useState<{ line: number; oldLine: number } | null>(null)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewed, setReviewed] = useState(false)
+  const newIssue = useNewIssue()
+  const [menu, setMenu] = useState<ContextMenuState | null>(null)
   const { wrap } = useDiffWrap()
   const paneRef = useRef<HTMLDivElement>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
@@ -331,6 +335,20 @@ function DiffViewer({
           }
           blocksByLine={blocksByLine}
           onCommentLine={canComment ? (line, oldLine) => setComposer({ line, oldLine }) : undefined}
+          onLineMenu={
+            newIssue
+              ? (e, line, content) =>
+                  setMenu({
+                    ...menuAnchor(e),
+                    items: [
+                      {
+                        label: 'Create issue from line…',
+                        onClick: () => newIssue(issueDraftFromLine(path, line, content)),
+                      },
+                    ],
+                  })
+              : undefined
+          }
           {...(diff.conflicted ? {} : hunkActions)}
         />
         {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
@@ -360,6 +378,7 @@ function DiffViewer({
           </section>
         )}
       </div>
+      {menu && <ContextMenu state={menu} onClose={() => setMenu(null)} />}
       {diff.conflicted && blocks.blockStarts.length > 0 && (
         <div className="diff-conflict-footer">
           <span>
