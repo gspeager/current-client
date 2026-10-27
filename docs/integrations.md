@@ -92,7 +92,9 @@ On every refresh, with the host on, Current Client takes the open merge requests
 
 ## Review threads
 
-For the checked-out branch's merge request / pull request, a refresh also fetches its review threads. In the Changes diff and in any file diff opened from the History or Compare views, each thread appears under the line it was left on, read-only: who wrote it, when, and the comment rendered through the one sanitizing renderer (images are links). Resolved threads start collapsed to one line. Threads on lines the diff doesn't show, and outdated ones whose code has changed since, are listed under the diff with their original line. File lists show each file's unresolved count, and the sidebar's count opens the first file that has one. Posting, resolving and approving stay on the host.
+For the checked-out branch's merge request / pull request, a refresh also fetches its review threads. In the Changes diff and in any file diff opened from the History or Compare views, each thread appears under the line it was left on, read-only: who wrote it, when, and the comment rendered through the one sanitizing renderer (images are links). Resolved threads start collapsed to one line. Threads on lines the diff doesn't show, and outdated ones whose code has changed since, are listed under the diff with their original line. File lists show each file's unresolved count, and the sidebar's count opens the first file that has one.
+
+With write scope, a review can be done in the app, every request following a click: **Reply** under a thread, and **Resolve** or **Reopen** where the host's API allows (GitLab; GitHub's REST API has no way to resolve a thread, so the button is left out there). A gutter button on a diff line opens a comment box: **Comment** sends it now, against the head the last refresh saw (GitLab refuses it when the merge request moved since), and **Add to review** keeps it as a draft in the app, shown where it will land, until **Submit review…** sends the drafts together with a verdict (Approve, Request changes where the host's API has it, or Comment) and an optional summary. GitLab has no request-changes verdict in its API and no single review call: each drafted comment is one request, the summary a note, and the approval its own call. Drafts are kept in the app only; **Discard drafts** throws them away. After each write the change's threads are read again, and its reviews after a verdict, so the counts and the list follow. A token without write scope gets the message naming the scope.
 
 ## CI results
 
@@ -121,7 +123,7 @@ The release check in RELEASING.md opens a description containing an image hosted
 
 ## Endpoints and scopes
 
-Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating or merging a merge request / pull request and marking a to-do done. Nothing is called before integration is on for the host and one of the triggers happens.
+Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating, reviewing or merging a merge request / pull request and marking a to-do done. Nothing is called before integration is on for the host and one of the triggers happens.
 
 ### GitLab (gitlab.com and Self-Managed, 16.0 or newer)
 
@@ -147,6 +149,11 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /todos?state=pending` | Refresh, once per host however many repositories are open: the To-Do List for the Inbox, one page of 100; only the to-dos about repositories open in the app are kept | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
 | `POST /todos/:id/mark_as_done` | **Done** on an Inbox row that is on the To-Do List | `api` |
+| `POST /projects/:path/merge_requests/:iid/discussions/:id/notes` | **Reply** under a thread | `api` |
+| `PUT /projects/:path/merge_requests/:iid/discussions/:id` | **Resolve** or **Reopen** under a thread | `api` |
+| `GET /projects/:path/merge_requests/:iid` (diff refs) and `POST …/discussions` | **Comment** on a diff line, and each drafted comment of a submitted review; the merge request is read first for the position, and refused when its head moved | `read_api`, `api` |
+| `POST /projects/:path/merge_requests/:iid/notes` | A submitted review's summary | `api` |
+| `POST /projects/:path/merge_requests/:iid/approve` | A submitted review's **Approve** | `api` |
 | `GET /projects/:path` | **Merge…** on a merge request's details, when the dialog opens: the squash setting and whether the source branch is removed after merging | `read_api` |
 | `PUT /projects/:path/merge_requests/:iid/merge` | **Merge** in that dialog, with the head the last refresh saw, so a merge request that moved since is refused rather than merged | `api` |
 
@@ -172,6 +179,9 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `GET /notifications` | Refresh, once per host however many repositories are open: the unread notifications for the Inbox, one page of 50; only those about repositories open in the app are kept. Fine-grained tokens can't read this endpoint: the Inbox says so once and leaves the source out | classic token: `notifications` (or `repo`) |
 | `POST /repos/:owner/:repo/pulls` | Create pull request | pull requests: write |
 | `PATCH /notifications/threads/:id` | **Done** on an Inbox row that is a notification | classic token: `notifications` (or `repo`) |
+| `POST /repos/:owner/:repo/pulls/:number/comments/:id/replies` | **Reply** under a thread | pull requests: write |
+| `POST /repos/:owner/:repo/pulls/:number/comments` | **Comment** on a diff line, against the head the last refresh saw | pull requests: write |
+| `POST /repos/:owner/:repo/pulls/:number/reviews` | **Submit review**: the verdict, summary and drafted comments as one review | pull requests: write |
 | `GET /repos/:owner/:repo` | **Merge…** on a pull request's details, when the dialog opens: which merge methods the repository allows and whether it deletes the head branch after merging | metadata: read |
 | `PUT /repos/:owner/:repo/pulls/:number/merge` | **Merge** in that dialog, with the head the last refresh saw, so a pull request that moved since is refused rather than merged | pull requests: write |
 
@@ -193,6 +203,7 @@ Avatar URLs in these answers are never decoded.
 | A new branch named after an issue assigned to you | no | yes | yes |
 | The host's to-do list in the Inbox (mentions, replies, assignments) | no | yes; GitHub: classic token only | plus **Done** |
 | Review threads beside the code | no | yes | yes |
+| Reply, resolve, comment on a line, approve or request changes | no | no, says which scope | yes; GitHub can't resolve, GitLab can't request changes |
 | Conflict forecast against open MRs/PRs | no | yes | yes |
 | Hover cards with title and state | local facts only | yes | yes |
 | Create MR/PR in the app | no | no, says which scope | yes |
