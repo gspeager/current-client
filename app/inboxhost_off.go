@@ -12,3 +12,5 @@ func hostInboxRows(string) ([]InboxRow, bool, *time.Time, string) { return nil, 
 func markTodoDone(string, string) error { return errors.New("host integration is off") }
 
 func standupHost(*StandupRepo, time.Time) {}
+
+func releaseHostChecks(string, string, string) []ReleaseCheck { return nil }

@@ -85,6 +85,10 @@ type Config struct {
 
 	Changelog *ChangelogPrefs `json:"changelog,omitempty"`
 
+	// The files the release readiness check looks for the version in, by
+	// repository path, each relative to its root.
+	ReleaseVersionFiles map[string][]string `json:"releaseVersionFiles,omitempty"`
+
 	Hosts map[string]HostConfig `json:"hosts,omitempty"`
 }
 
