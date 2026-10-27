@@ -7,6 +7,7 @@ import {
   HistoryService,
   type HostNotice,
   HostService,
+  TrackerService,
   PlatformService,
   type PushResult,
   InboxService,
@@ -236,17 +237,20 @@ function App({
     () => (hostOn && repo.repoPath ? HostService.CanWriteIssues(repo.repoPath) : null),
     [hostOn, repo.repoPath],
   )
+  const { data: tracker } = useAsyncData(
+    () => (repo.repoPath ? TrackerService.Links(repo.repoPath) : null),
+    [repo.repoPath, hostsVersion],
+  )
   const issueActions = useMemo(
-    () =>
-      hostOn
-        ? {
-            open: setOpenIssueKey,
-            create: canWriteIssues
-              ? (draft?: IssueDraft) => setNewIssueDraft(draft ?? { title: '', description: '' })
-              : undefined,
-          }
-        : null,
-    [hostOn, canWriteIssues],
+    () => ({
+      open: hostOn ? setOpenIssueKey : undefined,
+      create:
+        hostOn && canWriteIssues
+          ? (draft?: IssueDraft) => setNewIssueDraft(draft ?? { title: '', description: '' })
+          : undefined,
+      tracker,
+    }),
+    [hostOn, canWriteIssues, tracker],
   )
 
   // A row in the Inbox switches to its repository first; the jump itself

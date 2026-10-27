@@ -1,5 +1,6 @@
 import { Links } from '@current-client-bindings/core/hostlink'
-import { branchIssue, splitReferences } from './hostReferences'
+import { TrackerLinks } from '@current-client-bindings/app'
+import { branchIssue, branchTrackerKey, splitReferences } from './hostReferences'
 
 const github = new Links({
   issue: 'https://github.com/o/r/issues/',
@@ -61,5 +62,45 @@ describe('branchIssue', () => {
     expect(branchIssue('123', github)).toBeNull()
     expect(branchIssue('feature/123-login', github)).toBeNull()
     expect(branchIssue('123-fix-login', null)).toBeNull()
+  })
+})
+
+// The patterns TrackerService.Links sends for a tracker limited to PROJ and OPS.
+const jira = new TrackerLinks({
+  site: 'https://example.atlassian.net/',
+  kind: 'jira-cloud',
+  browse: 'https://example.atlassian.net/browse/',
+  keyPattern: '(?:^|[^\\w/.-])((?:PROJ|OPS)-[1-9]\\d*)\\b',
+  branchKeyPattern: '(?:^|/)((?:PROJ|OPS)-[1-9]\\d*)(?:[-_/]|$)',
+})
+
+describe('tracker keys', () => {
+  it('links keys beside host references, and with no host at all', () => {
+    expect(splitReferences('PROJ-12: fix login (#3), see OPS-4 not UTF-8', github, jira)).toEqual([
+      { text: 'PROJ-12', url: 'https://example.atlassian.net/browse/PROJ-12' },
+      ': fix login (',
+      { text: '#3', url: 'https://github.com/o/r/issues/3' },
+      '), see ',
+      { text: 'OPS-4', url: 'https://example.atlassian.net/browse/OPS-4' },
+      ' not UTF-8',
+    ])
+    expect(splitReferences('done in PROJ-7', null, jira)).toEqual([
+      'done in ',
+      { text: 'PROJ-7', url: 'https://example.atlassian.net/browse/PROJ-7' },
+    ])
+  })
+
+  it('leaves keys inside paths and longer words alone', () => {
+    expect(splitReferences('https://x/PROJ-1 and XPROJ-2', null, jira)).toEqual(['https://x/PROJ-1 and XPROJ-2'])
+  })
+
+  it('finds the key a branch is named after', () => {
+    expect(branchTrackerKey('feature/PROJ-12-fix-login', jira)).toEqual({
+      text: 'PROJ-12',
+      url: 'https://example.atlassian.net/browse/PROJ-12',
+      start: 8,
+    })
+    expect(branchTrackerKey('12-fix-login', jira)).toBeNull()
+    expect(branchTrackerKey('PROJ-12', null)).toBeNull()
   })
 })

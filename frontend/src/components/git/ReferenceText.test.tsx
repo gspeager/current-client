@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PlatformService } from '@current-client-bindings/app'
+import { HostService, PlatformService, TrackerLinks } from '@current-client-bindings/app'
 import { Links } from '@current-client-bindings/core/hostlink'
 import ReferenceText from './ReferenceText'
 import { IssuePanelContext } from '../../lib/issuePanel'
@@ -81,5 +81,23 @@ describe('ReferenceText hover cards', () => {
 
     await userEvent.hover(screen.getByRole('link', { name: '#9' }))
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Title not fetched')
+  })
+
+  it('opens a tracker key on its site, with the host off and no request', async () => {
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    const tracker = new TrackerLinks({
+      site: 'https://example.atlassian.net/',
+      browse: 'https://example.atlassian.net/browse/',
+      keyPattern: '(?:^|[^\\w/.-])([A-Z][A-Z0-9_]+-[1-9]\\d*)\\b',
+    })
+    render(
+      <IssuePanelContext.Provider value={{ tracker }}>
+        <ReferenceText text="fix: login (PROJ-12)" links={null} />
+      </IssuePanelContext.Provider>,
+    )
+    await userEvent.click(screen.getByRole('link', { name: 'PROJ-12' }))
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://example.atlassian.net/browse/PROJ-12')
+    expect(HostService.IssueDetails).not.toHaveBeenCalled()
+    expect(HostService.FetchIssueTitles).not.toHaveBeenCalled()
   })
 })

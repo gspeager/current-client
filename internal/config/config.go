@@ -90,6 +90,17 @@ type Config struct {
 	ReleaseVersionFiles map[string][]string `json:"releaseVersionFiles,omitempty"`
 
 	Hosts map[string]HostConfig `json:"hosts,omitempty"`
+
+	// Issue trackers beside the hosts, such as a team's Jira site. A
+	// repository path is in at most one tracker's Repos.
+	Trackers []TrackerConfig `json:"trackers,omitempty"`
+}
+
+type TrackerConfig struct {
+	Site  string   `json:"site"`
+	Kind  string   `json:"kind"`
+	Keys  []string `json:"keys,omitempty"`
+	Repos []string `json:"repos,omitempty"`
 }
 
 func Default() Config {
