@@ -101,6 +101,11 @@
   white-space: pre;
 }
 
+.ci-jobs-retry {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .ci-job-log-actions {
   display: flex;
   align-items: center;

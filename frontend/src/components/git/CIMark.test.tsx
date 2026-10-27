@@ -120,4 +120,34 @@ describe('CIMark', () => {
     expect(await within(log).findByText(/line 1/)).toBeInTheDocument()
     expect(HostService.JobLog).toHaveBeenLastCalledWith('/repos/app', 5, true)
   })
+
+  it('re-runs a failed job or every failed job on a click, then shows the jobs after it', async () => {
+    const failed = new Job({ id: 5, name: 'test', stage: 'unit', status: CIStatus.CIFailed, retryable: true })
+    const passed = new Job({ id: 6, name: 'build', stage: 'compile', status: CIStatus.CISuccess })
+    vi.mocked(HostService.PipelineJobs).mockResolvedValue([failed, passed])
+    vi.mocked(HostService.JobLog).mockResolvedValue({ text: 'boom', truncated: false, full: false } as never)
+    const queued = new Job({ id: 7, name: 'test', stage: 'unit', status: CIStatus.CIPending })
+    vi.mocked(HostService.RetryJob).mockResolvedValue([failed, passed, queued])
+    vi.mocked(HostService.RetryPipeline).mockResolvedValue([passed, queued])
+    render(<PipelineJobList repoPath="/repos/app" pipelineId={12} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /test/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Re-run job' }))
+    expect(HostService.RetryJob).toHaveBeenCalledWith('/repos/app', 12, 5)
+    expect(await screen.findAllByRole('listitem')).toHaveLength(3)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Re-run failed jobs' }))
+    expect(HostService.RetryPipeline).toHaveBeenCalledWith('/repos/app', 12)
+    await vi.waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(2))
+    expect(screen.queryByRole('button', { name: 'Re-run failed jobs' })).not.toBeInTheDocument()
+  })
+
+  it('offers no re-run where nothing can be re-run', async () => {
+    vi.mocked(HostService.PipelineJobs).mockResolvedValue([
+      new Job({ id: 7, name: 'ci/circleci', stage: 'status', status: CIStatus.CIFailed }),
+    ])
+    render(<PipelineJobList repoPath="/repos/app" pipelineId={12} />)
+    await screen.findByRole('list', { name: 'Jobs' })
+    expect(screen.queryByRole('button', { name: 'Re-run failed jobs' })).not.toBeInTheDocument()
+  })
 })

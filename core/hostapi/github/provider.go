@@ -363,12 +363,13 @@ func (p *Provider) commitJobs(ctx context.Context, project, ref string) ([]hosta
 	jobs := make([]hostapi.Job, 0, len(runs.CheckRuns)+len(status.Statuses))
 	for _, run := range runs.CheckRuns {
 		jobs = append(jobs, hostapi.Job{
-			ID:       run.ID,
-			Name:     run.Name,
-			Stage:    run.App.Slug,
-			Status:   checkStatus(run),
-			Duration: duration(run.StartedAt, run.CompletedAt),
-			WebURL:   run.HTMLURL,
+			ID:        run.ID,
+			Name:      run.Name,
+			Stage:     run.App.Slug,
+			Status:    checkStatus(run),
+			Duration:  duration(run.StartedAt, run.CompletedAt),
+			WebURL:    run.HTMLURL,
+			Retryable: run.App.Slug == actionsApp && hostapi.Retryable(checkStatus(run)),
 		})
 	}
 	for _, s := range status.Statuses {
