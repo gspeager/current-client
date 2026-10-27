@@ -25,7 +25,7 @@ describe('CurrentIssueSection', () => {
     vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
     const openIssue = vi.fn()
     render(
-      <IssuePanelContext.Provider value={openIssue}>
+      <IssuePanelContext.Provider value={{ open: openIssue }}>
         <CurrentIssueSection repoPath="/repos/app" refreshKey={0} />
       </IssuePanelContext.Provider>,
     )

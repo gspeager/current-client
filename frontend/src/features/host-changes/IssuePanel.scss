@@ -88,9 +88,28 @@
   color: var(--outline);
 }
 
+.issue-panel-reply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.issue-panel-reply-input {
+  min-height: 64px;
+  resize: vertical;
+  font: var(--ui-sm);
+}
+
+.issue-panel-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
 .issue-panel-actions {
   display: flex;
   justify-content: flex-end;
+  gap: var(--space-sm);
 
   .dialog-button {
     display: inline-flex;

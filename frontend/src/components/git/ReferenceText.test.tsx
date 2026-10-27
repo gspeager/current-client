@@ -31,7 +31,7 @@ describe('ReferenceText', () => {
     vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
     const openIssue = vi.fn()
     render(
-      <IssuePanelContext.Provider value={openIssue}>
+      <IssuePanelContext.Provider value={{ open: openIssue }}>
         <ReferenceText
           text="Fix #12 via !45"
           links={new Links({ ...links, mergeRequest: 'https://github.com/o/r/pull/' })}

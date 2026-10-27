@@ -1,5 +1,5 @@
 import { DiffWrapContext } from './features/diff/diffWrap'
-import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react'
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import { Settings } from 'lucide-react'
 import {
@@ -36,8 +36,9 @@ import HostChangesView, { changesLabelFor } from './features/host-changes/HostCh
 import HostNoticeBanner from './components/chrome/HostNoticeBanner'
 import CreateChangeDialog from './features/host-changes/CreateChangeDialog'
 import IssuePanel from './features/host-changes/IssuePanel'
+import NewIssueDialog from './features/host-changes/NewIssueDialog'
 import InboxView, { type InboxTarget } from './features/inbox/InboxView'
-import { IssuePanelContext } from './lib/issuePanel'
+import { IssuePanelContext, type IssueDraft } from './lib/issuePanel'
 import { useHostPrompt } from './features/settings/useHostPrompt'
 import { useHostIndicator } from './lib/useHostIndicator'
 import { useHostLinks } from './lib/useHostLinks'
@@ -228,6 +229,25 @@ function App({
   useEffect(() => setPushed(null), [repo.repoPath])
   const [openIssueKey, setOpenIssueKey] = useState<string | null>(null)
   useEffect(() => setOpenIssueKey(null), [repo.repoPath])
+  const [newIssueDraft, setNewIssueDraft] = useState<IssueDraft | null>(null)
+  useEffect(() => setNewIssueDraft(null), [repo.repoPath])
+  const hostOn = !!integration
+  const { data: canWriteIssues } = useAsyncData(
+    () => (hostOn && repo.repoPath ? HostService.CanWriteIssues(repo.repoPath) : null),
+    [hostOn, repo.repoPath],
+  )
+  const issueActions = useMemo(
+    () =>
+      hostOn
+        ? {
+            open: setOpenIssueKey,
+            create: canWriteIssues
+              ? (draft?: IssueDraft) => setNewIssueDraft(draft ?? { title: '', description: '' })
+              : undefined,
+          }
+        : null,
+    [hostOn, canWriteIssues],
+  )
 
   // A row in the Inbox switches to its repository first; the jump itself
   // waits until that repository is the open one.
@@ -370,7 +390,7 @@ function App({
       <DiffWrapContext.Provider
         value={{ wrap: !(settings.settings?.diffNoWrap ?? false), setWrap: (wrap) => settings.setDiffNoWrap(!wrap) }}
       >
-        <IssuePanelContext.Provider value={integration ? setOpenIssueKey : null}>
+        <IssuePanelContext.Provider value={issueActions}>
           <div className="app-shell">
             <HeaderBar
               repoPath={repo.repoPath}
@@ -432,6 +452,17 @@ function App({
             {workspace.modals}
             {openIssueKey && repo.repoPath && (
               <IssuePanel repoPath={repo.repoPath} issueKey={openIssueKey} onClose={() => setOpenIssueKey(null)} />
+            )}
+            {newIssueDraft && repo.repoPath && (
+              <NewIssueDialog
+                repoPath={repo.repoPath}
+                draft={newIssueDraft}
+                onCreated={(issue) => {
+                  setNewIssueDraft(null)
+                  setOpenIssueKey(issue.key)
+                }}
+                onClose={() => setNewIssueDraft(null)}
+              />
             )}
             {createChangeFor && repo.repoPath && (
               <CreateChangeDialog
