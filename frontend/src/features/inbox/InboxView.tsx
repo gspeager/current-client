@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  ClipboardList,
   Bell,
   Check,
   ChevronDown,
@@ -18,6 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { HostService, InboxService, type InboxRepo, type InboxRow } from '@current-client-bindings/app'
+import StandupDialog from './StandupDialog'
 import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
@@ -131,6 +133,7 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
   // Only the open repository starts expanded, so many repositories with
   // work waiting stay a short list of headers; a header click overrides.
   const [folded, setFolded] = useState<Record<string, boolean>>({})
+  const [standup, setStandup] = useState(false)
   const isOpen = (path: string) => folded[path] ?? path === activePath
 
   return (
@@ -140,6 +143,16 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
         <span className="inbox-summary">
           {repos ? (total === 0 ? 'Nothing waiting' : plural(total, 'item')) : 'Looking…'}
         </span>
+        <button
+          type="button"
+          className="inbox-standup"
+          onClick={() => setStandup(true)}
+          disabled={paths.length === 0}
+          title="What you did, to paste into a standup"
+        >
+          <ClipboardList size={14} strokeWidth={1.75} />
+          Standup…
+        </button>
         {onClose && (
           <button type="button" className="inbox-close" onClick={onClose} aria-label="Close Inbox" title="Close Inbox">
             <X size={14} strokeWidth={1.75} />
@@ -159,6 +172,7 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
           onRefreshed={onRefreshed}
         />
       ))}
+      {standup && <StandupDialog paths={paths} onClose={() => setStandup(false)} />}
     </section>
   )
 }
