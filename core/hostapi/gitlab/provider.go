@@ -311,12 +311,13 @@ func (p *Provider) Jobs(ctx context.Context, project string, pipelineID int64) (
 	out := make([]hostapi.Job, 0, len(jobs))
 	for _, j := range jobs {
 		out = append(out, hostapi.Job{
-			ID:       j.ID,
-			Name:     j.Name,
-			Stage:    j.Stage,
-			Status:   ciStatus(j.Status),
-			Duration: time.Duration(j.Duration * float64(time.Second)),
-			WebURL:   j.WebURL,
+			ID:        j.ID,
+			Name:      j.Name,
+			Stage:     j.Stage,
+			Status:    ciStatus(j.Status),
+			Duration:  time.Duration(j.Duration * float64(time.Second)),
+			WebURL:    j.WebURL,
+			Retryable: hostapi.Retryable(ciStatus(j.Status)),
 		})
 	}
 	return out, nil

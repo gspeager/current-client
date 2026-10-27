@@ -120,13 +120,24 @@ type Pipeline struct {
 	WebURL string   `json:"webUrl"`
 }
 
+// Job is one CI job. Retryable says the host's API can run it again: a
+// failed or canceled GitLab job, or GitHub Actions job.
 type Job struct {
-	ID       int64         `json:"id"`
-	Name     string        `json:"name"`
-	Stage    string        `json:"stage"`
-	Status   CIStatus      `json:"status"`
-	Duration time.Duration `json:"duration"`
-	WebURL   string        `json:"webUrl"`
+	ID        int64         `json:"id"`
+	Name      string        `json:"name"`
+	Stage     string        `json:"stage"`
+	Status    CIStatus      `json:"status"`
+	Duration  time.Duration `json:"duration"`
+	WebURL    string        `json:"webUrl"`
+	Retryable bool          `json:"retryable"`
+}
+
+// CIRetrier runs CI again: one job, or every failed job of a pipeline. jobs
+// is the pipeline's job list as last read, for a host that re-runs by
+// workflow run rather than by pipeline.
+type CIRetrier interface {
+	RetryJob(ctx context.Context, project string, job Job) error
+	RetryPipeline(ctx context.Context, project string, pipelineID int64, jobs []Job) error
 }
 
 // Thread is a review discussion. Path and Line are where it was left; Line

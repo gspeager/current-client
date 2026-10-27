@@ -50,6 +50,19 @@ func (c *Cache) Values(host, repo, kind string) []any {
 	return values
 }
 
+// Entries is one kind's values for a host and repository, by id.
+func (c *Cache) Entries(host, repo, kind string) map[string]any {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	values := map[string]any{}
+	for key, entry := range c.entries {
+		if key.host == host && key.repo == repo && key.kind == kind {
+			values[key.id] = entry.value
+		}
+	}
+	return values
+}
+
 func (c *Cache) ClearHost(host string) {
 	c.clear(func(key cacheKey) bool { return key.host == host })
 }

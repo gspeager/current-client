@@ -238,7 +238,7 @@ describe('HostChangesView', () => {
       abc1234def: { status: 'failed', pipelineId: 7, webUrl: '' },
     })
     vi.mocked(HostService.PipelineJobs).mockResolvedValue([
-      { id: 1, name: 'test', stage: 'ci', status: CIStatus.CIFailed, duration: 0, webUrl: '' },
+      { id: 1, name: 'test', stage: 'ci', status: CIStatus.CIFailed, duration: 0, webUrl: '', retryable: false },
     ])
     await userEvent.click(within(detail).getByRole('button', { name: 'Checks' }))
     expect(await within(detail).findByText('test')).toBeInTheDocument()

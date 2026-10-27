@@ -7,6 +7,7 @@ import {
   CircleX,
   Clock,
   ExternalLink,
+  RotateCw,
   type LucideIcon,
 } from 'lucide-react'
 import { HostService, PlatformService, type CIMark as CIMarkInfo } from '@current-client-bindings/app'
@@ -86,7 +87,8 @@ function CICard({ repoPath, mark, label }: { repoPath: string; mark: CIMarkInfo;
 }
 
 // The jobs of one pipeline, fetched when first shown. onLoaded reports the
-// count for a caller that shows it elsewhere.
+// count for a caller that shows it elsewhere. A re-run is one request on a
+// click, and the list then shows the jobs as the host answers after it.
 export function PipelineJobList({
   repoPath,
   pipelineId,
@@ -96,13 +98,27 @@ export function PipelineJobList({
   pipelineId: number
   onLoaded?: (count: number) => void
 }) {
-  const { data: jobs, error } = useAsyncData(
+  const { data: loaded, error } = useAsyncData(
     () => HostService.PipelineJobs(repoPath, pipelineId),
     [repoPath, pipelineId],
   )
+  const [rerun, setRerun] = useState<Job[] | null>(null)
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState<string | null>(null)
+  useEffect(() => setRerun(null), [repoPath, pipelineId])
+  const jobs = rerun ?? loaded
   useEffect(() => {
     if (jobs) onLoaded?.(jobs.length)
   }, [jobs, onLoaded])
+  const retry = (request: () => Promise<Job[]>) => {
+    setRetrying(true)
+    setRetryError(null)
+    request()
+      .then(setRerun)
+      .catch((err: unknown) => setRetryError(errorMessage(err)))
+      .finally(() => setRetrying(false))
+  }
+  const retryJob = (job: Job) => retry(() => HostService.RetryJob(repoPath, pipelineId, job.id))
   return (
     <>
       {error && <p className="ci-jobs-error">Could not load the checks: {errorMessage(error)}</p>}
@@ -111,9 +127,33 @@ export function PipelineJobList({
       {jobs && jobs.length > 0 && (
         <ul className="ci-jobs-list" aria-label="Jobs">
           {jobs.map((job) => (
-            <JobRow key={job.id} job={job} repoPath={repoPath} />
+            <JobRow
+              key={job.id}
+              job={job}
+              repoPath={repoPath}
+              onRetry={job.retryable ? () => retryJob(job) : undefined}
+              retrying={retrying}
+            />
           ))}
         </ul>
+      )}
+      {jobs?.some((job) => job.retryable) && (
+        <div className="ci-jobs-retry">
+          <button
+            type="button"
+            className="ci-jobs-button"
+            onClick={() => retry(() => HostService.RetryPipeline(repoPath, pipelineId))}
+            disabled={retrying}
+          >
+            <RotateCw size={14} strokeWidth={1.75} />
+            {retrying ? 'Re-running…' : 'Re-run failed jobs'}
+          </button>
+        </div>
+      )}
+      {retryError && (
+        <p className="ci-jobs-error" role="alert">
+          {retryError}
+        </p>
       )}
     </>
   )
@@ -142,7 +182,17 @@ function PipelineJobs({ repoPath, mark, onClose }: { repoPath: string; mark: CIM
 
 // A failed job opens its log on click; the log is fetched then, never
 // before. Show full log asks for the rest, up to the cap.
-function JobRow({ job, repoPath }: { job: Job; repoPath: string }) {
+function JobRow({
+  job,
+  repoPath,
+  onRetry,
+  retrying,
+}: {
+  job: Job
+  repoPath: string
+  onRetry?: () => void
+  retrying: boolean
+}) {
   const [open, setOpen] = useState(false)
   const [full, setFull] = useState(false)
   const failed = job.status === 'failed'
@@ -181,6 +231,12 @@ function JobRow({ job, repoPath }: { job: Job; repoPath: string }) {
                 )}
                 {log.full && log.truncated && (
                   <span className="ci-jobs-hint">Cut at the cap; the rest is on the host.</span>
+                )}
+                {onRetry && (
+                  <button type="button" className="ci-jobs-button" onClick={onRetry} disabled={retrying}>
+                    <RotateCw size={14} strokeWidth={1.75} />
+                    Re-run job
+                  </button>
                 )}
                 <button
                   type="button"
