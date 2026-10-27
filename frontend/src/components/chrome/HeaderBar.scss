@@ -26,11 +26,12 @@
   }
 }
 
-// The count sits on the icon's corner, in the review-state color.
+// The count sits on the icon's top-right corner, in the review-state
+// color, reaching past the button so two digits leave the icon readable.
 .header-bar-inbox-count {
   position: absolute;
-  top: 1px;
-  right: 1px;
+  top: -2px;
+  right: -6px;
   min-width: 14px;
   height: 14px;
   padding: 0 3px;
@@ -229,6 +230,7 @@
 }
 
 .header-bar-icon-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
