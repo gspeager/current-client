@@ -15,7 +15,7 @@ const ISSUE_SLUG_MAX = 40
 
 // "123-short-title", the shape branchIssue reads back. The title is cut at a
 // word so the name stays short.
-export function issueBranchName(number: number, title: string): string {
+export function issueBranchName(key: number | string, title: string): string {
   const words = title
     .toLowerCase()
     .split(/[^\p{L}\p{N}]+/u)
@@ -25,5 +25,5 @@ export function issueBranchName(number: number, title: string): string {
     if (slug.length + 1 + word.length > ISSUE_SLUG_MAX) break
     slug += `-${word}`
   }
-  return slug ? `${number}-${slug}` : `${number}-issue`
+  return slug ? `${key}-${slug}` : `${key}-issue`
 }

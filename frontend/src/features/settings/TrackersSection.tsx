@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { TrackerService, type TrackerInfo } from '@current-client-bindings/app'
+import Switch from '../../components/forms/Switch'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
@@ -38,7 +39,8 @@ function TrackersSection({ onChanged }: { onChanged?: () => void }) {
     <section className="settings-trackers" aria-label="Issue trackers">
       <h4 className="settings-subheading">Issue trackers</h4>
       <p className="settings-hint">
-        Issue keys such as PROJ-123 link to the tracker’s site. The address is built here; the site isn’t contacted.
+        Issue keys such as PROJ-123 link to the tracker’s site; the link is built here. The site’s API is contacted only
+        while its switch is on, and only to read issues on a refresh or when one is opened.
       </p>
       {error && <p className="settings-error">{error}</p>}
       {list?.default && <TrackerRow tracker={list.default} openRepos={[]} run={run} />}
@@ -156,10 +158,22 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
       <div className="settings-host-head">
         <div className="settings-row-text">
           <span className="settings-host-name">{tracker.site}</span>
-          <span className="settings-hint">{KIND_LABELS[tracker.kind] ?? tracker.kind}</span>
+          <span className="settings-hint">
+            {KIND_LABELS[tracker.kind] ?? tracker.kind}
+            {tracker.managed ? ' · Set by your organization' : ''}
+          </span>
         </div>
-        {tracker.managed && <span className="settings-hint">Set by your organization</span>}
+        <div className="settings-host-switch">
+          {tracker.locked && <span className="settings-hint">Managed by your organization</span>}
+          <Switch
+            checked={tracker.enabled}
+            onChange={(on) => void run(TrackerService.SetEnabled(tracker.site, on))}
+            ariaLabel={`Integration for ${tracker.site}`}
+            disabled={tracker.locked}
+          />
+        </div>
       </div>
+      <TrackerAccess tracker={tracker} run={run} />
       {tracker.managed ? (
         <p className="settings-hint">
           Used by every repository without a tracker of its own
@@ -201,6 +215,83 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
         </>
       )}
     </div>
+  )
+}
+
+// The token through Git's credential helper and Test connection, as a host
+// row has them.
+function TrackerAccess({ tracker, run }: Pick<TrackerRowProps, 'tracker' | 'run'>) {
+  const dialogs = useDialogs()
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null)
+  const cloud = tracker.kind === 'jira-cloud'
+
+  const setToken = async () => {
+    const email = cloud
+      ? await dialogs.prompt({
+          title: `Account for ${tracker.hostName}`,
+          label: 'The Atlassian account’s email',
+          confirmLabel: 'Next',
+        })
+      : ''
+    if (cloud && !email) return
+    const token = await dialogs.prompt({
+      title: `Token for ${tracker.hostName}`,
+      label: cloud
+        ? 'An API token for that account, from id.atlassian.com. Reading issues is all it is used for.'
+        : 'A personal access token from your Jira profile. Reading issues is all it is used for.',
+      confirmLabel: 'Save',
+      secret: true,
+    })
+    if (token) await run(TrackerService.SaveToken(tracker.site, email ?? '', token))
+  }
+
+  const testConnection = () => {
+    setTesting(true)
+    setTestResult(null)
+    TrackerService.TestConnection(tracker.site)
+      .then((text) => setTestResult({ ok: true, text }))
+      .catch((err: unknown) => setTestResult({ ok: false, text: errorMessage(err) }))
+      .finally(() => setTesting(false))
+  }
+
+  return (
+    <>
+      <div className="settings-host-credential">
+        <span className="settings-hint">
+          {tracker.hasToken ? 'Token saved with Git’s credential helper.' : 'No token saved.'}
+        </span>
+        {tracker.hasToken ? (
+          <button
+            type="button"
+            className="settings-button settings-button-small"
+            onClick={() => void run(TrackerService.RemoveToken(tracker.site))}
+          >
+            Remove token
+          </button>
+        ) : (
+          <button type="button" className="settings-button settings-button-small" onClick={() => void setToken()}>
+            Set token…
+          </button>
+        )}
+      </div>
+      <div className="settings-actions">
+        <button
+          type="button"
+          className="settings-button settings-button-small"
+          onClick={testConnection}
+          disabled={!tracker.enabled || testing}
+          title={tracker.enabled ? undefined : 'Turn the integration on first.'}
+        >
+          {testing ? 'Testing…' : 'Test connection'}
+        </button>
+        {testResult && (
+          <span className={testResult.ok ? 'settings-hint' : 'settings-error'} role="status">
+            {testResult.text}
+          </span>
+        )}
+      </div>
+    </>
   )
 }
 

@@ -22,6 +22,9 @@ type GitCredentials struct {
 	// looked up when there is one: Git Credential Manager opens a sign-in
 	// window for a host it has nothing for.
 	Saved func(hostName string) bool
+	// OwnKeyOnly leaves out the fallback to Git's credential for the host,
+	// for an API such as an issue tracker's that no remote signs in to.
+	OwnKeyOnly bool
 
 	mu     sync.Mutex
 	tokens map[string]string
@@ -49,7 +52,7 @@ func (g *GitCredentials) Token(ctx context.Context, hostName string) (string, er
 	if g.Saved != nil && g.Saved(hostName) {
 		token = fill(ctx, tokenKey(hostName))
 	}
-	if token == "" {
+	if token == "" && !g.OwnKeyOnly {
 		token = fill(ctx, credential{protocol: "https", host: hostName})
 	}
 	g.remember(hostName, token)

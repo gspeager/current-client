@@ -19,7 +19,23 @@ export function useHostIndicator(repoPath: string, hostsVersion: number, availab
     refreshKey: hostsVersion,
   })
   const host = hosts?.find((h) => h.enabled) ?? null
-  const hostname = host?.hostname ?? null
+  const status = useHostStatus(host?.hostname ?? null)
+
+  if (!host) return null
+  return { host, apiHost: apiHostOf(host.apiUrl), status }
+}
+
+function apiHostOf(apiUrl: string): string {
+  try {
+    return new URL(apiUrl).host
+  } catch {
+    return apiUrl
+  }
+}
+
+// When a host or tracker the client knows by hostname was last asked, read
+// from the client's own counters every few seconds; null while hostname is.
+export function useHostStatus(hostname: string | null): HostStatusInfo | null {
   const [status, setStatus] = useState<HostStatusInfo | null>(null)
   useClockTick()
 
@@ -41,14 +57,5 @@ export function useHostIndicator(repoPath: string, hostsVersion: number, availab
     }
   }, [hostname])
 
-  if (!host) return null
-  return { host, apiHost: apiHostOf(host.apiUrl), status }
-}
-
-function apiHostOf(apiUrl: string): string {
-  try {
-    return new URL(apiUrl).host
-  } catch {
-    return apiUrl
-  }
+  return status
 }

@@ -94,6 +94,14 @@ type Config struct {
 	// Issue trackers beside the hosts, such as a team's Jira site. A
 	// repository path is in at most one tracker's Repos.
 	Trackers []TrackerConfig `json:"trackers,omitempty"`
+	// Each tracker's integration, by site, including the organization's
+	// default: whether it may be contacted and whether a token was saved.
+	TrackerAccess map[string]TrackerAccess `json:"trackerAccess,omitempty"`
+}
+
+type TrackerAccess struct {
+	Enabled  bool `json:"enabled,omitempty"`
+	HasToken bool `json:"hasToken,omitempty"`
 }
 
 type TrackerConfig struct {

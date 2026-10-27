@@ -19,7 +19,10 @@ interface ReferenceLinkProps {
 // underneath must not also act on the click.
 export function ReferenceLink({ reference, card, children }: ReferenceLinkProps) {
   const openIssue = useOpenIssue()
-  const issueKey = /^#(\d+)$/.exec(reference.text)?.[1]
+  const tracker = useTracker()
+  const issueKey =
+    /^#(\d+)$/.exec(reference.text)?.[1] ??
+    (tracker?.reading && reference.url === tracker.browse + reference.text ? reference.text : undefined)
   const open = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -38,7 +41,7 @@ export function ReferenceLink({ reference, card, children }: ReferenceLinkProps)
 export function ReferenceCard({ reference, card }: { reference: HostReference; card: ReferenceCardInfo }) {
   return (
     <>
-      <p className="hover-card-title">{card.known ? card.title || 'Not found on the host' : 'Title not fetched'}</p>
+      <p className="hover-card-title">{card.known ? card.title || 'Not found' : 'Title not fetched'}</p>
       <p className="hover-card-line">
         <span className="hover-card-data">{reference.text}</span>
         {card.state && <span>{card.state}</span>}

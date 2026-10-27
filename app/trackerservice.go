@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"net/url"
 	"slices"
 
 	"github.com/gspeager/current-client/core/hostlink"
@@ -23,6 +24,13 @@ type TrackerInfo struct {
 	Keys    []string `json:"keys"`
 	Repos   []string `json:"repos"`
 	Managed bool     `json:"managed"`
+	// HostName is what the status bar names while its integration is on.
+	HostName string `json:"hostName"`
+	// Enabled is the integration switch in force, Locked says the policy
+	// fixes it, and HasToken that a token was saved for it.
+	Enabled  bool `json:"enabled"`
+	Locked   bool `json:"locked"`
+	HasToken bool `json:"hasToken"`
 }
 
 // TrackerList is Settings' group: the user's trackers, the organization's
@@ -43,6 +51,9 @@ type TrackerLinks struct {
 	KeyPattern       string `json:"keyPattern"`
 	BranchKeyPattern string `json:"branchKeyPattern"`
 	Managed          bool   `json:"managed"`
+	// Reading is the tracker's integration on: its issues open in the app.
+	HostName string `json:"hostName"`
+	Reading  bool   `json:"reading"`
 }
 
 var errTrackerKind = errors.New("choose Jira Cloud or Jira Data Center")
@@ -51,14 +62,35 @@ func (s *TrackerService) List() TrackerList {
 	cfg := configOrDefault()
 	list := TrackerList{Trackers: []TrackerInfo{}, OpenRepos: append([]string{}, cfg.OpenTabs...)}
 	for _, t := range cfg.Trackers {
-		list.Trackers = append(list.Trackers, TrackerInfo{Site: t.Site, Kind: t.Kind, Keys: orEmpty(t.Keys), Repos: orEmpty(t.Repos)})
+		info := TrackerInfo{Site: t.Site, Kind: t.Kind, Keys: orEmpty(t.Keys), Repos: orEmpty(t.Repos)}
+		list.Trackers = append(list.Trackers, withAccess(info, cfg))
 	}
-	if d := policy.DefaultTracker(); d != nil {
-		if site, err := hostlink.TrackerSite(d.Site); err == nil {
-			list.Default = &TrackerInfo{Site: site, Kind: d.Kind, Keys: orEmpty(hostlink.ProjectKeys(d.Keys)), Repos: []string{}, Managed: true}
-		}
+	if d, ok := defaultTracker(); ok {
+		info := TrackerInfo{Site: d.Site, Kind: string(d.Kind), Keys: orEmpty(d.Keys), Repos: []string{}, Managed: true}
+		list.Default = &info
+		*list.Default = withAccess(info, cfg)
 	}
 	return list
+}
+
+func withAccess(info TrackerInfo, cfg config.Config) TrackerInfo {
+	access := cfg.TrackerAccess[info.Site]
+	info.HostName = trackerHostName(info.Site)
+	info.HasToken = access.HasToken
+	info.Enabled, info.Locked = access.Enabled, false
+	if forced, managed := policy.Host(info.HostName); managed {
+		info.Enabled, info.Locked = forced, true
+	}
+	return info
+}
+
+// trackerHostName is the site's host, with its port, as the client names it.
+func trackerHostName(site string) string {
+	u, err := url.Parse(site)
+	if err != nil {
+		return ""
+	}
+	return u.Host
 }
 
 func orEmpty(values []string) []string {
@@ -106,10 +138,17 @@ func (s *TrackerService) SetRepos(site string, repos []string) error {
 	})
 }
 
+// Remove forgets the tracker, its switch and its token.
 func (s *TrackerService) Remove(site string) error {
-	return updateTracker(site, func(cfg *config.Config, i int) {
+	hasToken := configOrDefault().TrackerAccess[site].HasToken
+	err := updateTracker(site, func(cfg *config.Config, i int) {
 		cfg.Trackers = slices.Delete(cfg.Trackers, i, i+1)
+		delete(cfg.TrackerAccess, site)
 	})
+	if err == nil {
+		forgetTracker(site, hasToken)
+	}
+	return err
 }
 
 // Links is the repository's own tracker, else the organization's default,
@@ -126,6 +165,8 @@ func (s *TrackerService) Links(repoPath string) *TrackerLinks {
 		KeyPattern:       tracker.KeyPattern().String(),
 		BranchKeyPattern: tracker.BranchKeyPattern().String(),
 		Managed:          managed,
+		HostName:         trackerHostName(tracker.Site),
+		Reading:          trackerReading(trackerHostName(tracker.Site)),
 	}
 }
 
@@ -135,12 +176,35 @@ func trackerFor(repoPath string) (hostlink.Tracker, bool, bool) {
 			return hostlink.Tracker{Site: t.Site, Kind: hostlink.TrackerKind(t.Kind), Keys: t.Keys}, false, true
 		}
 	}
-	if d := policy.DefaultTracker(); d != nil {
-		if site, err := hostlink.TrackerSite(d.Site); err == nil {
-			return hostlink.Tracker{Site: site, Kind: hostlink.TrackerKind(d.Kind), Keys: hostlink.ProjectKeys(d.Keys)}, true, true
-		}
+	if d, ok := defaultTracker(); ok {
+		return d, true, true
 	}
 	return hostlink.Tracker{}, false, false
+}
+
+func defaultTracker() (hostlink.Tracker, bool) {
+	d := policy.DefaultTracker()
+	if d == nil {
+		return hostlink.Tracker{}, false
+	}
+	site, err := hostlink.TrackerSite(d.Site)
+	if err != nil {
+		return hostlink.Tracker{}, false
+	}
+	return hostlink.Tracker{Site: site, Kind: hostlink.TrackerKind(d.Kind), Keys: hostlink.ProjectKeys(d.Keys)}, true
+}
+
+// allTrackers is every tracker the app may know: the user's and the
+// organization's default.
+func allTrackers() []hostlink.Tracker {
+	var trackers []hostlink.Tracker
+	for _, t := range configOrDefault().Trackers {
+		trackers = append(trackers, hostlink.Tracker{Site: t.Site, Kind: hostlink.TrackerKind(t.Kind), Keys: t.Keys})
+	}
+	if d, ok := defaultTracker(); ok {
+		trackers = append(trackers, d)
+	}
+	return trackers
 }
 
 func validTrackerKind(kind string) bool {

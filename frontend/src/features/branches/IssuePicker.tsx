@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronDown, CircleDot } from 'lucide-react'
 import { HostService } from '@current-client-bindings/app'
 import { issueBranchName } from '../../lib/branchName'
+import { useTracker } from '../../lib/issuePanel'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './IssuePicker.scss'
 
@@ -11,8 +12,9 @@ interface IssuePickerProps {
 }
 
 // The open issues assigned to the token's user, for naming a new branch
-// after one. Absent while the host's integration is off; the host is asked
-// the first time the list opens, then the cache answers until a refresh.
+// after one: the tracker's, such as Jira's, while its integration is on,
+// else the host's. Absent while neither is on; the list is asked for the
+// first time it opens, then the cache answers until a refresh.
 function IssuePicker({ repoPath, onPick }: IssuePickerProps) {
   const [open, setOpen] = useState(false)
   const { data: host } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath])
@@ -20,7 +22,8 @@ function IssuePicker({ repoPath, onPick }: IssuePickerProps) {
     () => (open ? HostService.AssignedIssues(repoPath) : null),
     [open, repoPath],
   )
-  if (!host?.enabled) return null
+  const tracker = useTracker()
+  if (!host?.enabled && !tracker?.reading) return null
 
   return (
     <div className="issue-picker">
@@ -39,17 +42,17 @@ function IssuePicker({ repoPath, onPick }: IssuePickerProps) {
         ) : (
           <ul className="issue-picker-list" aria-label="Assigned issues">
             {issues.map((issue) => (
-              <li key={issue.number}>
+              <li key={issue.key}>
                 <button
                   type="button"
                   className="issue-picker-issue"
                   title={issue.title}
                   onClick={() => {
-                    onPick(issueBranchName(issue.number, issue.title))
+                    onPick(issueBranchName(issue.number || issue.key, issue.title))
                     setOpen(false)
                   }}
                 >
-                  <span className="issue-picker-number">#{issue.number}</span>
+                  <span className="issue-picker-number">{issue.number ? `#${issue.number}` : issue.key}</span>
                   <span className="issue-picker-title">{issue.title}</span>
                 </button>
               </li>

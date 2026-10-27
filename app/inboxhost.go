@@ -19,7 +19,7 @@ import (
 func hostInboxRows(repoPath string) (rows []InboxRow, enabled bool, fetchedAt *time.Time, notice string) {
 	list, info, _, err := changeList(repoPath)
 	if err != nil || !list.Enabled {
-		return nil, false, nil, ""
+		return trackerInboxRows(repoPath), false, nil, ""
 	}
 	fillChangeList(&list, info, repoPath, cacheChanges)
 	for _, change := range list.Changes {
@@ -51,7 +51,7 @@ func hostInboxRows(repoPath string) (rows []InboxRow, enabled bool, fetchedAt *t
 		}
 	}
 	rows, notice = todoRows(rows, info, list.Prefix)
-	return rows, true, list.FetchedAt, notice
+	return append(rows, trackerInboxRows(repoPath)...), true, list.FetchedAt, notice
 }
 
 // issueBranchState says what a local branch named after the issue is

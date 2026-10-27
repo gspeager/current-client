@@ -5,7 +5,8 @@ import { relativeTime } from '../../lib/relativeTime'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
-import type { HostIndicator } from '../../lib/useHostIndicator'
+import { useHostStatus, type HostIndicator } from '../../lib/useHostIndicator'
+import { useTracker } from '../../lib/issuePanel'
 import './StatusBar.scss'
 
 interface StatusBarProps {
@@ -29,6 +30,9 @@ function StatusBar({
   const { data: appVersion } = useAsyncData(() => PlatformService.AppVersion(), [])
   const { data: home } = useAsyncData(() => (System.IsWindows() ? null : PlatformService.HomeDir()), [])
   const { copied, copy } = useCopyToClipboard()
+  const tracker = useTracker()
+  const trackerHost = tracker?.reading ? tracker.hostName : null
+  const trackerStatus = useHostStatus(trackerHost)
   const branchLabel =
     status &&
     (status.detachedAt
@@ -58,6 +62,18 @@ function StatusBar({
           <span className="status-bar-host-dot" />
           <span className="status-bar-host-name">{integration.apiHost}</span>
           <span>{hostRequestLabel(integration.status)}</span>
+        </button>
+      )}
+      {trackerHost && (
+        <button
+          type="button"
+          className={trackerStatus?.inFlight ? 'status-bar-host status-bar-host-busy' : 'status-bar-host'}
+          onClick={onOpenSettings}
+          title={`Integration is on for the issue tracker ${trackerHost}. Opens Settings.`}
+        >
+          <span className="status-bar-host-dot" />
+          <span className="status-bar-host-name">{trackerHost}</span>
+          <span>{hostRequestLabel(trackerStatus)}</span>
         </button>
       )}
       <button
