@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, GitBranch, Plus, RefreshCw } from 'lucide-react'
-import { BranchChange, HostService, PlatformService, type ChangeList } from '@current-client-bindings/app'
+import { ExternalLink, GitBranch, GitMerge, Plus, RefreshCw } from 'lucide-react'
+import {
+  BranchChange,
+  HostService,
+  PlatformService,
+  type ChangeList,
+  type MergeResult,
+} from '@current-client-bindings/app'
 import type { Change } from '@current-client-bindings/core/hostapi'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark, { ciLabel, PipelineJobList } from '../../components/git/CIMark'
@@ -15,6 +21,7 @@ import StatusBadge from '../../components/git/StatusBadge'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import Tab from '../../components/controls/Tab'
 import ReviewThreadBlock from '../diff/ReviewThreadBlock'
+import MergeChangeDialog from './MergeChangeDialog'
 import { createChangeFor } from '../../lib/createChange'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
 import { plural } from '../../lib/plural'
@@ -38,6 +45,8 @@ interface HostChangesViewProps {
   // Opens the in-app create form for a branch; without it the host's form is used.
   onCreateChange?: (branch: string) => void
   onOpenSettings?: () => void
+  // After a merge from the app, with whether a local branch tracks the merged one.
+  onMerged?: (result: MergeResult) => void
 }
 
 // The merge request / pull request panel: the open changes from the last
@@ -52,6 +61,7 @@ function HostChangesView({
   onRefreshed,
   onCreateChange,
   onOpenSettings,
+  onMerged,
 }: HostChangesViewProps) {
   const {
     data: list,
@@ -206,6 +216,7 @@ function HostChangesView({
             change={active}
             list={list}
             onBranchChanged={onBranchChanged}
+            onMerged={onMerged}
           />
         )}
       </div>
@@ -252,11 +263,12 @@ interface ChangeDetailProps {
   change: Change
   list: ChangeList
   onBranchChanged: () => void
+  onMerged?: (result: MergeResult) => void
 }
 
 const NO_CHANGES = {}
 
-function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailProps) {
+function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged }: ChangeDetailProps) {
   const { data: details } = useAsyncData(
     () => HostService.ChangeDetails(repoPath, change.number),
     [repoPath, change.number],
@@ -283,6 +295,13 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
   const conflict = forecast?.conflicts?.find((c) => c.number === change.number)
   const checkout = useCancellableOperation(`${repoPath}:${change.number}`)
   const [checkedOut, setCheckedOut] = useState<string | null>(null)
+  // What the last refresh knows about merging it; cache and Git only.
+  const { data: readiness } = useAsyncData(
+    () => (change.state === 'open' ? HostService.MergeReadiness(repoPath, change.number) : null),
+    [repoPath, change],
+  )
+  const [merging, setMerging] = useState(false)
+  const [merged, setMerged] = useState<string | null>(null)
   const [counts, setCounts] = useState<Partial<Record<DetailTab, number>>>({})
   const countFor = useMemo(() => {
     const setter = (which: DetailTab) => (count: number) =>
@@ -380,12 +399,32 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
             <dd>{change.labels.join(', ')}</dd>
           </>
         )}
+        {readiness && readiness.facts.length > 0 && (
+          <>
+            <dt>Merge</dt>
+            <dd>
+              <ul className="host-change-readiness" aria-label="Merge readiness">
+                {readiness.facts.map((f) => (
+                  <li key={f.label} className={`host-change-readiness-${f.level}`}>
+                    {f.label}: {f.value}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </>
+        )}
       </dl>
       <div className="host-change-actions">
         <button type="button" className="host-change-button" onClick={checkOut} disabled={checkout.running}>
           <GitBranch size={14} strokeWidth={1.75} />
           {checkout.running ? 'Checking out…' : 'Check out locally'}
         </button>
+        {change.state === 'open' && !merged && (
+          <button type="button" className="host-change-button" onClick={() => setMerging(true)}>
+            <GitMerge size={14} strokeWidth={1.75} />
+            Merge…
+          </button>
+        )}
         <button
           type="button"
           className="host-change-button"
@@ -406,6 +445,30 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged }: ChangeDetailP
         </p>
       )}
       {checkout.error && <p className="host-changes-error">Could not check out: {checkout.error}</p>}
+      {merged && (
+        <p className="host-changes-notice" role="status">
+          {merged}
+        </p>
+      )}
+      {merging && (
+        <MergeChangeDialog
+          repoPath={repoPath}
+          change={change}
+          prefix={list.prefix}
+          host={list.host}
+          facts={readiness?.facts ?? []}
+          onMerged={(result) => {
+            setMerging(false)
+            setMerged(
+              result.localBranch
+                ? `Merged ${list.prefix}${change.number}. ${result.localBranch} can be cleaned up.`
+                : `Merged ${list.prefix}${change.number}.`,
+            )
+            onMerged?.(result)
+          }}
+          onClose={() => setMerging(false)}
+        />
+      )}
       <nav className="host-change-tabs" aria-label="Detail">
         {tabs.map((t) => (
           <Tab

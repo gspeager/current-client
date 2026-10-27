@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
+import { useEffect, useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
 import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X } from 'lucide-react'
 import {
   type BranchInfo,
@@ -49,6 +49,8 @@ interface BranchSidebarProps {
   conflict?: ConflictStateInfo | null
   onBranchChanged?: () => void
   onCreateChange?: (branch: string) => void
+  // Opens Clean up merged branches when it changes, after a merge from the app.
+  cleanUpRequest?: number
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
@@ -61,6 +63,7 @@ function BranchSidebar({
   conflict = null,
   onBranchChanged,
   onCreateChange,
+  cleanUpRequest = 0,
 }: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
@@ -117,6 +120,9 @@ function BranchSidebar({
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
   const [cleanUp, setCleanUp] = useState(false)
+  useEffect(() => {
+    if (cleanUpRequest > 0) setCleanUp(true)
+  }, [cleanUpRequest])
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 

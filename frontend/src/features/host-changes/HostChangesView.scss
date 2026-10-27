@@ -247,6 +247,24 @@
   gap: var(--space-sm);
 }
 
+// One fact per line; a warning in the warning color, an unknown in outline.
+.host-change-readiness {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.host-change-readiness-warn {
+  color: var(--warning);
+}
+
+.host-change-readiness-unknown {
+  color: var(--outline);
+}
+
 .host-change-tabs {
   display: flex;
   height: var(--h-tab-bar);

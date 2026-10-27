@@ -49,7 +49,12 @@ function list(overrides: Partial<ChangeList> = {}): ChangeList {
   })
 }
 
-function renderView({ onBranchChanged = vi.fn(), onCreateChange = vi.fn(), onOpenSettings = vi.fn() } = {}) {
+function renderView({
+  onBranchChanged = vi.fn(),
+  onCreateChange = vi.fn(),
+  onOpenSettings = vi.fn(),
+  onMerged = vi.fn(),
+} = {}) {
   vi.mocked(HostService.Forecast).mockResolvedValue(
     new ForecastReport({
       enabled: true,
@@ -71,10 +76,11 @@ function renderView({ onBranchChanged = vi.fn(), onCreateChange = vi.fn(), onOpe
         onBranchChanged={onBranchChanged}
         onCreateChange={onCreateChange}
         onOpenSettings={onOpenSettings}
+        onMerged={onMerged}
       />
     </DialogProvider>,
   )
-  return { onBranchChanged, onCreateChange, onOpenSettings }
+  return { onBranchChanged, onCreateChange, onOpenSettings, onMerged }
 }
 
 describe('HostChangesView', () => {
@@ -269,6 +275,63 @@ describe('HostChangesView', () => {
     expect(await screen.findByText(/gitlab\.example\.com is contacted on Refresh/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Integration settings' }))
     expect(onOpenSettings).toHaveBeenCalled()
+  })
+
+  it('shows what the last refresh knows about merging, merges on the host, and reports a refusal', async () => {
+    vi.mocked(HostService.Changes).mockResolvedValue(list())
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({ change: change({}), descriptionHtml: '', closes: [] })
+    vi.mocked(HostService.MergeReadiness).mockResolvedValue({
+      facts: [
+        { label: 'Checks', value: 'passed', level: 'ok' },
+        { label: 'Reviews', value: 'waiting on Bob', level: 'warn' },
+        { label: 'Conflicts', value: 'not known until the change is opened on the host', level: 'unknown' },
+      ],
+      fetchedAt: new Date().toISOString(),
+    } as never)
+    vi.mocked(HostService.MergeOptions).mockResolvedValue({
+      methods: ['squash', 'merge'],
+      deleteBranch: true,
+      deleteBranchFixed: false,
+    } as never)
+    vi.mocked(HostService.MergeChange).mockRejectedValueOnce(
+      new Error('gitlab.example.com refused the merge: it conflicts with the target branch.'),
+    )
+    vi.mocked(HostService.MergeChange).mockResolvedValueOnce({
+      number: 138,
+      sourceBranch: 'feature',
+      localBranch: 'feature',
+    } as never)
+    const onMerged = vi.fn()
+    renderView({ onMerged })
+
+    const readiness = await screen.findByRole('list', { name: 'Merge readiness' })
+    expect(within(readiness).getByText('Checks: passed')).toBeInTheDocument()
+    expect(within(readiness).getByText('Reviews: waiting on Bob')).toHaveClass('host-change-readiness-warn')
+    await userEvent.click(screen.getByRole('button', { name: 'Merge…' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Merge !138' })
+    expect(HostService.MergeOptions).toHaveBeenCalledWith(REPO, 138)
+    // Only the facts that stand in the way are repeated in the dialog.
+    const warnings = await within(dialog).findByRole('list', { name: 'Before merging' })
+    expect(within(warnings).queryByText(/Checks/)).toBeNull()
+    expect(within(warnings).getByText(/Reviews: waiting on Bob/)).toBeInTheDocument()
+    expect(within(dialog).getByRole('radio', { name: 'Squash and merge' })).toBeChecked()
+    expect(within(dialog).getByRole('checkbox', { name: /Delete feature on gitlab.example.com/ })).toBeChecked()
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'Merge commit' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Merge commit' }))
+    expect(HostService.MergeChange).toHaveBeenCalledWith(REPO, 138, 'merge', true)
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'refused the merge: it conflicts with the target branch',
+    )
+    expect(onMerged).not.toHaveBeenCalled()
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Merge commit' }))
+    await waitFor(() =>
+      expect(onMerged).toHaveBeenCalledWith({ number: 138, sourceBranch: 'feature', localBranch: 'feature' }),
+    )
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('status')).toHaveTextContent('Merged !138. feature can be cleaned up.')
+    expect(screen.queryByRole('button', { name: 'Merge…' })).toBeNull()
   })
 
   it('checks a change out locally and tells the app the branch changed', async () => {
