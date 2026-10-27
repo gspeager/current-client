@@ -1,5 +1,16 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, CloudOff, ExternalLink, PackagePlus, Plus, Tag, Upload, X } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  CloudOff,
+  ExternalLink,
+  PackagePlus,
+  Plus,
+  Tag,
+  Upload,
+  X,
+} from 'lucide-react'
 import {
   HostService,
   PlatformService,
@@ -19,6 +30,7 @@ import { useHostLinks } from '../../lib/useHostLinks'
 import { tagPage } from '../../lib/hostPages'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
+import ReleaseReadinessDialog from './ReleaseReadinessDialog'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 
 interface TagsPanelProps {
@@ -45,6 +57,7 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
   const [expandedName, setExpandedName] = useState<string | null>(null)
   const [messages, setMessages] = useState<Map<string, TagMessageInfo>>(new Map())
   const [releaseTag, setReleaseTag] = useState<string | null>(null)
+  const [readiness, setReadiness] = useState(false)
   const { data: canPublish } = useAsyncData(
     () => HostService.CanPublishReleases(repoPath).catch(() => false),
     [repoPath],
@@ -144,9 +157,26 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
         open={sections.isOpen('tags', hasTags)}
         onToggle={() => sections.toggle('tags', hasTags)}
         actions={
-          <button type="button" className="tags-panel-add" onClick={toggleNewTag} aria-label="New tag" title="New tag">
-            <Plus size={18} strokeWidth={1.75} />
-          </button>
+          <>
+            <button
+              type="button"
+              className="tags-panel-add"
+              onClick={() => setReadiness(true)}
+              aria-label="Release readiness"
+              title="Release readiness"
+            >
+              <ClipboardCheck size={18} strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              className="tags-panel-add"
+              onClick={toggleNewTag}
+              aria-label="New tag"
+              title="New tag"
+            >
+              <Plus size={18} strokeWidth={1.75} />
+            </button>
+          </>
         }
         pinned={
           showNewTag && (
@@ -281,6 +311,7 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
           </ul>
         )}
       </SidebarSection>
+      {readiness && <ReleaseReadinessDialog repoPath={repoPath} onClose={() => setReadiness(false)} />}
       {releaseTag && <PublishReleaseDialog repoPath={repoPath} tag={releaseTag} onClose={() => setReleaseTag(null)} />}
     </div>
   )

@@ -26,6 +26,8 @@ Afterwards, `grep -rn "<old version>" build` should find nothing.
 
 **Check the library API:** `wails3 task api:check` compares `core/` against the newest tag.
 
+**Check readiness in the app:** Tags → **Release readiness**, with the candidate `HEAD` of the release branch, the version, and target `main`. Under **Version files**, enter the files in the table above, one per line, once per clone. It reports any file that lacks the new version or still has the old one, whether `CHANGELOG.md` has the version's section yet, the commits since the last tag, and, with host integration on, CI on the candidate and protection on `main` from the last refresh. It doesn't run the API check.
+
 Open the pull request into `develop` as `chore: release x.y.z` and squash-merge it.
 
 ## 2. Merge to `main` and tag
