@@ -327,6 +327,11 @@ function ChangesView({
                 viewMode={viewMode}
                 threads={reviewThreads.byPath[selectedPath]}
                 outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
+                review={
+                  reviewThreads.number
+                    ? { repoPath, number: reviewThreads.number, prefix: reviewThreads.prefix }
+                    : undefined
+                }
                 baseSide={
                   openConflict
                     ? { label: `${conflict?.ours || 'HEAD'} (current branch)` }

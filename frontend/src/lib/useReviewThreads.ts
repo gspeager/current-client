@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { HostService, type ReviewThread, type ReviewThreads } from '@current-client-bindings/app'
 import { useAsyncData } from './useAsyncData'
+import { useReviewDraft } from './reviewDraft'
 
 export interface ReviewThreadsView {
   enabled: boolean
@@ -29,10 +30,13 @@ const NONE: ReviewThreadsView = {
 // them never contacts the host. With at, only those on files that are the same
 // at that commit as at the change's head, where their lines still match.
 export function useReviewThreads(repoPath: string, refreshKey?: unknown, at?: string): ReviewThreadsView {
+  // A review write from any view bumps the draft's version, so the threads
+  // are read again here too.
+  const { version } = useReviewDraft()
   const { data } = useAsyncData(
     () => (at === undefined ? HostService.ReviewThreads(repoPath) : HostService.ReviewThreadsAt(repoPath, at)),
     [repoPath, at],
-    { refreshKey, keepData: at === undefined },
+    { refreshKey: `${String(refreshKey)}:${version}`, keepData: at === undefined },
   )
   return useMemo(() => (data ? groupThreads(data) : NONE), [data])
 }

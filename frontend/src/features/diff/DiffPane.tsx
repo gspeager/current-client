@@ -1,7 +1,7 @@
 import { Fragment, useLayoutEffect, useRef, type Key, type ReactNode, type RefObject } from 'react'
-import type { DiffLine, LineSelection, ReviewThread } from '@current-client-bindings/app'
+import { MessageSquarePlus } from 'lucide-react'
+import type { DiffLine, LineSelection } from '@current-client-bindings/app'
 import { useDiffWrap } from './diffWrap'
-import ReviewThreadBlock from './ReviewThreadBlock'
 import { unifiedRowsForPair, type DisplayRow, type PairedLine, type UnifiedRow } from './diffRows'
 import { languageForPath, tokenizeLine } from './syntaxHighlight'
 import { diffLineWords } from './wordDiff'
@@ -23,6 +23,31 @@ export function lineKey(line: DiffLine | null): string | null {
   if (line?.kind === 'added') return `+${line.newLine}`
   if (line?.kind === 'removed') return `-${line.oldLine}`
   return null
+}
+
+// Names a line for blocks placed under it: a new-side line as +n, a removed
+// line as -n.
+export function lineRef(line: number, oldLine: number): string {
+  return line ? `+${line}` : `-${oldLine}`
+}
+
+type CommentOnLine = (line: number, oldLine: number) => void
+
+// The comment button sits over the gutter, shown while the row is hovered or
+// it has focus, so the row grid stays as it is.
+function CommentButton({ line, oldLine, onComment }: { line: number; oldLine: number; onComment: CommentOnLine }) {
+  const where = line ? `line ${line}` : `old line ${oldLine}`
+  return (
+    <button
+      type="button"
+      className="diff-line-comment"
+      onClick={() => onComment(line, oldLine)}
+      aria-label={`Comment on ${where}`}
+      title={`Comment on ${where}`}
+    >
+      <MessageSquarePlus size={12} strokeWidth={1.75} />
+    </button>
+  )
 }
 
 interface LineSelect {
@@ -119,13 +144,23 @@ function splitRow(
   key: Key,
   select?: LineSelect,
   extraClass = '',
+  onComment?: CommentOnLine,
 ) {
   const line = side === 'left' ? pair.left : pair.right
+  // The new side takes comments; the old side only for a line that is gone.
+  const commentable = onComment && line && (side === 'right' ? line.newLine > 0 : line.kind === 'removed')
   return (
     <div key={key} className={`${rowClass(line)} diff-row-split-${side}${selectedClass(line, select)}${extraClass}`}>
       <LineNumber line={line} side={side} select={select} />
       <span className="diff-marker">{marker(line)}</span>
       <DiffContent pair={pair} side={side} language={language} />
+      {commentable && (
+        <CommentButton
+          line={side === 'right' ? line.newLine : 0}
+          oldLine={side === 'right' ? 0 : line.oldLine}
+          onComment={onComment}
+        />
+      )}
     </div>
   )
 }
@@ -137,9 +172,12 @@ function unifiedRow(
   select?: LineSelect,
   extraClass = '',
   singleNumber = false,
+  onComment?: CommentOnLine,
 ) {
   const activeLine = side === 'left' ? pair.left : pair.right
   const isContext = pair.left !== null && pair.left === pair.right
+  const removed = !isContext && side === 'left' && activeLine?.kind === 'removed'
+  const commentable = onComment && activeLine && (removed || (activeLine.newLine ?? 0) > 0)
   if (singleNumber) {
     return (
       <div key={key} className={`${rowClass(activeLine)} diff-row-result${extraClass}`}>
@@ -166,6 +204,13 @@ function unifiedRow(
       )}
       <span className="diff-marker">{marker(activeLine)}</span>
       <DiffContent pair={pair} side={side} language={language} />
+      {commentable && (
+        <CommentButton
+          line={removed ? 0 : activeLine.newLine}
+          oldLine={removed ? activeLine.oldLine : 0}
+          onComment={onComment}
+        />
+      )}
     </div>
   )
 }
@@ -238,8 +283,11 @@ interface DiffPaneProps extends HunkActions {
   scrollRef: RefObject<HTMLDivElement>
   // Present when lines can be selected for hunk actions.
   lineSelect?: LineSelect & { byHunk: Map<string, LineSelection> }
-  // Review threads pinned under the new-side line they were left on.
-  threadsByLine?: Map<number, ReviewThread[]>
+  // Blocks placed under a line, by lineRef: review threads, drafted
+  // comments, the composer.
+  blocksByLine?: Map<string, ReactNode[]>
+  // Present when a line can take a review comment.
+  onCommentLine?: CommentOnLine
   // Rows that open a conflict block, marked so the footer can walk to them.
   blockStarts?: Set<number>
   // The conflicted file as it is: one line-number column, the working file's.
@@ -257,32 +305,37 @@ function DiffPane({
   currentHunkIndex,
   scrollRef,
   lineSelect,
-  threadsByLine,
+  blocksByLine,
+  onCommentLine,
   blockStarts,
   resultView = false,
   ...hunkActions
 }: DiffPaneProps) {
   const { wrap } = useDiffWrap()
   const language = languageForPath(path)
-  // Threads go after the pair; with each side rendered on its own they can't
-  // span both, so DiffViewer lists them below the diff instead.
-  const threadRows = (pair: PairedLine, key: Key, side?: Side): ReactNode[] => {
-    const line = pair.right?.newLine
-    const threads = !side && line ? threadsByLine?.get(line) : undefined
-    return threads ? threads.map((thread) => <ReviewThreadBlock key={`${key}-t-${thread.id}`} thread={thread} />) : []
+  // Blocks go after the pair; with each side rendered on its own they can't
+  // span both, so DiffViewer lists them below the diff instead, and no line
+  // takes a comment.
+  const blockRows = (pair: PairedLine, side?: Side): ReactNode[] => {
+    if (side || !blocksByLine) return []
+    const refs: string[] = []
+    if (pair.left && pair.left !== pair.right && pair.left.kind === 'removed') refs.push(lineRef(0, pair.left.oldLine))
+    if (pair.right?.newLine) refs.push(lineRef(pair.right.newLine, 0))
+    return refs.flatMap((ref) => blocksByLine.get(ref) ?? [])
   }
+  const comment = onCommentLine && !resultView ? onCommentLine : undefined
   const renderPair = (pair: PairedLine, key: Key, side?: Side, extraClass = ''): ReactNode[] => [
     ...(side
       ? [splitRow(pair, side, language, key, lineSelect, extraClass)]
       : mode === 'split'
         ? [
-            splitRow(pair, 'left', language, `${key}-l`, lineSelect, extraClass),
-            splitRow(pair, 'right', language, `${key}-r`, lineSelect, extraClass),
+            splitRow(pair, 'left', language, `${key}-l`, lineSelect, extraClass, comment),
+            splitRow(pair, 'right', language, `${key}-r`, lineSelect, extraClass, comment),
           ]
         : unifiedRowsForPair(pair).map((row, k) =>
-            unifiedRow(row, language, `${key}-${k}`, lineSelect, k === 0 ? extraClass : '', resultView),
+            unifiedRow(row, language, `${key}-${k}`, lineSelect, k === 0 ? extraClass : '', resultView, comment),
           )),
-    ...threadRows(pair, key, side),
+    ...blockRows(pair, side),
   ]
 
   // With a side, renders just that side; the right one gets blank rows where

@@ -54,6 +54,11 @@ function CommitFileDiff({ repoPath, commit, path, reviewThreads, onBack }: Commi
             targetSide={{ label: 'Commit', sha: commit.sha.slice(0, 7) }}
             threads={reviewThreads.byPath[path]}
             outdatedThreads={reviewThreads.outdatedByPath[path]}
+            review={
+              reviewThreads.number
+                ? { repoPath, number: reviewThreads.number, prefix: reviewThreads.prefix }
+                : undefined
+            }
             onForceLoad={() => setForced(true)}
             repoPath={repoPath}
             images={{

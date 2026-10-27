@@ -98,6 +98,11 @@ function ChangedFilesBrowser({
               viewMode={viewMode}
               threads={reviewThreads.byPath[selected.path]}
               outdatedThreads={reviewThreads.outdatedByPath[selected.path]}
+              review={
+                repoPath && reviewThreads.number
+                  ? { repoPath, number: reviewThreads.number, prefix: reviewThreads.prefix }
+                  : undefined
+              }
               images={images?.(selected)}
               repoPath={repoPath}
               onForceLoad={() => setForcedPath(selected.path)}
