@@ -23,7 +23,7 @@ export function useNewIssue(): NewIssue | null {
 }
 
 const TODO_MARK = /\b(?:TODO|FIXME|XXX|HACK)\b(?:\([^)]*\))?[\s:-]*(.*)$/
-const COMMENT_CLOSE = /\s*(?:\*\/|-->|#}|%>)\s*$/
+const COMMENT_CLOSE = /\s*(?:\*\/|--!?>|#}|%>)\s*$/
 
 // A diff line as a new issue: a TODO's text as the title, and where it is.
 export function issueDraftFromLine(path: string, line: number, content: string): IssueDraft {
