@@ -11,6 +11,7 @@ import UpdateSection from './UpdateSection'
 import IdentityColorSettings from './IdentityColorSettings'
 import IdentitySettings from './IdentitySettings'
 import IntegrationsSection from './IntegrationsSection'
+import TrackersSection from './TrackersSection'
 import Modal from '../../components/chrome/Modal'
 import PathSettingRow from './PathSettingRow'
 import SettingsRow, { SettingsGroup, settingsGroupId } from './SettingsRow'
@@ -264,6 +265,7 @@ function SettingsPanel({
           {hostIntegration && (
             <SettingsGroup title="Integrations">
               <IntegrationsSection repoPath={repoPath} onChanged={onHostsChanged} />
+              <TrackersSection onChanged={onHostsChanged} />
             </SettingsGroup>
           )}
 

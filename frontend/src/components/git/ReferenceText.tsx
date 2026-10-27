@@ -4,7 +4,7 @@ import type { Links } from '@current-client-bindings/core/hostlink'
 import { splitReferences, type HostReference } from '../../lib/hostReferences'
 import type { ReferenceCardInfo, ReferenceCards } from '../../lib/useReferenceCards'
 import HoverCard from '../chrome/HoverCard'
-import { useOpenIssue } from '../../lib/issuePanel'
+import { useOpenIssue, useTracker } from '../../lib/issuePanel'
 import './ReferenceText.scss'
 
 interface ReferenceLinkProps {
@@ -58,9 +58,10 @@ interface ReferenceTextProps {
 }
 
 function ReferenceText({ text, links, cards, render = (segment) => segment }: ReferenceTextProps) {
+  const tracker = useTracker()
   return (
     <>
-      {splitReferences(text, links).map((segment, i) =>
+      {splitReferences(text, links, tracker).map((segment, i) =>
         typeof segment === 'string' ? (
           <Fragment key={i}>{render(segment)}</Fragment>
         ) : (
