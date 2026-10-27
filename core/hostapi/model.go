@@ -332,6 +332,56 @@ type Merger interface {
 	Merge(ctx context.Context, project string, number int, how MergeRequest) error
 }
 
+// ReviewCapabilities says which review writes a host's API offers; what
+// it lacks is left out of the app rather than faked. GitHub's REST API
+// can't resolve a thread; GitLab's has no request-changes verdict.
+type ReviewCapabilities struct {
+	Reply          bool `json:"reply"`
+	Resolve        bool `json:"resolve"`
+	LineComments   bool `json:"lineComments"`
+	Approve        bool `json:"approve"`
+	RequestChanges bool `json:"requestChanges"`
+}
+
+// NewComment is a comment on a line of a change's diff: Line on the new
+// side, or OldLine on the old side for a removed line.
+type NewComment struct {
+	Path    string `json:"path"`
+	Line    int    `json:"line"`
+	OldLine int    `json:"oldLine"`
+	Body    string `json:"body"`
+}
+
+// Review verdicts.
+const (
+	ReviewApprove        = "approve"
+	ReviewRequestChanges = "request-changes"
+	ReviewComment        = "comment"
+)
+
+// ReviewSubmission is a review submitted together: a verdict, an optional
+// summary, and the line comments drafted for it.
+type ReviewSubmission struct {
+	Verdict  string       `json:"verdict"`
+	Summary  string       `json:"summary"`
+	Comments []NewComment `json:"comments"`
+}
+
+// ErrReviewUnsupported means the host's API has no way to do this; the
+// message says what.
+var ErrReviewUnsupported = errors.New("the host's API can't do this")
+
+// Reviewer is a host that takes review writes, which a Provider may also
+// be. Every method needs write scope and is sent only on the user's click.
+// headSHA is the head the comments were written against.
+type Reviewer interface {
+	ReviewCapabilities() ReviewCapabilities
+	Reply(ctx context.Context, project string, number int, threadID, body string) error
+	ResolveThread(ctx context.Context, project string, number int, threadID string, resolved bool) error
+	CommentOnLine(ctx context.Context, project string, number int, headSHA string, comment NewComment) error
+	SubmitReview(ctx context.Context, project string, number int, headSHA string, review ReviewSubmission) error
+}
+
 // Provider is what a host offers this release's features. Every method
 // goes through the one Client, so the enabled set, Git's trust settings,
 // rate limits and the page cap apply to all of them. project is the path
