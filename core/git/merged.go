@@ -2,10 +2,7 @@ package git
 
 import (
 	"context"
-	"errors"
 	"strings"
-
-	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // MergedBranch is a local branch whose work is already in Base. Newer means
@@ -82,54 +79,17 @@ func MergedInto(ctx context.Context, repoPath, base string, tips []string) ([]bo
 	if err != nil {
 		return nil, err
 	}
-	trees, err := mergedTrees(ctx, repoPath, base, tips)
-	if err != nil {
-		trees, err = mergedTreesOneByOne(ctx, repoPath, base, tips)
+	pairs := make([][2]string, len(tips))
+	for i, tip := range tips {
+		pairs[i] = [2]string{base, tip}
 	}
+	merges, err := MergePairs(ctx, repoPath, pairs)
 	if err != nil {
 		return nil, err
 	}
 	merged := make([]bool, len(tips))
-	for i, tree := range trees {
-		merged[i] = tree == strings.TrimSpace(baseTree.Stdout)
+	for i, merge := range merges {
+		merged[i] = merge.Clean && merge.Tree == strings.TrimSpace(baseTree.Stdout)
 	}
 	return merged, nil
-}
-
-// The tree each merge would produce, "" for one that conflicts.
-func mergedTrees(ctx context.Context, repoPath, base string, tips []string) ([]string, error) {
-	merges, err := mergeTreeMany(ctx, repoPath, base, tips)
-	if err != nil {
-		return nil, err
-	}
-	trees := make([]string, len(tips))
-	for i, merge := range merges {
-		if merge.clean {
-			trees[i] = merge.tree
-		}
-	}
-	return trees, nil
-}
-
-// For Git before 2.40, and for a batch merge-tree gave up on, such as one
-// with a branch sharing no history; that one is simply not merged.
-func mergedTreesOneByOne(ctx context.Context, repoPath, base string, tips []string) ([]string, error) {
-	trees := make([]string, len(tips))
-	for i, tip := range tips {
-		result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
-			Dir:  repoPath,
-			Args: []string{"merge-tree", "--write-tree", "--no-messages", base, tip},
-		})
-		if err != nil {
-			return nil, gitexec.WrapRunError(err)
-		}
-		switch err := mergeTreeError(result); {
-		case result.ExitCode == 0:
-			trees[i] = strings.TrimSpace(result.Stdout)
-		case result.ExitCode == 1, errors.Is(err, ErrUnrelatedHistories):
-		default:
-			return nil, err
-		}
-	}
-	return trees, nil
 }

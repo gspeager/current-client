@@ -104,23 +104,10 @@ func TestMergedBranchesWithoutARemoteUsesTheLocalDefault(t *testing.T) {
 	}
 }
 
-func TestMergedIntoOneByOneMatchesTheBatch(t *testing.T) {
+func TestMergedIntoAnswersEachTip(t *testing.T) {
 	dir := mergedFixture(t)
-	ctx := context.Background()
 	tips := []string{"squashed", "open", "rebased", "local-only", "merged"}
-
-	batch, err := mergedTrees(ctx, dir, "origin/main", tips)
-	if err != nil {
-		t.Fatal(err)
-	}
-	single, err := mergedTreesOneByOne(ctx, dir, "origin/main", tips)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(batch, single) {
-		t.Fatalf("batch %v != one by one %v", batch, single)
-	}
-	merged, err := MergedInto(ctx, dir, "origin/main", tips)
+	merged, err := MergedInto(context.Background(), dir, "origin/main", tips)
 	if err != nil || !reflect.DeepEqual(merged, []bool{true, false, true, false, true}) {
 		t.Fatalf("merged = %v, %v", merged, err)
 	}
