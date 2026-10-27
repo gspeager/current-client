@@ -24,7 +24,7 @@ const staleAfter = 30 * 24 * time.Hour
 
 // InboxRow is one thing to do. Kind says which: dirty, operation,
 // unpushed, conflict, stale, merged (local); review, changes-requested,
-// ci-failed, assigned, todo (host). FetchedAt is set on host rows: when the
+// ci-failed, assigned, todo, undeployed (host). FetchedAt is set on host rows: when the
 // cache learned it. TodoID is set on a row the host's to-do list has too,
 // so it can be marked done there.
 type InboxRow struct {

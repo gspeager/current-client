@@ -56,8 +56,11 @@ type Change struct {
 	HasConflicts      bool        `json:"hasConflicts"`
 	// ConflictsKnown says HasConflicts came from the host; GitHub's list
 	// entries carry no answer.
-	ConflictsKnown bool      `json:"conflictsKnown"`
-	Reviews        []Review  `json:"reviews"`
+	ConflictsKnown bool     `json:"conflictsKnown"`
+	Reviews        []Review `json:"reviews"`
+	// MergeCommitSHA is the commit a merged change landed as on its target:
+	// the merge, the squash, or the last rebased commit. Empty while open.
+	MergeCommitSHA string    `json:"mergeCommitSha"`
 	UpdatedAt      time.Time `json:"updatedAt"`
 	WebURL         string    `json:"webUrl"`
 }
@@ -239,6 +242,33 @@ type PublishedRelease struct {
 // there; it never creates the tag.
 type ReleasePublisher interface {
 	PublishRelease(ctx context.Context, project string, release NewRelease) (PublishedRelease, error)
+}
+
+// Deployment is the latest deployment to one environment: the commit it
+// ran, how it went (a CIStatus, so it reads as CI does), when and by whom.
+// Production is the host's own word where it has one (GitHub's
+// production_environment, GitLab's production tier), else the name.
+type Deployment struct {
+	Environment string    `json:"environment"`
+	SHA         string    `json:"sha"`
+	Ref         string    `json:"ref"`
+	Status      CIStatus  `json:"status"`
+	DeployedAt  time.Time `json:"deployedAt"`
+	DeployedBy  User      `json:"deployedBy"`
+	WebURL      string    `json:"webUrl"`
+	Production  bool      `json:"production"`
+}
+
+// Deployer lists each environment's latest deployment, newest first.
+type Deployer interface {
+	Deployments(ctx context.Context, project string) ([]Deployment, error)
+}
+
+var productionName = regexp.MustCompile(`(?i)^prod(uction)?$`)
+
+// IsProductionName is the guess for a host that doesn't say.
+func IsProductionName(environment string) bool {
+	return productionName.MatchString(environment)
 }
 
 // BranchRule is what the host forbids on branches matching Pattern, which

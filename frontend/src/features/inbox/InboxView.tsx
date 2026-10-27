@@ -9,6 +9,7 @@ import {
   CircleX,
   Clock,
   RefreshCw,
+  Rocket,
   Eye,
   FileDiff,
   GitMerge,
@@ -60,6 +61,7 @@ const ICONS: Record<string, LucideIcon> = {
   'ci-failed': CircleX,
   assigned: CircleDot,
   todo: Bell,
+  undeployed: Rocket,
 }
 
 export function targetOf(path: string, row: InboxRow): InboxTarget {
@@ -73,6 +75,8 @@ export function targetOf(path: string, row: InboxRow): InboxTarget {
       return { path, kind: 'change', number: row.number }
     case 'assigned':
       return { path, kind: 'issue', key: row.key }
+    case 'undeployed':
+      return { path, kind: 'host', url: row.webUrl }
     case 'todo':
       if (row.number > 0) return { path, kind: 'change', number: row.number }
       if (row.key) return { path, kind: 'issue', key: row.key }
@@ -106,6 +110,8 @@ function describe(row: InboxRow): { subject: string; reason: string } {
       return { subject: `${row.prefix}${row.number} ${row.title}`, reason: `changes requested by ${row.detail}` }
     case 'ci-failed':
       return { subject: `${row.prefix}${row.number} ${row.title}`, reason: 'CI failed' }
+    case 'undeployed':
+      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: `merged, not on ${row.detail} yet` }
     case 'assigned':
       return {
         subject: `${/^\d+$/.test(row.key) ? '#' : ''}${row.key} ${row.title}`,

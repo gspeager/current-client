@@ -13,6 +13,13 @@ const repo = (over: Partial<StandupRepo>) =>
   } as never)
 
 describe('StandupDialog', () => {
+  // A Wednesday, so "since yesterday" and "this week" start on different days.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 28, 12))
+  })
+  afterEach(() => vi.useRealTimers())
+
   it('lists the commits, switches period and format, and copies the text', async () => {
     vi.mocked(InboxService.Standup).mockResolvedValue([
       repo({}),

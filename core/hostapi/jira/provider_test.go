@@ -63,7 +63,7 @@ const issueJSON = `{"key": "PROJ-12", "fields": {"summary": "Login fails", "desc
 func TestIssueDetailsAndComments(t *testing.T) {
 	p, s := newProvider(t, hostlink.JiraDataCenter, nil, map[string]string{
 		"/jira/rest/api/2/issue/PROJ-12?fields=summary%2Cstatus%2Cdescription%2Clabels%2CfixVersions%2Creporter%2Ccreated%2Cupdated": issueJSON,
-		"/jira/rest/api/2/issue/PROJ-12/comment?maxResults=100": `{"comments": [{"author": {"displayName": "Grace", "name": "grace"}, "body": "Same here", "created": "2026-10-21T10:00:00.000+0000"}]}`,
+		"/jira/rest/api/2/issue/PROJ-12/comment?maxResults=100":                                                                      `{"comments": [{"author": {"displayName": "Grace", "name": "grace"}, "body": "Same here", "created": "2026-10-21T10:00:00.000+0000"}]}`,
 	})
 	ctx := context.Background()
 	details, err := p.IssueDetails(ctx, "", "PROJ-12")

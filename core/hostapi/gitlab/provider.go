@@ -53,6 +53,8 @@ type mergeRequest struct {
 	Author          user      `json:"author"`
 	Labels          []string  `json:"labels"`
 	SHA             string    `json:"sha"`
+	MergeCommitSHA  string    `json:"merge_commit_sha"`
+	SquashCommitSHA string    `json:"squash_commit_sha"`
 	HasConflicts    bool      `json:"has_conflicts"`
 	UpdatedAt       time.Time `json:"updated_at"`
 	WebURL          string    `json:"web_url"`
@@ -511,6 +513,7 @@ func (p *Provider) change(ctx context.Context, mr mergeRequest) (hostapi.Change,
 		Author:         toUser(mr.Author),
 		Labels:         mr.Labels,
 		HeadSHA:        mr.SHA,
+		MergeCommitSHA: landedAs(mr),
 		HasConflicts:   mr.HasConflicts,
 		ConflictsKnown: true,
 		UpdatedAt:      mr.UpdatedAt,
@@ -639,4 +642,18 @@ func ciStatus(status string) hostapi.CIStatus {
 // projectPath builds "projects/<group%2Fproject>/<parts…>".
 func projectPath(project string, parts ...string) string {
 	return strings.Join(append([]string{"projects", url.PathEscape(project)}, parts...), "/")
+}
+
+// landedAs is the commit a merged merge request became on its target: the
+// squash commit, else the merge commit, else (a fast-forward) its head.
+func landedAs(mr mergeRequest) string {
+	if mr.State != "merged" {
+		return ""
+	}
+	for _, sha := range []string{mr.SquashCommitSHA, mr.MergeCommitSHA, mr.SHA} {
+		if sha != "" {
+			return sha
+		}
+	}
+	return ""
 }

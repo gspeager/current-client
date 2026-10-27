@@ -61,6 +61,7 @@ type pullRequest struct {
 	State     string    `json:"state"`
 	Draft     bool      `json:"draft"`
 	MergedAt  *string   `json:"merged_at"`
+	MergeSHA  string    `json:"merge_commit_sha"`
 	Mergeable *bool     `json:"mergeable"`
 	Head      repoRef   `json:"head"`
 	Base      repoRef   `json:"base"`
@@ -557,6 +558,7 @@ func toChange(pr pullRequest) hostapi.Change {
 		TargetBranch:   pr.Base.Ref,
 		Author:         toUser(pr.User),
 		HeadSHA:        pr.Head.SHA,
+		MergeCommitSHA: mergedSHA(pr),
 		HasConflicts:   pr.Mergeable != nil && !*pr.Mergeable,
 		ConflictsKnown: pr.Mergeable != nil,
 		UpdatedAt:      pr.UpdatedAt,
@@ -709,4 +711,13 @@ func (p *Provider) webRoot() string {
 // repoPath builds "repos/<owner>/<repo>/<parts…>".
 func repoPath(project string, parts ...string) string {
 	return strings.Join(append([]string{"repos", project}, parts...), "/")
+}
+
+// mergedSHA is only meaningful once merged: while open, GitHub's
+// merge_commit_sha is a test merge.
+func mergedSHA(pr pullRequest) string {
+	if pr.MergedAt == nil {
+		return ""
+	}
+	return pr.MergeSHA
 }
