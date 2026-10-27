@@ -223,6 +223,24 @@ type IssueWriter interface {
 	SetIssueState(ctx context.Context, project, key string, open bool) (IssueDetails, error)
 }
 
+type NewRelease struct {
+	Tag   string
+	Name  string
+	Notes string
+}
+
+type PublishedRelease struct {
+	Tag    string `json:"tag"`
+	Name   string `json:"name"`
+	WebURL string `json:"webUrl"`
+}
+
+// ReleasePublisher makes a release on the host for a tag that is already
+// there; it never creates the tag.
+type ReleasePublisher interface {
+	PublishRelease(ctx context.Context, project string, release NewRelease) (PublishedRelease, error)
+}
+
 // BranchRule is what the host forbids on branches matching Pattern, which
 // may end in a wildcard ("release/*"). NoPush means nobody pushes directly;
 // RestrictedPush that only some roles or people may.

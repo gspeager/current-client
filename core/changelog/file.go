@@ -49,6 +49,24 @@ func Insert(existing, version, section string, replace bool) (string, error) {
 	return out, nil
 }
 
+// SectionNotes is the body of version's section in a changelog, without
+// its heading, for release notes. A "v" before the version is ignored.
+func SectionNotes(text, version string) (string, bool) {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	for _, v := range []string{version, strings.TrimPrefix(version, "v")} {
+		start, end := sectionBounds(text, v)
+		if start < 0 {
+			continue
+		}
+		section := text[start:end]
+		if nl := strings.IndexByte(section, '\n'); nl >= 0 {
+			return strings.TrimSpace(section[nl+1:]), true
+		}
+		return "", true
+	}
+	return "", false
+}
+
 func sectionBounds(text, version string) (int, int) {
 	heading := regexp.MustCompile(`(?m)^## \[?` + regexp.QuoteMeta(version) + `\]?(\s|$)`)
 	loc := heading.FindStringIndex(text)
