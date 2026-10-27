@@ -106,6 +106,39 @@
   flex-direction: column;
 }
 
+// A row and, for a to-do, its Done button, shown while the item is hovered
+// or focused.
+.inbox-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.inbox-row-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+
+  .inbox-item:hover &,
+  .inbox-item:focus-within & {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
 // One line per item, like a commit row: what, why, and how old the fact is.
 .inbox-row {
   display: grid;
@@ -138,7 +171,8 @@
   }
 
   .inbox-row-review &,
-  .inbox-row-assigned & {
+  .inbox-row-assigned &,
+  .inbox-row-todo & {
     color: var(--secondary);
   }
 

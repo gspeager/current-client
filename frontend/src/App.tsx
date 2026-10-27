@@ -249,6 +249,9 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
       case 'issue':
         setOpenIssueKey(target.key)
         break
+      case 'host':
+        void PlatformService.OpenWebPage(target.url)
+        break
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inboxTarget, repo.repoPath])
