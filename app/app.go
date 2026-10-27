@@ -11,6 +11,7 @@ import (
 func Services() []application.Service {
 	return append([]application.Service{
 		application.NewService(&GitService{}),
+		application.NewService(&UpdateService{}),
 		application.NewService(&RepositoryService{}),
 		application.NewService(&StatusService{}),
 		application.NewService(&DiffService{}),

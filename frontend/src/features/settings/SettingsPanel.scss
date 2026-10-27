@@ -289,3 +289,27 @@
   justify-content: space-between;
   gap: var(--space-sm);
 }
+
+// The version row: the number, the check, its outcome, and the releases
+// address to copy, which wraps onto its own line.
+.settings-update {
+  flex-wrap: wrap;
+}
+
+.settings-value {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.settings-update-link {
+  display: inline-flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.settings-code {
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  user-select: all;
+}

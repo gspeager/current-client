@@ -73,10 +73,18 @@ export interface AppProps {
   // The repository both the host and Current Client show; Current Client opens or focuses its tab.
   activeRepoPath?: string | null
   onActiveRepoChange?: (repoPath: string | null) => void
+  // Leaves Check for updates out of Settings, for an app with its own releases page.
+  hideUpdateCheck?: boolean
   handle?: Ref<CurrentClientAppHandle>
 }
 
-function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handle }: AppProps = {}) {
+function App({
+  headerAccessory,
+  activeRepoPath = null,
+  onActiveRepoChange,
+  hideUpdateCheck = false,
+  handle,
+}: AppProps = {}) {
   const {
     data: gitVersion,
     error: gitError,
@@ -345,6 +353,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
             settings={settings}
             repoPath={repo.repoPath}
             hostIntegration={hostIntegration}
+            updateCheck={!hideUpdateCheck}
             onClose={closeSettings}
             onHostsChanged={bumpHostsVersion}
           />
@@ -415,6 +424,7 @@ function App({ headerAccessory, activeRepoPath = null, onActiveRepoChange, handl
                 settings={settings}
                 repoPath={repo.repoPath}
                 hostIntegration={hostIntegration}
+                updateCheck={!hideUpdateCheck}
                 onClose={closeSettings}
                 onHostsChanged={bumpHostsVersion}
               />
