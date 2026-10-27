@@ -172,7 +172,7 @@ function HostChangesView({
           {newLabel}
         </button>
         {newIssue && (
-          <button type="button" className="host-changes-refresh" onClick={() => newIssue()}>
+          <button type="button" className="host-change-button" onClick={() => newIssue()}>
             <Plus size={14} strokeWidth={1.75} />
             New issue
           </button>

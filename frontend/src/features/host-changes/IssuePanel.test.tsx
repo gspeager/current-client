@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HostService, IssueDetails, PlatformService } from '@current-client-bindings/app'
-import { NewIssueContext } from '../../lib/issuePanel'
+import { IssuePanelContext } from '../../lib/issuePanel'
 import IssuePanel from './IssuePanel'
 
 describe('IssuePanel', () => {
@@ -91,9 +91,9 @@ describe('IssuePanel', () => {
     vi.mocked(HostService.SetIssueState).mockResolvedValue(details('closed', 1))
     const newIssue = vi.fn()
     render(
-      <NewIssueContext.Provider value={newIssue}>
+      <IssuePanelContext.Provider value={{ open: vi.fn(), create: newIssue }}>
         <IssuePanel repoPath="/repos/app" issueKey="4" onClose={vi.fn()} />
-      </NewIssueContext.Provider>,
+      </IssuePanelContext.Provider>,
     )
     const dialog = await screen.findByRole('dialog', { name: '#4' })
     await userEvent.type(within(dialog).getByRole('textbox', { name: 'Comment' }), 'Fixed on main')

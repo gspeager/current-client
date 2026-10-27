@@ -2,14 +2,6 @@ import { createContext, useContext } from 'react'
 
 export type OpenIssue = (key: string) => void
 
-// Set while the host is on; a reference, a branch's issue card or a change's
-// Closes list opens the issue panel through it instead of the host's page.
-export const IssuePanelContext = createContext<OpenIssue | null>(null)
-
-export function useOpenIssue(): OpenIssue | null {
-  return useContext(IssuePanelContext)
-}
-
 export interface IssueDraft {
   title: string
   description: string
@@ -17,11 +9,17 @@ export interface IssueDraft {
 
 export type NewIssue = (draft?: IssueDraft) => void
 
-// Set while the host is on and its tracker takes writes: GitLab and GitHub.
-export const NewIssueContext = createContext<NewIssue | null>(null)
+// Set while the host is on; a reference, a branch's issue card or a change's
+// Closes list opens the issue panel through it instead of the host's page.
+// create is there when the tracker takes writes: GitLab and GitHub.
+export const IssuePanelContext = createContext<{ open: OpenIssue; create?: NewIssue } | null>(null)
+
+export function useOpenIssue(): OpenIssue | null {
+  return useContext(IssuePanelContext)?.open ?? null
+}
 
 export function useNewIssue(): NewIssue | null {
-  return useContext(NewIssueContext)
+  return useContext(IssuePanelContext)?.create ?? null
 }
 
 const TODO_MARK = /\b(?:TODO|FIXME|XXX|HACK)\b(?:\([^)]*\))?[\s:-]*(.*)$/

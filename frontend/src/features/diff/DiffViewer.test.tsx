@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { FileDiff } from '@current-client-bindings/app'
-import { NewIssueContext } from '../../lib/issuePanel'
+import { IssuePanelContext } from '../../lib/issuePanel'
 import DiffViewer from './DiffViewer'
 
 const diff: FileDiff = {
@@ -435,9 +435,9 @@ describe('DiffViewer issue from a line', () => {
   it('offers a new issue from a line, prefilled from its TODO', async () => {
     const newIssue = vi.fn()
     render(
-      <NewIssueContext.Provider value={newIssue}>
+      <IssuePanelContext.Provider value={{ open: vi.fn(), create: newIssue }}>
         <DiffViewer diff={todo} path="src/a.ts" viewMode="unified" />
-      </NewIssueContext.Provider>,
+      </IssuePanelContext.Provider>,
     )
     fireEvent.contextMenu(screen.getByText(/drop the shim/))
     await userEvent.click(screen.getByRole('button', { name: 'Create issue from line…' }))
