@@ -1,0 +1,62 @@
+// Environments are square, like tags: a commit they mark, not a branch.
+.environment-marker,
+.environment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  white-space: nowrap;
+}
+
+.environment-marker {
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--primary);
+  }
+}
+
+.environment-marker-production {
+  color: var(--on-surface);
+}
+
+.environment-chips {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.environment-reach {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: var(--space-sm);
+  }
+}
+
+.environment-reach-name {
+  font: var(--data-sm);
+  color: var(--on-surface);
+}
+
+.environment-reach-out {
+  color: var(--warning);
+}
+
+.environment-reach-unknown {
+  color: var(--outline);
+}

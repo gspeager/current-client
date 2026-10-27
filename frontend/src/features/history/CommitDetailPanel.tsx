@@ -6,6 +6,7 @@ import {
   HistoryService,
   type IdentityInfo,
   PlatformService,
+  HostService,
 } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { relativeTime } from '../../lib/relativeTime'
@@ -21,6 +22,7 @@ import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
 import { filePage } from '../../lib/hostPages'
+import { EnvironmentReach } from '../../components/git/EnvironmentMarker'
 import './CommitDetailPanel.scss'
 
 interface CommitDetailPanelProps {
@@ -64,6 +66,11 @@ function CommitDetailPanel({
     () => HistoryService.GetChangedFiles(repoPath, commit.sha),
     [repoPath, commit.sha],
   )
+  const { data: reach } = useAsyncData(
+    () => HostService.Reach(repoPath, [commit.sha]).catch(() => null),
+    [repoPath, commit.sha],
+  )
+  const environments = reach?.[commit.sha] ?? []
   const { data: branches } = useAsyncData(
     () => HistoryService.BranchesContaining(repoPath, commit.sha),
     [repoPath, commit.sha],
@@ -163,6 +170,12 @@ function CommitDetailPanel({
               {branches === null ? '…' : branches.length === 0 ? 'None' : branches.join(', ')}
             </span>
           </div>
+          {environments.length > 0 && (
+            <div>
+              <span className="commit-detail-stat-label">Environments</span>
+              <EnvironmentReach reach={environments} />
+            </div>
+          )}
           {commit.coAuthors.length > 0 && (
             <div className="commit-detail-coauthors">
               <span className="commit-detail-stat-label">Co-authors</span>

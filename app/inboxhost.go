@@ -50,6 +50,7 @@ func hostInboxRows(repoPath string) (rows []InboxRow, enabled bool, fetchedAt *t
 			rows = append(rows, InboxRow{ID: "assigned:" + issue.Key, Kind: "assigned", Key: issue.Key, Title: issue.Title, Detail: issueBranchState(repoPath, info, list, issue.Key), WebURL: issue.WebURL, FetchedAt: &fetched})
 		}
 	}
+	rows = append(rows, undeployedRows(repoPath, info, list)...)
 	rows, notice = todoRows(rows, info, list.Prefix)
 	return append(rows, trackerInboxRows(repoPath)...), true, list.FetchedAt, notice
 }

@@ -154,6 +154,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
 			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
 			refreshBranchRules(ctx, provider, info, repoPath, remote.Name)
+			refreshDeployments(ctx, provider, info, repoPath)
 			refreshAssignedIssues(ctx, provider, info, repoPath, remote.Name)
 			if !todosAsked[info.Hostname] {
 				todosAsked[info.Hostname] = true

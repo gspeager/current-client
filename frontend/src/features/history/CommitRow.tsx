@@ -6,7 +6,14 @@ import { highlightMatch } from '../../lib/highlightMatch'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
-import type { CIMark as CIMarkInfo, CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
+import type {
+  CIMark as CIMarkInfo,
+  CommitInfo,
+  EnvironmentInfo,
+  GraphNode,
+  IdentityInfo,
+  RefInfo,
+} from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import type { BranchChanges } from '../../lib/useBranchChanges'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
@@ -15,6 +22,7 @@ import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import CIMark from '../../components/git/CIMark'
 import RefBadge from './RefBadge'
+import { EnvironmentMarker } from '../../components/git/EnvironmentMarker'
 import { pairUpstreams } from './refPills'
 import './CommitRow.scss'
 
@@ -37,6 +45,8 @@ interface CommitRowProps {
   changes?: BranchChanges
   repoPath?: string
   ci?: CIMarkInfo
+  // The environments whose latest deployment is this commit.
+  environments?: EnvironmentInfo[]
   referenceCards?: ReferenceCards
   style: CSSProperties
   onSelect: () => void
@@ -64,6 +74,7 @@ function CommitRow({
   changes,
   repoPath = '',
   ci,
+  environments,
   referenceCards,
   style,
   onSelect,
@@ -115,6 +126,13 @@ function CommitRow({
                 active={focusedSha === r.sha}
                 change={changes?.[upstream?.name ?? (r.kind === 'remote' ? r.name : '')]}
               />
+            ))}
+          </span>
+        )}
+        {environments && environments.length > 0 && (
+          <span className="commit-row-refs">
+            {environments.map((env) => (
+              <EnvironmentMarker key={env.environment} environment={env} />
             ))}
           </span>
         )}

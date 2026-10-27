@@ -200,4 +200,37 @@ describe('InboxView', () => {
     render(<InboxView paths={[]} refreshKey={0} onGo={vi.fn()} />)
     expect(screen.getByText('Open a repository to see what waits in it.')).toBeInTheDocument()
   })
+
+  it('lists merged work not on production yet, and a Jira issue by its key', async () => {
+    vi.mocked(InboxService.Rows).mockResolvedValue([
+      {
+        path: '/repos/app',
+        name: 'app',
+        error: '',
+        hostEnabled: true,
+        fetchedAt: new Date().toISOString(),
+        rows: [
+          row({
+            kind: 'undeployed',
+            number: 8,
+            prefix: '!',
+            title: 'Waiting one',
+            detail: 'production',
+            webUrl: 'https://x/8',
+            id: 'undeployed:8:production',
+          }),
+          row({ kind: 'assigned', key: 'PROJ-20', title: 'Mine', id: 'assigned:PROJ-20' }),
+        ],
+      },
+    ] as never)
+    const onGo = vi.fn()
+    render(<InboxView paths={['/repos/app']} activePath="/repos/app" refreshKey={0} onGo={onGo} />)
+    const app = await screen.findByRole('region', { name: 'app' })
+    expect(app).toHaveTextContent('!8 Waiting one')
+    expect(app).toHaveTextContent('merged, not on production yet')
+    expect(app).toHaveTextContent('PROJ-20 Mine')
+    expect(app).not.toHaveTextContent('#PROJ-20')
+    await userEvent.click(within(app).getByRole('button', { name: /!8 Waiting one/ }))
+    expect(onGo).toHaveBeenCalledWith({ path: '/repos/app', kind: 'host', url: 'https://x/8' })
+  })
 })

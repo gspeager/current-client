@@ -22,6 +22,7 @@ import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useCIStatus } from '../../lib/useCIStatus'
+import { useDeploymentsBySha } from '../../lib/useDeployments'
 import { useReferenceCards } from '../../lib/useReferenceCards'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useIdentities } from './useIdentities'
@@ -208,6 +209,7 @@ function HistoryView({
     overscan: 10,
   })
   const virtualItems = virtualizer.getVirtualItems()
+  const deployedAt = useDeploymentsBySha(repoPath)
   const ciMarks = useCIStatus(
     repoPath,
     virtualItems.flatMap((row) => (row.index < offset ? [] : [rows[row.index - offset].commit.sha])),
@@ -337,6 +339,7 @@ function HistoryView({
                       changes={changes}
                       repoPath={repoPath}
                       ci={ciMarks[commit.sha]}
+                      environments={deployedAt.get(commit.sha)}
                       referenceCards={referenceCards}
                       rowHeight={ROW_HEIGHT}
                       identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}

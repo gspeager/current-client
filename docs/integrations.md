@@ -106,6 +106,10 @@ With write scope, a review can be done in the app, every request following a cli
 
 With the host on, commits in History and branch tips in the sidebar show a small square in the pipeline's color: passed, failed, canceled, or an outline while running or pending. For commits the result is asked for when the commit scrolls into view, in batches of up to 50 at a time and never twice for the same commit until the next refresh; a commit without a pipeline is remembered as such. Branch tips and open merge requests get theirs on refresh. Clicking a square lists the pipeline's jobs with stage, status and duration, fetched only then, with **Open on host**. Clicking a failed job fetches the last 50 lines of its log, with terminal colors and escape sequences removed; **Show full log** fetches the whole log up to a cap and says when it was cut, and **Open on host** goes to the job. No log is fetched for a passing job or before a click. HEAD's cyan is never used for CI state.
 
+## Environments
+
+A refresh also reads where each environment was last deployed: GitLab's deployments, or GitHub's deployments with each environment's latest status. One request on GitLab; on GitHub one, plus one per environment for its state, at most ten. It keeps the newest deployment per environment: the commit, how it went, when, and who started it, by name. Whether a commit is in an environment is Git's answer, not the host's: the commit is an ancestor of the deployed commit, checked locally once both are fetched. When either isn't, it says unknown rather than no. History marks the deployed commit with a square per environment, branch rows show the environments their tip is in, a commit's details and a merged change's details say where it has reached, and the Inbox lists your changes merged in the last month that aren't on production yet. Production is the host's own flag (GitHub's `production_environment`, GitLab's production tier), or an environment named `production` or `prod`. Reading all of this asks no host; only the refresh does.
+
 ## Hover cards
 
 Pausing the pointer on a merge request marker, a CI square or an issue or merge request reference, or giving one keyboard focus, shows a card with what the cache holds: for a change, its title, author, state, branches, CI result, unresolved threads and when it was updated; for a CI square, the pipeline state and, once the jobs were opened, the failed job names and total duration; for a reference, the title and state. Hovering never makes a request. Issue titles are asked for when the History page they appear on loads, at most 50 at a time and each once until the next refresh. With integration off, a card shows only what Git supplied: the number and the link, and says the rest needs the host.
@@ -162,6 +166,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `POST /projects/:path/merge_requests/:iid/approve` | A submitted review's **Approve** | `api` |
 | `GET /projects/:path` | **Merge…** on a merge request's details, when the dialog opens: the squash setting and whether the source branch is removed after merging | `read_api` |
 | `PUT /projects/:path/merge_requests/:iid/merge` | **Merge** in that dialog, with the head the last refresh saw, so a merge request that moved since is refused rather than merged | `api` |
+| `GET /projects/:path/deployments?order_by=id&sort=desc` | Refresh, once: one page of 100, the newest per environment kept | `read_api` |
 | `POST /projects/:path/jobs/:id/retry` | **Re-run job** under a failed job's log | `api` |
 | `POST /projects/:path/pipelines/:id/retry` | **Re-run failed jobs** under a pipeline's job list | `api` |
 | `POST /projects/:path/releases` | **Publish release** for a tag, after the tag is pushed; no `ref` is sent, so GitLab refuses a tag it doesn't have rather than making one | `api` |
@@ -207,6 +212,8 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `POST /repos/:owner/:repo/pulls/:number/reviews` | **Submit review**: the verdict, summary and drafted comments as one review | pull requests: write |
 | `GET /repos/:owner/:repo` | **Merge…** on a pull request's details, when the dialog opens: which merge methods the repository allows and whether it deletes the head branch after merging | metadata: read |
 | `PUT /repos/:owner/:repo/pulls/:number/merge` | **Merge** in that dialog, with the head the last refresh saw, so a pull request that moved since is refused rather than merged | pull requests: write |
+| `GET /repos/:owner/:repo/deployments` | Refresh, once: one page of 100, the newest per environment kept | deployments: read |
+| `GET /repos/:owner/:repo/deployments/:id/statuses?per_page=1` | Refresh, once per environment for its newest deployment's state, at most 10 environments; GitHub keeps the state on the status, not the deployment | deployments: read |
 | `POST /repos/:owner/:repo/actions/jobs/:id/rerun` | **Re-run job** under a failed GitHub Actions job's log | actions: write |
 | `POST /repos/:owner/:repo/actions/runs/:id/rerun-failed-jobs` | **Re-run failed jobs** under a job list, once per workflow run with a failed job; the run is read from the job's address | actions: write |
 | `GET /repos/:owner/:repo/git/ref/tags/:tag` and `POST /repos/:owner/:repo/releases` | **Publish release** for a tag, after the tag is pushed; the tag is checked first, since GitHub would make a missing one at the default branch | contents: read, contents: write |
@@ -231,6 +238,7 @@ Avatar URLs in these answers are never decoded.
 | The checked-out branch's MR/PR in the sidebar, and what a refresh changed | no | yes | yes |
 | CI status, job list, failed job log | no | yes | yes |
 | Publish a release for a tag, with notes from the changelog | no | no, says which scope | yes |
+| Environments: where each was last deployed, and whether a commit, branch or merged change has reached it | no | yes | yes |
 | Re-run a failed job or a pipeline's failed jobs | no | no, says which scope | yes; GitHub: Actions jobs only |
 | Reviewers, approvals and the **To review** filter | no | yes | yes |
 | A new branch named after an issue assigned to you | no | yes | yes |

@@ -39,6 +39,9 @@ type ChangeDetails struct {
 	// Closes is the issue references the description says the change
 	// closes, found locally.
 	Closes []string `json:"closes"`
+	// Environments says where a merged change's commit has reached, from
+	// the last refresh's deployments and Git.
+	Environments []Reach `json:"environments"`
 }
 
 type CheckoutResult struct {
@@ -156,6 +159,13 @@ func (s *HostService) ChangeDetails(repoPath string, number int) (ChangeDetails,
 	details := ChangeDetails{Change: change, DescriptionHTML: hostcontent.RenderMarkdown(change.Description, webRoot)}
 	if tracker := issueTrackerFor(info); tracker != nil {
 		details.Closes = closedIssues(change.Description, tracker)
+	}
+	if change.MergeCommitSHA != "" {
+		if deployments, _, _ := cachedDeployments(repoPath); len(deployments) > 0 {
+			if reach, err := reachOf(context.Background(), repoPath, deployments, []string{change.MergeCommitSHA}); err == nil {
+				details.Environments = reach[change.MergeCommitSHA]
+			}
+		}
 	}
 	return details, nil
 }

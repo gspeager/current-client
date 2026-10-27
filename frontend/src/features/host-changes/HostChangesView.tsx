@@ -10,6 +10,7 @@ import {
 import type { Change } from '@current-client-bindings/core/hostapi'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark, { ciLabel, PipelineJobList } from '../../components/git/CIMark'
+import { EnvironmentReach } from '../../components/git/EnvironmentMarker'
 import DiffStat from '../../components/git/DiffStat'
 import HostMarkdown from '../../components/git/HostMarkdown'
 import ReferenceText from '../../components/git/ReferenceText'
@@ -370,6 +371,14 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
             <dt>Closes</dt>
             <dd className="host-change-facts-closes">
               <ReferenceText text={closes.join(', ')} links={hostLinks} cards={closesCards} />
+            </dd>
+          </>
+        )}
+        {(details?.environments?.length ?? 0) > 0 && (
+          <>
+            <dt>Environments</dt>
+            <dd>
+              <EnvironmentReach reach={details!.environments} />
             </dd>
           </>
         )}
