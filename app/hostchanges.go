@@ -117,6 +117,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		return err
 	}
 	hosts := configOrDefault().Hosts
+	todosAsked := map[string]bool{}
 	for _, remote := range remotes {
 		info, _ := hostInfoFor(remote, hosts)
 		if refs, err := git.ListRemoteChanges(ctx, repoPath, remote.Name); err == nil {
@@ -153,6 +154,10 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
 			refreshBranchRules(ctx, provider, info, repoPath, remote.Name)
 			refreshAssignedIssues(ctx, provider, info, repoPath, remote.Name)
+			if !todosAsked[info.Hostname] {
+				todosAsked[info.Hostname] = true
+				refreshTodos(ctx, provider, info)
+			}
 			refreshBranchTipCI(ctx, provider, info, repoPath)
 			refreshForecast(ctx, info, repoPath, remote.Name, changes)
 			if notices := noticesSince(before, info, repoPath); len(notices) > 0 {
