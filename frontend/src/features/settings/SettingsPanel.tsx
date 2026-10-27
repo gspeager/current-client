@@ -7,6 +7,7 @@ import { errorMessage } from '../../lib/errors'
 import { LANE_THEME_NAMES, LANE_THEMES, toLaneThemeName, type LaneThemeName } from '../../lib/laneColor'
 import type { useSettings } from './useSettings'
 import DiagnosticsSection from './DiagnosticsSection'
+import UpdateSection from './UpdateSection'
 import IdentityColorSettings from './IdentityColorSettings'
 import IdentitySettings from './IdentitySettings'
 import IntegrationsSection from './IntegrationsSection'
@@ -34,6 +35,8 @@ interface SettingsPanelProps {
   repoPath?: string | null
   // false in a build made without host integration; the group is then absent.
   hostIntegration?: boolean
+  // false when an embedding app has its own releases page and version.
+  updateCheck?: boolean
   onClose: () => void
   onHostsChanged?: () => void
 }
@@ -42,6 +45,7 @@ function SettingsPanel({
   settings,
   repoPath = null,
   hostIntegration = true,
+  updateCheck = true,
   onClose,
   onHostsChanged,
 }: SettingsPanelProps) {
@@ -268,6 +272,7 @@ function SettingsPanel({
           </SettingsGroup>
 
           <SettingsGroup title="Support">
+            {updateCheck && <UpdateSection />}
             <DiagnosticsSection />
           </SettingsGroup>
         </div>
