@@ -37,7 +37,7 @@ A **refresh** is the only thing that fetches from a host:
 - A Git fetch or pull the user starts.
 - A push refreshes only the pushed branch's MR/PR and its CI.
 
-Nothing else does, with bounded exceptions that each follow a click: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh; the merge request tab's **Closed** filter asks for one page of closed changes the first time it is chosen; a change's **Checks**, **Threads**, **Files** and **Commits** tabs ask for what the refresh didn't bring, each once per change until the next refresh; the new-branch form's **From an issue** asks for the issues assigned to you the first time it opens, until the next refresh; and opening an issue's panel asks for that issue and its comments, once per issue until the next refresh. The Inbox, across every open repository, reads Git and the cache only: opening it fetches nothing. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
+Nothing else does, with bounded exceptions that each follow a click: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh; the merge request tab's **Closed** filter asks for one page of closed changes the first time it is chosen; a change's **Checks**, **Threads**, **Files** and **Commits** tabs ask for what the refresh didn't bring, each once per change until the next refresh; the new-branch form's **From an issue** asks for the issues assigned to you the first time it opens, until the next refresh; and opening an issue's panel asks for that issue and its comments, once per issue until the next refresh. The Inbox, across every open repository, reads Git and the cache only: opening it fetches nothing; its **Done** button is the one write it makes, on the host's own to-do list. A refresh also reads the host's to-do list once, for the Inbox, and keeps only the entries about repositories open in the app. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
 
 With integration off, the only host-related traffic is Git's own: a fetch the user starts also runs one `git ls-remote` against the remote, which lists the pull request / merge request heads the host publishes (`refs/pull/*` on GitHub, Gitea and Forgejo, `refs/merge-requests/*` on GitLab) and gives each branch its open change's number. Bitbucket publishes none, so it gives nothing. A change counts only while its head is still a branch tip, which drops every change whose branch was deleted on merge. GitHub also publishes `refs/pull/N/merge` only while a pull request is open, so there the number is an open one. GitLab keeps merge refs after closing, so Git alone cannot tell a closed merge request whose branch was kept from an open one: with integration off the branch shows the number without a state, and the state comes from the API once integration is on.
 
@@ -117,7 +117,7 @@ The release check in RELEASING.md opens a description containing an image hosted
 
 ## Endpoints and scopes
 
-Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating a merge request / pull request. Nothing is called before integration is on for the host and one of the triggers happens.
+Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating a merge request / pull request and marking a to-do done. Nothing is called before integration is on for the host and one of the triggers happens.
 
 ### GitLab (gitlab.com and Self-Managed, 16.0 or newer)
 
@@ -140,7 +140,9 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/issues/:iid/notes` | Opening an issue's panel, once per issue until the next refresh; one page of 100, system notes left out | `read_api` |
 | `GET /projects/:path/issues?assignee_username=&state=opened` | Refresh, for the Inbox's assigned issues; the new-branch form's **From an issue** when the cache has none; one page of 50 | `read_api` |
 | `GET /projects/:path/protected_branches` | Refresh; a 403 (not a Maintainer) means no warnings | `read_api` |
+| `GET /todos?state=pending` | Refresh, once per host however many repositories are open: the To-Do List for the Inbox, one page of 100; only the to-dos about repositories open in the app are kept | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
+| `POST /todos/:id/mark_as_done` | **Done** on an Inbox row that is on the To-Do List | `api` |
 
 ### GitHub (github.com and Enterprise Server 3.11 or newer)
 
@@ -161,7 +163,9 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `GET /repos/:owner/:repo/issues/:number/comments` | Opening an issue's panel, once per issue until the next refresh; one page of 100 | issues: read |
 | `GET /repos/:owner/:repo/issues?assignee=&state=open` | Refresh, for the Inbox's assigned issues; the new-branch form's **From an issue** when the cache has none; one page of 50, pull requests left out | issues: read |
 | `GET /repos/:owner/:repo/rules/branches/:branch` | Refresh, once per local branch's upstream, at most 25; a 404 (no rulesets) or 403 means no warnings | metadata: read |
+| `GET /notifications` | Refresh, once per host however many repositories are open: the unread notifications for the Inbox, one page of 50; only those about repositories open in the app are kept. Fine-grained tokens can't read this endpoint: the Inbox says so once and leaves the source out | classic token: `notifications` (or `repo`) |
 | `POST /repos/:owner/:repo/pulls` | Create pull request | pull requests: write |
+| `PATCH /notifications/threads/:id` | **Done** on an Inbox row that is a notification | classic token: `notifications` (or `repo`) |
 
 Avatar URLs in these answers are never decoded.
 
@@ -179,6 +183,7 @@ Avatar URLs in these answers are never decoded.
 | CI status, job list, failed job log | no | yes | yes |
 | Reviewers, approvals and the **To review** filter | no | yes | yes |
 | A new branch named after an issue assigned to you | no | yes | yes |
+| The host's to-do list in the Inbox (mentions, replies, assignments) | no | yes; GitHub: classic token only | plus **Done** |
 | Review threads beside the code | no | yes | yes |
 | Conflict forecast against open MRs/PRs | no | yes | yes |
 | Hover cards with title and state | local facts only | yes | yes |

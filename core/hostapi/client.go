@@ -177,11 +177,17 @@ func (c *Client) GetJSON(ctx context.Context, host Host, path string, query url.
 // PostJSON sends body as JSON and decodes the answer into out, which may be
 // nil.
 func (c *Client) PostJSON(ctx context.Context, host Host, path string, body, out any) error {
+	return c.RequestJSON(ctx, host, http.MethodPost, path, body, out)
+}
+
+// RequestJSON is PostJSON with the method chosen, for a host whose writes
+// are a PATCH or a PUT.
+func (c *Client) RequestJSON(ctx context.Context, host Host, method, path string, body, out any) error {
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(http.MethodPost, apiURL(host, path, nil), bytes.NewReader(encoded))
+	req, err := http.NewRequest(method, apiURL(host, path, nil), bytes.NewReader(encoded))
 	if err != nil {
 		return err
 	}

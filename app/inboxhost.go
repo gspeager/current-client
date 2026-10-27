@@ -12,12 +12,14 @@ import (
 )
 
 // hostInboxRows reads the cache only: review requests waiting on the user,
-// their own changes with changes requested or failing CI, and the issues
-// assigned to them, each with the age of the refresh that brought it.
-func hostInboxRows(repoPath string) (rows []InboxRow, enabled bool, fetchedAt *time.Time) {
+// their own changes with changes requested or failing CI, the issues
+// assigned to them and the host's to-dos about this project, each with the
+// age of the refresh that brought it. notice is what kept the to-dos from
+// being listed, if anything.
+func hostInboxRows(repoPath string) (rows []InboxRow, enabled bool, fetchedAt *time.Time, notice string) {
 	list, info, _, err := changeList(repoPath)
 	if err != nil || !list.Enabled {
-		return nil, false, nil
+		return nil, false, nil, ""
 	}
 	fillChangeList(&list, info, repoPath, cacheChanges)
 	for _, change := range list.Changes {
@@ -48,7 +50,8 @@ func hostInboxRows(repoPath string) (rows []InboxRow, enabled bool, fetchedAt *t
 			rows = append(rows, InboxRow{ID: "assigned:" + issue.Key, Kind: "assigned", Key: issue.Key, Title: issue.Title, Detail: issueBranchState(repoPath, info, list, issue.Key), WebURL: issue.WebURL, FetchedAt: &fetched})
 		}
 	}
-	return rows, true, list.FetchedAt
+	rows, notice = todoRows(rows, info, list.Prefix)
+	return rows, true, list.FetchedAt, notice
 }
 
 // issueBranchState says what a local branch named after the issue is

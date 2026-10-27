@@ -2,6 +2,7 @@ package hostapi
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"strings"
 	"time"
@@ -243,6 +244,44 @@ func MatchRule(rules []BranchRule, branch string) (BranchRule, bool) {
 	}
 	return matched, found
 }
+
+// Todo is one entry on the host's to-do list for the user, GitLab's To-Do
+// List or GitHub's notifications: why the host put it there, and the change
+// or issue it is about. Project is the repository's path on the host.
+// Target is "change", "issue" or "" for anything else, such as a commit.
+type Todo struct {
+	ID        string
+	Project   string
+	Reason    string
+	Target    string
+	Number    int
+	Title     string
+	Author    User
+	WebURL    string
+	UpdatedAt time.Time
+}
+
+// Reasons a host gives for a to-do that the Inbox merges with the rows it
+// already has; the rest are shown as the host words them.
+const (
+	TodoAssigned        = "assigned"
+	TodoMentioned       = "mentioned"
+	TodoReviewRequested = "review requested"
+)
+
+// TodoList is a host that keeps a to-do list for the user, which a Provider
+// may also be. The list is account-wide: Todos is one request however many
+// repositories it covers, and the caller keeps only what it needs.
+type TodoList interface {
+	// Todos is the user's pending to-dos, one page, newest first.
+	Todos(ctx context.Context) ([]Todo, error)
+	// MarkTodoDone takes a to-do off the list; it needs write scope.
+	MarkTodoDone(ctx context.Context, id string) error
+}
+
+// ErrTodosUnavailable means the host won't list to-dos for this token, which
+// is the case for GitHub's notifications with a fine-grained token.
+var ErrTodosUnavailable = errors.New("the host won't list to-dos for this token")
 
 // Provider is what a host offers this release's features. Every method
 // goes through the one Client, so the enabled set, Git's trust settings,

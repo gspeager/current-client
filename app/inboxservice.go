@@ -24,8 +24,9 @@ const staleAfter = 30 * 24 * time.Hour
 
 // InboxRow is one thing to do. Kind says which: dirty, operation,
 // unpushed, conflict, stale, merged (local); review, changes-requested,
-// ci-failed, assigned (host). FetchedAt is set on host rows: when the
-// cache learned it.
+// ci-failed, assigned, todo (host). FetchedAt is set on host rows: when the
+// cache learned it. TodoID is set on a row the host's to-do list has too,
+// so it can be marked done there.
 type InboxRow struct {
 	// ID names a host row across refreshes; local rows have none.
 	ID string `json:"id"`
@@ -41,11 +42,13 @@ type InboxRow struct {
 	Count     int        `json:"count"`
 	WebURL    string     `json:"webUrl"`
 	FetchedAt *time.Time `json:"fetchedAt"`
+	TodoID    string     `json:"todoId"`
 }
 
 // InboxRepo is one open repository's rows. HostEnabled with no FetchedAt
 // means the host is on but nothing has refreshed it this session, so the
-// host rows aren't known yet rather than empty.
+// host rows aren't known yet rather than empty. Notice says why the host's
+// to-do list is missing, once per host.
 type InboxRepo struct {
 	Path        string     `json:"path"`
 	Name        string     `json:"name"`
@@ -53,6 +56,7 @@ type InboxRepo struct {
 	Error       string     `json:"error"`
 	HostEnabled bool       `json:"hostEnabled"`
 	FetchedAt   *time.Time `json:"fetchedAt"`
+	Notice      string     `json:"notice"`
 }
 
 // Rows is the Inbox's list. With markSeen, the host rows it returns count
@@ -60,6 +64,7 @@ type InboxRepo struct {
 func (s *InboxService) Rows(paths []string, markSeen bool) []InboxRepo {
 	ctx := context.Background()
 	repos := make([]InboxRepo, 0, len(paths))
+	noticed := map[string]bool{}
 	for _, path := range paths {
 		repo := InboxRepo{Path: path, Name: filepath.Base(path), Rows: []InboxRow{}}
 		rows, err := localInboxRows(ctx, path)
@@ -67,8 +72,11 @@ func (s *InboxService) Rows(paths []string, markSeen bool) []InboxRepo {
 			repo.Error = err.Error()
 		}
 		repo.Rows = append(repo.Rows, rows...)
-		hostRows, enabled, fetchedAt := hostInboxRows(path)
+		hostRows, enabled, fetchedAt, notice := hostInboxRows(path)
 		repo.HostEnabled, repo.FetchedAt = enabled, fetchedAt
+		if notice != "" && !noticed[notice] {
+			noticed[notice], repo.Notice = true, notice
+		}
 		repo.Rows = append(repo.Rows, s.flagNew(path, hostRows, markSeen)...)
 		repos = append(repos, repo)
 	}
@@ -80,7 +88,7 @@ func (s *InboxService) Rows(paths []string, markSeen bool) []InboxRepo {
 func (s *InboxService) Unseen(paths []string) int {
 	n := 0
 	for _, path := range paths {
-		hostRows, _, _ := hostInboxRows(path)
+		hostRows, _, _, _ := hostInboxRows(path)
 		for _, row := range s.flagNew(path, hostRows, false) {
 			if row.New {
 				n++
@@ -88,6 +96,11 @@ func (s *InboxService) Unseen(paths []string) int {
 		}
 	}
 	return n
+}
+
+// MarkDone takes a to-do off the host's list, the one write the Inbox makes.
+func (s *InboxService) MarkDone(repoPath, todoID string) error {
+	return markTodoDone(repoPath, todoID)
 }
 
 func (s *InboxService) flagNew(path string, rows []InboxRow, markSeen bool) []InboxRow {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  Bell,
   Check,
   ChevronDown,
   ChevronRight,
@@ -29,6 +30,9 @@ export type InboxTarget =
   | { path: string; kind: 'branch'; branch: string }
   | { path: string; kind: 'change'; number: number }
   | { path: string; kind: 'issue'; key: string }
+  // A to-do about something the app has no view for, such as a commit or a
+  // release: the host's page.
+  | { path: string; kind: 'host'; url: string }
 
 interface InboxViewProps {
   paths: string[]
@@ -53,6 +57,7 @@ const ICONS: Record<string, LucideIcon> = {
   'changes-requested': MessageSquare,
   'ci-failed': CircleX,
   assigned: CircleDot,
+  todo: Bell,
 }
 
 export function targetOf(path: string, row: InboxRow): InboxTarget {
@@ -66,6 +71,10 @@ export function targetOf(path: string, row: InboxRow): InboxTarget {
       return { path, kind: 'change', number: row.number }
     case 'assigned':
       return { path, kind: 'issue', key: row.key }
+    case 'todo':
+      if (row.number > 0) return { path, kind: 'change', number: row.number }
+      if (row.key) return { path, kind: 'issue', key: row.key }
+      return { path, kind: 'host', url: row.webUrl }
     default:
       return { path, kind: 'branch', branch: row.branch }
   }
@@ -97,6 +106,12 @@ function describe(row: InboxRow): { subject: string; reason: string } {
       return { subject: `${row.prefix}${row.number} ${row.title}`, reason: 'CI failed' }
     case 'assigned':
       return { subject: `#${row.key} ${row.title}`, reason: row.detail ? `assigned, ${row.detail}` : 'assigned to you' }
+    case 'todo':
+      return {
+        subject:
+          row.number > 0 ? `${row.prefix}${row.number} ${row.title}` : row.key ? `#${row.key} ${row.title}` : row.title,
+        reason: row.detail,
+      }
     default:
       return { subject: row.title || row.branch, reason: row.kind }
   }
@@ -160,10 +175,19 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
   const fresh = repo.rows.filter((row) => row.new).length
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
+  const [doneError, setDoneError] = useState<string | null>(null)
   // A host that is on but hasn't been refreshed this session: its rows
   // aren't empty, they aren't known yet, and this is the one place the
   // Inbox offers a request, on a click.
   const unrefreshed = repo.hostEnabled && !repo.fetchedAt
+  // The one write the Inbox makes, on the host's own to-do list; the row
+  // goes once the host agrees.
+  const markDone = (row: InboxRow) => {
+    setDoneError(null)
+    InboxService.MarkDone(repo.path, row.todoId)
+      .then(() => onRefreshed?.())
+      .catch((err: unknown) => setDoneError(errorMessage(err)))
+  }
   const refresh = () => {
     setRefreshing(true)
     setRefreshError(null)
@@ -195,6 +219,8 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
         </p>
       )}
       {refreshError && <p className="inbox-error">Could not refresh: {refreshError}</p>}
+      {open && repo.notice && <p className="inbox-hint">{repo.notice}</p>}
+      {doneError && <p className="inbox-error">Could not mark it done: {doneError}</p>}
       {open && !repo.error && !unrefreshed && repo.rows.length === 0 && <p className="inbox-hint">Nothing waiting.</p>}
       {open && repo.rows.length > 0 && (
         <ul className="inbox-rows">
@@ -202,7 +228,7 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
             const Icon = ICONS[row.kind] ?? CircleDot
             const { subject, reason } = describe(row)
             return (
-              <li key={`${row.kind}-${row.branch}-${row.number}-${row.key}-${i}`}>
+              <li key={`${row.kind}-${row.branch}-${row.number}-${row.key}-${i}`} className="inbox-item">
                 <button
                   type="button"
                   className={`inbox-row inbox-row-${row.kind}`}
@@ -218,6 +244,18 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
                     <span className="inbox-row-age">from the host {relativeTime(new Date(row.fetchedAt))}</span>
                   )}
                 </button>
+                {row.todoId && (
+                  <button
+                    type="button"
+                    className="inbox-row-done"
+                    onClick={() => markDone(row)}
+                    aria-label={`Mark done: ${subject}`}
+                    title="Mark done on the host"
+                  >
+                    <Check size={12} strokeWidth={1.75} />
+                    Done
+                  </button>
+                )}
               </li>
             )
           })}
