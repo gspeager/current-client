@@ -112,6 +112,7 @@ func (s *HostService) Refresh(repoPath string) error {
 }
 
 func refreshHostChanges(ctx context.Context, repoPath string) error {
+	refreshTracker(ctx, repoPath)
 	remotes, err := git.ListRemotes(ctx, repoPath)
 	if err != nil {
 		return err

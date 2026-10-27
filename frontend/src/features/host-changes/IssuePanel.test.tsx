@@ -64,6 +64,7 @@ describe('IssuePanel', () => {
       new IssueDetails({
         reference: '#4',
         descriptionHtml: '',
+        writable: true,
         issue: {
           key: '4',
           number: 4,
@@ -105,5 +106,38 @@ describe('IssuePanel', () => {
     expect(await within(dialog).findByRole('button', { name: 'Reopen issue' })).toBeInTheDocument()
     await userEvent.click(within(dialog).getByRole('button', { name: 'New issue' }))
     expect(newIssue).toHaveBeenCalled()
+  })
+
+  it('reads a Jira issue without offering writes', async () => {
+    vi.mocked(HostService.IssueDetails).mockResolvedValue(
+      new IssueDetails({
+        reference: 'PROJ-12',
+        descriptionHtml: '',
+        writable: false,
+        issue: {
+          key: 'PROJ-12',
+          number: 0,
+          title: 'Login fails',
+          state: 'open',
+          webUrl: 'https://example.atlassian.net/browse/PROJ-12',
+          description: '',
+          labels: [],
+          milestone: '',
+          author: { name: 'Ada', username: '5b10a2' },
+          createdAt: '2026-10-20T10:00:00Z',
+          updatedAt: '2026-10-20T10:00:00Z',
+        },
+        comments: [],
+      } as never),
+    )
+    render(
+      <IssuePanelContext.Provider value={{ open: vi.fn(), create: vi.fn() }}>
+        <IssuePanel repoPath="/repos/app" issueKey="PROJ-12" onClose={vi.fn()} />
+      </IssuePanelContext.Provider>,
+    )
+    const dialog = await screen.findByRole('dialog', { name: 'PROJ-12' })
+    expect(within(dialog).getByRole('heading', { name: 'Login fails' })).toBeInTheDocument()
+    expect(within(dialog).queryByRole('textbox', { name: 'Comment' })).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('button', { name: 'Close issue' })).not.toBeInTheDocument()
   })
 })

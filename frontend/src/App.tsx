@@ -243,7 +243,7 @@ function App({
   )
   const issueActions = useMemo(
     () => ({
-      open: hostOn ? setOpenIssueKey : undefined,
+      open: hostOn || tracker?.reading ? setOpenIssueKey : undefined,
       create:
         hostOn && canWriteIssues
           ? (draft?: IssueDraft) => setNewIssueDraft(draft ?? { title: '', description: '' })

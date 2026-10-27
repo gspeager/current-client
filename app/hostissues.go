@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
+	"github.com/gspeager/current-client/core/hostapi/jira"
 	"github.com/gspeager/current-client/core/hostcontent"
 )
 
@@ -17,6 +18,7 @@ import (
 // empty, with Known true, for a number the host has no issue for.
 type IssueInfo struct {
 	Number int    `json:"number"`
+	Key    string `json:"key"`
 	Title  string `json:"title"`
 	State  string `json:"state"`
 	WebURL string `json:"webUrl"`
@@ -39,6 +41,9 @@ type IssueDetails struct {
 	Reference       string               `json:"reference"`
 	DescriptionHTML string               `json:"descriptionHtml"`
 	Comments        []IssueComment       `json:"comments"`
+	// Writable says the issue's tracker takes comments and state changes
+	// from the app: GitLab and GitHub, not Jira.
+	Writable bool `json:"writable"`
 }
 
 type IssueComment struct {
@@ -48,40 +53,79 @@ type IssueComment struct {
 }
 
 func (s *HostService) IssueDetails(repoPath, key string) (IssueDetails, error) {
-	_, info, ok, err := primaryHost(repoPath)
+	src, err := issueSourceFor(repoPath, key)
 	if err != nil {
 		return IssueDetails{}, err
 	}
-	if !ok || !info.Enabled {
-		return IssueDetails{}, errors.New("integration is off for this repository's host")
-	}
-	tracker := issueTrackerFor(info)
-	if tracker == nil {
-		return IssueDetails{}, errors.New("no issue tracker for this host yet")
-	}
-	issue, err := cachedOrFetched(info, repoPath, cacheIssueDetails, key, func(ctx context.Context, _ hostapi.Provider) (hostapi.IssueDetails, error) {
-		issue, err := tracker.IssueDetails(ctx, info.Project, key)
+	issue, err := cachedFrom(src.cacheHost, repoPath, cacheIssueDetails, key, func(ctx context.Context) (hostapi.IssueDetails, error) {
+		issue, err := src.tracker.IssueDetails(ctx, src.project, key)
 		if err == nil {
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, key,
-				IssueInfo{Number: issue.Number, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
+			hostClient.Cache.Put(src.cacheHost, repoPath, cacheIssue, key,
+				IssueInfo{Number: issue.Number, Key: issue.Key, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
 		}
 		return issue, err
 	})
 	if err != nil {
 		return IssueDetails{}, err
 	}
-	notes, err := cachedOrFetched(info, repoPath, cacheIssueComments, key, func(ctx context.Context, _ hostapi.Provider) ([]hostapi.Note, error) {
-		return tracker.IssueComments(ctx, info.Project, key)
+	notes, err := cachedFrom(src.cacheHost, repoPath, cacheIssueComments, key, func(ctx context.Context) ([]hostapi.Note, error) {
+		return src.tracker.IssueComments(ctx, src.project, key)
 	})
 	if err != nil {
 		return IssueDetails{}, err
 	}
-	webRoot := "https://" + info.Hostname + "/"
-	details := IssueDetails{Issue: issue, Reference: tracker.Reference(key), DescriptionHTML: hostcontent.RenderMarkdown(issue.Description, webRoot)}
+	details := IssueDetails{Issue: issue, Reference: src.tracker.Reference(key), DescriptionHTML: hostcontent.RenderMarkdown(issue.Description, src.webRoot), Writable: src.writable}
 	for _, n := range notes {
-		details.Comments = append(details.Comments, IssueComment{Author: n.Author, BodyHTML: hostcontent.RenderMarkdown(n.Body, webRoot), CreatedAt: n.CreatedAt})
+		details.Comments = append(details.Comments, IssueComment{Author: n.Author, BodyHTML: hostcontent.RenderMarkdown(n.Body, src.webRoot), CreatedAt: n.CreatedAt})
 	}
 	return details, nil
+}
+
+// issueSource is where one issue is read: a host's #123 from the host, any
+// other key from the repository's tracker, such as a Jira site.
+type issueSource struct {
+	cacheHost, project, webRoot string
+	tracker                     hostapi.IssueTracker
+	writable                    bool
+}
+
+func issueSourceFor(repoPath, key string) (issueSource, error) {
+	if _, err := strconv.Atoi(key); err != nil {
+		provider, site, ok := jiraFor(repoPath)
+		if !ok {
+			return issueSource{}, errors.New("integration is off for this repository's issue tracker")
+		}
+		return issueSource{cacheHost: jira.HostName(site), webRoot: site.Site, tracker: provider}, nil
+	}
+	_, info, ok, err := primaryHost(repoPath)
+	if err != nil {
+		return issueSource{}, err
+	}
+	if !ok || !info.Enabled {
+		return issueSource{}, errors.New("integration is off for this repository's host")
+	}
+	tracker := issueTrackerFor(info)
+	if tracker == nil {
+		return issueSource{}, errors.New("no issue tracker for this host yet")
+	}
+	_, writable := tracker.(hostapi.IssueWriter)
+	return issueSource{cacheHost: info.Hostname, project: info.Project, webRoot: "https://" + info.Hostname + "/", tracker: tracker, writable: writable}, nil
+}
+
+// cachedFrom is cachedOrFetched for any cache host, such as a tracker's.
+func cachedFrom[T any](cacheHost, repoPath, kind, key string, fetch func(context.Context) (T, error)) (T, error) {
+	if cached, _, ok := hostClient.Cache.Get(cacheHost, repoPath, kind, key); ok {
+		return cached.(T), nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	value, err := fetch(ctx)
+	if err != nil {
+		var none T
+		return none, err
+	}
+	hostClient.Cache.Put(cacheHost, repoPath, kind, key, value)
+	return value, nil
 }
 
 var closingWords = `(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+`
@@ -159,6 +203,9 @@ func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]
 // picker first opens and read from the cache until a refresh. Each title is
 // kept for hover cards too.
 func (s *HostService) AssignedIssues(repoPath string) ([]hostapi.Issue, error) {
+	if provider, site, ok := jiraFor(repoPath); ok {
+		return trackerAssigned(repoPath, provider, site)
+	}
 	remote, info, ok, err := primaryHost(repoPath)
 	if err != nil || !ok || !info.Enabled {
 		return nil, err

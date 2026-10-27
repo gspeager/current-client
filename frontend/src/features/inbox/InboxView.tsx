@@ -107,7 +107,10 @@ function describe(row: InboxRow): { subject: string; reason: string } {
     case 'ci-failed':
       return { subject: `${row.prefix}${row.number} ${row.title}`, reason: 'CI failed' }
     case 'assigned':
-      return { subject: `#${row.key} ${row.title}`, reason: row.detail ? `assigned, ${row.detail}` : 'assigned to you' }
+      return {
+        subject: `${/^\d+$/.test(row.key) ? '#' : ''}${row.key} ${row.title}`,
+        reason: row.detail ? `assigned, ${row.detail}` : 'assigned to you',
+      }
     case 'todo':
       return {
         subject:

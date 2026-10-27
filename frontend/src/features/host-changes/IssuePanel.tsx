@@ -106,7 +106,7 @@ function IssuePanel({ repoPath, issueKey, onClose }: IssuePanelProps) {
                 </article>
               ))}
             </section>
-            {newIssue && (
+            {newIssue && data.writable && (
               <form className="issue-panel-reply" onSubmit={submitComment}>
                 <textarea
                   className="dialog-input issue-panel-reply-input"

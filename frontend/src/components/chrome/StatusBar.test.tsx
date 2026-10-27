@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, HostInfo, PlatformService } from '@current-client-bindings/app'
+import { BranchService, HostInfo, HostService, PlatformService, TrackerLinks } from '@current-client-bindings/app'
+import { IssuePanelContext } from '../../lib/issuePanel'
 import StatusBar from './StatusBar'
 
 describe('StatusBar', () => {
@@ -135,5 +136,34 @@ describe('StatusBar', () => {
       />,
     )
     expect(screen.getByText('fetched 2m ago')).toBeInTheDocument()
+  })
+
+  it('names the issue tracker while its integration is on', async () => {
+    vi.mocked(PlatformService.AppVersion).mockResolvedValue('0.1.0')
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', upstream: '' } as never)
+    vi.mocked(HostService.Status).mockResolvedValue({
+      lastRequest: null,
+      inFlight: false,
+      remaining: 0,
+      limit: 0,
+      resetAt: null,
+    })
+    const jira = new TrackerLinks({
+      site: 'https://example.atlassian.net/',
+      browse: 'https://example.atlassian.net/browse/',
+      keyPattern: '(?:^|[^\\w/.-])([A-Z][A-Z0-9_]+-[1-9]\\d*)\\b',
+      hostName: 'example.atlassian.net',
+      reading: true,
+    })
+    render(
+      <IssuePanelContext.Provider value={{ tracker: jira }}>
+        <StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" />
+      </IssuePanelContext.Provider>,
+    )
+    expect(await screen.findByRole('button', { name: /example\.atlassian\.net/ })).toHaveAttribute(
+      'title',
+      'Integration is on for the issue tracker example.atlassian.net. Opens Settings.',
+    )
+    expect(HostService.Status).toHaveBeenCalledWith('example.atlassian.net')
   })
 })

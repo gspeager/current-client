@@ -4,6 +4,9 @@ import { HostService, PlatformService, TrackerLinks } from '@current-client-bind
 import { Links } from '@current-client-bindings/core/hostlink'
 import ReferenceText from './ReferenceText'
 import { IssuePanelContext } from '../../lib/issuePanel'
+import { useReferenceCards } from '../../lib/useReferenceCards'
+
+const TEXTS = ['fix: login (PROJ-12)']
 
 const links = new Links({ issue: 'https://github.com/o/r/issues/', root: 'https://github.com/', issuePath: '/issues/' })
 
@@ -99,5 +102,31 @@ describe('ReferenceText hover cards', () => {
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://example.atlassian.net/browse/PROJ-12')
     expect(HostService.IssueDetails).not.toHaveBeenCalled()
     expect(HostService.FetchIssueTitles).not.toHaveBeenCalled()
+  })
+
+  it('opens a tracker key in the issue panel while the tracker is read, with its title from the tracker', async () => {
+    vi.mocked(HostService.FetchTrackerIssueTitles).mockResolvedValue({
+      'PROJ-12': { number: 0, key: 'PROJ-12', title: 'Login fails', state: 'open', webUrl: '', known: true },
+    })
+    const openIssue = vi.fn()
+    const jira = new TrackerLinks({
+      site: 'https://example.atlassian.net/',
+      browse: 'https://example.atlassian.net/browse/',
+      keyPattern: '(?:^|[^\\w/.-])([A-Z][A-Z0-9_]+-[1-9]\\d*)\\b',
+      hostName: 'example.atlassian.net',
+      reading: true,
+    })
+    function Subject() {
+      const cards = useReferenceCards('/repos/app', TEXTS, {})
+      return <ReferenceText text={TEXTS[0]} links={null} cards={cards} />
+    }
+    render(
+      <IssuePanelContext.Provider value={{ open: openIssue, tracker: jira }}>
+        <Subject />
+      </IssuePanelContext.Provider>,
+    )
+    await vi.waitFor(() => expect(HostService.FetchTrackerIssueTitles).toHaveBeenCalledWith('/repos/app', ['PROJ-12']))
+    await userEvent.click(screen.getByRole('link', { name: 'PROJ-12' }))
+    expect(openIssue).toHaveBeenCalledWith('PROJ-12')
   })
 })
