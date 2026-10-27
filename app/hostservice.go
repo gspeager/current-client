@@ -123,12 +123,16 @@ func (s *HostService) SetEnabled(hostname string, enabled bool) error {
 		hostCredentials.Forget(hostname)
 		deleteFetchedHeads(hostname)
 	}
-	return setHostFlag(hostname, func(host *config.HostConfig) {
+	err := setHostFlag(hostname, func(host *config.HostConfig) {
 		host.Enabled = enabled
 		if enabled {
 			host.Dismissed = false
 		}
 	})
+	if err == nil {
+		hostsChanged(hostname)
+	}
+	return err
 }
 
 func (s *HostService) Dismiss(hostname string) error {
@@ -156,7 +160,11 @@ func (s *HostService) Remove(hostname string) error {
 	}
 	hostClient.Forget(hostname)
 	hostCredentials.Forget(hostname)
-	return updateConfig(func(cfg *config.Config) { delete(cfg.Hosts, hostname) })
+	err := updateConfig(func(cfg *config.Config) { delete(cfg.Hosts, hostname) })
+	if err == nil {
+		hostsChanged(hostname)
+	}
+	return err
 }
 
 // SetHost records the provider type and API address for a host. Empty values

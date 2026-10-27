@@ -29,7 +29,11 @@ func (s *TrackerService) SetEnabled(site string, enabled bool) error {
 	if !enabled {
 		hostClient.Forget(name)
 	}
-	return setTrackerAccess(site, func(a *config.TrackerAccess) { a.Enabled = enabled })
+	err = setTrackerAccess(site, func(a *config.TrackerAccess) { a.Enabled = enabled })
+	if err == nil {
+		hostsChanged(name)
+	}
+	return err
 }
 
 // SaveToken hands the token to Git's credential helper under the app's own

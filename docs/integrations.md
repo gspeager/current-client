@@ -10,7 +10,7 @@ Integration is per host and off by default. Turning it on is a deliberate choice
 
 Settings → Integrations lists every host found in the open repository's remotes plus any added by hand, each with its switch, provider type, API address, credential status, **Test connection** (the one action on the page that contacts the host, and only while it is on) and **Remove**. While integration is on for the current repository, the status bar shows the API host actually contacted (`api.github.com`, not `github.com`) and when it was last asked ("no requests yet", "last request 2m ago", "request in flight"), so the promise can be watched rather than taken on trust; clicking it opens Settings.
 
-The set of enabled hosts is decided by the app, not by `core/`. `core/` cannot read the settings file; it is handed the set by whichever app embeds it (Current Client passes what Settings says, other apps pass their own), and it refuses any host outside that set before a connection is opened. That is what makes "integration off means no request" a property of the library, not of each caller.
+The set of enabled hosts is decided by the app, not by `core/`. `core/` cannot read the settings file; it is handed the set by whichever app embeds it (Current Client passes what Settings says, other apps pass their own), and it refuses any host outside that set before a connection is opened. That is what makes "integration off means no request" a property of the library, not of each caller. An app that embeds Current Client and has host features of its own uses the same client and enabled set (`app.HostClient`, `app.EnabledHosts`, `app.SetHostEnabled`), so `policy.json` applies to its requests too; the embedding guide has the details.
 
 ## Which host, and which API
 

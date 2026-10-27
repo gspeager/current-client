@@ -22,6 +22,9 @@ func issueTrackerFor(info HostInfo) hostapi.IssueTracker {
 
 func providerFor(info HostInfo) hostapi.Provider {
 	host := hostapi.Host{Name: info.Hostname, API: info.APIURL}
+	if factory, ok := extraProvider(info.Hostname); ok {
+		return factory(hostClient, host)
+	}
 	switch hostlink.Style(info.Provider) {
 	case hostlink.GitLab:
 		return gitlab.New(hostClient, host)

@@ -141,3 +141,16 @@ func DefaultTracker() *Tracker {
 	t := *current.Tracker
 	return &t
 }
+
+// Hosts is every host the policy fixes, with the value it fixes.
+func Hosts() map[string]bool {
+	mu.Lock()
+	defer mu.Unlock()
+	fixed := map[string]bool{}
+	for name, sw := range current.Hosts {
+		if sw.Enabled != nil {
+			fixed[name] = *sw.Enabled
+		}
+	}
+	return fixed
+}
