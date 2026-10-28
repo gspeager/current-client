@@ -1,4 +1,5 @@
 import { FolderOpen, Package2, RefreshCw } from 'lucide-react'
+import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { SubmoduleService, type SubmoduleInfo } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { joinPath } from '../../lib/paths'
@@ -32,6 +33,7 @@ function SubmodulesPanel({
 }: SubmodulesPanelProps) {
   const { data: submodules, reload } = useAsyncData(() => SubmoduleService.List(repoPath), [repoPath], { refreshKey })
   const updateOp = useCancellableOperation()
+  const rowMenu = useRowMenu()
 
   if (!submodules || submodules.length === 0) return null
 
@@ -43,6 +45,26 @@ function SubmodulesPanel({
         onSubmodulesChanged?.()
       },
     )
+
+  const submoduleActions = (sm: SubmoduleInfo): RowAction[] => [
+    {
+      label: 'Update',
+      ariaLabel: `Update submodule ${sm.path}`,
+      icon: RefreshCw,
+      run: () => update([sm.path]),
+      disabled: updateOp.running,
+    },
+    ...(sm.initialized
+      ? [
+          {
+            label: 'Open',
+            ariaLabel: `Open submodule ${sm.path}`,
+            icon: FolderOpen,
+            run: () => onOpenRepository(joinPath(repoPath, sm.path)),
+          },
+        ]
+      : []),
+  ]
 
   return (
     <section className="nav-pane-section submodules-panel">
@@ -65,36 +87,22 @@ function SubmodulesPanel({
         {updateOp.error && <p className="submodules-panel-error">Could not update: {updateOp.error}</p>}
         <ul className="submodules-panel-list">
           {submodules.map((sm) => (
-            <li key={sm.path} className="submodule-row" title={sm.path}>
+            <li
+              key={sm.path}
+              className="submodule-row"
+              title={sm.path}
+              onContextMenu={rowMenu.open(submoduleActions(sm))}
+            >
               <Package2 size={14} strokeWidth={1.5} className="submodule-row-icon" />
               <span className="submodule-row-path">{sm.path}</span>
               <span className="submodule-row-commit">{sm.commit.slice(0, 7)}</span>
               {state(sm) && <span className="submodule-row-state">{state(sm)}</span>}
-              <span className="submodule-row-actions">
-                <button
-                  type="button"
-                  onClick={() => update([sm.path])}
-                  disabled={updateOp.running}
-                  aria-label={`Update submodule ${sm.path}`}
-                  title="Update"
-                >
-                  <RefreshCw size={16} strokeWidth={1.75} />
-                </button>
-                {sm.initialized && (
-                  <button
-                    type="button"
-                    onClick={() => onOpenRepository(joinPath(repoPath, sm.path))}
-                    aria-label={`Open submodule ${sm.path}`}
-                    title="Open"
-                  >
-                    <FolderOpen size={16} strokeWidth={1.75} />
-                  </button>
-                )}
-              </span>
+              <RowActionButtons actions={submoduleActions(sm)} className="submodule-row-actions" />
             </li>
           ))}
         </ul>
       </SidebarSection>
+      {rowMenu.menu}
     </section>
   )
 }

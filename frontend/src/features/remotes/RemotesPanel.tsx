@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Cloud, Pencil, Plus, RefreshCw, X } from 'lucide-react'
+import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { RemoteService, type RemoteInfo } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { errorMessage } from '../../lib/errors'
@@ -40,6 +41,7 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
   const [showAddRemote, setShowAddRemote] = useState(false)
   const [fetchingRemote, setFetchingRemote] = useState<string | null>(null)
   const fetchOp = useCancellableOperation()
+  const rowMenu = useRowMenu()
 
   const addRemote = () => {
     setActionError(null)
@@ -93,6 +95,26 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
   }
 
   const hasRemotes = (remotes?.length ?? 0) > 0
+
+  const remoteActions = (r: RemoteInfo): RowAction[] => [
+    fetchingRemote === r.name
+      ? { label: 'Cancel fetching', ariaLabel: `Cancel fetching ${r.name}`, icon: X, run: fetchOp.cancel }
+      : {
+          label: 'Fetch',
+          ariaLabel: `Fetch ${r.name}`,
+          icon: RefreshCw,
+          run: () => fetchRemote(r.name),
+          disabled: fetchingRemote !== null,
+        },
+    { label: 'Edit…', ariaLabel: `Edit ${r.name}`, icon: Pencil, run: () => void editRemote(r) },
+    {
+      label: 'Remove…',
+      ariaLabel: `Remove ${r.name}`,
+      icon: X,
+      run: () => void removeRemote(r.name),
+      destructive: true,
+    },
+  ]
 
   return (
     <div className="remotes-panel">
@@ -155,7 +177,12 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
             )}
             <ul className="remotes-panel-list">
               {remotes.map((r) => (
-                <li key={r.name} className="remote-row" title={r.fetchUrl}>
+                <li
+                  key={r.name}
+                  className="remote-row"
+                  title={r.fetchUrl}
+                  onContextMenu={rowMenu.open(remoteActions(r))}
+                >
                   <Cloud size={14} strokeWidth={1.5} className="remote-row-icon" />
                   <span className="remote-row-name">{r.name}</span>
                   {hostLabel(r.fetchUrl) ? (
@@ -163,38 +190,14 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
                   ) : (
                     <PathText path={r.fetchUrl} className="remote-row-path" />
                   )}
-                  <span className="remote-row-actions">
-                    <button
-                      type="button"
-                      onClick={() => (fetchingRemote === r.name ? fetchOp.cancel() : fetchRemote(r.name))}
-                      disabled={fetchingRemote !== null && fetchingRemote !== r.name}
-                      aria-label={fetchingRemote === r.name ? `Cancel fetching ${r.name}` : `Fetch ${r.name}`}
-                      title={fetchingRemote === r.name ? 'Cancel fetching' : 'Fetch'}
-                    >
-                      {fetchingRemote === r.name ? (
-                        <X size={16} strokeWidth={1.75} />
-                      ) : (
-                        <RefreshCw size={16} strokeWidth={1.75} />
-                      )}
-                    </button>
-                    <button type="button" onClick={() => editRemote(r)} aria-label={`Edit ${r.name}`} title="Edit">
-                      <Pencil size={16} strokeWidth={1.75} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeRemote(r.name)}
-                      aria-label={`Remove ${r.name}`}
-                      title="Remove"
-                    >
-                      <X size={16} strokeWidth={1.75} />
-                    </button>
-                  </span>
+                  <RowActionButtons actions={remoteActions(r)} className="remote-row-actions" />
                 </li>
               ))}
             </ul>
           </>
         )}
       </SidebarSection>
+      {rowMenu.menu}
     </div>
   )
 }

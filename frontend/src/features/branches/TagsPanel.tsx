@@ -4,6 +4,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   CloudOff,
+  Copy,
   ExternalLink,
   PackagePlus,
   Plus,
@@ -25,6 +26,8 @@ import { useClockTick } from '../../lib/useClockTick'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
+import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import './TagsPanel.scss'
 import { useHostLinks } from '../../lib/useHostLinks'
 import type { SidebarRequest } from '../../components/chrome/NavPane'
@@ -50,6 +53,8 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     reload: loadTags,
   } = useAsyncData(() => TagService.ListTags(repoPath), [repoPath])
   const { confirm, signIn } = useDialogs()
+  const { copy } = useCopyToClipboard()
+  const rowMenu = useRowMenu()
   const [actionError, setActionError] = useState<string | null>(null)
   const error = loadError ?? actionError
   const [newName, setNewName] = useState('')
@@ -160,6 +165,49 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
 
   const hasTags = (tags?.length ?? 0) > 0
 
+  const busy = busyName !== null
+  const tagActions = (name: string): RowAction[] => [
+    ...(hostLinks?.tag
+      ? [
+          {
+            label: 'Open on host',
+            ariaLabel: `Open tag ${name} on host`,
+            icon: ExternalLink,
+            run: () => void PlatformService.OpenWebPage(tagPage(hostLinks, name)),
+          },
+        ]
+      : []),
+    ...(canPublish
+      ? [
+          {
+            label: 'Publish release…',
+            ariaLabel: `Publish release for ${name} on host`,
+            icon: PackagePlus,
+            run: () => setReleaseTag(name),
+            disabled: busy,
+          },
+        ]
+      : []),
+    { label: 'Push tag', ariaLabel: `Push tag ${name}`, icon: Upload, run: () => pushTag(name), disabled: busy },
+    { label: 'Copy name', ariaLabel: `Copy ${name}`, icon: Copy, run: () => copy(name), menuOnly: true },
+    {
+      label: 'Delete on remote…',
+      ariaLabel: `Delete tag ${name} on remote`,
+      icon: CloudOff,
+      run: () => void deleteRemoteTag(name),
+      disabled: busy,
+      destructive: true,
+    },
+    {
+      label: 'Delete…',
+      ariaLabel: `Delete tag ${name}`,
+      icon: X,
+      run: () => void deleteTag(name),
+      disabled: busy,
+      destructive: true,
+    },
+  ]
+
   const toggleNewTag = () => {
     setShowNewTag((v) => !v)
     sections.open('tags')
@@ -229,6 +277,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
                 <div
                   className={t.annotated ? 'tag-row tag-row-expandable' : 'tag-row'}
                   onClick={() => toggleExpand(t)}
+                  onContextMenu={rowMenu.open(tagActions(t.name))}
                   title={t.name}
                 >
                   {t.annotated ? (
@@ -242,71 +291,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
                   )}
                   <span className="tag-row-name">{t.name}</span>
                   <span className="tag-row-time">{relativeTime(new Date(t.date))}</span>
-                  <span className="tag-row-actions">
-                    {hostLinks?.tag && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          void PlatformService.OpenWebPage(tagPage(hostLinks, t.name))
-                        }}
-                        aria-label={`Open tag ${t.name} on host`}
-                        title="Open on host"
-                      >
-                        <ExternalLink size={16} strokeWidth={1.75} />
-                      </button>
-                    )}
-                    {canPublish && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setReleaseTag(t.name)
-                        }}
-                        disabled={busyName !== null}
-                        aria-label={`Publish release for ${t.name} on host`}
-                        title="Publish release on host"
-                      >
-                        <PackagePlus size={16} strokeWidth={1.75} />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        pushTag(t.name)
-                      }}
-                      disabled={busyName !== null}
-                      aria-label={`Push tag ${t.name}`}
-                      title="Push"
-                    >
-                      <Upload size={16} strokeWidth={1.75} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void deleteRemoteTag(t.name)
-                      }}
-                      disabled={busyName !== null}
-                      aria-label={`Delete tag ${t.name} on remote`}
-                      title="Delete on remote"
-                    >
-                      <CloudOff size={16} strokeWidth={1.75} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteTag(t.name)
-                      }}
-                      disabled={busyName !== null}
-                      aria-label={`Delete tag ${t.name}`}
-                      title="Delete"
-                    >
-                      <X size={16} strokeWidth={1.75} />
-                    </button>
-                  </span>
+                  <RowActionButtons actions={tagActions(t.name)} className="tag-row-actions" />
                 </div>
                 {t.annotated && expandedName === t.name && (
                   <div className="tag-row-message">
@@ -327,6 +312,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
           </ul>
         )}
       </SidebarSection>
+      {rowMenu.menu}
       {readiness && <ReleaseReadinessDialog repoPath={repoPath} onClose={() => setReadiness(false)} />}
       {releaseTag && <PublishReleaseDialog repoPath={repoPath} tag={releaseTag} onClose={() => setReleaseTag(null)} />}
     </div>

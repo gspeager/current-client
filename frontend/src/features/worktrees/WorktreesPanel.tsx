@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
+import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { BranchService, RepositoryService, WorktreeService, type WorktreeInfo } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
 import { toBranchName } from '../../lib/branchName'
@@ -39,6 +40,7 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
   const [newBranchName, setNewBranchName] = useState('')
   const [parent, setParent] = useState<string | null>(null)
   const [created, setCreated] = useState<string | null>(null)
+  const rowMenu = useRowMenu()
   const error = loadError ?? actionError
 
   const main = worktrees?.find((w) => w.main)
@@ -108,6 +110,30 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
   // The main worktree is this repository; the count is the others.
   const others = worktrees === null ? undefined : Math.max(0, worktrees.length - 1)
   const hasOthers = (others ?? 0) > 0
+
+  const worktreeActions = (w: WorktreeInfo): RowAction[] => [
+    ...(!w.current && !w.missing
+      ? [
+          {
+            label: 'Open',
+            ariaLabel: `Open worktree ${baseName(w.path)}`,
+            icon: FolderOpen,
+            run: () => onOpenRepository(w.path),
+          },
+        ]
+      : []),
+    ...(!w.main && !w.current && !w.locked
+      ? [
+          {
+            label: 'Remove…',
+            ariaLabel: `Remove worktree ${baseName(w.path)}`,
+            icon: X,
+            run: () => void remove(w),
+            destructive: true,
+          },
+        ]
+      : []),
+  ]
 
   return (
     <div className="worktrees-panel">
@@ -182,40 +208,20 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
         ) : (
           <ul className="worktrees-panel-list">
             {worktrees.map((w) => (
-              <li key={w.path} className="worktree-row" title={w.path}>
+              <li key={w.path} className="worktree-row" title={w.path} onContextMenu={rowMenu.open(worktreeActions(w))}>
                 <FolderGit2 size={14} strokeWidth={1.5} className="worktree-row-icon" />
                 <span className="worktree-row-name">{baseName(w.path)}</span>
                 <span className="worktree-row-branch">{w.branch || `detached ${w.head.slice(0, 7)}`}</span>
                 {w.current && <span className="worktree-row-badge">current</span>}
                 {w.locked && <span className="worktree-row-badge">locked</span>}
                 {w.missing && <span className="worktree-row-badge worktree-row-badge-missing">missing</span>}
-                <span className="worktree-row-actions">
-                  {!w.current && !w.missing && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenRepository(w.path)}
-                      aria-label={`Open worktree ${baseName(w.path)}`}
-                      title="Open"
-                    >
-                      <FolderOpen size={16} strokeWidth={1.75} />
-                    </button>
-                  )}
-                  {!w.main && !w.current && !w.locked && (
-                    <button
-                      type="button"
-                      onClick={() => void remove(w)}
-                      aria-label={`Remove worktree ${baseName(w.path)}`}
-                      title="Remove"
-                    >
-                      <X size={16} strokeWidth={1.75} />
-                    </button>
-                  )}
-                </span>
+                <RowActionButtons actions={worktreeActions(w)} className="worktree-row-actions" />
               </li>
             ))}
           </ul>
         )}
       </SidebarSection>
+      {rowMenu.menu}
     </div>
   )
 }
