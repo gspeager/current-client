@@ -21,6 +21,8 @@ type IssueInfo struct {
 	Key    string `json:"key"`
 	Title  string `json:"title"`
 	State  string `json:"state"`
+	// Status is the tracker's own name for the state, where it has one.
+	Status string `json:"status"`
 	WebURL string `json:"webUrl"`
 	Known  bool   `json:"known"`
 }
@@ -61,7 +63,7 @@ func (s *HostService) IssueDetails(repoPath, key string) (IssueDetails, error) {
 		issue, err := src.tracker.IssueDetails(ctx, src.project, key)
 		if err == nil {
 			hostClient.Cache.Put(src.cacheHost, repoPath, cacheIssue, key,
-				IssueInfo{Number: issue.Number, Key: issue.Key, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
+				IssueInfo{Number: issue.Number, Key: issue.Key, Title: issue.Title, State: issue.State, Status: issue.Status, WebURL: issue.WebURL, Known: true})
 		}
 		return issue, err
 	})

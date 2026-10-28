@@ -278,7 +278,7 @@ function SettingsPanel({
           {hostIntegration && (
             <SettingsGroup title="Integrations">
               <IntegrationsSection repoPath={repoPath} onChanged={onHostsChanged} />
-              <TrackersSection onChanged={onHostsChanged} />
+              <TrackersSection repoPath={repoPath} onChanged={onHostsChanged} />
             </SettingsGroup>
           )}
 

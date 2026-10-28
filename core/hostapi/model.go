@@ -171,6 +171,9 @@ type Issue struct {
 	Title  string `json:"title"`
 	State  string `json:"state"`
 	WebURL string `json:"webUrl"`
+	// Status is the tracker's own name for where the issue is, such as Jira's
+	// "In Progress"; empty where a tracker has only open and closed.
+	Status string `json:"status"`
 }
 
 // IssueDetails is what an issue's panel shows beyond the summary. It is a

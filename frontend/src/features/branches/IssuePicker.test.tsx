@@ -8,7 +8,7 @@ describe('IssuePicker', () => {
   it('lists the tracker’s issues with the host off, and names the branch after the key', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue({ enabled: false } as never)
     vi.mocked(HostService.AssignedIssues).mockResolvedValue([
-      { key: 'PROJ-20', number: 0, title: 'Fix the login form', state: 'open', webUrl: '' },
+      { key: 'PROJ-20', number: 0, title: 'Fix the login form', state: 'open', status: '', webUrl: '' },
     ])
     const onPick = vi.fn()
     render(

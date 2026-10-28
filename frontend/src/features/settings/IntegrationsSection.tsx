@@ -43,6 +43,7 @@ function IntegrationsSection({ repoPath, onChanged }: IntegrationsSectionProps) 
 
   return (
     <div className="settings-integrations">
+      <h4 className="settings-subheading">Hosts</h4>
       <p className="settings-hint">
         Off by default. A host’s API is contacted only while its switch is on, and only when merge requests are opened
         or refreshed. Links to the host work either way.
@@ -141,6 +142,7 @@ function HostRow({ host, run }: HostRowProps) {
             checked={host.enabled}
             onChange={(on) => void run(HostService.SetEnabled(host.hostname, on))}
             ariaLabel={`Integration for ${host.hostname}`}
+            label={host.enabled ? 'On' : 'Off'}
             disabled={host.managed}
           />
         </div>
@@ -173,7 +175,14 @@ function HostRow({ host, run }: HostRowProps) {
         </label>
       </div>
 
-      <div className="settings-host-credential">
+      {host.sslVerifyOff && (
+        <p className="settings-error">
+          Git has http.sslVerify off for this address. Certificate checks stay on here; configure http.sslCAInfo for the
+          host’s certificate authority instead.
+        </p>
+      )}
+
+      <div className="settings-actions">
         <span className="settings-hint">
           {host.hasToken ? 'Token saved with Git’s credential helper.' : 'Uses Git’s own credential for the host.'}
         </span>
@@ -190,16 +199,6 @@ function HostRow({ host, run }: HostRowProps) {
             Set token…
           </button>
         )}
-      </div>
-
-      {host.sslVerifyOff && (
-        <p className="settings-error">
-          Git has http.sslVerify off for this address. Certificate checks stay on here; configure http.sslCAInfo for the
-          host’s certificate authority instead.
-        </p>
-      )}
-
-      <div className="settings-actions">
         <button
           type="button"
           className="settings-button settings-button-small"

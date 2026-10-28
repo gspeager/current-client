@@ -97,7 +97,7 @@ export function useReferenceCards(repoPath: string, texts: string[], changes: Br
     for (const k of trackerKeys) {
       const issue = trackerIssues[k]
       cards[k] = issue
-        ? { title: issue.title, state: issue.state, known: issue.known }
+        ? { title: issue.title, state: issue.status || issue.state, known: issue.known }
         : { title: '', state: '', known: false }
     }
     for (const change of Object.values(changes)) {

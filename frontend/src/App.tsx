@@ -335,6 +335,18 @@ function App({
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
   const [hostRefresh, setHostRefresh] = useState(0)
+  // A host the remote points at with integration off, and not locked off,
+  // shows its tabs dimmed; finding it reads the remote, nothing is asked.
+  const integrationOn = !!integration
+  const { data: detectedHosts } = useAsyncData(
+    () => (hostIntegration && repo.repoPath && !integrationOn ? HostService.Detect(repo.repoPath) : null),
+    [hostIntegration, repo.repoPath, integrationOn],
+    { refreshKey: hostsVersion },
+  )
+  const offHostInfo = integration ? undefined : detectedHosts?.find((h) => !h.enabled && !h.managed)
+  const offHost = offHostInfo
+    ? { hostname: offHostInfo.hostname, changesLabel: changesLabelFor(offHostInfo.provider) }
+    : null
   const { data: myIssues } = useAsyncData(
     () => (issuesOn && repo.repoPath ? HostService.MyIssues(repo.repoPath) : null),
     [issuesOn, repo.repoPath],
@@ -623,6 +635,8 @@ function App({
               onChange={changeTab}
               changesLabel={changesLabel}
               issueCount={issuesOn ? (myIssues?.issues?.length ?? 0) : null}
+              offHost={offHost}
+              onOffHost={() => openSettings('Integrations')}
               changedCount={workingTree.files?.length ?? 0}
               conflictCount={conflictState?.conflictedPaths.length ?? 0}
             />
