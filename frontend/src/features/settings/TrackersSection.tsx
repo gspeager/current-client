@@ -21,7 +21,8 @@ function repoName(path: string): string {
 // Issue trackers beside the hosts, such as a team's Jira site. Keys in
 // branch names, commit messages and titles link to the site; the app builds
 // the address and contacts nothing.
-function TrackersSection({ onChanged }: { onChanged?: () => void }) {
+// repoPath, the open repository, is ticked for a tracker as it is added.
+function TrackersSection({ repoPath = null, onChanged }: { repoPath?: string | null; onChanged?: () => void }) {
   const { data: list, error, reload } = useAsyncData(() => TrackerService.List(), [], { keepData: true })
   const [adding, setAdding] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -49,7 +50,13 @@ function TrackersSection({ onChanged }: { onChanged?: () => void }) {
       ))}
       {adding ? (
         <AddTracker
-          onAdd={(site, kind, keys) => run(TrackerService.Add(site, kind, keys).then(() => setAdding(false)))}
+          onAdd={(site, kind, keys) =>
+            run(
+              TrackerService.Add(site, kind, keys)
+                .then((added) => (repoPath ? TrackerService.SetRepos(added.site, [repoPath]) : undefined))
+                .then(() => setAdding(false)),
+            )
+          }
           onCancel={() => setAdding(false)}
         />
       ) : (
@@ -162,6 +169,9 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
             {KIND_LABELS[tracker.kind] ?? tracker.kind}
             {tracker.managed ? ' · Set by your organization' : ''}
           </span>
+          {!tracker.managed && tracker.repos.length === 0 && (
+            <span className="settings-warning">Not used by any repository</span>
+          )}
         </div>
         <div className="settings-host-switch">
           {tracker.locked && <span className="settings-hint">Managed by your organization</span>}
@@ -169,11 +179,12 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
             checked={tracker.enabled}
             onChange={(on) => void run(TrackerService.SetEnabled(tracker.site, on))}
             ariaLabel={`Integration for ${tracker.site}`}
+            label={tracker.enabled ? 'On' : 'Off'}
             disabled={tracker.locked}
           />
         </div>
       </div>
-      <TrackerAccess tracker={tracker} run={run} />
+      <TrackerAccess tracker={tracker} run={run} onRemove={tracker.managed ? undefined : () => void remove()} />
       {tracker.managed ? (
         <p className="settings-hint">
           Used by every repository without a tracker of its own
@@ -207,11 +218,6 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
               </label>
             ))}
           </fieldset>
-          <div className="settings-actions">
-            <button type="button" className="settings-button settings-button-small" onClick={() => void remove()}>
-              Remove
-            </button>
-          </div>
         </>
       )}
     </div>
@@ -220,7 +226,11 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
 
 // The token through Git's credential helper and Test connection, as a host
 // row has them.
-function TrackerAccess({ tracker, run }: Pick<TrackerRowProps, 'tracker' | 'run'>) {
+function TrackerAccess({
+  tracker,
+  run,
+  onRemove,
+}: Pick<TrackerRowProps, 'tracker' | 'run'> & { onRemove?: () => void }) {
   const dialogs = useDialogs()
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null)
@@ -257,7 +267,7 @@ function TrackerAccess({ tracker, run }: Pick<TrackerRowProps, 'tracker' | 'run'
 
   return (
     <>
-      <div className="settings-host-credential">
+      <div className="settings-actions">
         <span className="settings-hint">
           {tracker.hasToken ? 'Token saved with Git’s credential helper.' : 'No token saved.'}
         </span>
@@ -274,8 +284,6 @@ function TrackerAccess({ tracker, run }: Pick<TrackerRowProps, 'tracker' | 'run'
             Set token…
           </button>
         )}
-      </div>
-      <div className="settings-actions">
         <button
           type="button"
           className="settings-button settings-button-small"
@@ -285,6 +293,11 @@ function TrackerAccess({ tracker, run }: Pick<TrackerRowProps, 'tracker' | 'run'
         >
           {testing ? 'Testing…' : 'Test connection'}
         </button>
+        {onRemove && (
+          <button type="button" className="settings-button settings-button-small" onClick={onRemove}>
+            Remove
+          </button>
+        )}
         {testResult && (
           <span className={testResult.ok ? 'settings-hint' : 'settings-error'} role="status">
             {testResult.text}

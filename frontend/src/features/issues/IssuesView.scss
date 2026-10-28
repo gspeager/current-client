@@ -13,3 +13,13 @@
   border-radius: var(--radius);
   overflow: hidden;
 }
+
+// A tracker's own status, such as Jira's In Progress: a closed set, so a square.
+.issues-row-status {
+  margin-right: auto;
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--outline-variant);
+  border-radius: 3px;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}

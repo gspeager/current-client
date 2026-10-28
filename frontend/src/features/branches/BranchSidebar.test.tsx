@@ -314,7 +314,7 @@ describe('BranchSidebar', () => {
       new CurrentChange({ branch: 'main', upstream: '', enabled: true, change: null }),
     )
     vi.mocked(HostService.AssignedIssues).mockResolvedValue([
-      { key: '12', number: 12, title: 'Login fails on Windows', state: 'open', webUrl: '' },
+      { key: '12', number: 12, title: 'Login fails on Windows', state: 'open', status: '', webUrl: '' },
     ])
     renderSidebar()
 

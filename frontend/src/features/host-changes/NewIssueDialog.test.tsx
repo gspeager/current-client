@@ -5,7 +5,7 @@ import NewIssueDialog from './NewIssueDialog'
 
 describe('NewIssueDialog', () => {
   it('sends nothing until Create issue, then the title, description and labels', async () => {
-    const issue = { key: '9', number: 9, title: 'drop the shim', state: 'open', webUrl: '' }
+    const issue = { key: '9', number: 9, title: 'drop the shim', state: 'open', status: '', webUrl: '' }
     vi.mocked(HostService.CreateIssue).mockResolvedValue(issue)
     const onCreated = vi.fn()
     render(

@@ -92,7 +92,7 @@ func TestIssueDetailsAndComments(t *testing.T) {
 }
 
 func TestAssignedIssuesOnCloudAndDataCenter(t *testing.T) {
-	answer := `{"issues": [{"key": "PROJ-3", "fields": {"summary": "Done one", "status": {"statusCategory": {"key": "done"}}}}, {"key": "OPS-4", "fields": {"summary": "Open one", "status": {"statusCategory": {"key": "new"}}}}]}`
+	answer := `{"issues": [{"key": "PROJ-3", "fields": {"summary": "Done one", "status": {"statusCategory": {"key": "done"}}}}, {"key": "OPS-4", "fields": {"summary": "Open one", "status": {"name": "In Progress", "statusCategory": {"key": "indeterminate"}}}}]}`
 	query := url.Values{
 		"jql":        {"assignee = currentUser() AND statusCategory != Done AND project in (PROJ, OPS) ORDER BY updated DESC"},
 		"maxResults": {"50"},
@@ -101,7 +101,7 @@ func TestAssignedIssuesOnCloudAndDataCenter(t *testing.T) {
 	for kind, path := range map[hostlink.TrackerKind]string{hostlink.JiraCloud: "/jira/rest/api/2/search/jql", hostlink.JiraDataCenter: "/jira/rest/api/2/search"} {
 		p, _ := newProvider(t, kind, []string{"PROJ", "OPS"}, map[string]string{path + "?" + query: answer})
 		issues, err := p.AssignedIssues(context.Background(), "", "")
-		if err != nil || len(issues) != 2 || issues[0].State != "closed" || issues[1].Key != "OPS-4" || issues[1].State != "open" {
+		if err != nil || len(issues) != 2 || issues[0].State != "closed" || issues[1].Key != "OPS-4" || issues[1].State != "open" || issues[1].Status != "In Progress" {
 			t.Fatalf("%s AssignedIssues = %+v, %v", kind, issues, err)
 		}
 	}

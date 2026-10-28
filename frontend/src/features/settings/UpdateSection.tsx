@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, Fragment } from 'react'
 import { PlatformService, UpdateService } from '@current-client-bindings/app'
 import type { Result } from '@current-client-bindings/internal/update'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
@@ -68,7 +68,15 @@ function UpdateSection() {
         )}
         {releasesUrl && (
           <span className="settings-hint settings-update-link">
-            <code className="settings-code">{releasesUrl}</code>
+            <code className="settings-code">
+              {releasesUrl.split('/').map((part, i) => (
+                <Fragment key={i}>
+                  {i > 0 && '/'}
+                  {i > 0 && <wbr />}
+                  {part}
+                </Fragment>
+              ))}
+            </code>
             <button type="button" className="settings-button" onClick={() => open(releasesUrl)}>
               Open
             </button>

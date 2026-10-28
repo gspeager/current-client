@@ -40,7 +40,7 @@ func trackerAssigned(repoPath string, provider *jira.Provider, site hostlink.Tra
 
 func rememberTrackerIssues(cacheHost, repoPath string, issues []hostapi.Issue) {
 	for _, is := range issues {
-		hostClient.Cache.Put(cacheHost, repoPath, cacheIssue, is.Key, IssueInfo{Key: is.Key, Title: is.Title, State: is.State, WebURL: is.WebURL, Known: true})
+		hostClient.Cache.Put(cacheHost, repoPath, cacheIssue, is.Key, IssueInfo{Key: is.Key, Title: is.Title, State: is.State, Status: is.Status, WebURL: is.WebURL, Known: true})
 	}
 }
 

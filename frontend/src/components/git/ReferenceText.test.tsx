@@ -106,7 +106,15 @@ describe('ReferenceText hover cards', () => {
 
   it('opens a tracker key in the issue panel while the tracker is read, with its title from the tracker', async () => {
     vi.mocked(HostService.FetchTrackerIssueTitles).mockResolvedValue({
-      'PROJ-12': { number: 0, key: 'PROJ-12', title: 'Login fails', state: 'open', webUrl: '', known: true },
+      'PROJ-12': {
+        number: 0,
+        key: 'PROJ-12',
+        title: 'Login fails',
+        state: 'open',
+        status: 'In Progress',
+        webUrl: '',
+        known: true,
+      },
     })
     const openIssue = vi.fn()
     const jira = new TrackerLinks({
@@ -126,6 +134,9 @@ describe('ReferenceText hover cards', () => {
       </IssuePanelContext.Provider>,
     )
     await vi.waitFor(() => expect(HostService.FetchTrackerIssueTitles).toHaveBeenCalledWith('/repos/app', ['PROJ-12']))
+    // The card says what Jira says, not the open/closed it is sorted by.
+    await userEvent.hover(screen.getByRole('link', { name: 'PROJ-12' }))
+    expect(await screen.findByText('In Progress')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('link', { name: 'PROJ-12' }))
     expect(openIssue).toHaveBeenCalledWith('PROJ-12')
   })

@@ -15,6 +15,10 @@ interface TabBarProps {
   conflictCount?: number
   // Issues assigned to you while a host or tracker lists them; null hides the tab.
   issueCount?: number | null
+  // A host a remote points at whose integration is off (and not locked off):
+  // its tabs show dimmed and open its settings, so the features can be found.
+  offHost?: { hostname: string; changesLabel: string } | null
+  onOffHost?: () => void
 }
 
 // Core views first, the host's next, reports last.
@@ -25,6 +29,8 @@ function TabBar({
   changedCount = 0,
   conflictCount = 0,
   issueCount = null,
+  offHost = null,
+  onOffHost,
 }: TabBarProps) {
   return (
     <nav className="tab-bar">
@@ -53,6 +59,18 @@ function TabBar({
         <Tab active={active === 'changes'} onClick={() => onChange('changes')}>
           {changesLabel}
         </Tab>
+      )}
+      {offHost && !changesLabel && onOffHost && (
+        <>
+          <Tab active={false} onClick={onOffHost} off={`${offHost.hostname} is off · Integration settings`}>
+            {offHost.changesLabel}
+          </Tab>
+          {issueCount === null && (
+            <Tab active={false} onClick={onOffHost} off={`${offHost.hostname} is off · Integration settings`}>
+              Issues
+            </Tab>
+          )}
+        </>
       )}
       {issueCount !== null && (
         <Tab

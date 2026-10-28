@@ -212,7 +212,7 @@ func (p *Provider) toIssue(is issue) hostapi.Issue {
 	if is.Fields.Status.StatusCategory.Key == "done" {
 		state = "closed"
 	}
-	return hostapi.Issue{Key: is.Key, Title: is.Fields.Summary, State: state, WebURL: p.tracker.IssueURL(is.Key)}
+	return hostapi.Issue{Key: is.Key, Title: is.Fields.Summary, State: state, Status: is.Fields.Status.Name, WebURL: p.tracker.IssueURL(is.Key)}
 }
 
 // toUser keeps the name to show and an id for initials; Cloud has no

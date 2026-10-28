@@ -7,11 +7,20 @@ interface TabProps {
   children: ReactNode
   // The accessible name, when the children's text would not read as one.
   label?: string
+  // A view that is off: shown dimmed, with why in its tooltip; a click still
+  // goes somewhere, such as the setting that turns it on.
+  off?: string
 }
 
-function Tab({ active, onClick, children, label }: TabProps) {
+function Tab({ active, onClick, children, label, off }: TabProps) {
   return (
-    <button type="button" className={active ? 'tab tab-active' : 'tab'} onClick={onClick} aria-label={label}>
+    <button
+      type="button"
+      className={active ? 'tab tab-active' : off ? 'tab tab-off' : 'tab'}
+      onClick={onClick}
+      aria-label={label}
+      title={off}
+    >
       {children}
     </button>
   )

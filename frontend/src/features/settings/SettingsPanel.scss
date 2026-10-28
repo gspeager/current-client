@@ -125,6 +125,11 @@
   font: var(--ui-xs);
 }
 
+.settings-warning {
+  color: var(--warning);
+  font: var(--ui-xs);
+}
+
 .settings-error {
   margin: 0;
   color: var(--error);

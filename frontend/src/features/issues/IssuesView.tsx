@@ -143,6 +143,7 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
               >
                 <span className="host-change-row-head">
                   <span className="issues-row-key">{keyOf(listed)}</span>
+                  {listed.issue.status && <span className="issues-row-status">{listed.issue.status}</span>}
                   <span className="host-change-row-time">{listed.source}</span>
                 </span>
                 <span className="host-change-row-title">{listed.issue.title}</span>
