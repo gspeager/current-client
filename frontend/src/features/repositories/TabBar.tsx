@@ -7,7 +7,6 @@ export type AppTab = 'working-copy' | 'history' | 'activity' | 'changelog' | 'ch
 interface TabBarProps {
   active: AppTab
   onChange: (tab: AppTab) => void
-  showChangelog: boolean
   // "Merge requests" or "Pull requests" while a host is on for the repository; null hides the tab.
   changesLabel?: string | null
   // Changed files in the working tree, shown on the Changes tab.
@@ -22,7 +21,6 @@ interface TabBarProps {
 function TabBar({
   active,
   onChange,
-  showChangelog,
   changesLabel = null,
   changedCount = 0,
   conflictCount = 0,
@@ -70,11 +68,9 @@ function TabBar({
       <Tab active={active === 'activity'} onClick={() => onChange('activity')}>
         Activity
       </Tab>
-      {showChangelog && (
-        <Tab active={active === 'changelog'} onClick={() => onChange('changelog')}>
-          Changelog
-        </Tab>
-      )}
+      <Tab active={active === 'changelog'} onClick={() => onChange('changelog')}>
+        Releases
+      </Tab>
     </nav>
   )
 }

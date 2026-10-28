@@ -279,9 +279,7 @@ function App({
   const [issueFocus, setIssueFocus] = useState<string | null>(null)
   useEffect(() => setIssueFocus(null), [repo.repoPath])
   const activeTab =
-    (rememberedTab === 'changelog' && !conventionalCommitsOn) ||
-    (rememberedTab === 'changes' && !changesLabel) ||
-    (rememberedTab === 'issues' && !issuesOn)
+    (rememberedTab === 'changes' && !changesLabel) || (rememberedTab === 'issues' && !issuesOn)
       ? 'working-copy'
       : rememberedTab
 
@@ -485,18 +483,14 @@ function App({
       keywords: ['stats', 'contributors', 'health'],
       run: () => changeTab('activity'),
     },
-    ...(conventionalCommitsOn
-      ? [
-          {
-            id: 'view-changelog',
-            label: 'Changelog',
-            section: 'Views' as const,
-            icon: ScrollText,
-            keywords: ['release notes', 'releases', 'conventional commits'],
-            run: () => changeTab('changelog'),
-          },
-        ]
-      : []),
+    {
+      id: 'view-releases',
+      label: 'Releases',
+      section: 'Views',
+      icon: ScrollText,
+      keywords: ['changelog', 'release notes', 'next release', 'version'],
+      run: () => changeTab('changelog'),
+    },
     {
       id: 'view-inbox',
       label: 'Inbox',
@@ -552,7 +546,7 @@ function App({
       section: 'Release',
       icon: ClipboardCheck,
       keywords: ['release', 'ready', 'version', 'changelog'],
-      run: () => requestSidebar('release-readiness'),
+      run: () => changeTab('changelog'),
     },
     ...(integration
       ? [
@@ -624,7 +618,6 @@ function App({
               <TabBar
                 active={activeTab}
                 onChange={changeTab}
-                showChangelog={conventionalCommitsOn}
                 changesLabel={changesLabel}
                 issueCount={issuesOn ? (myIssues?.issues?.length ?? 0) : null}
                 changedCount={workingTree.files?.length ?? 0}
@@ -835,6 +828,8 @@ function App({
                       prefs={settings.settings?.changelog ?? null}
                       onPrefsChange={settings.setChangelogPrefs}
                       onOpenCommit={openCommit}
+                      changelog={conventionalCommitsOn}
+                      onTagged={onBranchChanged}
                     />
                   </KeepAlive>
                   <KeepAlive active={activeTab === 'activity'}>
