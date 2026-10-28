@@ -13,6 +13,13 @@
   text-overflow: ellipsis;
 }
 
+// One run of text, so a linked issue key sits in the name with no gap.
+.branch-pill-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .branch-pill-dot {
   width: 6px;
   height: 6px;

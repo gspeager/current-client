@@ -129,13 +129,6 @@ function CommitRow({
             ))}
           </span>
         )}
-        {environments && environments.length > 0 && (
-          <span className="commit-row-refs">
-            {environments.map((env) => (
-              <EnvironmentMarker key={env.environment} environment={env} />
-            ))}
-          </span>
-        )}
         <span className="commit-row-subject">
           {prefix && <span className="commit-row-type">{highlightMatch(prefix, searchQuery, 'search-match')}</span>}
           <ReferenceText
@@ -145,6 +138,7 @@ function CommitRow({
             render={(segment) => highlightMatch(segment, searchQuery, 'search-match')}
           />
         </span>
+        {environments && environments.length > 0 && <EnvironmentMarker environments={environments} />}
       </div>
 
       <div className="commit-row-author">

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen, Users } from 'lucide-react'
 import { type ConflictStateInfo, DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import CommitComposer from './CommitComposer'
@@ -21,6 +21,7 @@ import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useHostLinks } from '../../lib/useHostLinks'
+import { useFileOwners } from '../../lib/useFileOwners'
 import { filePage } from '../../lib/hostPages'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
 import { useConflictResolution } from './useConflictResolution'
@@ -72,6 +73,7 @@ function ChangesView({
   const conflicts = useConflictResolution(repoPath, conflicted.length > 0, actions.run)
   const { confirm } = useDialogs()
   const [selectedPath, setSelectedPath] = useState<string | null>(initialSelectedPath)
+  const selectedOwners = useFileOwners(repoPath, selectedPath ? [selectedPath] : [])[selectedPath ?? '']
   // A staged file's diff is HEAD→index; an unstaged file's is index→working tree.
   const [openSection, setOpenSection] = useState<WorkingTreeSection>('unstaged')
   const [forcedPath, setForcedPath] = useState<string | null>(null)
@@ -263,6 +265,12 @@ function ChangesView({
                   <span className="changes-diff-stat-added">+{stats.added}</span>
                   <span className="changes-diff-stat-removed">-{stats.removed}</span>
                   <span className="changes-diff-stat-hunks">{plural(stats.hunks, 'hunk')}</span>
+                </span>
+              )}
+              {selectedOwners && selectedOwners.length > 0 && (
+                <span className="changes-diff-owners" title="Code owners">
+                  <Users size={12} strokeWidth={1.75} aria-hidden="true" />
+                  {selectedOwners.join(' ')}
                 </span>
               )}
 

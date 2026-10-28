@@ -27,20 +27,22 @@ function BranchPill({ name, color, current, bare, dirty, hostLinks = null, refer
   return (
     <span className={classes.join(' ')}>
       <span className="branch-pill-dot" style={{ background: color }} />
-      {issue ? (
-        <>
-          <ReferenceLink reference={issue} card={referenceCards?.[`#${issue.text}`]} />
-          {name.slice(issue.text.length)}
-        </>
-      ) : key ? (
-        <>
-          {name.slice(0, key.start)}
-          <ReferenceLink reference={key} />
-          {name.slice(key.start + key.text.length)}
-        </>
-      ) : (
-        name
-      )}
+      <span className="branch-pill-name">
+        {issue ? (
+          <>
+            <ReferenceLink reference={issue} card={referenceCards?.[`#${issue.text}`]} />
+            {name.slice(issue.text.length)}
+          </>
+        ) : key ? (
+          <>
+            {name.slice(0, key.start)}
+            <ReferenceLink reference={key} />
+            {name.slice(key.start + key.text.length)}
+          </>
+        ) : (
+          name
+        )}
+      </span>
       {current && dirty && <span className="branch-pill-dirty" title="Uncommitted changes" />}
     </span>
   )

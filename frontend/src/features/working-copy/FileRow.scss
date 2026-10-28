@@ -51,13 +51,12 @@
   gap: var(--space-xs);
 }
 
-// Owners shorten before the counts do.
+// A glyph, so owners never take the file name's room; the names are in its
+// tooltip and the diff header.
 .file-row-owners {
-  min-width: 0;
-  max-width: 140px;
-  @include patterns.truncate;
+  display: inline-flex;
+  flex-shrink: 0;
   color: var(--outline);
-  font: var(--data-sm);
 }
 
 .file-row-tag {

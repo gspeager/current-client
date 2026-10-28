@@ -1,4 +1,5 @@
 import type { MouseEvent } from 'react'
+import { Rocket } from 'lucide-react'
 import { PlatformService, type EnvironmentInfo, type Reach } from '@current-client-bindings/app'
 import HoverCard from '../chrome/HoverCard'
 import { CIIcon, ciLabel } from './CIMark'
@@ -6,43 +7,37 @@ import { ignoreDecorativeFailure } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import './EnvironmentMarker.scss'
 
-// Where an environment's latest deployment runs: a square marker on that
-// commit, like a tag, with how it went. Clicking opens the environment on
-// the host.
-export function EnvironmentMarker({ environment }: { environment: EnvironmentInfo }) {
+// The environments whose latest deployment is this commit: one rocket at the
+// end of the subject, each environment and how its deploy went in the card.
+// Clicking opens the first one on the host.
+export function EnvironmentMarker({ environments }: { environments: EnvironmentInfo[] }) {
+  const names = environments.map((e) => e.environment).join(', ')
   const open = (e: MouseEvent) => {
     e.stopPropagation()
-    if (environment.webUrl) PlatformService.OpenWebPage(environment.webUrl).catch(ignoreDecorativeFailure)
+    const url = environments.find((env) => env.webUrl)?.webUrl
+    if (url) PlatformService.OpenWebPage(url).catch(ignoreDecorativeFailure)
   }
-  const by = environment.deployedBy.name || environment.deployedBy.username
-  const card = (
-    <>
-      <p className="hover-card-title">{environment.environment}</p>
-      <p className="hover-card-line">
-        <CIIcon status={environment.status} />
-        <span>{ciLabel(environment.status).replace('CI ', 'Deploy ')}</span>
-      </p>
-      <p className="hover-card-line hover-card-muted">
-        {[
-          environment.ref && `from ${environment.ref}`,
-          environment.deployedAt && relativeTime(new Date(environment.deployedAt)),
-          by && `by ${by}`,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-      </p>
-    </>
-  )
+  const card = environments.map((env) => {
+    const by = env.deployedBy.name || env.deployedBy.username
+    return (
+      <div key={env.environment}>
+        <p className="hover-card-title">{env.environment}</p>
+        <p className="hover-card-line">
+          <CIIcon status={env.status} />
+          <span>{ciLabel(env.status).replace('CI ', 'Deploy ')}</span>
+        </p>
+        <p className="hover-card-line hover-card-muted">
+          {[env.ref && `from ${env.ref}`, env.deployedAt && relativeTime(new Date(env.deployedAt)), by && `by ${by}`]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+      </div>
+    )
+  })
   return (
-    <HoverCard card={card}>
-      <button
-        type="button"
-        className={`environment-marker${environment.production ? ' environment-marker-production' : ''}`}
-        onClick={open}
-        aria-label={`${environment.environment} is deployed here`}
-      >
-        <CIIcon status={environment.status} size={10} />
-        {environment.environment}
+    <HoverCard card={<>{card}</>}>
+      <button type="button" className="environment-marker" onClick={open} aria-label={`Deployed to ${names}`}>
+        <Rocket size={14} strokeWidth={1.5} />
       </button>
     </HoverCard>
   )
@@ -65,20 +60,5 @@ export function EnvironmentReach({ reach }: { reach: Reach[] }) {
         </li>
       ))}
     </ul>
-  )
-}
-
-// The environments a branch tip is in, as small squares beside the branch.
-export function EnvironmentChips({ reach }: { reach: Reach[] | undefined }) {
-  const reached = (reach ?? []).filter((r) => r.state === 'in')
-  if (reached.length === 0) return null
-  return (
-    <span className="environment-chips">
-      {reached.map((r) => (
-        <span key={r.environment} className="environment-chip" title={`In ${r.environment}`}>
-          {r.environment}
-        </span>
-      ))}
-    </span>
   )
 }

@@ -1,19 +1,13 @@
-// Environments are square, like tags: a commit they mark, not a branch.
-.environment-marker,
-.environment-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0 var(--space-xs);
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--on-surface-variant);
-  font: var(--data-sm);
-  white-space: nowrap;
-}
-
+// A glyph, not a chip: the commit's row has no room for names, and a check
+// here would read as CI.
 .environment-marker {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--outline);
   cursor: pointer;
 
   &:hover {
@@ -23,15 +17,6 @@
   &:focus-visible {
     outline: 1px solid var(--primary);
   }
-}
-
-.environment-marker-production {
-  color: var(--on-surface);
-}
-
-.environment-chips {
-  display: inline-flex;
-  gap: 2px;
 }
 
 .environment-reach {
