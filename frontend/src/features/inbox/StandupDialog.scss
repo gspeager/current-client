@@ -1,5 +1,5 @@
 .standup-panel {
-  width: min(640px, 90vw);
+  width: min(720px, 90vw);
 }
 
 .standup-controls {
@@ -9,7 +9,7 @@
 }
 
 .standup-text {
-  max-height: 50vh;
+  max-height: 60vh;
   margin: 0;
   padding: var(--space-sm);
   overflow: auto;
@@ -18,6 +18,11 @@
   color: var(--on-surface);
   font: var(--data-sm);
   white-space: pre-wrap;
+}
+
+.standup-rendered {
+  font: var(--ui-sm);
+  white-space: normal;
 }
 
 .standup-copy {

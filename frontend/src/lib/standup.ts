@@ -17,7 +17,7 @@ const REVIEW_WORDS: Record<string, string> = {
   commented: 'commented',
 }
 
-function groups(repo: StandupRepo): [string, string[]][] {
+export function standupGroups(repo: StandupRepo): [string, string[]][] {
   const change = (c: { number: number; title: string }) => `${repo.prefix}${c.number} ${c.title}`
   return [
     ['Commits', repo.commits.map((c) => c.subject)],
@@ -31,7 +31,7 @@ function groups(repo: StandupRepo): [string, string[]][] {
 // is left out.
 export function standupText(repos: StandupRepo[], format: StandupFormat): string {
   const blocks = repos.flatMap((repo) => {
-    const parts = groups(repo)
+    const parts = standupGroups(repo)
     if (parts.length === 0) return []
     if (format === 'markdown') {
       return [
