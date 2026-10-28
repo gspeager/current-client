@@ -43,6 +43,7 @@ func TestRefreshBringsTheHostsToDosForOpenRepositories(t *testing.T) {
 		todos: `[
 			{"id": 101, "project": {"path_with_namespace": "group/app"}, "action_name": "mentioned", "target_type": "MergeRequest", "target": {"iid": 7, "title": "Add the thing"}, "target_url": "https://gitlab.example.com/group/app/-/merge_requests/7", "author": {"username": "bob", "name": "Bob"}, "updated_at": "2026-10-20T10:00:00Z"},
 			{"id": 102, "project": {"path_with_namespace": "group/app"}, "action_name": "review_requested", "target_type": "MergeRequest", "target": {"iid": 1, "title": "Bob's change"}, "target_url": "https://gitlab.example.com/group/app/-/merge_requests/1", "author": {"username": "bob", "name": "Bob"}, "updated_at": "2026-10-20T10:00:00Z"},
+			{"id": 105, "project": {"path_with_namespace": "group/app"}, "action_name": "mentioned", "target_type": "Issue", "target": {"iid": 12, "title": "Login fails"}, "target_url": "https://gitlab.example.com/group/app/-/issues/12", "author": {"username": "bob", "name": "Bob"}, "updated_at": "2026-10-20T10:00:00Z"},
 			{"id": 103, "project": {"path_with_namespace": "group/app"}, "action_name": "assigned", "target_type": "Issue", "target": {"iid": 12, "title": "Login fails"}, "target_url": "https://gitlab.example.com/group/app/-/issues/12", "author": {"username": "bob", "name": "Bob"}, "updated_at": "2026-10-20T10:00:00Z"},
 			{"id": 104, "project": {"path_with_namespace": "group/other"}, "action_name": "mentioned", "target_type": "Issue", "target": {"iid": 3, "title": "Elsewhere"}, "target_url": "https://gitlab.example.com/group/other/-/issues/3", "author": {"username": "bob", "name": "Bob"}, "updated_at": "2026-10-20T10:00:00Z"}
 		]`,
@@ -73,8 +74,8 @@ func TestRefreshBringsTheHostsToDosForOpenRepositories(t *testing.T) {
 	if r := rows["review/bobs"]; r.TodoID != "102" {
 		t.Errorf("the review request joins its to-do: %+v", r)
 	}
-	if r := rows["assigned/"]; r.TodoID != "103" {
-		t.Errorf("the assignment joins its to-do: %+v", r)
+	if r := rows["assigned/"]; r.TodoID != "103" || r.Detail != "mentioned" {
+		t.Errorf("the assignment and the mention on the same issue join its row: %+v", r)
 	}
 	if n := len(repos[0].Rows); n != 3 || repos[0].Notice != "" {
 		t.Errorf("rows = %d %+v, notice %q", n, repos[0].Rows, repos[0].Notice)

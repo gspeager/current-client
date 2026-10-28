@@ -287,6 +287,7 @@ function App({
   // waits until that repository is the open one.
   const [inboxOpen, setInboxOpen] = useState(false)
   const [inboxTarget, setInboxTarget] = useState<InboxTarget | null>(null)
+  // A row opens its target in the Inbox's place; the badge keeps the count.
   const goFromInbox = (target: InboxTarget) => {
     setInboxOpen(false)
     setInboxTarget(target)
@@ -318,6 +319,9 @@ function App({
         break
       case 'host':
         void PlatformService.OpenWebPage(target.url)
+        break
+      case 'clean-up':
+        requestSidebar('clean-up')
         break
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -614,16 +618,14 @@ function App({
               defaultRepoLocation={settings.settings?.defaultRepoLocation ?? ''}
               accessory={headerAccessory}
             />
-            {!inboxOpen && (
-              <TabBar
-                active={activeTab}
-                onChange={changeTab}
-                changesLabel={changesLabel}
-                issueCount={issuesOn ? (myIssues?.issues?.length ?? 0) : null}
-                changedCount={workingTree.files?.length ?? 0}
-                conflictCount={conflictState?.conflictedPaths.length ?? 0}
-              />
-            )}
+            <TabBar
+              active={activeTab}
+              onChange={changeTab}
+              changesLabel={changesLabel}
+              issueCount={issuesOn ? (myIssues?.issues?.length ?? 0) : null}
+              changedCount={workingTree.files?.length ?? 0}
+              conflictCount={conflictState?.conflictedPaths.length ?? 0}
+            />
 
             {conflictState && (
               <ConflictBanner
@@ -716,8 +718,141 @@ function App({
               </p>
             )}
 
-            {inboxOpen ? (
-              <div className="app-body">
+            <div className="app-body">
+              <NavPane
+                key={repo.repoPath}
+                repoPath={repo.repoPath}
+                repoVersion={repoVersion}
+                workingTree={workingTree}
+                workspaceActions={workspace.actions}
+                workspaceFeedback={workspace.feedback}
+                onDismissFeedback={workspace.dismissFeedback}
+                hostVersion={hostRefresh}
+                request={sidebarRequest}
+                onPushToCreate={
+                  requestCreateChange
+                    ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))
+                    : undefined
+                }
+                conflictState={conflictState}
+                onBranchChanged={onBranchChanged}
+                onFetched={onFetched}
+                pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
+                onOpenHeadCommit={openCommit}
+                onOpenChange={openChange}
+                onOpenFile={openWorkingFile}
+                onCreateChange={requestCreateChange}
+                onOpenRepository={repo.openRecent}
+                width={navWidth.width}
+                collapsed={navCollapsed}
+                onCollapsedChange={settings.setNavCollapsed}
+              />
+              {!navCollapsed && <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />}
+
+              <main className="app-main">
+                <KeepAlive active={activeTab === 'working-copy'}>
+                  <ChangesView
+                    key={`${repo.repoPath}-${repoVersion}-${fileFocus}`}
+                    repoPath={repo.repoPath}
+                    workingTree={workingTree}
+                    onPushRequested={push}
+                    onBranchChanged={onBranchChanged}
+                    defaultIgnoreWhitespace={settings.settings?.diffIgnoreWhitespaceDefault ?? false}
+                    diffExpanded={settings.settings?.diffExpanded ?? false}
+                    onDiffExpandedChange={settings.setDiffExpanded}
+                    initialSelectedPath={restored.selectedFilePath}
+                    onSelectedPathChange={(path) => remember({ selectedFilePath: path })}
+                    initialCommitDraft={restored.commitDraft}
+                    onCommitDraftChange={(message) => remember({ commitDraft: message })}
+                    showCommitTypePicker={conventionalCommitsOn}
+                    conflict={conflictState}
+                  />
+                </KeepAlive>
+                <KeepAlive active={activeTab === 'history'}>
+                  <HistoryView
+                    key={`${repo.repoPath}-${repoVersion}-${focus?.request ?? 0}`}
+                    repoPath={repo.repoPath}
+                    conventional={conventional ?? false}
+                    initialSelectedSha={restored.selectedCommitSha}
+                    initialLoadThrough={focus?.position ?? null}
+                    initialRef={focus?.ref ?? null}
+                    defaultRef={refFromSaved(settings.settings?.historyBranchFilter)}
+                    onRefChange={(ref) => settings.setHistoryBranchFilter(savedFromRef(ref))}
+                    firstParent={settings.settings?.historyFirstParent ?? false}
+                    onFirstParentChange={settings.setHistoryFirstParent}
+                    changedFiles={workingTree.files?.length ?? 0}
+                    onOpenChanges={() => setActiveTab('working-copy')}
+                    onBranchChanged={onBranchChanged}
+                    previousTopSha={restored.historyTopSha}
+                    onTopShaChange={(sha) => remember({ historyTopSha: sha })}
+                    onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
+                  />
+                </KeepAlive>
+                {changesLabel && (
+                  <KeepAlive active={activeTab === 'changes'}>
+                    <HostChangesView
+                      key={`${repo.repoPath}-${hostsVersion}`}
+                      repoPath={repo.repoPath}
+                      label={changesLabel}
+                      selectedNumber={changeFocus}
+                      onRefreshed={() => {
+                        collectHostNotices()
+                        setHostRefresh((n) => n + 1)
+                      }}
+                      onBranchChanged={onBranchChanged}
+                      onCreateChange={requestCreateChange}
+                      onOpenSettings={() => openSettings()}
+                      onMerged={(result) => {
+                        onBranchChanged()
+                        setHostRefresh((n) => n + 1)
+                        if (result.localBranch) requestSidebar('clean-up')
+                      }}
+                    />
+                  </KeepAlive>
+                )}
+                <KeepAlive active={activeTab === 'changelog'}>
+                  <ChangelogView
+                    key={repo.repoPath}
+                    repoPath={repo.repoPath}
+                    repoVersion={repoVersion}
+                    prefs={settings.settings?.changelog ?? null}
+                    onPrefsChange={settings.setChangelogPrefs}
+                    onOpenCommit={openCommit}
+                    changelog={conventionalCommitsOn}
+                    onTagged={onBranchChanged}
+                  />
+                </KeepAlive>
+                <KeepAlive active={activeTab === 'activity'}>
+                  <ActivityView
+                    key={repo.repoPath}
+                    repoPath={repo.repoPath}
+                    repoVersion={repoVersion}
+                    dirty={dirty}
+                    hasConflict={conflictState !== null}
+                  />
+                </KeepAlive>
+                {issuesOn && (
+                  <KeepAlive active={activeTab === 'issues'}>
+                    <IssuesView
+                      key={`${repo.repoPath}-${hostsVersion}`}
+                      repoPath={repo.repoPath}
+                      selectedKey={issueFocus}
+                      refreshKey={hostRefresh}
+                      onRefreshed={() => setHostRefresh((n) => n + 1)}
+                      onBranchChanged={onBranchChanged}
+                    />
+                  </KeepAlive>
+                )}
+              </main>
+              {openIssueKey && (
+                <IssuePanel
+                  repoPath={repo.repoPath}
+                  issueKey={openIssueKey}
+                  onClose={() => setOpenIssueKey(null)}
+                  onBranchChanged={onBranchChanged}
+                />
+              )}
+              {inboxOpen && (
                 <InboxView
                   paths={repo.tabs}
                   activePath={repo.repoPath}
@@ -726,144 +861,8 @@ function App({
                   onRefreshed={() => setHostRefresh((n) => n + 1)}
                   onClose={() => setInboxOpen(false)}
                 />
-              </div>
-            ) : (
-              <div className="app-body">
-                <NavPane
-                  key={repo.repoPath}
-                  repoPath={repo.repoPath}
-                  repoVersion={repoVersion}
-                  workingTree={workingTree}
-                  workspaceActions={workspace.actions}
-                  workspaceFeedback={workspace.feedback}
-                  onDismissFeedback={workspace.dismissFeedback}
-                  hostVersion={hostRefresh}
-                  request={sidebarRequest}
-                  onPushToCreate={
-                    requestCreateChange
-                      ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))
-                      : undefined
-                  }
-                  conflictState={conflictState}
-                  onBranchChanged={onBranchChanged}
-                  onFetched={onFetched}
-                  pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
-                  onOpenHeadCommit={openCommit}
-                  onOpenChange={openChange}
-                  onOpenFile={openWorkingFile}
-                  onCreateChange={requestCreateChange}
-                  onOpenRepository={repo.openRecent}
-                  width={navWidth.width}
-                  collapsed={navCollapsed}
-                  onCollapsedChange={settings.setNavCollapsed}
-                />
-                {!navCollapsed && <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />}
-
-                <main className="app-main">
-                  <KeepAlive active={activeTab === 'working-copy'}>
-                    <ChangesView
-                      key={`${repo.repoPath}-${repoVersion}-${fileFocus}`}
-                      repoPath={repo.repoPath}
-                      workingTree={workingTree}
-                      onPushRequested={push}
-                      onBranchChanged={onBranchChanged}
-                      defaultIgnoreWhitespace={settings.settings?.diffIgnoreWhitespaceDefault ?? false}
-                      diffExpanded={settings.settings?.diffExpanded ?? false}
-                      onDiffExpandedChange={settings.setDiffExpanded}
-                      initialSelectedPath={restored.selectedFilePath}
-                      onSelectedPathChange={(path) => remember({ selectedFilePath: path })}
-                      initialCommitDraft={restored.commitDraft}
-                      onCommitDraftChange={(message) => remember({ commitDraft: message })}
-                      showCommitTypePicker={conventionalCommitsOn}
-                      conflict={conflictState}
-                    />
-                  </KeepAlive>
-                  <KeepAlive active={activeTab === 'history'}>
-                    <HistoryView
-                      key={`${repo.repoPath}-${repoVersion}-${focus?.request ?? 0}`}
-                      repoPath={repo.repoPath}
-                      conventional={conventional ?? false}
-                      initialSelectedSha={restored.selectedCommitSha}
-                      initialLoadThrough={focus?.position ?? null}
-                      initialRef={focus?.ref ?? null}
-                      defaultRef={refFromSaved(settings.settings?.historyBranchFilter)}
-                      onRefChange={(ref) => settings.setHistoryBranchFilter(savedFromRef(ref))}
-                      firstParent={settings.settings?.historyFirstParent ?? false}
-                      onFirstParentChange={settings.setHistoryFirstParent}
-                      changedFiles={workingTree.files?.length ?? 0}
-                      onOpenChanges={() => setActiveTab('working-copy')}
-                      onBranchChanged={onBranchChanged}
-                      previousTopSha={restored.historyTopSha}
-                      onTopShaChange={(sha) => remember({ historyTopSha: sha })}
-                      onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
-                    />
-                  </KeepAlive>
-                  {changesLabel && (
-                    <KeepAlive active={activeTab === 'changes'}>
-                      <HostChangesView
-                        key={`${repo.repoPath}-${hostsVersion}`}
-                        repoPath={repo.repoPath}
-                        label={changesLabel}
-                        selectedNumber={changeFocus}
-                        onRefreshed={() => {
-                          collectHostNotices()
-                          setHostRefresh((n) => n + 1)
-                        }}
-                        onBranchChanged={onBranchChanged}
-                        onCreateChange={requestCreateChange}
-                        onOpenSettings={() => openSettings()}
-                        onMerged={(result) => {
-                          onBranchChanged()
-                          setHostRefresh((n) => n + 1)
-                          if (result.localBranch) requestSidebar('clean-up')
-                        }}
-                      />
-                    </KeepAlive>
-                  )}
-                  <KeepAlive active={activeTab === 'changelog'}>
-                    <ChangelogView
-                      key={repo.repoPath}
-                      repoPath={repo.repoPath}
-                      repoVersion={repoVersion}
-                      prefs={settings.settings?.changelog ?? null}
-                      onPrefsChange={settings.setChangelogPrefs}
-                      onOpenCommit={openCommit}
-                      changelog={conventionalCommitsOn}
-                      onTagged={onBranchChanged}
-                    />
-                  </KeepAlive>
-                  <KeepAlive active={activeTab === 'activity'}>
-                    <ActivityView
-                      key={repo.repoPath}
-                      repoPath={repo.repoPath}
-                      repoVersion={repoVersion}
-                      dirty={dirty}
-                      hasConflict={conflictState !== null}
-                    />
-                  </KeepAlive>
-                  {issuesOn && (
-                    <KeepAlive active={activeTab === 'issues'}>
-                      <IssuesView
-                        key={`${repo.repoPath}-${hostsVersion}`}
-                        repoPath={repo.repoPath}
-                        selectedKey={issueFocus}
-                        refreshKey={hostRefresh}
-                        onRefreshed={() => setHostRefresh((n) => n + 1)}
-                        onBranchChanged={onBranchChanged}
-                      />
-                    </KeepAlive>
-                  )}
-                </main>
-                {openIssueKey && (
-                  <IssuePanel
-                    repoPath={repo.repoPath}
-                    issueKey={openIssueKey}
-                    onClose={() => setOpenIssueKey(null)}
-                    onBranchChanged={onBranchChanged}
-                  />
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             <StatusBar
               repoPath={repo.repoPath}

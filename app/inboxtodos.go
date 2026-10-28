@@ -73,6 +73,11 @@ func todoRows(rows []InboxRow, info HostInfo, prefix string) ([]InboxRow, string
 	for _, todo := range cached.([]hostapi.Todo) {
 		if i := rowSaying(rows, todo); i >= 0 {
 			rows[i].TodoID = todo.ID
+			// A mention on an issue you're assigned is that issue's row too,
+			// with why the host listed it beside what the row already says.
+			if rows[i].Kind == "assigned" && todo.Reason != hostapi.TodoAssigned {
+				rows[i].Detail = strings.TrimPrefix(rows[i].Detail+", "+todo.Reason, ", ")
+			}
 			continue
 		}
 		row := InboxRow{ID: "todo:" + todo.ID, Kind: "todo", TodoID: todo.ID, Title: todo.Title, Detail: todo.Reason, WebURL: todo.WebURL, FetchedAt: &fetched}
@@ -92,7 +97,7 @@ func rowSaying(rows []InboxRow, todo hostapi.Todo) int {
 		switch {
 		case todo.Reason == hostapi.TodoReviewRequested && todo.Target == "change" && row.Kind == "review" && row.Number == todo.Number:
 			return i
-		case todo.Reason == hostapi.TodoAssigned && todo.Target == "issue" && row.Kind == "assigned" && row.Key == strconv.Itoa(todo.Number):
+		case todo.Target == "issue" && row.Kind == "assigned" && row.Key == strconv.Itoa(todo.Number):
 			return i
 		}
 	}

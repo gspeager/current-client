@@ -28,16 +28,38 @@
 
 // The count sits on the icon's top-right corner, in the review-state
 // color, reaching past the button so two digits leave the icon readable.
+.header-bar-inbox {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.header-bar-inbox-open {
+  background: var(--surface-container);
+  color: var(--on-surface);
+}
+
 .header-bar-inbox-count {
-  position: absolute;
-  top: -2px;
-  right: -6px;
   min-width: 14px;
   height: 14px;
   padding: 0 3px;
   border-radius: var(--radius-full);
   background: var(--secondary);
-  color: var(--on-secondary, var(--surface));
+  color: var(--on-secondary);
   font: var(--data-sm);
   line-height: 14px;
   text-align: center;
