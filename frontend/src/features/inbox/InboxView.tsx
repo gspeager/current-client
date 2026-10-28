@@ -36,6 +36,7 @@ export type InboxTarget =
   // A to-do about something the app has no view for, such as a commit or a
   // release: the host's page.
   | { path: string; kind: 'host'; url: string }
+  | { path: string; kind: 'clean-up' }
 
 interface InboxViewProps {
   paths: string[]
@@ -85,6 +86,16 @@ export function targetOf(path: string, row: InboxRow): InboxTarget {
       return { path, kind: 'branch', branch: row.branch }
   }
 }
+
+// Three questions, in the order they matter: what waits on you, what is
+// yours in flight, and what could be tidied.
+const GROUPS: { name: string; kinds: string[] }[] = [
+  { name: 'Needs you', kinds: ['review', 'changes-requested', 'ci-failed', 'todo'] },
+  { name: 'Your work', kinds: ['dirty', 'operation', 'conflict', 'unpushed', 'assigned', 'undeployed'] },
+  { name: 'Tidy up', kinds: ['merged', 'stale'] },
+]
+
+const groupOf = (kind: string) => GROUPS.find((g) => g.kinds.includes(kind)) ?? GROUPS[1]
 
 // What the row says, and why it is here.
 function describe(row: InboxRow): { subject: string; reason: string } {
@@ -146,7 +157,7 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
   const isOpen = (path: string) => folded[path] ?? path === activePath
 
   return (
-    <section className="inbox" aria-label="Inbox">
+    <aside className="inbox" aria-label="Inbox">
       <header className="inbox-header">
         <h2 className="inbox-title">Inbox</h2>
         <span className="inbox-summary">
@@ -164,8 +175,7 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
         </button>
         {onClose && (
           <button type="button" className="inbox-close" onClick={onClose} aria-label="Close Inbox" title="Close Inbox">
-            <X size={14} strokeWidth={1.75} />
-            Close
+            <X size={16} strokeWidth={1.75} />
           </button>
         )}
       </header>
@@ -182,7 +192,7 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
         />
       ))}
       {standup && <StandupDialog paths={paths} onClose={() => setStandup(false)} />}
-    </section>
+    </aside>
   )
 }
 
@@ -228,11 +238,12 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
           <span className="inbox-repo-count">{repo.rows.length}</span>
           {fresh > 0 && <span className="inbox-repo-new">{fresh} new</span>}
         </button>
+        {repo.fetchedAt && <span className="inbox-repo-age">host {relativeTime(new Date(repo.fetchedAt))}</span>}
       </h3>
       {repo.error && <p className="inbox-error">{repo.error}</p>}
       {open && unrefreshed && (
         <p className="inbox-hint inbox-unrefreshed">
-          {refreshing ? 'Refreshing from the host…' : 'The host hasn’t been refreshed yet, so its rows aren’t known.'}
+          {refreshing ? 'Refreshing…' : 'Host not read yet.'}
           {!refreshing && (
             <button type="button" className="inbox-refresh" onClick={refresh}>
               <RefreshCw size={12} strokeWidth={1.75} />
@@ -245,45 +256,63 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
       {open && repo.notice && <p className="inbox-hint">{repo.notice}</p>}
       {doneError && <p className="inbox-error">Could not mark it done: {doneError}</p>}
       {open && !repo.error && !unrefreshed && repo.rows.length === 0 && <p className="inbox-hint">Nothing waiting.</p>}
-      {open && repo.rows.length > 0 && (
-        <ul className="inbox-rows">
-          {repo.rows.map((row, i) => {
-            const Icon = ICONS[row.kind] ?? CircleDot
-            const { subject, reason } = describe(row)
-            return (
-              <li key={`${row.kind}-${row.branch}-${row.number}-${row.key}-${i}`} className="inbox-item">
-                <button
-                  type="button"
-                  className={`inbox-row inbox-row-${row.kind}`}
-                  onClick={() => onGo(targetOf(repo.path, row))}
-                >
-                  <Icon size={14} strokeWidth={1.75} className="inbox-row-icon" />
-                  <span className="inbox-row-text">
-                    <span className="inbox-row-subject">{subject}</span>
-                    <span className="inbox-row-reason">{reason}</span>
-                    {row.new && <span className="inbox-row-new">new</span>}
-                  </span>
-                  {row.fetchedAt && (
-                    <span className="inbox-row-age">from the host {relativeTime(new Date(row.fetchedAt))}</span>
-                  )}
-                </button>
-                {row.todoId && (
+      {open &&
+        GROUPS.map((group) => {
+          const rows = repo.rows.filter((row) => groupOf(row.kind) === group)
+          if (rows.length === 0) return null
+          return (
+            <section key={group.name} className="inbox-group" aria-label={`${repo.name}: ${group.name}`}>
+              <h4 className="inbox-group-label">
+                {group.name}
+                <span className="inbox-group-count">{rows.length}</span>
+                {group.name === 'Tidy up' && (
                   <button
                     type="button"
-                    className="inbox-row-done"
-                    onClick={() => markDone(row)}
-                    aria-label={`Mark done: ${subject}`}
-                    title="Mark done on the host"
+                    className="inbox-group-action"
+                    onClick={() => onGo({ path: repo.path, kind: 'clean-up' })}
                   >
-                    <Check size={12} strokeWidth={1.75} />
-                    Done
+                    Clean up…
                   </button>
                 )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
+              </h4>
+              <ul className="inbox-rows">
+                {rows.map((row, i) => {
+                  const Icon = ICONS[row.kind] ?? CircleDot
+                  const { subject, reason } = describe(row)
+                  return (
+                    <li key={`${row.kind}-${row.branch}-${row.number}-${row.key}-${i}`} className="inbox-item">
+                      <button
+                        type="button"
+                        className={`inbox-row inbox-row-${row.kind}`}
+                        onClick={() => onGo(targetOf(repo.path, row))}
+                        title={`${subject} · ${reason}`}
+                      >
+                        <Icon size={14} strokeWidth={1.75} className="inbox-row-icon" />
+                        <span className="inbox-row-text">
+                          <span className="inbox-row-subject">{subject}</span>
+                          <span className="inbox-row-reason">{reason}</span>
+                        </span>
+                        {row.new && <span className="inbox-row-new" role="img" aria-label="new" />}
+                      </button>
+                      {row.todoId && (
+                        <button
+                          type="button"
+                          className="inbox-row-done"
+                          onClick={() => markDone(row)}
+                          aria-label={`Mark done: ${subject}`}
+                          title="Mark done on the host"
+                        >
+                          <Check size={12} strokeWidth={1.75} />
+                          Done
+                        </button>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )
+        })}
     </section>
   )
 }

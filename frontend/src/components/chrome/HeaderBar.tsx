@@ -349,17 +349,18 @@ function HeaderBar({
       {onToggleInbox && (
         <button
           type="button"
-          className={inboxOpen ? 'header-bar-icon-button header-bar-icon-button-active' : 'header-bar-icon-button'}
+          className={inboxOpen ? 'header-bar-inbox header-bar-inbox-open' : 'header-bar-inbox'}
           aria-pressed={inboxOpen}
           aria-label={inboxUnseen > 0 ? `Inbox, ${inboxUnseen} new` : 'Inbox'}
           title={
             inboxUnseen > 0
-              ? `Inbox: ${inboxUnseen} new since the last refresh`
-              : 'Inbox: what waits on you across the open repositories'
+              ? `${inboxUnseen} new since the last refresh, across the open repositories`
+              : 'What waits on you across the open repositories'
           }
           onClick={onToggleInbox}
         >
-          <Inbox size={18} strokeWidth={1.75} />
+          <Inbox size={14} strokeWidth={1.75} />
+          Inbox
           {inboxUnseen > 0 && <span className="header-bar-inbox-count">{inboxUnseen}</span>}
         </button>
       )}

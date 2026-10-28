@@ -48,6 +48,7 @@ describe('InboxView', () => {
             detail: '!4 failing CI',
             fetchedAt: new Date().toISOString(),
           }),
+          row({ kind: 'merged', branch: 'old-work', detail: 'origin/main' }),
         ],
       },
       { path: '/repos/lib', name: 'lib', error: '', rows: [], hostEnabled: false, fetchedAt: null },
@@ -56,7 +57,17 @@ describe('InboxView', () => {
     render(<InboxView paths={['/repos/app', '/repos/lib']} activePath="/repos/app" refreshKey={0} onGo={onGo} />)
 
     const app = await screen.findByRole('region', { name: 'app' })
-    expect(screen.getByText('4 items')).toBeInTheDocument()
+    expect(screen.getByText('5 items')).toBeInTheDocument()
+    // Grouped by what each asks of you, in that order.
+    expect(
+      within(app)
+        .getAllByRole('heading', { level: 4 })
+        .map((h) => h.textContent),
+    ).toEqual(['Needs you1', 'Your work3', 'Tidy up1Clean up…'])
+    expect(
+      within(screen.getByRole('region', { name: 'app: Needs you' })).getByText(/Add the thing/),
+    ).toBeInTheDocument()
+    expect(within(app).getByText(/^host /)).toBeInTheDocument()
     expect(InboxService.Rows).toHaveBeenCalledWith(['/repos/app', '/repos/lib'], true)
     // Only the open repository starts expanded; the rest fold to a header.
     const lib = screen.getByRole('region', { name: 'lib' })
@@ -64,21 +75,24 @@ describe('InboxView', () => {
     expect(within(lib).queryByText('Nothing waiting.')).toBeNull()
     await userEvent.click(within(lib).getByRole('button', { name: /lib/ }))
     expect(within(lib).getByText('Nothing waiting.')).toBeInTheDocument()
-    expect(within(app).getByRole('button', { name: /app.*4.*1 new/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(within(app).getByRole('button', { name: /app.*5.*1 new/ })).toHaveAttribute('aria-expanded', 'true')
 
     await userEvent.click(within(app).getByRole('button', { name: /3 changed files/ }))
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'changes' })
     await userEvent.click(within(app).getByRole('button', { name: /feature.*2 unpushed commits/ }))
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'branch', branch: 'feature' })
     const review = within(app).getByRole('button', { name: /!7 Add the thing/ })
-    expect(review).toHaveTextContent('from the host')
-    expect(within(review).getByText('new')).toBeInTheDocument()
-    expect(within(within(app).getByRole('button', { name: /3 changed files/ })).queryByText('new')).toBeNull()
+    expect(within(review).getByRole('img', { name: 'new' })).toBeInTheDocument()
+    expect(
+      within(within(app).getByRole('button', { name: /3 changed files/ })).queryByRole('img', { name: 'new' }),
+    ).toBeNull()
     await userEvent.click(review)
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'change', number: 7 })
     await userEvent.click(within(app).getByRole('button', { name: /#12 Login fails/ }))
     expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'issue', key: '12' })
     expect(within(app).getByText('assigned, !4 failing CI')).toBeInTheDocument()
+    await userEvent.click(within(app).getByRole('button', { name: 'Clean up…' }))
+    expect(onGo).toHaveBeenLastCalledWith({ path: '/repos/app', kind: 'clean-up' })
   })
 
   it('lists the host’s to-dos, marks one done on the host, and says when the host won’t list them', async () => {
@@ -174,7 +188,7 @@ describe('InboxView', () => {
       />,
     )
 
-    expect(await screen.findByText(/hasn’t been refreshed yet/)).toBeInTheDocument()
+    expect(await screen.findByText(/Host not read yet/)).toBeInTheDocument()
     expect(screen.queryByText('Nothing waiting.')).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     expect(HostService.Refresh).toHaveBeenCalledWith('/repos/app')
