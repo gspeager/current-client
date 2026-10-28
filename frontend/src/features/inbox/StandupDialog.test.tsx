@@ -43,6 +43,29 @@ describe('StandupDialog', () => {
     expect(HostService.Refresh).not.toHaveBeenCalled()
   })
 
+  it('shows the Markdown formatted, and copies it as rich text with the Markdown beside', async () => {
+    vi.mocked(InboxService.Standup).mockResolvedValue([repo({})])
+    const write = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { write } })
+    vi.stubGlobal(
+      'ClipboardItem',
+      class {
+        constructor(public items: Record<string, Blob>) {}
+      },
+    )
+    render(<StandupDialog paths={['/r/app']} onClose={vi.fn()} />)
+    await screen.findByLabelText('Standup text')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Rendered' }))
+    expect(screen.getByRole('heading', { name: 'app' })).toBeInTheDocument()
+    expect(screen.getByRole('listitem')).toHaveTextContent('feat: forms')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy' }))
+    const { items } = write.mock.calls[0][0][0] as { items: Record<string, Blob> }
+    expect(await items['text/plain'].text()).toBe('### app\n\n**Commits**\n\n- feat: forms')
+    expect(await items['text/html'].text()).toContain('<h3>app</h3>')
+    vi.unstubAllGlobals()
+  })
+
   it('says when there is nothing', async () => {
     vi.mocked(InboxService.Standup).mockResolvedValue([repo({ commits: [] })])
     render(<StandupDialog paths={['/r/app']} onClose={vi.fn()} />)
