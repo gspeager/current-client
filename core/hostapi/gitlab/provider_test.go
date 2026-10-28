@@ -255,6 +255,21 @@ func TestAssignedIssuesFromRecordedFixture(t *testing.T) {
 	}
 }
 
+func TestProjectIssuesByState(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{
+		"GET " + api + "/issues?order_by=updated_at&per_page=50&state=opened": "assigned_issues.json",
+		"GET " + api + "/issues?order_by=updated_at&per_page=50&state=closed": `[{"iid": 7, "title": "Old", "state": "closed"}]`,
+	})
+	open, err := p.ProjectIssues(context.Background(), project, true)
+	if err != nil || len(open) != 3 {
+		t.Fatalf("open ProjectIssues = %+v, %v", open, err)
+	}
+	closed, err := p.ProjectIssues(context.Background(), project, false)
+	if err != nil || len(closed) != 1 || closed[0].Number != 7 || closed[0].State != "closed" {
+		t.Fatalf("closed ProjectIssues = %+v, %v", closed, err)
+	}
+}
+
 func TestCreateChangeSendsADraftTitle(t *testing.T) {
 	p, f := newProvider(t, map[string]string{"POST " + api + "/merge_requests": "created_merge_request.json"})
 	change, err := p.CreateChange(context.Background(), project, hostapi.NewChange{

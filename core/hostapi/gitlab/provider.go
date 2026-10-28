@@ -355,7 +355,27 @@ func (p *Provider) AssignedIssues(ctx context.Context, project, username string)
 	return issues, nil
 }
 
-var _ hostapi.IssueTracker = (*Provider)(nil)
+func (p *Provider) ProjectIssues(ctx context.Context, project string, open bool) ([]hostapi.Issue, error) {
+	state := "closed"
+	if open {
+		state = "opened"
+	}
+	var page []issue
+	query := url.Values{"state": {state}, "order_by": {"updated_at"}, "per_page": {"50"}}
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "issues"), query, &page); err != nil {
+		return nil, hostapi.WithScope(err, readScope)
+	}
+	issues := make([]hostapi.Issue, 0, len(page))
+	for _, is := range page {
+		issues = append(issues, toIssue(is))
+	}
+	return issues, nil
+}
+
+var (
+	_ hostapi.IssueTracker = (*Provider)(nil)
+	_ hostapi.IssueLister  = (*Provider)(nil)
+)
 
 func (p *Provider) IssueByKey(ctx context.Context, project, key string) (hostapi.Issue, error) {
 	number, err := hostapi.IssueNumber(key)

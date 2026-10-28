@@ -1,11 +1,5 @@
 // The Issues tab borrows the Pull requests tab's header, list and rows
 // (HostChangesView.scss); these are what it has of its own.
-.issues-filter {
-  color: var(--on-surface-variant);
-  font: var(--ui-sm);
-  white-space: nowrap;
-}
-
 .issues-row-key {
   color: var(--on-surface-variant);
   font: var(--data-sm);

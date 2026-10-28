@@ -22,7 +22,10 @@ type Provider struct {
 	tracker hostlink.Tracker
 }
 
-var _ hostapi.IssueTracker = (*Provider)(nil)
+var (
+	_ hostapi.IssueTracker = (*Provider)(nil)
+	_ hostapi.IssueLister  = (*Provider)(nil)
+)
 
 // HostName is how the client names the site: its host, with a port if it
 // has one.
@@ -92,7 +95,24 @@ func (p *Provider) IssueByKey(ctx context.Context, _, rawKey string) (hostapi.Is
 // AssignedIssues asks for the user the token belongs to, so username is
 // unused; with project keys set, only those projects.
 func (p *Provider) AssignedIssues(ctx context.Context, _, _ string) ([]hostapi.Issue, error) {
-	jql := "assignee = currentUser() AND statusCategory != Done"
+	return p.search(ctx, "assignee = currentUser() AND statusCategory != Done")
+}
+
+// ProjectIssues lists the configured projects' issues; without project keys
+// it lists nothing rather than the whole site.
+func (p *Provider) ProjectIssues(ctx context.Context, _ string, open bool) ([]hostapi.Issue, error) {
+	if len(p.tracker.Keys) == 0 {
+		return nil, nil
+	}
+	if open {
+		return p.search(ctx, "statusCategory != Done")
+	}
+	return p.search(ctx, "statusCategory = Done")
+}
+
+// search is one page of issues matching jql, limited to the project keys
+// when set, most recently updated first.
+func (p *Provider) search(ctx context.Context, jql string) ([]hostapi.Issue, error) {
 	if len(p.tracker.Keys) > 0 {
 		jql += " AND project in (" + strings.Join(p.tracker.Keys, ", ") + ")"
 	}

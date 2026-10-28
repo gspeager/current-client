@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import { HostService, type ListedIssue } from '@current-client-bindings/app'
 import IssueDetail from '../host-changes/IssueDetail'
+import SegmentedControl from '../../components/controls/SegmentedControl'
 import { errorMessage } from '../../lib/errors'
 import { useNewIssue } from '../../lib/issuePanel'
 import { relativeTime } from '../../lib/relativeTime'
@@ -20,10 +21,13 @@ interface IssuesViewProps {
   onBranchChanged: () => void
 }
 
+type Filter = 'mine' | 'all' | 'closed'
+
 const keyOf = (listed: ListedIssue) => (/^\d+$/.test(listed.issue.key) ? `#${listed.issue.key}` : listed.issue.key)
 
-// The issues assigned to you on the host and the tracker, from the last
-// refresh, with the selected one as the pane beside the list.
+// The issues on the host and the tracker: assigned to you from the last
+// refresh, or the project's open or closed ones once asked for, with the
+// selected one as the pane beside the list.
 function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onBranchChanged }: IssuesViewProps) {
   useClockTick()
   const { data: list, reload } = useAsyncData(() => HostService.MyIssues(repoPath), [repoPath], {
@@ -35,6 +39,18 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
   useEffect(() => setSelected(selectedKey), [selectedKey])
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<Filter>('mine')
+  // All and Closed ask the services the first time each is chosen and are
+  // kept until a refresh, as the Pull requests tab's Closed is.
+  const {
+    data: projectList,
+    error: projectError,
+    reload: reloadProject,
+  } = useAsyncData(
+    () => (filter === 'mine' ? null : HostService.ProjectIssues(repoPath, filter === 'all')),
+    [repoPath, filter],
+    { refreshKey },
+  )
 
   const refresh = () => {
     setRefreshing(true)
@@ -42,6 +58,7 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
     HostService.Refresh(repoPath)
       .then(() => {
         reload()
+        reloadProject()
         onRefreshed?.()
       })
       .catch((err: unknown) => setRefreshError(errorMessage(err)))
@@ -57,10 +74,11 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
 
   if (!list?.enabled) return null
 
-  const issues = list.issues ?? []
+  const shownList = filter === 'mine' ? list : projectList
+  const issues = shownList?.issues ?? []
   const activeKey = selected ?? issues[0]?.issue.key ?? null
   const active = issues.find((i) => i.issue.key === activeKey)
-  const fetched = list.sources
+  const fetched = (shownList ?? list).sources
     .map((s) => s.fetchedAt)
     .filter((at): at is string => !!at)
     .sort()[0]
@@ -73,7 +91,18 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
           {list.sources.map((s) => s.name).join(' · ')}
           {fetched ? ` · fetched ${relativeTime(new Date(fetched))}` : ' · not fetched yet'}
         </span>
-        <span className="issues-filter">Mine {issues.length}</span>
+        <SegmentedControl
+          value={filter}
+          onChange={(next) => {
+            setFilter(next)
+            setSelected(null)
+          }}
+          options={[
+            { value: 'mine' as const, label: `Mine ${list.issues?.length ?? 0}` },
+            { value: 'all' as const, label: 'All' },
+            { value: 'closed' as const, label: 'Closed' },
+          ]}
+        />
         <button
           type="button"
           className="host-changes-refresh"
@@ -91,11 +120,17 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
           </button>
         )}
       </header>
-      {refreshError && <p className="host-changes-error">{refreshError}</p>}
+      {(refreshError || projectError) && <p className="host-changes-error">{refreshError ?? projectError}</p>}
       <div className="host-changes-body">
         <ul className="host-changes-list" aria-label="Issues list">
           {issues.length === 0 && (
-            <li className="host-changes-empty">{fetched ? 'None assigned to you.' : 'Refresh to load.'}</li>
+            <li className="host-changes-empty">
+              {filter !== 'mine' && !projectList
+                ? 'Loading…'
+                : !fetched
+                  ? 'Refresh to load.'
+                  : { mine: 'None assigned to you.', all: 'None open.', closed: 'None closed.' }[filter]}
+            </li>
           )}
           {issues.map((listed) => (
             <li key={`${listed.source}:${listed.issue.key}`}>

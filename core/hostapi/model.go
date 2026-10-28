@@ -220,6 +220,14 @@ type NewIssue struct {
 // IssueWriter is a tracker the app can write to: GitLab and GitHub. Jira
 // isn't one, since teams move Jira issues through their host's own Jira
 // integration.
+// IssueLister lists a project's issues, not only the user's, for the Issues
+// tab's All and Closed. A tracker without it lists only what is assigned.
+type IssueLister interface {
+	// ProjectIssues is one page of the project's open or closed issues,
+	// most recently updated first.
+	ProjectIssues(ctx context.Context, project string, open bool) ([]Issue, error)
+}
+
 type IssueWriter interface {
 	CreateIssue(ctx context.Context, project string, issue NewIssue) (Issue, error)
 	CommentOnIssue(ctx context.Context, project, key, body string) (Note, error)
