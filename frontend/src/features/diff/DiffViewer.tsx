@@ -264,9 +264,7 @@ function DiffViewer({
               ? `${plural(draft.comments.length, 'drafted comment')}, not sent yet`
               : reviewed
                 ? 'Review submitted.'
-                : canComment
-                  ? 'Comment on a line from its gutter, now or as part of a review.'
-                  : 'Threads take replies here.'}
+                : ''}
           </span>
           {draft.comments.length > 0 && (
             <button type="button" className="diff-review-bar-button" onClick={() => target && draft.clear(target)}>

@@ -342,9 +342,14 @@ describe('HostChangesView', () => {
     const onMerged = vi.fn()
     renderView({ onMerged })
 
-    const readiness = await screen.findByRole('list', { name: 'Merge readiness' })
-    expect(within(readiness).getByText('Checks: passed')).toBeInTheDocument()
-    expect(within(readiness).getByText('Reviews: waiting on Bob')).toHaveClass('host-change-readiness-warn')
+    const detail = await screen.findByRole('article', { name: '!138' })
+    // Readiness is the facts table itself: one row per fact, its icon by level, no restated block.
+    await within(detail).findByText('waiting on Bob')
+    expect(within(detail).getByText('waiting on Bob').closest('dd')).toHaveClass('host-change-fact-warn')
+    expect(within(detail).getByText('passed').closest('dd')).toHaveClass('host-change-fact-ok')
+    expect(within(detail).queryByText('Merge')).toBeNull()
+    // Something stands in the way, so Merge… is there but not the primary.
+    expect(within(detail).getByRole('button', { name: 'Merge…' })).toHaveClass('host-change-button')
     await userEvent.click(screen.getByRole('button', { name: 'Merge…' }))
 
     const dialog = await screen.findByRole('dialog', { name: 'Merge !138' })
@@ -427,6 +432,54 @@ describe('HostChangesView', () => {
     renderView()
     await waitFor(() => expect(HostService.Changes).toHaveBeenCalled())
     expect(screen.queryByRole('region')).not.toBeInTheDocument()
+  })
+})
+
+describe('HostChangesView primary', () => {
+  it('makes Merge the primary once nothing stands in the way, and Review when yours is asked for', async () => {
+    vi.mocked(HostService.Changes).mockResolvedValue(
+      list({
+        changes: [
+          change({
+            author: { name: 'Bob', username: 'bob' },
+            reviews: [{ reviewer: { name: 'ada', username: 'ada' }, state: ReviewState.ReviewRequested }],
+          }),
+          change({
+            number: 140,
+            title: 'Mine, waiting',
+            reviews: [{ reviewer: { name: 'Cy', username: 'cy' }, state: ReviewState.ReviewRequested }],
+          }),
+        ],
+      }),
+    )
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({
+      change: change({}),
+      descriptionHtml: '',
+      closes: [],
+      environments: [],
+    })
+    vi.mocked(HostService.ReviewCapabilities).mockResolvedValue({
+      reply: true,
+      resolve: true,
+      lineComments: true,
+      approve: true,
+      requestChanges: false,
+    } as never)
+    vi.mocked(HostService.MergeReadiness).mockResolvedValue({
+      facts: [{ label: 'Checks', value: 'passed', level: 'ok' }],
+      fetchedAt: new Date().toISOString(),
+    } as never)
+    renderView()
+
+    const rows = await screen.findByRole('list', { name: 'Merge requests list' })
+    expect(within(rows).getByText('Waiting on Cy')).toBeInTheDocument()
+    const detail = await screen.findByRole('article', { name: '!138' })
+    expect(await within(detail).findByRole('button', { name: 'Review…' })).toHaveClass('host-changes-new')
+    expect(within(detail).getByRole('button', { name: 'Merge…' })).toHaveClass('host-change-button')
+
+    await userEvent.click(within(rows).getByRole('button', { name: /Mine, waiting/ }))
+    const mine = await screen.findByRole('article', { name: '!140' })
+    await waitFor(() => expect(within(mine).getByRole('button', { name: 'Merge…' })).toHaveClass('host-changes-new'))
   })
 })
 

@@ -99,7 +99,11 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 	}
 	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRules, "all"); ok {
 		if rule, ok := hostapi.MatchRule(cached.([]hostapi.BranchRule), change.TargetBranch); ok {
-			add("Protection", change.TargetBranch+" is protected ("+rule.Pattern+"); the host applies its rules", "info")
+			value := "protected; the host applies its rules on merge"
+			if rule.Pattern != change.TargetBranch {
+				value += " (rule " + rule.Pattern + ")"
+			}
+			add("Protection", value, "info")
 		}
 	}
 	return MergeReadiness{Facts: facts, FetchedAt: &fetchedAt}, nil
