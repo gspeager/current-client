@@ -28,8 +28,9 @@ export function reviewRequestedOf(reviews: Review[] | null, username: string): b
 }
 
 // One line for a change card: a request for changes outweighs approvals,
-// which outweigh reviews still waiting.
-function ReviewSummary({ reviews, open }: { reviews: Review[] | null; open: boolean }) {
+// which outweigh reviews still waiting. A review waiting on you reads as a
+// request; one waiting on others names them.
+function ReviewSummary({ reviews, open, me = '' }: { reviews: Review[] | null; open: boolean; me?: string }) {
   const groups = reviewGroups(reviews, open)
   const count = (state: ReviewState) => (reviews ?? []).filter((r) => r.state === state).length
   const title = groups.map((g) => `${g.label}: ${g.names.join(', ')}`).join('\n')
@@ -51,10 +52,13 @@ function ReviewSummary({ reviews, open }: { reviews: Review[] | null; open: bool
     )
   }
   if (open && count(ReviewState.ReviewRequested) > 0) {
+    const waitingOn = (reviews ?? [])
+      .filter((r) => r.state === ReviewState.ReviewRequested)
+      .map((r) => r.reviewer.name || r.reviewer.username)
     return (
       <span className="review-summary" title={title}>
         <CircleDot size={12} strokeWidth={1.75} />
-        Review requested
+        {reviewRequestedOf(reviews, me) || !me ? 'Review requested' : `Waiting on ${waitingOn.join(', ')}`}
       </span>
     )
   }

@@ -67,7 +67,7 @@ func TestMergeReadinessComesFromTheCacheAndGit(t *testing.T) {
 	if f := facts["Behind main"]; f.Level != "warn" || !strings.HasPrefix(f.Value, "1 commit") {
 		t.Errorf("behind = %+v", f)
 	}
-	if f := facts["Protection"]; f.Level != "info" || !strings.Contains(f.Value, "main is protected") {
+	if f := facts["Protection"]; f.Level != "info" || !strings.HasPrefix(f.Value, "protected; the host applies its rules on merge") {
 		t.Errorf("protection = %+v", f)
 	}
 	if _, ok := facts["Draft"]; ok {

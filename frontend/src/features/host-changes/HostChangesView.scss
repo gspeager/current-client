@@ -248,20 +248,28 @@
 }
 
 // One fact per line; a warning in the warning color, an unknown in outline.
-.host-change-readiness {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.host-change-fact {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-xs);
+
+  > svg,
+  > .ci-mark {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
 }
 
-.host-change-readiness-warn {
+.host-change-fact-ok > svg {
+  color: var(--tertiary);
+}
+
+.host-change-fact-warn > svg {
   color: var(--warning);
 }
 
-.host-change-readiness-unknown {
+.host-change-fact-info > svg,
+.host-change-fact-unknown > svg {
   color: var(--outline);
 }
 

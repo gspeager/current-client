@@ -1,5 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ClipboardCheck, ExternalLink, GitBranch, GitMerge, Plus, RefreshCw } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import {
+  CircleCheck,
+  CircleHelp,
+  ClipboardCheck,
+  ExternalLink,
+  GitBranch,
+  GitMerge,
+  Info,
+  Plus,
+  RefreshCw,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react'
 import {
   BranchChange,
   HostService,
@@ -197,6 +209,7 @@ function HostChangesView({
                   prefix={list.prefix}
                   selected={active?.number === change.number}
                   onSelect={() => setSelected(change.number)}
+                  me={list.me}
                 />
               </li>
             ))}
@@ -236,9 +249,11 @@ interface ChangeRowProps {
   prefix: string
   selected: boolean
   onSelect: () => void
+  // The signed-in username, so a request for review reads as yours or someone else's.
+  me: string
 }
 
-function ChangeRow({ change, prefix, selected, onSelect }: ChangeRowProps) {
+function ChangeRow({ change, prefix, selected, onSelect, me }: ChangeRowProps) {
   return (
     <button
       type="button"
@@ -252,7 +267,7 @@ function ChangeRow({ change, prefix, selected, onSelect }: ChangeRowProps) {
           }
         />
         <span className="host-change-row-meta">
-          <ReviewSummary reviews={change.reviews} open={change.state === 'open'} />
+          <ReviewSummary reviews={change.reviews} open={change.state === 'open'} me={me} />
           <span className="host-change-row-time">{relativeTime(new Date(change.updatedAt))}</span>
         </span>
       </span>
@@ -275,6 +290,13 @@ interface ChangeDetailProps {
 }
 
 const NO_CHANGES = {}
+
+const FACT_ICONS: Record<string, LucideIcon> = {
+  ok: CircleCheck,
+  warn: TriangleAlert,
+  info: Info,
+  unknown: CircleHelp,
+}
 
 function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onReviewed }: ChangeDetailProps) {
   const { data: details } = useAsyncData(
@@ -322,6 +344,16 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
   const state = change.draft ? 'draft' : change.state
   const reviews = reviewGroups(change.reviews, change.state === 'open')
   const threadCount = counts.threads ?? (change.unresolvedThreads > 0 ? change.unresolvedThreads : undefined)
+  // The pane's one primary follows the state: your review when it is asked
+  // for, Merge once nothing stands in the way, otherwise none.
+  const primary =
+    change.state !== 'open' || merged
+      ? null
+      : reviewActions && reviewRequestedOf(change.reviews, list.me)
+        ? 'review'
+        : readiness && readiness.facts.every((f) => f.level === 'ok' || f.level === 'info')
+          ? 'merge'
+          : null
 
   const checkOut = () =>
     checkout.run(
@@ -376,60 +408,75 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
             </dd>
           </>
         )}
-        <dt>Reviews</dt>
-        <dd className="host-change-facts-reviews">
-          {reviews.length > 0
-            ? reviews.map((group) => (
-                <span key={group.label}>
-                  {group.label}: {group.names.join(', ')}
-                </span>
-              ))
-            : 'None requested'}
-        </dd>
-        <dt>Checks</dt>
-        <dd className="host-change-facts-checks">
-          {mark ? (
-            <>
-              <CIMark repoPath={repoPath} mark={mark} />
-              {ciLabel(mark.status)}
-            </>
-          ) : change.ci ? (
-            ciLabel(change.ci)
-          ) : (
-            'None reported'
-          )}
-        </dd>
-        <dt>Conflicts</dt>
-        <dd>
-          {change.hasConflicts ? (
-            `Conflicts with ${change.targetBranch} on ${list.host}.`
-          ) : conflict && forecast ? (
-            <>
-              Would conflict with {forecast.branch} in{' '}
-              <span className="host-change-facts-branches">{conflict.files.join(', ')}</span>
-            </>
-          ) : (
-            'None reported'
-          )}
-        </dd>
+        {readiness && readiness.facts.length > 0 ? (
+          readiness.facts.map((f) => {
+            const Icon = FACT_ICONS[f.level] ?? CircleHelp
+            return (
+              <Fragment key={f.label}>
+                <dt>{f.label}</dt>
+                <dd className={`host-change-fact host-change-fact-${f.level}`}>
+                  {f.label === 'Checks' && mark ? (
+                    <CIMark repoPath={repoPath} mark={mark} />
+                  ) : (
+                    <Icon size={14} strokeWidth={1.75} aria-hidden="true" />
+                  )}
+                  <span>
+                    {f.value}
+                    {f.label === 'Conflicts' && !change.hasConflicts && conflict && forecast && (
+                      <>
+                        ; would conflict with {forecast.branch} in{' '}
+                        <span className="host-change-facts-branches">{conflict.files.join(', ')}</span>
+                      </>
+                    )}
+                  </span>
+                </dd>
+              </Fragment>
+            )
+          })
+        ) : (
+          <>
+            <dt>Reviews</dt>
+            <dd className="host-change-facts-reviews">
+              {reviews.length > 0
+                ? reviews.map((group) => (
+                    <span key={group.label}>
+                      {group.label}: {group.names.join(', ')}
+                    </span>
+                  ))
+                : 'None requested'}
+            </dd>
+            <dt>Checks</dt>
+            <dd className="host-change-facts-checks">
+              {mark ? (
+                <>
+                  <CIMark repoPath={repoPath} mark={mark} />
+                  {ciLabel(mark.status)}
+                </>
+              ) : change.ci ? (
+                ciLabel(change.ci)
+              ) : (
+                'None reported'
+              )}
+            </dd>
+            <dt>Conflicts</dt>
+            <dd>
+              {change.hasConflicts ? (
+                `Conflicts with ${change.targetBranch} on ${list.host}.`
+              ) : conflict && forecast ? (
+                <>
+                  Would conflict with {forecast.branch} in{' '}
+                  <span className="host-change-facts-branches">{conflict.files.join(', ')}</span>
+                </>
+              ) : (
+                'None reported'
+              )}
+            </dd>
+          </>
+        )}
         {change.labels?.length > 0 && (
           <>
             <dt>Labels</dt>
             <dd>{change.labels.join(', ')}</dd>
-          </>
-        )}
-        {readiness && readiness.facts.length > 0 && (
-          <>
-            <dt>Merge</dt>
-            <dd>
-              <ul className="host-change-readiness" aria-label="Merge readiness">
-                {readiness.facts.map((f) => (
-                  <li key={f.label} className={`host-change-readiness-${f.level}`}>
-                    {f.label}: {f.value}
-                  </li>
-                ))}
-              </ul>
-            </dd>
           </>
         )}
       </dl>
@@ -439,13 +486,21 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           {checkout.running ? 'Checking out…' : 'Check out locally'}
         </button>
         {change.state === 'open' && !merged && reviewActions && (
-          <button type="button" className="host-change-button" onClick={() => setReviewing(true)}>
+          <button
+            type="button"
+            className={primary === 'review' ? 'host-changes-new' : 'host-change-button'}
+            onClick={() => setReviewing(true)}
+          >
             <ClipboardCheck size={14} strokeWidth={1.75} />
             Review…
           </button>
         )}
         {change.state === 'open' && !merged && (
-          <button type="button" className="host-change-button" onClick={() => setMerging(true)}>
+          <button
+            type="button"
+            className={primary === 'merge' ? 'host-changes-new' : 'host-change-button'}
+            onClick={() => setMerging(true)}
+          >
             <GitMerge size={14} strokeWidth={1.75} />
             Merge…
           </button>
