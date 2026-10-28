@@ -36,6 +36,22 @@ describe('TagsPanel', () => {
     expect(TagService.DeleteTag).not.toHaveBeenCalled()
   })
 
+  it("holds the row's actions in its context menu, Copy name included", async () => {
+    vi.mocked(TagService.PushTag).mockResolvedValue()
+    renderPanel()
+
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByTitle('v1.0') })
+    const menu = document.querySelector<HTMLElement>('.context-menu')!
+    expect([...menu.querySelectorAll('button')].map((i) => i.textContent)).toEqual([
+      'Push tag',
+      'Copy name',
+      'Delete on remote…',
+      'Delete…',
+    ])
+    await userEvent.click(within(menu).getByRole('button', { name: 'Push tag' }))
+    await vi.waitFor(() => expect(TagService.PushTag).toHaveBeenCalledWith(REPO, 'origin', 'v1.0', null))
+  })
+
   it('does nothing when the confirmation is cancelled', async () => {
     renderPanel()
 
