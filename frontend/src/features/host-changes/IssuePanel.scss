@@ -1,13 +1,87 @@
-.issue-panel {
-  width: 640px;
+@use '../../styles/patterns';
+
+// The inspector a key opens: beside the view, at the inspector's width,
+// never over it like a dialog.
+.issue-inspector {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  width: var(--pane-inspector);
+  border-left: var(--border-structure);
+  background: var(--surface);
+}
+
+.issue-inspector-close {
+  @include patterns.icon-button;
+}
+
+.issue-detail {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.issue-detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-action);
+  padding: 0 var(--space-sm) 0 var(--space-md);
+  border-bottom: var(--border-structure);
+}
+
+.issue-detail-reference {
+  color: var(--on-surface-variant);
+  font: var(--data-md);
+}
+
+.issue-detail-spacer {
+  flex: 1;
 }
 
 .issue-panel-body {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: var(--space-md);
   padding: var(--space-md);
   overflow-y: auto;
+}
+
+.issue-panel-branch {
+  font: var(--data-sm);
+}
+
+.issue-detail-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-top: var(--border-structure);
+}
+
+// Secondaries on the left, the pane's one primary, Comment, on the right.
+.issue-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+
+  .dialog-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+}
+
+.issue-detail-comment {
+  margin-left: auto;
 }
 
 .issue-panel-title {
@@ -88,32 +162,8 @@
   color: var(--outline);
 }
 
-.issue-panel-reply {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
 .issue-panel-reply-input {
   min-height: 64px;
   resize: vertical;
   font: var(--ui-sm);
-}
-
-.issue-panel-reply-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-}
-
-.issue-panel-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-
-  .dialog-button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-  }
 }
