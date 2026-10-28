@@ -1,0 +1,176 @@
+@use '../../styles/patterns';
+
+.next-release {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
+  border-bottom: var(--border-structure);
+}
+
+.next-release-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-field);
+}
+
+.next-release-title {
+  margin: 0;
+  font: var(--ui-md);
+  color: var(--on-surface);
+}
+
+.next-release-version {
+  color: var(--on-surface);
+  font: var(--data-md);
+}
+
+.next-release-meta,
+.next-release-checked {
+  color: var(--outline);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
+
+.next-release-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.next-release-sha {
+  font: var(--data-sm);
+}
+
+.next-release-spacer {
+  flex: 1;
+}
+
+.next-release-button,
+.next-release-step {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  @include patterns.secondary-button;
+}
+
+.next-release-hint,
+.next-release-error {
+  margin: 0;
+  font: var(--ui-xs);
+  color: var(--outline);
+}
+
+.next-release-error {
+  color: var(--error);
+}
+
+.next-release-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md);
+}
+
+.next-release-form {
+  display: grid;
+  grid-template-columns: repeat(3, 140px) max-content;
+  align-items: end;
+  gap: var(--space-sm);
+
+  .dialog-input {
+    font: var(--data-sm);
+  }
+}
+
+.next-release-files {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.next-release-files-input {
+  width: 320px;
+  font: var(--data-sm);
+  resize: vertical;
+}
+
+.next-release-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// One row per check: icon, label, what it found, and when a host fact was read.
+.release-check {
+  display: grid;
+  grid-template-columns: 14px max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 2px var(--space-sm);
+  min-height: var(--h-row-tree);
+  font: var(--ui-sm);
+}
+
+.release-check-ok svg {
+  color: var(--tertiary);
+}
+
+.release-check-warn svg {
+  color: var(--warning);
+}
+
+.release-check-info svg,
+.release-check-unknown svg {
+  color: var(--outline);
+}
+
+.release-check-label {
+  color: var(--on-surface);
+}
+
+.release-check-path {
+  font: var(--data-sm);
+}
+
+.release-check-value {
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+}
+
+.release-check-asof {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.release-check-evidence {
+  grid-column: 2 / -1;
+  margin: 0 0 var(--space-xs);
+  padding: 0;
+  list-style: none;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+// The steps in order; the next due one is the pane's one primary.
+.next-release-steps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.next-release-step-primary {
+  @include patterns.primary-button;
+  height: var(--h-chip);
+}
+
+.next-release-arrow {
+  color: var(--outline);
+}

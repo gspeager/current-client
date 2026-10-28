@@ -44,7 +44,7 @@ func TestReleaseReadinessReportsEachItemWithItsEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Version != "0.5.0" || r.Previous != "v0.4.0" || r.Ref != "HEAD" {
+	if r.Version != "0.5.0" || r.Previous != "v0.4.0" || r.Ref != "HEAD" || r.Tag != "v0.5.0" || r.TaggedAs != "" {
 		t.Fatalf("readiness = %+v", r)
 	}
 	if c := checkNamed(t, r, "Working tree"); c.Level != "ok" {
@@ -108,6 +108,14 @@ func TestVersionPatternMatchesTheWholeVersion(t *testing.T) {
 	for text, want := range map[string]bool{"0.5.0": true, `"0.5.0.0"`: true, "v0.5.0,": true, "10.5.0": false, "1.0.5.0": false, "0.5.01": false} {
 		if p.MatchString(text) != want {
 			t.Errorf("%q: %v", text, !want)
+		}
+	}
+}
+
+func TestNextVersionRaisesTheLastNumber(t *testing.T) {
+	for tag, want := range map[string]string{"v1.1": "1.2", "7": "8", "v0.4.9": "0.4.10", "release-1": "", "": ""} {
+		if got := nextVersion(tag); got != want {
+			t.Errorf("nextVersion(%q) = %q, want %q", tag, got, want)
 		}
 	}
 }

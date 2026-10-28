@@ -478,11 +478,8 @@ describe('ChangelogView', () => {
 })
 
 describe('TabBar', () => {
-  it('hides the Changelog tab when Conventional Commits are turned off', () => {
-    const { rerender } = render(<TabBar active="activity" onChange={vi.fn()} showChangelog />)
-    expect(screen.getByRole('button', { name: 'Changelog' })).toBeInTheDocument()
-
-    rerender(<TabBar active="activity" onChange={vi.fn()} showChangelog={false} />)
-    expect(screen.queryByRole('button', { name: 'Changelog' })).toBeNull()
+  it('shows the Releases tab whether or not Conventional Commits are on', () => {
+    render(<TabBar active="activity" onChange={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Releases' })).toBeInTheDocument()
   })
 })

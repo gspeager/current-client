@@ -21,7 +21,7 @@ func releaseHostChecks(repoPath, sha, target string) []ReleaseCheck {
 	}
 	if cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, sha); ok {
 		mark := cached.(CIMark)
-		ci.Evidence = []string{"As of " + at.Format("2006-01-02 15:04")}
+		ci.AsOf = &at
 		switch hostapi.CIStatus(mark.Status) {
 		case hostapi.CISuccess:
 			ci.Level, ci.Value = "ok", "Passed"
@@ -40,13 +40,16 @@ func releaseHostChecks(repoPath, sha, target string) []ReleaseCheck {
 	case !ok:
 		protection.Level, protection.Value = "unknown", "Not fetched; refresh"
 	default:
-		protection.Evidence = []string{"As of " + at.Format("2006-01-02 15:04")}
+		protection.AsOf = &at
 		rule, matched := hostapi.MatchRule(cached.([]hostapi.BranchRule), target)
 		if !matched {
 			protection.Level, protection.Value = "warn", "The last refresh found no rule for "+target
 			break
 		}
-		protection.Level, protection.Value = "ok", "Protected by "+rule.Pattern
+		protection.Level, protection.Value = "ok", "Protected"
+		if rule.Pattern != target {
+			protection.Evidence = append(protection.Evidence, "by the rule "+rule.Pattern)
+		}
 		for _, r := range []struct {
 			on   bool
 			what string

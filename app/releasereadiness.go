@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gspeager/current-client/core/changelog"
 	"github.com/gspeager/current-client/core/git"
@@ -19,14 +21,20 @@ type ReleaseCheck struct {
 	Level    string   `json:"level"`
 	Value    string   `json:"value"`
 	Evidence []string `json:"evidence"`
+	// AsOf is when a host fact was read, for a check from the host cache.
+	AsOf *time.Time `json:"asOf"`
 }
 
 type ReleaseReadiness struct {
-	Ref      string         `json:"ref"`
-	SHA      string         `json:"sha"`
-	Version  string         `json:"version"`
-	Previous string         `json:"previous"`
-	Target   string         `json:"target"`
+	Ref      string `json:"ref"`
+	SHA      string `json:"sha"`
+	Version  string `json:"version"`
+	Previous string `json:"previous"`
+	Target   string `json:"target"`
+	// Tag is the tag the version takes, with a "v" when the last one had it.
+	Tag string `json:"tag"`
+	// TaggedAs is the tag already on the candidate, if any.
+	TaggedAs string         `json:"taggedAs"`
 	Checks   []ReleaseCheck `json:"checks"`
 }
 
@@ -67,6 +75,16 @@ func (s *ChangelogService) ReleaseReadiness(repoPath, ref, version, target strin
 	if r.Version == "" {
 		r.Version = release.SuggestedVersion
 	}
+	if r.Version == "" {
+		r.Version = nextVersion(r.Previous)
+	}
+	r.TaggedAs = own
+	if r.Version != "" {
+		r.Tag = r.Version
+		if r.Previous == "" || strings.HasPrefix(r.Previous, "v") {
+			r.Tag = "v" + r.Version
+		}
+	}
 	if r.Target == "" {
 		r.Target, _ = git.DefaultBranch(ctx, repoPath)
 	}
@@ -102,6 +120,21 @@ func (s *ChangelogService) SetVersionFiles(repoPath string, files []string) erro
 
 func versionOf(tag string) string {
 	return strings.TrimPrefix(tag, "v")
+}
+
+var numericVersion = regexp.MustCompile(`^v?\d+(\.\d+)*$`)
+
+// nextVersion is the last tag with its last number raised, for tags the
+// changelog can't suggest from, such as v1.1 or 7: "1.2", "8". "" for a
+// tag that isn't a plain version.
+func nextVersion(tag string) string {
+	if !numericVersion.MatchString(tag) {
+		return ""
+	}
+	parts := strings.Split(versionOf(tag), ".")
+	last, _ := strconv.Atoi(parts[len(parts)-1])
+	parts[len(parts)-1] = strconv.Itoa(last + 1)
+	return strings.Join(parts, ".")
 }
 
 func capped(lines []string) []string {

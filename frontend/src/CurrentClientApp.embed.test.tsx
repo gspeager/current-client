@@ -81,7 +81,7 @@ describe('CurrentClientApp embedding', () => {
     const workingCopy = await screen.findByRole('button', { name: /^Changes/ })
 
     const views = [...document.querySelectorAll('.tab-bar button')].map((b) => b.textContent)
-    expect(views).toEqual([expect.stringMatching(/^Changes/), 'History', 'Activity', 'Changelog'])
+    expect(views).toEqual([expect.stringMatching(/^Changes/), 'History', 'Activity', 'Releases'])
     expect(workingCopy).toHaveClass('tab-active')
   })
 

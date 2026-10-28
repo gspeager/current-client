@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
-  ClipboardCheck,
   CloudOff,
   Copy,
   ExternalLink,
@@ -34,7 +33,6 @@ import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { tagPage } from '../../lib/hostPages'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
-import ReleaseReadinessDialog from './ReleaseReadinessDialog'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 
 interface TagsPanelProps {
@@ -64,7 +62,6 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
   const [expandedName, setExpandedName] = useState<string | null>(null)
   const [messages, setMessages] = useState<Map<string, TagMessageInfo>>(new Map())
   const [releaseTag, setReleaseTag] = useState<string | null>(null)
-  const [readiness, setReadiness] = useState(false)
   const { data: canPublish } = useAsyncData(
     () => HostService.CanPublishReleases(repoPath).catch(() => false),
     [repoPath],
@@ -74,7 +71,6 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
   useEffect(() => {
     if (!request) return
     if (request.action === 'new-tag') setShowNewTag(true)
-    if (request.action === 'release-readiness') setReadiness(true)
     if (request.action === 'publish-release') {
       const newest = tags?.[0]
       if (!newest) setActionError('No tag to publish a release from')
@@ -225,15 +221,6 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
             <button
               type="button"
               className="tags-panel-add"
-              onClick={() => setReadiness(true)}
-              aria-label="Release readiness"
-              title="Release readiness"
-            >
-              <ClipboardCheck size={18} strokeWidth={1.75} />
-            </button>
-            <button
-              type="button"
-              className="tags-panel-add"
               onClick={toggleNewTag}
               aria-label="New tag"
               title="New tag"
@@ -313,7 +300,6 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
         )}
       </SidebarSection>
       {rowMenu.menu}
-      {readiness && <ReleaseReadinessDialog repoPath={repoPath} onClose={() => setReadiness(false)} />}
       {releaseTag && <PublishReleaseDialog repoPath={repoPath} tag={releaseTag} onClose={() => setReleaseTag(null)} />}
     </div>
   )
