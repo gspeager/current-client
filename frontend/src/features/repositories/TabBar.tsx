@@ -2,7 +2,7 @@ import Tab from '../../components/controls/Tab'
 import { plural } from '../../lib/plural'
 import './TabBar.scss'
 
-export type AppTab = 'working-copy' | 'history' | 'activity' | 'changelog' | 'changes'
+export type AppTab = 'working-copy' | 'history' | 'activity' | 'changelog' | 'changes' | 'issues'
 
 interface TabBarProps {
   active: AppTab
@@ -14,6 +14,8 @@ interface TabBarProps {
   changedCount?: number
   // Files still conflicted in a merge; shown instead of the changed count.
   conflictCount?: number
+  // Issues assigned to you while a host or tracker lists them; null hides the tab.
+  issueCount?: number | null
 }
 
 // Core views first, the host's next, reports last.
@@ -24,6 +26,7 @@ function TabBar({
   changesLabel = null,
   changedCount = 0,
   conflictCount = 0,
+  issueCount = null,
 }: TabBarProps) {
   return (
     <nav className="tab-bar">
@@ -51,6 +54,16 @@ function TabBar({
       {changesLabel && (
         <Tab active={active === 'changes'} onClick={() => onChange('changes')}>
           {changesLabel}
+        </Tab>
+      )}
+      {issueCount !== null && (
+        <Tab
+          active={active === 'issues'}
+          onClick={() => onChange('issues')}
+          label={issueCount > 0 ? `Issues, ${plural(issueCount, 'assigned to you', 'assigned to you')}` : 'Issues'}
+        >
+          Issues
+          {issueCount > 0 && <span className="tab-count">{issueCount}</span>}
         </Tab>
       )}
       <span className="tab-bar-divider" aria-hidden="true" />

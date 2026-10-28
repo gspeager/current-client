@@ -54,6 +54,7 @@ import HostChangesView, { changesLabelFor } from './features/host-changes/HostCh
 import HostNoticeBanner from './components/chrome/HostNoticeBanner'
 import CreateChangeDialog from './features/host-changes/CreateChangeDialog'
 import IssuePanel from './features/host-changes/IssuePanel'
+import IssuesView from './features/issues/IssuesView'
 import NewIssueDialog from './features/host-changes/NewIssueDialog'
 import InboxView, { type InboxTarget } from './features/inbox/InboxView'
 import StandupDialog from './features/inbox/StandupDialog'
@@ -167,10 +168,6 @@ function App({
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
   const { activeTab: rememberedTab, setActiveTab, restored, remember } = useTabMemory(repo.repoPath)
-  const activeTab =
-    (rememberedTab === 'changelog' && !conventionalCommitsOn) || (rememberedTab === 'changes' && !changesLabel)
-      ? 'working-copy'
-      : rememberedTab
   const { data: conventional } = useAsyncData(
     () => (repo.repoPath ? HistoryService.FollowsConventionalCommits(repo.repoPath) : null),
     [repo.repoPath],
@@ -276,6 +273,17 @@ function App({
     }),
     [hostOn, canWriteIssues, tracker],
   )
+  // The Issues tab shows while the host or the tracker lists issues; its
+  // count is the cache's, read again after each refresh.
+  const issuesOn = hostIntegration && (hostOn || !!tracker?.reading)
+  const [issueFocus, setIssueFocus] = useState<string | null>(null)
+  useEffect(() => setIssueFocus(null), [repo.repoPath])
+  const activeTab =
+    (rememberedTab === 'changelog' && !conventionalCommitsOn) ||
+    (rememberedTab === 'changes' && !changesLabel) ||
+    (rememberedTab === 'issues' && !issuesOn)
+      ? 'working-copy'
+      : rememberedTab
 
   // A row in the Inbox switches to its repository first; the jump itself
   // waits until that repository is the open one.
@@ -303,7 +311,12 @@ function App({
         openChange(target.number)
         break
       case 'issue':
-        setOpenIssueKey(target.key)
+        if (issuesOn) {
+          setIssueFocus(target.key)
+          setActiveTab('issues')
+        } else {
+          setOpenIssueKey(target.key)
+        }
         break
       case 'host':
         void PlatformService.OpenWebPage(target.url)
@@ -320,6 +333,11 @@ function App({
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
   const [hostRefresh, setHostRefresh] = useState(0)
+  const { data: myIssues } = useAsyncData(
+    () => (issuesOn && repo.repoPath ? HostService.MyIssues(repo.repoPath) : null),
+    [issuesOn, repo.repoPath],
+    { refreshKey: hostRefresh },
+  )
   // After a merge from the app whose branch is local, the sidebar opens
   // Clean up merged branches; the palette asks for its forms the same way.
   const [sidebarRequest, setSidebarRequest] = useState<SidebarRequest | null>(null)
@@ -444,6 +462,18 @@ function App({
             icon: GitPullRequest,
             keywords: ['pr', 'mr', 'pull requests', 'merge requests', 'review'],
             run: () => changeTab('changes'),
+          },
+        ]
+      : []),
+    ...(issuesOn
+      ? [
+          {
+            id: 'view-issues',
+            label: 'Issues',
+            section: 'Views' as const,
+            icon: CircleDot,
+            keywords: ['assigned', 'my issues', 'jira', 'tickets'],
+            run: () => changeTab('issues'),
           },
         ]
       : []),
@@ -596,6 +626,7 @@ function App({
                 onChange={changeTab}
                 showChangelog={conventionalCommitsOn}
                 changesLabel={changesLabel}
+                issueCount={issuesOn ? (myIssues?.issues?.length ?? 0) : null}
                 changedCount={workingTree.files?.length ?? 0}
                 conflictCount={conflictState?.conflictedPaths.length ?? 0}
               />
@@ -622,9 +653,6 @@ function App({
               />
             )}
             {workspace.modals}
-            {openIssueKey && repo.repoPath && (
-              <IssuePanel repoPath={repo.repoPath} issueKey={openIssueKey} onClose={() => setOpenIssueKey(null)} />
-            )}
             {standupOpen && <StandupDialog paths={repo.tabs} onClose={() => setStandupOpen(false)} />}
             {newIssueDraft && repo.repoPath && (
               <NewIssueDialog
@@ -818,7 +846,27 @@ function App({
                       hasConflict={conflictState !== null}
                     />
                   </KeepAlive>
+                  {issuesOn && (
+                    <KeepAlive active={activeTab === 'issues'}>
+                      <IssuesView
+                        key={`${repo.repoPath}-${hostsVersion}`}
+                        repoPath={repo.repoPath}
+                        selectedKey={issueFocus}
+                        refreshKey={hostRefresh}
+                        onRefreshed={() => setHostRefresh((n) => n + 1)}
+                        onBranchChanged={onBranchChanged}
+                      />
+                    </KeepAlive>
+                  )}
                 </main>
+                {openIssueKey && (
+                  <IssuePanel
+                    repoPath={repo.repoPath}
+                    issueKey={openIssueKey}
+                    onClose={() => setOpenIssueKey(null)}
+                    onBranchChanged={onBranchChanged}
+                  />
+                )}
               </div>
             )}
 

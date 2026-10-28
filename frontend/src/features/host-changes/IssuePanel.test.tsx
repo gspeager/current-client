@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { HostService, IssueDetails, PlatformService } from '@current-client-bindings/app'
+import { BranchService, HostService, IssueDetails, PlatformService } from '@current-client-bindings/app'
 import { IssuePanelContext } from '../../lib/issuePanel'
 import IssuePanel from './IssuePanel'
 
@@ -35,7 +35,7 @@ describe('IssuePanel', () => {
     vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
     render(<IssuePanel repoPath="/repos/app" issueKey="4" onClose={vi.fn()} />)
 
-    const dialog = await screen.findByRole('dialog', { name: '#4' })
+    const dialog = await screen.findByRole('article', { name: '#4' })
     expect(within(dialog).getByRole('heading', { name: 'Login fails' })).toBeInTheDocument()
     expect(dialog).toHaveTextContent('open')
     expect(dialog).toHaveTextContent('Ada')
@@ -90,13 +90,12 @@ describe('IssuePanel', () => {
       .mockResolvedValueOnce(details('closed', 1))
     vi.mocked(HostService.CommentOnIssue).mockResolvedValue(details('open', 1))
     vi.mocked(HostService.SetIssueState).mockResolvedValue(details('closed', 1))
-    const newIssue = vi.fn()
     render(
-      <IssuePanelContext.Provider value={{ open: vi.fn(), create: newIssue }}>
+      <IssuePanelContext.Provider value={{ open: vi.fn(), create: vi.fn() }}>
         <IssuePanel repoPath="/repos/app" issueKey="4" onClose={vi.fn()} />
       </IssuePanelContext.Provider>,
     )
-    const dialog = await screen.findByRole('dialog', { name: '#4' })
+    const dialog = await screen.findByRole('article', { name: '#4' })
     await userEvent.type(within(dialog).getByRole('textbox', { name: 'Comment' }), 'Fixed on main')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Comment' }))
     expect(HostService.CommentOnIssue).toHaveBeenCalledWith('/repos/app', '4', 'Fixed on main')
@@ -104,8 +103,44 @@ describe('IssuePanel', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Close issue' }))
     expect(HostService.SetIssueState).toHaveBeenCalledWith('/repos/app', '4', false)
     expect(await within(dialog).findByRole('button', { name: 'Reopen issue' })).toBeInTheDocument()
-    await userEvent.click(within(dialog).getByRole('button', { name: 'New issue' }))
-    expect(newIssue).toHaveBeenCalled()
+    expect(within(dialog).queryByRole('button', { name: 'New issue' })).not.toBeInTheDocument()
+  })
+
+  it('names a new branch after the issue and checks it out, then closes on Escape', async () => {
+    vi.mocked(HostService.IssueDetails).mockResolvedValue(
+      new IssueDetails({
+        reference: '#4',
+        descriptionHtml: '',
+        issue: {
+          key: '4',
+          number: 4,
+          title: 'Login fails',
+          state: 'open',
+          webUrl: '',
+          description: '',
+          labels: [],
+          milestone: '',
+          author: { name: 'Ada', username: 'ada' },
+          createdAt: '2026-10-20T10:00:00Z',
+          updatedAt: '2026-10-20T10:00:00Z',
+        },
+        comments: [],
+      } as never),
+    )
+    vi.mocked(BranchService.CreateBranch).mockResolvedValue()
+    vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
+    const onBranchChanged = vi.fn()
+    const onClose = vi.fn()
+    render(<IssuePanel repoPath="/repos/app" issueKey="4" onClose={onClose} onBranchChanged={onBranchChanged} />)
+
+    const pane = await screen.findByRole('article', { name: '#4' })
+    expect(screen.getByRole('complementary')).toContainElement(pane)
+    await userEvent.click(within(pane).getByRole('button', { name: 'New branch from issue' }))
+    expect(BranchService.CreateBranch).toHaveBeenCalledWith('/repos/app', '4-login-fails')
+    await vi.waitFor(() => expect(BranchService.CheckoutBranch).toHaveBeenCalledWith('/repos/app', '4-login-fails'))
+    await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
+    await userEvent.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalled()
   })
 
   it('reads a Jira issue without offering writes', async () => {
@@ -135,7 +170,7 @@ describe('IssuePanel', () => {
         <IssuePanel repoPath="/repos/app" issueKey="PROJ-12" onClose={vi.fn()} />
       </IssuePanelContext.Provider>,
     )
-    const dialog = await screen.findByRole('dialog', { name: 'PROJ-12' })
+    const dialog = await screen.findByRole('article', { name: 'PROJ-12' })
     expect(within(dialog).getByRole('heading', { name: 'Login fails' })).toBeInTheDocument()
     expect(within(dialog).queryByRole('textbox', { name: 'Comment' })).not.toBeInTheDocument()
     expect(within(dialog).queryByRole('button', { name: 'Close issue' })).not.toBeInTheDocument()

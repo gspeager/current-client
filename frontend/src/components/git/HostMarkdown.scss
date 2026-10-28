@@ -20,6 +20,12 @@
     margin: 0 0 var(--space-sm);
   }
 
+  // A task list's checkbox is its marker; a bullet beside it says it twice.
+  li:has(> input[type='checkbox']) {
+    list-style: none;
+    margin-left: -1.25em;
+  }
+
   h1,
   h2,
   h3,

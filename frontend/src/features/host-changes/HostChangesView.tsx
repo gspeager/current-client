@@ -28,7 +28,6 @@ import { useReviewDraft } from '../../lib/reviewDraft'
 import MergeChangeDialog from './MergeChangeDialog'
 import { createChangeFor } from '../../lib/createChange'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
-import { useNewIssue } from '../../lib/issuePanel'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -77,7 +76,6 @@ function HostChangesView({
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
   const [filter, setFilter] = useState<Filter>('open')
-  const newIssue = useNewIssue()
   const { data: closedList, error: closedError } = useAsyncData(
     () => (filter === 'closed' ? HostService.ClosedChanges(repoPath) : null),
     [filter, repoPath],
@@ -172,12 +170,6 @@ function HostChangesView({
           <Plus size={14} strokeWidth={1.75} />
           {newLabel}
         </button>
-        {newIssue && (
-          <button type="button" className="host-change-button" onClick={() => newIssue()}>
-            <Plus size={14} strokeWidth={1.75} />
-            New issue
-          </button>
-        )}
       </header>
       {(error || refreshError || closedError) && (
         <p className="host-changes-error">{refreshError ?? error ?? closedError}</p>
