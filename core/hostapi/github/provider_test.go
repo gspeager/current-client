@@ -291,6 +291,16 @@ func TestAssignedIssuesLeaveOutPullRequests(t *testing.T) {
 	}
 }
 
+func TestProjectIssuesByStateLeaveOutPullRequests(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{
+		"GET " + v3 + "/issues?per_page=50&sort=updated&state=closed": `[{"number": 1, "title": "A pull", "state": "closed", "pull_request": {"url": "x"}}, {"number": 2, "title": "Done", "state": "closed"}]`,
+	})
+	issues, err := p.ProjectIssues(context.Background(), project, false)
+	if err != nil || len(issues) != 1 || issues[0].Number != 2 || issues[0].State != "closed" {
+		t.Fatalf("ProjectIssues = %+v, %v", issues, err)
+	}
+}
+
 func TestCreateChangeSendsHeadBaseAndDraft(t *testing.T) {
 	p, f := newProvider(t, map[string]string{"POST " + v3 + "/pulls": "pull.json"})
 	change, err := p.CreateChange(context.Background(), project, hostapi.NewChange{

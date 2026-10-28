@@ -399,10 +399,23 @@ func (p *Provider) Issue(ctx context.Context, project string, number int) (hosta
 	return toIssue(is), nil
 }
 
-// AssignedIssues leaves out pull requests, which GitHub lists as issues too.
 func (p *Provider) AssignedIssues(ctx context.Context, project, username string) ([]hostapi.Issue, error) {
+	return p.listIssues(ctx, project, url.Values{"assignee": {username}, "state": {"open"}})
+}
+
+func (p *Provider) ProjectIssues(ctx context.Context, project string, open bool) ([]hostapi.Issue, error) {
+	state := "closed"
+	if open {
+		state = "open"
+	}
+	return p.listIssues(ctx, project, url.Values{"state": {state}})
+}
+
+// listIssues leaves out pull requests, which GitHub lists as issues too.
+func (p *Provider) listIssues(ctx context.Context, project string, query url.Values) ([]hostapi.Issue, error) {
+	query.Set("sort", "updated")
+	query.Set("per_page", "50")
 	var page []issue
-	query := url.Values{"assignee": {username}, "state": {"open"}, "sort": {"updated"}, "per_page": {"50"}}
 	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues"), query, &page); err != nil {
 		return nil, hostapi.WithScope(err, scope)
 	}
@@ -415,7 +428,10 @@ func (p *Provider) AssignedIssues(ctx context.Context, project, username string)
 	return issues, nil
 }
 
-var _ hostapi.IssueTracker = (*Provider)(nil)
+var (
+	_ hostapi.IssueTracker = (*Provider)(nil)
+	_ hostapi.IssueLister  = (*Provider)(nil)
+)
 
 func (p *Provider) IssueByKey(ctx context.Context, project, key string) (hostapi.Issue, error) {
 	number, err := hostapi.IssueNumber(key)

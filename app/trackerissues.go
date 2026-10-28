@@ -111,7 +111,7 @@ func refreshTracker(ctx context.Context, repoPath string) {
 		return
 	}
 	name := jira.HostName(site)
-	for _, kind := range []string{cacheIssue, cacheIssueDetails, cacheIssueComments, cacheAssigned} {
+	for _, kind := range []string{cacheIssue, cacheIssueDetails, cacheIssueComments, cacheAssigned, cacheProjectIssues} {
 		hostClient.Cache.ClearKind(name, repoPath, kind)
 	}
 	if issues, err := provider.AssignedIssues(ctx, "", ""); err == nil {

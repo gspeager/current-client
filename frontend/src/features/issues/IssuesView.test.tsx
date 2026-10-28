@@ -101,6 +101,42 @@ describe('IssuesView', () => {
     expect(await screen.findByText('Coupon codes', { selector: '.host-change-row-title' })).toBeInTheDocument()
   })
 
+  it('asks for All and Closed only when chosen, once each', async () => {
+    vi.mocked(HostService.MyIssues).mockResolvedValue(list())
+    vi.mocked(HostService.ProjectIssues).mockImplementation(
+      (_repo, open) =>
+        Promise.resolve(
+          list({
+            issues: [
+              {
+                issue: {
+                  key: open ? '30' : '7',
+                  number: open ? 30 : 7,
+                  title: open ? 'Someone else’s' : 'Long done',
+                  state: open ? 'open' : 'closed',
+                  webUrl: '',
+                },
+                source: 'github.com',
+                branch: '',
+              },
+            ],
+          } as never),
+        ) as never,
+    )
+    renderView()
+
+    await screen.findByRole('list', { name: 'Issues list' })
+    expect(HostService.ProjectIssues).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Closed' }))
+    expect(await screen.findByText('Long done', { selector: '.host-change-row-title' })).toBeInTheDocument()
+    expect(HostService.ProjectIssues).toHaveBeenCalledWith(REPO, false)
+    await userEvent.click(screen.getByRole('button', { name: 'All' }))
+    expect(await screen.findByText('Someone else’s', { selector: '.host-change-row-title' })).toBeInTheDocument()
+    expect(HostService.ProjectIssues).toHaveBeenCalledWith(REPO, true)
+    await userEvent.click(screen.getByRole('button', { name: 'Mine 2' }))
+    expect(await screen.findByText('Coupon codes', { selector: '.host-change-row-title' })).toBeInTheDocument()
+  })
+
   it('renders nothing while no host or tracker lists issues', async () => {
     vi.mocked(HostService.MyIssues).mockResolvedValue(new IssueList({ enabled: false, sources: [], issues: [] }))
     renderView()

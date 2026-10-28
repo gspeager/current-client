@@ -107,6 +107,25 @@ func TestAssignedIssuesOnCloudAndDataCenter(t *testing.T) {
 	}
 }
 
+func TestProjectIssuesNeedProjectKeys(t *testing.T) {
+	answer := `{"issues": [{"key": "PROJ-3", "fields": {"summary": "Done one", "status": {"statusCategory": {"key": "done"}}}}]}`
+	query := url.Values{
+		"jql":        {"statusCategory = Done AND project in (PROJ) ORDER BY updated DESC"},
+		"maxResults": {"50"},
+		"fields":     {"summary,status"},
+	}.Encode()
+	p, _ := newProvider(t, hostlink.JiraCloud, []string{"PROJ"}, map[string]string{"/jira/rest/api/2/search/jql?" + query: answer})
+	issues, err := p.ProjectIssues(context.Background(), "", false)
+	if err != nil || len(issues) != 1 || issues[0].Key != "PROJ-3" || issues[0].State != "closed" {
+		t.Fatalf("ProjectIssues = %+v, %v", issues, err)
+	}
+
+	p, s := newProvider(t, hostlink.JiraCloud, nil, map[string]string{})
+	if issues, err := p.ProjectIssues(context.Background(), "", true); err != nil || issues != nil || len(s.requests) != 0 {
+		t.Fatalf("no keys: nothing asked, got %+v, %v, %d requests", issues, err, len(s.requests))
+	}
+}
+
 func TestNoRequestWhileTheSiteIsOff(t *testing.T) {
 	tracker := hostlink.Tracker{Site: "https://example.atlassian.net/", Kind: hostlink.JiraCloud}
 	client := hostapi.New(hostapi.Options{Enabled: func(string) bool { return false }, Transport: hostapitest.Forbid(t)})

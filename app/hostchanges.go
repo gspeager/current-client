@@ -138,6 +138,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheJobs)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheIssue)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheAssigned)
+		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheProjectIssues)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheThreads)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheClosed)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheFiles)

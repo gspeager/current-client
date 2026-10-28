@@ -46,3 +46,23 @@ func TestMyIssuesIsOffWithNoHostOrTracker(t *testing.T) {
 		t.Fatalf("no host, no tracker: off and empty, got %+v", list)
 	}
 }
+
+func TestProjectIssuesAskOncePerStateUntilARefresh(t *testing.T) {
+	repo := enabledGitLab(t)
+	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	closed := "/api/v4/projects/group%2Fapp/issues?order_by=updated_at&per_page=50&state=closed"
+	transport := &routeTransport{routes: map[string]string{
+		closed: `[{"iid": 7, "title": "Old one", "state": "closed"}]`,
+	}, hits: map[string]int{}}
+	swapHostClient(t, transport)
+	var host HostService
+	for range 2 {
+		list, err := host.ProjectIssues(repo, false)
+		if err != nil || len(list.Issues) != 1 || list.Issues[0].Issue.Number != 7 || list.Sources[0].FetchedAt == nil {
+			t.Fatalf("ProjectIssues = %+v, %v", list, err)
+		}
+	}
+	if transport.hits[closed] != 1 {
+		t.Fatalf("asked %d times, want once until a refresh", transport.hits[closed])
+	}
+}

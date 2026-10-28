@@ -155,6 +155,7 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/issues/:iid` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time; opening an issue's panel, once per issue until the next refresh | `read_api` |
 | `GET /projects/:path/issues/:iid/notes` | Opening an issue's panel, once per issue until the next refresh; one page of 100, system notes left out | `read_api` |
 | `GET /projects/:path/issues?assignee_username=&state=opened` | Refresh, for the Inbox's assigned issues; the new-branch form's **From an issue** when the cache has none; one page of 50 | `read_api` |
+| `GET /projects/:path/issues?state=opened` or `state=closed` | The Issues tab's **All** or **Closed**, the first time each is chosen, then until the next refresh; one page of 50 | `read_api` |
 | `GET /projects/:path/protected_branches` | Refresh; a 403 (not a Maintainer) means no warnings | `read_api` |
 | `GET /todos?state=pending` | Refresh, once per host however many repositories are open: the To-Do List for the Inbox, one page of 100; only the to-dos about repositories open in the app are kept | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
@@ -184,6 +185,7 @@ Under `<site>/rest/api/2`, the same version on both. Cloud's search lives at `se
 | `GET /issue/:key?fields=…` | Opening a key's issue panel, once per issue until the next refresh; a History page's keys as it loads, each once until the next refresh, at most 50 at a time | browse the project |
 | `GET /issue/:key/comment?maxResults=100` | Opening a key's issue panel, once per issue until the next refresh | browse the project |
 | `GET /search/jql` (Cloud) or `/search` (Data Center) with `jql=assignee = currentUser() AND statusCategory != Done` | Refresh, for the Inbox; **From an issue** when the cache has none; one page of 50, limited to the tracker's project keys when it has some | browse the projects |
+| The same search with `jql=statusCategory != Done` or `statusCategory = Done` | The Issues tab's **All** or **Closed**, the first time each is chosen, then until the next refresh; one page of 50, only with project keys set: without them nothing is asked | browse the project |
 
 ### GitHub (github.com and Enterprise Server 3.11 or newer)
 
@@ -203,6 +205,7 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `GET /repos/:owner/:repo/issues/:number` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time; opening an issue's panel, once per issue until the next refresh | issues: read |
 | `GET /repos/:owner/:repo/issues/:number/comments` | Opening an issue's panel, once per issue until the next refresh; one page of 100 | issues: read |
 | `GET /repos/:owner/:repo/issues?assignee=&state=open` | Refresh, for the Inbox's assigned issues; the new-branch form's **From an issue** when the cache has none; one page of 50, pull requests left out | issues: read |
+| `GET /repos/:owner/:repo/issues?state=open` or `state=closed` | The Issues tab's **All** or **Closed**, the first time each is chosen, then until the next refresh; one page of 50, pull requests left out | issues: read |
 | `GET /repos/:owner/:repo/rules/branches/:branch` | Refresh, once per local branch's upstream, at most 25; a 404 (no rulesets) or 403 means no warnings | metadata: read |
 | `GET /notifications` | Refresh, once per host however many repositories are open: the unread notifications for the Inbox, one page of 50; only those about repositories open in the app are kept. Fine-grained tokens can't read this endpoint: the Inbox says so once and leaves the source out | classic token: `notifications` (or `repo`) |
 | `POST /repos/:owner/:repo/pulls` | Create pull request | pull requests: write |
