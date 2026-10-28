@@ -1,6 +1,7 @@
 @use '../../styles/patterns';
 
 .branch-sidebar {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -229,6 +230,21 @@
 .branch-row:hover .branch-row-time,
 .branch-row-current .branch-row-time {
   display: inline;
+}
+
+// A narrow sidebar keeps the name: the checked-out row's age goes to hover
+// like the others', then PR numbers drop to their square. The row's tooltip
+// still says both.
+@container (max-width: 300px) {
+  .branch-row-current:not(:hover) .branch-row-time {
+    display: none;
+  }
+}
+
+@container (max-width: 240px) {
+  .branch-row .change-marker-number {
+    display: none;
+  }
 }
 
 .branch-row-remote {

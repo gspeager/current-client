@@ -1,5 +1,5 @@
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
-import { Ellipsis, X } from 'lucide-react'
+import { Ellipsis, Users, X } from 'lucide-react'
 import { isMenuKey } from '../../components/controls/ContextMenu'
 import Checkbox from '../../components/forms/Checkbox'
 import DiffStat from '../../components/git/DiffStat'
@@ -77,8 +77,13 @@ function FileRow({
       </button>
       <span className="file-row-stats">
         {owners && owners.length > 0 && (
-          <span className="file-row-owners" title={`Owners: ${owners.join(', ')}`}>
-            {owners.join(' ')}
+          <span
+            className="file-row-owners"
+            role="img"
+            aria-label={`Owners: ${owners.join(', ')}`}
+            title={`Owners: ${owners.join(', ')}`}
+          >
+            <Users size={12} strokeWidth={1.75} />
           </span>
         )}
         {tag && <span className="file-row-tag">{tag}</span>}

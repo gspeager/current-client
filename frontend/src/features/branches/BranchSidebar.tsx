@@ -34,8 +34,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
-import CIMark from '../../components/git/CIMark'
-import { EnvironmentChips } from '../../components/git/EnvironmentMarker'
+import CIMark, { ciLabel } from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
 import { branchPage, remoteBranchName } from '../../lib/hostPages'
@@ -369,6 +368,20 @@ function BranchSidebar({
     }
   }
 
+  // What the row has no room for: where the tip is deployed, beside CI and age.
+  const branchSummary = (b: BranchInfo) => {
+    const ci = ciMarks?.[b.tip]?.status
+    const reached = (tipReach?.[b.tip] ?? []).filter((r) => r.state === 'in').map((r) => r.environment)
+    return [
+      b.name,
+      ci && ciLabel(ci),
+      reached.length > 0 && `on ${reached.join(', ')}`,
+      b.lastCommitDate && relativeTime(new Date(b.lastCommitDate)),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }
+
   const renderLocalRow = (b: BranchInfo) => (
     <li
       key={b.name}
@@ -378,7 +391,7 @@ function BranchSidebar({
       role="button"
       tabIndex={0}
       aria-disabled={blocked && !b.current ? true : undefined}
-      title={blocked && !b.current ? blocked : undefined}
+      title={blocked && !b.current ? blocked : branchSummary(b)}
       onKeyDown={rowKeys(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill
@@ -394,7 +407,6 @@ function BranchSidebar({
       {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
       <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
       {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
-      <EnvironmentChips reach={tipReach?.[b.tip]} />
       <ConflictsBadge overlap={overlapFor.get(b.name)} />
       {!b.current && b.worktreePath && (
         <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>

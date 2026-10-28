@@ -33,7 +33,10 @@ describe('FileRow staging interactions', () => {
         owners={['@alice', '@web/team']}
       />,
     )
-    expect(screen.getByText('@alice @web/team')).toHaveAttribute('title', 'Owners: @alice, @web/team')
+    expect(screen.getByRole('img', { name: 'Owners: @alice, @web/team' })).toHaveAttribute(
+      'title',
+      'Owners: @alice, @web/team',
+    )
   })
 
   it('labels the checkbox for unstaging once the file is checked', () => {

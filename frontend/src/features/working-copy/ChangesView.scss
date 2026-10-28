@@ -91,6 +91,16 @@
   font-weight: 600;
 }
 
+.changes-diff-owners {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
 .changes-diff-stats {
   display: flex;
   align-items: center;

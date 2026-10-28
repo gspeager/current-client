@@ -1,8 +1,10 @@
 @use '../../styles/patterns';
 
 // design-system.md §5.4 commit row grid contract: graph, commit, author,
-// hash, CI, time. The More actions button takes the time's cell while the
-// row is hovered or focused.
+// hash, CI, time. Refs, the PR marker and the deployment glyph live inside
+// the commit cell and shorten with it, so nothing is drawn over the subject.
+// The More actions button takes the time's cell while the row is hovered or
+// focused.
 .commit-row {
   display: grid;
   grid-template-columns: 108px minmax(0, 1fr) 150px 64px 20px 72px;
@@ -26,7 +28,8 @@
   }
 }
 
-// Narrow lists keep the subject: the author column drops to the badge.
+// Narrow lists keep the subject: the author column drops to the badge,
+// then the hash drops. CI and time never do.
 @container (max-width: 720px) {
   .commit-row {
     grid-template-columns: 108px minmax(0, 1fr) 18px 64px 20px 72px;
@@ -37,8 +40,18 @@
   }
 }
 
+@container (max-width: 560px) {
+  .commit-row {
+    grid-template-columns: 108px minmax(0, 1fr) 18px 20px 72px;
+  }
+
+  .commit-row-sha {
+    display: none;
+  }
+}
+
 .commit-row-actions {
-  grid-column: 6;
+  grid-column: -2;
   display: none;
   justify-content: flex-end;
   height: 100%;
@@ -87,15 +100,23 @@
 }
 
 // Ref pills shorten before the subject does: the subject keeps at least half
-// the column, and the pills share what is left.
+// the column, and the pills share what is left, clipped to their own box.
+// A pill with a PR marker shortens its name and keeps the marker whole.
 .commit-row-refs {
   display: flex;
   flex: 0 1 auto;
   gap: var(--space-xs);
   min-width: 0;
+  overflow: hidden;
 
-  .ref-badge {
+  .ref-badge,
+  .ref-badge-with-change {
     min-width: 0;
+  }
+
+  // Enough of a name to tell the pills apart.
+  .ref-badge {
+    min-width: 32px;
     @include patterns.truncate;
   }
 }
@@ -132,7 +153,7 @@
 }
 
 .commit-row-time {
-  grid-column: 6;
+  grid-column: -2;
   text-align: right;
   color: var(--outline);
   font: var(--ui-xs);
