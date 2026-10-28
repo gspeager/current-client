@@ -1,8 +1,24 @@
 import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
-import { Settings } from 'lucide-react'
 import {
+  Activity,
+  Broom,
+  CircleDot,
+  ClipboardCheck,
+  ClipboardList,
+  FileDiff,
+  GitBranchPlus,
+  GitPullRequest,
+  History,
+  Inbox,
+  PackagePlus,
+  ScrollText,
+  Settings,
+  Tag,
+} from 'lucide-react'
+import {
+  BranchService,
   GitService,
   HistoryService,
   type HostNotice,
@@ -16,10 +32,11 @@ import ConflictBanner from './features/branches/ConflictBanner'
 import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './components/chrome/HeaderBar'
 import KeepAlive from './components/chrome/KeepAlive'
-import NavPane from './components/chrome/NavPane'
+import NavPane, { type SidebarRequest } from './components/chrome/NavPane'
+import type { PaletteAction } from './components/chrome/paletteActions'
 import RepoSwitcher from './features/repositories/RepoSwitcher'
 import ResizeHandle from './components/chrome/ResizeHandle'
-import SettingsPanel from './features/settings/SettingsPanel'
+import SettingsPanel, { settingsGroups } from './features/settings/SettingsPanel'
 import StatusBar from './components/chrome/StatusBar'
 import TabBar, { type AppTab } from './features/repositories/TabBar'
 import { useWorkspaceActions } from './components/chrome/useWorkspaceActions'
@@ -39,6 +56,7 @@ import CreateChangeDialog from './features/host-changes/CreateChangeDialog'
 import IssuePanel from './features/host-changes/IssuePanel'
 import NewIssueDialog from './features/host-changes/NewIssueDialog'
 import InboxView, { type InboxTarget } from './features/inbox/InboxView'
+import StandupDialog from './features/inbox/StandupDialog'
 import { IssuePanelContext, type IssueDraft } from './lib/issuePanel'
 import { useHostPrompt } from './features/settings/useHostPrompt'
 import { useHostIndicator } from './lib/useHostIndicator'
@@ -93,6 +111,12 @@ function App({
     reload: reloadGitVersion,
   } = useAsyncData(() => GitService.GetGitVersion(), [])
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsGroup, setSettingsGroup] = useState<string | null>(null)
+  const openSettings = (group?: string) => {
+    setSettingsGroup(group ?? null)
+    setSettingsOpen(true)
+  }
+  const [standupOpen, setStandupOpen] = useState(false)
   // Bumped when a host switch may have changed, so the status bar's indicator follows.
   const [hostsVersion, setHostsVersion] = useState(0)
   const [changeFocus, setChangeFocus] = useState<number | null>(null)
@@ -296,9 +320,11 @@ function App({
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
   const [hostRefresh, setHostRefresh] = useState(0)
-  // Bumped after a merge from the app whose branch is local, so the sidebar
-  // opens Clean up merged branches.
-  const [cleanUpRequest, setCleanUpRequest] = useState(0)
+  // After a merge from the app whose branch is local, the sidebar opens
+  // Clean up merged branches; the palette asks for its forms the same way.
+  const [sidebarRequest, setSidebarRequest] = useState<SidebarRequest | null>(null)
+  const requestSidebar = (action: SidebarRequest['action']) =>
+    setSidebarRequest((r) => ({ action, n: (r?.n ?? 0) + 1 }))
   // Host rows the Inbox hasn't shown: counted after each refresh, and again
   // once the Inbox closes, since showing them counts as seeing them.
   const [inboxUnseen, setInboxUnseen] = useState(0)
@@ -369,7 +395,7 @@ function App({
           <RepoSwitcher
             repo={repo}
             defaultLocation={settings.settings?.defaultRepoLocation ?? ''}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenSettings={() => openSettings()}
           />
         )}
         {settingsOpen && (
@@ -378,6 +404,7 @@ function App({
             repoPath={repo.repoPath}
             hostIntegration={hostIntegration}
             updateCheck={!hideUpdateCheck}
+            initialGroup={settingsGroup}
             onClose={closeSettings}
             onHostsChanged={bumpHostsVersion}
           />
@@ -388,6 +415,144 @@ function App({
 
   const dirty = (workingTree.files?.length ?? 0) > 0
   const focus = commitFocus?.repoPath === repo.repoPath ? commitFocus : null
+  const repoPath = repo.repoPath
+  const createIssue = issueActions.create
+  const changeKind = integration?.host.provider === 'gitlab' ? 'merge request' : 'pull request'
+  const paletteActions: PaletteAction[] = [
+    {
+      id: 'view-changes',
+      label: 'Changes',
+      section: 'Views',
+      icon: FileDiff,
+      keywords: ['working tree', 'staged', 'diff', 'commit'],
+      run: () => changeTab('working-copy'),
+    },
+    {
+      id: 'view-history',
+      label: 'History',
+      section: 'Views',
+      icon: History,
+      keywords: ['log', 'graph', 'commits'],
+      run: () => changeTab('history'),
+    },
+    ...(changesLabel
+      ? [
+          {
+            id: 'view-host-changes',
+            label: changesLabel,
+            section: 'Views' as const,
+            icon: GitPullRequest,
+            keywords: ['pr', 'mr', 'pull requests', 'merge requests', 'review'],
+            run: () => changeTab('changes'),
+          },
+        ]
+      : []),
+    {
+      id: 'view-activity',
+      label: 'Activity',
+      section: 'Views',
+      icon: Activity,
+      keywords: ['stats', 'contributors', 'health'],
+      run: () => changeTab('activity'),
+    },
+    ...(conventionalCommitsOn
+      ? [
+          {
+            id: 'view-changelog',
+            label: 'Changelog',
+            section: 'Views' as const,
+            icon: ScrollText,
+            keywords: ['release notes', 'releases', 'conventional commits'],
+            run: () => changeTab('changelog'),
+          },
+        ]
+      : []),
+    {
+      id: 'view-inbox',
+      label: 'Inbox',
+      section: 'Views',
+      icon: Inbox,
+      keywords: ['todo', 'to-do', 'notifications', 'waiting', 'review requests'],
+      run: () => setInboxOpen(true),
+    },
+    {
+      id: 'new-branch',
+      label: 'New branch…',
+      section: 'Create',
+      icon: GitBranchPlus,
+      keywords: ['create branch', 'from an issue'],
+      run: () => requestSidebar('new-branch'),
+    },
+    ...(createIssue
+      ? [
+          {
+            id: 'new-issue',
+            label: 'New issue…',
+            section: 'Create' as const,
+            icon: CircleDot,
+            keywords: ['create issue'],
+            run: () => createIssue(),
+          },
+        ]
+      : []),
+    ...(requestCreateChange
+      ? [
+          {
+            id: 'new-change',
+            label: `New ${changeKind}…`,
+            section: 'Create' as const,
+            icon: GitPullRequest,
+            keywords: ['pr', 'mr', 'create pull request', 'create merge request'],
+            run: () =>
+              void BranchService.CurrentBranchStatus(repoPath).then((s) => s.current && requestCreateChange(s.current)),
+          },
+        ]
+      : []),
+    {
+      id: 'new-tag',
+      label: 'New tag…',
+      section: 'Create',
+      icon: Tag,
+      keywords: ['create tag'],
+      run: () => requestSidebar('new-tag'),
+    },
+    {
+      id: 'release-readiness',
+      label: 'Release readiness',
+      section: 'Release',
+      icon: ClipboardCheck,
+      keywords: ['release', 'ready', 'version', 'changelog'],
+      run: () => requestSidebar('release-readiness'),
+    },
+    ...(integration
+      ? [
+          {
+            id: 'publish-release',
+            label: 'Publish release…',
+            section: 'Release' as const,
+            icon: PackagePlus,
+            keywords: ['release', 'publish'],
+            run: () => requestSidebar('publish-release'),
+          },
+        ]
+      : []),
+    {
+      id: 'standup',
+      label: 'Standup…',
+      section: 'Tools',
+      icon: ClipboardList,
+      keywords: ['what i did', 'summary', 'yesterday', 'this week'],
+      run: () => setStandupOpen(true),
+    },
+    {
+      id: 'clean-up-branches',
+      label: 'Clean up merged branches',
+      section: 'Tools',
+      icon: Broom,
+      keywords: ['delete merged', 'tidy', 'stale'],
+      run: () => requestSidebar('clean-up'),
+    },
+  ]
 
   return (
     <LaneThemeContext.Provider value={toLaneThemeName(settings.settings?.laneColorTheme)}>
@@ -407,7 +572,9 @@ function App({
               inboxUnseen={inboxUnseen}
               onToggleInbox={() => setInboxOpen((open) => !open)}
               workspaceActions={workspace.actions}
-              onOpenSettings={() => setSettingsOpen(true)}
+              paletteActions={paletteActions}
+              settingsGroups={settingsGroups(hostIntegration)}
+              onOpenSettings={openSettings}
               onPull={pull}
               onPullMerge={pullMerge}
               onPullRebase={pullRebase}
@@ -449,6 +616,7 @@ function App({
                 repoPath={repo.repoPath}
                 hostIntegration={hostIntegration}
                 updateCheck={!hideUpdateCheck}
+                initialGroup={settingsGroup}
                 onClose={closeSettings}
                 onHostsChanged={bumpHostsVersion}
               />
@@ -457,6 +625,7 @@ function App({
             {openIssueKey && repo.repoPath && (
               <IssuePanel repoPath={repo.repoPath} issueKey={openIssueKey} onClose={() => setOpenIssueKey(null)} />
             )}
+            {standupOpen && <StandupDialog paths={repo.tabs} onClose={() => setStandupOpen(false)} />}
             {newIssueDraft && repo.repoPath && (
               <NewIssueDialog
                 repoPath={repo.repoPath}
@@ -548,7 +717,7 @@ function App({
                   workspaceFeedback={workspace.feedback}
                   onDismissFeedback={workspace.dismissFeedback}
                   hostVersion={hostRefresh}
-                  cleanUpRequest={cleanUpRequest}
+                  request={sidebarRequest}
                   onPushToCreate={
                     requestCreateChange
                       ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))
@@ -621,11 +790,11 @@ function App({
                         }}
                         onBranchChanged={onBranchChanged}
                         onCreateChange={requestCreateChange}
-                        onOpenSettings={() => setSettingsOpen(true)}
+                        onOpenSettings={() => openSettings()}
                         onMerged={(result) => {
                           onBranchChanged()
                           setHostRefresh((n) => n + 1)
-                          if (result.localBranch) setCleanUpRequest((n) => n + 1)
+                          if (result.localBranch) requestSidebar('clean-up')
                         }}
                       />
                     </KeepAlive>
@@ -659,7 +828,7 @@ function App({
               gitVersion={gitVersion}
               integration={integration}
               lastFetchedAt={lastFetchedAt}
-              onOpenSettings={() => setSettingsOpen(true)}
+              onOpenSettings={() => openSettings()}
             />
           </div>
         </IssuePanelContext.Provider>

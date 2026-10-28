@@ -12,9 +12,10 @@ import {
   GitCommitVertical,
   Search,
   Settings as SettingsIcon,
+  Tag,
   type LucideIcon,
 } from 'lucide-react'
-import { BranchService, HistoryService, RemoteService, StatusService } from '@current-client-bindings/app'
+import { BranchService, HistoryService, RemoteService, StatusService, TagService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { highlightMatch } from '../../lib/highlightMatch'
 import { localNameFor } from '../../features/branches/branches'
@@ -28,6 +29,7 @@ import type { useRepositoryLifecycle } from '../../features/repositories/useRepo
 import Kbd from '../controls/Kbd'
 import PathText from '../git/PathText'
 import Modal from './Modal'
+import { PALETTE_SECTIONS, matchesAction, type PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
 import './QuickSwitchPalette.scss'
 
@@ -37,7 +39,11 @@ interface QuickSwitchPaletteProps {
   onClose: () => void
   onBranchChanged?: () => void
   workspaceActions: WorkspaceAction[]
-  onOpenSettings: () => void
+  // The views, create, release and tool entries the app owns; the palette adds sync and Settings.
+  actions?: PaletteAction[]
+  // Each Settings group is an entry that opens Settings on it.
+  settingsGroups?: string[]
+  onOpenSettings: (group?: string) => void
   onPull: () => void
   onPullMerge: () => void
   onPullRebase: () => void
@@ -62,22 +68,34 @@ interface RepoResult {
   currentBranch: string
 }
 
-const SETTINGS_ITEMS = [
-  { id: 'theme', label: 'Theme', hint: 'Light, dark, or system' },
-  { id: 'git-path', label: 'Git executable path', hint: 'Settings' },
-  { id: 'repo-location', label: 'Default repository location', hint: 'Settings' },
-  { id: 'diff', label: 'Diff', hint: 'Ignore whitespace by default' },
-  { id: 'editor', label: 'Editor', hint: 'Settings' },
-  { id: 'auto-fetch', label: 'Background auto-fetch', hint: 'Settings' },
-  { id: 'lane-colors', label: 'Lane colors', hint: 'Settings' },
-  { id: 'identity', label: 'Identity & global user', hint: 'Settings' },
-]
+// What each Settings group holds, shown beside it and searched with its name.
+const SETTINGS_HINTS: Record<string, string> = {
+  Appearance: 'Theme, lane colors',
+  Git: 'Git executable, Conventional Commits',
+  'Tools and folders': 'Editor, default repository location',
+  Diff: 'Ignore whitespace',
+  Network: 'Background fetch, prune on fetch',
+  Integrations: 'Hosts, issue trackers, tokens',
+  'Identity colors': 'Badge colors',
+  Support: 'Version, check for updates, diagnostics',
+}
+
+const SETTINGS_KEYWORDS: Record<string, string> = {
+  Appearance: 'dark light system',
+  Git: 'path',
+  'Tools and folders': 'terminal folder',
+  Network: 'auto-fetch',
+  Integrations: 'github gitlab jira token releases url',
+  'Identity colors': 'initials avatar',
+  Support: 'update logs about',
+}
 
 const MAX_FILE_RESULTS = 20
 // At rest the palette shows where you can go, not an inventory: this many
 // local branches, the recent repositories and the actions.
 const MAX_IDLE_BRANCHES = 8
 const MAX_COMMIT_RESULTS = 10
+const MAX_TAG_RESULTS = 10
 const COMMIT_SEARCH_DEBOUNCE_MS = 200
 
 function loadBranchResults(repoPath: string): Promise<BranchResult[]> {
@@ -148,6 +166,8 @@ function QuickSwitchPalette({
   onClose,
   onBranchChanged,
   workspaceActions,
+  actions: appActions = [],
+  settingsGroups = [],
   onOpenSettings,
   onPull,
   onPullMerge,
@@ -168,6 +188,7 @@ function QuickSwitchPalette({
   const ahead = useBranchStatus(repoPath, 0)?.ahead ?? 0
   const branches = useAsyncData(() => loadBranchResults(repoPath), [repoPath]).data ?? []
   const files = useAsyncData(() => StatusService.ListFiles(repoPath).catch(() => []), [repoPath]).data ?? []
+  const tags = useAsyncData(() => TagService.ListTags(repoPath).catch(() => []), [repoPath]).data ?? []
   const repos =
     useAsyncData(
       () => loadRepoResults(repo.recentRepos.filter((path) => path !== repoPath)),
@@ -183,15 +204,29 @@ function QuickSwitchPalette({
   ).data
   const commits = q ? (searchResults ?? []) : []
 
-  const actions: WorkspaceAction[] = [
-    { id: 'search-files', label: 'Search in files', icon: Search, run: onSearchFiles },
-    { id: 'fetch-all', label: 'Fetch all remotes', icon: Cloud, run: onFetchAll },
-    { id: 'pull', label: 'Pull', icon: ArrowDown, run: onPull },
-    { id: 'pull-merge', label: 'Pull (merge)', icon: ArrowDown, run: onPullMerge },
-    { id: 'pull-rebase', label: 'Pull (rebase)', icon: ArrowDown, run: onPullRebase },
-    { id: 'push', label: 'Push', icon: ArrowUp, run: onPush },
-    ...workspaceActions.filter((a) => !a.disabled),
-    { id: 'open-settings', label: 'Open Settings', icon: SettingsIcon, run: onOpenSettings },
+  const actions: PaletteAction[] = [
+    ...appActions,
+    { id: 'fetch-all', label: 'Fetch all remotes', section: 'Sync', icon: Cloud, run: onFetchAll },
+    { id: 'pull', label: 'Pull', section: 'Sync', icon: ArrowDown, run: onPull },
+    { id: 'pull-merge', label: 'Pull (merge)', section: 'Sync', icon: ArrowDown, run: onPullMerge },
+    { id: 'pull-rebase', label: 'Pull (rebase)', section: 'Sync', icon: ArrowDown, run: onPullRebase },
+    { id: 'push', label: 'Push', section: 'Sync', icon: ArrowUp, run: onPush },
+    {
+      id: 'search-files',
+      label: 'Search in files',
+      section: 'Tools',
+      icon: Search,
+      keywords: ['find', 'grep'],
+      run: onSearchFiles,
+    },
+    ...workspaceActions.filter((a) => !a.disabled).map((a) => ({ ...a, section: 'Tools' as const })),
+    {
+      id: 'open-settings',
+      label: 'Open Settings',
+      section: 'Settings',
+      icon: SettingsIcon,
+      run: () => onOpenSettings(),
+    },
   ]
 
   const branchResults = q
@@ -203,13 +238,18 @@ function QuickSwitchPalette({
   const repoResults = repos.filter((r) => matches(r.path, q))
   // A large repo has thousands of files, so they only appear once there's a query.
   const fileResults = q ? files.filter((p) => matches(p, q)).slice(0, MAX_FILE_RESULTS) : []
-  const settingsResults = q ? SETTINGS_ITEMS.filter((s) => matches(s.label, q)) : []
-  const actionResults = actions.filter((a) => matches(a.label, q))
+  const tagResults = q ? tags.filter((t) => matches(t.name, q)).slice(0, MAX_TAG_RESULTS) : []
+  const settingsResults = q
+    ? settingsGroups.filter((g) => [g, SETTINGS_HINTS[g] ?? '', SETTINGS_KEYWORDS[g] ?? ''].some((t) => matches(t, q)))
+    : []
+  const actionResults = actions.filter((a) => matchesAction(a, q))
+  const sectionActions = (section: PaletteAction['section']) => actionResults.filter((a) => a.section === section)
   const resultCount =
     branchResults.length +
     repoResults.length +
     fileResults.length +
     commits.length +
+    tagResults.length +
     settingsResults.length +
     actionResults.length
 
@@ -238,6 +278,19 @@ function QuickSwitchPalette({
 
   const highlight = (text: string) => highlightMatch(text, query, 'search-match')
 
+  const actionRow = (a: PaletteAction) => (
+    <Command.Item
+      key={`action:${a.id}`}
+      value={`action:${a.id}`}
+      aria-label={a.label}
+      className="quick-switch-row"
+      onSelect={() => runAndClose(a.run)}
+    >
+      <a.icon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+      <span className="quick-switch-row-name">{highlight(a.label)}</span>
+    </Command.Item>
+  )
+
   return (
     <Modal title="Go to anything" onClose={onClose} className="quick-switch-palette" placement="top" hideHeader>
       <Command shouldFilter={false} loop className="quick-switch-command">
@@ -245,8 +298,8 @@ function QuickSwitchPalette({
           <Search size={16} strokeWidth={1.5} />
           <Command.Input
             autoFocus
-            aria-label="Search branches, repositories, files, commits, settings, and actions"
-            placeholder="Go to a branch, file, commit, setting or action…"
+            aria-label="Search branches, repositories, files, commits, tags, settings, and actions"
+            placeholder="Go to a branch, file, commit, tag, setting or action…"
             value={query}
             onValueChange={setQuery}
           />
@@ -256,7 +309,20 @@ function QuickSwitchPalette({
         {error && <p className="quick-switch-error">{error}</p>}
 
         <Command.List className="quick-switch-results">
-          <Command.Empty className="quick-switch-empty">No matches.</Command.Empty>
+          {q && resultCount === 0 && (
+            <Section heading="No matches" count={1}>
+              <Command.Item
+                value="no-matches:settings"
+                aria-label="Open Settings"
+                className="quick-switch-row"
+                onSelect={() => runAndClose(() => onOpenSettings())}
+              >
+                <SettingsIcon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">Open Settings</span>
+                <span className="quick-switch-row-meta">Nothing named “{query.trim()}”</span>
+              </Command.Item>
+            </Section>
+          )}
 
           <Section heading={`Branches in ${baseName(repoPath)}`} icon={GitBranch} count={branchResults.length}>
             {branchResults.map((b) => (
@@ -340,36 +406,48 @@ function QuickSwitchPalette({
             ))}
           </Section>
 
-          <Section heading="Settings" icon={SettingsIcon} count={settingsResults.length}>
-            {settingsResults.map((s) => (
+          <Section heading="Tags" icon={Tag} count={tagResults.length}>
+            {tagResults.map((t) => (
               <Command.Item
-                key={`settings:${s.id}`}
-                value={`settings:${s.id}`}
-                aria-label={`Settings: ${s.label}`}
+                key={`tag:${t.name}`}
+                value={`tag:${t.name}`}
+                aria-label={`Tag ${t.name}`}
                 className="quick-switch-row"
-                onSelect={() => runAndClose(onOpenSettings)}
+                onSelect={() => openCommit(t.sha)}
               >
-                <SettingsIcon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
-                <span className="quick-switch-row-name">{highlight(s.label)}</span>
-                <span className="quick-switch-row-meta">{s.hint}</span>
+                <Tag size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">{highlight(t.name)}</span>
+                <span className="quick-switch-row-meta">
+                  <span className="quick-switch-commit-sha">{t.sha.slice(0, 7)}</span>
+                  {t.date && <span className="quick-switch-commit-date">{relativeTime(new Date(t.date))}</span>}
+                </span>
               </Command.Item>
             ))}
           </Section>
 
-          <Section heading="Actions" count={actionResults.length}>
-            {actionResults.map((a) => (
-              <Command.Item
-                key={`action:${a.id}`}
-                value={`action:${a.id}`}
-                aria-label={a.label}
-                className="quick-switch-row"
-                onSelect={() => runAndClose(a.run)}
-              >
-                <a.icon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
-                <span className="quick-switch-row-name">{highlight(a.label)}</span>
-              </Command.Item>
-            ))}
-          </Section>
+          {PALETTE_SECTIONS.map((section) => (
+            <Section
+              key={section}
+              heading={section}
+              count={sectionActions(section).length + (section === 'Settings' ? settingsResults.length : 0)}
+            >
+              {sectionActions(section).map(actionRow)}
+              {section === 'Settings' &&
+                settingsResults.map((g) => (
+                  <Command.Item
+                    key={`settings:${g}`}
+                    value={`settings:${g}`}
+                    aria-label={`Settings: ${g}`}
+                    className="quick-switch-row"
+                    onSelect={() => runAndClose(() => onOpenSettings(g))}
+                  >
+                    <SettingsIcon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                    <span className="quick-switch-row-name">{highlight(g)}</span>
+                    <span className="quick-switch-row-meta">{SETTINGS_HINTS[g]}</span>
+                  </Command.Item>
+                ))}
+            </Section>
+          ))}
         </Command.List>
 
         <div className="quick-switch-footer">

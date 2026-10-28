@@ -27,6 +27,7 @@ import { plural } from '../../lib/plural'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useDialogs } from '../../lib/useDialogs'
@@ -50,8 +51,8 @@ interface BranchSidebarProps {
   conflict?: ConflictStateInfo | null
   onBranchChanged?: () => void
   onCreateChange?: (branch: string) => void
-  // Opens Clean up merged branches when it changes, after a merge from the app.
-  cleanUpRequest?: number
+  // New branch or Clean up asked for from elsewhere, such as after a merge from the app.
+  request?: SidebarRequest | null
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
@@ -64,7 +65,7 @@ function BranchSidebar({
   conflict = null,
   onBranchChanged,
   onCreateChange,
-  cleanUpRequest = 0,
+  request = null,
 }: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
@@ -128,8 +129,9 @@ function BranchSidebar({
   const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
   const [cleanUp, setCleanUp] = useState(false)
   useEffect(() => {
-    if (cleanUpRequest > 0) setCleanUp(true)
-  }, [cleanUpRequest])
+    if (request?.action === 'clean-up') setCleanUp(true)
+    if (request?.action === 'new-branch') setShowNewBranch(true)
+  }, [request])
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 
