@@ -239,17 +239,24 @@ describe('BranchSidebar', () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), { ...branch('feature'), tip: 'abc' }])
     vi.mocked(HostService.CIStatus).mockResolvedValue({ abc: new CIMarkInfo({ status: 'failed', pipelineId: 12 }) })
     vi.mocked(HostService.PipelineJobs).mockResolvedValue([
-      new Job({ id: 5, name: 'test', stage: 'unit', status: CIStatus.CIFailed }),
+      new Job({
+        id: 5,
+        name: 'test',
+        stage: 'unit',
+        status: CIStatus.CIFailed,
+        webUrl: 'https://gitlab.example.com/j/5',
+      }),
     ])
-    vi.mocked(HostService.JobLog).mockResolvedValue({ text: 'ERROR', truncated: false, full: true })
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
     vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
     renderSidebar()
 
     const row = await screen.findByRole('button', { name: /^feature/ })
     await userEvent.click(within(row).getByRole('button', { name: 'CI failed' }))
     const dialog = await screen.findByRole('dialog', { name: 'CI failed' })
-    await userEvent.click(within(dialog).getByRole('button', { name: /test/ }))
-    await within(dialog).findByText('ERROR')
+    // A sidebar row has no commit details to open, so a failed job opens on the host.
+    await userEvent.click(await within(dialog).findByRole('button', { name: /^test/ }))
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.example.com/j/5')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()

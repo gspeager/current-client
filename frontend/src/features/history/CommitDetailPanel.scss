@@ -329,3 +329,24 @@
     }
   }
 }
+
+.commit-detail-checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+// The section's header is its toggle: the jobs are asked for when it opens.
+.commit-detail-checks-toggle {
+  justify-content: flex-start;
+  gap: var(--space-xs);
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--outline);
+  cursor: pointer;
+
+  .commit-detail-section-count {
+    margin-left: auto;
+  }
+}
