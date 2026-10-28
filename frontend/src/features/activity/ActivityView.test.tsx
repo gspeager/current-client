@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { DashboardService, type FileChurnInfo } from '@current-client-bindings/app'
 import ActivityView from './ActivityView'
 
@@ -21,6 +22,15 @@ describe('ActivityView', () => {
 
     resolveRefetch([{ path: 'src/new.ts', changes: 5 }])
     expect(await screen.findByText('src/new.ts')).toBeInTheDocument()
+  })
+
+  it('opens Standup from its header', async () => {
+    const onStandup = vi.fn()
+    render(
+      <ActivityView repoPath="/repos/app" repoVersion={0} dirty={false} hasConflict={false} onStandup={onStandup} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Standup…' }))
+    expect(onStandup).toHaveBeenCalled()
   })
 
   it('shows no age for a repository without commits', async () => {

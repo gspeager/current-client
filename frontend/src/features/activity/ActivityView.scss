@@ -1,9 +1,26 @@
+@use '../../styles/patterns';
+
 .activity-view {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   align-items: start;
   gap: var(--space-lg);
+}
+
+.activity-view-header {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: calc(var(--space-sm) - var(--space-lg));
+}
+
+.activity-view-standup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  @include patterns.secondary-button;
 }
 
 .activity-view-pair {

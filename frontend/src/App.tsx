@@ -829,6 +829,7 @@ function App({
                     repoVersion={repoVersion}
                     dirty={dirty}
                     hasConflict={conflictState !== null}
+                    onStandup={() => setStandupOpen(true)}
                   />
                 </KeepAlive>
                 {issuesOn && (

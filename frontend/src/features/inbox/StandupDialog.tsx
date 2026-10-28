@@ -61,9 +61,7 @@ function StandupDialog({ paths, onClose }: StandupDialogProps) {
           </pre>
         )}
         <p className="standup-hint">
-          Commits are yours on any branch, by each repository&rsquo;s user.email. Merge requests and reviews come from
-          the host&rsquo;s last refresh, for repositories with integration on; a review counts where it still stands on
-          a change updated since.
+          Commits by each repository&rsquo;s user.email; changes and reviews from the last refresh.
         </p>
         {notRefreshed.length > 0 && (
           <p className="standup-hint">Not refreshed yet, so no host rows: {notRefreshed.join(', ')}.</p>
@@ -79,7 +77,7 @@ function StandupDialog({ paths, onClose }: StandupDialogProps) {
           </button>
           <button
             type="button"
-            className="dialog-button dialog-button-primary"
+            className="dialog-button dialog-button-primary standup-copy"
             onClick={() => copy(text)}
             disabled={!text}
           >
