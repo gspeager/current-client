@@ -294,7 +294,7 @@ describe('HostChangesView', () => {
     expect(onCreateChange).toHaveBeenCalledWith('topic')
   })
 
-  it('names the host in the privacy line and opens the integration settings from it', async () => {
+  it("names the host in the settings link's tooltip and opens the integration settings from it", async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
     vi.mocked(HostService.ChangeDetails).mockResolvedValue({
       change: change({}),
@@ -304,8 +304,9 @@ describe('HostChangesView', () => {
     })
     const { onOpenSettings } = renderView()
 
-    expect(await screen.findByText(/gitlab\.example\.com is contacted on Refresh/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Integration settings' }))
+    const link = await screen.findByRole('button', { name: 'Integration settings' })
+    expect(link).toHaveAttribute('title', expect.stringMatching(/^gitlab\.example\.com is contacted on Refresh/))
+    await userEvent.click(link)
     expect(onOpenSettings).toHaveBeenCalled()
   })
 
