@@ -53,28 +53,20 @@ function StatusBar({
         {lastFetchedAt ? `fetched ${relativeTime(lastFetchedAt)}` : 'not fetched yet'}
       </span>
       {integration && (
-        <button
-          type="button"
-          className={integration.status?.inFlight ? 'status-bar-host status-bar-host-busy' : 'status-bar-host'}
-          onClick={onOpenSettings}
-          title={`Integration is on for ${integration.host.hostname}. Opens Settings.`}
-        >
-          <span className="status-bar-host-dot" />
-          <span className="status-bar-host-name">{integration.apiHost}</span>
-          <span>{hostRequestLabel(integration.status)}</span>
-        </button>
+        <ServiceItem
+          name={integration.apiHost}
+          status={integration.status}
+          about={`Integration is on for ${integration.host.hostname}. Its API is contacted on Refresh, when a list first opens, and when details need more.`}
+          onOpenSettings={onOpenSettings}
+        />
       )}
       {trackerHost && (
-        <button
-          type="button"
-          className={trackerStatus?.inFlight ? 'status-bar-host status-bar-host-busy' : 'status-bar-host'}
-          onClick={onOpenSettings}
-          title={`Integration is on for the issue tracker ${trackerHost}. Opens Settings.`}
-        >
-          <span className="status-bar-host-dot" />
-          <span className="status-bar-host-name">{trackerHost}</span>
-          <span>{hostRequestLabel(trackerStatus)}</span>
-        </button>
+        <ServiceItem
+          name={trackerHost}
+          status={trackerStatus}
+          about={`Integration is on for the issue tracker ${trackerHost}. Its API is contacted on Refresh and when an issue opens.`}
+          onOpenSettings={onOpenSettings}
+        />
       )}
       <button
         type="button"
@@ -88,6 +80,34 @@ function StatusBar({
       {gitVersion && <span>git {gitVersion}</span>}
       {appVersion && <span>Current Client {appVersion}</span>}
     </footer>
+  )
+}
+
+// One service that is on: its name and a dot, filled while a request is in
+// flight. The budget and when it was last asked are in the tooltip, so two
+// services fit a narrow window.
+function ServiceItem({
+  name,
+  status,
+  about,
+  onOpenSettings,
+}: {
+  name: string
+  status: HostStatusInfo | null
+  about: string
+  onOpenSettings?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className={status?.inFlight ? 'status-bar-host status-bar-host-busy' : 'status-bar-host'}
+      onClick={onOpenSettings}
+      aria-label={`${name}, integration on`}
+      title={`${about}\n${hostRequestLabel(status)}\nOpens Settings.`}
+    >
+      <span className="status-bar-host-dot" />
+      <span className="status-bar-host-name">{name}</span>
+    </button>
   )
 }
 

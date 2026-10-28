@@ -30,8 +30,9 @@ describe('StatusBar', () => {
       />,
     )
 
-    const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
-    expect(indicator).toHaveTextContent('no requests yet')
+    const indicator = await screen.findByRole('button', { name: 'api.github.com, integration on' })
+    expect(indicator).toHaveTextContent(/^api\.github\.com$/)
+    expect(indicator.title).toContain('no requests yet')
     await userEvent.click(indicator)
     expect(onOpenSettings).toHaveBeenCalled()
   })
@@ -53,7 +54,7 @@ describe('StatusBar', () => {
     render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" integration={integration} />)
 
     const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
-    expect(indicator).toHaveTextContent('42 of 60 requests left · last request just now')
+    expect(indicator.title).toContain('42 of 60 requests left · last request just now')
   })
 
   it('says when a spent budget resets', async () => {
@@ -74,7 +75,7 @@ describe('StatusBar', () => {
     render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" integration={integration} />)
 
     const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
-    expect(indicator).toHaveTextContent(
+    expect(indicator.title).toContain(
       `0 of 60 requests left · resets at ${resetAt.toLocaleTimeString([], { timeStyle: 'short' })} · no requests yet`,
     )
   })
@@ -160,10 +161,9 @@ describe('StatusBar', () => {
         <StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" />
       </IssuePanelContext.Provider>,
     )
-    expect(await screen.findByRole('button', { name: /example\.atlassian\.net/ })).toHaveAttribute(
-      'title',
-      'Integration is on for the issue tracker example.atlassian.net. Opens Settings.',
-    )
+    const item = await screen.findByRole('button', { name: 'example.atlassian.net, integration on' })
+    expect(item.title).toMatch(/^Integration is on for the issue tracker example\.atlassian\.net\./)
+    expect(item.title).toContain('no requests yet')
     expect(HostService.Status).toHaveBeenCalledWith('example.atlassian.net')
   })
 })

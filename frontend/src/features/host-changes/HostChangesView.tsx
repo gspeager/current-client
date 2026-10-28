@@ -211,14 +211,16 @@ function HostChangesView({
           </ul>
           <footer className="host-changes-privacy">
             {(filter === 'closed' ? closedList?.truncated : list.truncated) && <p>List cut at the page cap.</p>}
-            <p>
-              {list.host} is contacted on Refresh, when this tab first opens, and when a detail tab needs more.{' '}
-              {onOpenSettings && (
-                <button type="button" className="host-changes-privacy-link" onClick={onOpenSettings}>
-                  Integration settings
-                </button>
-              )}
-            </p>
+            {onOpenSettings && (
+              <button
+                type="button"
+                className="host-changes-privacy-link"
+                onClick={onOpenSettings}
+                title={`${list.host} is contacted on Refresh, when this tab first opens, and when a detail tab needs more.`}
+              >
+                Integration settings
+              </button>
+            )}
           </footer>
         </div>
         {active && (
