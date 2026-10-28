@@ -103,6 +103,8 @@ function HistoryView({
   const commitActions = useCommitActions(repoPath, onBranchChanged, hostLinks)
 
   const [selectedSha, setSelectedSha] = useState<string | null>(initialSelectedSha)
+  // The commit whose Checks a job click asked for.
+  const [checksFor, setChecksFor] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [hideMerges, setHideMerges] = useState(false)
   const [focusedSha, setFocusedSha] = useState<string | null>(null)
@@ -354,6 +356,10 @@ function HistoryView({
                       searchQuery={query}
                       style={rowStyle}
                       onSelect={() => selectSha(commit.sha)}
+                      onOpenChecks={() => {
+                        selectSha(commit.sha)
+                        setChecksFor(commit.sha)
+                      }}
                       onContextMenu={commitContextMenu(commit)}
                       onHighlightAuthor={() => highlightAuthor(commit.authorEmail)}
                       authorHighlighted={highlightedAuthor === commit.authorEmail}
@@ -388,6 +394,8 @@ function HistoryView({
             openedPath={openedPath}
             onOpenFile={(path) => setOpenedFile({ sha: selectedCommit.sha, path })}
             threadCounts={reviewThreads.counts}
+            ci={ciMarks[selectedCommit.sha]}
+            checksOpen={checksFor === selectedCommit.sha}
           />
         </div>
       )}

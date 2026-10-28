@@ -1,5 +1,14 @@
-import type { KeyboardEvent, MouseEvent } from 'react'
-import { Check, ChevronDown, Copy, GitCommitVertical, Palette, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  GitCommitVertical,
+  Palette,
+  ShieldAlert,
+  ShieldCheck,
+} from 'lucide-react'
 import {
   type ChangedFile,
   type CommitInfo,
@@ -7,6 +16,7 @@ import {
   type IdentityInfo,
   PlatformService,
   HostService,
+  type CIMark as CIMarkInfo,
 } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { relativeTime } from '../../lib/relativeTime'
@@ -23,6 +33,7 @@ import ReferenceText from '../../components/git/ReferenceText'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
 import { filePage } from '../../lib/hostPages'
 import { EnvironmentReach } from '../../components/git/EnvironmentMarker'
+import { CIIcon, ciLabel, PipelineJobList } from '../../components/git/CIMark'
 import './CommitDetailPanel.scss'
 
 interface CommitDetailPanelProps {
@@ -41,6 +52,10 @@ interface CommitDetailPanelProps {
   onOpenFile?: (path: string) => void
   // Unresolved review threads per file.
   threadCounts?: Record<string, number | undefined>
+  // The commit's pipeline result, when the host reported one.
+  ci?: CIMarkInfo
+  // Opens the Checks section, as a job clicked in the CI mark's list does.
+  checksOpen?: boolean
 }
 
 function CommitDetailPanel({
@@ -56,6 +71,8 @@ function CommitDetailPanel({
   openedPath = null,
   onOpenFile,
   threadCounts,
+  ci,
+  checksOpen = false,
 }: CommitDetailPanelProps) {
   useClockTick()
   const moreRef = useDismissibleDetails()
@@ -200,6 +217,8 @@ function CommitDetailPanel({
           </p>
         )}
 
+        {ci?.status && <ChecksSection repoPath={repoPath} mark={ci} initiallyOpen={checksOpen} />}
+
         <div className="commit-detail-section-header">
           <span className="commit-detail-label">Changed files</span>
           {changedFiles && <span className="commit-detail-section-count">{plural(changedFiles.length, 'file')}</span>}
@@ -262,6 +281,43 @@ function CommitDetailPanel({
 
       {fileTools.overlays}
     </section>
+  )
+}
+
+// The commit's jobs, the same list as a change's Checks tab: folded until
+// opened, since opening asks the host for them.
+function ChecksSection({
+  repoPath,
+  mark,
+  initiallyOpen,
+}: {
+  repoPath: string
+  mark: CIMarkInfo
+  initiallyOpen: boolean
+}) {
+  const [open, setOpen] = useState(initiallyOpen)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (initiallyOpen) {
+      setOpen(true)
+      ref.current?.scrollIntoView({ block: 'start' })
+    }
+  }, [initiallyOpen])
+  return (
+    <div className="commit-detail-checks" ref={ref}>
+      <button
+        type="button"
+        className="commit-detail-section-header commit-detail-checks-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((on) => !on)}
+      >
+        {open ? <ChevronDown size={14} strokeWidth={1.75} /> : <ChevronRight size={14} strokeWidth={1.75} />}
+        <span className="commit-detail-label">Checks</span>
+        <CIIcon status={mark.status} />
+        <span className="commit-detail-section-count">{ciLabel(mark.status)}</span>
+      </button>
+      {open && <PipelineJobList repoPath={repoPath} pipelineId={mark.pipelineId} webUrl={mark.webUrl} />}
+    </div>
   )
 }
 

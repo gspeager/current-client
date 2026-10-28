@@ -41,11 +41,14 @@ export function CIIcon({ status, size = 14 }: { status: string; size?: number })
 interface CIMarkProps {
   repoPath: string
   mark: CIMarkInfo | undefined
+  // Opens the commit's details on its Checks, where a job's log and actions
+  // have room; without it, a job opens on the host.
+  onOpenJobs?: () => void
 }
 
 // The pipeline result for a commit or branch tip. Clicking lists the jobs,
-// fetched then, with Open on host.
-function CIMark({ repoPath, mark }: CIMarkProps) {
+// fetched then, for a glance.
+function CIMark({ repoPath, mark, onOpenJobs }: CIMarkProps) {
   const [open, setOpen] = useState(false)
   if (!mark?.status) return null
   const label = ciLabel(mark.status)
@@ -60,7 +63,20 @@ function CIMark({ repoPath, mark }: CIMarkProps) {
           <CIIcon status={mark.status} />
         </button>
       </HoverCard>
-      {open && <PipelineJobs repoPath={repoPath} mark={mark} onClose={() => setOpen(false)} />}
+      {open && (
+        <PipelineJobs
+          repoPath={repoPath}
+          mark={mark}
+          onClose={() => setOpen(false)}
+          onOpenJobs={
+            onOpenJobs &&
+            (() => {
+              setOpen(false)
+              onOpenJobs()
+            })
+          }
+        />
+      )}
     </>
   )
 }
@@ -89,14 +105,23 @@ function CICard({ repoPath, mark, label }: { repoPath: string; mark: CIMarkInfo;
 // The jobs of one pipeline, fetched when first shown. onLoaded reports the
 // count for a caller that shows it elsewhere. A re-run is one request on a
 // click, and the list then shows the jobs as the host answers after it.
+// At a glance, a job is a row to open; in full, a failed job opens its log
+// under its row and carries its own actions.
 export function PipelineJobList({
   repoPath,
   pipelineId,
+  webUrl = '',
   onLoaded,
+  glance = false,
+  onOpenJob,
 }: {
   repoPath: string
   pipelineId: number
+  // The pipeline's page, for the footer's Open on host.
+  webUrl?: string
   onLoaded?: (count: number) => void
+  glance?: boolean
+  onOpenJob?: (job: Job) => void
 }) {
   const { data: loaded, error } = useAsyncData(
     () => HostService.PipelineJobs(repoPath, pipelineId),
@@ -126,28 +151,44 @@ export function PipelineJobList({
       {jobs?.length === 0 && <p className="ci-jobs-hint">No jobs.</p>}
       {jobs && jobs.length > 0 && (
         <ul className="ci-jobs-list" aria-label="Jobs">
-          {jobs.map((job) => (
-            <JobRow
-              key={job.id}
-              job={job}
-              repoPath={repoPath}
-              onRetry={job.retryable ? () => retryJob(job) : undefined}
-              retrying={retrying}
-            />
-          ))}
+          {jobs.map((job) =>
+            glance ? (
+              <GlanceJobRow key={job.id} job={job} onOpen={onOpenJob} />
+            ) : (
+              <JobRow
+                key={job.id}
+                job={job}
+                repoPath={repoPath}
+                onRetry={job.retryable ? () => retryJob(job) : undefined}
+                retrying={retrying}
+              />
+            ),
+          )}
         </ul>
       )}
-      {jobs?.some((job) => job.retryable) && (
-        <div className="ci-jobs-retry">
-          <button
-            type="button"
-            className="ci-jobs-button"
-            onClick={() => retry(() => HostService.RetryPipeline(repoPath, pipelineId))}
-            disabled={retrying}
-          >
-            <RotateCw size={14} strokeWidth={1.75} />
-            {retrying ? 'Re-running…' : 'Re-run failed jobs'}
-          </button>
+      {(jobs?.some((job) => job.retryable) || webUrl) && (
+        <div className="ci-jobs-footer">
+          {jobs?.some((job) => job.retryable) && (
+            <button
+              type="button"
+              className="ci-jobs-button"
+              onClick={() => retry(() => HostService.RetryPipeline(repoPath, pipelineId))}
+              disabled={retrying}
+            >
+              <RotateCw size={14} strokeWidth={1.75} />
+              {retrying ? 'Re-running…' : 'Re-run failed jobs'}
+            </button>
+          )}
+          {webUrl && (
+            <button
+              type="button"
+              className="ci-jobs-button"
+              onClick={() => PlatformService.OpenWebPage(webUrl).catch(ignoreDecorativeFailure)}
+            >
+              <ExternalLink size={14} strokeWidth={1.75} />
+              Open on host
+            </button>
+          )}
         </div>
       )}
       {retryError && (
@@ -159,24 +200,52 @@ export function PipelineJobList({
   )
 }
 
-function PipelineJobs({ repoPath, mark, onClose }: { repoPath: string; mark: CIMarkInfo; onClose: () => void }) {
+function PipelineJobs({
+  repoPath,
+  mark,
+  onClose,
+  onOpenJobs,
+}: {
+  repoPath: string
+  mark: CIMarkInfo
+  onClose: () => void
+  onOpenJobs?: () => void
+}) {
+  const openJob = (job: Job) =>
+    onOpenJobs ? onOpenJobs() : PlatformService.OpenWebPage(job.webUrl).catch(ignoreDecorativeFailure)
   return (
     <Modal title={ciLabel(mark.status)} onClose={onClose} className="ci-jobs-panel">
       <div className="ci-jobs">
-        <PipelineJobList repoPath={repoPath} pipelineId={mark.pipelineId} />
-        <div className="ci-jobs-actions">
-          <button
-            type="button"
-            className="ci-jobs-button"
-            onClick={() => PlatformService.OpenWebPage(mark.webUrl).catch(ignoreDecorativeFailure)}
-            disabled={!mark.webUrl}
-          >
-            <ExternalLink size={14} strokeWidth={1.75} />
-            Open on host
-          </button>
-        </div>
+        <PipelineJobList
+          repoPath={repoPath}
+          pipelineId={mark.pipelineId}
+          webUrl={mark.webUrl}
+          glance
+          onOpenJob={openJob}
+        />
       </div>
     </Modal>
+  )
+}
+
+// A job at a glance: what it is and how it went. A failed one opens, where
+// its log has room.
+function GlanceJobRow({ job, onOpen }: { job: Job; onOpen?: (job: Job) => void }) {
+  const row = (
+    <>
+      <CIIcon status={job.status} />
+      <span className="ci-job-name">{job.name}</span>
+      <span className="ci-job-stage">{job.stage}</span>
+      <span className="ci-job-duration">{formatDuration(job.duration)}</span>
+    </>
+  )
+  if (job.status !== 'failed' || !onOpen) return <li className="ci-job ci-job-glance">{row}</li>
+  return (
+    <li className="ci-job ci-job-glance ci-job-failed">
+      <button type="button" className="ci-job-row" onClick={() => onOpen(job)}>
+        {row}
+      </button>
+    </li>
   )
 }
 
@@ -213,9 +282,33 @@ function JobRow({
   if (!failed) return <li className="ci-job">{row}</li>
   return (
     <li className="ci-job ci-job-failed">
-      <button type="button" className="ci-job-row" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        {row}
-      </button>
+      <div className="ci-job-head">
+        <button type="button" className="ci-job-row" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          {row}
+        </button>
+        {onRetry && (
+          <button
+            type="button"
+            className="ci-job-action"
+            onClick={onRetry}
+            disabled={retrying}
+            aria-label={`Re-run ${job.name}`}
+            title="Re-run job"
+          >
+            <RotateCw size={14} strokeWidth={1.75} />
+          </button>
+        )}
+        <button
+          type="button"
+          className="ci-job-action"
+          onClick={() => PlatformService.OpenWebPage(job.webUrl).catch(ignoreDecorativeFailure)}
+          disabled={!job.webUrl}
+          aria-label={`Open ${job.name} on host`}
+          title="Open on host"
+        >
+          <ExternalLink size={14} strokeWidth={1.75} />
+        </button>
+      </div>
       {open && (
         <div className="ci-job-log" aria-label={`Log of ${job.name}`}>
           {error && <p className="ci-jobs-error">{errorMessage(error)}</p>}
@@ -232,21 +325,6 @@ function JobRow({
                 {log.full && log.truncated && (
                   <span className="ci-jobs-hint">Cut at the cap; the rest is on the host.</span>
                 )}
-                {onRetry && (
-                  <button type="button" className="ci-jobs-button" onClick={onRetry} disabled={retrying}>
-                    <RotateCw size={14} strokeWidth={1.75} />
-                    Re-run job
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="ci-jobs-button"
-                  onClick={() => PlatformService.OpenWebPage(job.webUrl).catch(ignoreDecorativeFailure)}
-                  disabled={!job.webUrl}
-                >
-                  <ExternalLink size={14} strokeWidth={1.75} />
-                  Open on host
-                </button>
               </div>
             </>
           )}

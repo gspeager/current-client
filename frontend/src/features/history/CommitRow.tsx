@@ -53,6 +53,8 @@ interface CommitRowProps {
   onContextMenu: (e: MouseEvent | KeyboardEvent) => void
   onHighlightAuthor?: () => void
   authorHighlighted?: boolean
+  // Selects the commit with its Checks open, from a job in its CI mark's list.
+  onOpenChecks?: () => void
 }
 
 function CommitRow({
@@ -81,6 +83,7 @@ function CommitRow({
   onContextMenu,
   onHighlightAuthor,
   authorHighlighted = false,
+  onOpenChecks,
 }: CommitRowProps) {
   useClockTick()
   const { laneColor } = useLaneColors()
@@ -157,7 +160,7 @@ function CommitRow({
 
       <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
       <span className="commit-row-ci">
-        <CIMark repoPath={repoPath} mark={ci} />
+        <CIMark repoPath={repoPath} mark={ci} onOpenJobs={onOpenChecks} />
       </span>
       <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
       <span className="commit-row-actions">

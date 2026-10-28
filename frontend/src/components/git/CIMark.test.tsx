@@ -105,13 +105,12 @@ describe('CIMark', () => {
     vi.mocked(HostService.JobLog)
       .mockResolvedValueOnce({ text: 'line 49\nERROR: Job failed', truncated: true, full: false })
       .mockResolvedValueOnce({ text: 'line 1\n…\nERROR: Job failed', truncated: false, full: true })
-    render(<CIMark repoPath="/repos/app" mark={new CIMarkInfo({ status: 'failed', pipelineId: 12 })} />)
+    render(<PipelineJobList repoPath="/repos/app" pipelineId={12} />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'CI failed' }))
     await screen.findByRole('list', { name: 'Jobs' })
     expect(HostService.JobLog).not.toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole('button', { name: /test/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^test/ }))
     const log = await screen.findByLabelText('Log of test')
     expect(await within(log).findByText(/ERROR: Job failed/)).toBeInTheDocument()
     expect(HostService.JobLog).toHaveBeenCalledWith('/repos/app', 5, false)
@@ -131,8 +130,11 @@ describe('CIMark', () => {
     vi.mocked(HostService.RetryPipeline).mockResolvedValue([passed, queued])
     render(<PipelineJobList repoPath="/repos/app" pipelineId={12} />)
 
-    await userEvent.click(await screen.findByRole('button', { name: /test/ }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Re-run job' }))
+    // A failed job's actions are on its row, not under its log.
+    await screen.findByRole('list', { name: 'Jobs' })
+    expect(screen.getByRole('button', { name: 'Re-run test' })).toHaveAttribute('title', 'Re-run job')
+    expect(screen.getByRole('button', { name: 'Open test on host' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Re-run test' }))
     expect(HostService.RetryJob).toHaveBeenCalledWith('/repos/app', 12, 5)
     expect(await screen.findAllByRole('listitem')).toHaveLength(3)
 
@@ -140,6 +142,34 @@ describe('CIMark', () => {
     expect(HostService.RetryPipeline).toHaveBeenCalledWith('/repos/app', 12)
     await vi.waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(2))
     expect(screen.queryByRole('button', { name: 'Re-run failed jobs' })).not.toBeInTheDocument()
+  })
+
+  it('lists jobs at a glance from the mark, and opens a failed one in the commit’s details', async () => {
+    vi.mocked(HostService.PipelineJobs).mockResolvedValue([
+      new Job({ id: 5, name: 'test', stage: 'unit', status: CIStatus.CIFailed, retryable: true }),
+      new Job({ id: 6, name: 'build', stage: 'compile', status: CIStatus.CISuccess }),
+    ])
+    const onOpenJobs = vi.fn()
+    render(
+      <CIMark
+        repoPath="/repos/app"
+        mark={new CIMarkInfo({ status: 'failed', pipelineId: 12, webUrl: 'https://gitlab.example.com/p/12' })}
+        onOpenJobs={onOpenJobs}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'CI failed' }))
+    const dialog = await screen.findByRole('dialog', { name: 'CI failed' })
+    await within(dialog).findByRole('list', { name: 'Jobs' })
+    // One row of actions, under the list; none on the jobs themselves.
+    expect(
+      within(dialog)
+        .getAllByRole('button', { name: /Re-run|Open on host/ })
+        .map((b) => b.textContent),
+    ).toEqual(['Re-run failed jobs', 'Open on host'])
+    await userEvent.click(within(dialog).getByRole('button', { name: /^test/ }))
+    expect(onOpenJobs).toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(HostService.JobLog).not.toHaveBeenCalled()
   })
 
   it('offers no re-run where nothing can be re-run', async () => {

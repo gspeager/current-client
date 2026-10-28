@@ -52,9 +52,34 @@
   grid-template-columns: 14px minmax(0, 1fr) max-content max-content max-content;
   align-items: center;
   gap: var(--space-sm);
-  min-height: var(--h-row);
-  padding: 0 var(--space-xs);
+  min-height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
   font: var(--ui-sm);
+}
+
+// At a glance there is no status word; the icon says it.
+.ci-job-glance,
+.ci-job-glance .ci-job-row {
+  grid-template-columns: 14px minmax(0, 1fr) max-content max-content;
+}
+
+.ci-job-glance.ci-job-failed {
+  padding: 0;
+}
+
+// A failed job's row and its own actions, side by side.
+.ci-job-head {
+  display: flex;
+  align-items: center;
+
+  .ci-job-row {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.ci-job-action {
+  @include patterns.icon-button;
 }
 
 .ci-job {
@@ -101,9 +126,10 @@
   white-space: pre;
 }
 
-.ci-jobs-retry {
+.ci-jobs-footer {
   display: flex;
   justify-content: flex-end;
+  gap: var(--space-sm);
 }
 
 .ci-job-log-actions {
@@ -135,11 +161,6 @@
 
 .ci-jobs-error {
   color: var(--error);
-}
-
-.ci-jobs-actions {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .ci-jobs-button {
