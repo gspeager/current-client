@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -27,6 +27,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import './TagsPanel.scss'
 import { useHostLinks } from '../../lib/useHostLinks'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { tagPage } from '../../lib/hostPages'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
@@ -37,9 +38,10 @@ interface TagsPanelProps {
   repoPath: string
   sections: SidebarSections
   onTagChanged?: () => void
+  request?: SidebarRequest | null
 }
 
-function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
+function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPanelProps) {
   const hostLinks = useHostLinks(repoPath)
   useClockTick()
   const {
@@ -62,6 +64,20 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
     () => HostService.CanPublishReleases(repoPath).catch(() => false),
     [repoPath],
   )
+
+  // Publish release from the palette takes the newest tag, which is listed first.
+  useEffect(() => {
+    if (!request) return
+    if (request.action === 'new-tag') setShowNewTag(true)
+    if (request.action === 'release-readiness') setReadiness(true)
+    if (request.action === 'publish-release') {
+      const newest = tags?.[0]
+      if (!newest) setActionError('No tag to publish a release from')
+      else if (!canPublish) setActionError('Publishing a release needs the host integration on with write scope')
+      else setReleaseTag(newest.name)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request])
 
   const createTag = () => {
     setActionError(null)

@@ -18,6 +18,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
 import QuickSwitchPalette from './QuickSwitchPalette'
+import type { PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
 import RepoPickerModal from '../../features/repositories/RepoPickerModal'
 import RepoTabChip from '../../features/repositories/RepoTabChip'
@@ -38,7 +39,10 @@ interface HeaderBarProps {
   // Host rows the Inbox hasn't shown yet, after a refresh.
   inboxUnseen?: number
   workspaceActions: WorkspaceAction[]
-  onOpenSettings: () => void
+  // The palette's own entries for views, creating, releasing and tools.
+  paletteActions?: PaletteAction[]
+  settingsGroups?: string[]
+  onOpenSettings: (group?: string) => void
   onPull: () => void
   onPullMerge: () => void
   onPullRebase: () => void
@@ -69,6 +73,8 @@ function HeaderBar({
   onToggleInbox,
   inboxUnseen = 0,
   workspaceActions,
+  paletteActions,
+  settingsGroups,
   onOpenSettings,
   onPull,
   onPullMerge,
@@ -361,7 +367,7 @@ function HeaderBar({
       <button
         type="button"
         className="header-bar-icon-button"
-        onClick={onOpenSettings}
+        onClick={() => onOpenSettings()}
         aria-label="Settings"
         title="Settings"
       >
@@ -377,6 +383,8 @@ function HeaderBar({
           onClose={() => setQuickSwitchOpen(false)}
           onBranchChanged={onBranchChanged}
           workspaceActions={workspaceActions}
+          actions={paletteActions}
+          settingsGroups={settingsGroups}
           onOpenSettings={onOpenSettings}
           onPull={onPull}
           onPullMerge={onPullMerge}

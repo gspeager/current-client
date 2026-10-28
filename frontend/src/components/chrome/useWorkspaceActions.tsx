@@ -34,6 +34,8 @@ export interface WorkspaceAction {
   short?: string
   group?: WorkspaceGroup
   icon: LucideIcon
+  // Other words the palette finds it by.
+  keywords?: string[]
   run: () => void
   // Set while the action can't run, with the reason for its tooltip.
   disabled?: boolean

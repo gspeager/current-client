@@ -31,6 +31,13 @@ import './NavPane.scss'
 
 type SectionId = 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 
+// Something elsewhere in the app, such as the palette, asking a sidebar
+// section to open one of its forms or dialogs; n makes each ask distinct.
+export interface SidebarRequest {
+  action: 'new-branch' | 'clean-up' | 'new-tag' | 'release-readiness' | 'publish-release'
+  n: number
+}
+
 interface NavPaneProps {
   repoPath: string
   repoVersion: number
@@ -50,8 +57,7 @@ interface NavPaneProps {
   onOpenChange?: (number: number) => void
   onOpenFile?: (path: string) => void
   onCreateChange?: (branch: string) => void
-  // Opens Clean up merged branches when it changes, after a merge from the app.
-  cleanUpRequest?: number
+  request?: SidebarRequest | null
   // Opens a repository (such as a worktree or submodule) as a tab.
   onOpenRepository: (path: string) => void
   width: number
@@ -140,7 +146,7 @@ function NavPane({
   onOpenChange,
   onOpenFile,
   onCreateChange,
-  cleanUpRequest = 0,
+  request = null,
 }: NavPaneProps) {
   const sections = useSidebarSections(repoPath)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
@@ -161,6 +167,12 @@ function NavPane({
     pendingSection.current = id
     onCollapsedChange(false)
   }
+
+  useEffect(() => {
+    if (!request) return
+    showSection(request.action === 'new-branch' || request.action === 'clean-up' ? 'branches' : 'tags')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request])
 
   const sectionRef = (id: SectionId) => (el: HTMLElement | null) => {
     sectionRefs.current[id] = el
@@ -223,7 +235,7 @@ function NavPane({
             conflict={conflictState}
             onBranchChanged={onBranchChanged}
             onCreateChange={onCreateChange}
-            cleanUpRequest={cleanUpRequest}
+            request={request}
           />
         </section>
 
@@ -238,7 +250,7 @@ function NavPane({
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('tags')}>
-          <TagsPanel repoPath={repoPath} sections={sections} onTagChanged={onBranchChanged} />
+          <TagsPanel repoPath={repoPath} sections={sections} onTagChanged={onBranchChanged} request={request} />
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('remotes')}>

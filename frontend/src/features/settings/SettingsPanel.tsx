@@ -1,4 +1,4 @@
-import { useRef, useState, type UIEvent } from 'react'
+import { useEffect, useRef, useState, type UIEvent } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { SettingsService } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
@@ -38,8 +38,23 @@ interface SettingsPanelProps {
   hostIntegration?: boolean
   // false when an embedding app has its own releases page and version.
   updateCheck?: boolean
+  // The group to open on, such as from the palette.
+  initialGroup?: string | null
   onClose: () => void
   onHostsChanged?: () => void
+}
+
+export function settingsGroups(hostIntegration: boolean): string[] {
+  return [
+    'Appearance',
+    'Git',
+    'Tools and folders',
+    'Diff',
+    'Network',
+    ...(hostIntegration ? ['Integrations'] : []),
+    'Identity colors',
+    'Support',
+  ]
 }
 
 function SettingsPanel({
@@ -47,6 +62,7 @@ function SettingsPanel({
   repoPath = null,
   hostIntegration = true,
   updateCheck = true,
+  initialGroup = null,
   onClose,
   onHostsChanged,
 }: SettingsPanelProps) {
@@ -65,17 +81,8 @@ function SettingsPanel({
   } = settings
   const [gitPathError, setGitPathError] = useState<string | null>(null)
   const [editorPathError, setEditorPathError] = useState<string | null>(null)
-  const [section, setSection] = useState('Appearance')
-  const groups = [
-    'Appearance',
-    'Git',
-    'Tools and folders',
-    'Diff',
-    'Network',
-    ...(hostIntegration ? ['Integrations'] : []),
-    'Identity colors',
-    'Support',
-  ]
+  const [section, setSection] = useState(initialGroup ?? 'Appearance')
+  const groups = settingsGroups(hostIntegration)
 
   // The scroll a pick causes keeps the pick, even for a group that can't reach the top.
   const picked = useRef<string | null>(null)
@@ -85,6 +92,12 @@ function SettingsPanel({
     setSection(title)
     document.getElementById(settingsGroupId(title))?.scrollIntoView({ block: 'start' })
   }
+
+  // The groups exist once the values have loaded.
+  useEffect(() => {
+    if (initialGroup && values) showGroup(initialGroup)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Boolean(values)])
 
   // The reading line slides to the bottom as the body nears its end, so the
   // last groups, which never reach the top, still get their turn.
