@@ -30,13 +30,13 @@ function BranchPill({ name, color, current, bare, dirty, hostLinks = null, refer
       <span className="branch-pill-name">
         {issue ? (
           <>
-            <ReferenceLink reference={issue} card={referenceCards?.[`#${issue.text}`]} />
+            <ReferenceLink reference={issue} card={referenceCards?.[`#${issue.text}`]} logo={false} />
             {name.slice(issue.text.length)}
           </>
         ) : key ? (
           <>
             {name.slice(0, key.start)}
-            <ReferenceLink reference={key} />
+            <ReferenceLink reference={key} logo={false} />
             {name.slice(key.start + key.text.length)}
           </>
         ) : (

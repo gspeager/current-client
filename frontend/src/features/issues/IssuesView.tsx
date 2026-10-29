@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import { HostService, type ListedIssue } from '@current-client-bindings/app'
 import IssueDetail from '../host-changes/IssueDetail'
+import { hostLogo, issueProvider } from '../../components/git/hostLogos'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import { errorMessage } from '../../lib/errors'
 import { useNewIssue } from '../../lib/issuePanel'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useClockTick } from '../../lib/useClockTick'
+import { useHostLinks } from '../../lib/useHostLinks'
 import '../host-changes/HostChangesView.scss'
 import './IssuesView.scss'
 
@@ -35,6 +37,7 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
     keepData: true,
   })
   const newIssue = useNewIssue()
+  const hostLinks = useHostLinks(repoPath)
   const [selected, setSelected] = useState<string | null>(selectedKey)
   useEffect(() => setSelected(selectedKey), [selectedKey])
   const [refreshing, setRefreshing] = useState(false)
@@ -132,25 +135,31 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
                   : { mine: 'None assigned to you.', all: 'None open.', closed: 'None closed.' }[filter]}
             </li>
           )}
-          {issues.map((listed) => (
-            <li key={`${listed.source}:${listed.issue.key}`}>
-              <button
-                type="button"
-                className={
-                  listed.issue.key === activeKey ? 'host-change-row host-change-row-selected' : 'host-change-row'
-                }
-                onClick={() => setSelected(listed.issue.key)}
-              >
-                <span className="host-change-row-head">
-                  <span className="issues-row-key">{keyOf(listed)}</span>
-                  {listed.issue.status && <span className="issues-row-status">{listed.issue.status}</span>}
-                  <span className="host-change-row-time">{listed.source}</span>
-                </span>
-                <span className="host-change-row-title">{listed.issue.title}</span>
-                {listed.branch && <span className="host-change-row-branches">{listed.branch}</span>}
-              </button>
-            </li>
-          ))}
+          {issues.map((listed) => {
+            const SourceLogo = hostLogo(issueProvider(listed.issue.key, hostLinks))
+            return (
+              <li key={`${listed.source}:${listed.issue.key}`}>
+                <button
+                  type="button"
+                  className={
+                    listed.issue.key === activeKey ? 'host-change-row host-change-row-selected' : 'host-change-row'
+                  }
+                  onClick={() => setSelected(listed.issue.key)}
+                >
+                  <span className="host-change-row-head">
+                    <span className="issues-row-key">{keyOf(listed)}</span>
+                    {listed.issue.status && <span className="issues-row-status">{listed.issue.status}</span>}
+                    <span className="host-change-row-time issues-row-source">
+                      <SourceLogo size={12} strokeWidth={1.75} aria-hidden="true" />
+                      {listed.source}
+                    </span>
+                  </span>
+                  <span className="host-change-row-title">{listed.issue.title}</span>
+                  {listed.branch && <span className="host-change-row-branches">{listed.branch}</span>}
+                </button>
+              </li>
+            )
+          })}
         </ul>
         {activeKey && (
           <div className="issues-pane">

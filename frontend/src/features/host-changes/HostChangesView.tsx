@@ -3,7 +3,6 @@ import {
   CircleCheck,
   CircleHelp,
   ClipboardCheck,
-  ExternalLink,
   GitBranch,
   GitMerge,
   Info,
@@ -46,6 +45,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { useClockTick } from '../../lib/useClockTick'
 import './HostChangesView.scss'
+import { hostLogo } from '../../components/git/hostLogos'
 
 type Filter = 'open' | 'mine' | 'review' | 'closed'
 type DetailTab = 'overview' | 'checks' | 'threads' | 'files' | 'commits'
@@ -304,6 +304,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
     [repoPath, change.number],
   )
   const hostLinks = useHostLinks(repoPath)
+  const HostIcon = hostLogo(hostLinks?.style)
   const closes = useMemo(() => details?.closes ?? [], [details?.closes])
   const closesCards = useReferenceCards(repoPath, closes, NO_CHANGES)
   const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath])
@@ -510,7 +511,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           className="host-change-button"
           onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
         >
-          <ExternalLink size={14} strokeWidth={1.75} />
+          <HostIcon size={14} strokeWidth={1.75} />
           Open on {list.host}
         </button>
         {checkout.running && (

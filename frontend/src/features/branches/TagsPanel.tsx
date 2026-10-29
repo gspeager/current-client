@@ -1,16 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  ChevronDown,
-  ChevronRight,
-  CloudOff,
-  Copy,
-  ExternalLink,
-  PackagePlus,
-  Plus,
-  Tag,
-  Upload,
-  X,
-} from 'lucide-react'
+import { ChevronDown, ChevronRight, CloudOff, Copy, PackagePlus, Plus, Tag, Upload, X } from 'lucide-react'
 import {
   HostService,
   PlatformService,
@@ -34,6 +23,7 @@ import { tagPage } from '../../lib/hostPages'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
 import type { SidebarSections } from '../../lib/useSidebarSections'
+import { hostLogo } from '../../components/git/hostLogos'
 
 interface TagsPanelProps {
   repoPath: string
@@ -168,7 +158,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
           {
             label: 'Open on host',
             ariaLabel: `Open tag ${name} on host`,
-            icon: ExternalLink,
+            icon: hostLogo(hostLinks.style),
             run: () => void PlatformService.OpenWebPage(tagPage(hostLinks, name)),
           },
         ]

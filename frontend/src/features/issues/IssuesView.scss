@@ -5,6 +5,12 @@
   font: var(--data-sm);
 }
 
+.issues-row-source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 .issues-pane {
   display: flex;
   min-width: 0;

@@ -4,6 +4,8 @@ import type { Links } from '@current-client-bindings/core/hostlink'
 export interface HostReference {
   text: string
   url: string
+  // github, gitlab or jira, for the link's logo.
+  provider?: string
 }
 
 export type ReferenceSegment = string | HostReference
@@ -37,7 +39,7 @@ function splitTrackerKeys(text: string, tracker: TrackerLinks): ReferenceSegment
     const key = match[1]
     const start = match.index + match[0].length - key.length
     if (start > last) segments.push(text.slice(last, start))
-    segments.push({ text: key, url: tracker.browse + key })
+    segments.push({ text: key, url: tracker.browse + key, provider: 'jira' })
     last = start + key.length
   }
   if (last < text.length) segments.push(text.slice(last))
@@ -53,7 +55,7 @@ function splitHostReferences(text: string, links: Links): ReferenceSegment[] {
     if (!url) continue
     const start = match.index + lead.length
     if (start > last) segments.push(text.slice(last, start))
-    segments.push({ text: whole.slice(lead.length), url })
+    segments.push({ text: whole.slice(lead.length), url, provider: links.style })
     last = match.index + whole.length
   }
   if (last < text.length) segments.push(text.slice(last))
@@ -64,7 +66,7 @@ function splitHostReferences(text: string, links: Links): ReferenceSegment[] {
 export function branchIssue(name: string, links: Links | null): HostReference | null {
   const match = /^(\d+)-/.exec(name)
   if (!links || !match) return null
-  return { text: match[1], url: links.issue + match[1] }
+  return { text: match[1], url: links.issue + match[1], provider: links.style }
 }
 
 // A branch named after a tracker key ("PROJ-12-fix-login", "feature/PROJ-12")
@@ -76,5 +78,5 @@ export function branchTrackerKey(
   const match = tracker ? new RegExp(tracker.branchKeyPattern).exec(name) : null
   if (!tracker || !match) return null
   const key = match[1]
-  return { text: key, url: tracker.browse + key, start: name.indexOf(key, match.index) }
+  return { text: key, url: tracker.browse + key, provider: 'jira', start: name.indexOf(key, match.index) }
 }

@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { CircleCheck, CircleDot, ExternalLink, GitBranch, GitBranchPlus } from 'lucide-react'
+import { CircleCheck, CircleDot, GitBranch, GitBranchPlus } from 'lucide-react'
 import { BranchService, HostService, PlatformService } from '@current-client-bindings/app'
 import HostMarkdown from '../../components/git/HostMarkdown'
 import { issueBranchName } from '../../lib/branchName'
@@ -9,6 +9,8 @@ import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './IssuePanel.scss'
+import { hostLogo, issueProvider } from '../../components/git/hostLogos'
+import { useHostLinks } from '../../lib/useHostLinks'
 
 interface IssueDetailProps {
   repoPath: string
@@ -25,6 +27,7 @@ interface IssueDetailProps {
 // takes writes, it takes a comment and closes or reopens; each is one
 // request on a click, and the pane then reads the cache again.
 function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerAccessory }: IssueDetailProps) {
+  const HostIcon = hostLogo(issueProvider(issueKey, useHostLinks(repoPath)))
   const { data, error, reload } = useAsyncData(
     () => HostService.IssueDetails(repoPath, issueKey),
     [repoPath, issueKey],
@@ -170,7 +173,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
               onClick={() => PlatformService.OpenWebPage(issue.webUrl).catch(ignoreDecorativeFailure)}
               disabled={!issue.webUrl}
             >
-              <ExternalLink size={14} strokeWidth={1.75} />
+              <HostIcon size={14} strokeWidth={1.75} />
               Open on host
             </button>
             {writable && (

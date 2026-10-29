@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { ExternalLink } from 'lucide-react'
 import { HostService, PlatformService, TagService, type ReleaseDraft } from '@current-client-bindings/app'
 import type { PublishedRelease } from '@current-client-bindings/core/hostapi'
 import Modal from '../../components/chrome/Modal'
@@ -8,6 +7,7 @@ import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import './CreateChangeDialog.scss'
+import { useHostLogo } from '../../components/git/hostLogos'
 
 interface PublishReleaseDialogProps {
   repoPath: string
@@ -53,6 +53,7 @@ function PublishReleaseForm({
   const [name, setName] = useState(draft.name)
   const [notes, setNotes] = useState(draft.notes)
   const [running, setRunning] = useState(false)
+  const HostIcon = useHostLogo(repoPath)
   const [error, setError] = useState<string | null>(null)
   const [published, setPublished] = useState<PublishedRelease | null>(null)
 
@@ -84,7 +85,7 @@ function PublishReleaseForm({
               onClick={() => PlatformService.OpenWebPage(published.webUrl).catch(ignoreDecorativeFailure)}
               disabled={!published.webUrl}
             >
-              <ExternalLink size={14} strokeWidth={1.75} />
+              <HostIcon size={14} strokeWidth={1.75} />
               Open on host
             </button>
             <button type="button" className="dialog-button dialog-button-primary" onClick={onClose}>

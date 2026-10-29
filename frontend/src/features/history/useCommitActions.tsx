@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react'
 import {
   Cherry,
   Copy,
-  ExternalLink,
   FileDown,
   GitBranchPlus,
   GitCommitVertical,
@@ -24,6 +23,7 @@ import { commitPage } from '../../lib/hostPages'
 import { suggestedPatchFilename } from '../../lib/patchFilename'
 import { useDialogs } from '../../lib/useDialogs'
 import ResetDialog, { type ResetMode } from './ResetDialog'
+import { hostLogo } from '../../components/git/hostLogos'
 
 export interface CommitAction {
   id: string
@@ -108,7 +108,7 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
           {
             id: 'open-on-host',
             label: 'Open on host',
-            icon: ExternalLink,
+            icon: hostLogo(hostLinks.style),
             run: () => void PlatformService.OpenWebPage(commitPage(hostLinks, commit.sha)),
           },
         ]
