@@ -43,7 +43,7 @@ func TestMergeReadinessComesFromTheCacheAndGit(t *testing.T) {
 	ann := hostapi.User{Name: "Ann", Username: "ann"}
 	changes := []hostapi.Change{
 		{Number: 7, Title: "Add the thing", SourceBranch: "feature", TargetBranch: "main", HeadSHA: head, State: hostapi.ChangeOpen, CI: hostapi.CISuccess, ConflictsKnown: true, Reviews: []hostapi.Review{{Reviewer: bob, State: hostapi.ReviewApproved}, {Reviewer: ann, State: hostapi.ReviewRequested}}},
-		{Number: 8, Title: "Unknown head", SourceBranch: "other", TargetBranch: "main", HeadSHA: "0123456789abcdef0123456789abcdef01234567", State: hostapi.ChangeOpen, Draft: true, HasConflicts: true, ConflictsKnown: true, UnresolvedThreads: 2, Reviews: []hostapi.Review{{Reviewer: bob, State: hostapi.ReviewChangesRequested}}},
+		{Number: 8, Title: "Unknown head", SourceBranch: "other", TargetBranch: "main", HeadSHA: "0123456789abcdef0123456789abcdef01234567", State: hostapi.ChangeOpen, Draft: true, HasConflicts: true, ConflictsKnown: true, UnresolvedThreads: 2, Reviews: []hostapi.Review{{Reviewer: ann, State: hostapi.ReviewCommented}, {Reviewer: bob, State: hostapi.ReviewChangesRequested}}},
 		{Number: 9, Title: "From GitHub's list", SourceBranch: "gh", TargetBranch: "main", HeadSHA: head, State: hostapi.ChangeOpen},
 	}
 	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{changes, false})
@@ -58,7 +58,7 @@ func TestMergeReadinessComesFromTheCacheAndGit(t *testing.T) {
 	if f := facts["Checks"]; f.Level != "ok" || f.Value != "passed" {
 		t.Errorf("checks = %+v", f)
 	}
-	if f := facts["Reviews"]; f.Level != "warn" || f.Value != "approved by Bob; still waiting on Ann" {
+	if f := facts["Reviews"]; f.Level != "warn" || f.Value != "approved by Bob; waiting on Ann" {
 		t.Errorf("reviews = %+v (an approval and a pending request: the pending one wins)", f)
 	}
 	if f := facts["Conflicts"]; f.Level != "ok" {
@@ -79,7 +79,7 @@ func TestMergeReadinessComesFromTheCacheAndGit(t *testing.T) {
 	if facts["Draft"].Level != "warn" || facts["Checks"].Level != "unknown" || facts["Conflicts"].Level != "warn" || facts["Threads"].Value != "2 unresolved" || facts["Behind main"].Level != "unknown" {
 		t.Errorf("facts = %+v", ready.Facts)
 	}
-	if f := facts["Reviews"]; f.Value != "changes requested by Bob" {
+	if f := facts["Reviews"]; f.Level != "warn" || f.Value != "changes requested by Bob; commented by Ann" {
 		t.Errorf("reviews = %+v", f)
 	}
 	ready, _ = s.MergeReadiness(repo, 9)
