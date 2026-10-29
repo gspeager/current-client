@@ -175,13 +175,15 @@
 
 // One line per item: what and why; a dot for one not seen before.
 .inbox-row {
+  position: relative;
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) max-content;
+  grid-template-columns: 16px minmax(0, 1fr);
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
   height: var(--h-row-table);
-  padding: 0 var(--space-sm);
+  // The left padding holds the new dot.
+  padding: 0 var(--space-sm) 0 calc(var(--space-sm) + var(--space-xs));
   background: none;
   border: none;
   border-radius: var(--radius);
@@ -241,8 +243,12 @@
   white-space: nowrap;
 }
 
-// A host row the Inbox hasn't shown before this refresh.
+// A host row the Inbox hasn't shown before this refresh: a dot in the row's
+// left padding, so every dot lines up and the icon and text don't move.
 .inbox-row-new {
+  position: absolute;
+  top: calc(50% - 3px);
+  left: 2px;
   width: 6px;
   height: 6px;
   border-radius: 50%;

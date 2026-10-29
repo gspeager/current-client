@@ -273,12 +273,12 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
                         onClick={() => onGo(targetOf(repo.path, row))}
                         title={`${subject} · ${reason}`}
                       >
+                        {row.new && <span className="inbox-row-new" role="img" aria-label="new" />}
                         <Icon size={14} strokeWidth={1.75} className="inbox-row-icon" />
                         <span className="inbox-row-text">
                           <span className="inbox-row-subject">{subject}</span>
                           <span className="inbox-row-reason">{reason}</span>
                         </span>
-                        {row.new && <span className="inbox-row-new" role="img" aria-label="new" />}
                       </button>
                       {row.todoId && (
                         <button
