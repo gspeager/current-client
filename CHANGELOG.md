@@ -43,6 +43,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- A pane's highlighted button is as tall as the buttons beside it: **Merge…** or **Review…** in a pull request's details, and **New pull request** and **New issue** in their tabs' headers. ([#354](https://github.com/gspeager/current-client/issues/354))
 - A host's tabs while its integration is off look off: dimmed, with **off** after the name, instead of like any other tab. A click still opens Integrations settings. ([#352](https://github.com/gspeager/current-client/issues/352))
 - Dialogs open at their own width again. Standup, Create pull request, Publish release, New issue, Merge, Review and Clean up merged branches all showed at the narrowest dialog width, so lines wrapped early. ([#350](https://github.com/gspeager/current-client/issues/350))
 - Names stay readable in crowded rows. In History, a branch's pill, its pull request marker and the CI mark shorten with the commit's subject instead of drawing over it when the details pane is open or the window is narrow; a narrow list drops the author's name, then the hash. Changed files keep their file name whatever their owners. A branch named after a Jira issue reads as one name (`WEB-57-yearly-prices`), and a narrow sidebar shows a pull request's number on hover rather than cutting the branch's name. ([#326](https://github.com/gspeager/current-client/issues/326))

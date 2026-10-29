@@ -39,13 +39,13 @@
   @include patterns.secondary-button;
 }
 
-// The pane's one primary action.
+// The pane's one primary action, as tall as the chip buttons beside it.
 .host-changes-new {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
   @include patterns.primary-button;
-  height: var(--h-field);
+  height: var(--h-chip);
 }
 
 .host-changes-error {
