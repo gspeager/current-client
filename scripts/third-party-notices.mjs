@@ -50,10 +50,12 @@ function goModules() {
   }
   // go-licenses leaves out the standard library, which is compiled in too.
   const goroot = run('go', ['env', 'GOROOT']).trim()
+  // Homebrew's Go keeps LICENSE beside libexec, the GOROOT, not in it.
+  const goLicense = [join(goroot, 'LICENSE'), join(goroot, '..', 'LICENSE')].find((path) => existsSync(path))
   byName.set('Go standard library', {
     name: 'Go standard library',
     license: 'BSD-3-Clause',
-    licensePath: join(goroot, 'LICENSE'),
+    licensePath: goLicense,
     targets,
   })
   return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name))

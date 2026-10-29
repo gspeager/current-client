@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import {
   Code2,
-  ExternalLink,
   FolderOpen,
   History,
   Import,
@@ -23,6 +22,7 @@ import { fileManagerName, revealInFileManagerLabel } from '../../lib/fileManager
 import { operationNoun } from '../../lib/conflictWords'
 import { baseName } from '../../lib/paths'
 import { useDialogs } from '../../lib/useDialogs'
+import { hostLogo } from '../git/hostLogos'
 
 export type WorkspaceGroup = 'open' | 'tools' | 'maintenance'
 
@@ -157,7 +157,7 @@ export function useWorkspaceActions({
             label: `Open repository on ${hostName(hostLinks)}`,
             short: hostName(hostLinks),
             group: 'open' as const,
-            icon: ExternalLink,
+            icon: hostLogo(hostLinks.style),
             run: () => run(PlatformService.OpenWebPage(repositoryPage(hostLinks)), 'Could not open'),
           },
         ]

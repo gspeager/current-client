@@ -6,7 +6,6 @@ import {
   CircleSlash,
   CircleX,
   Clock,
-  ExternalLink,
   RotateCw,
   type LucideIcon,
 } from 'lucide-react'
@@ -17,6 +16,7 @@ import Modal from '../chrome/Modal'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './CIMark.scss'
+import { useHostLogo } from './hostLogos'
 
 // One map for every place that shows a CI result, so the mark, the PR
 // marker and the job rows always agree. The running icon doesn't spin.
@@ -128,6 +128,7 @@ export function PipelineJobList({
     [repoPath, pipelineId],
   )
   const [rerun, setRerun] = useState<Job[] | null>(null)
+  const HostIcon = useHostLogo(repoPath)
   const [retrying, setRetrying] = useState(false)
   const [retryError, setRetryError] = useState<string | null>(null)
   useEffect(() => setRerun(null), [repoPath, pipelineId])
@@ -159,6 +160,7 @@ export function PipelineJobList({
                 key={job.id}
                 job={job}
                 repoPath={repoPath}
+                hostIcon={HostIcon}
                 onRetry={job.retryable ? () => retryJob(job) : undefined}
                 retrying={retrying}
               />
@@ -185,7 +187,7 @@ export function PipelineJobList({
               className="ci-jobs-button"
               onClick={() => PlatformService.OpenWebPage(webUrl).catch(ignoreDecorativeFailure)}
             >
-              <ExternalLink size={14} strokeWidth={1.75} />
+              <HostIcon size={14} strokeWidth={1.75} />
               Open on host
             </button>
           )}
@@ -254,11 +256,13 @@ function GlanceJobRow({ job, onOpen }: { job: Job; onOpen?: (job: Job) => void }
 function JobRow({
   job,
   repoPath,
+  hostIcon: HostIcon,
   onRetry,
   retrying,
 }: {
   job: Job
   repoPath: string
+  hostIcon: LucideIcon
   onRetry?: () => void
   retrying: boolean
 }) {
@@ -306,7 +310,7 @@ function JobRow({
           aria-label={`Open ${job.name} on host`}
           title="Open on host"
         >
-          <ExternalLink size={14} strokeWidth={1.75} />
+          <HostIcon size={14} strokeWidth={1.75} />
         </button>
       </div>
       {open && (

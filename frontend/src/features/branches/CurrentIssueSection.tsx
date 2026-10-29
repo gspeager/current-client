@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ExternalLink, PanelRight } from 'lucide-react'
+import { PanelRight } from 'lucide-react'
 import { BranchService, PlatformService } from '@current-client-bindings/app'
 import { ignoreDecorativeFailure } from '../../lib/errors'
 import { branchIssue } from '../../lib/hostReferences'
@@ -8,6 +8,7 @@ import { useHostLinks } from '../../lib/useHostLinks'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useReferenceCards } from '../../lib/useReferenceCards'
 import './CurrentChangeSection.scss'
+import { hostLogo } from '../../components/git/hostLogos'
 
 interface CurrentIssueSectionProps {
   repoPath: string
@@ -30,6 +31,7 @@ function CurrentIssueSection({ repoPath, refreshKey }: CurrentIssueSectionProps)
   const cards = useReferenceCards(repoPath, texts, NO_CHANGES)
   const openIssue = useOpenIssue()
   const card = text ? cards[text] : undefined
+  const IssueHostIcon = hostLogo(issue?.provider)
   if (!issue || !card?.known || !card.title) return null
   return (
     <section className="current-change" aria-label={`Issue for ${status?.current}`}>
@@ -53,7 +55,7 @@ function CurrentIssueSection({ repoPath, refreshKey }: CurrentIssueSectionProps)
           className="current-change-button"
           onClick={() => PlatformService.OpenWebPage(issue.url).catch(ignoreDecorativeFailure)}
         >
-          <ExternalLink size={14} strokeWidth={1.75} />
+          <IssueHostIcon size={14} strokeWidth={1.75} />
           Open on host
         </button>
       </div>

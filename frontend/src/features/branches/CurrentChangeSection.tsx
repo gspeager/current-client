@@ -1,4 +1,4 @@
-import { ExternalLink, GitPullRequest, PanelRight, TriangleAlert, Upload } from 'lucide-react'
+import { GitPullRequest, PanelRight, TriangleAlert, Upload } from 'lucide-react'
 import { HostService, PlatformService } from '@current-client-bindings/app'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark, { ciLabel } from '../../components/git/CIMark'
@@ -7,6 +7,7 @@ import { ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import './CurrentChangeSection.scss'
+import { useHostLogo } from '../../components/git/hostLogos'
 
 interface CurrentChangeSectionProps {
   repoPath: string
@@ -32,6 +33,7 @@ function CurrentChangeSection({
   onPushToCreate,
 }: CurrentChangeSectionProps) {
   const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath], { refreshKey, keepData: true })
+  const HostIcon = useHostLogo(repoPath)
   const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath], {
     refreshKey,
     keepData: true,
@@ -154,7 +156,7 @@ function CurrentChangeSection({
           onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
           disabled={!change.webUrl}
         >
-          <ExternalLink size={14} strokeWidth={1.75} />
+          <HostIcon size={14} strokeWidth={1.75} />
           Open on host
         </button>
       </div>

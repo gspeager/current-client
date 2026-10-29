@@ -5,6 +5,7 @@ import { splitReferences, type HostReference } from '../../lib/hostReferences'
 import type { ReferenceCardInfo, ReferenceCards } from '../../lib/useReferenceCards'
 import HoverCard from '../chrome/HoverCard'
 import { useOpenIssue, useTracker } from '../../lib/issuePanel'
+import { hostLogo } from './hostLogos'
 import './ReferenceText.scss'
 
 interface ReferenceLinkProps {
@@ -12,12 +13,14 @@ interface ReferenceLinkProps {
   // What the host knows about it; undefined shows no card.
   card?: ReferenceCardInfo
   children?: ReactNode
+  // Off inside a name, such as a branch named after the issue, which reads as one word.
+  logo?: boolean
 }
 
 // An issue reference opens its panel while the host is on; anything else,
 // or with the host off, opens the page in the user's browser. The row
 // underneath must not also act on the click.
-export function ReferenceLink({ reference, card, children }: ReferenceLinkProps) {
+export function ReferenceLink({ reference, card, children, logo = true }: ReferenceLinkProps) {
   const openIssue = useOpenIssue()
   const tracker = useTracker()
   const issueKey =
@@ -29,8 +32,10 @@ export function ReferenceLink({ reference, card, children }: ReferenceLinkProps)
     if (openIssue && issueKey) openIssue(issueKey)
     else void PlatformService.OpenWebPage(reference.url)
   }
+  const Logo = logo && reference.provider ? hostLogo(reference.provider) : null
   const link = (
     <a className="reference-link" href={reference.url} title={card ? undefined : reference.url} onClick={open}>
+      {Logo && <Logo size={12} className="reference-logo" aria-hidden="true" />}
       {children ?? reference.text}
     </a>
   )
