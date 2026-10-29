@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
@@ -60,19 +61,7 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 	default:
 		add("Checks", string(change.CI), "info")
 	}
-	approved, requested, changes := reviewNames(change.Reviews)
-	switch {
-	case len(changes) > 0:
-		add("Reviews", "changes requested by "+joinNames(changes), "warn")
-	case len(requested) > 0 && len(approved) > 0:
-		add("Reviews", "approved by "+joinNames(approved)+"; still waiting on "+joinNames(requested), "warn")
-	case len(requested) > 0:
-		add("Reviews", "waiting on "+joinNames(requested), "warn")
-	case len(approved) > 0:
-		add("Reviews", "approved by "+joinNames(approved), "ok")
-	default:
-		add("Reviews", "none", "info")
-	}
+	add(reviewsFact(change.Reviews))
 	if change.UnresolvedThreads > 0 {
 		add("Threads", strconv.Itoa(change.UnresolvedThreads)+" unresolved", "warn")
 	}
@@ -109,29 +98,42 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 	return MergeReadiness{Facts: facts, FetchedAt: &fetchedAt}, nil
 }
 
-func reviewNames(reviews []hostapi.Review) (approved, requested, changes []string) {
+// Everyone involved, verdicts first as the list orders them; it needs
+// attention while changes are requested or a review still waits.
+func reviewsFact(reviews []hostapi.Review) (label, value, level string) {
+	names := map[hostapi.ReviewState][]string{}
 	for _, r := range reviews {
-		switch r.State {
-		case hostapi.ReviewApproved:
-			approved = append(approved, r.Reviewer.Name)
-		case hostapi.ReviewRequested:
-			requested = append(requested, r.Reviewer.Name)
-		case hostapi.ReviewChangesRequested:
-			changes = append(changes, r.Reviewer.Name)
+		name := r.Reviewer.Name
+		if name == "" {
+			name = r.Reviewer.Username
+		}
+		names[r.State] = append(names[r.State], name)
+	}
+	var parts []string
+	for _, group := range []struct {
+		state  hostapi.ReviewState
+		prefix string
+	}{
+		{hostapi.ReviewChangesRequested, "changes requested by "},
+		{hostapi.ReviewApproved, "approved by "},
+		{hostapi.ReviewRequested, "waiting on "},
+		{hostapi.ReviewCommented, "commented by "},
+	} {
+		if len(names[group.state]) > 0 {
+			parts = append(parts, group.prefix+strings.Join(names[group.state], ", "))
 		}
 	}
-	return approved, requested, changes
-}
-
-func joinNames(names []string) string {
-	out := ""
-	for i, n := range names {
-		if i > 0 {
-			out += ", "
-		}
-		out += n
+	switch {
+	case len(parts) == 0:
+		return "Reviews", "none", "info"
+	case len(names[hostapi.ReviewChangesRequested]) > 0 || len(names[hostapi.ReviewRequested]) > 0:
+		level = "warn"
+	case len(names[hostapi.ReviewApproved]) > 0:
+		level = "ok"
+	default:
+		level = "info"
 	}
-	return out
+	return "Reviews", strings.Join(parts, "; "), level
 }
 
 // MergeOptions is one request, for the host's merge settings, made when
