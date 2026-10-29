@@ -35,7 +35,7 @@ export function ReferenceLink({ reference, card, children, logo = true }: Refere
   const Logo = logo && reference.provider ? hostLogo(reference.provider) : null
   const link = (
     <a className="reference-link" href={reference.url} title={card ? undefined : reference.url} onClick={open}>
-      {Logo && <Logo size={12} className="reference-logo" aria-hidden="true" />}
+      {Logo && <Logo size={14} className="reference-logo" aria-hidden="true" />}
       {children ?? reference.text}
     </a>
   )
