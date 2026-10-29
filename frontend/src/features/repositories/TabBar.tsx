@@ -62,11 +62,21 @@ function TabBar({
       )}
       {offHost && !changesLabel && onOffHost && (
         <>
-          <Tab active={false} onClick={onOffHost} off={`${offHost.hostname} is off · Integration settings`}>
+          <Tab
+            active={false}
+            onClick={onOffHost}
+            label={`${offHost.changesLabel} off`}
+            off={`${offHost.hostname} is off · Integration settings`}
+          >
             {offHost.changesLabel}
           </Tab>
           {issueCount === null && (
-            <Tab active={false} onClick={onOffHost} off={`${offHost.hostname} is off · Integration settings`}>
+            <Tab
+              active={false}
+              onClick={onOffHost}
+              label="Issues off"
+              off={`${offHost.hostname} is off · Integration settings`}
+            >
               Issues
             </Tab>
           )}

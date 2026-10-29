@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import TabBar from './TabBar'
 
 describe('TabBar', () => {
@@ -9,6 +10,24 @@ describe('TabBar', () => {
     rerender(<TabBar active="working-copy" onChange={vi.fn()} changedCount={5} conflictCount={1} />)
     const tab = screen.getByRole('button', { name: 'Changes, 1 conflicted file' })
     expect(tab.querySelector('.tab-count-conflict')).toHaveTextContent('1')
+  })
+
+  it("labels an off host's tabs off, and opens its settings on click", async () => {
+    const onOffHost = vi.fn()
+    render(
+      <TabBar
+        active="working-copy"
+        onChange={vi.fn()}
+        offHost={{ hostname: 'github.com', changesLabel: 'Pull requests' }}
+        onOffHost={onOffHost}
+      />,
+    )
+    const tab = screen.getByRole('button', { name: 'Pull requests off' })
+    expect(tab).toHaveClass('tab-off')
+    expect(tab).toHaveAttribute('title', 'github.com is off · Integration settings')
+    expect(screen.getByRole('button', { name: 'Issues off' })).toBeInTheDocument()
+    await userEvent.click(tab)
+    expect(onOffHost).toHaveBeenCalled()
   })
 })
 

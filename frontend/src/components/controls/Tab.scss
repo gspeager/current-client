@@ -30,6 +30,17 @@
   color: var(--error);
 }
 
+// Dimmed less than a disabled control (45%), since a click still goes somewhere.
 .tab-off {
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.tab-off-label {
+  margin-left: var(--space-xs);
   color: var(--outline);
+  font: var(--ui-xs);
 }
