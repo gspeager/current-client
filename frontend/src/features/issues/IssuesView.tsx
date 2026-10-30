@@ -150,7 +150,7 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
                     <span className="issues-row-key">{keyOf(listed)}</span>
                     {listed.issue.status && <span className="issues-row-status">{listed.issue.status}</span>}
                     <span className="host-change-row-time issues-row-source">
-                      <SourceLogo size={12} strokeWidth={1.75} aria-hidden="true" />
+                      <SourceLogo size={14} strokeWidth={1.75} aria-hidden="true" />
                       {listed.source}
                     </span>
                   </span>
