@@ -483,3 +483,16 @@ func TestBuildReadsCoAuthors(t *testing.T) {
 		t.Errorf("Entries = %+v, want one entry co-authored by Grace Hopper", release.Entries)
 	}
 }
+
+func TestSectionNotes(t *testing.T) {
+	text := "# Changelog\r\n\r\n## [Unreleased]\r\n\r\n## [0.5.0] - 2026-11-01\r\n\r\n### Added\r\n\r\n- Issues.\r\n\r\n## 0.4.0\r\n\r\n- Hosts.\r\n\r\n[0.5.0]: https://example.com\r\n"
+	if notes, ok := SectionNotes(text, "v0.5.0"); !ok || notes != "### Added\n\n- Issues." {
+		t.Fatalf("v0.5.0 = %q, %v", notes, ok)
+	}
+	if notes, ok := SectionNotes(text, "0.4.0"); !ok || notes != "- Hosts." {
+		t.Fatalf("0.4.0 = %q, %v", notes, ok)
+	}
+	if _, ok := SectionNotes(text, "0.3.0"); ok {
+		t.Fatal("found a section that isn't there")
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -52,6 +53,8 @@ type mergeRequest struct {
 	Author          user      `json:"author"`
 	Labels          []string  `json:"labels"`
 	SHA             string    `json:"sha"`
+	MergeCommitSHA  string    `json:"merge_commit_sha"`
+	SquashCommitSHA string    `json:"squash_commit_sha"`
 	HasConflicts    bool      `json:"has_conflicts"`
 	UpdatedAt       time.Time `json:"updated_at"`
 	WebURL          string    `json:"web_url"`
@@ -130,10 +133,25 @@ type mergeRequestCommit struct {
 }
 
 type issue struct {
-	IID    int    `json:"iid"`
-	Title  string `json:"title"`
-	State  string `json:"state"`
-	WebURL string `json:"web_url"`
+	IID         int      `json:"iid"`
+	Title       string   `json:"title"`
+	State       string   `json:"state"`
+	WebURL      string   `json:"web_url"`
+	Description string   `json:"description"`
+	Labels      []string `json:"labels"`
+	Milestone   *struct {
+		Title string `json:"title"`
+	} `json:"milestone"`
+	Author    user      `json:"author"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type issueNote struct {
+	Author    user      `json:"author"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
+	System    bool      `json:"system"`
 }
 
 func (p *Provider) OpenChanges(ctx context.Context, project string) ([]hostapi.Change, bool, error) {
@@ -295,12 +313,13 @@ func (p *Provider) Jobs(ctx context.Context, project string, pipelineID int64) (
 	out := make([]hostapi.Job, 0, len(jobs))
 	for _, j := range jobs {
 		out = append(out, hostapi.Job{
-			ID:       j.ID,
-			Name:     j.Name,
-			Stage:    j.Stage,
-			Status:   ciStatus(j.Status),
-			Duration: time.Duration(j.Duration * float64(time.Second)),
-			WebURL:   j.WebURL,
+			ID:        j.ID,
+			Name:      j.Name,
+			Stage:     j.Stage,
+			Status:    ciStatus(j.Status),
+			Duration:  time.Duration(j.Duration * float64(time.Second)),
+			WebURL:    j.WebURL,
+			Retryable: hostapi.Retryable(ciStatus(j.Status)),
 		})
 	}
 	return out, nil
@@ -336,12 +355,99 @@ func (p *Provider) AssignedIssues(ctx context.Context, project, username string)
 	return issues, nil
 }
 
+func (p *Provider) ProjectIssues(ctx context.Context, project string, open bool) ([]hostapi.Issue, error) {
+	state := "closed"
+	if open {
+		state = "opened"
+	}
+	var page []issue
+	query := url.Values{"state": {state}, "order_by": {"updated_at"}, "per_page": {"50"}}
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "issues"), query, &page); err != nil {
+		return nil, hostapi.WithScope(err, readScope)
+	}
+	issues := make([]hostapi.Issue, 0, len(page))
+	for _, is := range page {
+		issues = append(issues, toIssue(is))
+	}
+	return issues, nil
+}
+
+var (
+	_ hostapi.IssueTracker = (*Provider)(nil)
+	_ hostapi.IssueLister  = (*Provider)(nil)
+)
+
+func (p *Provider) IssueByKey(ctx context.Context, project, key string) (hostapi.Issue, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return hostapi.Issue{}, err
+	}
+	return p.Issue(ctx, project, number)
+}
+
+func (p *Provider) KeyPattern() *regexp.Regexp {
+	return hostapi.NumberedKeys
+}
+
+func (p *Provider) KeyInBranch(branch string) string {
+	return hostapi.NumberedBranchKey(branch)
+}
+
+func (p *Provider) Reference(key string) string {
+	return hostapi.NumberedReference(key)
+}
+
+func (p *Provider) IssueDetails(ctx context.Context, project, key string) (hostapi.IssueDetails, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return hostapi.IssueDetails{}, err
+	}
+	var is issue
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "issues", strconv.Itoa(number)), nil, &is); err != nil {
+		return hostapi.IssueDetails{}, hostapi.WithScope(err, readScope)
+	}
+	return toIssueDetails(is), nil
+}
+
+// IssueComments leaves out system notes, GitLab's own record of label and
+// state changes.
+func (p *Provider) IssueComments(ctx context.Context, project, key string) ([]hostapi.Note, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return nil, err
+	}
+	var page []issueNote
+	query := url.Values{"sort": {"asc"}, "order_by": {"created_at"}, "per_page": {"100"}}
+	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "issues", strconv.Itoa(number), "notes"), query, &page); err != nil {
+		return nil, hostapi.WithScope(err, readScope)
+	}
+	notes := make([]hostapi.Note, 0, len(page))
+	for _, n := range page {
+		if !n.System {
+			notes = append(notes, hostapi.Note{Author: toUser(n.Author), Body: n.Body, CreatedAt: n.CreatedAt})
+		}
+	}
+	return notes, nil
+}
+
 func toIssue(is issue) hostapi.Issue {
 	state := "open"
 	if is.State == "closed" {
 		state = "closed"
 	}
-	return hostapi.Issue{Number: is.IID, Title: is.Title, State: state, WebURL: is.WebURL}
+	return hostapi.Issue{Key: strconv.Itoa(is.IID), Number: is.IID, Title: is.Title, State: state, WebURL: is.WebURL}
+}
+
+func toIssueDetails(is issue) hostapi.IssueDetails {
+	labels := is.Labels
+	if labels == nil {
+		labels = []string{}
+	}
+	out := hostapi.IssueDetails{Issue: toIssue(is), Description: is.Description, Labels: labels, Author: toUser(is.Author), CreatedAt: is.CreatedAt, UpdatedAt: is.UpdatedAt}
+	if is.Milestone != nil {
+		out.Milestone = is.Milestone.Title
+	}
+	return out
 }
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {
@@ -417,19 +523,21 @@ func toUser(u user) hostapi.User {
 
 func (p *Provider) change(ctx context.Context, mr mergeRequest) (hostapi.Change, error) {
 	change := hostapi.Change{
-		Number:       mr.IID,
-		Title:        mr.Title,
-		Description:  mr.Description,
-		State:        changeState(mr.State),
-		Draft:        mr.Draft,
-		SourceBranch: mr.SourceBranch,
-		TargetBranch: mr.TargetBranch,
-		Author:       toUser(mr.Author),
-		Labels:       mr.Labels,
-		HeadSHA:      mr.SHA,
-		HasConflicts: mr.HasConflicts,
-		UpdatedAt:    mr.UpdatedAt,
-		WebURL:       mr.WebURL,
+		Number:         mr.IID,
+		Title:          mr.Title,
+		Description:    mr.Description,
+		State:          changeState(mr.State),
+		Draft:          mr.Draft,
+		SourceBranch:   mr.SourceBranch,
+		TargetBranch:   mr.TargetBranch,
+		Author:         toUser(mr.Author),
+		Labels:         mr.Labels,
+		HeadSHA:        mr.SHA,
+		MergeCommitSHA: landedAs(mr),
+		HasConflicts:   mr.HasConflicts,
+		ConflictsKnown: true,
+		UpdatedAt:      mr.UpdatedAt,
+		WebURL:         mr.WebURL,
 	}
 	for _, r := range mr.Reviewers {
 		change.Reviews = append(change.Reviews, hostapi.Review{Reviewer: toUser(r), State: hostapi.ReviewRequested})
@@ -554,4 +662,18 @@ func ciStatus(status string) hostapi.CIStatus {
 // projectPath builds "projects/<group%2Fproject>/<parts…>".
 func projectPath(project string, parts ...string) string {
 	return strings.Join(append([]string{"projects", url.PathEscape(project)}, parts...), "/")
+}
+
+// landedAs is the commit a merged merge request became on its target: the
+// squash commit, else the merge commit, else (a fast-forward) its head.
+func landedAs(mr mergeRequest) string {
+	if mr.State != "merged" {
+		return ""
+	}
+	for _, sha := range []string{mr.SquashCommitSHA, mr.MergeCommitSHA, mr.SHA} {
+		if sha != "" {
+			return sha
+		}
+	}
+	return ""
 }

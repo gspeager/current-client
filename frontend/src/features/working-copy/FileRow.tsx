@@ -1,5 +1,5 @@
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
-import { Ellipsis, X } from 'lucide-react'
+import { Ellipsis, Users, X } from 'lucide-react'
 import { isMenuKey } from '../../components/controls/ContextMenu'
 import Checkbox from '../../components/forms/Checkbox'
 import DiffStat from '../../components/git/DiffStat'
@@ -28,6 +28,8 @@ interface FileRowProps {
   tag?: string
   // Unresolved review threads on the file.
   threads?: number
+  // CODEOWNERS owners of the file.
+  owners?: string[]
 }
 
 function FileRow({
@@ -48,6 +50,7 @@ function FileRow({
   binary = false,
   tag,
   threads,
+  owners,
 }: FileRowProps) {
   const rowStyle = indent > 0 ? { ...style, paddingLeft: `calc(var(--space-sm) + ${indent}px)` } : style
 
@@ -73,6 +76,16 @@ function FileRow({
         <PathText path={label} />
       </button>
       <span className="file-row-stats">
+        {owners && owners.length > 0 && (
+          <span
+            className="file-row-owners"
+            role="img"
+            aria-label={`Owners: ${owners.join(', ')}`}
+            title={`Owners: ${owners.join(', ')}`}
+          >
+            <Users size={12} strokeWidth={1.75} />
+          </span>
+        )}
         {tag && <span className="file-row-tag">{tag}</span>}
         <ThreadCount count={threads} />
         <DiffStat added={added} removed={removed} binary={binary} />

@@ -14,3 +14,10 @@
     text-decoration-color: currentColor;
   }
 }
+
+// The host the reference opens, before it, quieter than its text.
+.reference-logo {
+  margin-right: 2px;
+  color: var(--outline);
+  vertical-align: -2px;
+}

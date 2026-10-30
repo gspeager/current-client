@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { ClipboardCheck } from 'lucide-react'
 import {
   BisectService,
   BranchService,
+  HistoryService,
   PatchService,
   RemoteService,
   ReflogService,
+  TagService,
   UndoService,
   type UndoPlanInfo,
 } from '@current-client-bindings/app'
@@ -16,6 +19,7 @@ import { DialogProvider } from './DialogProvider'
 import NavPane from './NavPane'
 import QuickSwitchPalette from './QuickSwitchPalette'
 import { useWorkspaceActions } from './useWorkspaceActions'
+import { settingsGroups } from '../../features/settings/SettingsPanel'
 
 const REPO = '/repos/app'
 
@@ -30,8 +34,20 @@ const workingTree = {
   loadStatus: vi.fn(),
 } as unknown as ReturnType<typeof useWorkingTree>
 
+interface ShellSpies {
+  onBranchChanged?: () => void
+  onOpenSettings?: (group?: string) => void
+  onOpenCommit?: (sha: string, position: number) => void
+  onReadiness?: () => void
+}
+
 // The palette and the sidebar sharing one set of Workspace actions, as in App.
-function Shell({ onBranchChanged = vi.fn() }: { onBranchChanged?: () => void }) {
+function Shell({
+  onBranchChanged = vi.fn(),
+  onOpenSettings = vi.fn(),
+  onOpenCommit = vi.fn(),
+  onReadiness = vi.fn(),
+}: ShellSpies) {
   const [paletteOpen, setPaletteOpen] = useState(true)
   const workspace = useWorkspaceActions({
     repoPath: REPO,
@@ -62,7 +78,18 @@ function Shell({ onBranchChanged = vi.fn() }: { onBranchChanged?: () => void }) 
           repo={repo}
           onClose={() => setPaletteOpen(false)}
           workspaceActions={workspace.actions}
-          onOpenSettings={vi.fn()}
+          actions={[
+            {
+              id: 'release-readiness',
+              label: 'Release readiness',
+              section: 'Release',
+              icon: ClipboardCheck,
+              keywords: ['release', 'version'],
+              run: onReadiness,
+            },
+          ]}
+          settingsGroups={settingsGroups(true)}
+          onOpenSettings={onOpenSettings}
           onPull={vi.fn()}
           onPullMerge={vi.fn()}
           onPullRebase={vi.fn()}
@@ -70,7 +97,7 @@ function Shell({ onBranchChanged = vi.fn() }: { onBranchChanged?: () => void }) 
           onFetchAll={vi.fn()}
           onOpenFile={vi.fn()}
           onSearchFiles={vi.fn()}
-          onOpenCommit={vi.fn()}
+          onOpenCommit={onOpenCommit}
         />
       )}
       {workspace.modals}
@@ -78,10 +105,10 @@ function Shell({ onBranchChanged = vi.fn() }: { onBranchChanged?: () => void }) 
   )
 }
 
-function renderPalette(onBranchChanged?: () => void) {
+function renderPalette(onBranchChanged?: () => void, spies: ShellSpies = {}) {
   render(
     <DialogProvider>
-      <Shell onBranchChanged={onBranchChanged} />
+      <Shell onBranchChanged={onBranchChanged} {...spies} />
     </DialogProvider>,
   )
 }
@@ -117,10 +144,63 @@ describe('QuickSwitchPalette at rest', () => {
     expect(branches).toHaveLength(8)
     expect(branches[0]).toHaveAccessibleName('main, current branch')
     expect(within(palette()).queryByRole('option', { name: /origin\/zed/ })).not.toBeInTheDocument()
-    expect(within(palette()).queryByRole('option', { name: 'Settings: Theme' })).not.toBeInTheDocument()
+    expect(within(palette()).queryByRole('option', { name: 'Settings: Appearance' })).not.toBeInTheDocument()
 
     await userEvent.type(screen.getByRole('combobox'), 'the')
-    expect(await within(palette()).findByRole('option', { name: 'Settings: Theme' })).toBeInTheDocument()
+    expect(await within(palette()).findByRole('option', { name: 'Settings: Appearance' })).toBeInTheDocument()
+  })
+})
+
+describe('QuickSwitchPalette features', () => {
+  const groupOf = (option: HTMLElement) =>
+    option.closest('[cmdk-group]')?.querySelector('[cmdk-group-heading]')?.textContent
+
+  it("groups the app's actions and finds them by a synonym", async () => {
+    const onReadiness = vi.fn()
+    renderPalette(undefined, { onReadiness })
+
+    const readiness = paletteAction('Release readiness')
+    expect(groupOf(readiness)).toContain('Release')
+    expect(groupOf(paletteAction('Pull'))).toContain('Sync')
+    expect(groupOf(paletteAction('Open Terminal'))).toContain('Tools')
+
+    await userEvent.type(screen.getByRole('combobox'), 'rel')
+    await userEvent.click(paletteAction('Release readiness'))
+    expect(onReadiness).toHaveBeenCalled()
+    expect(screen.queryByRole('dialog', { name: 'Go to anything' })).not.toBeInTheDocument()
+  })
+
+  it('opens Settings on the group a word belongs to', async () => {
+    const onOpenSettings = vi.fn()
+    renderPalette(undefined, { onOpenSettings })
+
+    await userEvent.type(screen.getByRole('combobox'), 'jira')
+    await userEvent.click(await within(palette()).findByRole('option', { name: 'Settings: Integrations' }))
+    expect(onOpenSettings).toHaveBeenCalledWith('Integrations')
+  })
+
+  it('lists tags once typed for and opens the tagged commit', async () => {
+    vi.mocked(TagService.ListTags).mockResolvedValue([
+      { name: 'v1.1', sha: 'abc1234def', annotated: true, date: new Date().toISOString() },
+    ] as never)
+    vi.mocked(HistoryService.GetCommitPosition).mockResolvedValue(12)
+    const onOpenCommit = vi.fn()
+    renderPalette(undefined, { onOpenCommit })
+
+    expect(within(palette()).queryByRole('option', { name: 'Tag v1.1' })).not.toBeInTheDocument()
+    await userEvent.type(screen.getByRole('combobox'), 'v1')
+    await userEvent.click(await within(palette()).findByRole('option', { name: 'Tag v1.1' }))
+    await vi.waitFor(() => expect(onOpenCommit).toHaveBeenCalledWith('abc1234def', 12))
+  })
+
+  it('offers Settings instead of a dead end', async () => {
+    const onOpenSettings = vi.fn()
+    renderPalette(undefined, { onOpenSettings })
+
+    await userEvent.type(screen.getByRole('combobox'), 'zzzz')
+    expect(within(palette()).getByText('No matches')).toBeInTheDocument()
+    await userEvent.click(paletteAction('Open Settings'))
+    expect(onOpenSettings).toHaveBeenCalledWith()
   })
 })
 

@@ -1,8 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PlatformService } from '@current-client-bindings/app'
+import { HostService, PlatformService, TrackerLinks } from '@current-client-bindings/app'
 import { Links } from '@current-client-bindings/core/hostlink'
 import ReferenceText from './ReferenceText'
+import { IssuePanelContext } from '../../lib/issuePanel'
+import { useReferenceCards } from '../../lib/useReferenceCards'
+
+const TEXTS = ['fix: login (PROJ-12)']
 
 const links = new Links({ issue: 'https://github.com/o/r/issues/', root: 'https://github.com/', issuePath: '/issues/' })
 
@@ -24,6 +28,25 @@ describe('ReferenceText', () => {
 
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://github.com/o/r/issues/12')
     expect(onRowClick).not.toHaveBeenCalled()
+  })
+
+  it('opens an issue’s panel while the host is on, and a merge request on the host', async () => {
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    const openIssue = vi.fn()
+    render(
+      <IssuePanelContext.Provider value={{ open: openIssue }}>
+        <ReferenceText
+          text="Fix #12 via !45"
+          links={new Links({ ...links, mergeRequest: 'https://github.com/o/r/pull/' })}
+        />
+      </IssuePanelContext.Provider>,
+    )
+    await userEvent.click(screen.getByRole('link', { name: '#12' }))
+    expect(openIssue).toHaveBeenCalledWith('12')
+    expect(PlatformService.OpenWebPage).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('link', { name: '!45' }))
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://github.com/o/r/pull/45')
   })
 
   it('decorates linked and plain text alike', () => {
@@ -61,5 +84,60 @@ describe('ReferenceText hover cards', () => {
 
     await userEvent.hover(screen.getByRole('link', { name: '#9' }))
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Title not fetched')
+  })
+
+  it('opens a tracker key on its site, with the host off and no request', async () => {
+    vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
+    const tracker = new TrackerLinks({
+      site: 'https://example.atlassian.net/',
+      browse: 'https://example.atlassian.net/browse/',
+      keyPattern: '(?:^|[^\\w/.-])([A-Z][A-Z0-9_]+-[1-9]\\d*)\\b',
+    })
+    render(
+      <IssuePanelContext.Provider value={{ tracker }}>
+        <ReferenceText text="fix: login (PROJ-12)" links={null} />
+      </IssuePanelContext.Provider>,
+    )
+    await userEvent.click(screen.getByRole('link', { name: 'PROJ-12' }))
+    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://example.atlassian.net/browse/PROJ-12')
+    expect(HostService.IssueDetails).not.toHaveBeenCalled()
+    expect(HostService.FetchIssueTitles).not.toHaveBeenCalled()
+  })
+
+  it('opens a tracker key in the issue panel while the tracker is read, with its title from the tracker', async () => {
+    vi.mocked(HostService.FetchTrackerIssueTitles).mockResolvedValue({
+      'PROJ-12': {
+        number: 0,
+        key: 'PROJ-12',
+        title: 'Login fails',
+        state: 'open',
+        status: 'In Progress',
+        webUrl: '',
+        known: true,
+      },
+    })
+    const openIssue = vi.fn()
+    const jira = new TrackerLinks({
+      site: 'https://example.atlassian.net/',
+      browse: 'https://example.atlassian.net/browse/',
+      keyPattern: '(?:^|[^\\w/.-])([A-Z][A-Z0-9_]+-[1-9]\\d*)\\b',
+      hostName: 'example.atlassian.net',
+      reading: true,
+    })
+    function Subject() {
+      const cards = useReferenceCards('/repos/app', TEXTS, {})
+      return <ReferenceText text={TEXTS[0]} links={null} cards={cards} />
+    }
+    render(
+      <IssuePanelContext.Provider value={{ open: openIssue, tracker: jira }}>
+        <Subject />
+      </IssuePanelContext.Provider>,
+    )
+    await vi.waitFor(() => expect(HostService.FetchTrackerIssueTitles).toHaveBeenCalledWith('/repos/app', ['PROJ-12']))
+    // The card says what Jira says, not the open/closed it is sorted by.
+    await userEvent.hover(screen.getByRole('link', { name: 'PROJ-12' }))
+    expect(await screen.findByText('In Progress')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('link', { name: 'PROJ-12' }))
+    expect(openIssue).toHaveBeenCalledWith('PROJ-12')
   })
 })

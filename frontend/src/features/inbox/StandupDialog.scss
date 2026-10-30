@@ -1,0 +1,38 @@
+.standup-panel {
+  width: min(720px, 90vw);
+}
+
+.standup-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.standup-text {
+  max-height: 60vh;
+  margin: 0;
+  padding: var(--space-sm);
+  overflow: auto;
+  background: var(--surface-lowest);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+  white-space: pre-wrap;
+}
+
+.standup-rendered {
+  font: var(--ui-sm);
+  white-space: normal;
+}
+
+.standup-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.standup-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

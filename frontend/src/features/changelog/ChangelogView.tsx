@@ -3,6 +3,7 @@ import { CircleHelp } from 'lucide-react'
 import { ChangelogService } from '@current-client-bindings/app'
 import type { ChangelogPrefs } from '@current-client-bindings/internal/config'
 import ConventionalCommitsGuide from './ConventionalCommitsGuide'
+import NextRelease from './NextRelease'
 import ReleaseEditor, { type ChangelogFilters } from './ReleaseEditor'
 import Modal from '../../components/chrome/Modal'
 import RefSelect, { useRefGroups } from '../../components/git/RefSelect'
@@ -23,9 +24,22 @@ interface ChangelogViewProps {
   prefs: ChangelogPrefs | null
   onPrefsChange: (prefs: ChangelogPrefs) => void
   onOpenCommit: (sha: string) => void
+  // The changelog editor needs Conventional Commits; Next release doesn't.
+  changelog?: boolean
+  onTagged?: () => void
 }
 
-function ChangelogView({ repoPath, repoVersion, prefs, onPrefsChange, onOpenCommit }: ChangelogViewProps) {
+// The Releases tab: the next release's checks and steps, then the changelog
+// it will carry.
+function ChangelogView({
+  repoPath,
+  repoVersion,
+  prefs,
+  onPrefsChange,
+  onOpenCommit,
+  changelog = true,
+  onTagged,
+}: ChangelogViewProps) {
   const refGroups = useRefGroups(repoPath)
   const { data: latestTag, error: tagError } = useAsyncData(
     () => ChangelogService.LatestTag(repoPath, 'HEAD'),
@@ -90,43 +104,48 @@ function ChangelogView({ repoPath, repoVersion, prefs, onPrefsChange, onOpenComm
 
   return (
     <div className="changelog-view">
-      <div className="changelog-range">
-        <span className="changelog-label">From</span>
-        <RefSelect
-          groups={refGroups}
-          value={from ?? ''}
-          onChange={setFromChoice}
-          label="Changelog from"
-          extraOptions={[{ value: '', label: 'First commit' }, ...TIME_PRESETS]}
-        />
-        <span className="changelog-label">to</span>
-        <RefSelect
-          groups={refGroups}
-          value={to}
-          onChange={setTo}
-          label="Changelog to"
-          extraOptions={[{ value: 'HEAD', label: 'HEAD' }]}
-        />
-        <Checkbox checked={split} onChange={(on) => savePrefs({ splitByRelease: on })} label="Split by release" />
-        <span className="changelog-spacer" />
-        <button
-          type="button"
-          className="changelog-icon-button"
-          onClick={() => setGuideOpen(true)}
-          aria-label="Conventional Commits guide"
-          title="Conventional Commits guide"
-        >
-          <CircleHelp size={14} strokeWidth={1.5} />
-        </button>
-      </div>
-      {guideOpen && (
-        <Modal title="Conventional Commits" onClose={() => setGuideOpen(false)} className="changelog-guide-modal">
-          <div className="changelog-guide-body">
-            <ConventionalCommitsGuide />
+      <NextRelease repoPath={repoPath} repoVersion={repoVersion} onTagged={onTagged} />
+      {changelog && (
+        <>
+          <div className="changelog-range">
+            <span className="changelog-label">From</span>
+            <RefSelect
+              groups={refGroups}
+              value={from ?? ''}
+              onChange={setFromChoice}
+              label="Changelog from"
+              extraOptions={[{ value: '', label: 'First commit' }, ...TIME_PRESETS]}
+            />
+            <span className="changelog-label">to</span>
+            <RefSelect
+              groups={refGroups}
+              value={to}
+              onChange={setTo}
+              label="Changelog to"
+              extraOptions={[{ value: 'HEAD', label: 'HEAD' }]}
+            />
+            <Checkbox checked={split} onChange={(on) => savePrefs({ splitByRelease: on })} label="Split by release" />
+            <span className="changelog-spacer" />
+            <button
+              type="button"
+              className="changelog-icon-button"
+              onClick={() => setGuideOpen(true)}
+              aria-label="Conventional Commits guide"
+              title="Conventional Commits guide"
+            >
+              <CircleHelp size={14} strokeWidth={1.5} />
+            </button>
           </div>
-        </Modal>
+          {guideOpen && (
+            <Modal title="Conventional Commits" onClose={() => setGuideOpen(false)} className="changelog-guide-modal">
+              <div className="changelog-guide-body">
+                <ConventionalCommitsGuide />
+              </div>
+            </Modal>
+          )}
+          {content()}
+        </>
       )}
-      {content()}
     </div>
   )
 }

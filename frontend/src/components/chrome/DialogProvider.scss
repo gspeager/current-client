@@ -1,6 +1,7 @@
 @use '../../styles/patterns';
 
-.dialog-panel {
+// No specificity, so a dialog's own width wins whatever order the CSS lands in.
+:where(.dialog-panel) {
   width: 400px;
 }
 

@@ -4,20 +4,12 @@ package app
 
 import (
 	"context"
-	"os/exec"
 	"testing"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 )
-
-func gitIn(t *testing.T, dir string, args ...string) {
-	t.Helper()
-	if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
-		t.Fatalf("git %v: %v\n%s", args, err, out)
-	}
-}
 
 func TestBranchChangesReadOnlyTheCache(t *testing.T) {
 	useTempSettings(t)

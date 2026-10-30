@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, FileCode, Image } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image } from 'lucide-react'
 import type { FileDiff, LineSelection, ReviewThread } from '@current-client-bindings/app'
+import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
@@ -11,8 +12,15 @@ import SubmoduleDiff from './SubmoduleDiff'
 import { submoduleChange } from './submoduleChange'
 import { buildDisplayRows, diffStats } from './diffRows'
 import { conflictRows, type ConflictView } from './conflictRows'
-import DiffPane, { lineKey, type HunkActions } from './DiffPane'
+import DiffPane, { lineKey, lineRef, type HunkActions } from './DiffPane'
 import ReviewThreadBlock from './ReviewThreadBlock'
+import PendingCommentBlock from '../review/PendingCommentBlock'
+import ReviewComposer from '../review/ReviewComposer'
+import ReviewDialog from '../review/ReviewDialog'
+import { useReviewActions } from '../review/useReviewActions'
+import { issueDraftFromLine, useNewIssue } from '../../lib/issuePanel'
+import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
+import { plural } from '../../lib/plural'
 import { toggled } from '../../lib/sets'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import './DiffViewer.scss'
@@ -42,6 +50,9 @@ interface DiffViewerProps extends HunkActions {
   repoPath?: string
   // For a conflicted file: each side in its own column, or the working file as it is.
   conflictView?: ConflictView
+  // The change this diff belongs to, when the host is on: lines take review
+  // comments, threads take replies, and a review can be submitted.
+  review?: { repoPath: string; number: number; prefix: string }
 }
 
 function DiffViewer({
@@ -56,9 +67,18 @@ function DiffViewer({
   threads,
   outdatedThreads,
   conflictView = 'result',
+  review,
   ...hunkActions
 }: DiffViewerProps) {
   const [showImage, setShowImage] = useState(true)
+  const target = review ? reviewTarget(review.repoPath, review.number) : undefined
+  const draft = useReviewDraft(target)
+  const actions = useReviewActions(review?.repoPath, review?.number)
+  const [composer, setComposer] = useState<{ line: number; oldLine: number } | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewed, setReviewed] = useState(false)
+  const newIssue = useNewIssue()
+  const [menu, setMenu] = useState<ContextMenuState | null>(null)
   const { wrap } = useDiffWrap()
   const paneRef = useRef<HTMLDivElement>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
@@ -73,6 +93,7 @@ function DiffViewer({
     setCurrentBlock(0)
     setSelectedLines(new Set())
     lastToggled.current = null
+    setComposer(null)
   }, [diff])
 
   const goToBlock = (index: number) => {
@@ -189,19 +210,84 @@ function DiffViewer({
   // when each side scrolls on its own, are listed under the diff.
   const sidesApart = mode === 'split' && !wrap
   const shownLines = new Set(diff.hunks.flatMap((h) => h.lines.map((l) => l.newLine).filter(Boolean)))
-  const threadsByLine = new Map<number, ReviewThread[]>()
+  const blocksByLine = new Map<string, ReactNode[]>()
+  const place = (ref: string, node: ReactNode) => blocksByLine.set(ref, [...(blocksByLine.get(ref) ?? []), node])
   const unplaced: ReviewThread[] = []
   for (const thread of threads ?? []) {
     if (!sidesApart && thread.line && shownLines.has(thread.line)) {
-      threadsByLine.set(thread.line, [...(threadsByLine.get(thread.line) ?? []), thread])
+      place(
+        lineRef(thread.line, 0),
+        <ReviewThreadBlock key={thread.id} thread={thread} actions={actions?.threadActions} />,
+      )
     } else {
       unplaced.push(thread)
     }
   }
+  const drafted = draft.comments.filter((c) => c.path === path)
+  if (!sidesApart && target) {
+    for (const c of drafted) {
+      place(
+        lineRef(c.line, c.oldLine),
+        <PendingCommentBlock key={c.id} comment={c} onRemove={() => draft.remove(target, c.id)} />,
+      )
+    }
+    if (composer && actions) {
+      place(
+        lineRef(composer.line, composer.oldLine),
+        <ReviewComposer
+          key="composer"
+          placeholder={composer.line ? `Comment on line ${composer.line}` : `Comment on old line ${composer.oldLine}`}
+          onSend={(body) => actions.comment(path, composer.line, composer.oldLine, body).then(() => setComposer(null))}
+          onAddToReview={(body) => {
+            draft.add(target, { path, line: composer.line, oldLine: composer.oldLine, body })
+            setComposer(null)
+          }}
+          onCancel={() => setComposer(null)}
+        />,
+      )
+    }
+  }
+  const canComment = !!review && !!actions?.capabilities.lineComments && !diff.conflicted && !sidesApart
 
   return (
     <div>
       {imageToggle}
+      {review && actions && (
+        <div className="diff-review-bar" role="toolbar" aria-label="Review">
+          <ClipboardCheck size={12} strokeWidth={1.75} />
+          <span className="diff-review-bar-change">
+            {review.prefix}
+            {review.number}
+          </span>
+          <span className="diff-review-bar-note">
+            {draft.comments.length > 0
+              ? `${plural(draft.comments.length, 'drafted comment')}, not sent yet`
+              : reviewed
+                ? 'Review submitted.'
+                : ''}
+          </span>
+          {draft.comments.length > 0 && (
+            <button type="button" className="diff-review-bar-button" onClick={() => target && draft.clear(target)}>
+              Discard drafts
+            </button>
+          )}
+          <button type="button" className="diff-review-bar-button" onClick={() => setReviewOpen(true)}>
+            Submit review…
+          </button>
+        </div>
+      )}
+      {reviewOpen && review && (
+        <ReviewDialog
+          repoPath={review.repoPath}
+          number={review.number}
+          prefix={review.prefix}
+          onSubmitted={() => {
+            setReviewOpen(false)
+            setReviewed(true)
+          }}
+          onClose={() => setReviewOpen(false)}
+        />
+      )}
       {diff.conflicted && conflictView === 'result' && (
         <p className="diff-conflict-note">Conflicted. Edit the marked sections to resolve, then mark it resolved.</p>
       )}
@@ -245,7 +331,22 @@ function DiffViewer({
           lineSelect={
             canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
           }
-          threadsByLine={threadsByLine}
+          blocksByLine={blocksByLine}
+          onCommentLine={canComment ? (line, oldLine) => setComposer({ line, oldLine }) : undefined}
+          onLineMenu={
+            newIssue
+              ? (e, line, content) =>
+                  setMenu({
+                    ...menuAnchor(e),
+                    items: [
+                      {
+                        label: 'Create issue from line…',
+                        onClick: () => newIssue(issueDraftFromLine(path, line, content)),
+                      },
+                    ],
+                  })
+              : undefined
+          }
           {...(diff.conflicted ? {} : hunkActions)}
         />
         {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
@@ -254,7 +355,12 @@ function DiffViewer({
               <span className="review-threads-outdated-label">Threads on lines not in this diff</span>
             )}
             {unplaced.map((thread) => (
-              <ReviewThreadBlock key={thread.id} thread={thread} where={`line ${thread.line}`} />
+              <ReviewThreadBlock
+                key={thread.id}
+                thread={thread}
+                where={`line ${thread.line}`}
+                actions={actions?.threadActions}
+              />
             ))}
             {(outdatedThreads?.length ?? 0) > 0 && (
               <span className="review-threads-outdated-label">Outdated: the code has changed since</span>
@@ -264,11 +370,13 @@ function DiffViewer({
                 key={thread.id}
                 thread={thread}
                 where={thread.oldLine ? `old line ${thread.oldLine}` : `line ${thread.line}`}
+                actions={actions?.threadActions}
               />
             ))}
           </section>
         )}
       </div>
+      {menu && <ContextMenu state={menu} onClose={() => setMenu(null)} />}
       {diff.conflicted && blocks.blockStarts.length > 0 && (
         <div className="diff-conflict-footer">
           <span>

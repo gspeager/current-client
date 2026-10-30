@@ -37,6 +37,8 @@ type HistoryFilterInfo struct {
 	Until  string `json:"until"`
 	Author string `json:"author"`
 	Type   string `json:"type"`
+	// FirstParent lists only each merge's first parent's line.
+	FirstParent bool `json:"firstParent"`
 }
 
 func (s *HistoryService) GetHistory(repoPath string, limit, skip int, filter HistoryFilterInfo) ([]CommitInfo, error) {

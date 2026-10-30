@@ -2,6 +2,8 @@ package hostapi
 
 import (
 	"context"
+	"errors"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -52,9 +54,15 @@ type Change struct {
 	CI                CIStatus    `json:"ci"`
 	UnresolvedThreads int         `json:"unresolvedThreads"`
 	HasConflicts      bool        `json:"hasConflicts"`
-	Reviews           []Review    `json:"reviews"`
-	UpdatedAt         time.Time   `json:"updatedAt"`
-	WebURL            string      `json:"webUrl"`
+	// ConflictsKnown says HasConflicts came from the host; GitHub's list
+	// entries carry no answer.
+	ConflictsKnown bool     `json:"conflictsKnown"`
+	Reviews        []Review `json:"reviews"`
+	// MergeCommitSHA is the commit a merged change landed as on its target:
+	// the merge, the squash, or the last rebased commit. Empty while open.
+	MergeCommitSHA string    `json:"mergeCommitSha"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	WebURL         string    `json:"webUrl"`
 }
 
 type ReviewState string
@@ -115,13 +123,24 @@ type Pipeline struct {
 	WebURL string   `json:"webUrl"`
 }
 
+// Job is one CI job. Retryable says the host's API can run it again: a
+// failed or canceled GitLab job, or GitHub Actions job.
 type Job struct {
-	ID       int64         `json:"id"`
-	Name     string        `json:"name"`
-	Stage    string        `json:"stage"`
-	Status   CIStatus      `json:"status"`
-	Duration time.Duration `json:"duration"`
-	WebURL   string        `json:"webUrl"`
+	ID        int64         `json:"id"`
+	Name      string        `json:"name"`
+	Stage     string        `json:"stage"`
+	Status    CIStatus      `json:"status"`
+	Duration  time.Duration `json:"duration"`
+	WebURL    string        `json:"webUrl"`
+	Retryable bool          `json:"retryable"`
+}
+
+// CIRetrier runs CI again: one job, or every failed job of a pipeline. jobs
+// is the pipeline's job list as last read, for a host that re-runs by
+// workflow run rather than by pipeline.
+type CIRetrier interface {
+	RetryJob(ctx context.Context, project string, job Job) error
+	RetryPipeline(ctx context.Context, project string, pipelineID int64, jobs []Job) error
 }
 
 // Thread is a review discussion. Path and Line are where it was left; Line
@@ -143,11 +162,124 @@ type Note struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// Issue is one issue on a tracker. Key is how its references name it:
+// "123" for a host's #123, "PROJ-123" for Jira. Number is the host's
+// number, 0 on a tracker whose keys aren't numbers.
 type Issue struct {
+	Key    string `json:"key"`
 	Number int    `json:"number"`
 	Title  string `json:"title"`
 	State  string `json:"state"`
 	WebURL string `json:"webUrl"`
+	// Status is the tracker's own name for where the issue is, such as Jira's
+	// "In Progress"; empty where a tracker has only open and closed.
+	Status string `json:"status"`
+}
+
+// IssueDetails is what an issue's panel shows beyond the summary. It is a
+// type of its own so Issue stays comparable.
+type IssueDetails struct {
+	Issue
+	Description string    `json:"description"`
+	Labels      []string  `json:"labels"`
+	Milestone   string    `json:"milestone"`
+	Author      User      `json:"author"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+// IssueTracker is where a repository's issues live: the code host itself,
+// or a tracker beside it such as Jira. Every issue feature reads through
+// it, so a tracker that isn't the host has somewhere to go. It adds no
+// trigger for requests: callers keep their cache and refresh rules.
+type IssueTracker interface {
+	// IssueByKey reads one issue by the key its references use.
+	IssueByKey(ctx context.Context, project, key string) (Issue, error)
+	// AssignedIssues is one page of the open issues assigned to username,
+	// most recently updated first.
+	AssignedIssues(ctx context.Context, project, username string) ([]Issue, error)
+	// KeyPattern matches one reference in text, with the key in group 1,
+	// so the app can find issues in commit messages and change titles.
+	KeyPattern() *regexp.Regexp
+	// KeyInBranch is the key a branch is named after ("123-fix-login",
+	// "PROJ-123-fix-login"), or "".
+	KeyInBranch(branch string) string
+	// Reference is how text names the key: "#123", "PROJ-123".
+	Reference(key string) string
+	// IssueDetails is the issue with its description, labels, milestone
+	// and author, for its panel.
+	IssueDetails(ctx context.Context, project, key string) (IssueDetails, error)
+	// IssueComments is the discussion on an issue, oldest first, without
+	// the tracker's own system notes.
+	IssueComments(ctx context.Context, project, key string) ([]Note, error)
+}
+
+type NewIssue struct {
+	Title       string
+	Description string
+	Labels      []string
+}
+
+// IssueWriter is a tracker the app can write to: GitLab and GitHub. Jira
+// isn't one, since teams move Jira issues through their host's own Jira
+// integration.
+// IssueLister lists a project's issues, not only the user's, for the Issues
+// tab's All and Closed. A tracker without it lists only what is assigned.
+type IssueLister interface {
+	// ProjectIssues is one page of the project's open or closed issues,
+	// most recently updated first.
+	ProjectIssues(ctx context.Context, project string, open bool) ([]Issue, error)
+}
+
+type IssueWriter interface {
+	CreateIssue(ctx context.Context, project string, issue NewIssue) (Issue, error)
+	CommentOnIssue(ctx context.Context, project, key, body string) (Note, error)
+	SetIssueState(ctx context.Context, project, key string, open bool) (IssueDetails, error)
+}
+
+type NewRelease struct {
+	Tag   string
+	Name  string
+	Notes string
+}
+
+type PublishedRelease struct {
+	Tag    string `json:"tag"`
+	Name   string `json:"name"`
+	WebURL string `json:"webUrl"`
+}
+
+// ReleasePublisher makes a release on the host for a tag that is already
+// there; it never creates the tag.
+type ReleasePublisher interface {
+	PublishRelease(ctx context.Context, project string, release NewRelease) (PublishedRelease, error)
+}
+
+// Deployment is the latest deployment to one environment: the commit it
+// ran, how it went (a CIStatus, so it reads as CI does), when and by whom.
+// Production is the host's own word where it has one (GitHub's
+// production_environment, GitLab's production tier), else the name.
+type Deployment struct {
+	Environment string    `json:"environment"`
+	SHA         string    `json:"sha"`
+	Ref         string    `json:"ref"`
+	Status      CIStatus  `json:"status"`
+	DeployedAt  time.Time `json:"deployedAt"`
+	DeployedBy  User      `json:"deployedBy"`
+	WebURL      string    `json:"webUrl"`
+	Production  bool      `json:"production"`
+}
+
+// Deployer lists each environment's latest deployment, newest first.
+type Deployer interface {
+	Deployments(ctx context.Context, project string) ([]Deployment, error)
+}
+
+var productionName = regexp.MustCompile(`(?i)^prod(uction)?$`)
+
+// IsProductionName is the guess for a host that doesn't say.
+func IsProductionName(environment string) bool {
+	return productionName.MatchString(environment)
 }
 
 // BranchRule is what the host forbids on branches matching Pattern, which
@@ -201,6 +333,140 @@ func MatchRule(rules []BranchRule, branch string) (BranchRule, bool) {
 	return matched, found
 }
 
+// Todo is one entry on the host's to-do list for the user, GitLab's To-Do
+// List or GitHub's notifications: why the host put it there, and the change
+// or issue it is about. Project is the repository's path on the host.
+// Target is "change", "issue" or "" for anything else, such as a commit.
+type Todo struct {
+	ID        string
+	Project   string
+	Reason    string
+	Target    string
+	Number    int
+	Title     string
+	Author    User
+	WebURL    string
+	UpdatedAt time.Time
+}
+
+// Reasons a host gives for a to-do that the Inbox merges with the rows it
+// already has; the rest are shown as the host words them.
+const (
+	TodoAssigned        = "assigned"
+	TodoMentioned       = "mentioned"
+	TodoReviewRequested = "review requested"
+)
+
+// TodoList is a host that keeps a to-do list for the user, which a Provider
+// may also be. The list is account-wide: Todos is one request however many
+// repositories it covers, and the caller keeps only what it needs.
+type TodoList interface {
+	// Todos is the user's pending to-dos, one page, newest first.
+	Todos(ctx context.Context) ([]Todo, error)
+	// MarkTodoDone takes a to-do off the list; it needs write scope.
+	MarkTodoDone(ctx context.Context, id string) error
+}
+
+// ErrTodosUnavailable means the host won't list to-dos for this token, which
+// is the case for GitHub's notifications with a fine-grained token.
+var ErrTodosUnavailable = errors.New("the host won't list to-dos for this token")
+
+// Merge methods a host may allow.
+const (
+	MergeMethodMerge  = "merge"
+	MergeMethodSquash = "squash"
+	MergeMethodRebase = "rebase"
+)
+
+// MergeOptions is how a host merges: the methods it allows, the one it
+// prefers first, and whether it deletes the source branch after.
+// DeleteBranchFixed means the host decides that for every merge, as GitHub
+// does; otherwise each merge may say.
+type MergeOptions struct {
+	Methods           []string `json:"methods"`
+	DeleteBranch      bool     `json:"deleteBranch"`
+	DeleteBranchFixed bool     `json:"deleteBranchFixed"`
+}
+
+// MergeRequest is one merge: the method, whether to delete the source
+// branch where the host lets a merge say, and the head the merge is meant
+// for, so a change that moved since is refused rather than merged blind.
+type MergeRequest struct {
+	Method       string
+	DeleteBranch bool
+	HeadSHA      string
+}
+
+// MergeRefusedError is a merge the host declined, with its reason in plain
+// words from the status it gave; the response body is never read.
+type MergeRefusedError struct {
+	Host   string
+	Status int
+	Reason string
+}
+
+func (e *MergeRefusedError) Error() string {
+	return e.Host + " refused the merge: " + e.Reason + "."
+}
+
+// Merger is a host that merges changes, which a Provider may also be.
+type Merger interface {
+	// MergeOptions is one request for the project's settings.
+	MergeOptions(ctx context.Context, project string) (MergeOptions, error)
+	// Merge needs write scope.
+	Merge(ctx context.Context, project string, number int, how MergeRequest) error
+}
+
+// ReviewCapabilities says which review writes a host's API offers; what
+// it lacks is left out of the app rather than faked. GitHub's REST API
+// can't resolve a thread; GitLab's has no request-changes verdict.
+type ReviewCapabilities struct {
+	Reply          bool `json:"reply"`
+	Resolve        bool `json:"resolve"`
+	LineComments   bool `json:"lineComments"`
+	Approve        bool `json:"approve"`
+	RequestChanges bool `json:"requestChanges"`
+}
+
+// NewComment is a comment on a line of a change's diff: Line on the new
+// side, or OldLine on the old side for a removed line.
+type NewComment struct {
+	Path    string `json:"path"`
+	Line    int    `json:"line"`
+	OldLine int    `json:"oldLine"`
+	Body    string `json:"body"`
+}
+
+// Review verdicts.
+const (
+	ReviewApprove        = "approve"
+	ReviewRequestChanges = "request-changes"
+	ReviewComment        = "comment"
+)
+
+// ReviewSubmission is a review submitted together: a verdict, an optional
+// summary, and the line comments drafted for it.
+type ReviewSubmission struct {
+	Verdict  string       `json:"verdict"`
+	Summary  string       `json:"summary"`
+	Comments []NewComment `json:"comments"`
+}
+
+// ErrReviewUnsupported means the host's API has no way to do this; the
+// message says what.
+var ErrReviewUnsupported = errors.New("the host's API can't do this")
+
+// Reviewer is a host that takes review writes, which a Provider may also
+// be. Every method needs write scope and is sent only on the user's click.
+// headSHA is the head the comments were written against.
+type Reviewer interface {
+	ReviewCapabilities() ReviewCapabilities
+	Reply(ctx context.Context, project string, number int, threadID, body string) error
+	ResolveThread(ctx context.Context, project string, number int, threadID string, resolved bool) error
+	CommentOnLine(ctx context.Context, project string, number int, headSHA string, comment NewComment) error
+	SubmitReview(ctx context.Context, project string, number int, headSHA string, review ReviewSubmission) error
+}
+
 // Provider is what a host offers this release's features. Every method
 // goes through the one Client, so the enabled set, Git's trust settings,
 // rate limits and the page cap apply to all of them. project is the path
@@ -225,9 +491,10 @@ type Provider interface {
 	Jobs(ctx context.Context, project string, pipelineID int64) ([]Job, error)
 	// JobLog returns up to maxBytes from the end of a job's log.
 	JobLog(ctx context.Context, project string, jobID int64, maxBytes int) (log string, truncated bool, err error)
+	// Issue reads one issue by number. Deprecated: IssueTracker.IssueByKey
+	// takes the key a reference carries and works for every tracker.
 	Issue(ctx context.Context, project string, number int) (Issue, error)
-	// AssignedIssues is one page of the open issues assigned to username,
-	// most recently updated first.
+	// AssignedIssues is IssueTracker's, kept here so a Provider is one.
 	AssignedIssues(ctx context.Context, project, username string) ([]Issue, error)
 	CreateChange(ctx context.Context, project string, change NewChange) (Change, error)
 	// BranchRules are the host's protection rules; branches names the ones

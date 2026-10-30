@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -32,7 +33,7 @@ type fixtures struct {
 	mu       sync.Mutex
 	requests []request
 	// routes map "METHOD /<path>?<query>" to a testdata file, a literal body
-	// when it starts with "[" or "{", "403" or "404" for a refusal, or
+	// when it starts with "[" or "{", a status such as "403" for a refusal, or
 	// "redirect:<path>" for an answer that points elsewhere on the server.
 	routes map[string]string
 }
@@ -52,8 +53,9 @@ func (f *fixtures) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"message":"Not Found"}`, http.StatusNotFound)
 	case route == "403":
 		http.Error(w, `{"message":"Resource not accessible by integration"}`, http.StatusForbidden)
-	case route == "404":
-		http.Error(w, `{"message":"Not Found"}`, http.StatusNotFound)
+	case isStatus(route):
+		status, _ := strconv.Atoi(route)
+		http.Error(w, `{"message":"`+http.StatusText(status)+`"}`, status)
 	case strings.HasPrefix(route, "redirect:"):
 		http.Redirect(w, r, strings.TrimPrefix(route, "redirect:"), http.StatusFound)
 	case strings.HasPrefix(route, "[") || strings.HasPrefix(route, "{"):
@@ -66,6 +68,11 @@ func (f *fixtures) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(data)
 	}
+}
+
+// isStatus is a route that is a status alone, "404" or "405".
+func isStatus(route string) bool {
+	return len(route) == 3 && route >= "400" && route <= "599"
 }
 
 func (f *fixtures) count(method, path string) int {
@@ -281,6 +288,16 @@ func TestAssignedIssuesLeaveOutPullRequests(t *testing.T) {
 	issues, err = p.AssignedIssues(context.Background(), project, "ada")
 	if err != nil || len(issues) != 1 || issues[0].Number != 2 {
 		t.Fatalf("AssignedIssues = %+v, %v", issues, err)
+	}
+}
+
+func TestProjectIssuesByStateLeaveOutPullRequests(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{
+		"GET " + v3 + "/issues?per_page=50&sort=updated&state=closed": `[{"number": 1, "title": "A pull", "state": "closed", "pull_request": {"url": "x"}}, {"number": 2, "title": "Done", "state": "closed"}]`,
+	})
+	issues, err := p.ProjectIssues(context.Background(), project, false)
+	if err != nil || len(issues) != 1 || issues[0].Number != 2 || issues[0].State != "closed" {
+		t.Fatalf("ProjectIssues = %+v, %v", issues, err)
 	}
 }
 

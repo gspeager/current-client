@@ -45,22 +45,3 @@
     border-color: var(--outline);
   }
 }
-
-.change-marker-ci {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--outline);
-
-  &.change-marker-ci-success {
-    background: var(--tertiary);
-  }
-
-  &.change-marker-ci-failed {
-    background: var(--error);
-  }
-
-  &.change-marker-ci-canceled {
-    background: var(--warning);
-  }
-}

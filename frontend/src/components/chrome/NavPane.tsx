@@ -16,6 +16,7 @@ import {
 import type { ConflictStateInfo } from '@current-client-bindings/app'
 import BranchSidebar from '../../features/branches/BranchSidebar'
 import CurrentChangeSection from '../../features/branches/CurrentChangeSection'
+import CurrentIssueSection from '../../features/branches/CurrentIssueSection'
 import HeadCommitPanel from '../../features/working-copy/HeadCommitPanel'
 import RemotesPanel from '../../features/remotes/RemotesPanel'
 import StashPanel from '../../features/branches/StashPanel'
@@ -29,6 +30,13 @@ import type { WorkspaceAction, WorkspaceFeedback, WorkspaceGroup } from './useWo
 import './NavPane.scss'
 
 type SectionId = 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
+
+// Something elsewhere in the app, such as the palette, asking a sidebar
+// section to open one of its forms or dialogs; n makes each ask distinct.
+export interface SidebarRequest {
+  action: 'new-branch' | 'clean-up' | 'new-tag' | 'publish-release'
+  n: number
+}
 
 interface NavPaneProps {
   repoPath: string
@@ -49,6 +57,7 @@ interface NavPaneProps {
   onOpenChange?: (number: number) => void
   onOpenFile?: (path: string) => void
   onCreateChange?: (branch: string) => void
+  request?: SidebarRequest | null
   // Opens a repository (such as a worktree or submodule) as a tab.
   onOpenRepository: (path: string) => void
   width: number
@@ -137,6 +146,7 @@ function NavPane({
   onOpenChange,
   onOpenFile,
   onCreateChange,
+  request = null,
 }: NavPaneProps) {
   const sections = useSidebarSections(repoPath)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
@@ -157,6 +167,12 @@ function NavPane({
     pendingSection.current = id
     onCollapsedChange(false)
   }
+
+  useEffect(() => {
+    if (!request) return
+    showSection(request.action === 'new-branch' || request.action === 'clean-up' ? 'branches' : 'tags')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request])
 
   const sectionRef = (id: SectionId) => (el: HTMLElement | null) => {
     sectionRefs.current[id] = el
@@ -208,6 +224,7 @@ function NavPane({
           onCreateChange={onCreateChange}
           onPushToCreate={onPushToCreate}
         />
+        <CurrentIssueSection repoPath={repoPath} refreshKey={`${repoVersion}:${hostVersion}`} />
 
         <section className="nav-pane-section" ref={sectionRef('branches')}>
           <BranchSidebar
@@ -218,6 +235,7 @@ function NavPane({
             conflict={conflictState}
             onBranchChanged={onBranchChanged}
             onCreateChange={onCreateChange}
+            request={request}
           />
         </section>
 
@@ -232,7 +250,7 @@ function NavPane({
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('tags')}>
-          <TagsPanel repoPath={repoPath} sections={sections} onTagChanged={onBranchChanged} />
+          <TagsPanel repoPath={repoPath} sections={sections} onTagChanged={onBranchChanged} request={request} />
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('remotes')}>

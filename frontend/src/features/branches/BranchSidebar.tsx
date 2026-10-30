@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
+import { useEffect, useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
 import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X } from 'lucide-react'
 import {
   type BranchInfo,
@@ -27,13 +27,14 @@ import { plural } from '../../lib/plural'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
-import CIMark from '../../components/git/CIMark'
+import CIMark, { ciLabel } from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
 import { branchPage, remoteBranchName } from '../../lib/hostPages'
@@ -49,6 +50,8 @@ interface BranchSidebarProps {
   conflict?: ConflictStateInfo | null
   onBranchChanged?: () => void
   onCreateChange?: (branch: string) => void
+  // New branch or Clean up asked for from elsewhere, such as after a merge from the app.
+  request?: SidebarRequest | null
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
@@ -61,6 +64,7 @@ function BranchSidebar({
   conflict = null,
   onBranchChanged,
   onCreateChange,
+  request = null,
 }: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
@@ -97,6 +101,12 @@ function BranchSidebar({
     [repoPath, tipsKey],
     { refreshKey },
   )
+  // Where each tip has reached, from the last refresh's deployments and Git.
+  const { data: tipReach } = useAsyncData(
+    () => (tipsKey ? HostService.Reach(repoPath, tipsKey.split(',')).catch(() => null) : null),
+    [repoPath, tipsKey],
+    { refreshKey },
+  )
   const { data: overlapReport } = useAsyncData(() => OverlapService.Predict(repoPath), [repoPath], { refreshKey })
   const overlaps = overlapReport?.overlaps ?? []
   const overlapFor = new Map(overlaps.map((o) => [o.branch, o]))
@@ -117,6 +127,10 @@ function BranchSidebar({
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
   const [cleanUp, setCleanUp] = useState(false)
+  useEffect(() => {
+    if (request?.action === 'clean-up') setCleanUp(true)
+    if (request?.action === 'new-branch') setShowNewBranch(true)
+  }, [request])
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 
@@ -354,6 +368,20 @@ function BranchSidebar({
     }
   }
 
+  // What the row has no room for: where the tip is deployed, beside CI and age.
+  const branchSummary = (b: BranchInfo) => {
+    const ci = ciMarks?.[b.tip]?.status
+    const reached = (tipReach?.[b.tip] ?? []).filter((r) => r.state === 'in').map((r) => r.environment)
+    return [
+      b.name,
+      ci && ciLabel(ci),
+      reached.length > 0 && `on ${reached.join(', ')}`,
+      b.lastCommitDate && relativeTime(new Date(b.lastCommitDate)),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }
+
   const renderLocalRow = (b: BranchInfo) => (
     <li
       key={b.name}
@@ -363,7 +391,7 @@ function BranchSidebar({
       role="button"
       tabIndex={0}
       aria-disabled={blocked && !b.current ? true : undefined}
-      title={blocked && !b.current ? blocked : undefined}
+      title={blocked && !b.current ? blocked : branchSummary(b)}
       onKeyDown={rowKeys(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill

@@ -66,6 +66,13 @@ function HistoryToolbar({
           </option>
         ))}
       </select>
+      <span className="history-toolbar-first-parent">
+        <Checkbox
+          checked={filter.firstParent}
+          onChange={(on) => onFilterChange({ ...filter, firstParent: on })}
+          label="First parent only"
+        />
+      </span>
       <details ref={filtersRef} className="history-toolbar-filters">
         <summary className="history-toolbar-filters-toggle" aria-label={active ? `Filters, ${active} on` : 'Filters'}>
           <SlidersHorizontal size={14} strokeWidth={1.5} />

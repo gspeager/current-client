@@ -74,6 +74,8 @@ type Config struct {
 	// History's branch filter: "" is all branches, "HEAD" the current branch,
 	// anything else a branch name.
 	HistoryBranchFilter string `json:"historyBranchFilter,omitempty"`
+	// Whether History follows only each merge's first parent.
+	HistoryFirstParent bool `json:"historyFirstParent,omitempty"`
 
 	// Whether the header's fetch also deletes remote-tracking branches gone from the remote.
 	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`
@@ -83,7 +85,30 @@ type Config struct {
 
 	Changelog *ChangelogPrefs `json:"changelog,omitempty"`
 
+	// The files the release readiness check looks for the version in, by
+	// repository path, each relative to its root.
+	ReleaseVersionFiles map[string][]string `json:"releaseVersionFiles,omitempty"`
+
 	Hosts map[string]HostConfig `json:"hosts,omitempty"`
+
+	// Issue trackers beside the hosts, such as a team's Jira site. A
+	// repository path is in at most one tracker's Repos.
+	Trackers []TrackerConfig `json:"trackers,omitempty"`
+	// Each tracker's integration, by site, including the organization's
+	// default: whether it may be contacted and whether a token was saved.
+	TrackerAccess map[string]TrackerAccess `json:"trackerAccess,omitempty"`
+}
+
+type TrackerAccess struct {
+	Enabled  bool `json:"enabled,omitempty"`
+	HasToken bool `json:"hasToken,omitempty"`
+}
+
+type TrackerConfig struct {
+	Site  string   `json:"site"`
+	Kind  string   `json:"kind"`
+	Keys  []string `json:"keys,omitempty"`
+	Repos []string `json:"repos,omitempty"`
 }
 
 func Default() Config {

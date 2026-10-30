@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BranchService, HostInfo, PlatformService } from '@current-client-bindings/app'
+import { BranchService, HostInfo, HostService, PlatformService, TrackerLinks } from '@current-client-bindings/app'
+import { IssuePanelContext } from '../../lib/issuePanel'
 import StatusBar from './StatusBar'
 
 describe('StatusBar', () => {
@@ -29,8 +30,9 @@ describe('StatusBar', () => {
       />,
     )
 
-    const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
-    expect(indicator).toHaveTextContent('no requests yet')
+    const indicator = await screen.findByRole('button', { name: 'api.github.com, integration on' })
+    expect(indicator).toHaveTextContent(/^api\.github\.com$/)
+    expect(indicator.title).toContain('no requests yet')
     await userEvent.click(indicator)
     expect(onOpenSettings).toHaveBeenCalled()
   })
@@ -52,7 +54,7 @@ describe('StatusBar', () => {
     render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" integration={integration} />)
 
     const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
-    expect(indicator).toHaveTextContent('42 of 60 requests left · last request just now')
+    expect(indicator.title).toContain('42 of 60 requests left · last request just now')
   })
 
   it('says when a spent budget resets', async () => {
@@ -73,7 +75,7 @@ describe('StatusBar', () => {
     render(<StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" integration={integration} />)
 
     const indicator = await screen.findByRole('button', { name: /api\.github\.com/ })
-    expect(indicator).toHaveTextContent(
+    expect(indicator.title).toContain(
       `0 of 60 requests left · resets at ${resetAt.toLocaleTimeString([], { timeStyle: 'short' })} · no requests yet`,
     )
   })
@@ -135,5 +137,33 @@ describe('StatusBar', () => {
       />,
     )
     expect(screen.getByText('fetched 2m ago')).toBeInTheDocument()
+  })
+
+  it('names the issue tracker while its integration is on', async () => {
+    vi.mocked(PlatformService.AppVersion).mockResolvedValue('0.1.0')
+    vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', upstream: '' } as never)
+    vi.mocked(HostService.Status).mockResolvedValue({
+      lastRequest: null,
+      inFlight: false,
+      remaining: 0,
+      limit: 0,
+      resetAt: null,
+    })
+    const jira = new TrackerLinks({
+      site: 'https://example.atlassian.net/',
+      browse: 'https://example.atlassian.net/browse/',
+      keyPattern: '(?:^|[^\\w/.-])([A-Z][A-Z0-9_]+-[1-9]\\d*)\\b',
+      hostName: 'example.atlassian.net',
+      reading: true,
+    })
+    render(
+      <IssuePanelContext.Provider value={{ tracker: jira }}>
+        <StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" />
+      </IssuePanelContext.Provider>,
+    )
+    const item = await screen.findByRole('button', { name: 'example.atlassian.net, integration on' })
+    expect(item.title).toMatch(/^Integration is on for the issue tracker example\.atlassian\.net\./)
+    expect(item.title).toContain('no requests yet')
+    expect(HostService.Status).toHaveBeenCalledWith('example.atlassian.net')
   })
 })

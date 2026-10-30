@@ -2,7 +2,7 @@
 
 A privacy-first Git client for developers, on Windows, macOS and Linux.
 
-Current Client runs entirely on your machine and connects only to the servers your repositories already use: no account, no telemetry, no update checks. It works the same with GitHub, GitLab, Bitbucket, a self-hosted server or a plain SSH remote, including on air-gapped networks.
+Current Client runs entirely on your machine and connects only to the servers your repositories already use: no account, no telemetry, no automatic update checks. It works the same with GitHub, GitLab, Bitbucket, a self-hosted server or a plain SSH remote, including on air-gapped networks.
 
 ## Features
 
@@ -11,11 +11,14 @@ Current Client runs entirely on your machine and connects only to the servers yo
 - A commit graph with search across the full history, blame and file history.
 - Search across every file's contents, now or at any commit.
 - Undo the last operation — a commit, amend, merge, pull, rebase, reset or branch switch — after a preview of what will move.
+- An Inbox of what waits on you across every open repository: uncommitted work, stopped operations, unpushed, stale and merged branches, and with host integration on, reviews, failing CI, assigned issues and the host's to-do list, with a standup summary to copy.
 - Conflict prediction: branches that would conflict with yours are marked, with the files, before you merge (Git 2.38 or newer).
+- Code owners from the repository's `CODEOWNERS`, read locally: each changed file's owners in Changes, and the owners of a branch's changes suggested as reviewers when creating a merge request.
 - Repository tabs, to keep several repositories open at once, and worktrees for several branches of one.
 - An activity dashboard: commit calendar and velocity, contributors, file churn, languages, and stale branches or unpushed commits.
-- A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF.
-- Optional host integration with GitLab and GitHub, off until you turn it on per host: merge requests and pull requests on branches and in a tab with their reviews and approvals, CI results, review threads beside the code, a conflict forecast, creating a merge request from the app, and starting a branch from an issue assigned to you. [docs/integrations.md](docs/integrations.md) lists every request it makes.
+- A changelog writer that turns Conventional Commits into a Keep a Changelog `CHANGELOG.md`, or Markdown, HTML or PDF, and a Releases tab that keeps the next release's checklist current and takes it from tag to published release.
+- Jira issue keys in commits and branch names link to your team's Jira site, and with that site's integration turned on, its issues show in hover cards, the issue panel, the Inbox and the new-branch picker.
+- Optional host integration with GitLab and GitHub, off until you turn it on per host: merge requests and pull requests on branches and in a tab with their reviews and approvals, CI results, review threads beside the code with replies, line comments and reviews from the app, a conflict forecast, re-running failed CI jobs, where each environment is deployed and what has reached it, publishing a release from a tag, creating and merging a merge request from the app, starting a branch from an issue assigned to you, and reading, creating, commenting on and closing issues in the app. [docs/integrations.md](docs/integrations.md) lists every request it makes.
 
 Current Client is pre-1.0 and has been tested most on Windows. It doesn't yet resolve conflicts inside the app or do a visual interactive rebase.
 
@@ -36,9 +39,9 @@ Download your platform's file from the [latest release](../../releases/latest). 
 
 ## Privacy
 
-- **Only destinations you chose.** Current Client connects to your repositories' Git remotes and the servers they're hosted on, never to a vendor, CDN or other third party. If all your remotes are on an internal network, nothing leaves it.
+- **Only destinations you chose.** Current Client connects to your repositories' Git remotes, the servers they're hosted on, and an issue tracker you configure by its address, such as your team's Jira site. Never to a vendor, CDN or other third party. If all your remotes and trackers are on an internal network, nothing leaves it.
 - **Off until you turn it on.** Anything beyond the Git operations you start, such as background fetch, stays off until you enable it in Settings.
-- **Nothing else.** No telemetry, analytics, update checks or crash uploads.
+- **Nothing else.** No telemetry, analytics, automatic update checks or crash uploads. Settings has a **Check for updates** button that contacts github.com only when you click it, reads the newest release's version and date, and downloads nothing; the releases address is shown beside it for checking from another computer.
 - **No accounts, no avatars.** People are shown as initials badges made on your machine.
 - **No stored credentials.** Credentials stay with Git's credential helpers and your SSH agent; Current Client never stores or logs them.
 - **Host integration is off until you turn it on, per host.** GitLab and GitHub features contact only the host your remote already points at, and only once you enable that host in Settings. [docs/integrations.md](docs/integrations.md) lists exactly what is contacted and when, and how to build without the code at all.

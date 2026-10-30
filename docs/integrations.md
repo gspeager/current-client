@@ -2,15 +2,15 @@
 
 Current Client can show what a Git host knows about a repository: merge requests / pull requests, CI results and review threads, from GitLab (gitlab.com or Self-Managed) and GitHub (github.com or Enterprise Server). This guide says exactly when it talks to a host, what it asks for, what it keeps and how to turn it off or keep it off. It covers 0.4.0 in full: every endpoint, its trigger and its scope, the refresh and cache model, what works at each level of access, credentials, certificates and proxies, the managed policy, the build without the code, and what Diagnostics may contain.
 
-The rules it works under are the [privacy rules](../CONTRIBUTING.md#privacy-rules): the only destination is the host the repository's remotes already point at, and nothing is contacted until someone turns integration on for that host.
+The rules it works under are the [privacy rules](../CONTRIBUTING.md#privacy-rules): the only destinations are the host the repository's remotes already point at and an issue tracker the user configures by its address, and nothing is contacted until someone turns integration on for that host or tracker. The same opt-in, off-by-default and `policy.json` lock apply to both.
 
 ## Off until turned on
 
 Integration is per host and off by default. Turning it on is a deliberate choice: the switch in Settings → Integrations, or the first-use prompt shown once when a repository on a supported host is opened, which names the host and says exactly what would be contacted ("Current Client calls its API when you open merge requests or refresh, and at no other time"). **Not now** is remembered per host. Showing the prompt reads the remote's address and makes no request. Until a host is on, no host UI appears and nothing is sent. Turning a host off clears everything cached from it and deletes the refs fetched for it (below).
 
-Settings → Integrations lists every host found in the open repository's remotes plus any added by hand, each with its switch, provider type, API address, credential status, **Test connection** (the one action on the page that contacts the host, and only while it is on) and **Remove**. While integration is on for the current repository, the status bar shows the API host actually contacted (`api.github.com`, not `github.com`) and when it was last asked ("no requests yet", "last request 2m ago", "request in flight"), so the promise can be watched rather than taken on trust; clicking it opens Settings.
+Settings → Integrations lists every host found in the open repository's remotes plus any added by hand, each with its switch, provider type, API address, credential status, **Test connection** (the one action on the page that contacts the host, and only while it is on) and **Remove**. While integration is on for the current repository, the status bar names the API host actually contacted (`api.github.com`, not `github.com`), its dot filled while a request is in flight, and its tooltip says when it is contacted, the budget it last reported and when it was last asked ("no requests yet", "last request 2m ago"), so the promise can be watched rather than taken on trust; clicking it opens Settings.
 
-The set of enabled hosts is decided by the app, not by `core/`. `core/` cannot read the settings file; it is handed the set by whichever app embeds it (Current Client passes what Settings says, other apps pass their own), and it refuses any host outside that set before a connection is opened. That is what makes "integration off means no request" a property of the library, not of each caller.
+The set of enabled hosts is decided by the app, not by `core/`. `core/` cannot read the settings file; it is handed the set by whichever app embeds it (Current Client passes what Settings says, other apps pass their own), and it refuses any host outside that set before a connection is opened. That is what makes "integration off means no request" a property of the library, not of each caller. An app that embeds Current Client and has host features of its own uses the same client and enabled set (`app.HostClient`, `app.EnabledHosts`, `app.SetHostEnabled`), so `policy.json` applies to its requests too; the embedding guide has the details.
 
 ## Which host, and which API
 
@@ -37,7 +37,7 @@ A **refresh** is the only thing that fetches from a host:
 - A Git fetch or pull the user starts.
 - A push refreshes only the pushed branch's MR/PR and its CI.
 
-Nothing else does, with bounded exceptions that each follow a click: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh; the merge request tab's **Closed** filter asks for one page of closed changes the first time it is chosen; a change's **Checks**, **Threads**, **Files** and **Commits** tabs ask for what the refresh didn't bring, each once per change until the next refresh; and the new-branch form's **From an issue** asks for the issues assigned to you the first time it opens, until the next refresh. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
+Nothing else does, with bounded exceptions that each follow a click: CI results for commits that come into view in History are asked for as you scroll, in batches, each commit once until the next refresh; the merge request tab's **Closed** filter asks for one page of closed changes the first time it is chosen; a change's **Checks**, **Threads**, **Files** and **Commits** tabs ask for what the refresh didn't bring, each once per change until the next refresh; the new-branch form's **From an issue** asks for the issues assigned to you the first time it opens, until the next refresh; and opening an issue's panel asks for that issue and its comments, once per issue until the next refresh. Creating an issue, commenting on one and closing or reopening it are one write each, sent on that button's click; the panel then shows what the host answered without asking again. The Inbox, across every open repository, reads Git and the cache only: opening it fetches nothing; its **Done** button is the one write it makes, on the host's own to-do list. Its **Standup…** summary reads the same cache and Git, and asks nothing either. A refresh also reads the assigned issues of a repository's issue tracker, once, while that tracker's integration is on. A refresh also reads the host's to-do list once, for the Inbox, and keeps only the entries about repositories open in the app. Switching branches, drawing the sidebar or graph, hovering a marker or opening a diff reads what is cached and never makes a request. There is no separate background refresh: a fetch is a refresh, so the background fetch setting (off by default) covers the host too.
 
 With integration off, the only host-related traffic is Git's own: a fetch the user starts also runs one `git ls-remote` against the remote, which lists the pull request / merge request heads the host publishes (`refs/pull/*` on GitHub, Gitea and Forgejo, `refs/merge-requests/*` on GitLab) and gives each branch its open change's number. Bitbucket publishes none, so it gives nothing. A change counts only while its head is still a branch tip, which drops every change whose branch was deleted on merge. GitHub also publishes `refs/pull/N/merge` only while a pull request is open, so there the number is an open one. GitLab keeps merge refs after closing, so Git alone cannot tell a closed merge request whose branch was kept from an open one: with integration off the branch shows the number without a state, and the state comes from the API once integration is on.
 
@@ -47,6 +47,12 @@ One cache per repository, keyed by host and repository, holding MRs/PRs with the
 
 - Data stays visible after it goes stale, labeled with its age, until a refresh replaces it. Offline, the last answer shows.
 - The cache is cleared when integration is turned off for the host or the repository is closed.
+
+## Issue trackers
+
+A team whose code is on GitLab or GitHub but whose issues are in Jira adds the Jira site under Settings → Integrations → **Issue trackers**: the site address (Jira Cloud, `https://<company>.atlassian.net`, or a Jira Data Center address, path included), optional project keys, and the repositories that use it. A repository uses one tracker at most, and its host's own `#123` issues keep working beside it. Keys in commit messages, titles and branch names (`PROJ-123`) then link to `<site>/browse/PROJ-123`. Without project keys any `ABC-123`-shaped key links, so listing them avoids linking things like `UTF-8`. The link is built in the app from what was entered, and clicking it opens the browser, as **Open on host** does. The settings are kept in the app's settings file, never in the repository. A `policy.json` default is described under [Managed policy](#managed-policy).
+
+Reading a tracker's issues in the app is off by default per site, like a host. Each tracker row has the same switch, a token kept by Git's credential helper under the app's own key (`https://current-client-api@api.<site host>`), and **Test connection**. Jira Cloud signs in with the account's email and an API token, sent as basic auth; Jira Data Center with a personal access token, sent as a bearer token. There is no OAuth, which would need an app registered with Atlassian. While the switch is on, keys get hover cards, open the issue panel (read-only: moving an issue on merge stays with the host's own Jira integration), fill **From an issue** with the issues assigned to you, and add them to the Inbox. Requests follow the hosts' model: the issue and its comments the first time its panel opens, titles for the keys on a History page as it loads (at most 50 at a time), the assigned list when the picker first opens and on each refresh, each kept until the next refresh. While it is on, the status bar names the site and when it was last asked. With the switch off, or locked off by `policy.json` under `hosts` with the site's hostname, nothing is sent to it, and the `nohost` build has none of this code. Reporters and commenters are shown by name, never with an avatar.
 
 ## Open on host
 
@@ -59,6 +65,10 @@ After a push that sets or updates a branch's upstream, and while the branch has 
 ## Create a merge request / pull request in the app
 
 With the host on, **Create merge request** opens a form in the app instead of the host's page: the target branch (the default branch, changeable), a title from the branch's commits (one commit: its subject; several: the oldest's), a description from the commit list placed inside the repository's template when it has one (`.gitlab/merge_request_templates/Default.md` or the first template, `.github/pull_request_template.md` and GitHub's other places), and a draft toggle. A branch that isn't pushed yet is pushed first, with Git's credentials. This is the one request that needs write scope (GitLab `api`; GitHub write access to pull requests): a token without it gets a message naming the scope, and the host's own form stays one click away. The created change shows on the branch at once. For a change from a fork, the host's form is used.
+
+## Merge a merge request / pull request in the app
+
+A change's details list what the last refresh knows about merging it, from the cache and Git alone: its checks, where its reviews stand, unresolved threads, conflicts (GitHub's list carries no answer, so that reads as not known until the change is opened on the host), how many commits it is behind its target as of the last fetch (from the remote-tracking branch, when the change's head is fetched), and whether the target is protected. A fact the cache lacks is said to be unknown, never guessed. **Merge…** opens a dialog that asks the host once how it merges (GitLab: the project's squash setting and whether the source branch is removed; GitHub: the allowed methods and whether the head branch is deleted), repeats the facts that stand in the way, and merges on the button, naming the head the refresh saw so a change that moved since is refused rather than merged blind. The host's own rules still apply: a merge it refuses comes back as its reason in plain words (not mergeable yet, conflicts, the head moved, no permission), from the status alone; the response body is never read. After a merge the change leaves the open list and, when a local branch tracks it, **Clean up merged branches** opens with that branch. Merging needs write scope (GitLab `api`; GitHub write access to pull requests), named when it is missing.
 
 ## Clean up merged branches
 
@@ -88,11 +98,17 @@ On every refresh, with the host on, Current Client takes the open merge requests
 
 ## Review threads
 
-For the checked-out branch's merge request / pull request, a refresh also fetches its review threads. In the Changes diff and in any file diff opened from the History or Compare views, each thread appears under the line it was left on, read-only: who wrote it, when, and the comment rendered through the one sanitizing renderer (images are links). Resolved threads start collapsed to one line. Threads on lines the diff doesn't show, and outdated ones whose code has changed since, are listed under the diff with their original line. File lists show each file's unresolved count, and the sidebar's count opens the first file that has one. Posting, resolving and approving stay on the host.
+For the checked-out branch's merge request / pull request, a refresh also fetches its review threads. In the Changes diff and in any file diff opened from the History or Compare views, each thread appears under the line it was left on, read-only: who wrote it, when, and the comment rendered through the one sanitizing renderer (images are links). Resolved threads start collapsed to one line. Threads on lines the diff doesn't show, and outdated ones whose code has changed since, are listed under the diff with their original line. File lists show each file's unresolved count, and the sidebar's count opens the first file that has one.
+
+With write scope, a review can be done in the app, every request following a click: **Reply** under a thread, and **Resolve** or **Reopen** where the host's API allows (GitLab; GitHub's REST API has no way to resolve a thread, so the button is left out there). A gutter button on a diff line opens a comment box: **Comment** sends it now, against the head the last refresh saw (GitLab refuses it when the merge request moved since), and **Add to review** keeps it as a draft in the app, shown where it will land, until **Submit review…** sends the drafts together with a verdict (Approve, Request changes where the host's API has it, or Comment) and an optional summary. GitLab has no request-changes verdict in its API and no single review call: each drafted comment is one request, the summary a note, and the approval its own call. Drafts are kept in the app only; **Discard drafts** throws them away. After each write the change's threads are read again, and its reviews after a verdict, so the counts and the list follow. A token without write scope gets the message naming the scope.
 
 ## CI results
 
 With the host on, commits in History and branch tips in the sidebar show a small square in the pipeline's color: passed, failed, canceled, or an outline while running or pending. For commits the result is asked for when the commit scrolls into view, in batches of up to 50 at a time and never twice for the same commit until the next refresh; a commit without a pipeline is remembered as such. Branch tips and open merge requests get theirs on refresh. Clicking a square lists the pipeline's jobs with stage, status and duration, fetched only then, with **Open on host**. Clicking a failed job fetches the last 50 lines of its log, with terminal colors and escape sequences removed; **Show full log** fetches the whole log up to a cap and says when it was cut, and **Open on host** goes to the job. No log is fetched for a passing job or before a click. HEAD's cyan is never used for CI state.
+
+## Environments
+
+A refresh also reads where each environment was last deployed: GitLab's deployments, or GitHub's deployments with each environment's latest status. One request on GitLab; on GitHub one, plus one per environment for its state, at most ten. It keeps the newest deployment per environment: the commit, how it went, when, and who started it, by name. Whether a commit is in an environment is Git's answer, not the host's: the commit is an ancestor of the deployed commit, checked locally once both are fetched. When either isn't, it says unknown rather than no. History marks the deployed commit with a square per environment, branch rows show the environments their tip is in, a commit's details and a merged change's details say where it has reached, and the Inbox lists your changes merged in the last month that aren't on production yet. Production is the host's own flag (GitHub's `production_environment`, GitLab's production tier), or an environment named `production` or `prod`. Reading all of this asks no host; only the refresh does.
 
 ## Hover cards
 
@@ -117,7 +133,7 @@ The release check in RELEASING.md opens a description containing an image hosted
 
 ## Endpoints and scopes
 
-Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating a merge request / pull request. Nothing is called before integration is on for the host and one of the triggers happens.
+Every endpoint a provider calls, what triggers it, and the token scope it needs. Read-only scope is enough for everything except creating, reviewing or merging a merge request / pull request and marking a to-do done. Nothing is called before integration is on for the host and one of the triggers happens.
 
 ### GitLab (gitlab.com and Self-Managed, 16.0 or newer)
 
@@ -133,17 +149,47 @@ All under the host's `/api/v4`. Project paths are URL-encoded (`group%2Fproject`
 | `GET /projects/:path/merge_requests/:iid/reviewers` and `…/approvals` | Refresh, for each open merge request, at most 50; the approvals too, since anyone may approve | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/discussions` | Refresh, for the checked-out branch's merge request; a change's **Threads** tab, once per change until the next refresh | `read_api` |
 | `GET /projects/:path/merge_requests/:iid/diffs` and `…/commits` | A change's **Files** or **Commits** tab, once per change until the next refresh | `read_api` |
-| `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads; as commits scroll into view, once per commit until the next refresh; a change's **Checks** tab when the cache has none for its head | `read_api` |
+| `GET /projects/:path/pipelines?sha=` | Refresh, for open merge requests' heads and the local branches' tips (at most 25); as commits scroll into view, once per commit until the next refresh, except that a running or pending result older than two minutes is asked for again when read; a change's **Checks** tab when the cache has none for its head | `read_api` |
 | `GET /projects/:path/pipelines/:id/jobs` | Clicking a CI mark or a change's **Checks** tab; on refresh, for the checked-out branch's merge request when its pipeline failed | `read_api` |
 | `GET /projects/:path/jobs/:id/trace` | Clicking a failed job | `read_api` |
-| `GET /projects/:path/issues/:iid` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | `read_api` |
-| `GET /projects/:path/issues?assignee_username=&state=opened` | The new-branch form's **From an issue**, once until the next refresh; one page of 50 | `read_api` |
+| `GET /projects/:path/issues/:iid` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time; opening an issue's panel, once per issue until the next refresh | `read_api` |
+| `GET /projects/:path/issues/:iid/notes` | Opening an issue's panel, once per issue until the next refresh; one page of 100, system notes left out | `read_api` |
+| `GET /projects/:path/issues?assignee_username=&state=opened` | Refresh, for the Inbox's assigned issues; the new-branch form's **From an issue** when the cache has none; one page of 50 | `read_api` |
+| `GET /projects/:path/issues?state=opened` or `state=closed` | The Issues tab's **All** or **Closed**, the first time each is chosen, then until the next refresh; one page of 50 | `read_api` |
 | `GET /projects/:path/protected_branches` | Refresh; a 403 (not a Maintainer) means no warnings | `read_api` |
+| `GET /todos?state=pending` | Refresh, once per host however many repositories are open: the To-Do List for the Inbox, one page of 100; only the to-dos about repositories open in the app are kept | `read_api` |
 | `POST /projects/:path/merge_requests` | Create merge request | `api` |
+| `POST /todos/:id/mark_as_done` | **Done** on an Inbox row that is on the To-Do List | `api` |
+| `POST /projects/:path/merge_requests/:iid/discussions/:id/notes` | **Reply** under a thread | `api` |
+| `PUT /projects/:path/merge_requests/:iid/discussions/:id` | **Resolve** or **Reopen** under a thread | `api` |
+| `GET /projects/:path/merge_requests/:iid` (diff refs) and `POST …/discussions` | **Comment** on a diff line, and each drafted comment of a submitted review; the merge request is read first for the position, and refused when its head moved | `read_api`, `api` |
+| `POST /projects/:path/merge_requests/:iid/notes` | A submitted review's summary | `api` |
+| `POST /projects/:path/merge_requests/:iid/approve` | A submitted review's **Approve** | `api` |
+| `GET /projects/:path` | **Merge…** on a merge request's details, when the dialog opens: the squash setting and whether the source branch is removed after merging | `read_api` |
+| `PUT /projects/:path/merge_requests/:iid/merge` | **Merge** in that dialog, with the head the last refresh saw, so a merge request that moved since is refused rather than merged | `api` |
+| `GET /projects/:path/deployments?order_by=id&sort=desc` | Refresh, once: one page of 100, the newest per environment kept | `read_api` |
+| `POST /projects/:path/jobs/:id/retry` | **Re-run job** under a failed job's log | `api` |
+| `POST /projects/:path/pipelines/:id/retry` | **Re-run failed jobs** under a pipeline's job list | `api` |
+| `POST /projects/:path/releases` | **Publish release** for a tag, after the tag is pushed; no `ref` is sent, so GitLab refuses a tag it doesn't have rather than making one | `api` |
+| `POST /projects/:path/issues` | **Create issue** in the New issue dialog: title, description and labels | `api` |
+| `POST /projects/:path/issues/:iid/notes` | **Comment** in an issue's panel | `api` |
+| `PUT /projects/:path/issues/:iid` | **Close issue** or **Reopen issue** in an issue's panel | `api` |
+
+### Jira (Cloud and Data Center)
+
+Under `<site>/rest/api/2`, the same version on both. Cloud's search lives at `search/jql`, Data Center's at `search`.
+
+| Endpoint | When | Access |
+| --- | --- | --- |
+| `GET /myself` | **Test connection** on the tracker's row | the token's own account |
+| `GET /issue/:key?fields=…` | Opening a key's issue panel, once per issue until the next refresh; a History page's keys as it loads, each once until the next refresh, at most 50 at a time | browse the project |
+| `GET /issue/:key/comment?maxResults=100` | Opening a key's issue panel, once per issue until the next refresh | browse the project |
+| `GET /search/jql` (Cloud) or `/search` (Data Center) with `jql=assignee = currentUser() AND statusCategory != Done` | Refresh, for the Inbox; **From an issue** when the cache has none; one page of 50, limited to the tracker's project keys when it has some | browse the projects |
+| The same search with `jql=statusCategory != Done` or `statusCategory = Done` | The Issues tab's **All** or **Closed**, the first time each is chosen, then until the next refresh; one page of 50, only with project keys set: without them nothing is asked | browse the project |
 
 ### GitHub (github.com and Enterprise Server 3.11 or newer)
 
-Under `https://api.github.com` or the server's `/api/v3`. A classic token needs the `repo` scope; a fine-grained one, read access to pull requests, checks, contents and issues, and write access to pull requests for creating one. The two differ only in address; Enterprise Server before 3.11 has no repository rulesets, so it gets everything but the protected-branch warning.
+Under `https://api.github.com` or the server's `/api/v3`. A classic token needs the `repo` scope; a fine-grained one, read access to pull requests, checks, contents and issues, write access to pull requests for creating, reviewing and merging one, write access to issues for creating, commenting on and closing one, write access to actions for re-running a job, and write access to contents for publishing a release. The two differ only in address; Enterprise Server before 3.11 has no repository rulesets, so it gets everything but the protected-branch warning.
 
 | Endpoint | When | Access |
 | --- | --- | --- |
@@ -154,12 +200,29 @@ Under `https://api.github.com` or the server's `/api/v3`. A classic token needs 
 | `GET /repos/:owner/:repo/pulls/:number/reviews` | Refresh, for each open pull request, at most 50; requested reviewers come with the open list | pull requests: read |
 | `GET /repos/:owner/:repo/pulls/:number/comments` | Refresh, for the checked-out branch's pull request; a change's **Threads** tab, once per change until the next refresh (review comments; the REST API doesn't say whether a thread is resolved, so none shows as resolved) | pull requests: read |
 | `GET /repos/:owner/:repo/pulls/:number/files` and `…/commits` | A change's **Files** or **Commits** tab, once per change until the next refresh | pull requests: read |
-| `GET /repos/:owner/:repo/commits/:sha/check-runs` and `…/status` | Refresh, for open pull requests' heads; as commits scroll into view, once per commit until the next refresh; clicking a CI mark or a change's **Checks** tab for the job list. Check runs and commit statuses are read as one result | checks, commit statuses: read |
+| `GET /repos/:owner/:repo/commits/:sha/check-runs` and `…/status` | Refresh, for open pull requests' heads and the local branches' tips (at most 25); as commits scroll into view, once per commit until the next refresh, except that a running or pending result older than two minutes is asked for again when read; clicking a CI mark or a change's **Checks** tab for the job list. Check runs and commit statuses are read as one result | checks, commit statuses: read |
 | `GET /repos/:owner/:repo/actions/jobs/:id/logs` | Clicking a failed job; the host redirects to the log's storage, which is followed without the token | actions: read |
-| `GET /repos/:owner/:repo/issues/:number` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time | issues: read |
-| `GET /repos/:owner/:repo/issues?assignee=&state=open` | The new-branch form's **From an issue**, once until the next refresh; one page of 50, pull requests left out | issues: read |
+| `GET /repos/:owner/:repo/issues/:number` | When a History page with `#n` references loads, each number once until the next refresh, at most 50 at a time; opening an issue's panel, once per issue until the next refresh | issues: read |
+| `GET /repos/:owner/:repo/issues/:number/comments` | Opening an issue's panel, once per issue until the next refresh; one page of 100 | issues: read |
+| `GET /repos/:owner/:repo/issues?assignee=&state=open` | Refresh, for the Inbox's assigned issues; the new-branch form's **From an issue** when the cache has none; one page of 50, pull requests left out | issues: read |
+| `GET /repos/:owner/:repo/issues?state=open` or `state=closed` | The Issues tab's **All** or **Closed**, the first time each is chosen, then until the next refresh; one page of 50, pull requests left out | issues: read |
 | `GET /repos/:owner/:repo/rules/branches/:branch` | Refresh, once per local branch's upstream, at most 25; a 404 (no rulesets) or 403 means no warnings | metadata: read |
+| `GET /notifications` | Refresh, once per host however many repositories are open: the unread notifications for the Inbox, one page of 50; only those about repositories open in the app are kept. Fine-grained tokens can't read this endpoint: the Inbox says so once and leaves the source out | classic token: `notifications` (or `repo`) |
 | `POST /repos/:owner/:repo/pulls` | Create pull request | pull requests: write |
+| `PATCH /notifications/threads/:id` | **Done** on an Inbox row that is a notification | classic token: `notifications` (or `repo`) |
+| `POST /repos/:owner/:repo/pulls/:number/comments/:id/replies` | **Reply** under a thread | pull requests: write |
+| `POST /repos/:owner/:repo/pulls/:number/comments` | **Comment** on a diff line, against the head the last refresh saw | pull requests: write |
+| `POST /repos/:owner/:repo/pulls/:number/reviews` | **Submit review**: the verdict, summary and drafted comments as one review | pull requests: write |
+| `GET /repos/:owner/:repo` | **Merge…** on a pull request's details, when the dialog opens: which merge methods the repository allows and whether it deletes the head branch after merging | metadata: read |
+| `PUT /repos/:owner/:repo/pulls/:number/merge` | **Merge** in that dialog, with the head the last refresh saw, so a pull request that moved since is refused rather than merged | pull requests: write |
+| `GET /repos/:owner/:repo/deployments` | Refresh, once: one page of 100, the newest per environment kept | deployments: read |
+| `GET /repos/:owner/:repo/deployments/:id/statuses?per_page=1` | Refresh, once per environment for its newest deployment's state, at most 10 environments; GitHub keeps the state on the status, not the deployment | deployments: read |
+| `POST /repos/:owner/:repo/actions/jobs/:id/rerun` | **Re-run job** under a failed GitHub Actions job's log | actions: write |
+| `POST /repos/:owner/:repo/actions/runs/:id/rerun-failed-jobs` | **Re-run failed jobs** under a job list, once per workflow run with a failed job; the run is read from the job's address | actions: write |
+| `GET /repos/:owner/:repo/git/ref/tags/:tag` and `POST /repos/:owner/:repo/releases` | **Publish release** for a tag, after the tag is pushed; the tag is checked first, since GitHub would make a missing one at the default branch | contents: read, contents: write |
+| `POST /repos/:owner/:repo/issues` | **Create issue** in the New issue dialog: title, description and labels | issues: write |
+| `POST /repos/:owner/:repo/issues/:number/comments` | **Comment** in an issue's panel | issues: write |
+| `PATCH /repos/:owner/:repo/issues/:number` | **Close issue** or **Reopen issue** in an issue's panel | issues: write |
 
 Avatar URLs in these answers are never decoded.
 
@@ -168,6 +231,8 @@ Avatar URLs in these answers are never decoded.
 | Feature | Integration off | Read-only token | Write scope |
 | --- | --- | --- | --- |
 | Links from issue and MR/PR references to the host | yes | yes | yes |
+| Links from Jira issue keys to the team's Jira site | yes | yes | yes |
+| Jira issues in hover cards, the issue panel, From an issue and the Inbox (the tracker's own switch and token) | no | yes | yes |
 | Open on host: commit, file at line, branch, tag, repository | yes | yes | yes |
 | Create MR/PR link after a push (the host's pre-filled form) | yes | yes | yes |
 | PR numbers on branches, through `git ls-remote` with a fetch | yes (number only) | with state and CI | with state and CI |
@@ -175,12 +240,19 @@ Avatar URLs in these answers are never decoded.
 | MR/PR list, details, local checkout | no | yes | yes |
 | The checked-out branch's MR/PR in the sidebar, and what a refresh changed | no | yes | yes |
 | CI status, job list, failed job log | no | yes | yes |
+| Publish a release for a tag, with notes from the changelog | no | no, says which scope | yes |
+| Environments: where each was last deployed, and whether a commit, branch or merged change has reached it | no | yes | yes |
+| Re-run a failed job or a pipeline's failed jobs | no | no, says which scope | yes; GitHub: Actions jobs only |
 | Reviewers, approvals and the **To review** filter | no | yes | yes |
 | A new branch named after an issue assigned to you | no | yes | yes |
+| The host's to-do list in the Inbox (mentions, replies, assignments) | no | yes; GitHub: classic token only | plus **Done** |
 | Review threads beside the code | no | yes | yes |
+| Reply, resolve, comment on a line, approve or request changes | no | no, says which scope | yes; GitHub can't resolve, GitLab can't request changes |
 | Conflict forecast against open MRs/PRs | no | yes | yes |
 | Hover cards with title and state | local facts only | yes | yes |
 | Create MR/PR in the app | no | no, says which scope | yes |
+| Create, comment on, close and reopen issues (GitLab and GitHub, not Jira) | no | no, says which scope | yes |
+| Merge an MR/PR from the app, with a readiness summary | no | the summary; the merge says which scope | yes |
 | Warn before pushing to a protected branch | no | yes | yes |
 | Managed policy: lock a host off or force it on | applies | applies | applies |
 
@@ -195,7 +267,7 @@ Current Client stores no credentials of its own. Two ways to a token, both throu
 
 The token is saved under its own key, `https://current-client-api@api.<host>`, not under the host itself. A fetch or push asks the helper for the host alone, and a helper answers with any entry it has for that host, so a read-only token stored under the host would be tried for a push, rejected, and erased by Git. No Git operation ever asks for `api.<host>`, so the two can't collide. The token reaches Git on standard input, never on a command line, and never appears in logs or Diagnostics.
 
-**Scopes.** Read-only is enough for everything but creating a merge request / pull request: GitLab `read_api`; GitHub fine-grained read access to pull requests, checks, contents and issues. The per-endpoint table below names the scope each feature needs.
+**Scopes.** Read-only is enough for everything but the writes (creating, reviewing and merging a merge request / pull request, writing to issues, re-running CI, publishing releases, and **Done** in the Inbox): GitLab `read_api`; GitHub fine-grained read access to pull requests, checks, contents and issues. The per-endpoint table below names the scope each feature needs.
 
 **Errors** are plain messages, never the host's answer: a rejected token (401) says "The token for `<host>` was rejected. Update it in Settings → Integrations."; a missing scope (403) names the scope the action needs. A rejected token is forgotten so the next request asks Git again, which is how a sign-in renewed in Git Credential Manager gets picked up.
 
@@ -227,11 +299,12 @@ An organization can fix the networked switches for every user of a machine with 
     "gitlab.example.com": { "enabled": true },
     "github.com": { "enabled": false }
   },
-  "autoFetch": { "enabled": true, "intervalMinutes": 15 }
+  "autoFetch": { "enabled": true, "intervalMinutes": 15 },
+  "tracker": { "site": "https://example.atlassian.net", "kind": "jira-cloud", "keys": ["PROJ", "OPS"] }
 }
 ```
 
-A host with `enabled: false` is locked off: its switch in Settings is disabled and labeled **Managed by your organization**, the prompt to turn it on never shows, and the HTTP client refuses it whatever the user's settings say. With `enabled: true` it is forced on, with the same label. A host the file doesn't name is the user's to decide, as is everything with no file at all. `autoFetch` works the same for background fetch; forced on without an interval fetches every five minutes. A file that can't be read or parsed is ignored, as if absent. The Windows registry and macOS configuration profiles are for a later release.
+A host with `enabled: false` is locked off: its switch in Settings is disabled and labeled **Managed by your organization**, the prompt to turn it on never shows, and the HTTP client refuses it whatever the user's settings say. With `enabled: true` it is forced on, with the same label. A host the file doesn't name is the user's to decide, as is everything with no file at all. `autoFetch` works the same for background fetch; forced on without an interval fetches every five minutes. `tracker` is the organization's issue tracker: every repository without one of its own links its issue keys there, and Settings shows it as **Set by your organization**. Its integration switch, like any tracker's, is locked or forced under `hosts` by the site's hostname (`"example.atlassian.net": { "enabled": false }`). A file that can't be read or parsed is ignored, as if absent. The Windows registry and macOS configuration profiles are for a later release.
 
 ## Building without host integration
 

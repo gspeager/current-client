@@ -1,0 +1,62 @@
+.review-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  white-space: normal;
+}
+
+.review-composer-text {
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-container);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  line-height: 1.5;
+  resize: vertical;
+
+  &:focus-visible {
+    outline: 1px solid var(--primary);
+    outline-offset: -1px;
+  }
+}
+
+.review-composer-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.review-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.review-composer-button {
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+
+  &:disabled {
+    color: var(--outline);
+    cursor: default;
+  }
+}
+
+.review-composer-send:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}

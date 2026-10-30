@@ -4,6 +4,7 @@ A minimal app that hosts Current Client next to a view of its own, in one window
 
 - `main.go` keeps its settings in its own folder, then registers Current Client's services.
 - `frontend/scripts/link-current-client.mjs` links `frontend/current-client` to Current Client's `frontend/src` at the version `go.mod` pins, and fails if `package.json` doesn't match Current Client's dependency versions. It runs before `dev`, `build` and `test`.
+- `standin/` is the host app's own host feature: it turns its host on with `app.SetHostEnabled` and asks it through `app.HostClient()`, so the user's switch and `policy.json` apply to it as to Current Client. Its test shows a policy lock-off refusing it.
 - `frontend/src/Host.tsx` mounts `CurrentClientApp`, keeps it mounted while the host view shows, puts the toggle in Current Client's header, and shares the open repository.
 
 Here `go.mod` points at this repository with a `replace`; a real host requires a tagged Current Client version instead.

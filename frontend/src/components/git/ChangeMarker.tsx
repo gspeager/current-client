@@ -3,7 +3,7 @@ import { PlatformService, type BranchChange } from '@current-client-bindings/app
 import { ignoreDecorativeFailure } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import HoverCard from '../chrome/HoverCard'
-import { ciLabel } from './CIMark'
+import { CIIcon, ciLabel } from './CIMark'
 import './ChangeMarker.scss'
 
 interface ChangeMarkerProps {
@@ -35,7 +35,7 @@ function ChangeMarker({ change }: ChangeMarkerProps) {
       >
         <span className="change-marker-square" />
         <span className="change-marker-number">{number}</span>
-        {change.ci && <span className={`change-marker-ci change-marker-ci-${change.ci}`} />}
+        {change.ci && <CIIcon status={change.ci} size={12} />}
       </button>
     </HoverCard>
   )

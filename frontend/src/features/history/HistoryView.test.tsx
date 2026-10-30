@@ -1,13 +1,17 @@
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   type BranchInfo,
   BranchService,
   ChangedFile,
   type CommitInfo,
+  CurrentUserInfo,
   DiffService,
   FileDiff,
+  GraphNode,
   HistoryService,
+  IdentityInfo,
+  IdentityService,
   HostService,
   PlatformService,
   RemoteService,
@@ -134,7 +138,111 @@ describe('HistoryView', () => {
       'Reset to here…',
       'Export patch…',
       'Copy SHA',
+      'Highlight author’s commits',
     ])
+  })
+
+  it('shows a working-changes row above HEAD that opens Changes, and hides it when clean or filtered', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(HistoryService.ComputeGraphLayout).mockImplementation(
+      (refs) =>
+        Promise.resolve(
+          refs.map((r, i) => new GraphNode({ sha: r.sha, lane: 0, hasChild: i > 0, parentLanes: [0] })),
+        ) as never,
+    )
+    vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(
+      new CurrentUserInfo({ name: 'Grace Hopper', email: 'grace@example.com', initials: 'GH', color: 'teal' }),
+    )
+    const onOpenChanges = vi.fn()
+    const user = userEvent.setup()
+    renderHistory({ changedFiles: 3, onOpenChanges })
+
+    const row = await screen.findByRole('button', { name: /3 files changed/ })
+    expect(row.querySelector('circle')).toHaveAttribute('stroke-dasharray')
+    // The lane line starts at the node's rim, not its centre.
+    expect(row.querySelector('line')).toHaveAttribute('y1', String(38 / 2 + 4))
+    expect(await within(row).findByText('Grace Hopper')).toBeInTheDocument()
+    expect(within(row).getByText('GH')).toBeInTheDocument()
+    expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0]).toEqual({
+      sha: 'working-tree',
+      parentShas: [history[0].sha],
+    })
+    await user.click(row)
+    expect(onOpenChanges).toHaveBeenCalled()
+
+    await user.click(screen.getByText('Filters'))
+    await user.type(screen.getByRole('textbox', { name: 'Author filter' }), 'Ada')
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: /3 files changed/ })).not.toBeInTheDocument())
+    expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].sha).toBe(history[0].sha)
+
+    cleanup()
+    renderHistory({ changedFiles: 0, onOpenChanges })
+    await screen.findByRole('button', { name: /Fix login redirect/ })
+    expect(screen.queryByText(/files changed/)).not.toBeInTheDocument()
+  })
+
+  it('follows only first parents when the toggle is on, saving the choice and drawing one lane', async () => {
+    const merge = commit('c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2', 'Merge feature', [history[0].sha, 'side'])
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue([merge, ...history])
+    vi.mocked(HistoryService.ComputeGraphLayout).mockResolvedValue([])
+    const onFirstParentChange = vi.fn()
+    renderHistory({ onFirstParentChange })
+
+    await screen.findByRole('button', { name: /Merge feature/ })
+    expect(vi.mocked(HistoryService.GetHistory).mock.lastCall?.[3]).toMatchObject({ firstParent: false })
+    expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].parentShas).toHaveLength(2)
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'First parent only' }))
+    expect(onFirstParentChange).toHaveBeenCalledWith(true)
+    await vi.waitFor(() =>
+      expect(vi.mocked(HistoryService.GetHistory).mock.lastCall?.[3]).toMatchObject({ firstParent: true }),
+    )
+    await vi.waitFor(() =>
+      expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].parentShas).toEqual([history[0].sha]),
+    )
+  })
+
+  it('highlights one author’s commits, dimming the rest with the graph unchanged, and clears again', async () => {
+    const byGrace = {
+      ...commit('c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2', 'Add tests', [history[0].sha]),
+      authorName: 'Grace Hopper',
+      authorEmail: 'grace@example.com',
+    }
+    const commits = [byGrace, ...history]
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(commits)
+    vi.mocked(HistoryService.ComputeGraphLayout).mockResolvedValue(
+      commits.map(
+        (c) => new GraphNode({ sha: c.sha, lane: 0, parentLanes: [0], convergingLanes: [], passThrough: [] }),
+      ),
+    )
+    vi.mocked(IdentityService.GetIdentities).mockResolvedValue(
+      ['G', 'A'].map((initials) => new IdentityInfo({ initials, color: 'red' })),
+    )
+    renderHistory()
+    const user = userEvent.setup()
+
+    const rows = {
+      grace: await screen.findByRole('button', { name: /Add tests/ }),
+      ada: await screen.findByRole('button', { name: /Fix login redirect/ }),
+    }
+    const graph = () => [...document.querySelectorAll('.commit-row-graph svg')].map((s) => s.outerHTML)
+    const before = graph()
+    expect(before).toHaveLength(3)
+
+    await user.click(await within(rows.ada).findByRole('button', { name: 'Highlight commits by Ada Lovelace' }))
+    expect(rows.grace).toHaveStyle({ opacity: '0.4' })
+    expect(rows.ada).toHaveStyle({ opacity: '1' })
+    expect(graph()).toEqual(before)
+    // One page; the second call is the one-commit HEAD lookup.
+    expect(vi.mocked(HistoryService.GetHistory).mock.calls.filter((c) => c[1] !== 1)).toHaveLength(1)
+
+    await user.click(within(rows.ada).getByRole('button', { name: 'Clear the highlight of Ada Lovelace' }))
+    expect(rows.grace).toHaveStyle({ opacity: '1' })
+
+    await user.click(within(rows.grace).getByRole('button', { name: 'Highlight commits by Grace Hopper' }))
+    expect(rows.ada).toHaveStyle({ opacity: '0.4' })
+    await user.keyboard('{Escape}')
+    expect(rows.ada).toHaveStyle({ opacity: '1' })
   })
 
   it("shows a file's diff in place of the graph, with a way back", async () => {

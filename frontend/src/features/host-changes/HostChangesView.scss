@@ -39,13 +39,13 @@
   @include patterns.secondary-button;
 }
 
-// The pane's one primary action.
+// The pane's one primary action, as tall as the chip buttons beside it.
 .host-changes-new {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
   @include patterns.primary-button;
-  height: var(--h-field);
+  height: var(--h-chip);
 }
 
 .host-changes-error {
@@ -245,6 +245,32 @@
 .host-change-actions {
   display: flex;
   gap: var(--space-sm);
+}
+
+// One fact per line; a warning in the warning color, an unknown in outline.
+.host-change-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+
+  > svg,
+  > .ci-mark {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+.host-change-fact-ok > svg {
+  color: var(--tertiary);
+}
+
+.host-change-fact-warn > svg {
+  color: var(--warning);
+}
+
+.host-change-fact-info > svg,
+.host-change-fact-unknown > svg {
+  color: var(--outline);
 }
 
 .host-change-tabs {

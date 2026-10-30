@@ -18,6 +18,15 @@ import (
 type Policy struct {
 	Hosts     map[string]Switch `json:"hosts"`
 	AutoFetch *AutoFetch        `json:"autoFetch"`
+	Tracker   *Tracker          `json:"tracker"`
+}
+
+// Tracker is the organization's issue tracker, the default for every
+// repository that has none of its own.
+type Tracker struct {
+	Site string   `json:"site"`
+	Kind string   `json:"kind"`
+	Keys []string `json:"keys"`
 }
 
 type Switch struct {
@@ -120,4 +129,28 @@ func AutoFetchMinutes(user int) (minutes int, managed bool) {
 		return af.IntervalMinutes, true
 	}
 	return defaultIntervalMinutes, true
+}
+
+// DefaultTracker is the policy's tracker, or nil.
+func DefaultTracker() *Tracker {
+	mu.Lock()
+	defer mu.Unlock()
+	if current.Tracker == nil || current.Tracker.Site == "" {
+		return nil
+	}
+	t := *current.Tracker
+	return &t
+}
+
+// Hosts is every host the policy fixes, with the value it fixes.
+func Hosts() map[string]bool {
+	mu.Lock()
+	defer mu.Unlock()
+	fixed := map[string]bool{}
+	for name, sw := range current.Hosts {
+		if sw.Enabled != nil {
+			fixed[name] = *sw.Enabled
+		}
+	}
+	return fixed
 }

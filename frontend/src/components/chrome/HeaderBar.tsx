@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { System } from '@wailsio/runtime'
-import { ArrowDown, ArrowUp, ChevronDown, Plus, RefreshCw, Settings, X, type LucideIcon } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, Inbox, Plus, RefreshCw, Settings, type LucideIcon, X } from 'lucide-react'
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
 import ContextMenu, { type ContextMenuItem, type ContextMenuState } from '../controls/ContextMenu'
@@ -18,6 +18,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
 import QuickSwitchPalette from './QuickSwitchPalette'
+import type { PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
 import RepoPickerModal from '../../features/repositories/RepoPickerModal'
 import RepoTabChip from '../../features/repositories/RepoTabChip'
@@ -32,8 +33,16 @@ interface HeaderBarProps {
   pruneOnFetch: boolean
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
+  // The Inbox, a view across every open repository, beside the tabs.
+  inboxOpen?: boolean
+  onToggleInbox?: () => void
+  // Host rows the Inbox hasn't shown yet, after a refresh.
+  inboxUnseen?: number
   workspaceActions: WorkspaceAction[]
-  onOpenSettings: () => void
+  // The palette's own entries for views, creating, releasing and tools.
+  paletteActions?: PaletteAction[]
+  settingsGroups?: string[]
+  onOpenSettings: (group?: string) => void
   onPull: () => void
   onPullMerge: () => void
   onPullRebase: () => void
@@ -60,7 +69,12 @@ function HeaderBar({
   pruneOnFetch,
   repo,
   dirty,
+  inboxOpen = false,
+  onToggleInbox,
+  inboxUnseen = 0,
   workspaceActions,
+  paletteActions,
+  settingsGroups,
   onOpenSettings,
   onPull,
   onPullMerge,
@@ -131,6 +145,7 @@ function HeaderBar({
       : 'Not fetched yet'
 
   // A sync button with a chevron beside it that drops the rest of its choices.
+  // `due` colors it while there is something to pull or push.
   const syncButton = (
     id: 'fetch' | 'pull' | 'push',
     label: string,
@@ -139,14 +154,16 @@ function HeaderBar({
     onClick: (e: React.MouseEvent) => void,
     items: ContextMenuItem[],
     disabled = false,
+    due = false,
   ) => {
     const name = id[0].toUpperCase() + id.slice(1)
     const blocked = operation ? `Finish the ${operationNoun(operation)} first` : null
+    const className = due ? 'header-bar-sync header-bar-sync-due' : 'header-bar-sync'
     return (
       <span className={`header-bar-sync-group header-bar-sync-${id}`}>
         <button
           type="button"
-          className="header-bar-sync"
+          className={className}
           onClick={disabled || blocked ? undefined : onClick}
           disabled={!!blocked}
           title={blocked ?? title}
@@ -156,13 +173,13 @@ function HeaderBar({
         </button>
         <button
           type="button"
-          className="header-bar-sync header-bar-sync-more"
+          className={`${className} header-bar-sync-more`}
           aria-label={`${name} options`}
           title={blocked ?? `${name} options`}
           disabled={disabled || !!blocked}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
-            setSyncMenu({ x: rect.left, y: rect.bottom + 4, items })
+            setSyncMenu({ x: rect.right, y: rect.bottom + 4, items, align: 'end' })
           }}
         >
           <ChevronDown size={12} strokeWidth={1.5} />
@@ -302,6 +319,7 @@ function HeaderBar({
             { label: 'Pull (rebase)', onClick: onPullRebase },
           ],
           syncing,
+          !!branchStatus && branchStatus.behind > 0,
         )}
         {syncButton(
           'push',
@@ -315,6 +333,7 @@ function HeaderBar({
             { label: 'Force-push (with lease)…', onClick: onForcePush, destructive: true },
           ],
           syncing,
+          !!branchStatus && branchStatus.ahead > 0,
         )}
         {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
       </div>
@@ -327,10 +346,29 @@ function HeaderBar({
 
       {accessory}
 
+      {onToggleInbox && (
+        <button
+          type="button"
+          className={inboxOpen ? 'header-bar-inbox header-bar-inbox-open' : 'header-bar-inbox'}
+          aria-pressed={inboxOpen}
+          aria-label={inboxUnseen > 0 ? `Inbox, ${inboxUnseen} new` : 'Inbox'}
+          title={
+            inboxUnseen > 0
+              ? `${inboxUnseen} new since the last refresh, across the open repositories`
+              : 'What waits on you across the open repositories'
+          }
+          onClick={onToggleInbox}
+        >
+          <Inbox size={14} strokeWidth={1.75} />
+          Inbox
+          {inboxUnseen > 0 && <span className="header-bar-inbox-count">{inboxUnseen}</span>}
+        </button>
+      )}
+
       <button
         type="button"
         className="header-bar-icon-button"
-        onClick={onOpenSettings}
+        onClick={() => onOpenSettings()}
         aria-label="Settings"
         title="Settings"
       >
@@ -346,6 +384,8 @@ function HeaderBar({
           onClose={() => setQuickSwitchOpen(false)}
           onBranchChanged={onBranchChanged}
           workspaceActions={workspaceActions}
+          actions={paletteActions}
+          settingsGroups={settingsGroups}
           onOpenSettings={onOpenSettings}
           onPull={onPull}
           onPullMerge={onPullMerge}

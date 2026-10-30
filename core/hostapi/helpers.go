@@ -27,3 +27,8 @@ func TailLog(body []byte, maxBytes int) (log string, truncated bool) {
 	}
 	return string(cut), true
 }
+
+// Retryable is whether a job that ended this way is worth running again.
+func Retryable(status CIStatus) bool {
+	return status == CIFailed || status == CICanceled
+}

@@ -1,0 +1,31 @@
+// The Issues tab borrows the Pull requests tab's header, list and rows
+// (HostChangesView.scss); these are what it has of its own.
+.issues-row-key {
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.issues-row-source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.issues-pane {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+// A tracker's own status, such as Jira's In Progress: a closed set, so a square.
+.issues-row-status {
+  margin-right: auto;
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--outline-variant);
+  border-radius: 3px;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}

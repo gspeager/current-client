@@ -1,3 +1,4 @@
+import { ClipboardList } from 'lucide-react'
 import ActivityCalendar from './ActivityCalendar'
 import CommitVelocityChart from './CommitVelocityChart'
 import ContributorsChart from './ContributorsChart'
@@ -12,11 +13,21 @@ interface ActivityViewProps {
   repoVersion: number
   dirty: boolean
   hasConflict: boolean
+  // What you did across the open repositories, to paste into a standup.
+  onStandup?: () => void
 }
 
-function ActivityView({ repoPath, repoVersion, dirty, hasConflict }: ActivityViewProps) {
+function ActivityView({ repoPath, repoVersion, dirty, hasConflict, onStandup }: ActivityViewProps) {
   return (
     <div className="activity-view">
+      {onStandup && (
+        <header className="activity-view-header">
+          <button type="button" className="activity-view-standup" onClick={onStandup}>
+            <ClipboardList size={14} strokeWidth={1.75} />
+            Standup…
+          </button>
+        </header>
+      )}
       <RepoStatStrip repoPath={repoPath} repoVersion={repoVersion} dirty={dirty} />
       <ActivityCalendar repoPath={repoPath} repoVersion={repoVersion} />
       <div className="activity-view-pair">

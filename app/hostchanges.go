@@ -112,11 +112,13 @@ func (s *HostService) Refresh(repoPath string) error {
 }
 
 func refreshHostChanges(ctx context.Context, repoPath string) error {
+	refreshTracker(ctx, repoPath)
 	remotes, err := git.ListRemotes(ctx, repoPath)
 	if err != nil {
 		return err
 	}
 	hosts := configOrDefault().Hosts
+	todosAsked := map[string]bool{}
 	for _, remote := range remotes {
 		info, _ := hostInfoFor(remote, hosts)
 		if refs, err := git.ListRemoteChanges(ctx, repoPath, remote.Name); err == nil {
@@ -136,6 +138,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheJobs)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheIssue)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheAssigned)
+		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheProjectIssues)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheThreads)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheClosed)
 		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheFiles)
@@ -152,6 +155,13 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
 			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
 			refreshBranchRules(ctx, provider, info, repoPath, remote.Name)
+			refreshDeployments(ctx, provider, info, repoPath)
+			refreshAssignedIssues(ctx, provider, info, repoPath, remote.Name)
+			if !todosAsked[info.Hostname] {
+				todosAsked[info.Hostname] = true
+				refreshTodos(ctx, provider, info)
+			}
+			refreshBranchTipCI(ctx, provider, info, repoPath)
 			refreshForecast(ctx, info, repoPath, remote.Name, changes)
 			if notices := noticesSince(before, info, repoPath); len(notices) > 0 {
 				hostClient.Cache.Put(info.Hostname, repoPath, cacheNotices, "current", notices)

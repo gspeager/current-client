@@ -5,6 +5,7 @@ import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components
 import CommitDetailPanel from './CommitDetailPanel'
 import CommitFileDiff from './CommitFileDiff'
 import CommitRow from './CommitRow'
+import WorkingChangesRow from './WorkingChangesRow'
 import HistoryToolbar from './HistoryToolbar'
 import { buildAsciiGraph } from './asciiGraph'
 import { ancestorShas } from './commitAncestry'
@@ -15,9 +16,13 @@ import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
+import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { useHeadCommit } from '../working-copy/useHeadCommit'
+import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useCIStatus } from '../../lib/useCIStatus'
+import { useDeploymentsBySha } from '../../lib/useDeployments'
 import { useReferenceCards } from '../../lib/useReferenceCards'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useIdentities } from './useIdentities'
@@ -36,6 +41,12 @@ interface HistoryViewProps {
   // The branch filter to open with, and where a change to it is saved.
   defaultRef?: string
   onRefChange?: (ref: string) => void
+  firstParent?: boolean
+  onFirstParentChange?: (on: boolean) => void
+  // The working tree's changed files, from the status App already holds;
+  // with any, a row above HEAD says so and opens Changes.
+  changedFiles?: number
+  onOpenChanges?: () => void
   onBranchChanged?: () => void
   // App keeps the last-seen top SHA across remounts so new commits can flash.
   previousTopSha?: string | null
@@ -55,14 +66,33 @@ function HistoryView({
   initialRef = null,
   defaultRef = ALL_BRANCHES,
   onRefChange,
+  firstParent = false,
+  onFirstParentChange,
+  changedFiles = 0,
+  onOpenChanges,
   onBranchChanged,
   previousTopSha,
   onTopShaChange,
   onSelectedShaChange,
 }: HistoryViewProps) {
-  const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef })
+  const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef, firstParent })
   const { commits, loading, done, error, loadMore } = useCommitHistory(repoPath, filter, initialLoadThrough)
-  const graphNodes = useCommitGraph(commits)
+  const head = useHeadCommit(repoPath)
+  // Read only where a working-changes row can appear.
+  const currentUser = useCurrentUser(changedFiles > 0 && onOpenChanges ? repoPath : null)
+  // Only where HEAD is in the list, and no filter narrows it.
+  const workingTreeParent =
+    changedFiles > 0 &&
+    onOpenChanges &&
+    head &&
+    (filter.ref === ALL_BRANCHES || filter.ref === '') &&
+    !filter.since &&
+    !filter.author &&
+    !filter.type &&
+    commits.some((c) => c.sha === head.sha)
+      ? head.sha
+      : null
+  const { graphNodes, workingNode } = useCommitGraph(commits, filter.firstParent, workingTreeParent)
   const refsBySha = useRefBadges(repoPath)
   const hostLinks = useHostLinks(repoPath)
   // History remounts on every ref move, so the repository path is the only key.
@@ -73,9 +103,13 @@ function HistoryView({
   const commitActions = useCommitActions(repoPath, onBranchChanged, hostLinks)
 
   const [selectedSha, setSelectedSha] = useState<string | null>(initialSelectedSha)
+  // The commit whose Checks a job click asked for.
+  const [checksFor, setChecksFor] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [hideMerges, setHideMerges] = useState(false)
   const [focusedSha, setFocusedSha] = useState<string | null>(null)
+  // One highlight at a time: an author (by mailmapped email) or a lane.
+  const [highlightedAuthor, setHighlightedAuthor] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   // A file opened from the inspector; it only counts for the commit it was opened from.
   const [openedFile, setOpenedFile] = useState<{ sha: string; path: string } | null>(null)
@@ -105,9 +139,11 @@ function HistoryView({
     return () => clearTimeout(timeout)
   }, [newShas])
 
-  const { data: branches } = useAsyncData(
-    () => BranchService.ListLocal(repoPath).then((result) => result.map((b) => b.name)),
-    [repoPath],
+  const { data: localBranches } = useAsyncData(() => BranchService.ListLocal(repoPath), [repoPath])
+  const branches = useMemo(() => localBranches?.map((b) => b.name), [localBranches])
+  const upstreams = useMemo(
+    () => Object.fromEntries((localBranches ?? []).filter((b) => b.upstream).map((b) => [b.name, b.upstream])),
+    [localBranches],
   )
 
   // A saved branch that's since been deleted, or belongs to another repository.
@@ -120,6 +156,7 @@ function HistoryView({
 
   const changeFilter = (next: typeof filter) => {
     if (next.ref !== filter.ref) onRefChange?.(next.ref)
+    if (next.firstParent !== filter.firstParent) onFirstParentChange?.(next.firstParent)
     setFilter(next)
   }
 
@@ -129,7 +166,20 @@ function HistoryView({
   }
 
   const focusedAncestors = useMemo(() => (focusedSha ? ancestorShas(commits, focusedSha) : null), [commits, focusedSha])
-  const onFocusRef = (sha: string) => setFocusedSha((prev) => (prev === sha ? null : sha))
+  const onFocusRef = (sha: string) => {
+    setHighlightedAuthor(null)
+    setFocusedSha((prev) => (prev === sha ? null : sha))
+  }
+  const highlightAuthor = (email: string) => {
+    setFocusedSha(null)
+    setHighlightedAuthor((prev) => (prev === email ? null : email))
+  }
+  useWindowKeydown((e) => {
+    if (e.key === 'Escape' && highlightedAuthor) setHighlightedAuthor(null)
+  })
+  const isDimmed = (commit: CommitInfo) =>
+    (focusedAncestors !== null && !focusedAncestors.has(commit.sha)) ||
+    (highlightedAuthor !== null && commit.authorEmail !== highlightedAuthor)
 
   const selectedCommit = selectedSha ? (commits.find((c) => c.sha === selectedSha) ?? null) : null
   const reviewThreads = useReviewThreads(repoPath, undefined, selectedSha ?? undefined)
@@ -152,16 +202,19 @@ function HistoryView({
       )
     })
 
+  const workingRow = workingNode && workingTreeParent && !query ? workingNode : null
+  const offset = workingRow ? 1 : 0
   const virtualizer = useVirtualizer({
-    count: rows.length,
+    count: rows.length + offset,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 10,
   })
   const virtualItems = virtualizer.getVirtualItems()
+  const deployedAt = useDeploymentsBySha(repoPath)
   const ciMarks = useCIStatus(
     repoPath,
-    virtualItems.map((row) => rows[row.index].commit.sha),
+    virtualItems.flatMap((row) => (row.index < offset ? [] : [rows[row.index - offset].commit.sha])),
   )
 
   useEffect(() => {
@@ -179,8 +232,8 @@ function HistoryView({
     const index = rows.findIndex((r) => r.commit.sha === initialSelectedSha)
     if (index === -1) return
     hasScrolledToInitial.current = true
-    virtualizer.scrollToIndex(index, { align: 'center' })
-  }, [rows, initialSelectedSha, virtualizer])
+    virtualizer.scrollToIndex(index + offset, { align: 'center' })
+  }, [rows, offset, initialSelectedSha, virtualizer])
 
   if (error) {
     return <p className="history-empty-state history-empty-state-error">Could not load history: {error}</p>
@@ -189,7 +242,10 @@ function HistoryView({
     return <p className="history-empty-state">No commits.</p>
   }
 
-  const laneCount = graphNodes.reduce((max, n) => Math.max(max, n.lane + 1, ...n.passThrough.map((l) => l + 1)), 1)
+  const laneCount = [...graphNodes, ...(workingNode ? [workingNode] : [])].reduce(
+    (max, n) => Math.max(max, n.lane + 1, ...n.passThrough.map((l) => l + 1)),
+    1,
+  )
 
   // Copies the visible, filtered rows rather than a fresh git log --graph.
   const copyAsciiGraph = () => {
@@ -211,9 +267,15 @@ function HistoryView({
     selectSha(commit.sha)
     setContextMenu({
       ...menuAnchor(e),
-      items: commitActions
-        .actionsFor(commit)
-        .map((a) => ({ label: a.label, onClick: a.run, destructive: a.destructive })),
+      items: [
+        ...commitActions
+          .actionsFor(commit)
+          .map((a) => ({ label: a.label, onClick: a.run, destructive: a.destructive })),
+        {
+          label: highlightedAuthor === commit.authorEmail ? 'Clear author highlight' : 'Highlight author’s commits',
+          onClick: () => highlightAuthor(commit.authorEmail),
+        },
+      ],
     })
   }
 
@@ -246,7 +308,29 @@ function HistoryView({
             <div ref={parentRef} className="history-scroll">
               <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
                 {virtualItems.map((row) => {
-                  const { commit, graphNode } = rows[row.index]
+                  const rowStyle = {
+                    position: 'absolute' as const,
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: ROW_HEIGHT,
+                    transform: `translateY(${row.start}px)`,
+                  }
+                  if (workingRow && row.index === 0) {
+                    return (
+                      <WorkingChangesRow
+                        key="working-tree"
+                        node={workingRow}
+                        laneCount={laneCount}
+                        rowHeight={ROW_HEIGHT}
+                        changedFiles={changedFiles}
+                        user={currentUser}
+                        style={rowStyle}
+                        onOpen={onOpenChanges!}
+                      />
+                    )
+                  }
+                  const { commit, graphNode } = rows[row.index - offset]
                   return (
                     <CommitRow
                       key={commit.sha}
@@ -257,27 +341,28 @@ function HistoryView({
                       changes={changes}
                       repoPath={repoPath}
                       ci={ciMarks[commit.sha]}
+                      environments={deployedAt.get(commit.sha)}
                       referenceCards={referenceCards}
                       rowHeight={ROW_HEIGHT}
                       identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
                       refs={refsBySha.get(commit.sha)}
+                      upstreams={upstreams}
                       selected={commit.sha === selectedSha}
-                      dimmed={focusedAncestors !== null && !focusedAncestors.has(commit.sha)}
+                      dimmed={isDimmed(commit)}
                       isNew={newShas.has(commit.sha)}
                       focusedSha={focusedSha}
                       conventional={conventional}
                       onFocusRef={onFocusRef}
                       searchQuery={query}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: ROW_HEIGHT,
-                        transform: `translateY(${row.start}px)`,
-                      }}
+                      style={rowStyle}
                       onSelect={() => selectSha(commit.sha)}
+                      onOpenChecks={() => {
+                        selectSha(commit.sha)
+                        setChecksFor(commit.sha)
+                      }}
                       onContextMenu={commitContextMenu(commit)}
+                      onHighlightAuthor={() => highlightAuthor(commit.authorEmail)}
+                      authorHighlighted={highlightedAuthor === commit.authorEmail}
                     />
                   )
                 })}
@@ -309,6 +394,8 @@ function HistoryView({
             openedPath={openedPath}
             onOpenFile={(path) => setOpenedFile({ sha: selectedCommit.sha, path })}
             threadCounts={reviewThreads.counts}
+            ci={ciMarks[selectedCommit.sha]}
+            checksOpen={checksFor === selectedCommit.sha}
           />
         </div>
       )}

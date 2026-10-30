@@ -13,10 +13,10 @@ Before starting something large, open an issue to talk it through. Small fixes c
 These are not negotiable, and a change that breaks one won't be merged:
 
 - No telemetry, analytics, tracking, advertising or remote logging.
-- Current Client never chooses a network destination itself. It only connects to destinations the user or their company configured: a repository's Git remotes and the servers those remotes are hosted on, cloud or self-hosted. On a network where every remote is internal, nothing Current Client does leaves that network.
-- No vendor or third-party endpoints: no websites, CDNs, AI services, update servers or sign-in through an outside provider.
-- Any network traffic beyond a Git operation the user starts is off by default. That covers background fetch and integrations such as the GitHub or GitLab API on a remote's own host. Each one is turned on only by a deliberate choice, is clearly visible when on, and works with self-hosted servers. How host integration keeps to this is in [docs/integrations.md](docs/integrations.md).
-- No automatic update checks or crash-report uploads.
+- Current Client never chooses a network destination itself. It only connects to destinations the user or their company configured: a repository's Git remotes, the servers those remotes are hosted on, and an issue tracker the user configures by its address, such as the team's Jira site, cloud or self-hosted. On a network where every remote and tracker is internal, nothing Current Client does leaves that network.
+- No vendor or third-party endpoints: no websites, CDNs, AI services, update servers or sign-in through an outside provider. The one exception is the **Check for updates** button in Settings, which reads github.com's releases page only when clicked (`internal/update`); nothing else may contact a destination the user didn't configure.
+- Any network traffic beyond a Git operation the user starts is off by default. That covers background fetch, integrations such as the GitHub or GitLab API on a remote's own host, and an issue tracker's API. Each one is turned on only by a deliberate choice, is clearly visible when on, can be locked off by `policy.json`, and works with self-hosted servers. A tracker's address alone, used only to build links, contacts nothing. How host integration keeps to this is in [docs/integrations.md](docs/integrations.md).
+- No automatic update checks or crash-report uploads: the Settings button runs on its click alone, never at start-up, on a timer or in the background, and remembers nothing between launches.
 - No avatars or downloaded images; people are shown as local initials badges.
 - No custom credential storage. Use Git's own mechanisms (credential helpers, SSH agent). Never log credentials, tokens or keys.
 

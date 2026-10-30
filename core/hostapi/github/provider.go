@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -60,6 +61,7 @@ type pullRequest struct {
 	State     string    `json:"state"`
 	Draft     bool      `json:"draft"`
 	MergedAt  *string   `json:"merged_at"`
+	MergeSHA  string    `json:"merge_commit_sha"`
 	Mergeable *bool     `json:"mergeable"`
 	Head      repoRef   `json:"head"`
 	Base      repoRef   `json:"base"`
@@ -147,6 +149,22 @@ type issue struct {
 	PullRequest *struct {
 		URL string `json:"url"`
 	} `json:"pull_request"`
+	Body   string `json:"body"`
+	Labels []struct {
+		Name string `json:"name"`
+	} `json:"labels"`
+	Milestone *struct {
+		Title string `json:"title"`
+	} `json:"milestone"`
+	User      user      `json:"user"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type issueComment struct {
+	User      user      `json:"user"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type rule struct {
@@ -346,12 +364,13 @@ func (p *Provider) commitJobs(ctx context.Context, project, ref string) ([]hosta
 	jobs := make([]hostapi.Job, 0, len(runs.CheckRuns)+len(status.Statuses))
 	for _, run := range runs.CheckRuns {
 		jobs = append(jobs, hostapi.Job{
-			ID:       run.ID,
-			Name:     run.Name,
-			Stage:    run.App.Slug,
-			Status:   checkStatus(run),
-			Duration: duration(run.StartedAt, run.CompletedAt),
-			WebURL:   run.HTMLURL,
+			ID:        run.ID,
+			Name:      run.Name,
+			Stage:     run.App.Slug,
+			Status:    checkStatus(run),
+			Duration:  duration(run.StartedAt, run.CompletedAt),
+			WebURL:    run.HTMLURL,
+			Retryable: run.App.Slug == actionsApp && hostapi.Retryable(checkStatus(run)),
 		})
 	}
 	for _, s := range status.Statuses {
@@ -380,10 +399,23 @@ func (p *Provider) Issue(ctx context.Context, project string, number int) (hosta
 	return toIssue(is), nil
 }
 
-// AssignedIssues leaves out pull requests, which GitHub lists as issues too.
 func (p *Provider) AssignedIssues(ctx context.Context, project, username string) ([]hostapi.Issue, error) {
+	return p.listIssues(ctx, project, url.Values{"assignee": {username}, "state": {"open"}})
+}
+
+func (p *Provider) ProjectIssues(ctx context.Context, project string, open bool) ([]hostapi.Issue, error) {
+	state := "closed"
+	if open {
+		state = "open"
+	}
+	return p.listIssues(ctx, project, url.Values{"state": {state}})
+}
+
+// listIssues leaves out pull requests, which GitHub lists as issues too.
+func (p *Provider) listIssues(ctx context.Context, project string, query url.Values) ([]hostapi.Issue, error) {
+	query.Set("sort", "updated")
+	query.Set("per_page", "50")
 	var page []issue
-	query := url.Values{"assignee": {username}, "state": {"open"}, "sort": {"updated"}, "per_page": {"50"}}
 	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues"), query, &page); err != nil {
 		return nil, hostapi.WithScope(err, scope)
 	}
@@ -396,8 +428,74 @@ func (p *Provider) AssignedIssues(ctx context.Context, project, username string)
 	return issues, nil
 }
 
+var (
+	_ hostapi.IssueTracker = (*Provider)(nil)
+	_ hostapi.IssueLister  = (*Provider)(nil)
+)
+
+func (p *Provider) IssueByKey(ctx context.Context, project, key string) (hostapi.Issue, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return hostapi.Issue{}, err
+	}
+	return p.Issue(ctx, project, number)
+}
+
+func (p *Provider) KeyPattern() *regexp.Regexp {
+	return hostapi.NumberedKeys
+}
+
+func (p *Provider) KeyInBranch(branch string) string {
+	return hostapi.NumberedBranchKey(branch)
+}
+
+func (p *Provider) Reference(key string) string {
+	return hostapi.NumberedReference(key)
+}
+
+func (p *Provider) IssueDetails(ctx context.Context, project, key string) (hostapi.IssueDetails, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return hostapi.IssueDetails{}, err
+	}
+	var is issue
+	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", strconv.Itoa(number)), nil, &is); err != nil {
+		return hostapi.IssueDetails{}, hostapi.WithScope(err, scope)
+	}
+	return toIssueDetails(is), nil
+}
+
+func (p *Provider) IssueComments(ctx context.Context, project, key string) ([]hostapi.Note, error) {
+	number, err := hostapi.IssueNumber(key)
+	if err != nil {
+		return nil, err
+	}
+	var page []issueComment
+	query := url.Values{"per_page": {"100"}}
+	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", strconv.Itoa(number), "comments"), query, &page); err != nil {
+		return nil, hostapi.WithScope(err, scope)
+	}
+	notes := make([]hostapi.Note, 0, len(page))
+	for _, c := range page {
+		notes = append(notes, hostapi.Note{Author: toUser(c.User), Body: c.Body, CreatedAt: c.CreatedAt})
+	}
+	return notes, nil
+}
+
 func toIssue(is issue) hostapi.Issue {
-	return hostapi.Issue{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}
+	return hostapi.Issue{Key: strconv.Itoa(is.Number), Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}
+}
+
+func toIssueDetails(is issue) hostapi.IssueDetails {
+	labels := make([]string, 0, len(is.Labels))
+	for _, l := range is.Labels {
+		labels = append(labels, l.Name)
+	}
+	out := hostapi.IssueDetails{Issue: toIssue(is), Description: is.Body, Labels: labels, Author: toUser(is.User), CreatedAt: is.CreatedAt, UpdatedAt: is.UpdatedAt}
+	if is.Milestone != nil {
+		out.Milestone = is.Milestone.Title
+	}
+	return out
 }
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {
@@ -467,18 +565,20 @@ func (p *Provider) CurrentUser(ctx context.Context) (hostapi.User, error) {
 
 func toChange(pr pullRequest) hostapi.Change {
 	c := hostapi.Change{
-		Number:       pr.Number,
-		Title:        pr.Title,
-		Description:  pr.Body,
-		State:        changeState(pr),
-		Draft:        pr.Draft,
-		SourceBranch: pr.Head.Ref,
-		TargetBranch: pr.Base.Ref,
-		Author:       toUser(pr.User),
-		HeadSHA:      pr.Head.SHA,
-		HasConflicts: pr.Mergeable != nil && !*pr.Mergeable,
-		UpdatedAt:    pr.UpdatedAt,
-		WebURL:       pr.HTMLURL,
+		Number:         pr.Number,
+		Title:          pr.Title,
+		Description:    pr.Body,
+		State:          changeState(pr),
+		Draft:          pr.Draft,
+		SourceBranch:   pr.Head.Ref,
+		TargetBranch:   pr.Base.Ref,
+		Author:         toUser(pr.User),
+		HeadSHA:        pr.Head.SHA,
+		MergeCommitSHA: mergedSHA(pr),
+		HasConflicts:   pr.Mergeable != nil && !*pr.Mergeable,
+		ConflictsKnown: pr.Mergeable != nil,
+		UpdatedAt:      pr.UpdatedAt,
+		WebURL:         pr.HTMLURL,
 	}
 	for _, l := range pr.Labels {
 		c.Labels = append(c.Labels, l.Name)
@@ -627,4 +727,13 @@ func (p *Provider) webRoot() string {
 // repoPath builds "repos/<owner>/<repo>/<parts…>".
 func repoPath(project string, parts ...string) string {
 	return strings.Join(append([]string{"repos", project}, parts...), "/")
+}
+
+// mergedSHA is only meaningful once merged: while open, GitHub's
+// merge_commit_sha is a test merge.
+func mergedSHA(pr pullRequest) string {
+	if pr.MergedAt == nil {
+		return ""
+	}
+	return pr.MergeSHA
 }

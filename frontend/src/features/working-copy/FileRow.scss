@@ -51,6 +51,14 @@
   gap: var(--space-xs);
 }
 
+// A glyph, so owners never take the file name's room; the names are in its
+// tooltip and the diff header.
+.file-row-owners {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--outline);
+}
+
 .file-row-tag {
   flex-shrink: 0;
   color: var(--outline);

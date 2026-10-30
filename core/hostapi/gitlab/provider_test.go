@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -29,7 +30,8 @@ type fixtures struct {
 	mu       sync.Mutex
 	requests []request
 	// routes map "METHOD /api/v4/<escaped path>?<query>" to a testdata file,
-	// a literal body when it starts with "[" or "{", or "403" for a refusal.
+	// a literal body when it starts with "[" or "{", or a status such as
+	// "403" for a refusal.
 	routes map[string]string
 }
 
@@ -46,8 +48,10 @@ func (f *fixtures) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case !ok:
 		http.Error(w, `{"message":"404 Not Found"}`, http.StatusNotFound)
-	case route == "403":
-		http.Error(w, `{"message":"403 Forbidden"}`, http.StatusForbidden)
+	case len(route) == 3 && route >= "400" && route <= "599":
+		// A refusal: the status alone, as "403" or "405".
+		status, _ := strconv.Atoi(route)
+		http.Error(w, `{"message":"`+route+` `+http.StatusText(status)+`"}`, status)
 	case strings.HasPrefix(route, "[") || strings.HasPrefix(route, "{"):
 		w.Write([]byte(route))
 	default:
@@ -248,6 +252,21 @@ func TestAssignedIssuesFromRecordedFixture(t *testing.T) {
 	issues, err := p.AssignedIssues(context.Background(), project, "jhebden")
 	if err != nil || len(issues) != 3 || issues[0].Number != 8493 || issues[0].State != "open" || !strings.HasSuffix(issues[0].WebURL, "/8493") {
 		t.Fatalf("AssignedIssues = %+v, %v", issues, err)
+	}
+}
+
+func TestProjectIssuesByState(t *testing.T) {
+	p, _ := newProvider(t, map[string]string{
+		"GET " + api + "/issues?order_by=updated_at&per_page=50&state=opened": "assigned_issues.json",
+		"GET " + api + "/issues?order_by=updated_at&per_page=50&state=closed": `[{"iid": 7, "title": "Old", "state": "closed"}]`,
+	})
+	open, err := p.ProjectIssues(context.Background(), project, true)
+	if err != nil || len(open) != 3 {
+		t.Fatalf("open ProjectIssues = %+v, %v", open, err)
+	}
+	closed, err := p.ProjectIssues(context.Background(), project, false)
+	if err != nil || len(closed) != 1 || closed[0].Number != 7 || closed[0].State != "closed" {
+		t.Fatalf("closed ProjectIssues = %+v, %v", closed, err)
 	}
 }
 

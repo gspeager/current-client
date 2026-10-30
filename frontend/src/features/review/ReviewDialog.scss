@@ -1,0 +1,37 @@
+.review-dialog-panel {
+  width: min(520px, 90vw);
+}
+
+.review-dialog-verdicts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.review-dialog-verdict {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  font: var(--ui-sm);
+  color: var(--on-surface);
+
+  input {
+    flex-shrink: 0;
+  }
+}
+
+.review-dialog-hint {
+  display: block;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.review-dialog-summary {
+  min-height: 80px;
+  resize: vertical;
+  font: var(--ui-sm);
+  line-height: 1.5;
+}

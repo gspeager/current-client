@@ -1,6 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { FileDiff, ReviewThread } from '@current-client-bindings/app'
+import { FileDiff, HostService, ReviewThread } from '@current-client-bindings/app'
+import { ReviewDraftProvider } from '../../lib/reviewDraft'
 import { DiffWrapContext } from './diffWrap'
 import DiffViewer from './DiffViewer'
 import ReviewThreadBlock from './ReviewThreadBlock'
@@ -48,6 +49,96 @@ describe('ReviewThreadBlock', () => {
     expect(within(resolved).queryByText('client')).not.toBeInTheDocument()
     await userEvent.click(within(resolved).getByRole('button', { expanded: false }))
     expect(within(resolved).getByText('client')).toBeInTheDocument()
+  })
+})
+
+describe('ReviewThreadBlock with actions', () => {
+  it('replies and resolves through the actions, sending nothing until clicked', async () => {
+    const actions = {
+      canResolve: true,
+      reply: vi.fn().mockResolvedValue(undefined),
+      resolve: vi.fn().mockResolvedValue(undefined),
+    }
+    render(<ReviewThreadBlock thread={thread({})} actions={actions} />)
+    const group = screen.getByRole('group', { name: 'Unresolved thread by Ada' })
+    expect(actions.reply).not.toHaveBeenCalled()
+    await userEvent.click(within(group).getByRole('button', { name: 'Reply' }))
+    await userEvent.type(within(group).getByRole('textbox', { name: 'Reply' }), 'Agreed.')
+    await userEvent.click(within(group).getByRole('button', { name: 'Reply' }))
+    await waitFor(() => expect(actions.reply).toHaveBeenCalledWith('t1', 'Agreed.'))
+    await waitFor(() => expect(within(group).queryByRole('textbox')).toBeNull())
+    await userEvent.click(within(group).getByRole('button', { name: 'Resolve' }))
+    expect(actions.resolve).toHaveBeenCalledWith('t1', true)
+  })
+
+  it('hides Resolve where the host cannot, and shows a refusal', async () => {
+    const actions = {
+      canResolve: false,
+      reply: vi.fn().mockRejectedValue(new Error('github.example.com refused this')),
+      resolve: vi.fn(),
+    }
+    render(<ReviewThreadBlock thread={thread({})} actions={actions} />)
+    const group = screen.getByRole('group', { name: 'Unresolved thread by Ada' })
+    expect(within(group).queryByRole('button', { name: 'Resolve' })).toBeNull()
+    await userEvent.click(within(group).getByRole('button', { name: 'Reply' }))
+    await userEvent.type(within(group).getByRole('textbox', { name: 'Reply' }), 'Hm.')
+    await userEvent.click(within(group).getByRole('button', { name: 'Reply' }))
+    expect(await within(group).findByRole('alert')).toHaveTextContent('refused this')
+  })
+})
+
+describe('DiffViewer with a review', () => {
+  it('comments on a line now or drafts it for the review, and never sends on its own', async () => {
+    vi.mocked(HostService.ReviewCapabilities).mockResolvedValue({
+      reply: true,
+      resolve: true,
+      lineComments: true,
+      approve: true,
+      requestChanges: false,
+    } as never)
+    vi.mocked(HostService.CommentOnLine).mockResolvedValue({} as never)
+    render(
+      <ReviewDraftProvider>
+        <DiffWrapContext.Provider value={{ wrap: true, setWrap: () => undefined }}>
+          <DiffViewer
+            diff={diff}
+            path="app/x.go"
+            viewMode="unified"
+            threads={[thread({})]}
+            review={{ repoPath: '/repos/app', number: 7, prefix: '!' }}
+          />
+        </DiffWrapContext.Provider>
+      </ReviewDraftProvider>,
+    )
+    const bar = await screen.findByRole('toolbar', { name: 'Review' })
+    expect(bar).toHaveTextContent('!7')
+    // The thread under line 2 takes a reply now.
+    expect(
+      within(screen.getByRole('group', { name: 'Unresolved thread by Ada' })).getByRole('button', { name: 'Reply' }),
+    ).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Comment on line 3' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Comment on line 3' }), 'Drafted.')
+    await userEvent.click(screen.getByRole('button', { name: 'Add to review' }))
+    expect(screen.getByRole('group', { name: 'Drafted comment at line 3' })).toHaveTextContent('Drafted.')
+    expect(bar).toHaveTextContent('1 drafted comment, not sent yet')
+    expect(HostService.CommentOnLine).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Comment on line 2' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Comment on line 2' }), 'Now.')
+    await userEvent.click(screen.getByRole('button', { name: 'Comment' }))
+    await waitFor(() =>
+      expect(HostService.CommentOnLine).toHaveBeenCalledWith('/repos/app', 7, {
+        path: 'app/x.go',
+        line: 2,
+        oldLine: 0,
+        body: 'Now.',
+      }),
+    )
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Comment on line 2' })).toBeNull())
+
+    await userEvent.click(within(bar).getByRole('button', { name: 'Discard drafts' }))
+    expect(screen.queryByRole('group', { name: 'Drafted comment at line 3' })).toBeNull()
   })
 })
 

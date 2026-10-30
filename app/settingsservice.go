@@ -26,6 +26,7 @@ type Settings struct {
 	DiffNoWrap                  bool                  `json:"diffNoWrap"`
 	PruneOnFetch                bool                  `json:"pruneOnFetch"`
 	HistoryBranchFilter         string                `json:"historyBranchFilter"`
+	HistoryFirstParent          bool                  `json:"historyFirstParent"`
 	DisableConventionalCommits  bool                  `json:"disableConventionalCommits"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
 }
@@ -59,6 +60,7 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		DiffNoWrap:                  cfg.DiffNoWrap,
 		PruneOnFetch:                cfg.PruneOnFetch,
 		HistoryBranchFilter:         cfg.HistoryBranchFilter,
+		HistoryFirstParent:          cfg.HistoryFirstParent,
 		DisableConventionalCommits:  cfg.DisableConventionalCommits,
 		Changelog:                   changelogPrefs(cfg),
 	}, nil
@@ -137,6 +139,10 @@ func (s *SettingsService) SetNavCollapsed(collapsed bool) error {
 
 func (s *SettingsService) SetHistoryBranchFilter(filter string) error {
 	return updateConfig(func(cfg *config.Config) { cfg.HistoryBranchFilter = filter })
+}
+
+func (s *SettingsService) SetHistoryFirstParent(on bool) error {
+	return updateConfig(func(cfg *config.Config) { cfg.HistoryFirstParent = on })
 }
 
 func (s *SettingsService) SetPruneOnFetch(prune bool) error {

@@ -1,0 +1,47 @@
+// A glyph, not a chip: the commit's row has no room for names, and a check
+// here would read as CI.
+.environment-marker {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--primary);
+  }
+}
+
+.environment-reach {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: var(--space-sm);
+  }
+}
+
+.environment-reach-name {
+  font: var(--data-sm);
+  color: var(--on-surface);
+}
+
+.environment-reach-out {
+  color: var(--warning);
+}
+
+.environment-reach-unknown {
+  color: var(--outline);
+}

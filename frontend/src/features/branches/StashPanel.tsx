@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ArrowDownToLine, Download, Eye, Package, PackagePlus, X } from 'lucide-react'
+import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { StashService, type StashInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
 import { errorMessage } from '../../lib/errors'
@@ -37,6 +38,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
   const [showNewStash, setShowNewStash] = useState(false)
   const [busyIndex, setBusyIndex] = useState<number | null>(null)
   const [shownStash, setShownStash] = useState<StashInfo | null>(null)
+  const rowMenu = useRowMenu()
 
   const saveStash = () => {
     setActionError(null)
@@ -96,6 +98,40 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
     sections.open('stash')
   }
 
+  const stashActions = (s: StashInfo): RowAction[] => {
+    const busy = busyIndex !== null
+    return [
+      {
+        label: 'Show changes',
+        ariaLabel: `Show changes in stash: ${s.message}`,
+        icon: Eye,
+        run: () => setShownStash(s),
+      },
+      {
+        label: 'Apply (keep in list)',
+        ariaLabel: `Apply stash: ${s.message}`,
+        icon: Download,
+        run: () => applyStash(s.index),
+        disabled: busy,
+      },
+      {
+        label: 'Pop (apply and remove)',
+        ariaLabel: `Pop stash: ${s.message}`,
+        icon: ArrowDownToLine,
+        run: () => popStash(s.index),
+        disabled: busy,
+      },
+      {
+        label: 'Drop…',
+        ariaLabel: `Drop stash: ${s.message}`,
+        icon: X,
+        run: () => void dropStash(s.index),
+        disabled: busy,
+        destructive: true,
+      },
+    ]
+  }
+
   return (
     <div className="stash-panel">
       <SidebarSection
@@ -142,52 +178,17 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
         ) : (
           <ul className="stash-panel-list">
             {stashes.map((s) => (
-              <li key={s.index} className="stash-row" title={s.message}>
+              <li key={s.index} className="stash-row" title={s.message} onContextMenu={rowMenu.open(stashActions(s))}>
                 <Package size={14} strokeWidth={1.5} className="stash-row-icon" />
                 <span className="stash-row-message">{s.message}</span>
                 <span className="stash-row-time">{relativeTime(new Date(s.date))}</span>
-                <span className="stash-row-actions">
-                  <button
-                    type="button"
-                    onClick={() => setShownStash(s)}
-                    aria-label={`Show changes in stash: ${s.message}`}
-                    title="Show changes"
-                  >
-                    <Eye size={16} strokeWidth={1.75} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyStash(s.index)}
-                    disabled={busyIndex !== null}
-                    aria-label={`Apply stash: ${s.message}`}
-                    title="Apply (keep in list)"
-                  >
-                    <Download size={16} strokeWidth={1.75} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => popStash(s.index)}
-                    disabled={busyIndex !== null}
-                    aria-label={`Pop stash: ${s.message}`}
-                    title="Pop (apply and remove)"
-                  >
-                    <ArrowDownToLine size={16} strokeWidth={1.75} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => dropStash(s.index)}
-                    disabled={busyIndex !== null}
-                    aria-label={`Drop stash: ${s.message}`}
-                    title="Drop"
-                  >
-                    <X size={16} strokeWidth={1.75} />
-                  </button>
-                </span>
+                <RowActionButtons actions={stashActions(s)} className="stash-row-actions" />
               </li>
             ))}
           </ul>
         )}
       </SidebarSection>
+      {rowMenu.menu}
       {shownStash && <StashModal repoPath={repoPath} stash={shownStash} onClose={() => setShownStash(null)} />}
     </div>
   )

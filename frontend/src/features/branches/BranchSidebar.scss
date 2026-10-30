@@ -1,6 +1,7 @@
 @use '../../styles/patterns';
 
 .branch-sidebar {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -181,6 +182,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: var(--space-xs);
   height: var(--h-row-tree);
   padding: 0 var(--space-xs);
   border-radius: var(--radius);
@@ -230,8 +232,22 @@
   display: inline;
 }
 
+// A narrow sidebar keeps the name: the checked-out row's age goes to hover
+// like the others', then PR numbers drop to their square. The row's tooltip
+// still says both.
+@container (max-width: 300px) {
+  .branch-row-current:not(:hover) .branch-row-time {
+    display: none;
+  }
+}
+
+@container (max-width: 240px) {
+  .branch-row .change-marker-number {
+    display: none;
+  }
+}
+
 .branch-row-remote {
-  gap: var(--space-xs);
   color: var(--on-surface-variant);
 }
 
@@ -256,7 +272,6 @@
 
 .branch-row-head {
   flex-shrink: 0;
-  margin-left: var(--space-xs);
   padding: 1px var(--space-xs);
   background: var(--primary);
   border-radius: var(--radius-xs);
@@ -271,7 +286,6 @@
 
 .branch-row-mode {
   flex-shrink: 0;
-  margin-left: var(--space-xs);
   padding: 0 var(--space-xs);
   border: 1px solid var(--error);
   border-radius: 3px;
@@ -281,7 +295,6 @@
 
 .branch-conflicts-badge {
   flex-shrink: 0;
-  margin-left: var(--space-xs);
   padding: 0 var(--space-xs);
   border: 1px solid var(--error);
   border-radius: 3px;

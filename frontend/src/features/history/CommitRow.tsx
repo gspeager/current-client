@@ -6,7 +6,14 @@ import { highlightMatch } from '../../lib/highlightMatch'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
-import type { CIMark as CIMarkInfo, CommitInfo, GraphNode, IdentityInfo, RefInfo } from '@current-client-bindings/app'
+import type {
+  CIMark as CIMarkInfo,
+  CommitInfo,
+  EnvironmentInfo,
+  GraphNode,
+  IdentityInfo,
+  RefInfo,
+} from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import type { BranchChanges } from '../../lib/useBranchChanges'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
@@ -15,6 +22,8 @@ import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import CIMark from '../../components/git/CIMark'
 import RefBadge from './RefBadge'
+import { EnvironmentMarker } from '../../components/git/EnvironmentMarker'
+import { pairUpstreams } from './refPills'
 import './CommitRow.scss'
 
 interface CommitRowProps {
@@ -24,6 +33,7 @@ interface CommitRowProps {
   rowHeight: number
   identity?: IdentityInfo
   refs?: RefInfo[]
+  upstreams?: Record<string, string>
   selected: boolean
   dimmed?: boolean
   isNew?: boolean
@@ -35,10 +45,16 @@ interface CommitRowProps {
   changes?: BranchChanges
   repoPath?: string
   ci?: CIMarkInfo
+  // The environments whose latest deployment is this commit.
+  environments?: EnvironmentInfo[]
   referenceCards?: ReferenceCards
   style: CSSProperties
   onSelect: () => void
   onContextMenu: (e: MouseEvent | KeyboardEvent) => void
+  onHighlightAuthor?: () => void
+  authorHighlighted?: boolean
+  // Selects the commit with its Checks open, from a job in its CI mark's list.
+  onOpenChecks?: () => void
 }
 
 function CommitRow({
@@ -48,6 +64,7 @@ function CommitRow({
   rowHeight,
   identity,
   refs,
+  upstreams,
   selected,
   dimmed = false,
   isNew = false,
@@ -59,10 +76,14 @@ function CommitRow({
   changes,
   repoPath = '',
   ci,
+  environments,
   referenceCards,
   style,
   onSelect,
   onContextMenu,
+  onHighlightAuthor,
+  authorHighlighted = false,
+  onOpenChecks,
 }: CommitRowProps) {
   useClockTick()
   const { laneColor } = useLaneColors()
@@ -98,14 +119,15 @@ function CommitRow({
       <div className="commit-row-commit">
         {refs && refs.length > 0 && (
           <span className="commit-row-refs">
-            {refs.map((r) => (
+            {pairUpstreams(refs, upstreams).map(({ ref: r, upstream }) => (
               <RefBadge
                 key={`${r.kind}-${r.name}`}
                 refInfo={r}
+                upstream={upstream}
                 color={laneColor(graphNode?.lane ?? 0)}
                 onClick={onFocusRef}
                 active={focusedSha === r.sha}
-                change={r.kind === 'remote' ? changes?.[r.name] : undefined}
+                change={changes?.[upstream?.name ?? (r.kind === 'remote' ? r.name : '')]}
               />
             ))}
           </span>
@@ -119,21 +141,28 @@ function CommitRow({
             render={(segment) => highlightMatch(segment, searchQuery, 'search-match')}
           />
         </span>
+        {environments && environments.length > 0 && <EnvironmentMarker environments={environments} />}
       </div>
 
       <div className="commit-row-author">
         {identity && (
-          <IdentityBadge identity={identity} name={commit.authorName} email={commit.authorEmail} size={18} />
+          <IdentityBadge
+            identity={identity}
+            name={commit.authorName}
+            email={commit.authorEmail}
+            size={18}
+            onClick={onHighlightAuthor}
+            pressed={authorHighlighted}
+          />
         )}
         <span className="commit-row-author-name">{highlightMatch(commit.authorName, searchQuery, 'search-match')}</span>
       </div>
 
-      <div className="commit-row-hash">
-        <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
-        <CIMark repoPath={repoPath} mark={ci} />
-        <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
-      </div>
-
+      <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
+      <span className="commit-row-ci">
+        <CIMark repoPath={repoPath} mark={ci} onOpenJobs={onOpenChecks} />
+      </span>
+      <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
       <span className="commit-row-actions">
         <button
           type="button"

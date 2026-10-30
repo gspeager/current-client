@@ -56,6 +56,11 @@
   }
 }
 
+.history-toolbar-first-parent {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .history-toolbar-filters {
   position: relative;
   flex-shrink: 0;

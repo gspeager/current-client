@@ -37,6 +37,13 @@ type TokenSource interface {
 	Token(ctx context.Context, hostName string) (string, error)
 }
 
+// AuthorizationSource is a TokenSource that writes the whole Authorization
+// header, for an API that doesn't take a bearer token, such as Jira Cloud's
+// basic auth with an email and an API token. "" sends none.
+type AuthorizationSource interface {
+	Authorization(ctx context.Context, hostName string) (string, error)
+}
+
 // Transport is what tests hand in instead of a real connection, so the app
 // never needs net/http itself.
 type Transport = http.RoundTripper
@@ -177,11 +184,17 @@ func (c *Client) GetJSON(ctx context.Context, host Host, path string, query url.
 // PostJSON sends body as JSON and decodes the answer into out, which may be
 // nil.
 func (c *Client) PostJSON(ctx context.Context, host Host, path string, body, out any) error {
+	return c.RequestJSON(ctx, host, http.MethodPost, path, body, out)
+}
+
+// RequestJSON is PostJSON with the method chosen, for a host whose writes
+// are a PATCH or a PUT.
+func (c *Client) RequestJSON(ctx context.Context, host Host, method, path string, body, out any) error {
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(http.MethodPost, apiURL(host, path, nil), bytes.NewReader(encoded))
+	req, err := http.NewRequest(method, apiURL(host, path, nil), bytes.NewReader(encoded))
 	if err != nil {
 		return err
 	}
@@ -241,14 +254,8 @@ func (c *Client) Do(ctx context.Context, host Host, req *http.Request) (*Respons
 	if until, ok := c.waiting(host.Name); ok {
 		return nil, &RateLimitError{Host: host.Name, Until: until}
 	}
-	if c.opts.Tokens != nil {
-		token, err := c.opts.Tokens.Token(ctx, host.Name)
-		if err != nil {
-			return nil, err
-		}
-		if token != "" {
-			req.Header.Set("Authorization", "Bearer "+token)
-		}
+	if err := c.authorize(ctx, host.Name, req); err != nil {
+		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	ctx, cancel := context.WithTimeout(ctx, c.opts.Timeout)
@@ -286,6 +293,24 @@ func (c *Client) Do(ctx context.Context, host Host, req *http.Request) (*Respons
 		return nil, &HostError{Host: host.Name, Status: resp.Status}
 	}
 	return resp, nil
+}
+
+func (c *Client) authorize(ctx context.Context, hostName string, req *http.Request) error {
+	if source, ok := c.opts.Tokens.(AuthorizationSource); ok {
+		header, err := source.Authorization(ctx, hostName)
+		if err == nil && header != "" {
+			req.Header.Set("Authorization", header)
+		}
+		return err
+	}
+	if c.opts.Tokens == nil {
+		return nil
+	}
+	token, err := c.opts.Tokens.Token(ctx, hostName)
+	if err == nil && token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	return err
 }
 
 // Forget drops everything held for a host turned off: its transport, any

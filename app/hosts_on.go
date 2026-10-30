@@ -19,3 +19,5 @@ func hostServices() []application.Service {
 func afterFetch(ctx context.Context, repoPath string) {
 	refreshHostChanges(ctx, repoPath)
 }
+
+func trackerReading(hostName string) bool { return hostEnabled(hostName) }

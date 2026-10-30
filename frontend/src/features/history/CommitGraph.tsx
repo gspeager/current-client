@@ -6,6 +6,8 @@ interface CommitGraphProps {
   laneCount: number
   rowHeight: number
   laneWidth?: number
+  // The working tree's node: outlined and dashed, not a commit.
+  dashed?: boolean
 }
 
 function laneX(lane: number, laneWidth: number): number {
@@ -14,10 +16,12 @@ function laneX(lane: number, laneWidth: number): number {
 
 const NODE_RADIUS = 4
 
-function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18 }: CommitGraphProps) {
+function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = false }: CommitGraphProps) {
   const { laneColor } = useLaneColors()
   const mid = rowHeight / 2
   const ownX = laneX(node.lane, laneWidth)
+  // An outlined node has no fill to hide the line, so it starts at the rim.
+  const below = dashed ? mid + NODE_RADIUS : mid
 
   return (
     <svg width={Math.max(laneCount, node.lane + 1) * laneWidth} height={rowHeight} style={{ display: 'block' }}>
@@ -59,7 +63,7 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18 }: CommitGraph
             <line
               key={`pl-${i}`}
               x1={ownX}
-              y1={mid}
+              y1={below}
               x2={ownX}
               y2={rowHeight}
               style={{ stroke: laneColor(lane) }}
@@ -71,7 +75,7 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18 }: CommitGraph
         return (
           <path
             key={`pl-${i}`}
-            d={`M ${ownX} ${mid} C ${ownX} ${mid}, ${x} ${mid}, ${x} ${rowHeight}`}
+            d={`M ${ownX} ${below} C ${ownX} ${mid}, ${x} ${mid}, ${x} ${rowHeight}`}
             fill="none"
             style={{ stroke: laneColor(lane) }}
             strokeWidth={1.5}
@@ -79,7 +83,19 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18 }: CommitGraph
         )
       })}
 
-      <circle cx={ownX} cy={mid} r={NODE_RADIUS} style={{ fill: laneColor(node.lane) }} />
+      {dashed ? (
+        <circle
+          cx={ownX}
+          cy={mid}
+          r={NODE_RADIUS}
+          fill="none"
+          strokeWidth={1.5}
+          strokeDasharray="2 2"
+          style={{ stroke: laneColor(node.lane) }}
+        />
+      ) : (
+        <circle cx={ownX} cy={mid} r={NODE_RADIUS} style={{ fill: laneColor(node.lane) }} />
+      )}
     </svg>
   )
 }

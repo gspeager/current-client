@@ -1,0 +1,280 @@
+@use '../../styles/patterns';
+
+// A panel in the inspector's slot, over the right of the body: beside a
+// view's own detail pane it would leave a commit list no room for subjects.
+// A row opens its target in the panel's place.
+.inbox {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: var(--pane-inspector);
+  padding: var(--space-md);
+  border-left: var(--border-structure);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+.inbox-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.inbox-close {
+  @include patterns.icon-button;
+}
+
+.inbox-title {
+  margin: 0;
+  font: var(--ui-md);
+  color: var(--on-surface);
+}
+
+.inbox-summary,
+.inbox-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.inbox-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-sm);
+}
+
+.inbox-repo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.inbox-repo-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.inbox-repo-age {
+  margin-left: auto;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.inbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inbox-group-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  padding: 0 var(--space-xs);
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.inbox-group-count {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.inbox-group-action {
+  margin-left: auto;
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  @include patterns.secondary-button;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.inbox-repo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-md);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+
+  svg {
+    color: var(--outline);
+  }
+}
+
+.inbox-repo-new {
+  color: var(--secondary);
+  font: var(--ui-xs);
+}
+
+.inbox-repo-count {
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-full);
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.inbox-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+// A row and, for a to-do, its Done button, shown while the item is hovered
+// or focused.
+.inbox-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.inbox-row-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+
+  .inbox-item:hover &,
+  .inbox-item:focus-within & {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+// One line per item: what and why; a dot for one not seen before.
+.inbox-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-table);
+  // The left padding holds the new dot.
+  padding: 0 var(--space-sm) 0 calc(var(--space-sm) + var(--space-xs));
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.inbox-row-icon {
+  color: var(--outline);
+
+  .inbox-row-operation &,
+  .inbox-row-conflict &,
+  .inbox-row-ci-failed &,
+  .inbox-row-changes-requested & {
+    color: var(--error);
+  }
+
+  .inbox-row-review &,
+  .inbox-row-assigned &,
+  .inbox-row-todo & {
+    color: var(--secondary);
+  }
+
+  .inbox-row-unpushed & {
+    color: var(--tertiary);
+  }
+}
+
+// What, then why, on one line; the subject shortens first.
+.inbox-row-text {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.inbox-row-subject {
+  flex: 0 1 auto;
+  min-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--ui-sm);
+}
+
+.inbox-row-reason {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  white-space: nowrap;
+}
+
+// A host row the Inbox hasn't shown before this refresh: a dot in the row's
+// left padding, so every dot lines up and the icon and text don't move.
+.inbox-row-new {
+  position: absolute;
+  top: calc(50% - 3px);
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--secondary);
+}
+
+.inbox-unrefreshed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.inbox-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
