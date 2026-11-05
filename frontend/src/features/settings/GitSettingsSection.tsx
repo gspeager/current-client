@@ -6,11 +6,12 @@ import SettingsRow from './SettingsRow'
 
 interface GitSettingsSectionProps {
   repoPath: string
+  refreshKey?: unknown
 }
 
-function GitSettingsSection({ repoPath }: GitSettingsSectionProps) {
+function GitSettingsSection({ repoPath, refreshKey }: GitSettingsSectionProps) {
   const [showAll, setShowAll] = useState(false)
-  const { data: report, error } = useAsyncData(() => GitService.GetGitSettings(repoPath), [repoPath])
+  const { data: report, error } = useAsyncData(() => GitService.GetGitSettings(repoPath), [repoPath], { refreshKey })
 
   return (
     <SettingsRow

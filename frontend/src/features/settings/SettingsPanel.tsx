@@ -82,6 +82,7 @@ function SettingsPanel({
   } = settings
   const [gitPathError, setGitPathError] = useState<string | null>(null)
   const [editorPathError, setEditorPathError] = useState<string | null>(null)
+  const [identityVersion, setIdentityVersion] = useState(0)
   const [section, setSection] = useState(initialGroup ?? 'Appearance')
   const groups = settingsGroups(hostIntegration)
 
@@ -192,7 +193,7 @@ function SettingsPanel({
           </SettingsGroup>
 
           <SettingsGroup title="Git">
-            <IdentitySettings />
+            <IdentitySettings onSaved={() => setIdentityVersion((version) => version + 1)} />
             <PathSettingRow
               label="Git executable"
               hint="Git 2.23 or newer."
@@ -213,7 +214,7 @@ function SettingsPanel({
                 ariaLabel="Conventional Commits"
               />
             </SettingsRow>
-            {repoPath && <GitSettingsSection repoPath={repoPath} />}
+            {repoPath && <GitSettingsSection repoPath={repoPath} refreshKey={identityVersion} />}
           </SettingsGroup>
 
           <SettingsGroup title="Tools and folders">

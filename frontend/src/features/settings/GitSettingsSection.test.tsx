@@ -31,6 +31,22 @@ describe('GitSettingsSection', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
+  it('reads them again when the identity is saved', async () => {
+    vi.mocked(GitService.GetGitSettings).mockResolvedValue({ entries, flags: [] })
+    const { rerender } = render(<GitSettingsSection repoPath="/repo" refreshKey={0} />)
+    await screen.findByText('Nothing unusual.')
+    vi.mocked(GitService.GetGitSettings).mockClear()
+    vi.mocked(GitService.GetGitSettings).mockResolvedValue({
+      entries,
+      flags: [{ key: 'user.email', message: 'Changed.' }],
+    })
+
+    rerender(<GitSettingsSection repoPath="/repo" refreshKey={1} />)
+
+    expect(await screen.findByText('Changed.')).toBeInTheDocument()
+    expect(GitService.GetGitSettings).toHaveBeenCalledTimes(1)
+  })
+
   it('says when there is nothing to flag', async () => {
     vi.mocked(GitService.GetGitSettings).mockResolvedValue({ entries, flags: [] })
     render(<GitSettingsSection repoPath="/repo" />)

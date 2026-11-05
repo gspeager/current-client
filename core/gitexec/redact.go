@@ -3,7 +3,7 @@ package gitexec
 import "regexp"
 
 var (
-	urlCredentialPattern = regexp.MustCompile(`(?i)(https?://|\w+://[^/\s:@]+:)[^/\s@]+@`)
+	urlCredentialPattern = regexp.MustCompile(`(?i)(https?://|\w+://[^/\s:@]+:)[^/\s]+@`)
 	tokenPattern         = regexp.MustCompile(`(?i)glpat-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{16,}|authorization:\s*(?:\S+\s+)?\S+|bearer\s+\S+|private-token:\s*\S+|token[=:]\s*\S+`)
 )
 

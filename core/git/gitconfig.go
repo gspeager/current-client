@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -85,7 +83,7 @@ func parseConfigList(output string) []ConfigEntry {
 	return entries
 }
 
-var secretConfigKey = regexp.MustCompile(`(?i)(pass(word|wd)?|token|secret|api-?key|extraheader)$`)
+var secretConfigKey = regexp.MustCompile(`(?i)(password|passwd|smtppass|token|secret|api-?key|extraheader)$`)
 
 func redactConfig(key, value string) (string, string) {
 	inlineHelper := strings.HasPrefix(key, "credential.") && strings.HasSuffix(key, ".helper") && strings.HasPrefix(value, "!")
@@ -141,19 +139,21 @@ func signingFlag(entries []ConfigEntry) (ConfigFlag, bool) {
 	if setting := lastConfig(entries, "gpg.format"); setting != nil && setting.Value != "" {
 		format = setting.Value
 	}
-	programs := map[string]string{"openpgp": "gpg", "ssh": "ssh-keygen", "x509": "gpgsm"}
+	program, known := map[string]string{"openpgp": "gpg", "ssh": "ssh-keygen", "x509": "gpgsm"}[format]
+	if !known {
+		return ConfigFlag{"gpg.format", fmt.Sprintf("Signing is on, but gpg.format isn't one Git knows: %s.", format)}, true
+	}
 	programKeys := []string{"gpg." + format + ".program"}
 	if format == "openpgp" {
 		programKeys = append(programKeys, "gpg.program")
 	}
-	program := programs[format]
 	for _, key := range programKeys {
 		if setting := lastConfig(entries, key); setting != nil && setting.Value != "" {
 			program = setting.Value
 			break
 		}
 	}
-	if _, err := exec.LookPath(expandHome(program)); err != nil {
+	if _, err := gitexec.LookPath(expandHome(program)); err != nil {
 		return ConfigFlag{on, fmt.Sprintf("Signing is on, but its program isn't found: %s.", program)}, true
 	}
 	if format != "ssh" || lastConfig(entries, "gpg.ssh.defaultkeycommand") != nil {
@@ -172,10 +172,21 @@ func signingFlag(entries []ConfigEntry) (ConfigFlag, bool) {
 	return ConfigFlag{}, false
 }
 
+// An empty value clears the helpers set before it. A helper for one host counts,
+// since which hosts matter depends on the repository's remotes.
 func hasCredentialHelper(entries []ConfigEntry) bool {
-	return slices.ContainsFunc(entries, func(entry ConfigEntry) bool {
-		return entry.Value != "" && strings.HasPrefix(entry.Key, "credential.") && strings.HasSuffix(entry.Key, ".helper")
-	})
+	last := map[string]string{}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Key, "credential.") && strings.HasSuffix(entry.Key, ".helper") {
+			last[entry.Key] = entry.Value
+		}
+	}
+	for _, value := range last {
+		if value != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // globalIgnoreFile returns the file core.excludesfile names, or Git's default

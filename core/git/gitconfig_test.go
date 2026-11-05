@@ -2,11 +2,13 @@ package git
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/internal/gittest"
 )
 
@@ -159,10 +161,43 @@ func TestInspectConfigFlagsSigning(t *testing.T) {
 	}
 }
 
-func TestInspectConfigFlagsNoCredentialHelper(t *testing.T) {
+func TestInspectConfigNamesAnUnknownSigningFormat(t *testing.T) {
 	repo, _ := isolatedConfigRepo(t, namedUser)
+	gittest.Run(t, repo, "config", "commit.gpgsign", "true")
+	gittest.Run(t, repo, "config", "gpg.format", "sshh")
+	if flag := flagFor(inspect(t, repo), "gpg.format"); !strings.Contains(flag, "sshh") {
+		t.Fatalf("unknown format flag = %q", flag)
+	}
+}
+
+func TestInspectConfigExplainsAGitTooOld(t *testing.T) {
+	stub := filepath.Join(t.TempDir(), "git")
+	if err := os.WriteFile(stub, []byte("#!/bin/sh\nexit 129\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitexec.SetDefaultBinary(stub)
+	t.Cleanup(func() { gitexec.SetDefaultBinary("") })
+	if _, err := InspectConfig(context.Background(), t.TempDir()); !errors.Is(err, ErrConfigScopeUnsupported) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestInspectConfigLeavesAskpassReadable(t *testing.T) {
+	repo, _ := isolatedConfigRepo(t, namedUser)
+	gittest.Run(t, repo, "config", "core.askpass", "/usr/bin/askpass")
+	if entry := lastConfig(inspect(t, repo).Entries, "core.askpass"); entry == nil || entry.Value != "/usr/bin/askpass" {
+		t.Fatalf("core.askpass = %+v", entry)
+	}
+}
+
+func TestInspectConfigFlagsNoCredentialHelper(t *testing.T) {
+	repo, _ := isolatedConfigRepo(t, namedUser+"[credential]\n\thelper = store\n")
+	if flag := flagFor(inspect(t, repo), "credential.helper"); flag != "" {
+		t.Fatalf("a helper flagged: %q", flag)
+	}
+	gittest.Run(t, repo, "config", "credential.helper", "")
 	if flagFor(inspect(t, repo), "credential.helper") == "" {
-		t.Fatal("no helper should be flagged")
+		t.Fatal("a cleared helper should be flagged")
 	}
 	gittest.Run(t, repo, "config", "credential.https://git.example.com.helper", "store")
 	if flag := flagFor(inspect(t, repo), "credential.helper"); flag != "" {
