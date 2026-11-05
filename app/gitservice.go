@@ -10,6 +10,38 @@ import (
 
 type GitService struct{}
 
+type GitSettingInfo struct {
+	Key    string `json:"key"`
+	Value  string `json:"value"`
+	Scope  string `json:"scope"`
+	Origin string `json:"origin"`
+}
+
+type GitSettingFlagInfo struct {
+	Key     string `json:"key"`
+	Message string `json:"message"`
+}
+
+type GitSettingsInfo struct {
+	Entries []GitSettingInfo     `json:"entries"`
+	Flags   []GitSettingFlagInfo `json:"flags"`
+}
+
+func (s *GitService) GetGitSettings(repoPath string) (GitSettingsInfo, error) {
+	report, err := git.InspectConfig(context.Background(), repoPath)
+	if err != nil {
+		return GitSettingsInfo{}, err
+	}
+	info := GitSettingsInfo{Entries: []GitSettingInfo{}, Flags: []GitSettingFlagInfo{}}
+	for _, entry := range report.Entries {
+		info.Entries = append(info.Entries, GitSettingInfo(entry))
+	}
+	for _, flag := range report.Flags {
+		info.Flags = append(info.Flags, GitSettingFlagInfo(flag))
+	}
+	return info, nil
+}
+
 func (s *GitService) LFSInstalled() bool {
 	return git.LFSInstalled(context.Background())
 }

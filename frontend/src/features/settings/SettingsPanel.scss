@@ -174,6 +174,51 @@
   font: var(--data-sm);
 }
 
+.settings-git-config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.settings-git-flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.settings-git-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+
+  th {
+    height: var(--h-row-table);
+    color: var(--outline);
+    font: var(--ui-xs);
+    text-align: left;
+  }
+
+  td {
+    height: var(--h-row-table);
+    padding-right: var(--space-sm);
+    overflow: hidden;
+    border-top: var(--border-structure);
+    color: var(--on-surface-variant);
+    font: var(--data-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    .path-text {
+      display: block;
+    }
+  }
+}
+
 .settings-path-unset {
   color: var(--outline);
   font: var(--ui-sm);

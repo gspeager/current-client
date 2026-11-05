@@ -7,6 +7,7 @@ import { errorMessage } from '../../lib/errors'
 import { LANE_THEME_NAMES, LANE_THEMES, toLaneThemeName, type LaneThemeName } from '../../lib/laneColor'
 import type { useSettings } from './useSettings'
 import DiagnosticsSection from './DiagnosticsSection'
+import GitSettingsSection from './GitSettingsSection'
 import UpdateSection from './UpdateSection'
 import IdentityColorSettings from './IdentityColorSettings'
 import IdentitySettings from './IdentitySettings'
@@ -81,6 +82,7 @@ function SettingsPanel({
   } = settings
   const [gitPathError, setGitPathError] = useState<string | null>(null)
   const [editorPathError, setEditorPathError] = useState<string | null>(null)
+  const [identityVersion, setIdentityVersion] = useState(0)
   const [section, setSection] = useState(initialGroup ?? 'Appearance')
   const groups = settingsGroups(hostIntegration)
 
@@ -191,7 +193,7 @@ function SettingsPanel({
           </SettingsGroup>
 
           <SettingsGroup title="Git">
-            <IdentitySettings />
+            <IdentitySettings onSaved={() => setIdentityVersion((version) => version + 1)} />
             <PathSettingRow
               label="Git executable"
               hint="Git 2.23 or newer."
@@ -212,6 +214,7 @@ function SettingsPanel({
                 ariaLabel="Conventional Commits"
               />
             </SettingsRow>
+            {repoPath && <GitSettingsSection repoPath={repoPath} refreshKey={identityVersion} />}
           </SettingsGroup>
 
           <SettingsGroup title="Tools and folders">

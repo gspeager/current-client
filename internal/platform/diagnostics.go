@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type RecentError struct {
@@ -33,13 +35,9 @@ type DiagnosticsInput struct {
 	OmitHostnames bool
 }
 
-// Tokens and host answers never belong in a report, however they got into
-// an error message: known token shapes, bearer and private-token headers,
-// anything after "token=", JSON objects and HTML pages.
-var (
-	tokenPattern    = regexp.MustCompile(`(?i)glpat-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{16,}|bearer\s+\S+|private-token:\s*\S+|token[=:]\s*\S+`)
-	responsePattern = regexp.MustCompile(`(?is)\{[^{}]*"[^{}]*\}|<(?:!doctype|html)\b[^\n]*`)
-)
+// Host answers never belong in a report, however they got into an error
+// message: JSON objects and HTML pages. Nor do secrets; see gitexec.RedactSecrets.
+var responsePattern = regexp.MustCompile(`(?is)\{[^{}]*"[^{}]*\}|<(?:!doctype|html)\b[^\n]*`)
 
 // Diagnostics formats a report to paste into a bug report. It contains no
 // repository paths, and the home folder is shown as "~".
@@ -65,7 +63,7 @@ func Diagnostics(in DiagnosticsInput) string {
 		fmt.Fprintf(&b, "  %s  %s\n", e.At, e.Message)
 	}
 	text := redact(b.String(), in.HomeDir, in.RepoPaths)
-	text = tokenPattern.ReplaceAllString(text, "<token>")
+	text = gitexec.RedactSecrets(text)
 	text = responsePattern.ReplaceAllString(text, "<response omitted>")
 	if in.OmitHostnames {
 		text = replaceAll(text, in.Hostnames, "<host>")
