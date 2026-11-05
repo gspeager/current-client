@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Added
 
+- **Switching back to a branch puts you where you were.** Each branch keeps its own selected file in Changes, how far its diff was scrolled, and its draft commit message, until the app closes or the branch is deleted. A branch you haven't been on yet starts with what you had, so a draft follows you to a new branch made to commit it on. ([#273](https://github.com/gspeager/current-client/issues/273))
 - **Which Git settings apply, and where they come from.** Settings → Git → **Settings in effect** lists the Git settings the open repository uses, with each one's scope and file, and flags the usual surprises: an author name or email that's missing or overridden (including by an `includeIf`), `core.autocrlf`, commit signing that's on with no program or key to be found, no credential helper, and a global ignore file. It changes nothing and signs nothing, and credentials are hidden. It needs Git 2.26 or newer. ([#383](https://github.com/gspeager/current-client/issues/383))
 
 ### Fixed

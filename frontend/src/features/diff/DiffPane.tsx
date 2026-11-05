@@ -1,4 +1,13 @@
-import { Fragment, useLayoutEffect, useRef, type Key, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import {
+  Fragment,
+  useLayoutEffect,
+  useRef,
+  type Key,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
+  type UIEvent,
+} from 'react'
 import { MessageSquarePlus } from 'lucide-react'
 import type { DiffLine, LineSelection } from '@current-client-bindings/app'
 import { useDiffWrap } from './diffWrap'
@@ -299,6 +308,7 @@ interface DiffPaneProps extends HunkActions {
   blockStarts?: Set<number>
   // The conflicted file as it is: one line-number column, the working file's.
   resultView?: boolean
+  onScrollTopChange?: (top: number) => void
 }
 
 // Split mode is one grid, so hunk headers can span both columns, unless lines
@@ -317,9 +327,16 @@ function DiffPane({
   onLineMenu,
   blockStarts,
   resultView = false,
+  onScrollTopChange,
   ...hunkActions
 }: DiffPaneProps) {
   const { wrap } = useDiffWrap()
+  // Capture, since scroll events don't bubble up from the two sides. Anything
+  // else that scrolls inside the pane, such as a reply box, isn't the diff.
+  const reportScroll = (e: UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (target === e.currentTarget || target.classList.contains('diff-side')) onScrollTopChange?.(target.scrollTop)
+  }
   const language = languageForPath(path)
   // Blocks go after the pair; with each side rendered on its own they can't
   // span both, so DiffViewer lists them below the diff instead, and no line
@@ -390,14 +407,24 @@ function DiffPane({
 
   if (mode === 'split' && !wrap) {
     return (
-      <div className="diff-pane diff-pane-sides" ref={scrollRef} onContextMenu={lineMenu}>
+      <div
+        className="diff-pane diff-pane-sides"
+        ref={scrollRef}
+        onContextMenu={lineMenu}
+        onScrollCapture={reportScroll}
+      >
         <SyncedSides left={renderRows('left')} right={renderRows('right')} />
       </div>
     )
   }
 
   return (
-    <div className={`diff-pane diff-pane-${mode}`} ref={scrollRef} onContextMenu={lineMenu}>
+    <div
+      className={`diff-pane diff-pane-${mode}`}
+      ref={scrollRef}
+      onContextMenu={lineMenu}
+      onScrollCapture={reportScroll}
+    >
       {renderRows()}
     </div>
   )

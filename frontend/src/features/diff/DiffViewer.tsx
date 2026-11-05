@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image } from 'lucide-react'
 import type { FileDiff, LineSelection, ReviewThread } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
@@ -53,12 +53,17 @@ interface DiffViewerProps extends HunkActions {
   // The change this diff belongs to, when the host is on: lines take review
   // comments, threads take replies, and a review can be submitted.
   review?: { repoPath: string; number: number; prefix: string }
+  // Where the first diff shown opens, and where the diff has since been scrolled.
+  initialScrollTop?: number
+  onScrollTopChange?: (top: number) => void
 }
 
 function DiffViewer({
   diff,
   path,
   viewMode,
+  initialScrollTop = 0,
+  onScrollTopChange,
   baseSide,
   targetSide,
   onForceLoad,
@@ -86,6 +91,17 @@ function DiffViewer({
   const [currentBlock, setCurrentBlock] = useState(0)
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set())
   const lastToggled = useRef<string | null>(null)
+  const initialScrollApplied = useRef(false)
+
+  // The pane only exists once the diff has lines to show.
+  useLayoutEffect(() => {
+    const pane = paneRef.current
+    if (!pane || initialScrollApplied.current) return
+    initialScrollApplied.current = true
+    if (!initialScrollTop) return
+    const sides = pane.querySelectorAll<HTMLElement>('.diff-side')
+    for (const scroller of sides.length > 0 ? sides : [pane]) scroller.scrollTop = initialScrollTop
+  })
 
   useEffect(() => {
     setExpandedGroups(new Set())
@@ -328,6 +344,7 @@ function DiffViewer({
           onToggleGroup={toggleGroup}
           currentHunkIndex={currentHunkIndex}
           scrollRef={paneRef}
+          onScrollTopChange={onScrollTopChange}
           lineSelect={
             canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
           }

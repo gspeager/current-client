@@ -45,6 +45,47 @@ function currentHeader() {
     ?.textContent
 }
 
+describe('DiffViewer scroll position', () => {
+  it('opens where it was left and reports where it moves, in either layout', () => {
+    for (const viewMode of ['unified', 'split'] as const) {
+      const onScrollTopChange = vi.fn()
+      const { container, unmount } = render(
+        <DiffViewer
+          diff={diff}
+          path="a.ts"
+          viewMode={viewMode}
+          initialScrollTop={120}
+          onScrollTopChange={onScrollTopChange}
+        />,
+      )
+      const pane = container.querySelector<HTMLElement>('.diff-pane')!
+      const sides = pane.querySelectorAll<HTMLElement>('.diff-side')
+      const scroller = sides.length > 0 ? sides[0] : pane
+
+      expect(scroller.scrollTop).toBe(120)
+
+      fireEvent.scroll(scroller, { target: { scrollTop: 40 } })
+      expect(onScrollTopChange).toHaveBeenLastCalledWith(40)
+      unmount()
+    }
+  })
+})
+
+describe('DiffViewer scroll reports', () => {
+  it('ignores something else scrolling inside the pane', () => {
+    const onScrollTopChange = vi.fn()
+    const { container } = render(
+      <DiffViewer diff={diff} path="a.ts" viewMode="unified" onScrollTopChange={onScrollTopChange} />,
+    )
+    const pane = container.querySelector<HTMLElement>('.diff-pane')!
+    const inner = pane.firstElementChild as HTMLElement
+
+    fireEvent.scroll(inner, { target: { scrollTop: 5 } })
+
+    expect(onScrollTopChange).not.toHaveBeenCalled()
+  })
+})
+
 describe('DiffViewer hunk navigation', () => {
   it('starts on the first hunk and moves forward/backward with Alt+ArrowDown/Up', () => {
     render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" />)
