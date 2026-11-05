@@ -204,6 +204,9 @@ func parseGoMod(data []byte) (versions, error) {
 	for _, require := range file.Require {
 		found.add(require.Mod.Path, require.Mod.Version)
 	}
+	for _, replace := range file.Replace {
+		found.add(replace.Old.Path+" => "+replace.New.Path, replace.New.Version)
+	}
 	return found, nil
 }
 
@@ -230,6 +233,11 @@ func parseCargoToml(data []byte) (versions, error) {
 		Workspace         struct {
 			Dependencies map[string]any `toml:"dependencies"`
 		} `toml:"workspace"`
+		Target map[string]struct {
+			Dependencies      map[string]any `toml:"dependencies"`
+			DevDependencies   map[string]any `toml:"dev-dependencies"`
+			BuildDependencies map[string]any `toml:"build-dependencies"`
+		} `toml:"target"`
 	}
 	if err := toml.Unmarshal(data, &manifest); err != nil {
 		return nil, err
@@ -237,6 +245,11 @@ func parseCargoToml(data []byte) (versions, error) {
 	found := versions{}
 	for _, section := range []map[string]any{manifest.Dependencies, manifest.DevDependencies, manifest.BuildDependencies, manifest.Workspace.Dependencies} {
 		addTomlDependencies(found, section)
+	}
+	for _, target := range manifest.Target {
+		addTomlDependencies(found, target.Dependencies)
+		addTomlDependencies(found, target.DevDependencies)
+		addTomlDependencies(found, target.BuildDependencies)
 	}
 	return found, nil
 }
@@ -277,6 +290,7 @@ func parsePyproject(data []byte) (versions, error) {
 			Dependencies         []string            `toml:"dependencies"`
 			OptionalDependencies map[string][]string `toml:"optional-dependencies"`
 		} `toml:"project"`
+		DependencyGroups map[string][]any `toml:"dependency-groups"`
 		Tool struct {
 			Poetry struct {
 				Dependencies    map[string]any `toml:"dependencies"`
@@ -293,6 +307,16 @@ func parsePyproject(data []byte) (versions, error) {
 	found := versions{}
 	lists := [][]string{project.Project.Dependencies}
 	for _, list := range project.Project.OptionalDependencies {
+		lists = append(lists, list)
+	}
+	for _, group := range project.DependencyGroups {
+		var list []string
+		for _, entry := range group {
+			// The other form is a table including another group.
+			if requirement, ok := entry.(string); ok {
+				list = append(list, requirement)
+			}
+		}
 		lists = append(lists, list)
 	}
 	for _, list := range lists {
@@ -314,7 +338,7 @@ func parsePyproject(data []byte) (versions, error) {
 
 func parseRequirements(data []byte) (versions, error) {
 	found := versions{}
-	text := strings.ReplaceAll(string(data), "\\\n", " ")
+	text := strings.ReplaceAll(strings.ReplaceAll(string(data), "\r\n", "\n"), "\\\n", " ")
 	for _, line := range strings.Split(text, "\n") {
 		if at := strings.Index(line, " #"); at >= 0 {
 			line = line[:at]

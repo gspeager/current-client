@@ -656,7 +656,9 @@ function FilesTab({ repoPath, number, onLoaded }: TabProps) {
   return (
     <>
       {dependencies?.hasManifests && !dependencies.headAvailable && (
-        <p className="host-change-files-hint">Package changes show once this change's head is on this computer.</p>
+        <p className="host-change-files-hint">
+          Package changes show once this change's head and target are on this computer.
+        </p>
       )}
       <ul className="host-change-files" aria-label="Files">
         {data.map((file) => {
@@ -671,7 +673,7 @@ function FilesTab({ repoPath, number, onLoaded }: TabProps) {
                 </span>
                 <DiffStat added={file.additions} removed={file.deletions} binary={false} />
               </li>
-              {summary && (
+              {summary && summary.changes.length > 0 && (
                 <li>
                   <DependencySummary changes={summary.changes} />
                 </li>

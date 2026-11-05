@@ -155,6 +155,44 @@ func TestSummarizeReportsNothingWhenOnlyOtherFieldsChanged(t *testing.T) {
 	}
 }
 
+func TestSummarizeLessCommonSections(t *testing.T) {
+	cases := []struct {
+		path, before, after string
+		want                Change
+	}{
+		{
+			"Cargo.toml",
+			"[target.'cfg(unix)'.dependencies]\na = \"1\"\n",
+			"[target.'cfg(unix)'.dependencies]\na = \"2\"\n",
+			Change{Name: "a", Kind: Bumped, From: "1", To: "2"},
+		},
+		{
+			"pyproject.toml",
+			"[dependency-groups]\ndev = [\"a==1\", {include-group = \"x\"}]\n",
+			"[dependency-groups]\ndev = [\"a==2\", {include-group = \"x\"}]\n",
+			Change{Name: "a", Kind: Bumped, From: "==1", To: "==2"},
+		},
+		{
+			"go.mod",
+			"module m\n",
+			"module m\n\nreplace example.com/a => github.com/fork/a v1.0.0\n",
+			Change{Name: "example.com/a => github.com/fork/a", Kind: Added, To: "v1.0.0"},
+		},
+		{
+			"requirements.txt",
+			"a==1 \\\r\n  --hash=sha256:x\r\n",
+			"a==2 \\\r\n  --hash=sha256:y\r\n",
+			Change{Name: "a", Kind: Bumped, From: "==1", To: "==2"},
+		},
+	}
+	for _, c := range cases {
+		got, err := Summarize(c.path, []byte(c.before), []byte(c.after))
+		if err != nil || !reflect.DeepEqual(got, []Change{c.want}) {
+			t.Errorf("%s: got %+v, %v, want %+v", c.path, got, err, c.want)
+		}
+	}
+}
+
 func TestRequirementNamesAreNormalized(t *testing.T) {
 	got, err := Summarize("requirements.txt", []byte("Foo_Bar[extra]==1.0\n"), []byte("foo-bar==2.0\n"))
 	if err != nil {

@@ -111,11 +111,13 @@ describe('DiffViewer dependency summary', () => {
     expect(screen.getByText('left-pad')).toBeInTheDocument()
   })
 
-  it('says when no package changed', async () => {
+  it('shows the raw diff when no package changed, since it may not have read every section', async () => {
     vi.mocked(DiffService.GetDependencySummary).mockResolvedValue({ available: true, changes: [] })
     render(<DiffViewer diff={diff} path="package.json" viewMode="unified" images={images} />)
 
-    expect(await screen.findByText('No packages changed.')).toBeInTheDocument()
+    await vi.waitFor(() => expect(DiffService.GetDependencySummary).toHaveBeenCalled())
+    expect(screen.getAllByText(/first$/).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Summary' })).not.toBeInTheDocument()
   })
 
   it('shows the raw diff when there is nothing to summarize', async () => {

@@ -106,6 +106,8 @@ function DiffViewer({
     { refreshKey: diff },
   )
 
+  useEffect(() => setShowRawDiff(false), [path])
+
   // The pane only exists once the diff has lines to show.
   useLayoutEffect(() => {
     const pane = paneRef.current
@@ -186,7 +188,7 @@ function DiffViewer({
   const lfs = lfsPointerChange(diff)
   if (lfs) return <LfsDiff change={lfs} />
 
-  const summarized = dependencies?.available && !diff.conflicted
+  const summarized = dependencies?.available && dependencies.changes.length > 0 && !diff.conflicted
   const summaryToggle = summarized && (
     <div className="diff-image-toggle">
       <SegmentedControl
