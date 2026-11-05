@@ -7,6 +7,7 @@ import { errorMessage } from '../../lib/errors'
 import { LANE_THEME_NAMES, LANE_THEMES, toLaneThemeName, type LaneThemeName } from '../../lib/laneColor'
 import type { useSettings } from './useSettings'
 import DiagnosticsSection from './DiagnosticsSection'
+import GitSettingsSection from './GitSettingsSection'
 import UpdateSection from './UpdateSection'
 import IdentityColorSettings from './IdentityColorSettings'
 import IdentitySettings from './IdentitySettings'
@@ -212,6 +213,7 @@ function SettingsPanel({
                 ariaLabel="Conventional Commits"
               />
             </SettingsRow>
+            {repoPath && <GitSettingsSection repoPath={repoPath} />}
           </SettingsGroup>
 
           <SettingsGroup title="Tools and folders">

@@ -4,7 +4,13 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Which Git settings apply, and where they come from.** Settings → Git → **Settings in effect** lists the Git settings the open repository uses, with each one's scope and file, and flags the usual surprises: an author name or email that's missing or overridden (including by an `includeIf`), `core.autocrlf`, commit signing that's on with no program or key to be found, no credential helper, and a global ignore file. It changes nothing and signs nothing, and credentials are hidden. It needs Git 2.26 or newer. ([#383](https://github.com/gspeager/current-client/issues/383))
+
 ### Fixed
+
+- **Diagnostics now hide more credentials.** A password in a URL and an `Authorization` header are left out of the report, as tokens already were. ([#383](https://github.com/gspeager/current-client/issues/383))
 
 - **Fetched merge request / pull request heads no longer count as history.** With host integration on, commits only reachable from a fetched head could appear in History's All branches, Activity, repository stats, file churn and Standup. Removing a repository from the recent list now also deletes its fetched heads, as the integrations guide promised. ([#392](https://github.com/gspeager/current-client/issues/392))
 
