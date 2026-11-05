@@ -196,7 +196,8 @@ func parsePackageLock(data []byte) (versions, error) {
 }
 
 func parseGoMod(data []byte) (versions, error) {
-	file, err := modfile.ParseLax("go.mod", data, nil)
+	// Parse, not ParseLax, which skips replace lines.
+	file, err := modfile.Parse("go.mod", data, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +292,7 @@ func parsePyproject(data []byte) (versions, error) {
 			OptionalDependencies map[string][]string `toml:"optional-dependencies"`
 		} `toml:"project"`
 		DependencyGroups map[string][]any `toml:"dependency-groups"`
-		Tool struct {
+		Tool             struct {
 			Poetry struct {
 				Dependencies    map[string]any `toml:"dependencies"`
 				DevDependencies map[string]any `toml:"dev-dependencies"`
