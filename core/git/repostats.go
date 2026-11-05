@@ -22,8 +22,7 @@ type RepoStats struct {
 func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	var stats RepoStats
 
-	// Stash entries are commits too; --exclude must come before --all to apply.
-	commits, err := runResult(ctx, repoPath, "rev-list", "--count", "--exclude=refs/stash", "--all")
+	commits, err := runResult(ctx, repoPath, append([]string{"rev-list", "--count"}, allRefs...)...)
 	if err != nil {
 		return stats, err
 	}
@@ -42,7 +41,7 @@ func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	stats.FileCount = len(files)
 
 	// The root commits; a repository that merged in another history has several.
-	roots, err := runResult(ctx, repoPath, "log", "--max-parents=0", "--exclude=refs/stash", "--all", "--format=%at")
+	roots, err := runResult(ctx, repoPath, append([]string{"log", "--max-parents=0", "--format=%at"}, allRefs...)...)
 	if err != nil {
 		return stats, err
 	}

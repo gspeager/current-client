@@ -5,8 +5,37 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/config"
 )
+
+func TestRemoveRecentRepositoryDeletesFetchedHeadsOnly(t *testing.T) {
+	useTempSettings(t)
+	repo := t.TempDir()
+	gitIn(t, repo, "init", "-q", "-b", "main")
+	gitIn(t, repo, "-c", "user.name=X", "-c", "user.email=x@example.com", "commit", "-q", "--allow-empty", "-m", "initial")
+	gitIn(t, repo, "update-ref", "refs/current-client/hosts/origin/mr/1", "HEAD")
+	gitIn(t, repo, "update-ref", "refs/current-client/snapshots/1", "HEAD")
+	if err := updateConfig(func(cfg *config.Config) { cfg.RecentRepositories = []string{repo} }); err != nil {
+		t.Fatal(err)
+	}
+
+	var s RepositoryService
+	if err := s.RemoveRecentRepository(repo); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "--format=%(refname)", "refs/current-client"))); got != "refs/current-client/snapshots/1" {
+		t.Fatalf("refs left = %q", got)
+	}
+	if err := s.RemoveRecentRepository(filepath.Join(repo, "gone")); err != nil {
+		t.Fatalf("a folder that's gone should still be forgotten: %v", err)
+	}
+	if cfg := configOrDefault(); len(cfg.RecentRepositories) != 0 {
+		t.Fatalf("recent = %v", cfg.RecentRepositories)
+	}
+}
 
 func TestCloneRepositoryCreatesFolderInsideParent(t *testing.T) {
 	home := t.TempDir()

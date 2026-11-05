@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
@@ -64,8 +65,12 @@ type OpenTabsInfo struct {
 	Focused string   `json:"focused"`
 }
 
-// RemoveRecentRepository only forgets the path; nothing on disk is touched.
+// RemoveRecentRepository forgets the path and deletes the host heads the app
+// fetched into it. The folder may already be gone, so that error doesn't count.
 func (s *RepositoryService) RemoveRecentRepository(path string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_ = git.DeleteHostRefs(ctx, path, "")
 	return updateConfig(func(cfg *config.Config) {
 		cfg.RecentRepositories = repository.RemoveRecent(cfg.RecentRepositories, path)
 	})

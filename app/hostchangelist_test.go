@@ -114,7 +114,7 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	if got := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "--abbrev-ref", "HEAD"))); got != "feature" {
 		t.Fatalf("HEAD is %s", got)
 	}
-	if got := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "refs/current-client/origin/mr/3"))); got != headSHA {
+	if got := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "refs/current-client/hosts/origin/mr/3"))); got != headSHA {
 		t.Fatalf("fetched head = %s, want %s", got, headSHA)
 	}
 	again, err := s.CheckoutChange(context.Background(), repo, 3, nil)

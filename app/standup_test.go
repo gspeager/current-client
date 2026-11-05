@@ -22,6 +22,9 @@ func TestStandupListsOwnCommitsOnEveryBranchSince(t *testing.T) {
 	commit("bob@example.com", "2026-10-25T10:00:00Z", "bob's work")
 	gitIn(t, repo, "switch", "-q", "-c", "side")
 	commit("ada@example.com", "2026-10-25T11:00:00Z", "fix: on a side branch")
+	commit("ada@example.com", "2026-10-25T12:00:00Z", "only on a fetched head")
+	gitIn(t, repo, "update-ref", "refs/current-client/hosts/origin/mr/1", "HEAD")
+	gitIn(t, repo, "reset", "-q", "--hard", "HEAD~1")
 
 	var inbox InboxService
 	repos, err := inbox.Standup([]string{repo}, time.Date(2026, 10, 24, 0, 0, 0, 0, time.UTC).Format(time.RFC3339))

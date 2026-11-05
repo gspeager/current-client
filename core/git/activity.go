@@ -23,7 +23,7 @@ func CommitActivity(ctx context.Context, repoPath string, days int) ([]DayActivi
 	today := time.Now()
 	counts, err := cachedByRefs(ctx, repoPath, fmt.Sprintf("activity\x00%s\x00%d", today.Format("2006-01-02"), window), func() (map[string]int, error) {
 		since := sinceMidnight(today.AddDate(0, 0, -window+1))
-		result, err := runResult(ctx, repoPath, "log", "--exclude=refs/stash", "--all", "--since="+since, "--format=%ad", "--date=short")
+		result, err := runResult(ctx, repoPath, append([]string{"log", "--since=" + since, "--format=%ad", "--date=short"}, allRefs...)...)
 		if err != nil {
 			return nil, err
 		}
