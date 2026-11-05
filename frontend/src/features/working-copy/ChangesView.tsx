@@ -39,6 +39,8 @@ interface ChangesViewProps {
   onDiffExpandedChange?: (expanded: boolean) => void
   initialSelectedPath?: string | null
   onSelectedPathChange?: (path: string | null) => void
+  initialDiffScrollTop?: number
+  onDiffScrollChange?: (top: number) => void
   initialCommitDraft?: string
   onCommitDraftChange?: (message: string) => void
   showCommitTypePicker?: boolean
@@ -61,6 +63,8 @@ function ChangesView({
   onDiffExpandedChange,
   initialSelectedPath = null,
   onSelectedPathChange,
+  initialDiffScrollTop = 0,
+  onDiffScrollChange,
   initialCommitDraft = '',
   onCommitDraftChange,
   showCommitTypePicker = false,
@@ -89,6 +93,7 @@ function ChangesView({
   const untracked = !showsStaged && unstaged.some((f) => f.path === selectedPath && f.worktreeStatus === '?')
 
   const selectPath = (path: string | null) => {
+    if (path !== selectedPath) onDiffScrollChange?.(0)
     setSelectedPath(path)
     onSelectedPathChange?.(path)
   }
@@ -333,6 +338,8 @@ function ChangesView({
                 diff={diff}
                 path={selectedPath}
                 viewMode={viewMode}
+                initialScrollTop={initialDiffScrollTop}
+                onScrollTopChange={onDiffScrollChange}
                 threads={reviewThreads.byPath[selectedPath]}
                 outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
                 baseSide={

@@ -167,7 +167,23 @@ function App({
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
-  const { activeTab: rememberedTab, setActiveTab, restored, remember } = useTabMemory(repo.repoPath)
+  const { data: localBranches } = useAsyncData(
+    () => (repo.repoPath ? BranchService.ListLocal(repo.repoPath) : null),
+    [repo.repoPath],
+    { refreshKey: repoVersion },
+  )
+  const {
+    activeTab: rememberedTab,
+    setActiveTab,
+    restored,
+    remember,
+    memoryBranch,
+    forgetBranchesExcept,
+  } = useTabMemory(repo.repoPath, localBranches ? (localBranches.find((b) => b.current)?.name ?? '') : null)
+  useEffect(() => {
+    if (localBranches) forgetBranchesExcept(localBranches.map((b) => b.name))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localBranches])
   const { data: conventional } = useAsyncData(
     () => (repo.repoPath ? HistoryService.FollowsConventionalCommits(repo.repoPath) : null),
     [repo.repoPath],
@@ -766,7 +782,7 @@ function App({
               <main className="app-main">
                 <KeepAlive active={activeTab === 'working-copy'}>
                   <ChangesView
-                    key={`${repo.repoPath}-${repoVersion}-${fileFocus}`}
+                    key={`${repo.repoPath}-${memoryBranch}-${repoVersion}-${fileFocus}`}
                     repoPath={repo.repoPath}
                     workingTree={workingTree}
                     onPushRequested={push}
@@ -776,6 +792,8 @@ function App({
                     onDiffExpandedChange={settings.setDiffExpanded}
                     initialSelectedPath={restored.selectedFilePath}
                     onSelectedPathChange={(path) => remember({ selectedFilePath: path })}
+                    initialDiffScrollTop={restored.diffScrollTop}
+                    onDiffScrollChange={(top) => remember({ diffScrollTop: top })}
                     initialCommitDraft={restored.commitDraft}
                     onCommitDraftChange={(message) => remember({ commitDraft: message })}
                     showCommitTypePicker={conventionalCommitsOn}
