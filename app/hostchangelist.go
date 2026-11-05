@@ -6,10 +6,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gspeager/current-client/core/deps"
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
@@ -117,6 +119,54 @@ func (s *HostService) ChangeFiles(repoPath string, number int) ([]hostapi.Change
 	return cachedOrFetched(info, repoPath, cacheFiles, strconv.Itoa(change.Number), func(ctx context.Context, provider hostapi.Provider) ([]hostapi.ChangeFile, error) {
 		return provider.ChangeFiles(ctx, info.Project, change.Number)
 	})
+}
+
+// ChangeDependencyInfo.HeadAvailable is false when the change's head isn't on
+// this computer as the last refresh saw it, so there's nothing to compare.
+type ChangeDependencyInfo struct {
+	HasManifests  bool                             `json:"hasManifests"`
+	HeadAvailable bool                             `json:"headAvailable"`
+	Summaries     map[string]DependencySummaryInfo `json:"summaries"`
+}
+
+// ChangeDependencySummaries compares a change's manifests and lockfiles from Git
+// alone. It never fetches, so it only knows a head that's already here.
+func (s *HostService) ChangeDependencySummaries(repoPath string, number int, files []hostapi.ChangeFile) (ChangeDependencyInfo, error) {
+	info := ChangeDependencyInfo{Summaries: map[string]DependencySummaryInfo{}}
+	info.HasManifests = slices.ContainsFunc(files, func(file hostapi.ChangeFile) bool { return deps.Recognized(file.Path) })
+	if !info.HasManifests {
+		return info, nil
+	}
+	remote, _, change, err := cachedChange(repoPath, number)
+	if err != nil {
+		return info, err
+	}
+	ctx := context.Background()
+	head, err := git.ResolveCommit(ctx, repoPath, git.HostChangeRef(remote.Name, number))
+	if err != nil || head != change.HeadSHA {
+		return info, nil
+	}
+	base, err := git.MergeBase(ctx, repoPath, head, "refs/remotes/"+remote.Name+"/"+change.TargetBranch)
+	if err != nil {
+		return info, nil
+	}
+	info.HeadAvailable = true
+	var diffs DiffService
+	before, after := FileSource{Kind: "commit", Rev: base}, FileSource{Kind: "commit", Rev: head}
+	for _, file := range files {
+		oldPath := file.OldPath
+		if oldPath == "" {
+			oldPath = file.Path
+		}
+		summary, err := diffs.GetDependencySummary(repoPath, oldPath, file.Path, before, after)
+		if err != nil {
+			return info, err
+		}
+		if summary.Available {
+			info.Summaries[file.Path] = summary
+		}
+	}
+	return info, nil
 }
 
 func (s *HostService) ChangeCommits(repoPath string, number int) ([]hostapi.ChangeCommit, error) {

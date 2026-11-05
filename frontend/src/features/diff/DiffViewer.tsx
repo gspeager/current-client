@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image } from 'lucide-react'
-import type { FileDiff, LineSelection, ReviewThread } from '@current-client-bindings/app'
+import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image, List } from 'lucide-react'
+import { DiffService, type FileDiff, type LineSelection, type ReviewThread } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import SegmentedControl from '../../components/controls/SegmentedControl'
+import { useAsyncData } from '../../lib/useAsyncData'
+import DependencySummary from './DependencySummary'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
 import { useDiffWrap } from './diffWrap'
@@ -92,6 +94,17 @@ function DiffViewer({
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set())
   const lastToggled = useRef<string | null>(null)
   const initialScrollApplied = useRef(false)
+  const [showRawDiff, setShowRawDiff] = useState(false)
+  const fileVersions = JSON.stringify([images?.before, images?.after])
+  const { data: dependencies } = useAsyncData(
+    () =>
+      images
+        ? DiffService.GetDependencySummary(images.repoPath, diff.oldPath || path, path, images.before, images.after)
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [images?.repoPath, path, fileVersions],
+    { refreshKey: diff },
+  )
 
   // The pane only exists once the diff has lines to show.
   useLayoutEffect(() => {
@@ -173,6 +186,28 @@ function DiffViewer({
   const lfs = lfsPointerChange(diff)
   if (lfs) return <LfsDiff change={lfs} />
 
+  const summarized = dependencies?.available && !diff.conflicted
+  const summaryToggle = summarized && (
+    <div className="diff-image-toggle">
+      <SegmentedControl
+        value={showRawDiff ? 'raw' : 'summary'}
+        onChange={(value) => setShowRawDiff(value === 'raw')}
+        options={[
+          { value: 'summary', label: 'Summary', icon: List },
+          { value: 'raw', label: 'Raw diff', icon: FileCode },
+        ]}
+      />
+    </div>
+  )
+  if (summarized && !showRawDiff) {
+    return (
+      <div>
+        {summaryToggle}
+        <DependencySummary changes={dependencies.changes} />
+      </div>
+    )
+  }
+
   const image = images && imageMimeType(path) ? <ImageDiff {...images} path={path} refreshKey={diff} /> : null
   if (image && (diff.binary || diff.tooLarge)) return image
   // SVG is text to Git, so it can be read either way.
@@ -199,14 +234,17 @@ function DiffViewer({
 
   if (diff.tooLarge) {
     return (
-      <p className="diff-empty-state">
-        This file is large ({formatMegabytes(diff.sizeBytes)}) — the diff wasn't loaded automatically.{' '}
-        {onForceLoad && (
-          <button type="button" className="diff-empty-state-action" onClick={onForceLoad}>
-            Load anyway
-          </button>
-        )}
-      </p>
+      <div>
+        {summaryToggle}
+        <p className="diff-empty-state">
+          This file is large ({formatMegabytes(diff.sizeBytes)}) — the diff wasn't loaded automatically.{' '}
+          {onForceLoad && (
+            <button type="button" className="diff-empty-state-action" onClick={onForceLoad}>
+              Load anyway
+            </button>
+          )}
+        </p>
+      </div>
     )
   }
 
@@ -267,6 +305,7 @@ function DiffViewer({
 
   return (
     <div>
+      {summaryToggle}
       {imageToggle}
       {review && actions && (
         <div className="diff-review-bar" role="toolbar" aria-label="Review">

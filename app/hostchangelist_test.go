@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 	"github.com/gspeager/current-client/internal/config"
@@ -144,6 +145,59 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	}
 	if out := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "refs/current-client"))); out != "" {
 		t.Fatalf("turning the host off left fetched heads:\n%s", out)
+	}
+}
+
+func TestChangeDependencySummariesReadsOnlyWhatIsHere(t *testing.T) {
+	useTempSettings(t)
+	swapHostClient(t, hostapitest.Forbid(t))
+	repo, hostname, _ := hostedRemote(t)
+	write := func(content string) {
+		if err := os.WriteFile(filepath.Join(repo, "package.json"), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		gitIn(t, repo, "add", "package.json")
+		gitIn(t, repo, "-c", "user.name=X", "-c", "user.email=x@example.com", "commit", "-q", "-m", "deps")
+	}
+	write(`{"dependencies":{"a":"1.0.0"}}`)
+	gitIn(t, repo, "push", "-q", "origin", "main")
+	gitIn(t, repo, "fetch", "-q", "origin")
+	gitIn(t, repo, "switch", "-q", "-c", "feature")
+	write(`{"dependencies":{"a":"1.1.0"}}`)
+	headSHA := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	gitIn(t, repo, "switch", "-q", "main")
+	if err := updateConfig(func(cfg *config.Config) {
+		cfg.Hosts = map[string]config.HostConfig{hostname: {Provider: "gitlab", Enabled: true}}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	hostClient.Cache.Put(hostname, repo, cacheChanges, "group/app", cachedChanges{changes: []hostapi.Change{
+		{Number: 3, TargetBranch: "main", HeadSHA: headSHA},
+	}})
+	files := []hostapi.ChangeFile{{Path: "package.json"}, {Path: "README.md"}}
+	var s HostService
+
+	info, err := s.ChangeDependencySummaries(repo, 3, files)
+	if err != nil || !info.HasManifests || info.HeadAvailable || len(info.Summaries) != 0 {
+		t.Fatalf("with no fetched head = %+v, %v", info, err)
+	}
+	if info, err := s.ChangeDependencySummaries(repo, 3, files[1:]); err != nil || info.HasManifests {
+		t.Fatalf("with no manifest = %+v, %v", info, err)
+	}
+
+	gitIn(t, repo, "update-ref", git.HostChangeRef("origin", 3), headSHA)
+	info, err = s.ChangeDependencySummaries(repo, 3, files)
+	if err != nil || !info.HeadAvailable || len(info.Summaries) != 1 {
+		t.Fatalf("with a fetched head = %+v, %v", info, err)
+	}
+	changes := info.Summaries["package.json"].Changes
+	if len(changes) != 1 || changes[0].Name != "a" || changes[0].From != "1.0.0" || changes[0].To != "1.1.0" {
+		t.Fatalf("changes = %+v", changes)
+	}
+
+	gitIn(t, repo, "update-ref", git.HostChangeRef("origin", 3), "main")
+	if info, err = s.ChangeDependencySummaries(repo, 3, files); err != nil || info.HeadAvailable {
+		t.Fatalf("with a head that moved = %+v, %v", info, err)
 	}
 }
 

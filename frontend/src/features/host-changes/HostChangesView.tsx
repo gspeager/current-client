@@ -28,6 +28,7 @@ import ReferenceText from '../../components/git/ReferenceText'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useReferenceCards } from '../../lib/useReferenceCards'
 import PathText from '../../components/git/PathText'
+import DependencySummary from '../diff/DependencySummary'
 import ReviewSummary, { reviewGroups, reviewRequestedOf } from '../../components/git/ReviewSummary'
 import StatusBadge from '../../components/git/StatusBadge'
 import SegmentedControl from '../../components/controls/SegmentedControl'
@@ -645,22 +646,41 @@ function FilesTab({ repoPath, number, onLoaded }: TabProps) {
   useEffect(() => {
     if (data) onLoaded(data.length)
   }, [data, onLoaded])
+  const { data: dependencies } = useAsyncData(
+    () => (data ? HostService.ChangeDependencySummaries(repoPath, number, data) : null),
+    [repoPath, number, data],
+  )
   if (error) return <p className="host-changes-error">{error}</p>
   if (!data) return <p className="host-changes-empty">Loading…</p>
   if (data.length === 0) return <p className="host-changes-empty">No files.</p>
   return (
-    <ul className="host-change-files" aria-label="Files">
-      {data.map((file) => (
-        <li key={file.path} className="host-change-file">
-          <StatusBadge status={FILE_LETTER[file.status] ?? 'M'} />
-          <span className="host-change-file-path">
-            <PathText path={file.path} />
-            {file.oldPath && <span className="host-change-file-from"> from {file.oldPath}</span>}
-          </span>
-          <DiffStat added={file.additions} removed={file.deletions} binary={false} />
-        </li>
-      ))}
-    </ul>
+    <>
+      {dependencies?.hasManifests && !dependencies.headAvailable && (
+        <p className="host-change-files-hint">Package changes show once this change's head is on this computer.</p>
+      )}
+      <ul className="host-change-files" aria-label="Files">
+        {data.map((file) => {
+          const summary = dependencies?.summaries[file.path]
+          return (
+            <Fragment key={file.path}>
+              <li className="host-change-file">
+                <StatusBadge status={FILE_LETTER[file.status] ?? 'M'} />
+                <span className="host-change-file-path">
+                  <PathText path={file.path} />
+                  {file.oldPath && <span className="host-change-file-from"> from {file.oldPath}</span>}
+                </span>
+                <DiffStat added={file.additions} removed={file.deletions} binary={false} />
+              </li>
+              {summary && (
+                <li>
+                  <DependencySummary changes={summary.changes} />
+                </li>
+              )}
+            </Fragment>
+          )
+        })}
+      </ul>
+    </>
   )
 }
 

@@ -278,6 +278,46 @@ describe('HostChangesView', () => {
     expect(HostService.ChangeFiles).toHaveBeenCalledTimes(1)
   })
 
+  it.each([
+    {
+      name: 'lists package changes when the head is here',
+      dependencies: {
+        hasManifests: true,
+        headAvailable: true,
+        summaries: {
+          'package.json': {
+            available: true,
+            changes: [{ name: 'left-pad', kind: 'bumped', from: '1.0.0', to: '1.1.0' }],
+          },
+        },
+      },
+      shows: 'left-pad',
+    },
+    {
+      name: "says so when a manifest's head isn't here",
+      dependencies: { hasManifests: true, headAvailable: false, summaries: {} },
+      shows: /Package changes show once/,
+    },
+  ])('in the Files tab, $name', async ({ dependencies, shows }) => {
+    vi.mocked(HostService.Changes).mockResolvedValue(list())
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({
+      change: change({}),
+      descriptionHtml: '',
+      closes: [],
+      environments: [],
+    })
+    const files = [{ path: 'package.json', oldPath: '', status: 'modified', additions: 1, deletions: 1 }]
+    vi.mocked(HostService.ChangeFiles).mockResolvedValue(files)
+    vi.mocked(HostService.ChangeDependencySummaries).mockResolvedValue(dependencies)
+    renderView()
+
+    const detail = await screen.findByRole('article', { name: '!138' })
+    await userEvent.click(within(detail).getByRole('button', { name: 'Files' }))
+
+    expect(await within(detail).findByText(shows)).toBeInTheDocument()
+    expect(HostService.ChangeDependencySummaries).toHaveBeenCalledWith(REPO, 138, files)
+  })
+
   it('starts a new change from the checked-out branch, unless it already has one', async () => {
     vi.mocked(HostService.Changes).mockResolvedValue(list())
     vi.mocked(HostService.ChangeDetails).mockResolvedValue({
