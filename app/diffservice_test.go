@@ -92,3 +92,36 @@ func TestStagedAndCommitDiffsHoldBackALargeFileUntilForced(t *testing.T) {
 		t.Fatalf("commit diff TooLarge = %v, %v; want it held back", commit.TooLarge, err)
 	}
 }
+
+func TestGetDependencySummaryComparesTwoVersions(t *testing.T) {
+	repo := t.TempDir()
+	gitIn(t, repo, "init", "-q", "-b", "main")
+	commit := func(name, content string) {
+		if err := os.WriteFile(filepath.Join(repo, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		gitIn(t, repo, "add", name)
+		gitIn(t, repo, "-c", "user.name=X", "-c", "user.email=x@example.com", "commit", "-q", "-m", name)
+	}
+	commit("go.sum", "a v1.0.0 h1:x=\n")
+	commit("README.md", "hello\n")
+	if err := os.WriteFile(filepath.Join(repo, "go.sum"), []byte("a v1.1.0 h1:y=\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	head, worktree := FileSource{Kind: "commit", Rev: "HEAD"}, FileSource{Kind: "worktree"}
+	var s DiffService
+
+	info, err := s.GetDependencySummary(repo, "go.sum", "go.sum", head, worktree)
+	if err != nil || !info.Available || len(info.Changes) != 1 || info.Changes[0].Kind != "bumped" {
+		t.Fatalf("go.sum = %+v, %v", info, err)
+	}
+	if info, err = s.GetDependencySummary(repo, "README.md", "README.md", head, worktree); err != nil || info.Available {
+		t.Fatalf("README.md = %+v, %v", info, err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "go.sum"), []byte("not a checksum\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if info, err = s.GetDependencySummary(repo, "go.sum", "go.sum", head, worktree); err != nil || info.Available {
+		t.Fatalf("a malformed file should fall back to the raw diff: %+v, %v", info, err)
+	}
+}

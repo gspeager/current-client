@@ -297,6 +297,12 @@
   gap: var(--space-sm);
 }
 
+.host-change-files-hint {
+  margin: 0 0 var(--space-sm);
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
 .host-change-files,
 .host-change-commits {
   margin: 0;

@@ -3,9 +3,11 @@ module github.com/gspeager/current-client
 go 1.25.0
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/wailsapp/wails/v3 v3.0.0-beta.23
 	github.com/yuin/goldmark v1.8.6
+	golang.org/x/mod v0.37.0
 	golang.org/x/sync v0.21.0
 )
 

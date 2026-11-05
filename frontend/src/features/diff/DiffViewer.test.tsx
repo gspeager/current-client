@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { FileDiff } from '@current-client-bindings/app'
+import { DiffService, type FileDiff } from '@current-client-bindings/app'
 import { IssuePanelContext } from '../../lib/issuePanel'
 import DiffViewer from './DiffViewer'
 
@@ -68,6 +68,65 @@ describe('DiffViewer scroll position', () => {
       expect(onScrollTopChange).toHaveBeenLastCalledWith(40)
       unmount()
     }
+  })
+})
+
+describe('DiffViewer dependency summary', () => {
+  const images = {
+    repoPath: '/repo',
+    before: { kind: 'commit', rev: 'HEAD' },
+    after: { kind: 'worktree', rev: '' },
+  }
+
+  it('shows the summary for a manifest and switches to the raw diff', async () => {
+    const user = userEvent.setup()
+    vi.mocked(DiffService.GetDependencySummary).mockResolvedValue({
+      available: true,
+      changes: [
+        { name: 'left-pad', kind: 'bumped', from: '1.0.0', to: '1.1.0' },
+        { name: 'chalk', kind: 'added', from: '', to: '5.0.0' },
+      ],
+    })
+    render(<DiffViewer diff={diff} path="package.json" viewMode="unified" images={images} />)
+
+    expect(await screen.findByText('left-pad')).toBeInTheDocument()
+    expect(screen.getByText('1.0.0 → 1.1.0')).toBeInTheDocument()
+    expect(screen.getByText('1 bumped, 1 added')).toBeInTheDocument()
+    expect(screen.getByText(/Not a vulnerability check/)).toBeInTheDocument()
+    expect(DiffService.GetDependencySummary).toHaveBeenCalledWith(
+      '/repo',
+      'a.ts',
+      'package.json',
+      images.before,
+      images.after,
+    )
+    expect(screen.queryByText(/first$/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Raw diff' }))
+
+    expect(screen.queryByText('left-pad')).not.toBeInTheDocument()
+    expect(screen.getAllByText(/first$/).length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: 'Summary' }))
+    expect(screen.getByText('left-pad')).toBeInTheDocument()
+  })
+
+  it('shows the raw diff when no package changed, since it may not have read every section', async () => {
+    vi.mocked(DiffService.GetDependencySummary).mockResolvedValue({ available: true, changes: [] })
+    render(<DiffViewer diff={diff} path="package.json" viewMode="unified" images={images} />)
+
+    await vi.waitFor(() => expect(DiffService.GetDependencySummary).toHaveBeenCalled())
+    expect(screen.getAllByText(/first$/).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Summary' })).not.toBeInTheDocument()
+  })
+
+  it('shows the raw diff when there is nothing to summarize', async () => {
+    vi.mocked(DiffService.GetDependencySummary).mockResolvedValue({ available: false, changes: [] })
+    render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" images={images} />)
+
+    await vi.waitFor(() => expect(DiffService.GetDependencySummary).toHaveBeenCalled())
+    expect(screen.getAllByText(/first$/).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Summary' })).not.toBeInTheDocument()
   })
 })
 
