@@ -17,7 +17,7 @@ type FileChurn struct {
 // branch's files from being double-counted.
 func ComputeFileChurn(ctx context.Context, repoPath string, days, limit int) ([]FileChurn, error) {
 	since := sinceMidnight(time.Now().AddDate(0, 0, -days))
-	result, err := runResult(ctx, repoPath, "log", "--exclude=refs/stash", "--all", "--since="+since, "--format=", "--name-only")
+	result, err := runResult(ctx, repoPath, append([]string{"log", "--since=" + since, "--format=", "--name-only"}, allRefs...)...)
 	if err != nil {
 		return nil, err
 	}

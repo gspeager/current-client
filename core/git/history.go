@@ -170,8 +170,7 @@ func filterArgs(filter HistoryFilter) []string {
 		args = append(args, "--first-parent")
 	}
 	if filter.Ref == "--all" {
-		// Stash entries are commits under refs/stash; they aren't history.
-		args = append(args, "--exclude=refs/stash", "--all")
+		args = append(args, allRefs...)
 	} else if filter.Ref != "" {
 		args = append(args, filter.Ref)
 	}

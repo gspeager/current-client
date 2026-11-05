@@ -2,6 +2,12 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [Unreleased]
+
+### Fixed
+
+- **Fetched merge request / pull request heads no longer count as history.** With host integration on, commits only reachable from a fetched head could appear in History's All branches, Activity, repository stats, file churn and Standup. Removing a repository from the recent list now also deletes its fetched heads, as the integrations guide promised. ([#392](https://github.com/gspeager/current-client/issues/392))
+
 ## [0.5.0] - 2026-10-30
 
 This release builds on host integration: an Inbox of what waits on you across every open repository, issues, reviews and merges from the app, where each change is deployed, a Releases tab that checks a release before it is tagged, and Jira issue trackers. Each of these is **off until you turn it on**, per host and per tracker, and contacts a service only on a refresh or a click; [docs/integrations.md](docs/integrations.md) lists every request.
