@@ -71,6 +71,21 @@ describe('DiffViewer scroll position', () => {
   })
 })
 
+describe('DiffViewer scroll reports', () => {
+  it('ignores something else scrolling inside the pane', () => {
+    const onScrollTopChange = vi.fn()
+    const { container } = render(
+      <DiffViewer diff={diff} path="a.ts" viewMode="unified" onScrollTopChange={onScrollTopChange} />,
+    )
+    const pane = container.querySelector<HTMLElement>('.diff-pane')!
+    const inner = pane.firstElementChild as HTMLElement
+
+    fireEvent.scroll(inner, { target: { scrollTop: 5 } })
+
+    expect(onScrollTopChange).not.toHaveBeenCalled()
+  })
+})
+
 describe('DiffViewer hunk navigation', () => {
   it('starts on the first hunk and moves forward/backward with Alt+ArrowDown/Up', () => {
     render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" />)

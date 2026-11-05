@@ -331,8 +331,12 @@ function DiffPane({
   ...hunkActions
 }: DiffPaneProps) {
   const { wrap } = useDiffWrap()
-  // Capture, since scroll events don't bubble up from the two sides.
-  const reportScroll = (e: UIEvent<HTMLDivElement>) => onScrollTopChange?.((e.target as HTMLElement).scrollTop)
+  // Capture, since scroll events don't bubble up from the two sides. Anything
+  // else that scrolls inside the pane, such as a reply box, isn't the diff.
+  const reportScroll = (e: UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (target === e.currentTarget || target.classList.contains('diff-side')) onScrollTopChange?.(target.scrollTop)
+  }
   const language = languageForPath(path)
   // Blocks go after the pair; with each side rendered on its own they can't
   // span both, so DiffViewer lists them below the diff instead, and no line

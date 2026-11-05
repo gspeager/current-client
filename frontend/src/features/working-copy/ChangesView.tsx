@@ -92,8 +92,16 @@ function ChangesView({
   // A new file's diff is the whole file: it's staged or discarded as a file, not by hunk.
   const untracked = !showsStaged && unstaged.some((f) => f.path === selectedPath && f.worktreeStatus === '?')
 
+  // A ref, since a diff remounts when another file loads and has to open at the
+  // current value, which the parent doesn't re-render for.
+  const diffScrollTop = useRef(initialDiffScrollTop)
+  const setDiffScrollTop = (top: number) => {
+    diffScrollTop.current = top
+    onDiffScrollChange?.(top)
+  }
+
   const selectPath = (path: string | null) => {
-    if (path !== selectedPath) onDiffScrollChange?.(0)
+    if (path !== selectedPath) setDiffScrollTop(0)
     setSelectedPath(path)
     onSelectedPathChange?.(path)
   }
@@ -338,8 +346,8 @@ function ChangesView({
                 diff={diff}
                 path={selectedPath}
                 viewMode={viewMode}
-                initialScrollTop={initialDiffScrollTop}
-                onScrollTopChange={onDiffScrollChange}
+                initialScrollTop={diffScrollTop.current}
+                onScrollTopChange={setDiffScrollTop}
                 threads={reviewThreads.byPath[selectedPath]}
                 outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
                 baseSide={

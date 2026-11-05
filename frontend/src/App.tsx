@@ -167,11 +167,16 @@ function App({
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
-  const { data: localBranches } = useAsyncData(
-    () => (repo.repoPath ? BranchService.ListLocal(repo.repoPath) : null),
+  // With its repository, since a tab switch renders once before the old list is cleared.
+  const { data: branchList } = useAsyncData(
+    () => {
+      const repoPath = repo.repoPath
+      return repoPath ? BranchService.ListLocal(repoPath).then((branches) => ({ repoPath, branches })) : null
+    },
     [repo.repoPath],
     { refreshKey: repoVersion },
   )
+  const localBranches = branchList?.repoPath === repo.repoPath ? branchList.branches : null
   const {
     activeTab: rememberedTab,
     setActiveTab,
@@ -395,7 +400,7 @@ function App({
   }
 
   const openWorkingFile = (path: string) => {
-    remember({ selectedFilePath: path })
+    remember({ selectedFilePath: path, diffScrollTop: 0 })
     setActiveTab('working-copy')
     setFileFocus((n) => n + 1)
   }

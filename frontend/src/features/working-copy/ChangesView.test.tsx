@@ -65,6 +65,45 @@ function renderChanges(files: FileStatus[]) {
 
 beforeEach(() => giveElementsLayout())
 
+describe('ChangesView diff scroll position', () => {
+  it('opens the remembered file where it was, and another file at the top', async () => {
+    vi.mocked(DiffService.GetWorkingTreeDiff).mockImplementation(async (_repo, path) => ({
+      conflicted: false,
+      oldPath: path,
+      newPath: path,
+      binary: false,
+      tooLarge: false,
+      sizeBytes: 0,
+      hunks: [{ header: `@@ -1 +1 @@ in ${path}`, raw: 'raw-hunk', lines: [] }],
+    }))
+    const onDiffScrollChange = vi.fn()
+    const scroller = () => {
+      const pane = document.querySelector<HTMLElement>('.diff-pane')!
+      return pane.querySelector<HTMLElement>('.diff-side') ?? pane
+    }
+    render(
+      <DialogProvider>
+        <ChangesView
+          repoPath={REPO}
+          workingTree={workingTreeFor([file('a.ts'), file('b.ts')])}
+          initialSelectedPath="a.ts"
+          initialDiffScrollTop={800}
+          onDiffScrollChange={onDiffScrollChange}
+        />
+      </DialogProvider>,
+    )
+
+    await screen.findAllByText(/in a\.ts/)
+    expect(scroller().scrollTop).toBe(800)
+
+    await userEvent.click(screen.getByRole('button', { name: 'b.ts' }))
+    await screen.findAllByText(/in b\.ts/)
+
+    expect(scroller().scrollTop).toBe(0)
+    expect(onDiffScrollChange).toHaveBeenLastCalledWith(0)
+  })
+})
+
 describe('ChangesView staging', () => {
   it('stages an unstaged file from its checkbox and refreshes status', async () => {
     vi.mocked(StatusService.StageFile).mockResolvedValue()
