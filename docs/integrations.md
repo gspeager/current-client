@@ -120,7 +120,7 @@ Every branch whose upstream has a merge request / pull request gets a square mar
 
 ## Refs on disk
 
-MR/PR heads are Git refs, so fetching one (to check it out, or to forecast conflicts) does land in the repository. They go under `refs/current-client/hosts/<remote>/mr/<number>`, never `refs/remotes/`, so they never appear as branches in the sidebar. A commit only they reach isn't counted as history either: it stays out of All branches in the graph, Activity, repository stats, file churn and Standup. They are deleted when the host is turned off or the repository is removed from the list of recent repositories, and can be removed by hand with `git update-ref -d`.
+MR/PR heads are Git refs, so fetching one (to check it out, or to forecast conflicts) does land in the repository. They go under `refs/current-client/hosts/<remote>/mr/<number>`, never `refs/remotes/`, so they never appear as branches in the sidebar. A commit only they reach isn't counted as history either: it stays out of All branches in the graph, Activity, repository stats, file churn and Standup. They are deleted when the host is turned off, or when a repository that isn't open in a tab leaves the list of recent repositories, and can be removed by hand with `git update-ref -d`.
 
 ## Host content is untrusted
 

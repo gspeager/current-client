@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -63,10 +64,12 @@ func DeleteHostRefs(ctx context.Context, repoPath, remote string) error {
 	return nil
 }
 
+var hostRefShape = regexp.MustCompile(`^(.+)/mr/\d+$`)
+
 func isHostRef(ref, remote string) bool {
-	name := strings.TrimPrefix(strings.TrimPrefix(ref, appRefNamespace), "hosts/")
-	if remote == "" {
-		return strings.Contains(name, "/mr/")
+	match := hostRefShape.FindStringSubmatch(strings.TrimPrefix(ref, appRefNamespace))
+	if match == nil {
+		return false
 	}
-	return strings.HasPrefix(name, remote+"/mr/")
+	return remote == "" || match[1] == remote || match[1] == "hosts/"+remote
 }

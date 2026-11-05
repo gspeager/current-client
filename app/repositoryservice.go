@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,10 +19,33 @@ func opened(repo *repository.Repository, err error) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	var evicted, tabs []string
 	_ = updateConfig(func(cfg *config.Config) {
-		cfg.RecentRepositories = repository.AddRecent(cfg.RecentRepositories, repo.Path)
+		before := cfg.RecentRepositories
+		cfg.RecentRepositories = repository.AddRecent(before, repo.Path)
+		tabs = cfg.OpenTabs
+		for _, path := range before {
+			if !slices.Contains(cfg.RecentRepositories, path) {
+				evicted = append(evicted, path)
+			}
+		}
 	})
+	for _, path := range evicted {
+		go deleteHeadsUnlessOpen(path, tabs)
+	}
 	return repo.Path, nil
+}
+
+// deleteHeadsUnlessOpen is best effort: the folder may be gone or unreadable,
+// and that mustn't keep a repository on the recent list. A refresh fetches the
+// heads of a repository that's opened again.
+func deleteHeadsUnlessOpen(path string, tabs []string) {
+	if slices.Contains(tabs, path) {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_ = git.DeleteHostRefs(ctx, path, "")
 }
 
 func (s *RepositoryService) PickRepositoryFolder() (string, error) {
@@ -65,15 +89,14 @@ type OpenTabsInfo struct {
 	Focused string   `json:"focused"`
 }
 
-// RemoveRecentRepository forgets the path and deletes the host heads the app
-// fetched into it. The folder may already be gone, so that error doesn't count.
 func (s *RepositoryService) RemoveRecentRepository(path string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	_ = git.DeleteHostRefs(ctx, path, "")
-	return updateConfig(func(cfg *config.Config) {
+	var tabs []string
+	err := updateConfig(func(cfg *config.Config) {
+		tabs = cfg.OpenTabs
 		cfg.RecentRepositories = repository.RemoveRecent(cfg.RecentRepositories, path)
 	})
+	deleteHeadsUnlessOpen(path, tabs)
+	return err
 }
 
 func (s *RepositoryService) GetOpenTabs() (OpenTabsInfo, error) {

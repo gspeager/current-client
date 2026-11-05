@@ -56,6 +56,10 @@ func TestAllRefReadsSkipTheAppsOwnRefs(t *testing.T) {
 	gittest.Run(t, dir, "update-ref", appRefNamespace+"snapshots/1", "HEAD")
 	hidden := gittest.Run(t, dir, "rev-parse", "HEAD")
 	gittest.Run(t, dir, "reset", "--hard", "HEAD~1")
+	t.Setenv("GIT_AUTHOR_DATE", "2001-01-01T00:00:00Z")
+	t.Setenv("GIT_COMMITTER_DATE", "2001-01-01T00:00:00Z")
+	oldRoot := gittest.Run(t, dir, "commit-tree", "HEAD^{tree}", "-m", "an older root only the app's refs reach")
+	gittest.Run(t, dir, "update-ref", HostChangeRef("origin", 4), oldRoot)
 
 	history, err := History(ctx, dir, 100, 0, HistoryFilter{Ref: "--all"})
 	if err != nil {
@@ -86,6 +90,9 @@ func TestAllRefReadsSkipTheAppsOwnRefs(t *testing.T) {
 	if stats.TotalCommits != 1 {
 		t.Fatalf("stats count %d commits, want 1", stats.TotalCommits)
 	}
+	if stats.RepoAgeDays != 0 {
+		t.Fatalf("stats age the repository %d days from a root only the app's refs reach", stats.RepoAgeDays)
+	}
 
 	churn, err := ComputeFileChurn(ctx, dir, 7, 10)
 	if err != nil {
@@ -107,23 +114,26 @@ func TestDeleteHostRefsLeavesLocalRefsAndFindsOldLayout(t *testing.T) {
 	gittest.Run(t, dir, "update-ref", HostChangeRef("snapshots", 1), "HEAD")
 	gittest.Run(t, dir, "update-ref", HostChangeRef("group/origin", 2), "HEAD")
 	gittest.Run(t, dir, "update-ref", appRefNamespace+"origin/mr/9", "HEAD")
+	gittest.Run(t, dir, "update-ref", appRefNamespace+"hosts/mr/3", "HEAD")
+	namedAfterBranch := appRefNamespace + "snapshots/feature/mr/fix"
+	gittest.Run(t, dir, "update-ref", namedAfterBranch, "HEAD")
+	local := snapshot + "\n" + namedAfterBranch
 
-	if err := DeleteHostRefs(ctx, dir, "snapshots"); err != nil {
-		t.Fatal(err)
-	}
-	if err := DeleteHostRefs(ctx, dir, "origin"); err != nil {
-		t.Fatal(err)
+	for _, remote := range []string{"snapshots", "origin", "hosts"} {
+		if err := DeleteHostRefs(ctx, dir, remote); err != nil {
+			t.Fatal(err)
+		}
 	}
 	left := gittest.Run(t, dir, "for-each-ref", "--format=%(refname)", appRefNamespace)
-	if want := HostChangeRef("group/origin", 2) + "\n" + snapshot; left != want {
+	if want := HostChangeRef("group/origin", 2) + "\n" + local; left != want {
 		t.Fatalf("refs left = %q, want %q", left, want)
 	}
 
 	if err := DeleteHostRefs(ctx, dir, ""); err != nil {
 		t.Fatal(err)
 	}
-	if got := gittest.Run(t, dir, "for-each-ref", "--format=%(refname)", appRefNamespace); got != snapshot {
-		t.Fatalf("refs left after deleting all hosts' = %q, want %q", got, snapshot)
+	if got := gittest.Run(t, dir, "for-each-ref", "--format=%(refname)", appRefNamespace); got != local {
+		t.Fatalf("refs left after deleting all hosts' = %q, want %q", got, local)
 	}
 }
 
