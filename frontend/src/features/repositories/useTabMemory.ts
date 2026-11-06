@@ -28,21 +28,31 @@ const branchKey = (repoPath: string, branch: string) => `${repoPath}\0${branch}`
 //
 // branch is null while it's loading, and "" on a detached HEAD. A branch not
 // seen yet starts from the one before it, so a draft follows into a branch
-// created to commit it on, and stays on the branch it was written on too.
-export function useTabMemory(repoPath: string | null, branch: string | null = '') {
+// created to commit it on, and stays on the branch it was written on too. The
+// exception is a rebase's message, kept while HEAD is detached, which belongs to
+// the rebase and not to the branch it ends on.
+export function useTabMemory(repoPath: string | null, branch: string | null = '', inOperation = false) {
   const [activeTabs, setActiveTabs] = useState<Record<string, AppTab>>({})
   const repoMemory = useRef(new Map<string, RepoMemory>())
   const branchMemory = useRef(new Map<string, BranchMemory>())
   const lastBranch = useRef(new Map<string, string>())
+  const rebasing = useRef(new Set<string>())
 
   const known = repoPath ? lastBranch.current.get(repoPath) : undefined
   if (repoPath && branch !== null && branch !== known) {
     const key = branchKey(repoPath, branch)
     const previous = branchMemory.current.get(branchKey(repoPath, known ?? ''))
     if (previous && !branchMemory.current.has(key)) branchMemory.current.set(key, { ...previous, diffScrollTop: 0 })
+    if (rebasing.current.delete(repoPath)) {
+      const landed = branchMemory.current.get(key)
+      if (landed && previous && landed.commitDraft === previous.commitDraft) {
+        branchMemory.current.set(key, { ...landed, commitDraft: '' })
+      }
+    }
     lastBranch.current.set(repoPath, branch)
   }
   const currentBranch = branch ?? known ?? ''
+  if (repoPath && inOperation && currentBranch === '') rebasing.current.add(repoPath)
 
   const activeTab: AppTab = (repoPath && activeTabs[repoPath]) || 'working-copy'
   const setActiveTab = (tab: AppTab) => {

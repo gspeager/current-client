@@ -14,6 +14,7 @@ interface StackSectionProps {
   repoPath: string
   list: StackListInfo
   current: string | null
+  inOperation: boolean
   // Set from elsewhere, such as Go to anything.
   restack: string | null
   onRestackChange: (root: string | null) => void
@@ -33,6 +34,7 @@ function StackSection({
   repoPath,
   list,
   current,
+  inOperation,
   restack,
   onRestackChange,
   onCheckout,
@@ -43,6 +45,7 @@ function StackSection({
   const { confirm } = useDialogs()
   const push = useCancellableOperation(repoPath)
   const [notice, setNotice] = useState<string | null>(null)
+  const [stopped, setStopped] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const runRestack = (root: string) => {
@@ -52,14 +55,8 @@ function StackSection({
     StackService.Restack(repoPath, root)
       .then((result) => {
         const left = result.left ?? []
-        setNotice(
-          [
-            result.stopped && `Stopped on ${result.stopped}. Resolve it, then restack again for the layers above.`,
-            left.length > 0 && `${left.join(', ')} left the stack.`,
-          ]
-            .filter(Boolean)
-            .join(' ') || null,
-        )
+        setStopped(result.stopped || null)
+        setNotice(left.length > 0 ? `${left.join(', ')} left the stack.` : null)
       })
       .catch((err: unknown) => setError(errorMessage(err)))
       .finally(onChanged)
@@ -116,6 +113,11 @@ function StackSection({
       {push.error && (
         <p className="branch-sidebar-error" role="alert">
           {push.error}
+        </p>
+      )}
+      {stopped && inOperation && (
+        <p className="branch-sidebar-notice" role="status">
+          Stopped on {stopped}. Resolve it, then restack again for the layers above.
         </p>
       )}
       {notice && (

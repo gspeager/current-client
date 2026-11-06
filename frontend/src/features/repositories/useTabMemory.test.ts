@@ -55,6 +55,29 @@ describe('useTabMemory', () => {
       expect(result.current.restored.commitDraft).toBe('Fix login')
     })
 
+    it("doesn't carry a rebase's message onto the branch it lands on", () => {
+      const { result, rerender } = renderHook(({ name, op }) => useTabMemory('/repos/app', name, op), {
+        initialProps: { name: 'topic' as string | null, op: false },
+      })
+      result.current.remember({ commitDraft: 'A draft on topic' })
+      rerender({ name: '', op: true })
+      result.current.remember({ commitDraft: 'The commit being replayed' })
+
+      rerender({ name: '', op: false })
+      rerender({ name: 'other', op: false })
+      expect(result.current.restored.commitDraft).toBe('')
+
+      rerender({ name: 'topic', op: false })
+      expect(result.current.restored.commitDraft).toBe('A draft on topic')
+    })
+
+    it('carries a draft from a detached HEAD with no operation', () => {
+      const { result, rerender } = onBranch('')
+      result.current.remember({ commitDraft: 'Save this' })
+      rerender({ name: 'saved' })
+      expect(result.current.restored.commitDraft).toBe('Save this')
+    })
+
     it('keeps the last branch while the next answer is loading', () => {
       const { result, rerender } = onBranch('main')
       result.current.remember({ commitDraft: 'Fix login' })
