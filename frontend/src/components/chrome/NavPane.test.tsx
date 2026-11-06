@@ -154,7 +154,6 @@ describe('NavPane expanded', () => {
 
     const head = await screen.findByRole('button', { name: 'HEAD abc1234 Add the thing' })
     expect(head.parentElement).toHaveClass('nav-pane-head')
-    expect(head.querySelector('.head-commit-panel-label')).toHaveTextContent('HEAD')
     expect(head.querySelector('.head-commit-panel-sha')).toHaveTextContent('abc1234')
     expect(head.querySelector('.head-commit-panel-subject')).toHaveTextContent('Add the thing')
     expect(head.querySelector('svg')).not.toBeNull()

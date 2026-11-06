@@ -4,9 +4,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  padding: var(--space-sm);
-  background: var(--surface);
-  border: var(--border-structure);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-container);
   border-radius: var(--radius);
 }
 
@@ -203,4 +202,12 @@
   &:hover {
     text-decoration: underline;
   }
+}
+
+.current-change .change-marker-square {
+  display: none;
+}
+
+.current-change-row-action {
+  font-weight: 500;
 }

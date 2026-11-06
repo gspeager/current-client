@@ -25,13 +25,8 @@ function HeadCommitPanel({ repoPath, refreshKey, onOpen }: HeadCommitPanelProps)
       title={commit.subject}
     >
       <GitCommitVertical size={16} strokeWidth={1.75} className="head-commit-panel-icon" />
-      <span className="head-commit-panel-lines">
-        <span className="head-commit-panel-line">
-          <span className="head-commit-panel-label">HEAD</span>
-          <span className="head-commit-panel-sha">{commit.sha.slice(0, 7)}</span>
-        </span>
-        <span className="head-commit-panel-subject">{commit.subject}</span>
-      </span>
+      <span className="head-commit-panel-sha">{commit.sha.slice(0, 7)}</span>
+      <span className="head-commit-panel-subject">{commit.subject}</span>
     </button>
   )
 }

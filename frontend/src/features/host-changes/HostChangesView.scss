@@ -214,15 +214,28 @@
   }
 }
 
+.host-change-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+// What stands between the change and merging, as tiles to read at a glance.
 .host-change-facts {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: var(--space-xs) var(--space-md);
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: var(--space-sm);
   margin: 0;
   font: var(--ui-sm);
 
   dt {
+    margin-bottom: 2px;
     color: var(--outline);
+    @include patterns.eyebrow;
   }
 
   dd {
@@ -348,5 +361,40 @@
 .host-change-commit-meta {
   flex-shrink: 0;
   color: var(--outline);
+  font: var(--ui-xs);
+}
+
+// The list's filter already says what state these are in.
+.host-change-row .change-marker-square {
+  display: none;
+}
+
+.host-change-tile {
+  min-width: 0;
+  padding: var(--space-sm);
+  background: var(--surface-low);
+  border-radius: var(--radius-md);
+}
+
+.host-change-tile-warning,
+.host-change-tile-warn {
+  box-shadow: inset 2px 0 0 0 var(--warning);
+}
+
+.host-change-tile-blocker,
+.host-change-tile-error {
+  box-shadow: inset 2px 0 0 0 var(--error);
+}
+
+.host-change-actions .host-change-button,
+.host-change-actions .host-changes-new {
+  height: var(--h-field);
+}
+
+.host-change-label {
+  padding: 0 var(--space-xs);
+  background: var(--surface-high);
+  border-radius: var(--radius-sm);
+  color: var(--on-surface-variant);
   font: var(--ui-xs);
 }

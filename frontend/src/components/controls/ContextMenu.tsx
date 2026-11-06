@@ -98,8 +98,15 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
     <div
       ref={ref}
       className="context-menu"
+      role="menu"
       onKeyDown={moveFocus}
-      style={{ left: position.left, top: position.top, visibility: position.visible ? 'visible' : 'hidden' }}
+      style={{
+        left: position.left,
+        top: position.top,
+        maxHeight: 'calc(100vh - 16px)',
+        overflowY: 'auto',
+        visibility: position.visible ? 'visible' : 'hidden',
+      }}
     >
       {items.map((item) => (
         <Fragment key={item.label}>

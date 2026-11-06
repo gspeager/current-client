@@ -58,7 +58,6 @@ describe('NextRelease', () => {
     const onTagged = renderBlock()
 
     const tag = await screen.findByRole('button', { name: 'Tag v0.5.0…' })
-    expect(tag).toHaveClass('next-release-step-primary')
     await userEvent.click(tag)
     const dialog = await screen.findByRole('alertdialog', { name: 'Tag v0.5.0' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Tag' }))

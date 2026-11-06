@@ -184,3 +184,19 @@
     font: var(--ui-md);
   }
 }
+
+// In Changes the diff takes all the height its pane has.
+.changes-diff .diff-viewer {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
+.changes-clean .changes-clean-commit {
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+
+  span {
+    font: var(--data-sm);
+  }
+}

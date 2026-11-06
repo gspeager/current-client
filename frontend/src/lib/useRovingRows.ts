@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, summary, [tabindex]'
 
@@ -128,4 +128,14 @@ export function useRovingRows(rowSelector: string, { selectOnMove = false, horiz
   }, [container, rowSelector, selectOnMove, horizontal])
 
   return setContainer
+}
+
+// From a list's filter field, the down arrow goes on into the list.
+export function arrowIntoList(e: ReactKeyboardEvent<HTMLElement>) {
+  if (e.key !== 'ArrowDown') return
+  const target = e.currentTarget.closest('[data-pane]')?.querySelector<HTMLElement>('[data-roving] [tabindex="0"]')
+  if (target) {
+    e.preventDefault()
+    target.focus()
+  }
 }

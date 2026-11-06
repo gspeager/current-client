@@ -35,8 +35,8 @@ function CurrentChangeSection({
 }: CurrentChangeSectionProps) {
   const [checks, setChecks] = useState(0)
   const [checking, setChecking] = useState(false)
-  const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath, checks], {
-    refreshKey,
+  const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath], {
+    refreshKey: `${refreshKey}:${checks}`,
     keepData: true,
   })
   const HostIcon = useHostLogo(repoPath)
@@ -116,8 +116,7 @@ function CurrentChangeSection({
             'Checking…'
           ) : (
             <>
-              {kind} not checked <span className="current-change-row-sep">·</span>{' '}
-              <span className="current-change-row-action">Check</span>
+              <span className="current-change-row-action">Check for a {kindWord}</span>
             </>
           )}
         </span>
@@ -147,16 +146,38 @@ function CurrentChangeSection({
   const state = change.draft ? 'draft' : change.state
   return (
     <section className="current-change" aria-label={`${kind} for ${data.branch}`}>
-      <div className="current-change-head">
-        <span className="current-change-label">{kind}</span>
-        {state && <span className={`current-change-state current-change-state-${state}`}>{state}</span>}
-      </div>
       <div className="current-change-title">
         <ChangeMarker change={change} />
-        <span className="current-change-title-text">{change.title}</span>
+        <span className="current-change-title-text" title={change.title}>
+          {change.title}
+        </span>
+        {onOpenChange && (
+          <button
+            type="button"
+            className="current-change-button"
+            aria-label="Details"
+            title="Details"
+            onClick={() => onOpenChange(change.number)}
+          >
+            <PanelRight size={14} strokeWidth={1.75} />
+          </button>
+        )}
+        <button
+          type="button"
+          className="current-change-button"
+          aria-label="Open on host"
+          title="Open on host"
+          onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
+          disabled={!change.webUrl}
+        >
+          <HostIcon size={14} strokeWidth={1.75} />
+        </button>
       </div>
       <div className="current-change-facts">
         <span className="current-change-target">→ {change.targetBranch}</span>
+        {state && state !== 'open' && (
+          <span className={`current-change-state current-change-state-${state}`}>{state}</span>
+        )}
         {data.ci && (
           <span className="current-change-ci">
             <CIMark repoPath={repoPath} mark={data.ci} />
@@ -175,23 +196,6 @@ function CurrentChangeSection({
           ) : (
             <span className="current-change-threads">{change.unresolvedThreads} unresolved</span>
           ))}
-      </div>
-      <div className="current-change-actions">
-        {onOpenChange && (
-          <button type="button" className="current-change-button" onClick={() => onOpenChange(change.number)}>
-            <PanelRight size={14} strokeWidth={1.75} />
-            Details
-          </button>
-        )}
-        <button
-          type="button"
-          className="current-change-button"
-          onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
-          disabled={!change.webUrl}
-        >
-          <HostIcon size={14} strokeWidth={1.75} />
-          Open on host
-        </button>
       </div>
       {forecastBlock}
     </section>

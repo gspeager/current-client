@@ -7,7 +7,7 @@
 // focused.
 .commit-row {
   display: grid;
-  grid-template-columns: 108px minmax(0, 1fr) 150px 64px 20px 72px;
+  grid-template-columns: 108px minmax(0, 1fr) 124px 64px 20px 60px;
   align-items: center;
   gap: var(--space-sm);
   padding: 0 var(--space-md);
@@ -30,9 +30,9 @@
 
 // Narrow lists keep the subject: the author column drops to the badge,
 // then the hash drops. CI and time never do.
-@container (max-width: 720px) {
+@container (max-width: 880px) {
   .commit-row {
-    grid-template-columns: 108px minmax(0, 1fr) 18px 64px 20px 72px;
+    grid-template-columns: 108px minmax(0, 1fr) 20px 64px 20px 60px;
   }
 
   .commit-row-author-name {
@@ -40,9 +40,9 @@
   }
 }
 
-@container (max-width: 560px) {
+@container (max-width: 620px) {
   .commit-row {
-    grid-template-columns: 108px minmax(0, 1fr) 18px 20px 72px;
+    grid-template-columns: 108px minmax(0, 1fr) 20px 20px 60px;
   }
 
   .commit-row-sha {
@@ -118,7 +118,7 @@
 .commit-row-refs {
   display: flex;
   flex: 0 0 auto;
-  max-width: 45%;
+  max-width: 40%;
   gap: var(--space-xs);
   min-width: 0;
   overflow: hidden;

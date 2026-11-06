@@ -32,11 +32,12 @@
 
   // §4.3 Light lanes
   --branch-main: #46525f;
-  --branch-feature: #3f3fd0;
+  --branch-feature: #6a3fd0;
   --branch-release: #2f7d1e;
   --branch-hotfix: #b3261e;
   --branch-experimental: #8b3fa8;
   --branch-integration: #1e6fb8;
+  --branch-spare: #5f7300;
 
   // Same hue and saturation as dark, darkened to the light lanes' contrast
   // (at least 4.2:1 on --surface-high).

@@ -15,6 +15,7 @@ import {
 import { ChangelogService, HostService, TagService, type ReleaseCheck } from '@current-client-bindings/app'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
 import { errorMessage } from '../../lib/errors'
+import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useClockTick } from '../../lib/useClockTick'
@@ -70,6 +71,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   }
 
   const tagged = data.taggedAs !== ''
+  const warnings = data.checks.filter((check) => check.level === 'warn').length
   const tag = async () => {
     const message = `Release ${data.version}`
     const confirmed = await confirm({
@@ -139,7 +141,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
       <footer className="next-release-steps">
         <button
           type="button"
-          className={tagged ? 'next-release-step' : 'next-release-step next-release-step-primary'}
+          className={tagged || warnings > 0 ? 'next-release-step' : 'next-release-step next-release-step-primary'}
           onClick={() => void tag()}
           disabled={!data.tag || tagged}
           title={tagged ? `Already tagged ${data.taggedAs}` : undefined}
@@ -158,6 +160,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
           <PackagePlus size={14} strokeWidth={1.75} />
           Publish release…
         </button>
+        {!tagged && warnings > 0 && <span className="next-release-note">{plural(warnings, 'warning')} above</span>}
         {actionError && <span className="next-release-error">{actionError}</span>}
       </footer>
       {publishing && (

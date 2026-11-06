@@ -9,8 +9,12 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - **A cleaner, calmer interface.** A branch now has one color everywhere: its sidebar dot, its pill in History, and its nodes and line in the graph. Cyan marks only `HEAD`, keyboard focus and the one main action in a pane. Text is a size larger throughout. The Toolbox starts closed so branches stay in view. Stage hunk is more prominent than Discard, and buttons that can't run yet go neutral instead of staying bright.
 - **Activity reads as facts.** Contributors, commits per week and repository state use plain charts and plain wording. The donut and the uppercase card titles are gone.
 - **New windows open at 1280×800**, with a minimum of 960×600. Saved window sizes still apply.
+- **The diff fills its pane**, with a strip beside it showing where a long file's changes fall. Click it to jump.
+- **More room for the work.** Pull requests, Issues, Activity and Releases show the sidebar as its icon rail, and the rail's first button opens it. Fetch, Pull and Push are quieter, with their menus on hover, and **Undo** joined them (**⌘⇧Z**).
+- **Pull request detail reads at a glance**, with checks, reviews, conflicts and protection as tiles. **Tag** is only the main action when nothing above it warns.
+- **Larger text**, with file rows giving their width to the filename. Owners and the diff bar show on hover and in the diff header.
 - **Small windows adapt.** Below 1120 px wide the sidebar becomes its icon rail, and below 1040 px diffs read as unified. Status bar details and repository tab branches step aside before anything is cut off.
-- **Go to anything finds more.** A commit's hash, and stash, worktree, remote, cherry-pick and revert all lead somewhere, and the top row is always the one selected.
+- **Go to anything finds more.** A commit's hash, a pull request's number or title, a stash's message, **blame** plus a file name, and worktree, remote, cherry-pick and revert all lead somewhere, and the top row is always the one selected.
 - **The staged report folds to its count** when it has more than two findings, so the file list keeps its room.
 - **A clean repository says so.** Changes shows **Working tree clean** and **Nothing to commit** rather than asking for a commit message.
 

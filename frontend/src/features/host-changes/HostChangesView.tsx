@@ -388,35 +388,40 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
         <span className={`host-change-state host-change-state-${state}`}>{state}</span>
         <h3 className="host-change-detail-title">{change.title}</h3>
       </header>
-      <dl className="host-change-facts">
-        <dt>Author</dt>
-        <dd>{change.author.name}</dd>
-        <dt>Branches</dt>
-        <dd className="host-change-facts-branches">
+      <p className="host-change-subtitle">
+        {change.author.name}
+        <span className="host-change-facts-branches">
           {change.sourceProject ? `${change.sourceProject}:` : ''}
           {change.sourceBranch} → {change.targetBranch}
-        </dd>
+        </span>
+        {change.labels?.map((label) => (
+          <span key={label} className="host-change-label">
+            {label}
+          </span>
+        ))}
+      </p>
+      <dl className="host-change-facts">
         {closes.length > 0 && (
-          <>
+          <div className="host-change-tile">
             <dt>Closes</dt>
             <dd className="host-change-facts-closes">
               <ReferenceText text={closes.join(', ')} links={hostLinks} cards={closesCards} />
             </dd>
-          </>
+          </div>
         )}
         {(details?.environments?.length ?? 0) > 0 && (
-          <>
+          <div className="host-change-tile">
             <dt>Environments</dt>
             <dd>
               <EnvironmentReach reach={details!.environments} />
             </dd>
-          </>
+          </div>
         )}
         {readiness && readiness.facts.length > 0 ? (
           readiness.facts.map((f) => {
             const Icon = FACT_ICONS[f.level] ?? CircleHelp
             return (
-              <Fragment key={f.label}>
+              <div key={f.label} className={`host-change-tile host-change-tile-${f.level}`}>
                 <dt>{f.label}</dt>
                 <dd className={`host-change-fact host-change-fact-${f.level}`}>
                   {f.label === 'Checks' && mark ? (
@@ -434,11 +439,11 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
                     )}
                   </span>
                 </dd>
-              </Fragment>
+              </div>
             )
           })
         ) : (
-          <>
+          <div className="host-change-tile">
             <dt>Reviews</dt>
             <dd className="host-change-facts-reviews">
               {reviews.length > 0
@@ -475,13 +480,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
                 'None reported'
               )}
             </dd>
-          </>
-        )}
-        {change.labels?.length > 0 && (
-          <>
-            <dt>Labels</dt>
-            <dd>{change.labels.join(', ')}</dd>
-          </>
+          </div>
         )}
       </dl>
       <div className="host-change-actions">

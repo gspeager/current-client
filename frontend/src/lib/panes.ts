@@ -11,3 +11,14 @@ export function cyclePanes(backwards: boolean, root: Document | HTMLElement = do
     next.querySelector<HTMLElement>('button:not([disabled]), a[href], input, select, textarea, summary')
   target?.focus()
 }
+
+// Where focus goes when a dialog closes: back where it was, else into the main pane.
+export function restoreFocus(previous: Element | null) {
+  if (previous instanceof HTMLElement && previous.isConnected && previous !== document.body) {
+    previous.focus()
+    return
+  }
+  document
+    .querySelector<HTMLElement>('[data-pane="main"] [data-roving] [tabindex="0"], [data-pane="main"] button')
+    ?.focus()
+}

@@ -188,7 +188,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
             {stashes.map((s) => (
               <li key={s.index} className="stash-row" title={s.message} onContextMenu={rowMenu.open(stashActions(s))}>
                 <Package size={14} strokeWidth={1.5} className="stash-row-icon" />
-                <span className="stash-row-message">{s.message}</span>
+                <span className="stash-row-message">{s.message.replace(/^(On|WIP on) [^:]+: /, '')}</span>
                 <span className="stash-row-time">{relativeTime(new Date(s.date))}</span>
                 <RowActionButtons
                   actions={stashActions(s)}

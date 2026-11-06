@@ -172,13 +172,6 @@ function App({
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
   const navWidth = useResizableWidth('pane-width-nav', 264, 180, 400)
   const settings = useSettings()
-  const savedNavCollapsed = settings.settings?.navCollapsed ?? false
-  const narrowWindow = useWindowNarrowerThan(NARROW_SIDEBAR_WIDTH)
-  const [narrowNavOpen, setNarrowNavOpen] = useState(false)
-  const navCollapsed = narrowWindow ? !narrowNavOpen : savedNavCollapsed
-  // A narrow window's rail is temporary, so it isn't saved as the choice.
-  const setNavCollapsed = (collapsed: boolean) =>
-    narrowWindow ? setNarrowNavOpen(!collapsed) : settings.setNavCollapsed(collapsed)
   // A refresh may have found something changed on the checked-out branch's change.
   const collectHostNotices = () => {
     if (!repo.repoPath || !hostIntegration) return
@@ -279,6 +272,11 @@ function App({
   }
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   useWindowKeydown((e) => {
+    if (e.key === 'Escape' && inboxOpen && !document.querySelector('.modal-panel, .context-menu')) {
+      setInboxOpen(false)
+      document.querySelector<HTMLElement>('.header-bar-inbox')?.focus()
+      return
+    }
     if (isTerminalToggle(e)) {
       e.preventDefault()
       toggleTerminal()
@@ -293,7 +291,13 @@ function App({
       setShortcutsOpen(true)
       return
     }
-    if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return
+    if (!(e.metaKey || e.ctrlKey) || e.altKey) return
+    if (e.shiftKey && e.key.toLowerCase() !== 'z') return
+    if (e.key.toLowerCase() === 'z' && e.shiftKey) {
+      e.preventDefault()
+      workspace.actions.find((a) => a.id === 'undo')?.run()
+      return
+    }
     if (e.key.toLowerCase() === 'b') {
       e.preventDefault()
       setNavCollapsed(!navCollapsed)
@@ -406,6 +410,15 @@ function App({
     (rememberedTab === 'changes' && !changesLabel) || (rememberedTab === 'issues' && !issuesOn)
       ? 'working-copy'
       : rememberedTab
+  const savedNavCollapsed = settings.settings?.navCollapsed ?? false
+  const narrowWindow = useWindowNarrowerThan(NARROW_SIDEBAR_WIDTH)
+  // Views with their own lists give the sidebar's width to their content; its
+  // rail stays, and opening it there lasts until the app closes.
+  const railView = activeTab !== 'working-copy' && activeTab !== 'history'
+  const [openedInPlace, setOpenedInPlace] = useState(false)
+  const navCollapsed = narrowWindow || railView ? !openedInPlace : savedNavCollapsed
+  const setNavCollapsed = (collapsed: boolean) =>
+    narrowWindow || railView ? setOpenedInPlace(!collapsed) : settings.setNavCollapsed(collapsed)
 
   // A row in the Inbox switches to its repository first; the jump itself
   // waits until that repository is the open one.
@@ -857,6 +870,9 @@ function App({
                 Skip to content
               </button>
               <HeaderBar
+                onUndo={workspace.actions.find((a) => a.id === 'undo')?.run}
+                onOpenChange={openChange}
+                onShowStashes={() => requestSidebar('show-stash')}
                 repoPath={repo.repoPath}
                 repoVersion={repoVersion}
                 lastFetchedAt={lastFetchedAt}
@@ -1107,6 +1123,7 @@ function App({
                         repoPath={repo.repoPath}
                         repoVersion={repoVersion}
                         dirty={dirty}
+                        changedCount={workingTree.files?.length ?? 0}
                         hasConflict={conflictState !== null}
                         onStandup={() => setStandupOpen(true)}
                       />

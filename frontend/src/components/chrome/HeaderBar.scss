@@ -85,8 +85,8 @@
 
 .header-bar-switcher {
   position: relative;
-  flex: 0 1 auto;
-  min-width: 200px;
+  flex: 0 0 auto;
+  max-width: 280px;
 
   > summary {
     list-style: none;
@@ -103,7 +103,7 @@
   gap: var(--space-xs);
   height: var(--h-chip);
   min-width: 0;
-  max-width: 320px;
+  max-width: 280px;
   padding: 0 var(--space-sm);
   background: var(--surface);
   border: var(--border-structure);
@@ -117,6 +117,10 @@
 }
 
 // Each half opens a different view, so only the hovered half highlights.
+.header-bar-branch-target {
+  min-width: 72px;
+}
+
 .header-bar-repo-name,
 .header-bar-branch-target {
   display: inline-flex;
@@ -133,6 +137,7 @@
 }
 
 .header-bar-repo-name {
+  min-width: 56px;
   @include patterns.truncate;
   font: var(--data-md);
   font-weight: 600;
@@ -141,6 +146,7 @@
 
 .header-bar-repo-sep {
   flex-shrink: 0;
+  margin: 0 2px;
   font: var(--data-md);
   color: var(--outline);
 }
@@ -169,12 +175,13 @@
   flex-shrink: 0;
   gap: var(--space-xs);
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
+  padding: 0 var(--space-xs);
   background: none;
-  border: var(--border-structure);
+  border: none;
   border-radius: var(--radius);
   color: var(--on-surface-variant);
-  font: var(--data-sm);
+  font: var(--ui-xs);
+  font-weight: 500;
   cursor: pointer;
 
   @include patterns.disabled;
@@ -198,6 +205,17 @@
 
   .header-bar-sync:hover:not(:disabled) {
     background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  // The menu chevron shows when it can be reached, so three actions read as three.
+  .header-bar-sync-more {
+    opacity: 0;
+  }
+
+  &:hover .header-bar-sync-more,
+  &:focus-within .header-bar-sync-more {
+    opacity: 1;
   }
 }
 
@@ -220,10 +238,7 @@
 }
 
 .header-bar-sync-more {
-  padding: 0 var(--space-xs);
-  border-left: none;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
+  padding: 0 2px;
 
   @include patterns.disabled;
 }
@@ -237,7 +252,9 @@
 .header-bar-quick-switch {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  flex: 0 1 240px;
+  min-width: 0;
+  justify-content: space-between;
   gap: var(--space-xs);
   height: var(--h-chip);
   padding: 0 var(--space-sm);
@@ -277,7 +294,7 @@
 }
 
 // Words make way before repository names do; icons and keycaps stay.
-@container (max-width: 1240px) {
+@container (max-width: 1560px) {
   .header-bar-tab-sep,
   .header-bar-tab-branch {
     display: none;
@@ -292,5 +309,9 @@
 
   .header-bar-tab-close {
     display: none;
+  }
+
+  .header-bar-quick-switch {
+    flex: 0 0 auto;
   }
 }

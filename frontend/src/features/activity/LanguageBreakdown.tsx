@@ -9,13 +9,10 @@ interface LanguageBreakdownProps {
   repoVersion: number
 }
 
-const TYPE_COLORS = ['feature', 'release', 'hotfix', 'experimental', 'integration', 'main'].map(
-  (b) => `var(--branch-${b})`,
-)
-
-// By rank, so no two listed types look alike.
+// One hue in steps by rank: a chart of its own, with no tie to the branch colors.
 function typeColor(extension: string, rank: number): string {
-  return extension === 'other' ? 'var(--surface-highest)' : TYPE_COLORS[rank % TYPE_COLORS.length]
+  if (extension === 'other') return 'var(--surface-highest)'
+  return `color-mix(in srgb, var(--on-surface-variant) ${Math.max(32, 100 - rank * 17)}%, var(--surface-low))`
 }
 
 const DISPLAY_LIMIT = 5

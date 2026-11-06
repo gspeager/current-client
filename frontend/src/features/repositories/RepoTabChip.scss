@@ -6,7 +6,7 @@
   flex: 0 1 auto;
   gap: var(--space-xs);
   height: var(--h-chip);
-  min-width: 88px;
+  min-width: 64px;
   max-width: 220px;
   padding: 0 var(--space-xs) 0 var(--space-sm);
   border-radius: var(--radius);
@@ -56,6 +56,10 @@
 }
 
 .header-bar-tab-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   min-width: 0;
   @include patterns.truncate;
 }

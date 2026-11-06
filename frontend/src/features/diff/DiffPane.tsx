@@ -8,7 +8,7 @@ import {
   type RefObject,
   type UIEvent,
 } from 'react'
-import { MessageSquarePlus } from 'lucide-react'
+import { ChevronsUpDown, MessageSquarePlus } from 'lucide-react'
 import type { DiffLine, LineSelection } from '@current-client-bindings/app'
 import { useDiffWrap } from './diffWrap'
 import { unifiedRowsForPair, type DisplayRow, type PairedLine, type UnifiedRow } from './diffRows'
@@ -390,6 +390,7 @@ function DiffPane({
         if (side === 'right') return <div key={i} className="diff-side-spacer" />
         return (
           <button key={i} type="button" className="diff-collapsed" onClick={() => onToggleGroup(i)}>
+            <ChevronsUpDown size={12} strokeWidth={1.75} />
             {row.collapsed.length} unchanged lines
           </button>
         )

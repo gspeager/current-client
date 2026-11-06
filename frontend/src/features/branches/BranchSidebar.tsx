@@ -40,6 +40,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
+import { arrowIntoList } from '../../lib/useRovingRows'
 import CIMark, { ciLabel } from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
@@ -482,7 +483,7 @@ function BranchSidebar({
       {b.current && <span className="branch-row-head">HEAD</span>}
       {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
       {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
-      <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
+      {!b.current && <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />}
       {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
       <ConflictsBadge overlap={overlapFor.get(b.name)} />
       {!b.current && b.worktreePath && (
@@ -675,6 +676,7 @@ function BranchSidebar({
               <Search size={14} strokeWidth={1.5} />
               <input
                 aria-label="Filter branches"
+                onKeyDown={arrowIntoList}
                 placeholder="Filter branches…"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}

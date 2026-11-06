@@ -370,7 +370,9 @@
 }
 
 .diff-collapsed {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   grid-column: 1 / -1;
   width: 100%;
   height: var(--row-height);

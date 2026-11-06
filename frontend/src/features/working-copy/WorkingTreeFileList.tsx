@@ -1,6 +1,15 @@
 import { noteMenuLabel, useNotes } from '../notes/notes'
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
-import { useRovingRows } from '../../lib/useRovingRows'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react'
+import { arrowIntoList, useRovingRows } from '../../lib/useRovingRows'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
 import { PatchService, type FileStatus } from '@current-client-bindings/app'
@@ -167,6 +176,7 @@ function WorkingTreeFileList({
   const isSelected = (section: WorkingTreeSection, path: string) =>
     selection.some((s) => s.section === section && s.file.path === path)
 
+  const selectedPath = selection.length === 1 ? selection[0].file.path : null
   const rowVirtualizer = useVirtualizer({
     count: listRows.length,
     getScrollElement: () => scrollRef.current,
@@ -178,6 +188,14 @@ function WorkingTreeFileList({
     },
     overscan: 10,
   })
+
+  // A selection made elsewhere, such as the first file on opening, stays in view.
+  useEffect(() => {
+    if (!selectedPath) return
+    const index = listRows.findIndex((row) => row.kind === 'file' && row.file.path === selectedPath)
+    if (index >= 0) rowVirtualizer.scrollToIndex(index, { align: 'auto' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPath])
 
   const runPatchExport = (exportPatch: Promise<void>) => {
     setPatchError(null)
@@ -411,6 +429,7 @@ function WorkingTreeFileList({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           aria-label="Filter working tree files"
+          onKeyDown={arrowIntoList}
         />
       </div>
 

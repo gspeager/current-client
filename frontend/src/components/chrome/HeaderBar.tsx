@@ -1,6 +1,17 @@
 import type { NoteInfo } from '@current-client-bindings/app'
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ChevronDown, Inbox, Plus, RefreshCw, Settings, type LucideIcon, X } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  Inbox,
+  Plus,
+  RefreshCw,
+  Settings,
+  Undo2,
+  type LucideIcon,
+  X,
+} from 'lucide-react'
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
 import ContextMenu, { type ContextMenuItem, type ContextMenuState } from '../controls/ContextMenu'
@@ -8,6 +19,7 @@ import FileHistoryPanel from '../../features/history/FileHistoryPanel'
 import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
 import { useBranchStatus } from '../../lib/useBranchStatus'
+import BlameView from '../../features/history/BlameView'
 import { shortcutLabel } from '../../lib/shortcuts'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
@@ -37,6 +49,9 @@ interface HeaderBarProps {
   // The Inbox, a view across every open repository, beside the tabs.
   inboxOpen?: boolean
   onToggleInbox?: () => void
+  onUndo?: () => void
+  onOpenChange?: (number: number) => void
+  onShowStashes?: () => void
   // Host rows the Inbox hasn't shown yet, after a refresh.
   inboxUnseen?: number
   workspaceActions: WorkspaceAction[]
@@ -76,6 +91,9 @@ function HeaderBar({
   dirty,
   inboxOpen = false,
   onToggleInbox,
+  onUndo,
+  onOpenChange,
+  onShowStashes,
   inboxUnseen = 0,
   workspaceActions,
   paletteActions,
@@ -107,6 +125,7 @@ function HeaderBar({
   const [branchSwitcherOpen, setBranchSwitcherOpen] = useState(false)
   const [panelView, setPanelView] = useState<PanelView>('branch')
   const [quickSwitchOpen, setQuickSwitchOpen] = useState(false)
+  const [blamePath, setBlamePath] = useState<string | null>(null)
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
@@ -362,6 +381,17 @@ function HeaderBar({
         {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
       </div>
       {syncMenu && <ContextMenu state={syncMenu} onClose={() => setSyncMenu(null)} />}
+      {onUndo && (
+        <button
+          type="button"
+          className="header-bar-icon-button"
+          aria-label="Undo last operation"
+          title={`Undo last operation (${shortcutLabel('mod+shift+Z')})`}
+          onClick={onUndo}
+        >
+          <Undo2 size={16} strokeWidth={1.75} />
+        </button>
+      )}
       <span className="header-bar-divider" />
 
       <button
@@ -406,6 +436,7 @@ function HeaderBar({
 
       {currentUser && <IdentityBadge identity={currentUser} name={currentUser.name} email={currentUser.email} />}
 
+      {blamePath && <BlameView repoPath={repoPath} path={blamePath} onClose={() => setBlamePath(null)} />}
       {quickSwitchOpen && (
         <QuickSwitchPalette
           repoPath={repoPath}
@@ -422,6 +453,9 @@ function HeaderBar({
           onPush={onPush}
           onFetchAll={fetchAllOp.fetchAll}
           onOpenFile={setFileHistoryPath}
+          onBlameFile={setBlamePath}
+          onOpenChange={onOpenChange}
+          onShowStashes={onShowStashes}
           onSearchFiles={() => setSearchOpen(true)}
           onOpenCommit={onOpenCommit}
           onOpenNote={onOpenNote}

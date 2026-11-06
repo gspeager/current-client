@@ -17,7 +17,7 @@
   // §3.3 Accents
   --primary: #4cd7f6;
   --primary-hover: #acedff;
-  --primary-container: #06b6d4;
+  --primary-container: #4cd7f6;
   --inverse-primary: #00687a;
   --secondary: #c0c1ff;
   --tertiary: #4edea3;
@@ -26,7 +26,7 @@
 
   // On-color ink for text/icons placed on top of a filled accent surface
   --on-primary: #003640;
-  --on-primary-container: #00424f;
+  --on-primary-container: #003640;
   --on-secondary: #1000a9;
   --on-tertiary: #003824;
   --on-error: #690005;
@@ -39,6 +39,7 @@
   --branch-hotfix: #ffb4ab;
   --branch-experimental: #e3a6f0;
   --branch-integration: #6ea8ff;
+  --branch-spare: #c6d96f;
 
   // Other lane palettes offered in Settings; the default one is the six above.
   --lane-vivid-1: #00e5ff;

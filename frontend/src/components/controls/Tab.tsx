@@ -19,6 +19,7 @@ function Tab({ active, onClick, children, label, off }: TabProps) {
       className={active ? 'tab tab-active' : off ? 'tab tab-off' : 'tab'}
       onClick={onClick}
       aria-label={label}
+      aria-current={active ? 'page' : undefined}
       title={off}
     >
       {children}

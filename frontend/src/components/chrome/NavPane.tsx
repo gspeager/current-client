@@ -44,6 +44,7 @@ export interface SidebarRequest {
     | 'new-tag'
     | 'publish-release'
     | 'new-stash'
+    | 'show-stash'
     | 'new-worktree'
     | 'new-remote'
   n: number
@@ -189,6 +190,7 @@ function NavPane({
       'new-branch': 'branches',
       'clean-up': 'branches',
       'new-stash': 'stash',
+      'show-stash': 'stash',
       'new-worktree': 'worktrees',
       'new-remote': 'remotes',
     }

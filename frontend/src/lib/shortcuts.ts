@@ -25,6 +25,7 @@ export const SHORTCUT_GROUPS: { name: string; shortcuts: Shortcut[] }[] = [
       { keys: 'mod+shift+T', label: 'Fetch' },
       { keys: 'mod+shift+L', label: 'Pull' },
       { keys: 'mod+shift+K', label: 'Push' },
+      { keys: 'mod+shift+Z', label: 'Undo last operation' },
     ],
   },
   {

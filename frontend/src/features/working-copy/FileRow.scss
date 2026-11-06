@@ -64,3 +64,17 @@
   color: var(--outline);
   font: var(--ui-xs);
 }
+
+// The filename gets the room: owners show on hover, and always in the diff's header.
+.file-row:not(:hover) .file-row-owners {
+  display: none;
+}
+
+.file-row .diff-stat-bar {
+  display: none;
+}
+
+// The row's actions take the stats' place on hover.
+.file-row:hover .diff-stat {
+  display: none;
+}

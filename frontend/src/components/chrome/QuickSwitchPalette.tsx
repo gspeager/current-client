@@ -10,6 +10,8 @@ import {
   FolderGit2,
   GitBranch,
   GitCommitVertical,
+  GitPullRequest,
+  Package,
   Search,
   Settings as SettingsIcon,
   StickyNote,
@@ -19,6 +21,8 @@ import {
 import {
   BranchService,
   HistoryService,
+  HostService,
+  StashService,
   type NoteInfo,
   RemoteService,
   StatusService,
@@ -62,6 +66,9 @@ interface QuickSwitchPaletteProps {
   onPush: () => void
   onFetchAll: () => void
   onOpenFile: (path: string) => void
+  onBlameFile?: (path: string) => void
+  onOpenChange?: (number: number) => void
+  onShowStashes?: () => void
   onSearchFiles: () => void
   onOpenCommit: (sha: string, position: number) => void
   onOpenNote?: (note: NoteInfo) => void
@@ -188,6 +195,9 @@ function QuickSwitchPalette({
   onPush,
   onFetchAll,
   onOpenFile,
+  onBlameFile,
+  onOpenChange,
+  onShowStashes,
   onSearchFiles,
   onOpenCommit,
   onOpenNote,
@@ -217,6 +227,17 @@ function QuickSwitchPalette({
     { keepData: true },
   ).data
   const commits = q ? (searchResults ?? []) : []
+  const hostChanges = useAsyncData(() => HostService.Changes(repoPath).catch(() => null), [repoPath]).data
+  const changeResults = q
+    ? (hostChanges?.changes ?? [])
+        .filter((c) => matches(`${hostChanges?.prefix}${c.number} ${c.title}`, q))
+        .slice(0, MAX_TAG_RESULTS)
+    : []
+  const stashes = useAsyncData(() => StashService.ListStash(repoPath).catch(() => []), [repoPath]).data ?? []
+  const stashResults = q ? stashes.filter((s) => matches(s.message, q)) : []
+  const blameQuery = q.startsWith('blame') ? q.replace(/^blame\s*/, '') : null
+  const blameResults =
+    blameQuery !== null && onBlameFile ? files.filter((p) => matches(p, blameQuery)).slice(0, MAX_FILE_RESULTS) : []
   const notes = useNotes()
   const noteResults = q
     ? notes.notes.filter((note) => matches(note.text, q) || matches(note.target, q) || matches(note.subject, q))
@@ -269,7 +290,10 @@ function QuickSwitchPalette({
     commits.length +
     tagResults.length +
     settingsResults.length +
-    actionResults.length
+    actionResults.length +
+    changeResults.length +
+    stashResults.length +
+    blameResults.length
 
   // The list fills in as searches return, so the first row can change after
   // it opens; the selection follows the top of the list until the arrows move it.
@@ -389,6 +413,60 @@ function QuickSwitchPalette({
                   </span>
                   {r.currentBranch && <span className="quick-switch-repo-branch">{r.currentBranch}</span>}
                 </span>
+              </Command.Item>
+            ))}
+          </Section>
+
+          <Section
+            heading={hostChanges?.prefix === '!' ? 'Merge requests' : 'Pull requests'}
+            icon={GitPullRequest}
+            count={changeResults.length}
+          >
+            {changeResults.map((c) => (
+              <Command.Item
+                key={`change:${c.number}`}
+                value={`change:${c.number}`}
+                aria-label={`${hostChanges?.prefix}${c.number}: ${c.title}`}
+                className="quick-switch-row quick-switch-row-action"
+                onSelect={() => runAndClose(() => onOpenChange?.(c.number))}
+              >
+                <GitPullRequest size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">{highlight(c.title)}</span>
+                <span className="quick-switch-commit-sha">
+                  {hostChanges?.prefix}
+                  {c.number}
+                </span>
+              </Command.Item>
+            ))}
+          </Section>
+
+          <Section heading="Stashes" icon={Package} count={stashResults.length}>
+            {stashResults.map((s) => (
+              <Command.Item
+                key={`stash:${s.index}`}
+                value={`stash:${s.index}`}
+                aria-label={`Stash: ${s.message}`}
+                className="quick-switch-row quick-switch-row-action"
+                onSelect={() => runAndClose(() => onShowStashes?.())}
+              >
+                <Package size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">{highlight(s.message)}</span>
+              </Command.Item>
+            ))}
+          </Section>
+
+          <Section heading="Blame" icon={FileText} count={blameResults.length}>
+            {blameResults.map((path) => (
+              <Command.Item
+                key={`blame:${path}`}
+                value={`blame:${path}`}
+                aria-label={`Blame ${path}`}
+                className="quick-switch-row"
+                onSelect={() => runAndClose(() => onBlameFile?.(path))}
+              >
+                <FileText size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">{baseName(path)}</span>
+                <PathText path={path} className="quick-switch-path" />
               </Command.Item>
             ))}
           </Section>

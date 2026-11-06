@@ -16,6 +16,7 @@ import { buildDisplayRows, diffStats } from './diffRows'
 import { conflictRows, type ConflictView } from './conflictRows'
 import DiffPane, { lineKey, lineRef, type HunkActions } from './DiffPane'
 import ReviewThreadBlock from './ReviewThreadBlock'
+import DiffMinimap from './DiffMinimap'
 import PendingCommentBlock from '../review/PendingCommentBlock'
 import ReviewComposer from '../review/ReviewComposer'
 import ReviewDialog from '../review/ReviewDialog'
@@ -277,6 +278,7 @@ function DiffViewer({
   const stats = diffStats(diff)
   // A conflicted file shows its two sides, or the working file with the markers
   // inline; either way there's no hunk to stage on its own.
+  const displayRows = diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)
   const chosenMode = diff.conflicted ? (conflictView === 'side-by-side' ? 'split' : 'unified') : viewMode
   const mode = tooNarrowForSplit ? 'unified' : chosenMode
   // Threads pin to a new-side line the diff shows; the rest, and all of them
@@ -394,7 +396,7 @@ function DiffViewer({
       >
         <DiffPane
           mode={mode}
-          rows={diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)}
+          rows={displayRows}
           blockStarts={diff.conflicted ? new Set(blocks.blockStarts) : undefined}
           resultView={diff.conflicted && conflictView === 'result'}
           path={path}
@@ -424,6 +426,7 @@ function DiffViewer({
           }
           {...(diff.conflicted ? {} : hunkActions)}
         />
+        <DiffMinimap rows={displayRows} paneRef={paneRef} />
         {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
           <section className="review-threads-outdated" aria-label="Threads not shown at a line">
             {unplaced.length > 0 && (

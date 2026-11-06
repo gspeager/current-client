@@ -10,13 +10,14 @@ interface RepositoryHealthProps {
   repoPath: string
   repoVersion: number
   dirty: boolean
+  changedCount?: number
   hasConflict: boolean
 }
 
 // Well below git's own gc.auto (6700) so the suggestion surfaces sooner.
 const GC_SUGGEST_THRESHOLD = 1000
 
-function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: RepositoryHealthProps) {
+function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasConflict }: RepositoryHealthProps) {
   const branchStatus = useBranchStatus(repoPath, repoVersion)
   const { data, error } = useAsyncData(
     () => Promise.all([BranchService.ListLocal(repoPath), DashboardService.GetRepoDiskUsage(repoPath)]),
@@ -88,7 +89,9 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
                   {hasConflict
                     ? 'Merge in progress, conflicts to resolve'
                     : dirty
-                      ? 'Uncommitted changes'
+                      ? changedCount > 0
+                        ? `${plural(changedCount, 'file')} uncommitted`
+                        : 'Uncommitted changes'
                       : 'Clean, no conflicts'}
                 </span>
               </div>

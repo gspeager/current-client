@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import './TitleTooltips.scss'
 
@@ -17,6 +17,7 @@ interface Tip {
 // own as well, and goes back afterwards for React to keep managing.
 function TitleTooltips({ root }: { root: HTMLElement }) {
   const [tip, setTip] = useState<Tip | null>(null)
+  const tipRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let timer = 0
@@ -81,9 +82,19 @@ function TitleTooltips({ root }: { root: HTMLElement }) {
     }
   }, [root])
 
+  // Pulled back inside the window once its width is known.
+  useLayoutEffect(() => {
+    const el = tipRef.current
+    if (!el || !tip) return
+    const half = el.offsetWidth / 2
+    const x = Math.min(Math.max(tip.x, half + 8), window.innerWidth - half - 8)
+    el.style.left = `${x}px`
+  }, [tip])
+
   if (!tip) return null
   return createPortal(
     <div
+      ref={tipRef}
       role="tooltip"
       className={tip.above ? 'title-tooltip title-tooltip-above' : 'title-tooltip'}
       style={{ left: tip.x, top: tip.y }}

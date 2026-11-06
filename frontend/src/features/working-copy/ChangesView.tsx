@@ -403,7 +403,12 @@ function ChangesView({
         ) : (files?.length ?? 0) === 0 ? (
           <div className="changes-clean">
             <WaveMark />
-            <p>No changes to show.</p>
+            <p>Nothing changed since the last commit.</p>
+            {headCommit && (
+              <p className="changes-clean-commit">
+                <span>{headCommit.sha.slice(0, 7)}</span> {headCommit.subject}
+              </p>
+            )}
           </div>
         ) : (
           <p className="changes-empty">Select a file to see its diff.</p>
