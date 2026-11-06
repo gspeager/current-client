@@ -306,6 +306,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       'Revert',
       'Reset to here…',
       'Export patch…',
+      'Add note…',
       'Copy SHA',
     ])
     await userEvent.click(screen.getByRole('button', { name: 'Check out' }))

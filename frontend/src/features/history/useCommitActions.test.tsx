@@ -44,6 +44,7 @@ describe('useCommitActions', () => {
       'Revert',
       'Reset to here…',
       'Export patch…',
+      'Add note…',
       'Copy SHA',
     ])
   })
