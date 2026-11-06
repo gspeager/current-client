@@ -126,6 +126,50 @@ describe('ChangesView staging', () => {
     expect(StatusService.UnstageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
   })
 
+  describe('Space', () => {
+    const selectFile = async () => {
+      vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue({
+        conflicted: false,
+        oldPath: 'src/app.ts',
+        newPath: 'src/app.ts',
+        binary: false,
+        tooLarge: false,
+        sizeBytes: 0,
+        hunks: [],
+      })
+      vi.mocked(StatusService.StageFile).mockResolvedValue()
+      renderChanges([file('src/app.ts')])
+      const path = document.querySelector<HTMLElement>('.file-row-path')!
+      await userEvent.click(path)
+      return path
+    }
+
+    it('stages the selected file from its row', async () => {
+      const path = await selectFile()
+
+      fireEvent.keyDown(path, { code: 'Space' })
+
+      expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
+    })
+
+    it('stages the selected file when no control has focus', async () => {
+      await selectFile()
+
+      fireEvent.keyDown(document.body, { code: 'Space' })
+
+      expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
+    })
+
+    it('leaves the file alone when another control has focus', async () => {
+      await selectFile()
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Refresh' }), { code: 'Space' })
+      fireEvent.keyDown(screen.getByRole('checkbox', { name: 'Stage src/app.ts' }), { code: 'Space' })
+
+      expect(StatusService.StageFile).not.toHaveBeenCalled()
+    })
+  })
+
   it('stages a single hunk from the open diff', async () => {
     vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue({
       conflicted: false,

@@ -51,6 +51,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- **Space no longer stages a file while another control has focus.** It works the focused button, menu or dropdown instead. On a file row or with nothing focused, it still stages or unstages the selected file.
 - **The sidebar no longer says "No pull request" before checking.** Until the host has been read it says **Pull request not checked**, and **Check** reads it.
 - **Focus stays in the file list after staging**, and **Alt+↑**/**Alt+↓** move between hunks without also moving the list.
 - **The commit subject counter warns past 72 characters.**

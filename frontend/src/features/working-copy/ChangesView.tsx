@@ -60,6 +60,7 @@ function splitDirFile(path: string): { dir: string; file: string } {
 
 // Below this, a split diff's columns wrap most lines, so unified is the default.
 const WIDE_ENOUGH_FOR_SPLIT = 1500
+const SPACE_HANDLING_CONTROLS = 'a, button, input, select, summary, textarea, [contenteditable], [role="button"]'
 
 function ChangesView({
   repoPath,
@@ -208,8 +209,8 @@ function ChangesView({
 
   useWindowKeydown((e) => {
     if (e.code !== 'Space' || !selectedPath) return
-    const target = e.target as HTMLElement | null
-    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return
+    const control = e.target instanceof Element ? e.target.closest(SPACE_HANDLING_CONTROLS) : null
+    if (control && !control.matches('.file-row-path')) return
     e.preventDefault()
     const f = (showsStaged ? staged : unstaged).find((x) => x.path === selectedPath)
     if (f) (showsStaged ? actions.unstage : actions.stage)(f)
