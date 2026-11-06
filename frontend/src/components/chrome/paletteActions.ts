@@ -7,6 +7,8 @@ export type PaletteSection = (typeof PALETTE_SECTIONS)[number]
 
 export interface PaletteAction extends WorkspaceAction {
   section: PaletteSection
+  // Shown as a keycap beside the action; see lib/shortcuts.
+  shortcut?: string
 }
 
 export function matchesAction(action: WorkspaceAction, query: string): boolean {

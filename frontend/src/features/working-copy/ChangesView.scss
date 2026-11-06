@@ -167,3 +167,18 @@
     }
   }
 }
+
+.changes-clean {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding-top: 18vh;
+  color: var(--outline-variant);
+
+  p {
+    margin: 0;
+    color: var(--outline);
+    font: var(--ui-md);
+  }
+}

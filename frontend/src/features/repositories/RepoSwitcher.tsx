@@ -39,13 +39,15 @@ function RepoSwitcher({ repo, defaultLocation = '', onOpenSettings }: RepoSwitch
       {tab === 'open' && (
         <div className="repo-switcher-open">
           <div className="repo-switcher-open-row">
-            <input
-              aria-label="Filter recent repositories"
-              placeholder="Filter recent repositories…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoFocus
-            />
+            {repo.recentRepos.length > 0 && (
+              <input
+                aria-label="Filter recent repositories"
+                placeholder="Filter recent repositories…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                autoFocus
+              />
+            )}
             <button type="button" className="repo-switcher-primary" onClick={repo.openRepository}>
               Browse…
             </button>
@@ -108,15 +110,17 @@ function RepoSwitcher({ repo, defaultLocation = '', onOpenSettings }: RepoSwitch
         </div>
       )}
 
-      <p className="repo-switcher-footer">
-        <span>{defaultLocation ? 'Dialogs start in' : 'Dialogs start in the last folder used.'}</span>
-        {defaultLocation && <PathText path={defaultLocation} />}
-        {onOpenSettings && (
-          <button type="button" onClick={onOpenSettings}>
-            Change in Settings
-          </button>
-        )}
-      </p>
+      {(defaultLocation || repo.recentRepos.length > 0) && (
+        <p className="repo-switcher-footer">
+          <span>{defaultLocation ? 'Dialogs start in' : 'Dialogs start in the last folder used.'}</span>
+          {defaultLocation && <PathText path={defaultLocation} />}
+          {onOpenSettings && (
+            <button type="button" onClick={onOpenSettings}>
+              Change in Settings
+            </button>
+          )}
+        </p>
+      )}
     </div>
   )
 }

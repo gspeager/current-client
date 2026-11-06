@@ -78,6 +78,12 @@
   }
 }
 
+.app-welcome-mark {
+  display: flex;
+  color: var(--on-surface-variant);
+  margin-bottom: calc(var(--space-sm) * -1);
+}
+
 .app-welcome-corner {
   position: absolute;
   top: var(--space-md);
@@ -111,4 +117,24 @@
   padding: var(--space-xs) var(--space-md);
   color: var(--error);
   font: var(--ui-xs);
+}
+
+// Off screen until the keyboard reaches it.
+.app-skip-link {
+  position: absolute;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  z-index: 100;
+  height: var(--h-field);
+  padding: 0 var(--space-md);
+  background: var(--surface-high);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-md);
+  transform: translateY(-200%);
+
+  &:focus-visible {
+    transform: none;
+  }
 }

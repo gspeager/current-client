@@ -24,7 +24,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
   return (
     <div className="activity-calendar">
       <div className="activity-header">
-        <span className="activity-title">Activity</span>
+        <span className="activity-title">Commits by day</span>
         {activity && <span className="activity-badge">{plural(totalCommits, 'commit')} in the last year</span>}
         <div className="activity-header-meta">
           <div className="activity-legend">
@@ -69,11 +69,9 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
         <div className="activity-footer">
           <div className="activity-footer-stats">
             <span className="activity-footer-stat">
-              <span className="activity-footer-dot activity-footer-dot-peak" />
               Peak day: <strong>{plural(peakDayCommits(activity), 'commit')}</strong>
             </span>
           </div>
-          <span className="activity-footer-hint">Hover over any square for daily counts</span>
         </div>
       )}
     </div>

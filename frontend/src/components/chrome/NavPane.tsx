@@ -25,6 +25,7 @@ import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
 import SubmodulesPanel from '../../features/submodules/SubmodulesPanel'
 import SidebarSection from './SidebarSection'
 import { useSidebarSections } from '../../lib/useSidebarSections'
+import { useRovingRows } from '../../lib/useRovingRows'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import type { WorkspaceAction, WorkspaceFeedback, WorkspaceGroup } from './useWorkspaceActions'
 import './NavPane.scss'
@@ -125,6 +126,8 @@ function ToolGroup({ label, actions, children }: { label: string; actions: Works
   )
 }
 
+const SIDEBAR_ROWS = '.branch-row, .tag-row, .stash-row, .remote-row, .worktree-row, .submodule-row'
+
 function NavPane({
   repoPath,
   repoVersion,
@@ -150,6 +153,7 @@ function NavPane({
 }: NavPaneProps) {
   const sections = useSidebarSections(repoPath)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
+  const rovingRows = useRovingRows(SIDEBAR_ROWS)
   const sectionRefs = useRef<Partial<Record<SectionId, HTMLElement | null>>>({})
   const pendingSection = useRef<SectionId | null>(null)
   const dirty = (workingTree.files?.length ?? 0) > 0
@@ -201,7 +205,7 @@ function NavPane({
   }
 
   return (
-    <nav className="nav-pane" style={{ width, minWidth: width }} aria-label="Repository">
+    <nav className="nav-pane" data-pane="sidebar" style={{ width, minWidth: width }} aria-label="Repository">
       <div className="nav-pane-head">
         <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />
         <button
@@ -215,7 +219,7 @@ function NavPane({
         </button>
       </div>
 
-      <div className="nav-pane-scroll">
+      <div className="nav-pane-scroll" ref={rovingRows}>
         <CurrentChangeSection
           repoPath={repoPath}
           refreshKey={`${repoVersion}:${hostVersion}`}

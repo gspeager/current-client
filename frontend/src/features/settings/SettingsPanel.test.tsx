@@ -87,7 +87,7 @@ describe('SettingsPanel', () => {
     const select = screen.getByRole('combobox', { name: 'Background fetch' })
     expect(select).toBeDisabled()
     expect(select).toHaveValue('5')
-    expect(screen.getByText('Managed by your organization.')).toBeInTheDocument()
+    expect(screen.getByText('Managed by organization policy.')).toBeInTheDocument()
   })
 
   it('has no Integrations group in a build without host integration', () => {

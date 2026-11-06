@@ -106,6 +106,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
         ariaLabel: `Show changes in stash: ${s.message}`,
         icon: Eye,
         run: () => setShownStash(s),
+        menuOnly: true,
       },
       {
         label: 'Apply (keep in list)',
@@ -120,6 +121,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
         icon: ArrowDownToLine,
         run: () => popStash(s.index),
         disabled: busy,
+        menuOnly: true,
       },
       {
         label: 'Drop…',
@@ -182,7 +184,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
                 <Package size={14} strokeWidth={1.5} className="stash-row-icon" />
                 <span className="stash-row-message">{s.message}</span>
                 <span className="stash-row-time">{relativeTime(new Date(s.date))}</span>
-                <RowActionButtons actions={stashActions(s)} className="stash-row-actions" />
+                <RowActionButtons actions={stashActions(s)} className="stash-row-actions" onMore={rowMenu.open(stashActions(s))} />
               </li>
             ))}
           </ul>

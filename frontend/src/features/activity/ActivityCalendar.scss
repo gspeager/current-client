@@ -27,10 +27,9 @@
 
 .activity-badge {
   padding: 2px var(--space-sm);
-  background: color-mix(in srgb, var(--tertiary) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tertiary) 40%, transparent);
+  background: var(--surface-high);
   border-radius: var(--radius-full);
-  color: var(--tertiary);
+  color: var(--on-surface-variant);
   font: var(--data-sm);
   @include typography.mono-numeric;
 }

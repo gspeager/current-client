@@ -26,10 +26,12 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
     <div className="commit-velocity">
       <div className="commit-velocity-header">
         <div className="commit-velocity-heading">
-          <span className="commit-velocity-title">Commit velocity</span>
-          <span className="commit-velocity-subtitle">Cadence frequency by {WEEK_COUNT}-week trend</span>
+          <span className="commit-velocity-title">Commits per week</span>
+          <span className="commit-velocity-subtitle">
+            Last {WEEK_COUNT} weeks{average !== null && ` · average ${average.toFixed(1)}`}
+            {busiest && ` · most on ${busiest.day}`}
+          </span>
         </div>
-        {busiest && <span className="commit-velocity-badge">Most active: {busiest.day.slice(0, 3)}</span>}
       </div>
 
       <div className="commit-velocity-body">
@@ -46,13 +48,13 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
                 title={`Week of ${week.weekStart}: ${plural(week.commits, 'commit')}`}
               >
                 <span
-                  className="commit-velocity-bar"
+                  className={i === weeks.length - 1 ? 'commit-velocity-bar commit-velocity-bar-current' : 'commit-velocity-bar'}
                   style={{ height: `${Math.max(4, (week.commits / maxCommits) * 100)}%` }}
                 />
                 <span
                   className={`commit-velocity-week-label${i === weeks.length - 1 ? ' commit-velocity-week-label-current' : ''}`}
                 >
-                  W{i + 1}
+                  {i === weeks.length - 1 ? 'Now' : `-${weeks.length - 1 - i}`}
                 </span>
               </div>
             ))}
@@ -60,11 +62,6 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
         )}
       </div>
 
-      {average !== null && (
-        <div className="commit-velocity-footer">
-          <span className="commit-velocity-average">Average: {average.toFixed(1)} commits/wk</span>
-        </div>
-      )}
     </div>
   )
 }

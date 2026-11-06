@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   FileDiff,
+  Keyboard,
   GitBranchPlus,
   GitPullRequest,
   History,
@@ -51,6 +52,10 @@ import { useWorkspaceActions } from './components/chrome/useWorkspaceActions'
 import { LaneThemeContext, toLaneThemeName } from './lib/laneColor'
 import { useAsyncData } from './lib/useAsyncData'
 import { useWindowKeydown } from './lib/useWindowKeydown'
+import { isTypingTarget } from './lib/shortcuts'
+import { cyclePanes } from './lib/panes'
+import ShortcutSheet from './components/chrome/ShortcutSheet'
+import WaveMark from './components/chrome/WaveMark'
 import { useAutoFetch } from './features/remotes/useAutoFetch'
 import { useConflictState } from './features/branches/useConflictState'
 import { useFileWatcher } from './features/repositories/useFileWatcher'
@@ -262,10 +267,39 @@ function App({
     terminals.show(repo.repoPath)
     setTerminalFocus((n) => n + 1)
   }
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   useWindowKeydown((e) => {
     if (isTerminalToggle(e)) {
       e.preventDefault()
       toggleTerminal()
+      return
+    }
+    if (e.key === 'F6') {
+      e.preventDefault()
+      cyclePanes(e.shiftKey)
+      return
+    }
+    if (e.key === '?' && !isTypingTarget(e.target)) {
+      setShortcutsOpen(true)
+      return
+    }
+    if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return
+    if (e.key.toLowerCase() === 'b') {
+      e.preventDefault()
+      settings.setNavCollapsed(!navCollapsed)
+    }
+    const views: AppTab[] = [
+      'working-copy',
+      'history',
+      ...(changesLabel ? (['changes'] as const) : []),
+      ...(issuesOn ? (['issues'] as const) : []),
+      'activity',
+      'changelog',
+    ]
+    const view = views[Number(e.key) - 1]
+    if (view && repo.repoPath) {
+      e.preventDefault()
+      changeTab(view)
     }
   })
   const closeRepoTab = (path: string) =>
@@ -510,6 +544,9 @@ function App({
             <Settings size={18} strokeWidth={1.75} />
           </button>
         </div>
+        <span className="app-welcome-mark">
+          <WaveMark width={72} />
+        </span>
         <h1>Current Client</h1>
         {resetNotice}
         {gitError ? (
@@ -548,8 +585,18 @@ function App({
   const changeKind = integration?.host.provider === 'gitlab' ? 'merge request' : 'pull request'
   const paletteActions: PaletteAction[] = [
     {
+      id: 'keyboard-shortcuts',
+      label: 'Keyboard shortcuts',
+      section: 'Views',
+      icon: Keyboard,
+      keywords: ['keys', 'help', 'hotkeys'],
+      shortcut: '?',
+      run: () => setShortcutsOpen(true),
+    },
+    {
       id: 'view-changes',
       label: 'Changes',
+      shortcut: 'mod+1',
       section: 'Views',
       icon: FileDiff,
       keywords: ['working tree', 'staged', 'diff', 'commit'],
@@ -558,6 +605,7 @@ function App({
     {
       id: 'view-history',
       label: 'History',
+      shortcut: 'mod+2',
       section: 'Views',
       icon: History,
       keywords: ['log', 'graph', 'commits'],
@@ -761,6 +809,17 @@ function App({
         <IssuePanelContext.Provider value={issueActions}>
           <NotesContext.Provider value={notesState.context}>
             <div className="app-shell">
+              <button
+                type="button"
+                className="app-skip-link"
+                onClick={() =>
+                  document
+                    .querySelector<HTMLElement>('[data-pane="main"] button, [data-pane="main"] [tabindex="0"]')
+                    ?.focus()
+                }
+              >
+                Skip to content
+              </button>
               <HeaderBar
                 repoPath={repo.repoPath}
                 repoVersion={repoVersion}
@@ -793,6 +852,7 @@ function App({
                 defaultRepoLocation={settings.settings?.defaultRepoLocation ?? ''}
                 accessory={headerAccessory}
               />
+              {shortcutsOpen && <ShortcutSheet onClose={() => setShortcutsOpen(false)} />}
               <TabBar
                 active={activeTab}
                 onChange={changeTab}
@@ -927,7 +987,7 @@ function App({
                 {!navCollapsed && <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />}
 
                 <div className="app-content">
-                  <main className="app-main">
+                  <main className="app-main" data-pane="main">
                     <KeepAlive active={activeTab === 'working-copy'}>
                       <ChangesView
                         key={`${repo.repoPath}-${memoryBranch}-${repoVersion}-${fileFocus}`}
@@ -1060,6 +1120,7 @@ function App({
               </div>
 
               <StatusBar
+                onOpenShortcuts={() => setShortcutsOpen(true)}
                 onToggleTerminal={terminalsOff ? undefined : toggleTerminal}
                 repoPath={repo.repoPath}
                 repoVersion={repoVersion}

@@ -1,6 +1,5 @@
 import type { NoteInfo } from '@current-client-bindings/app'
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
-import { System } from '@wailsio/runtime'
 import { ArrowDown, ArrowUp, ChevronDown, Inbox, Plus, RefreshCw, Settings, type LucideIcon, X } from 'lucide-react'
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
@@ -9,6 +8,7 @@ import FileHistoryPanel from '../../features/history/FileHistoryPanel'
 import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
 import { useBranchStatus } from '../../lib/useBranchStatus'
+import { shortcutLabel } from '../../lib/shortcuts'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
@@ -205,10 +205,23 @@ function HeaderBar({
       e.preventDefault()
       setSearchOpen(true)
     }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && !operation && !syncing) {
+      const key = e.key.toLowerCase()
+      if (key === 't') {
+        e.preventDefault()
+        void fetchAllOp.fetchPrimary()
+      } else if (key === 'l') {
+        e.preventDefault()
+        onPull()
+      } else if (key === 'k') {
+        e.preventDefault()
+        onPush()
+      }
+    }
   })
 
   return (
-    <header className="header-bar">
+    <header className="header-bar" data-pane="header">
       <div className="header-bar-tabs" aria-label="Open repositories">
         {repo.tabs.map((path) =>
           path === repoPath ? (
@@ -309,7 +322,9 @@ function HeaderBar({
           'fetch',
           fetchAllOp.running ? 'Cancel' : 'Fetch',
           RefreshCw,
-          fetchAllOp.running ? 'Cancel fetch' : `${fetchedLabel}. Fetch${pruneOnFetch ? ' and prune' : ''}`,
+          fetchAllOp.running
+            ? 'Cancel fetch'
+            : `${fetchedLabel}. Fetch${pruneOnFetch ? ' and prune' : ''} (${shortcutLabel('mod+shift+T')})`,
           fetchAllOp.running ? fetchAllOp.cancel : () => fetchAllOp.fetchPrimary(),
           [
             { label: 'Fetch and prune', onClick: fetchAllOp.fetchPrune },
@@ -321,7 +336,7 @@ function HeaderBar({
           'pull',
           branchStatus && branchStatus.behind > 0 ? `Pull ${branchStatus.behind}` : 'Pull',
           ArrowDown,
-          'Pull (shift-click to rebase)',
+          `Pull (${shortcutLabel('mod+shift+L')}), shift-click to rebase`,
           (e?: React.MouseEvent) => (e?.shiftKey ? onPullRebase() : onPull()),
           [
             { label: 'Pull (merge)', onClick: onPullMerge },
@@ -334,7 +349,7 @@ function HeaderBar({
           'push',
           branchStatus && branchStatus.ahead > 0 ? `Push ${branchStatus.ahead}` : 'Push',
           ArrowUp,
-          'Push (shift-click to force-push)',
+          `Push (${shortcutLabel('mod+shift+K')}), shift-click to force-push`,
           (e?: React.MouseEvent) => (e?.shiftKey ? onForcePush() : onPush()),
           [
             { label: 'Push tags', onClick: onPushTags },
@@ -350,7 +365,7 @@ function HeaderBar({
       <span className="header-bar-divider" />
 
       <button type="button" className="header-bar-quick-switch" onClick={() => setQuickSwitchOpen(true)}>
-        Go to anything <Kbd>{System.IsMac() ? '⌘K' : 'Ctrl K'}</Kbd>
+        Go to anything <Kbd>{shortcutLabel('mod+K')}</Kbd>
       </button>
 
       {accessory}
@@ -364,7 +379,7 @@ function HeaderBar({
           title={
             inboxUnseen > 0
               ? `${inboxUnseen} new since the last refresh, across the open repositories`
-              : 'What waits on you across the open repositories'
+              : 'What is waiting across the open repositories'
           }
           onClick={onToggleInbox}
         >

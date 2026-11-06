@@ -26,6 +26,7 @@
 .changes-files-title {
   font: var(--title-sm);
   color: var(--on-surface);
+  white-space: nowrap;
 }
 
 .changes-filter-wrap {

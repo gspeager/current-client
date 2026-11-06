@@ -8,24 +8,11 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: var(--space-md) var(--space-xl);
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-md) var(--space-lg);
   background: var(--surface-low);
   border: var(--border-structure);
   border-radius: var(--radius-lg);
-}
-
-.repo-stat-strip-icon {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--h-action);
-  height: var(--h-action);
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-md);
-  color: var(--on-surface-variant);
 }
 
 .repo-stat-strip-group {

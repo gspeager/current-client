@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen, Users } from 'lucide-react'
 import { type ConflictStateInfo, DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
+import WaveMark from '../../components/chrome/WaveMark'
 import CommitComposer from './CommitComposer'
 import DiffViewer from '../diff/DiffViewer'
 import DiffViewMenu from '../diff/DiffViewMenu'
@@ -254,6 +255,7 @@ function ChangesView({
         <CommitComposer
           repoPath={repoPath}
           stagedCount={staged.length}
+          changedCount={files?.length ?? 0}
           onCommitted={afterCommit}
           onPushRequested={onPushRequested}
           initialMessage={initialCommitDraft}
@@ -399,7 +401,14 @@ function ChangesView({
             )}
           </>
         ) : (
-          <p className="changes-empty">Select a file to see its diff.</p>
+          (files?.length ?? 0) === 0 ? (
+            <div className="changes-clean">
+              <WaveMark />
+              <p>No changes to show.</p>
+            </div>
+          ) : (
+            <p className="changes-empty">Select a file to see its diff.</p>
+          )
         )}
       </div>
     </div>

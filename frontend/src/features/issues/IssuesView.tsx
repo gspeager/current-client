@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useRovingRows } from '../../lib/useRovingRows'
 import { Plus, RefreshCw } from 'lucide-react'
 import { HostService, type ListedIssue } from '@current-client-bindings/app'
 import IssueDetail from '../host-changes/IssueDetail'
@@ -38,6 +39,7 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
   })
   const newIssue = useNewIssue()
   const hostLinks = useHostLinks(repoPath)
+  const rovingRows = useRovingRows('.host-change-row', { selectOnMove: true })
   const [selected, setSelected] = useState<string | null>(selectedKey)
   useEffect(() => setSelected(selectedKey), [selectedKey])
   const [refreshing, setRefreshing] = useState(false)
@@ -117,7 +119,7 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </button>
         {newIssue && (
-          <button type="button" className="host-changes-new" onClick={() => newIssue()}>
+          <button type="button" className="host-change-button" onClick={() => newIssue()}>
             <Plus size={14} strokeWidth={1.75} />
             New issue
           </button>
@@ -125,14 +127,14 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
       </header>
       {(refreshError || projectError) && <p className="host-changes-error">{refreshError ?? projectError}</p>}
       <div className="host-changes-body">
-        <ul className="host-changes-list" aria-label="Issues list">
+        <ul ref={rovingRows} className="host-changes-list" aria-label="Issues list">
           {issues.length === 0 && (
             <li className="host-changes-empty">
               {filter !== 'mine' && !projectList
                 ? 'Loading…'
                 : !fetched
                   ? 'Refresh to load.'
-                  : { mine: 'None assigned to you.', all: 'None open.', closed: 'None closed.' }[filter]}
+                  : { mine: 'None assigned.', all: 'None open.', closed: 'None closed.' }[filter]}
             </li>
           )}
           {issues.map((listed) => {

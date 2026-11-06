@@ -14,6 +14,8 @@ import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
+import Kbd from '../../components/controls/Kbd'
+import { shortcutLabel } from '../../lib/shortcuts'
 import SplitButton from '../../components/controls/SplitButton'
 import IdentityPrompt from './IdentityPrompt'
 import './CommitComposer.scss'
@@ -21,6 +23,8 @@ import './CommitComposer.scss'
 interface CommitComposerProps {
   repoPath: string
   stagedCount: number
+  // Everything changed in the working tree; undefined where it isn't known.
+  changedCount?: number
   onCommitted: () => void
   onPushRequested?: () => void
   initialMessage?: string
@@ -54,6 +58,7 @@ function withCoAuthorTrailers(body: string, coAuthors: AuthorInfo[]): string {
 function CommitComposer({
   repoPath,
   stagedCount,
+  changedCount,
   onCommitted,
   onPushRequested,
   initialMessage = '',
@@ -189,21 +194,24 @@ function CommitComposer({
   }
 
   const stillConflicted = conflict?.conflictedPaths.length ?? 0
-  const blockReason = conflict
-    ? stillConflicted > 0
-      ? `${plural(stillConflicted, 'file')} still conflicted.`
+  const nothingToCommit = !conflict && changedCount === 0 && stagedCount === 0 && !amend && !allowEmpty
+  const blockReason = nothingToCommit
+    ? 'Nothing to commit.'
+    : conflict
+      ? stillConflicted > 0
+        ? `${plural(stillConflicted, 'file')} still conflicted.`
+        : needsIdentity
+          ? 'Set a name and email to commit.'
+          : subject.trim() === ''
+            ? 'Enter a commit message.'
+            : null
       : needsIdentity
         ? 'Set a name and email to commit.'
         : subject.trim() === ''
           ? 'Enter a commit message.'
-          : null
-    : needsIdentity
-      ? 'Set a name and email to commit.'
-      : subject.trim() === ''
-        ? 'Enter a commit message.'
-        : !amend && !allowEmpty && stagedCount === 0
-          ? 'Nothing is staged.'
-          : null
+          : !amend && !allowEmpty && stagedCount === 0
+            ? 'Nothing is staged.'
+            : null
 
   const onMessageKeyDown = (e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && blockReason === null) {
@@ -249,63 +257,71 @@ function CommitComposer({
           </div>
         )}
       </div>
-      <div className="commit-composer-field">
-        <input
-          className="commit-composer-subject"
-          value={subject}
-          onChange={(e) => setMessage(e.target.value, body)}
-          onKeyDown={onMessageKeyDown}
-          placeholder="Summary"
-        />
-        <div className="commit-composer-body-wrap">
-          <textarea
-            className="commit-composer-body"
-            value={body}
-            onChange={(e) => setMessage(subject, e.target.value)}
-            onKeyDown={onMessageKeyDown}
-            placeholder="Description"
-            rows={2}
-          />
-          <details
-            ref={coAuthorMenuRef}
-            className="commit-composer-coauthors"
-            open={coAuthorMenuOpen}
-            onToggle={(e) => setCoAuthorMenuOpen(e.currentTarget.open)}
-          >
-            <summary className="commit-composer-coauthors-toggle" title="Add co-authors" aria-label="Add co-authors">
-              <UserPlus size={14} strokeWidth={1.75} />
-              {coAuthors.length > 0 && <span className="commit-composer-coauthors-badge">{coAuthors.length}</span>}
-            </summary>
-            <div className="commit-composer-coauthors-menu">
-              {recentAuthors.length === 0 ? (
-                <p className="commit-composer-coauthors-empty">No recent authors.</p>
-              ) : (
-                recentAuthors.map((a) => (
-                  <label key={a.email} className="commit-composer-coauthors-option">
-                    <input
-                      type="checkbox"
-                      checked={coAuthors.some((c) => c.email === a.email)}
-                      onChange={() => toggleCoAuthor(a)}
-                    />
-                    {a.name}
-                  </label>
-                ))
-              )}
-            </div>
-          </details>
-        </div>
-      </div>
-      <div className="commit-composer-meta">
-        <span className="commit-composer-counter">
-          Subject <span className="commit-composer-counter-value">{subject.length}</span> /{SUBJECT_TARGET}
-          <span className="commit-composer-counter-bar">
-            <span
-              className="commit-composer-counter-fill"
-              style={{ width: `${Math.min(100, (subject.length / SUBJECT_TARGET) * 100)}%` }}
+      {!nothingToCommit && (
+        <>
+          <div className="commit-composer-field">
+            <input
+              className="commit-composer-subject"
+              value={subject}
+              onChange={(e) => setMessage(e.target.value, body)}
+              onKeyDown={onMessageKeyDown}
+              placeholder="Summary"
             />
-          </span>
-        </span>
-      </div>
+            <div className="commit-composer-body-wrap">
+              <textarea
+                className="commit-composer-body"
+                value={body}
+                onChange={(e) => setMessage(subject, e.target.value)}
+                onKeyDown={onMessageKeyDown}
+                placeholder="Description"
+                rows={2}
+              />
+              <details
+                ref={coAuthorMenuRef}
+                className="commit-composer-coauthors"
+                open={coAuthorMenuOpen}
+                onToggle={(e) => setCoAuthorMenuOpen(e.currentTarget.open)}
+              >
+                <summary
+                  className="commit-composer-coauthors-toggle"
+                  title="Add co-authors"
+                  aria-label="Add co-authors"
+                >
+                  <UserPlus size={14} strokeWidth={1.75} />
+                  {coAuthors.length > 0 && <span className="commit-composer-coauthors-badge">{coAuthors.length}</span>}
+                </summary>
+                <div className="commit-composer-coauthors-menu">
+                  {recentAuthors.length === 0 ? (
+                    <p className="commit-composer-coauthors-empty">No recent authors.</p>
+                  ) : (
+                    recentAuthors.map((a) => (
+                      <label key={a.email} className="commit-composer-coauthors-option">
+                        <input
+                          type="checkbox"
+                          checked={coAuthors.some((c) => c.email === a.email)}
+                          onChange={() => toggleCoAuthor(a)}
+                        />
+                        {a.name}
+                      </label>
+                    ))
+                  )}
+                </div>
+              </details>
+            </div>
+          </div>
+          <div className="commit-composer-meta">
+            <span className="commit-composer-counter">
+              Subject <span className="commit-composer-counter-value">{subject.length}</span> /{SUBJECT_TARGET}
+              <span className="commit-composer-counter-bar">
+                <span
+                  className="commit-composer-counter-fill"
+                  style={{ width: `${Math.min(100, (subject.length / SUBJECT_TARGET) * 100)}%` }}
+                />
+              </span>
+            </span>
+          </div>
+        </>
+      )}
       {coAuthors.length > 0 && (
         <div className="commit-composer-coauthor-chips">
           {coAuthors.map((a) => (
@@ -378,6 +394,7 @@ function CommitComposer({
               : stagedCount === 0 && allowEmpty
                 ? 'Commit (empty)'
                 : `Commit ${plural(stagedCount, 'file')}`}
+          {!blockReason && <Kbd>{shortcutLabel('mod+Enter')}</Kbd>}
         </SplitButton>
       )}
       {error && <p className="commit-composer-error">{error}</p>}

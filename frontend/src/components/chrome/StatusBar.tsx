@@ -1,4 +1,4 @@
-import { SquareTerminal } from 'lucide-react'
+import { Keyboard, SquareTerminal } from 'lucide-react'
 import { System } from '@wailsio/runtime'
 import { PlatformService, type HostStatusInfo } from '@current-client-bindings/app'
 import { baseName, tildePath } from '../../lib/paths'
@@ -18,10 +18,12 @@ interface StatusBarProps {
   lastFetchedAt?: Date | null
   onOpenSettings?: () => void
   onToggleTerminal?: () => void
+  onOpenShortcuts?: () => void
 }
 
 function StatusBar({
   onToggleTerminal,
+  onOpenShortcuts,
   repoPath,
   repoVersion,
   gitVersion,
@@ -61,6 +63,12 @@ function StatusBar({
         >
           <SquareTerminal size={12} strokeWidth={1.75} />
           Terminal
+        </button>
+      )}
+      {onOpenShortcuts && (
+        <button type="button" className="status-bar-terminal" title="Keyboard shortcuts (?)" onClick={onOpenShortcuts}>
+          <Keyboard size={12} strokeWidth={1.75} />
+          Shortcuts
         </button>
       )}
       <span className="status-bar-fetched">

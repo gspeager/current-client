@@ -21,7 +21,15 @@ function laneX(lane: number, laneWidth: number): number {
 
 const NODE_RADIUS = 4
 
-function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = false, colors, head = false }: CommitGraphProps) {
+function CommitGraph({
+  node,
+  laneCount,
+  rowHeight,
+  laneWidth = 18,
+  dashed = false,
+  colors,
+  head = false,
+}: CommitGraphProps) {
   const { laneColor } = useLaneColors()
   const above = (lane: number) => colors?.before.get(lane) ?? laneColor(lane)
   const beneath = (lane: number) => colors?.after.get(lane) ?? laneColor(lane)
@@ -104,7 +112,14 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
       ) : (
         <>
           {head && (
-            <circle cx={ownX} cy={mid} r={NODE_RADIUS + 3} fill="none" strokeWidth={1.5} style={{ stroke: 'var(--primary)' }} />
+            <circle
+              cx={ownX}
+              cy={mid}
+              r={NODE_RADIUS + 3}
+              fill="none"
+              strokeWidth={1.5}
+              style={{ stroke: 'var(--primary)' }}
+            />
           )}
           <circle cx={ownX} cy={mid} r={NODE_RADIUS} style={{ fill: nodeColor }} />
         </>

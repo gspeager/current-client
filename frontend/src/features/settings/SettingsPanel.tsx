@@ -295,7 +295,7 @@ function SettingsPanel({
               label="Background fetch"
               hint={
                 values.autoFetchManaged
-                  ? 'Managed by your organization.'
+                  ? 'Managed by organization policy.'
                   : 'Off by default. When off, a remote is only contacted on an explicit fetch, pull or push.'
               }
             >

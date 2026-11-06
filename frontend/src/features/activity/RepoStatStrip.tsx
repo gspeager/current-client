@@ -1,6 +1,5 @@
-import { GitBranch } from 'lucide-react'
 import { DashboardService, type RepoDiskUsageInfo, type RepoStatsInfo } from '@current-client-bindings/app'
-import { ageColor, formatAge } from './repoAge'
+import { formatAge } from './repoAge'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './RepoStatStrip.scss'
 
@@ -13,7 +12,6 @@ interface RepoStatStripProps {
 interface Stat {
   label: string
   value: string
-  color?: string
 }
 
 function formatDiskSize(kb: number): string {
@@ -30,7 +28,7 @@ function statsFor(s: RepoStatsInfo, disk: RepoDiskUsageInfo): Stat[] {
     { label: 'Tracked files', value: String(s.fileCount) },
     s.totalCommits === 0
       ? { label: 'Repository age', value: '—' }
-      : { label: 'Repository age', value: formatAge(s.repoAgeDays), color: ageColor(s.repoAgeDays) },
+      : { label: 'Repository age', value: formatAge(s.repoAgeDays) },
     { label: 'Branches', value: String(s.branchCount) },
     { label: 'Tags', value: String(s.tagCount) },
     { label: 'Stashes', value: String(s.stashCount) },
@@ -54,9 +52,6 @@ function RepoStatStrip({ repoPath, repoVersion, dirty }: RepoStatStripProps) {
       ) : (
         <>
           <div className="repo-stat-strip-group">
-            <div className="repo-stat-strip-icon">
-              <GitBranch size={16} strokeWidth={1.75} />
-            </div>
             <div className="repo-stat-strip-item">
               <span className="repo-stat-strip-label">Branch</span>
               <span className="repo-stat-strip-value repo-stat-strip-branch" title={data[0].currentBranch}>
@@ -72,7 +67,7 @@ function RepoStatStrip({ repoPath, repoVersion, dirty }: RepoStatStripProps) {
               <span className="repo-stat-strip-divider" />
               <div className="repo-stat-strip-item">
                 <span className="repo-stat-strip-label">{stat.label}</span>
-                <span className="repo-stat-strip-value" style={stat.color ? { color: stat.color } : undefined}>
+                <span className="repo-stat-strip-value">
                   {stat.value}
                 </span>
               </div>

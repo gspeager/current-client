@@ -17,7 +17,7 @@ interface ReviewDialogProps {
 type Verdict = 'approve' | 'request-changes' | 'comment'
 
 const VERDICTS: { id: Verdict; label: string; hint: string }[] = [
-  { id: 'approve', label: 'Approve', hint: 'The change may merge as far as you are concerned.' },
+  { id: 'approve', label: 'Approve', hint: 'Clears the change to merge.' },
   { id: 'request-changes', label: 'Request changes', hint: 'Something must change before it merges.' },
   { id: 'comment', label: 'Comment', hint: 'Notes without a verdict.' },
 ]

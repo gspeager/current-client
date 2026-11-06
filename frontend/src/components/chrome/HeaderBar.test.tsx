@@ -59,7 +59,7 @@ describe('HeaderBar sync cluster', () => {
     const cluster = document.querySelector('.header-bar-sync-cluster')!
     await vi.waitFor(() => expect(cluster).toHaveTextContent('FetchPull 1Push 2'))
     expect(screen.queryByRole('checkbox', { name: 'Prune' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Fetch' })).toHaveAttribute('title', 'Fetched 26m ago. Fetch')
+    expect(screen.getByRole('button', { name: 'Fetch' })).toHaveAttribute('title', 'Fetched 26m ago. Fetch (Ctrl Shift T)')
     expect(screen.queryByText(/fetched 26m ago/)).not.toBeInTheDocument()
   })
 

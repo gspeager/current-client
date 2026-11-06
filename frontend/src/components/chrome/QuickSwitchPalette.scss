@@ -103,6 +103,15 @@
   text-align: left;
 }
 
+.quick-switch-row-action {
+  font: var(--ui-sm);
+  justify-content: space-between;
+
+  .quick-switch-row-name {
+    flex: 1;
+  }
+}
+
 .quick-switch-row[data-selected='true'] {
   background: var(--surface-container);
   box-shadow: inset 2px 0 0 0 var(--primary);

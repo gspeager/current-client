@@ -137,7 +137,7 @@ function HostRow({ host, run }: HostRowProps) {
           </span>
         </div>
         <div className="settings-host-switch">
-          {host.managed && <span className="settings-hint">Managed by your organization</span>}
+          {host.managed && <span className="settings-hint">Managed by organization policy</span>}
           <Switch
             checked={host.enabled}
             onChange={(on) => void run(HostService.SetEnabled(host.hostname, on))}

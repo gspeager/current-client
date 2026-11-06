@@ -1,5 +1,5 @@
 import { DashboardService } from '@current-client-bindings/app'
-import { extensionOf, languageColor } from './languageColors'
+import { extensionOf } from './languageColors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import PathText from '../../components/git/PathText'
 import './FileChurnList.scss'
@@ -20,10 +20,9 @@ function FileChurnList({ repoPath, repoVersion }: FileChurnListProps) {
     <div className="file-churn">
       <div className="file-churn-header">
         <div className="file-churn-heading">
-          <span className="file-churn-title">File churn analysis</span>
-          <span className="file-churn-subtitle">Files with the highest revision rate in the last 90 days</span>
+          <span className="file-churn-title">Most-changed files</span>
+          <span className="file-churn-subtitle">Last 90 days</span>
         </div>
-        <span className="file-churn-badge">Filtered: Last 90 days</span>
       </div>
 
       <div className="file-churn-body">
@@ -37,17 +36,16 @@ function FileChurnList({ repoPath, repoVersion }: FileChurnListProps) {
           <ul className="file-churn-list">
             {churn.map((c) => {
               const extension = extensionOf(c.path)
-              const color = languageColor(extension)
               return (
                 <li key={c.path} className="file-churn-row">
-                  <span className="file-churn-extension" style={{ color }}>
+                  <span className="file-churn-extension">
                     {extension === 'other' ? '—' : extension.toUpperCase()}
                   </span>
                   <PathText path={c.path} className="file-churn-path" />
                   <span className="file-churn-bar-wrap">
                     <span
                       className="file-churn-bar"
-                      style={{ width: `${(c.changes / maxChanges) * 100}%`, background: color }}
+                      style={{ width: `${(c.changes / maxChanges) * 100}%`, background: 'var(--surface-highest)' }}
                     />
                   </span>
                   <span className="file-churn-count">{c.changes}</span>

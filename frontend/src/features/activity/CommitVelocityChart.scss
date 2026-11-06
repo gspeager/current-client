@@ -25,26 +25,14 @@
 }
 
 .commit-velocity-title {
-  font: var(--title-sm);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font: var(--title-md);
+  font-weight: 600;
   color: var(--on-surface);
 }
 
 .commit-velocity-subtitle {
   color: var(--outline);
   font: var(--ui-xs);
-}
-
-.commit-velocity-badge {
-  flex-shrink: 0;
-  padding: 2px var(--space-sm);
-  background: color-mix(in srgb, var(--tertiary) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tertiary) 40%, transparent);
-  border-radius: var(--radius);
-  color: var(--tertiary);
-  font: var(--ui-xs);
-  white-space: nowrap;
 }
 
 .commit-velocity-body {
@@ -65,7 +53,7 @@
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  min-height: 96px;
+  height: 144px;
 }
 
 .commit-velocity-bar-wrap {
@@ -82,7 +70,11 @@
   width: 100%;
   min-height: 4px;
   border-radius: 2px 2px 0 0;
-  background: var(--tertiary);
+  background: var(--surface-highest);
+}
+
+.commit-velocity-bar-current {
+  background: var(--on-surface-variant);
 }
 
 .commit-velocity-week-label {
@@ -96,17 +88,3 @@
   font-weight: 600;
 }
 
-.commit-velocity-footer {
-  flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm) var(--space-md);
-  padding: var(--space-sm) var(--space-md) var(--space-md);
-}
-
-.commit-velocity-average {
-  color: var(--outline);
-  font: var(--ui-sm);
-}

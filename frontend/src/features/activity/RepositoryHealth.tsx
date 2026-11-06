@@ -36,17 +36,17 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
   return (
     <div className="repo-health">
       <div className="repo-health-header">
-        <span className="repo-health-title">Repository health</span>
+        <span className="repo-health-title">Repository state</span>
         {loaded && (
           <span className={`repo-health-badge repo-health-badge-${issueCount === 0 ? 'optimal' : 'attention'}`}>
-            {issueCount === 0 ? 'Optimal' : plural(issueCount, 'issue')}
+            {issueCount > 0 ? `${issueCount} to check` : dirty ? 'Nothing blocking' : 'All clear'}
           </span>
         )}
       </div>
 
       <div className="repo-health-body">
         {error ? (
-          <p className="repo-health-hint">Could not load repository health: {error}</p>
+          <p className="repo-health-hint">Could not load repository state: {error}</p>
         ) : !loaded ? (
           <p className="repo-health-hint">Loading…</p>
         ) : (
@@ -56,8 +56,8 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
                 <span className="repo-health-row-title">Stale branches</span>
                 <span className="repo-health-row-subtitle">
                   {staleBranchCount === 0
-                    ? `No inactive branches >${STALE_THRESHOLD_DAYS}d`
-                    : `${plural(staleBranchCount, 'branch', 'branches')} inactive >${STALE_THRESHOLD_DAYS}d`}
+                    ? `None inactive over ${STALE_THRESHOLD_DAYS} days`
+                    : `${plural(staleBranchCount, 'branch', 'branches')} inactive over ${STALE_THRESHOLD_DAYS} days`}
                 </span>
               </div>
               <span className={`repo-health-value repo-health-value-${staleBranchCount === 0 ? 'ok' : 'warn'}`}>
@@ -86,10 +86,10 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
                 <span className="repo-health-row-title">Working directory</span>
                 <span className="repo-health-row-subtitle">
                   {hasConflict
-                    ? 'Merge in progress — resolve conflicts'
+                    ? 'Merge in progress, conflicts to resolve'
                     : dirty
-                      ? 'Uncommitted changes present'
-                      : 'Clean tree, no merge conflicts'}
+                      ? 'Uncommitted changes'
+                      : 'Clean, no conflicts'}
                 </span>
               </div>
               {hasConflict ? (

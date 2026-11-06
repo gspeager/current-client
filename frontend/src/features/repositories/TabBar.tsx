@@ -33,7 +33,7 @@ function TabBar({
   onOffHost,
 }: TabBarProps) {
   return (
-    <nav className="tab-bar">
+    <nav className="tab-bar" aria-label="Views" data-pane="views">
       <Tab
         active={active === 'working-copy'}
         onClick={() => onChange('working-copy')}
@@ -86,7 +86,7 @@ function TabBar({
         <Tab
           active={active === 'issues'}
           onClick={() => onChange('issues')}
-          label={issueCount > 0 ? `Issues, ${plural(issueCount, 'assigned to you', 'assigned to you')}` : 'Issues'}
+          label={issueCount > 0 ? `Issues, ${plural(issueCount, 'assigned', 'assigned')}` : 'Issues'}
         >
           Issues
           {issueCount > 0 && <span className="tab-count">{issueCount}</span>}

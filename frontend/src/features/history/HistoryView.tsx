@@ -16,6 +16,7 @@ import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
 import { assignLaneColors } from './laneOwners'
 import { useLaneColors } from '../../lib/laneColor'
+import { useRovingRows } from '../../lib/useRovingRows'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
@@ -139,6 +140,7 @@ function HistoryView({
   const [newShas, setNewShas] = useState<Set<string>>(new Set())
   const hasComputedNewShas = useRef(false)
   const parentRef = useRef<HTMLDivElement>(null)
+  const rovingRows = useRovingRows('.commit-row', { selectOnMove: true })
 
   // Only the first load counts; no overlap with previousTopSha (a rebase or
   // first open) flashes nothing.
@@ -376,7 +378,7 @@ function HistoryView({
             )}
 
             <div ref={parentRef} className="history-scroll">
-              <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+              <div ref={rovingRows} style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
                 {virtualItems.map((row) => {
                   const rowStyle = {
                     position: 'absolute' as const,

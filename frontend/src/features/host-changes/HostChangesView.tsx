@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useRovingRows } from '../../lib/useRovingRows'
 import {
   CircleCheck,
   CircleHelp,
@@ -85,6 +86,7 @@ function HostChangesView({
     error,
     reload,
   } = useAsyncData(() => HostService.Changes(repoPath), [repoPath], { keepData: true })
+  const rovingRows = useRovingRows('.host-change-row', { selectOnMove: true })
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
@@ -169,7 +171,7 @@ function HostChangesView({
         </button>
         <button
           type="button"
-          className="host-changes-new"
+          className="host-change-button"
           onClick={() => current && void createChangeFor(repoPath, current.branch, onCreateChange)}
           disabled={!current?.branch || currentHasChange}
           title={
@@ -189,7 +191,7 @@ function HostChangesView({
       )}
       <div className="host-changes-body">
         <div className="host-changes-column">
-          <ul className="host-changes-list" aria-label={`${label} list`}>
+          <ul ref={rovingRows} className="host-changes-list" aria-label={`${label} list`}>
             {shown.length === 0 && (
               <li className="host-changes-empty">
                 {filter === 'closed'
@@ -198,7 +200,7 @@ function HostChangesView({
                     : 'Loading…'
                   : list.fetchedAt
                     ? filter === 'review'
-                      ? 'None waiting on a review from you.'
+                      ? 'No reviews waiting.'
                       : 'None open.'
                     : 'Refresh to load.'}
               </li>

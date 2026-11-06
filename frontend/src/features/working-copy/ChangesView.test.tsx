@@ -740,7 +740,7 @@ describe('ChangesView first file', () => {
 
   it('opens nothing in a clean working tree', () => {
     renderChanges([])
-    expect(screen.getByText('Select a file to see its diff.')).toBeInTheDocument()
+    expect(screen.getByText('No changes to show.')).toBeInTheDocument()
     expect(DiffService.GetWorkingTreeDiff).not.toHaveBeenCalled()
   })
 })

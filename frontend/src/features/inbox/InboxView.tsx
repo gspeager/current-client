@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useRovingRows } from '../../lib/useRovingRows'
 import {
   Bell,
   Check,
@@ -88,8 +89,8 @@ export function targetOf(path: string, row: InboxRow): InboxTarget {
 // Three questions, in the order they matter: what waits on you, what is
 // yours in flight, and what could be tidied.
 const GROUPS: { name: string; kinds: string[] }[] = [
-  { name: 'Needs you', kinds: ['review', 'changes-requested', 'ci-failed', 'todo'] },
-  { name: 'Your work', kinds: ['dirty', 'operation', 'conflict', 'unpushed', 'assigned', 'undeployed'] },
+  { name: 'Waiting', kinds: ['review', 'changes-requested', 'ci-failed', 'todo'] },
+  { name: 'In progress', kinds: ['dirty', 'operation', 'conflict', 'unpushed', 'assigned', 'undeployed'] },
   { name: 'Tidy up', kinds: ['merged', 'stale'] },
 ]
 
@@ -124,7 +125,7 @@ function describe(row: InboxRow): { subject: string; reason: string } {
     case 'assigned':
       return {
         subject: `${/^\d+$/.test(row.key) ? '#' : ''}${row.key} ${row.title}`,
-        reason: row.detail ? `assigned, ${row.detail}` : 'assigned to you',
+        reason: row.detail ? `assigned, ${row.detail}` : 'assigned',
       }
     case 'todo':
       return {
@@ -192,6 +193,7 @@ interface InboxRepoSectionProps {
 
 function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepoSectionProps) {
   const fresh = repo.rows.filter((row) => row.new).length
+  const rovingRows = useRovingRows('.inbox-row')
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [doneError, setDoneError] = useState<string | null>(null)
@@ -216,7 +218,7 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
       .finally(() => setRefreshing(false))
   }
   return (
-    <section className="inbox-repo" aria-label={repo.name}>
+    <section ref={rovingRows} className="inbox-repo" aria-label={repo.name}>
       <h3 className="inbox-repo-name">
         <button type="button" className="inbox-repo-toggle" aria-expanded={open} onClick={onToggle}>
           {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}

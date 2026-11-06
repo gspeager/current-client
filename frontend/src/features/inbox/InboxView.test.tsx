@@ -63,9 +63,9 @@ describe('InboxView', () => {
       within(app)
         .getAllByRole('heading', { level: 4 })
         .map((h) => h.textContent),
-    ).toEqual(['Needs you1', 'Your work3', 'Tidy up1Clean up…'])
+    ).toEqual(['Waiting1', 'In progress3', 'Tidy up1Clean up…'])
     expect(
-      within(screen.getByRole('region', { name: 'app: Needs you' })).getByText(/Add the thing/),
+      within(screen.getByRole('region', { name: 'app: Waiting' })).getByText(/Add the thing/),
     ).toBeInTheDocument()
     expect(within(app).getByText(/^host /)).toBeInTheDocument()
     expect(InboxService.Rows).toHaveBeenCalledWith(['/repos/app', '/repos/lib'], true)

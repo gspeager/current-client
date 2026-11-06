@@ -24,16 +24,11 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
 
   const languages = rawLanguages ? groupTopLanguages(rawLanguages, DISPLAY_LIMIT) : null
   const total = rawLanguages?.reduce((sum, l) => sum + l.count, 0) ?? 0
-  const topTwo = languages
-    ?.filter((l) => l.extension !== 'other')
-    .slice(0, 2)
-    .map((l) => extensionLabel(l.extension))
-    .join(' + ')
 
   return (
     <div className="language-breakdown">
       <div className="language-breakdown-header">
-        <span className="language-breakdown-title">Languages &amp; assets</span>
+        <span className="language-breakdown-title">File types</span>
         {languages && <span className="language-breakdown-total">{plural(total, 'total file')}</span>}
       </div>
 
@@ -61,7 +56,7 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
             </div>
 
             <ul className="language-breakdown-list">
-              {languages.map((l, i) => {
+              {languages.map((l) => {
                 const percent = total === 0 ? 0 : (l.count / total) * 100
                 return (
                   <li key={l.extension} className="language-breakdown-row">
@@ -70,7 +65,7 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
                     <span className="language-breakdown-count">{plural(l.count, 'file')}</span>
                     <span
                       className="language-breakdown-percent"
-                      style={i === 0 ? { color: languageColor(l.extension) } : undefined}
+                      
                     >
                       {percent.toFixed(1)}%
                     </span>
@@ -82,13 +77,6 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
         )}
       </div>
 
-      {topTwo && (
-        <div className="language-breakdown-footer">
-          <span>
-            Primary: <strong>{topTwo}</strong>
-          </span>
-        </div>
-      )}
     </div>
   )
 }

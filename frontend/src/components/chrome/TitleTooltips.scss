@@ -1,0 +1,19 @@
+.title-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 320px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-highest);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-popover);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.title-tooltip-above {
+  transform: translate(-50%, -100%);
+}

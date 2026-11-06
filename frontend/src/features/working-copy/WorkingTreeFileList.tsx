@@ -1,5 +1,6 @@
 import { noteMenuLabel, useNotes } from '../notes/notes'
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { useRovingRows } from '../../lib/useRovingRows'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
 import { PatchService, type FileStatus } from '@current-client-bindings/app'
@@ -108,6 +109,7 @@ function WorkingTreeFileList({
   const [anchorKey, setAnchorKey] = useState<string | null>(null)
   const notes = useNotes()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const rovingRows = useRovingRows('.file-row', { selectOnMove: true })
 
   const sectionLabel = (section: WorkingTreeSection) =>
     mergeMode && section === 'staged' ? 'Resolved' : SECTION_LABEL[section]
@@ -422,9 +424,9 @@ function WorkingTreeFileList({
         ) : files === null ? (
           <p className="changes-empty">Loading changes…</p>
         ) : files.length === 0 ? (
-          <p className="changes-empty">No changes.</p>
+          <p className="changes-empty">Working tree clean.</p>
         ) : (
-          <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+          <div ref={rovingRows} style={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
             {rowVirtualizer.getVirtualItems().map((vi) =>
               renderRow(listRows[vi.index], {
                 position: 'absolute',

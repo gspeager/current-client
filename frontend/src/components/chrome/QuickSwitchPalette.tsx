@@ -39,6 +39,7 @@ import type { useRepositoryLifecycle } from '../../features/repositories/useRepo
 import Kbd from '../controls/Kbd'
 import PathText from '../git/PathText'
 import Modal from './Modal'
+import { shortcutLabel } from '../../lib/shortcuts'
 import { PALETTE_SECTIONS, matchesAction, type PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
 import './QuickSwitchPalette.scss'
@@ -299,11 +300,12 @@ function QuickSwitchPalette({
       key={`action:${a.id}`}
       value={`action:${a.id}`}
       aria-label={a.label}
-      className="quick-switch-row"
+      className="quick-switch-row quick-switch-row-action"
       onSelect={() => runAndClose(a.run)}
     >
       <a.icon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
       <span className="quick-switch-row-name">{highlight(a.label)}</span>
+      {a.shortcut && <Kbd>{shortcutLabel(a.shortcut)}</Kbd>}
     </Command.Item>
   )
 

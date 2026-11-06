@@ -38,7 +38,7 @@ describe('IntegrationsSection', () => {
     renderSection()
 
     const row = await screen.findByLabelText('gitlab.example.com')
-    expect(within(row).getByText('Managed by your organization')).toBeInTheDocument()
+    expect(within(row).getByText('Managed by organization policy')).toBeInTheDocument()
     expect(within(row).getByRole('checkbox', { name: 'Integration for gitlab.example.com' })).toBeDisabled()
   })
 

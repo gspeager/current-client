@@ -31,8 +31,8 @@ const LANGUAGE_TOKENS: Record<string, string> = {
 // YAML has no brand color.
 const LANGUAGE_COLORS: Record<string, string> = {
   ...Object.fromEntries(Object.entries(LANGUAGE_TOKENS).map(([ext, token]) => [ext, `var(--lang-${token})`])),
-  yml: 'var(--error)',
-  yaml: 'var(--error)',
+  yml: 'var(--branch-experimental)',
+  yaml: 'var(--branch-experimental)',
 }
 
 export const OTHER_LANGUAGE_COLOR = 'var(--lang-other)'
