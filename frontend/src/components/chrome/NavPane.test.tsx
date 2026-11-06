@@ -71,6 +71,8 @@ function renderNav(collapsed: boolean, onCollapsedChange = vi.fn(), onOpenHeadCo
   return { onCollapsedChange, setCollapsed: (next: boolean) => rerender(ui(next)) }
 }
 
+const openToolbox = () => userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
+
 describe('NavPane collapsed rail', () => {
   it('runs workspace actions straight from their icons', async () => {
     vi.mocked(PlatformService.OpenTerminal).mockResolvedValue()
@@ -165,6 +167,7 @@ describe('NavPane expanded', () => {
     vi.mocked(PlatformService.OpenInEditor).mockResolvedValue()
     vi.mocked(DashboardService.RunFsckCheck).mockResolvedValue([])
     renderNav(false)
+    await openToolbox()
 
     const groups = [...document.querySelectorAll('.nav-pane-footer .nav-pane-tool-group')]
     expect(groups.map((row) => row.textContent)).toEqual([
@@ -185,22 +188,24 @@ describe('NavPane expanded', () => {
     expect(await screen.findByText('Repository is healthy.')).toBeInTheDocument()
   })
 
-  it('puts the groups in a Toolbox that starts open and is remembered closed', async () => {
+  it('puts the groups in a Toolbox that starts closed and is remembered open', async () => {
     vi.mocked(SettingsService.SetSidebarSection).mockResolvedValue()
     renderNav(false)
 
     const toolbox = screen.getByRole('button', { name: 'Toolbox' })
-    expect(toolbox).toHaveAttribute('aria-expanded', 'true')
-    await userEvent.click(toolbox)
-
     expect(toolbox).toHaveAttribute('aria-expanded', 'false')
     expect(document.querySelector('.nav-pane-footer .nav-pane-tool-group')).toBeNull()
-    expect(SettingsService.SetSidebarSection).toHaveBeenCalledWith(REPO, 'toolbox', false)
+    await userEvent.click(toolbox)
+
+    expect(toolbox).toHaveAttribute('aria-expanded', 'true')
+    expect(document.querySelector('.nav-pane-footer .nav-pane-tool-group')).not.toBeNull()
+    expect(SettingsService.SetSidebarSection).toHaveBeenCalledWith(REPO, 'toolbox', true)
   })
 
   it('lets a message be dismissed', async () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
     const message = await screen.findByText('Patch applied to the working tree.')
@@ -228,6 +233,7 @@ describe('NavPane undo', () => {
     vi.mocked(UndoService.Preview).mockResolvedValue(plan)
     vi.mocked(UndoService.Apply).mockResolvedValue()
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
     const dialog = await screen.findByRole('alertdialog', { name: 'Undo merge' })
@@ -240,6 +246,7 @@ describe('NavPane undo', () => {
   it('does nothing when cancelled', async () => {
     vi.mocked(UndoService.Preview).mockResolvedValue(plan)
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Cancel' }))
@@ -250,6 +257,7 @@ describe('NavPane undo', () => {
   it('says why there is nothing to undo', async () => {
     vi.mocked(UndoService.Preview).mockRejectedValue(new Error('Nothing to undo.'))
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
 
@@ -261,6 +269,7 @@ describe('NavPane import patch', () => {
   it('says how the patch was applied', async () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
 
@@ -270,6 +279,7 @@ describe('NavPane import patch', () => {
   it('says nothing when the file dialog is cancelled', async () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('')
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
 

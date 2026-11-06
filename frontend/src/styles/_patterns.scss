@@ -13,9 +13,30 @@
   text-transform: uppercase;
 }
 
+// HEAD's badge, the accent's clearest use.
+@mixin head-badge {
+  padding: 1px var(--space-xs);
+  background: var(--primary);
+  border-radius: var(--radius-xs);
+  color: var(--on-primary);
+  font: var(--eyebrow);
+  letter-spacing: var(--eyebrow-tracking);
+}
+
 @mixin disabled {
   &:disabled {
     opacity: 0.45;
+    cursor: default;
+  }
+}
+
+// A primary with nothing to do steps back to a neutral fill, so the accent only
+// ever marks an action that is available.
+@mixin disabled-primary {
+  &:disabled {
+    background: var(--surface-high);
+    color: var(--outline);
+    box-shadow: none;
     cursor: default;
   }
 }
@@ -45,7 +66,7 @@
     box-shadow: var(--glow-action);
   }
 
-  @include disabled;
+  @include disabled-primary;
 }
 
 @mixin icon-button {

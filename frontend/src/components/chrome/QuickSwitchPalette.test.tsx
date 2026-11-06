@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ClipboardCheck } from 'lucide-react'
 import {
   BisectService,
+  SettingsService,
   BranchService,
   HistoryService,
   PatchService,
@@ -206,8 +207,10 @@ describe('QuickSwitchPalette features', () => {
 })
 
 describe('QuickSwitchPalette Workspace actions', () => {
-  it('lists every sidebar action by its sidebar name', () => {
+  it('lists every sidebar action by its sidebar name', async () => {
+    vi.mocked(SettingsService.GetSidebarSections).mockResolvedValue({ toolbox: true })
     renderPalette()
+    await waitFor(() => expect(document.querySelector('.nav-pane-tool')).not.toBeNull())
 
     const sidebar = [...document.querySelectorAll('.nav-pane-tool:not([aria-expanded])')].map((b) =>
       b.getAttribute('title'),

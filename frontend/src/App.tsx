@@ -161,7 +161,7 @@ function App({
   // The branch's known change, to offer a create link only while it has none.
   const changes = useBranchChanges(repo.repoPath ?? '', repoVersion)
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
-  const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
+  const navWidth = useResizableWidth('pane-width-nav', 248, 180, 400)
   const settings = useSettings()
   const navCollapsed = settings.settings?.navCollapsed ?? false
   // A refresh may have found something changed on the checked-out branch's change.
@@ -968,6 +968,7 @@ function App({
                         previousTopSha={restored.historyTopSha}
                         onTopShaChange={(sha) => remember({ historyTopSha: sha })}
                         onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
+                        currentBranch={localBranches?.find((b) => b.current)?.name}
                       />
                     </KeepAlive>
                     {changesLabel && (

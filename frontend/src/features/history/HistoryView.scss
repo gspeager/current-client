@@ -51,12 +51,12 @@
   font: var(--data-sm);
 }
 
-// Fixed, so the toolbar and the rows keep their room at every window width.
+// Gives way first at narrow widths, so the toolbar and the rows keep their room.
 .history-inspector {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  width: 360px;
+  width: clamp(280px, 30%, 376px);
   min-height: 0;
   background: var(--surface-low);
   border-left: var(--border-structure);

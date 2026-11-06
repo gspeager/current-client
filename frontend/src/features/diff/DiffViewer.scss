@@ -30,7 +30,7 @@
   height: var(--h-row-tree);
   padding: 0 var(--space-sm);
   background: var(--surface-low);
-  font: var(--data-sm);
+  font: var(--ui-xs);
 }
 
 .diff-side-header-dot {
@@ -62,6 +62,7 @@
 
 .diff-side-header-count {
   flex-shrink: 0;
+  font: var(--data-sm);
 }
 
 .diff-side-header-count-removed {
@@ -83,7 +84,9 @@
 
 .diff-pane-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  // A height-limited pane must scroll, never squeeze rows and clip wrapped lines.
+  grid-auto-rows: max-content;
   align-content: start;
 }
 
@@ -186,31 +189,35 @@
 
 .diff-stage-hunk {
   flex: 0 0 auto;
-  padding: 0 6px;
+  height: var(--h-micro);
+  padding: 0 var(--space-sm);
   border: none;
-  border-radius: var(--radius-xs);
-  color: var(--outline);
-  background: var(--outline-variant);
-  font: inherit;
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  background: var(--surface-highest);
+  font: var(--ui-xs);
+  font-weight: 500;
   cursor: pointer;
 
   &:hover {
-    color: var(--on-surface-variant);
+    background: var(--outline-variant);
   }
 }
 
 .diff-discard-hunk {
   flex: 0 0 auto;
-  padding: 0 6px;
+  height: var(--h-micro);
+  padding: 0 var(--space-sm);
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius);
   color: var(--error);
-  background: color-mix(in srgb, var(--error) 18%, transparent);
-  font: inherit;
+  background: none;
+  font: var(--ui-xs);
+  font-weight: 500;
   cursor: pointer;
 
   &:hover {
-    background: color-mix(in srgb, var(--error) 28%, transparent);
+    background: color-mix(in srgb, var(--error) 18%, transparent);
   }
 }
 
@@ -310,6 +317,17 @@
   user-select: none;
 }
 
+// A wrapped row's number stays beside its first line.
+.diff-line-select {
+  align-self: start;
+  height: var(--row-height);
+  line-height: var(--row-height);
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
 .diff-marker {
   text-align: center;
   user-select: none;
@@ -318,6 +336,9 @@
 
 .diff-content {
   padding-right: 8px;
+  // Wrapped lines hang under the first, so they don't read as unindented code.
+  padding-left: 2ch;
+  text-indent: -2ch;
   overflow-wrap: anywhere;
   color: var(--code-ink);
 }

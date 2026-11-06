@@ -286,8 +286,8 @@ function NavPane({
         )}
         <SidebarSection
           label="Toolbox"
-          open={sections.isOpen('toolbox', true)}
-          onToggle={() => sections.toggle('toolbox', true)}
+          open={sections.isOpen('toolbox', false)}
+          onToggle={() => sections.toggle('toolbox', false)}
         >
           <ToolGroup label="Open in" actions={group('open')} />
           <ToolGroup label="Tools" actions={group('tools')}>

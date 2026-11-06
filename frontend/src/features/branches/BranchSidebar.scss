@@ -272,12 +272,7 @@
 
 .branch-row-head {
   flex-shrink: 0;
-  padding: 1px var(--space-xs);
-  background: var(--primary);
-  border-radius: var(--radius-xs);
-  color: var(--on-primary);
-  font: var(--eyebrow);
-  letter-spacing: var(--eyebrow-tracking);
+  @include patterns.head-badge;
 }
 
 .branch-row-actions {

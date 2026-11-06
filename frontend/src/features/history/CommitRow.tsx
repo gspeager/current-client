@@ -19,6 +19,7 @@ import type { Links } from '@current-client-bindings/core/hostlink'
 import type { BranchChanges } from '../../lib/useBranchChanges'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
 import CommitGraph from './CommitGraph'
+import { withoutRemote, type RowLaneColors } from './laneOwners'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import CIMark from '../../components/git/CIMark'
@@ -30,6 +31,9 @@ import './CommitRow.scss'
 interface CommitRowProps {
   commit: CommitInfo
   graphNode?: GraphNode
+  laneColors?: RowLaneColors
+  isHead?: boolean
+  currentBranch?: string
   laneCount: number
   rowHeight: number
   identity?: IdentityInfo
@@ -61,6 +65,9 @@ interface CommitRowProps {
 function CommitRow({
   commit,
   graphNode,
+  laneColors,
+  isHead = false,
+  currentBranch,
   laneCount,
   rowHeight,
   identity,
@@ -87,7 +94,7 @@ function CommitRow({
   onOpenChecks,
 }: CommitRowProps) {
   useClockTick()
-  const { laneColor } = useLaneColors()
+  const { branchColor } = useLaneColors()
   const prefix = (conventional && parsePrefix(commit.subject)?.prefix) || ''
   const classes = ['commit-row']
   if (selected) classes.push('commit-row-selected')
@@ -114,10 +121,13 @@ function CommitRow({
       }}
     >
       <div className="commit-row-graph">
-        {graphNode && <CommitGraph node={graphNode} laneCount={laneCount} rowHeight={rowHeight} />}
+        {graphNode && (
+          <CommitGraph node={graphNode} laneCount={laneCount} rowHeight={rowHeight} colors={laneColors} head={isHead} />
+        )}
       </div>
 
       <div className="commit-row-commit">
+        {isHead && <span className="commit-row-head">HEAD</span>}
         {refs && refs.length > 0 && (
           <span className="commit-row-refs">
             {pairUpstreams(refs, upstreams).map(({ ref: r, upstream }) => (
@@ -125,7 +135,7 @@ function CommitRow({
                 key={`${r.kind}-${r.name}`}
                 refInfo={r}
                 upstream={upstream}
-                color={laneColor(graphNode?.lane ?? 0)}
+                color={branchColor(withoutRemote(r), r.kind === 'branch' && r.name === currentBranch)}
                 onClick={onFocusRef}
                 active={focusedSha === r.sha}
                 change={changes?.[upstream?.name ?? (r.kind === 'remote' ? r.name : '')]}

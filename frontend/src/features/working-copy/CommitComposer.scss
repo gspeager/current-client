@@ -68,7 +68,7 @@
   border: none;
   border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 40%, transparent);
   color: var(--on-surface);
-  font: var(--body-md);
+  font: var(--title-md);
   font-weight: 600;
 
   &:focus {
@@ -82,7 +82,7 @@
   background: none;
   border: none;
   color: var(--outline);
-  font: var(--body-md);
+  font: var(--title-md);
   width: 100%;
 
   &:focus {

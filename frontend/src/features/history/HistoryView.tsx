@@ -14,6 +14,8 @@ import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
+import { assignLaneColors } from './laneOwners'
+import { useLaneColors } from '../../lib/laneColor'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
@@ -53,6 +55,7 @@ interface HistoryViewProps {
   previousTopSha?: string | null
   onTopShaChange?: (sha: string) => void
   onSelectedShaChange?: (sha: string) => void
+  currentBranch?: string
 }
 
 // Must match --h-commit-row.
@@ -75,6 +78,7 @@ function HistoryView({
   previousTopSha,
   onTopShaChange,
   onSelectedShaChange,
+  currentBranch,
 }: HistoryViewProps) {
   const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef, firstParent })
   const { commits, loading, done, error, loadMore, loadThrough } = useCommitHistory(
@@ -99,6 +103,19 @@ function HistoryView({
       : null
   const { graphNodes, workingNode } = useCommitGraph(commits, filter.firstParent, workingTreeParent)
   const refsBySha = useRefBadges(repoPath)
+  const { branchColor, laneColor } = useLaneColors()
+  const laneColors = useMemo(
+    () =>
+      assignLaneColors(
+        [...(workingNode ? [workingNode] : []), ...graphNodes],
+        (sha) => refsBySha.get(sha),
+        currentBranch,
+        branchColor,
+        laneColor,
+      ),
+    [graphNodes, workingNode, refsBySha, currentBranch, branchColor, laneColor],
+  )
+  const rowLaneColors = workingNode ? laneColors.slice(1) : laneColors
   const hostLinks = useHostLinks(repoPath)
   // History remounts on every ref move, so the repository path is the only key.
   const changes = useBranchChanges(repoPath)
@@ -383,12 +400,15 @@ function HistoryView({
                       />
                     )
                   }
-                  const { commit, graphNode } = rows[row.index - offset]
+                  const { commit, graphNode, index } = rows[row.index - offset]
                   return (
                     <CommitRow
                       key={commit.sha}
                       commit={commit}
                       graphNode={graphNode}
+                      laneColors={rowLaneColors[index]}
+                      isHead={commit.sha === head?.sha}
+                      currentBranch={currentBranch}
                       laneCount={laneCount}
                       hostLinks={hostLinks}
                       changes={changes}

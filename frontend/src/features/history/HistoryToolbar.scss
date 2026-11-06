@@ -1,5 +1,6 @@
 .history-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
@@ -8,8 +9,8 @@
 
 .history-toolbar-search-wrap {
   position: relative;
-  flex: 1;
-  min-width: 120px;
+  flex: 1 1 200px;
+  min-width: 160px;
 }
 
 .history-toolbar-search-icon {

@@ -22,16 +22,20 @@ export function laneColor(theme: LaneThemeName, lane: number): string {
   return palette[lane % palette.length]
 }
 
-// HEAD always uses --primary rather than its hashed lane color.
+const TRUNK_NAMES = new Set(['main', 'master', 'trunk'])
+
+// HEAD always uses --primary. The trunk has the palette's first color; other
+// names hash into the rest, so no branch shares the trunk's color.
 export function branchColor(theme: LaneThemeName, name: string, isCurrent: boolean): string {
   if (isCurrent) {
     return 'var(--primary)'
   }
+  if (TRUNK_NAMES.has(name)) return laneColor(theme, 0)
   let hash = 0
   for (let i = 0; i < name.length; i++) {
     hash = (hash * 31 + name.charCodeAt(i)) >>> 0
   }
-  return laneColor(theme, hash)
+  return laneColor(theme, 1 + (hash % (LANE_THEMES[theme].length - 1)))
 }
 
 export const LaneThemeContext = createContext<LaneThemeName>('default')

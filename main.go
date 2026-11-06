@@ -14,8 +14,10 @@ import (
 var assets embed.FS
 
 const (
-	defaultWindowWidth  = 1000
-	defaultWindowHeight = 618
+	defaultWindowWidth  = 1280
+	defaultWindowHeight = 800
+	minWindowWidth      = 960
+	minWindowHeight     = 600
 )
 
 func main() {
@@ -44,9 +46,11 @@ func main() {
 	})
 
 	win := currentClient.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:  "Current Client",
-		Width:  windowWidth,
-		Height: windowHeight,
+		Title:     "Current Client",
+		Width:     windowWidth,
+		Height:    windowHeight,
+		MinWidth:  minWindowWidth,
+		MinHeight: minWindowHeight,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
 			Backdrop:                application.MacBackdropTranslucent,

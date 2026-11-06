@@ -27,7 +27,13 @@
     box-shadow: var(--glow-action);
   }
 
-  @include patterns.disabled;
+  @include patterns.disabled-primary;
+}
+
+.split-button:has(.split-button-main:disabled) .split-button-toggle {
+  background: var(--surface-high);
+  border-left-color: var(--outline-variant);
+  color: var(--on-surface-variant);
 }
 
 .split-button-more > summary {

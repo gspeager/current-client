@@ -138,12 +138,17 @@
 .commit-row-author-name {
   @include patterns.truncate;
   color: var(--on-surface-variant);
-  font: var(--data-sm);
+  font: var(--ui-sm);
 }
 
 .commit-row-sha {
-  color: var(--primary);
+  color: var(--on-surface-variant);
   font: var(--data-sm);
+}
+
+.commit-row-head {
+  flex-shrink: 0;
+  @include patterns.head-badge;
 }
 
 // Always rendered, so the icons line up down the list.
