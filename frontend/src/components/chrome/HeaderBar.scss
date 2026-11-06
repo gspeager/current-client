@@ -86,7 +86,7 @@
 .header-bar-switcher {
   position: relative;
   flex: 0 0 auto;
-  max-width: 280px;
+  max-width: 330px;
 
   > summary {
     list-style: none;
@@ -103,7 +103,7 @@
   gap: var(--space-xs);
   height: var(--h-chip);
   min-width: 0;
-  max-width: 280px;
+  max-width: 330px;
   padding: 0 var(--space-sm);
   background: var(--surface);
   border: var(--border-structure);
@@ -119,6 +119,15 @@
 // Each half opens a different view, so only the hovered half highlights.
 .header-bar-branch-target {
   min-width: 72px;
+}
+
+.header-bar-repo-name {
+  display: block;
+  flex: 0 0 auto;
+  max-width: 45%;
+  margin: 0;
+  padding: 0 var(--space-xs);
+  line-height: var(--h-chip);
 }
 
 .header-bar-repo-name,
@@ -301,13 +310,19 @@
   }
 }
 
-@container (max-width: 1060px) {
-  .header-bar-quick-switch-label,
-  .header-bar-inbox-label {
+@container (max-width: 1240px) {
+  .header-bar-tab-meta {
     display: none;
   }
 
-  .header-bar-tab-close {
+  .header-bar-quick-switch {
+    flex-basis: 170px;
+  }
+}
+
+@container (max-width: 1060px) {
+  .header-bar-quick-switch-label,
+  .header-bar-inbox-label {
     display: none;
   }
 

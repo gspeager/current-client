@@ -72,7 +72,7 @@
 // Icon-only rail: one row-tree-sized button per action, centered in the column.
 .nav-pane-collapsed {
   align-items: center;
-  gap: var(--space-xs);
+  gap: 0;
   width: calc(var(--h-row-tree) + 2 * var(--space-sm));
   min-width: calc(var(--h-row-tree) + 2 * var(--space-sm));
   padding: var(--space-md) 0;
@@ -90,7 +90,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 0;
 }
 
 .nav-pane-rail-button {

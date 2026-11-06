@@ -58,6 +58,9 @@ function splitDirFile(path: string): { dir: string; file: string } {
   return slash === -1 ? { dir: '', file: path } : { dir: path.slice(0, slash + 1), file: path.slice(slash + 1) }
 }
 
+// Below this, a split diff's columns wrap most lines, so unified is the default.
+const WIDE_ENOUGH_FOR_SPLIT = 1500
+
 function ChangesView({
   repoPath,
   workingTree,
@@ -89,7 +92,9 @@ function ChangesView({
   const [openSection, setOpenSection] = useState<WorkingTreeSection>('unstaged')
   const [forcedPath, setForcedPath] = useState<string | null>(null)
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(defaultIgnoreWhitespace)
-  const [viewMode, setViewMode] = useState<DiffViewMode>('split')
+  const [viewMode, setViewMode] = useState<DiffViewMode>(() =>
+    window.innerWidth >= WIDE_ENOUGH_FOR_SPLIT ? 'split' : 'unified',
+  )
   const [conflictView, setConflictView] = useState<ConflictView>('side-by-side')
   const [externalToolError, setExternalToolError] = useState<string | null>(null)
   const [externalToolBusy, setExternalToolBusy] = useState(false)
@@ -267,7 +272,7 @@ function ChangesView({
 
       {!expanded && <ResizeHandle onDragStart={filesWidth.onDragStart} ariaLabel="Resize file list" />}
 
-      <div className="changes-diff">
+      <div className="changes-diff" data-pane="diff">
         {selectedPath ? (
           <>
             <div className="changes-diff-header">

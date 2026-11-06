@@ -350,3 +350,13 @@
     margin-left: auto;
   }
 }
+
+.commit-detail-more-menu .commit-detail-more-destructive {
+  color: var(--error);
+}
+
+@media (max-height: 720px) {
+  .commit-detail-actions-footer .commit-detail-label {
+    display: none;
+  }
+}

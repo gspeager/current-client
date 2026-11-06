@@ -128,7 +128,9 @@ function WorkingTreeFileList({
 
   const query = filter.trim().toLowerCase()
   const filtered = useMemo(() => {
-    const match = (list: FileStatus[]) => (query ? list.filter((f) => f.path.toLowerCase().includes(query)) : list)
+    const byName = (a: FileStatus, b: FileStatus) => a.path.localeCompare(b.path, undefined, { numeric: true })
+    const match = (list: FileStatus[]) =>
+      [...(query ? list.filter((f) => f.path.toLowerCase().includes(query)) : list)].sort(byName)
     return { conflicted: match(conflicted), staged: match(staged), unstaged: match(unstaged) }
   }, [conflicted, staged, unstaged, query])
   const hasConflicts = conflicted.length > 0
@@ -176,7 +178,7 @@ function WorkingTreeFileList({
   const isSelected = (section: WorkingTreeSection, path: string) =>
     selection.some((s) => s.section === section && s.file.path === path)
 
-  const selectedPath = selection.length === 1 ? selection[0].file.path : null
+  const selectedPath = selection.length === 1 ? selection[0].file.path : selection.length === 0 ? openPath : null
   const rowVirtualizer = useVirtualizer({
     count: listRows.length,
     getScrollElement: () => scrollRef.current,
@@ -437,7 +439,7 @@ function WorkingTreeFileList({
       {patchError && <p className="changes-error">Could not export patch: {patchError}</p>}
 
       {/* Stays mounted when empty so the commit composer remains pinned to the bottom. */}
-      <div ref={scrollRef} className="changes-files-scroll">
+      <div ref={scrollRef} className="changes-files-scroll" data-pane="file-list">
         {error ? (
           <p className="changes-empty">Could not load changes: {error}</p>
         ) : files === null ? (

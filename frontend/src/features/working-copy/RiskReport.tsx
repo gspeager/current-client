@@ -36,17 +36,23 @@ function RiskReport({ repoPath, staged, rulesOff, onOpen }: RiskReportProps) {
         {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
       </button>
       <ul className="risk-report-list" hidden={!open}>
-        {findings.map((finding) => (
-          <li key={`${finding.rule}-${finding.path}-${finding.line}-${finding.message}`}>
-            <button type="button" className="risk-report-row" onClick={() => onOpen(finding.path, finding.line)}>
-              <span className="risk-report-message">{finding.message}</span>
-              <span className="risk-report-where">
-                <PathText path={finding.path} />
-                {finding.line > 0 && <span>:{finding.line}</span>}
-              </span>
-            </button>
-          </li>
-        ))}
+        {[...findings]
+          .sort((a, b) => Number(b.rule === 'secret') - Number(a.rule === 'secret'))
+          .map((finding) => (
+            <li key={`${finding.rule}-${finding.path}-${finding.line}-${finding.message}`}>
+              <button
+                type="button"
+                className={finding.rule === 'secret' ? 'risk-report-row risk-report-row-secret' : 'risk-report-row'}
+                onClick={() => onOpen(finding.path, finding.line)}
+              >
+                <span className="risk-report-message">{finding.message}</span>
+                <span className="risk-report-where">
+                  <PathText path={finding.path} />
+                  {finding.line > 0 && <span>:{finding.line}</span>}
+                </span>
+              </button>
+            </li>
+          ))}
       </ul>
     </section>
   )

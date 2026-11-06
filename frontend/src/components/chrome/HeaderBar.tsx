@@ -420,7 +420,9 @@ function HeaderBar({
         >
           <Inbox size={14} strokeWidth={1.75} />
           <span className="header-bar-inbox-label">Inbox</span>
-          {inboxUnseen > 0 && <span className="header-bar-inbox-count">{inboxUnseen}</span>}
+          <span className="header-bar-inbox-count" style={inboxUnseen > 0 ? undefined : { visibility: 'hidden' }}>
+            {inboxUnseen}
+          </span>
         </button>
       )}
 

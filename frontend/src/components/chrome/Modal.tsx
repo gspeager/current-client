@@ -41,6 +41,16 @@ function Modal({
           <Dialog.Content
             className={`modal-panel ${className}`}
             aria-describedby={undefined}
+            onOpenAutoFocus={(e) => {
+              // The first real control, rather than the header's Close.
+              const first = (e.currentTarget as HTMLElement).querySelector<HTMLElement>(
+                '[autofocus], input:not([type=hidden]), textarea, select, .modal-body button, button:not(.modal-close)',
+              )
+              if (first) {
+                e.preventDefault()
+                first.focus()
+              }
+            }}
             onCloseAutoFocus={(e) => {
               e.preventDefault()
               restoreFocus(opener.current)

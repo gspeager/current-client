@@ -74,7 +74,7 @@
   flex: 1;
   min-width: 0;
   @include patterns.truncate;
-  font: var(--data-md);
+  font: var(--ui-sm);
 }
 
 .stash-row-time {

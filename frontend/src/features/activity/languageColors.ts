@@ -31,8 +31,8 @@ const LANGUAGE_TOKENS: Record<string, string> = {
 // YAML has no brand color.
 const LANGUAGE_COLORS: Record<string, string> = {
   ...Object.fromEntries(Object.entries(LANGUAGE_TOKENS).map(([ext, token]) => [ext, `var(--lang-${token})`])),
-  yml: 'var(--branch-experimental)',
-  yaml: 'var(--branch-experimental)',
+  yml: 'var(--lang-scss)',
+  yaml: 'var(--lang-scss)',
 }
 
 export const OTHER_LANGUAGE_COLOR = 'var(--lang-other)'
@@ -64,4 +64,49 @@ export function extensionOf(path: string): string {
   const dotIndex = base.lastIndexOf('.')
   if (dotIndex === -1) return 'other'
   return base.slice(dotIndex + 1).toLowerCase()
+}
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  go: 'Go',
+  ts: 'TypeScript',
+  tsx: 'TypeScript',
+  js: 'JavaScript',
+  jsx: 'JavaScript',
+  mjs: 'JavaScript',
+  scss: 'SCSS',
+  sass: 'SCSS',
+  css: 'CSS',
+  html: 'HTML',
+  md: 'Markdown',
+  py: 'Python',
+  rb: 'Ruby',
+  java: 'Java',
+  c: 'C',
+  h: 'C',
+  cpp: 'C++',
+  hpp: 'C++',
+  cs: 'C#',
+  rs: 'Rust',
+  sh: 'Shell',
+  swift: 'Swift',
+  kt: 'Kotlin',
+  php: 'PHP',
+  yml: 'YAML',
+  yaml: 'YAML',
+}
+
+// One row per language, so .ts and .tsx count together under one color.
+export function groupByLanguage(languages: LanguageStatInfo[]): LanguageStatInfo[] {
+  const byName = new Map<string, LanguageStatInfo>()
+  for (const language of languages) {
+    const name = LANGUAGE_NAMES[language.extension.toLowerCase()] ?? language.extension
+    const seen = byName.get(name)
+    if (seen) byName.set(name, { ...seen, count: seen.count + language.count })
+    else byName.set(name, language)
+  }
+  return [...byName.values()].sort((a, b) => b.count - a.count)
+}
+
+export function languageName(extension: string): string {
+  return LANGUAGE_NAMES[extension.toLowerCase()] ?? (extension === 'other' ? 'Other' : `.${extension}`)
 }

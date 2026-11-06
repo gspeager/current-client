@@ -91,7 +91,9 @@ function TabBar({
           label={issueCount > 0 ? `Issues, ${plural(issueCount, 'assigned', 'assigned')}` : 'Issues'}
         >
           Issues
-          {issueCount > 0 && <span className="tab-count">{issueCount}</span>}
+          <span className="tab-count" style={issueCount > 0 ? undefined : { visibility: 'hidden' }}>
+            {issueCount}
+          </span>
         </Tab>
       )}
       <span className="tab-bar-divider" aria-hidden="true" />

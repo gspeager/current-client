@@ -49,17 +49,9 @@
     display: none;
   }
 
-  // Too narrow to read names: the dots stay, and hovering names them.
-  .ref-badge-name {
+  // One ref, named, is more use than several cut to nothing.
+  .commit-row-refs > :not(:first-child) {
     display: none;
-  }
-
-  .commit-row-refs .ref-badge {
-    min-width: 0;
-  }
-
-  .ref-badge-dot {
-    margin-right: 0;
   }
 }
 

@@ -1,7 +1,7 @@
 // Moves focus between the app's panes, marked with data-pane in reading order.
 export function cyclePanes(backwards: boolean, root: Document | HTMLElement = document) {
   const panes = [...root.querySelectorAll<HTMLElement>('[data-pane]')].filter(
-    (p) => p.offsetParent !== null || p.getClientRects().length > 0,
+    (p) => !p.querySelector('[data-pane]') && (p.offsetParent !== null || p.getClientRects().length > 0),
   )
   if (panes.length === 0) return
   const at = panes.findIndex((p) => p.contains(document.activeElement))

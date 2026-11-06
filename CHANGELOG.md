@@ -12,6 +12,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - **The diff fills its pane**, with a strip beside it showing where a long file's changes fall. Click it to jump.
 - **More room for the work.** Pull requests, Issues, Activity and Releases show the sidebar as its icon rail, and the rail's first button opens it. Fetch, Pull and Push are quieter, with their menus on hover, and **Undo** joined them (**⌘⇧Z**).
 - **Pull request detail reads at a glance**, with checks, reviews, conflicts and protection as tiles. **Tag** is only the main action when nothing above it warns.
+- **Syntax colors for more languages:** TSX, JSX, CSS, SCSS, HTML, JSON, YAML, TOML, Markdown, shell, Python, Ruby, Rust, Java, Kotlin, Swift, C, C++, C#, PHP and SQL, all bundled with the app.
+- **Branch colors spread out.** A repository's branches now share the colors evenly, rather than several landing on one by chance. A new branch shifts few others.
+- **Home and End reach the ends of History**, and **F6** visits the file list, commit message and diff. A diff's line numbers are one Tab stop, moved through with the arrow keys.
 - **Larger text**, with file rows giving their width to the filename. Owners and the diff bar show on hover and in the diff header.
 - **Small windows adapt.** Below 1120 px wide the sidebar becomes its icon rail, and below 1040 px diffs read as unified. Status bar details and repository tab branches step aside before anything is cut off.
 - **Go to anything finds more.** A commit's hash, a pull request's number or title, a stash's message, **blame** plus a file name, and worktree, remote, cherry-pick and revert all lead somewhere, and the top row is always the one selected.

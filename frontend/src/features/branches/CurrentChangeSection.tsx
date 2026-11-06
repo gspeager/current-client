@@ -58,7 +58,7 @@ function CurrentChangeSection({
     <div className="current-change-forecast" aria-label="Conflict forecast">
       {conflicts.length === 0 ? (
         <span className="current-change-forecast-clean">
-          No conflicts with the {forecast.checked} open on {forecast.base}.
+          No conflicts with {forecast.checked} other open on {forecast.base}.
         </span>
       ) : (
         <ul className="current-change-conflicts">

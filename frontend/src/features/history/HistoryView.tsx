@@ -140,7 +140,6 @@ function HistoryView({
   const [newShas, setNewShas] = useState<Set<string>>(new Set())
   const hasComputedNewShas = useRef(false)
   const parentRef = useRef<HTMLDivElement>(null)
-  const rovingRows = useRovingRows('.commit-row', { selectOnMove: true })
 
   // Only the first load counts; no overlap with previousTopSha (a rebase or
   // first open) flashes nothing.
@@ -235,6 +234,10 @@ function HistoryView({
     overscan: 10,
   })
   const virtualItems = virtualizer.getVirtualItems()
+  const rovingRows = useRovingRows('.commit-row', {
+    selectOnMove: true,
+    scrollToEdge: (edge) => virtualizer.scrollToIndex(edge === 'first' ? 0 : rows.length + offset - 1),
+  })
   const deployedAt = useDeploymentsBySha(repoPath)
   const ciMarks = useCIStatus(
     repoPath,
@@ -347,7 +350,7 @@ function HistoryView({
 
   return (
     <div className="history-view">
-      <div className="history-canvas">
+      <div className="history-canvas" data-pane="history">
         {selectedCommit && openedPath ? (
           <CommitFileDiff
             repoPath={repoPath}
@@ -458,7 +461,7 @@ function HistoryView({
       </div>
 
       {selectedCommit && (
-        <div className="history-inspector">
+        <div className="history-inspector" data-pane="commit-detail">
           <CommitDetailPanel
             repoPath={repoPath}
             commit={selectedCommit}

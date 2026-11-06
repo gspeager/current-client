@@ -43,7 +43,7 @@ function FileChurnList({ repoPath, repoVersion }: FileChurnListProps) {
                   <span className="file-churn-bar-wrap">
                     <span
                       className="file-churn-bar"
-                      style={{ width: `${(c.changes / maxChanges) * 100}%`, background: 'var(--surface-highest)' }}
+                      style={{ width: `${(c.changes / maxChanges) * 100}%`, background: 'var(--on-surface-variant)' }}
                     />
                   </span>
                   <span className="file-churn-count">{c.changes}</span>

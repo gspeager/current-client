@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, summary, [tabindex]'
 
@@ -7,6 +7,8 @@ interface RovingOptions {
   selectOnMove?: boolean
   // Left and right move between rows, as in a row of tabs.
   horizontal?: boolean
+  // A virtualized list scrolls here, so Home and End reach rows not yet drawn.
+  scrollToEdge?: (edge: 'first' | 'last') => void
 }
 
 function focusTarget(row: HTMLElement): HTMLElement | null {
@@ -16,8 +18,13 @@ function focusTarget(row: HTMLElement): HTMLElement | null {
 
 // A list is one Tab stop: arrow keys, Home and End move between its rows, and
 // left and right reach the controls inside a row.
-export function useRovingRows(rowSelector: string, { selectOnMove = false, horizontal = false }: RovingOptions = {}) {
+export function useRovingRows(
+  rowSelector: string,
+  { selectOnMove = false, horizontal = false, scrollToEdge }: RovingOptions = {},
+) {
   const [container, setContainer] = useState<HTMLElement | null>(null)
+  const scrollEdge = useRef(scrollToEdge)
+  scrollEdge.current = scrollToEdge
 
   useEffect(() => {
     if (!container) return
@@ -74,6 +81,19 @@ export function useRovingRows(rowSelector: string, { selectOnMove = false, horiz
       const rows = rowsOf()
       const index = rows.indexOf(row)
       const [forward, back] = horizontal ? ['ArrowRight', 'ArrowLeft'] : ['ArrowDown', 'ArrowUp']
+      if ((e.key === 'Home' || e.key === 'End') && scrollEdge.current) {
+        e.preventDefault()
+        const last = e.key === 'End'
+        scrollEdge.current(last ? 'last' : 'first')
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            const drawn = rowsOf()
+            const row = last ? drawn[drawn.length - 1] : drawn[0]
+            if (row) moveTo(row)
+          }),
+        )
+        return
+      }
       if (e.key === forward || e.key === back || e.key === 'Home' || e.key === 'End') {
         const next =
           e.key === forward

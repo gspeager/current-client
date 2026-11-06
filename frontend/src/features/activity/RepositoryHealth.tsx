@@ -90,12 +90,14 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasC
                     ? 'Merge in progress, conflicts to resolve'
                     : dirty
                       ? changedCount > 0
-                        ? `${plural(changedCount, 'file')} uncommitted`
+                        ? 'Uncommitted files'
                         : 'Uncommitted changes'
                       : 'Clean, no conflicts'}
                 </span>
               </div>
-              {hasConflict ? (
+              {!hasConflict && dirty && changedCount > 0 ? (
+                <span className="repo-health-value repo-health-value-warn">{changedCount}</span>
+              ) : hasConflict ? (
                 <X className="repo-health-icon repo-health-icon-warn" size={16} strokeWidth={2} />
               ) : (
                 !dirty && <Check className="repo-health-icon repo-health-icon-ok" size={16} strokeWidth={2} />

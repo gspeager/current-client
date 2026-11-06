@@ -222,7 +222,7 @@ function CommitComposer({
   }
 
   return (
-    <section className="commit-composer">
+    <section className="commit-composer" data-pane="composer">
       <div className="commit-composer-header" hidden={nothingToCommit}>
         <span className="commit-composer-label">
           {conflict
@@ -309,7 +309,7 @@ function CommitComposer({
               </details>
             </div>
           </div>
-          <div className="commit-composer-meta">
+          <div className="commit-composer-meta" hidden={subject.length === 0}>
             <span className="commit-composer-counter">
               Subject{' '}
               <span

@@ -6,4 +6,4 @@ vi.mock('@current-client-bindings/app', async (importOriginal) => {
 })
 
 // A desktop window, wider than the narrow-layout breakpoints.
-window.innerWidth = 1400
+window.innerWidth = 1600

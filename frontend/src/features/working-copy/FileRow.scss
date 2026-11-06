@@ -75,6 +75,7 @@
 }
 
 // The row's actions take the stats' place on hover.
-.file-row:hover .diff-stat {
+.file-row:hover .diff-stat,
+.file-row:focus-within .diff-stat {
   display: none;
 }

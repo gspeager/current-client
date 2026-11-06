@@ -411,6 +411,7 @@ function DiffPane({
       <div
         className="diff-pane diff-pane-sides"
         ref={scrollRef}
+        tabIndex={0}
         onContextMenu={lineMenu}
         onScrollCapture={reportScroll}
       >
@@ -423,6 +424,7 @@ function DiffPane({
     <div
       className={`diff-pane diff-pane-${mode}`}
       ref={scrollRef}
+      tabIndex={0}
       onContextMenu={lineMenu}
       onScrollCapture={reportScroll}
     >

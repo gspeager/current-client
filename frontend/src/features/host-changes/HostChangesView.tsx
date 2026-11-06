@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRovingRows } from '../../lib/useRovingRows'
+import { useLaneColors } from '../../lib/laneColor'
 import {
+  ArrowRight,
   CircleCheck,
   CircleHelp,
   ClipboardCheck,
@@ -307,6 +309,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
     [repoPath, change.number],
   )
   const hostLinks = useHostLinks(repoPath)
+  const { branchColor } = useLaneColors()
   const HostIcon = hostLogo(hostLinks?.style)
   const closes = useMemo(() => details?.closes ?? [], [details?.closes])
   const closesCards = useReferenceCards(repoPath, closes, NO_CHANGES)
@@ -346,6 +349,11 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
     return { checks: setter('checks'), threads: setter('threads'), files: setter('files'), commits: setter('commits') }
   }, [])
   const state = change.draft ? 'draft' : change.state
+  const protection = readiness?.facts.find((f) => f.label === 'Protection')
+  // What stands in the way first; protection is a standing fact, not a check.
+  const tileFacts = (readiness?.facts ?? [])
+    .filter((f) => f.label !== 'Protection')
+    .sort((a, b) => Number(b.level === 'warn') - Number(a.level === 'warn'))
   const reviews = reviewGroups(change.reviews, change.state === 'open')
   const threadCount = counts.threads ?? (change.unresolvedThreads > 0 ? change.unresolvedThreads : undefined)
   // The pane's one primary follows the state: your review when it is asked
@@ -389,11 +397,22 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
         <h3 className="host-change-detail-title">{change.title}</h3>
       </header>
       <p className="host-change-subtitle">
-        {change.author.name}
-        <span className="host-change-facts-branches">
+        <span>{change.author.name}</span>
+        <span className="host-change-flow" aria-label={`${change.sourceBranch} into ${change.targetBranch}`}>
+          <span className="host-change-flow-dot" style={{ background: branchColor(change.sourceBranch, false) }} />
           {change.sourceProject ? `${change.sourceProject}:` : ''}
-          {change.sourceBranch} → {change.targetBranch}
+          {change.sourceBranch}
+          <ArrowRight size={12} strokeWidth={1.75} aria-hidden="true" />
+          <span className="host-change-flow-dot" style={{ background: branchColor(change.targetBranch, false) }} />
+          {change.targetBranch}
         </span>
+        {closes.length > 0 && (
+          <span className="host-change-facts-closes">
+            Closes <ReferenceText text={closes.join(', ')} links={hostLinks} cards={closesCards} />
+          </span>
+        )}
+        {(details?.environments?.length ?? 0) > 0 && <EnvironmentReach reach={details!.environments} />}
+        {protection && <span className="host-change-protection">{protection.value}</span>}
         {change.labels?.map((label) => (
           <span key={label} className="host-change-label">
             {label}
@@ -401,24 +420,8 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
         ))}
       </p>
       <dl className="host-change-facts">
-        {closes.length > 0 && (
-          <div className="host-change-tile">
-            <dt>Closes</dt>
-            <dd className="host-change-facts-closes">
-              <ReferenceText text={closes.join(', ')} links={hostLinks} cards={closesCards} />
-            </dd>
-          </div>
-        )}
-        {(details?.environments?.length ?? 0) > 0 && (
-          <div className="host-change-tile">
-            <dt>Environments</dt>
-            <dd>
-              <EnvironmentReach reach={details!.environments} />
-            </dd>
-          </div>
-        )}
         {readiness && readiness.facts.length > 0 ? (
-          readiness.facts.map((f) => {
+          tileFacts.map((f) => {
             const Icon = FACT_ICONS[f.level] ?? CircleHelp
             return (
               <div key={f.label} className={`host-change-tile host-change-tile-${f.level}`}>
@@ -443,44 +446,50 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
             )
           })
         ) : (
-          <div className="host-change-tile">
-            <dt>Reviews</dt>
-            <dd className="host-change-facts-reviews">
-              {reviews.length > 0
-                ? reviews.map((group) => (
-                    <span key={group.label}>
-                      {group.label}: {group.names.join(', ')}
-                    </span>
-                  ))
-                : 'None requested'}
-            </dd>
-            <dt>Checks</dt>
-            <dd className="host-change-facts-checks">
-              {mark ? (
-                <>
-                  <CIMark repoPath={repoPath} mark={mark} />
-                  {ciLabel(mark.status)}
-                </>
-              ) : change.ci ? (
-                ciLabel(change.ci)
-              ) : (
-                'None reported'
-              )}
-            </dd>
-            <dt>Conflicts</dt>
-            <dd>
-              {change.hasConflicts ? (
-                `Conflicts with ${change.targetBranch} on ${list.host}.`
-              ) : conflict && forecast ? (
-                <>
-                  Would conflict with {forecast.branch} in{' '}
-                  <span className="host-change-facts-branches">{conflict.files.join(', ')}</span>
-                </>
-              ) : (
-                'None reported'
-              )}
-            </dd>
-          </div>
+          <>
+            <div className="host-change-tile">
+              <dt>Reviews</dt>
+              <dd className="host-change-facts-reviews">
+                {reviews.length > 0
+                  ? reviews.map((group) => (
+                      <span key={group.label}>
+                        {group.label}: {group.names.join(', ')}
+                      </span>
+                    ))
+                  : 'None requested'}
+              </dd>
+            </div>
+            <div className="host-change-tile">
+              <dt>Checks</dt>
+              <dd className="host-change-facts-checks">
+                {mark ? (
+                  <>
+                    <CIMark repoPath={repoPath} mark={mark} />
+                    {ciLabel(mark.status)}
+                  </>
+                ) : change.ci ? (
+                  ciLabel(change.ci)
+                ) : (
+                  'None reported'
+                )}
+              </dd>
+            </div>
+            <div className="host-change-tile">
+              <dt>Conflicts</dt>
+              <dd>
+                {change.hasConflicts ? (
+                  `Conflicts with ${change.targetBranch} on ${list.host}.`
+                ) : conflict && forecast ? (
+                  <>
+                    Would conflict with {forecast.branch} in{' '}
+                    <span className="host-change-facts-branches">{conflict.files.join(', ')}</span>
+                  </>
+                ) : (
+                  'None reported'
+                )}
+              </dd>
+            </div>
+          </>
         )}
       </dl>
       <div className="host-change-actions">
@@ -514,7 +523,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
         >
           <HostIcon size={14} strokeWidth={1.75} />
-          Open on {list.host}
+          Open on host
         </button>
         {checkout.running && (
           <button type="button" className="host-change-button" onClick={checkout.cancel}>

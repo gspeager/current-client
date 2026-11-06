@@ -227,7 +227,7 @@
 // What stands between the change and merging, as tiles to read at a glance.
 .host-change-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--space-sm);
   margin: 0;
   font: var(--ui-sm);
@@ -391,10 +391,32 @@
   height: var(--h-field);
 }
 
-.host-change-label {
+.host-change-label,
+.issue-panel-label {
   padding: 0 var(--space-xs);
   background: var(--surface-high);
   border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
   font: var(--ui-xs);
+}
+
+.host-change-flow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  color: var(--on-surface);
+  font: var(--data-sm);
+  overflow-wrap: anywhere;
+}
+
+.host-change-flow-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.host-change-protection {
+  color: var(--outline);
 }

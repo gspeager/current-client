@@ -26,6 +26,7 @@ import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import { plural } from '../../lib/plural'
 import { toggled } from '../../lib/sets'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { useRovingRows } from '../../lib/useRovingRows'
 import { NARROW_SPLIT_WIDTH, useWindowNarrowerThan } from '../../lib/useWindowNarrowerThan'
 import './DiffViewer.scss'
 
@@ -94,6 +95,8 @@ function DiffViewer({
   const { wrap } = useDiffWrap()
   const tooNarrowForSplit = useWindowNarrowerThan(NARROW_SPLIT_WIDTH)
   const paneRef = useRef<HTMLDivElement>(null)
+  const setLineStops = useRovingRows('.diff-line-select')
+  useEffect(() => setLineStops(paneRef.current))
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
   const [currentBlock, setCurrentBlock] = useState(0)

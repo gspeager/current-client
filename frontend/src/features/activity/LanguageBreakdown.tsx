@@ -1,5 +1,5 @@
 import { DashboardService } from '@current-client-bindings/app'
-import { groupTopLanguages } from './languageColors'
+import { groupByLanguage, groupTopLanguages, languageColor, languageName } from './languageColors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './LanguageBreakdown.scss'
@@ -9,17 +9,7 @@ interface LanguageBreakdownProps {
   repoVersion: number
 }
 
-// One hue in steps by rank: a chart of its own, with no tie to the branch colors.
-function typeColor(extension: string, rank: number): string {
-  if (extension === 'other') return 'var(--surface-highest)'
-  return `color-mix(in srgb, var(--on-surface-variant) ${Math.max(32, 100 - rank * 17)}%, var(--surface-low))`
-}
-
 const DISPLAY_LIMIT = 5
-
-function extensionLabel(extension: string): string {
-  return extension === 'other' ? 'other' : `.${extension}`
-}
 
 function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
   const { data: rawLanguages, error } = useAsyncData(
@@ -28,13 +18,13 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
     { refreshKey: repoVersion },
   )
 
-  const languages = rawLanguages ? groupTopLanguages(rawLanguages, DISPLAY_LIMIT) : null
+  const languages = rawLanguages ? groupTopLanguages(groupByLanguage(rawLanguages), DISPLAY_LIMIT) : null
   const total = rawLanguages?.reduce((sum, l) => sum + l.count, 0) ?? 0
 
   return (
     <div className="language-breakdown">
       <div className="language-breakdown-header">
-        <span className="language-breakdown-title">File types</span>
+        <span className="language-breakdown-title">Languages</span>
         {languages && <span className="language-breakdown-total">{plural(total, 'total file')}</span>}
       </div>
 
@@ -54,9 +44,9 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
                   className="language-breakdown-segment"
                   style={{
                     width: `${total === 0 ? 0 : (l.count / total) * 100}%`,
-                    background: typeColor(l.extension, languages.indexOf(l)),
+                    background: languageColor(l.extension),
                   }}
-                  title={`${extensionLabel(l.extension)}: ${l.count} files`}
+                  title={`${languageName(l.extension)}: ${l.count} files`}
                 />
               ))}
             </div>
@@ -66,11 +56,8 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
                 const percent = total === 0 ? 0 : (l.count / total) * 100
                 return (
                   <li key={l.extension} className="language-breakdown-row">
-                    <span
-                      className="language-breakdown-dot"
-                      style={{ background: typeColor(l.extension, languages.indexOf(l)) }}
-                    />
-                    <span className="language-breakdown-extension">{extensionLabel(l.extension)}</span>
+                    <span className="language-breakdown-dot" style={{ background: languageColor(l.extension) }} />
+                    <span className="language-breakdown-extension">{languageName(l.extension)}</span>
                     <span className="language-breakdown-count">{plural(l.count, 'file')}</span>
                     <span className="language-breakdown-percent">{percent.toFixed(1)}%</span>
                   </li>

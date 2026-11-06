@@ -119,13 +119,6 @@
   gap: var(--space-xs);
 }
 
-.issue-panel-label {
-  padding: 0 var(--space-xs);
-  border: 1px solid var(--outline-variant);
-  border-radius: 3px;
-  font: var(--ui-xs);
-}
-
 .issue-panel-comments {
   display: flex;
   flex-direction: column;

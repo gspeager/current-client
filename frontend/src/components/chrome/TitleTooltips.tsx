@@ -37,6 +37,8 @@ function TitleTooltips({ root }: { root: HTMLElement }) {
       hide()
       const value = el.getAttribute('title')
       if (!value) return
+      // Text that is fully on screen doesn't need saying again.
+      if (el.textContent?.trim() === value && el.scrollWidth <= el.clientWidth) return
       owner = el
       text = value
       el.removeAttribute('title')
@@ -57,11 +59,14 @@ function TitleTooltips({ root }: { root: HTMLElement }) {
       if (el) show(el)
       else if (owner && !owner.contains(e.target as Node)) hide()
     }
+    // Only for focus the keyboard moved, not a dialog placing it on opening.
+    let navigating = false
     const onFocus = (e: FocusEvent) => {
       const el = e.target as HTMLElement
-      if (el.matches?.(':focus-visible') && el.hasAttribute('title')) show(el)
+      if (navigating && el.hasAttribute('title')) show(el)
     }
     const onKey = (e: KeyboardEvent) => {
+      navigating = e.key === 'Tab' || e.key.startsWith('Arrow') || e.key === 'F6'
       if (e.key === 'Escape' && owner) hide()
     }
 
@@ -69,7 +74,7 @@ function TitleTooltips({ root }: { root: HTMLElement }) {
     root.addEventListener('focusin', onFocus)
     root.addEventListener('focusout', hide)
     root.addEventListener('mousedown', hide)
-    root.addEventListener('keydown', onKey)
+    root.addEventListener('keydown', onKey, true)
     root.addEventListener('wheel', hide, { passive: true })
     return () => {
       hide()
@@ -77,7 +82,7 @@ function TitleTooltips({ root }: { root: HTMLElement }) {
       root.removeEventListener('focusin', onFocus)
       root.removeEventListener('focusout', hide)
       root.removeEventListener('mousedown', hide)
-      root.removeEventListener('keydown', onKey)
+      root.removeEventListener('keydown', onKey, true)
       root.removeEventListener('wheel', hide)
     }
   }, [root])

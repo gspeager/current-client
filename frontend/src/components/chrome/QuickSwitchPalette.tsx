@@ -358,7 +358,7 @@ function QuickSwitchPalette({
           <Command.Input
             autoFocus
             aria-label="Search branches, repositories, files, commits, tags, settings, and actions"
-            placeholder="Go to a branch, file, commit, tag, setting or action…"
+            placeholder="Go to a branch, file, commit, #pull request, tag or action…"
             value={query}
             onValueChange={setQuery}
           />
@@ -493,7 +493,7 @@ function QuickSwitchPalette({
                 key={`commit:${c.sha}`}
                 value={`commit:${c.sha}`}
                 aria-label={`Commit ${c.sha.slice(0, 7)}: ${c.subject}`}
-                className="quick-switch-row"
+                className="quick-switch-row quick-switch-row-action"
                 onSelect={() => openCommit(c.sha)}
               >
                 <GitCommitVertical size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
@@ -580,6 +580,7 @@ function QuickSwitchPalette({
           <span className="quick-switch-hint">
             <CornerDownLeft size={12} strokeWidth={1.5} /> select
           </span>
+          <span className="quick-switch-hint">Type blame and a file name to blame it</span>
           {resultCount > 0 && <span className="quick-switch-result-count">{plural(resultCount, 'result')}</span>}
         </div>
       </Command>

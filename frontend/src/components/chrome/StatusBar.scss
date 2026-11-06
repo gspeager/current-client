@@ -111,13 +111,13 @@
 
 // What a window can spare goes first: versions, then the folder name, and the
 // upstream truncates before anything is cut off.
-@container (max-width: 1240px) {
+@container (max-width: 1480px) {
   .status-bar-version {
     display: none;
   }
 }
 
-@container (max-width: 1000px) {
+@container (max-width: 1080px) {
   .status-bar-repo-path {
     display: none;
   }

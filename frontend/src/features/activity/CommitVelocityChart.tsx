@@ -56,7 +56,14 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
                 <span
                   className={`commit-velocity-week-label${i === weeks.length - 1 ? ' commit-velocity-week-label-current' : ''}`}
                 >
-                  {i === weeks.length - 1 ? 'Now' : `-${weeks.length - 1 - i}`}
+                  {i === weeks.length - 1
+                    ? 'This week'
+                    : (weeks.length - 1 - i) % 3 === 0
+                      ? new Date(`${week.weekStart}T00:00:00`).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                        })
+                      : ''}
                 </span>
               </div>
             ))}

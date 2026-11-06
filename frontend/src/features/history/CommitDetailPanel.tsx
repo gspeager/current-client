@@ -266,8 +266,13 @@ function CommitDetailPanel({
                 <ChevronDown size={14} strokeWidth={1.75} />
               </summary>
               <div className="commit-detail-more-menu">
-                {actions.slice(PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run }) => (
-                  <button key={id} type="button" onClick={() => runMore(run)}>
+                {actions.slice(PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run, destructive }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={destructive ? 'commit-detail-more-destructive' : undefined}
+                    onClick={() => runMore(run)}
+                  >
                     <Icon size={14} strokeWidth={1.75} />
                     {label}
                   </button>
