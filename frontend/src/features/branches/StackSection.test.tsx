@@ -33,10 +33,12 @@ function Harness({
   info,
   onChanged,
   onCheckout,
+  inOperation,
 }: {
   info: StackListInfo
   onChanged: () => void
   onCheckout: () => void
+  inOperation: boolean
 }) {
   const [restack, setRestack] = useState<string | null>(null)
   return (
@@ -45,6 +47,7 @@ function Harness({
         repoPath="/repo"
         list={info}
         current="top"
+        inOperation={inOperation}
         restack={restack}
         onRestackChange={setRestack}
         onCheckout={onCheckout}
@@ -55,10 +58,10 @@ function Harness({
   )
 }
 
-function renderStacks(info = list()) {
+function renderStacks(info = list(), inOperation = true) {
   const onChanged = vi.fn()
   const onCheckout = vi.fn()
-  render(<Harness info={info} onChanged={onChanged} onCheckout={onCheckout} />)
+  render(<Harness info={info} onChanged={onChanged} onCheckout={onCheckout} inOperation={inOperation} />)
   return { onChanged, onCheckout }
 }
 
@@ -103,7 +106,8 @@ describe('StackSection', () => {
     expect(StackService.Restack).not.toHaveBeenCalled()
 
     await user.click(within(dialog).getByRole('button', { name: 'Restack' }))
-    expect(await screen.findByText(/Stopped on top.*bottom left the stack/)).toBeInTheDocument()
+    expect(await screen.findByText(/Stopped on top/)).toBeInTheDocument()
+    expect(screen.getByText('bottom left the stack.')).toBeInTheDocument()
     expect(StackService.Restack).toHaveBeenCalledWith('/repo', 'bottom')
     expect(onChanged).toHaveBeenCalled()
   })
@@ -116,6 +120,19 @@ describe('StackSection', () => {
     const dialog = await screen.findByRole('dialog')
     expect(await within(dialog).findByText(/checked out in the worktree/)).toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: 'Restack' })).toBeDisabled()
+  })
+
+  it('drops the stop notice once the conflict is over', async () => {
+    const user = userEvent.setup()
+    vi.mocked(StackService.Preview).mockResolvedValue(preview())
+    vi.mocked(StackService.Restack).mockResolvedValue({ stopped: 'top', left: [], moved: 1 })
+    renderStacks(list(), false)
+    await user.click(screen.getByRole('button', { name: 'Restack' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Restack bottom' })
+    await within(dialog).findByText('top work')
+    await user.click(within(dialog).getByRole('button', { name: 'Restack' }))
+    await vi.waitFor(() => expect(StackService.Restack).toHaveBeenCalled())
+    expect(screen.queryByText(/Stopped on top/)).not.toBeInTheDocument()
   })
 
   it('has nothing to restack on a stack in step', () => {

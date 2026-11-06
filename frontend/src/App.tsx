@@ -207,7 +207,11 @@ function App({
     remember,
     memoryBranch,
     forgetBranchesExcept,
-  } = useTabMemory(repo.repoPath, localBranches ? (localBranches.find((b) => b.current)?.name ?? '') : null)
+  } = useTabMemory(
+    repo.repoPath,
+    localBranches ? (localBranches.find((b) => b.current)?.name ?? '') : null,
+    !!conflictState?.operation,
+  )
   useEffect(() => {
     if (localBranches) forgetBranchesExcept(localBranches.map((b) => b.name))
     // eslint-disable-next-line react-hooks/exhaustive-deps

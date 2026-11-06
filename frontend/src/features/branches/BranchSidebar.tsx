@@ -697,6 +697,7 @@ function BranchSidebar({
                     repoPath={repoPath}
                     list={stackList}
                     current={branchStatus?.current ?? null}
+                    inOperation={!!conflict}
                     restack={restack}
                     onRestackChange={setRestack}
                     onCheckout={(name) => !blocked && checkoutBranch(name)}
