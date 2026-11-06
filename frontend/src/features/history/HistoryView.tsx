@@ -32,6 +32,7 @@ import { useReferenceCards } from '../../lib/useReferenceCards'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
+import { commitRowHeight, useDensity } from '../../lib/density'
 import { ALL_BRANCHES, isBranchName } from './branchFilter'
 import OverviewStrip from './OverviewStrip'
 import './HistoryView.scss'
@@ -61,8 +62,6 @@ interface HistoryViewProps {
   currentBranch?: string
 }
 
-// Must match --h-commit-row.
-const ROW_HEIGHT = 38
 const NEW_COMMIT_FLASH_MS = 400
 
 function HistoryView({
@@ -106,6 +105,7 @@ function HistoryView({
       : null
   const { graphNodes, workingNode } = useCommitGraph(commits, filter.firstParent, workingTreeParent)
   const refsBySha = useRefBadges(repoPath)
+  const rowHeight = commitRowHeight(useDensity())
   const { branchColor, laneColor } = useLaneColors()
   const laneColors = useMemo(
     () =>
@@ -247,9 +247,10 @@ function HistoryView({
   const virtualizer = useVirtualizer({
     count: rows.length + offset,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: 10,
   })
+  useEffect(() => virtualizer.measure(), [virtualizer, rowHeight])
   const virtualItems = virtualizer.getVirtualItems()
   const rovingRows = useRovingRows('.commit-row', {
     selectOnMove: true,
@@ -304,8 +305,8 @@ function HistoryView({
   const visibleRange = useMemo(() => {
     const { scrollOffset, scrollRect } = virtualizer
     if (rows.length === 0 || scrollOffset === null || !scrollRect) return null
-    const first = Math.max(0, Math.floor(scrollOffset / ROW_HEIGHT) - offset)
-    const last = Math.min(rows.length - 1, Math.ceil((scrollOffset + scrollRect.height) / ROW_HEIGHT) - offset)
+    const first = Math.max(0, Math.floor(scrollOffset / rowHeight) - offset)
+    const last = Math.min(rows.length - 1, Math.ceil((scrollOffset + scrollRect.height) / rowHeight) - offset)
     if (first > last) return null
     return {
       newest: Date.parse(rows[first].commit.date),
@@ -408,7 +409,7 @@ function HistoryView({
                     top: 0,
                     left: 0,
                     width: '100%',
-                    height: ROW_HEIGHT,
+                    height: rowHeight,
                     transform: `translateY(${row.start}px)`,
                   }
                   if (workingRow && row.index === 0) {
@@ -417,7 +418,7 @@ function HistoryView({
                         key="working-tree"
                         node={workingRow}
                         laneCount={laneCount}
-                        rowHeight={ROW_HEIGHT}
+                        rowHeight={rowHeight}
                         changedFiles={changedFiles}
                         user={currentUser}
                         style={rowStyle}
@@ -441,7 +442,7 @@ function HistoryView({
                       ci={ciMarks[commit.sha]}
                       environments={deployedAt.get(commit.sha)}
                       referenceCards={referenceCards}
-                      rowHeight={ROW_HEIGHT}
+                      rowHeight={rowHeight}
                       identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
                       refs={refsBySha.get(commit.sha)}
                       upstreams={upstreams}

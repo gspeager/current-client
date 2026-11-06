@@ -24,6 +24,7 @@ function settingsWith(overrides: Partial<NonNullable<ReturnType<typeof useSettin
   return {
     settings: {
       theme: 'dark',
+      density: 'comfortable',
       gitExecutablePath: '',
       defaultRepoLocation: '',
       diffIgnoreWhitespaceDefault: false,
@@ -34,6 +35,7 @@ function settingsWith(overrides: Partial<NonNullable<ReturnType<typeof useSettin
     },
     error: null,
     setTheme: vi.fn(),
+    setDensity: vi.fn(),
     setGitExecutablePath: vi.fn().mockResolvedValue(undefined),
     setDefaultRepoLocation: vi.fn(),
     setDiffIgnoreWhitespaceDefault: vi.fn(),
@@ -115,6 +117,15 @@ describe('SettingsPanel', () => {
 
     expect(settings.setAutoFetchIntervalMinutes).toHaveBeenCalledWith(15)
   })
+  it('switches density from Appearance', async () => {
+    const settings = settingsWith()
+    renderPanel(settings)
+
+    await userEvent.click(screen.getByRole('button', { name: /Compact/ }))
+
+    expect(settings.setDensity).toHaveBeenCalledWith('compact')
+  })
+
   it('turns Conventional Commits off, and it starts on', async () => {
     const settings = settingsWith()
     renderPanel(settings, true, 'Git')

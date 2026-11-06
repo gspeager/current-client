@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { arrowIntoList, useRovingRows } from '../../lib/useRovingRows'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { fileRowHeight, useDensity } from '../../lib/density'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
 import { PatchService, type FileStatus } from '@current-client-bindings/app'
 import type { ContextMenuItem } from '../../components/controls/ContextMenu'
@@ -50,10 +51,9 @@ type ListRow =
   | { kind: 'folder'; section: WorkingTreeSection; path: string; name: string; depth: number }
   | { kind: 'file'; section: WorkingTreeSection; file: FileStatus; depth: number }
 
-// Must match --h-micro, --h-row-tree, --h-row-table, and --space-md.
+// Must match --h-micro and --h-row-tree.
 const HEADER_ROW_HEIGHT = 20
 const FOLDER_ROW_HEIGHT = 26
-const FILE_ROW_HEIGHT = 28
 const TREE_INDENT_PX = 12
 
 function label(f: FileStatus): string {
@@ -179,6 +179,7 @@ function WorkingTreeFileList({
     selection.some((s) => s.section === section && s.file.path === path)
 
   const selectedPath = selection.length === 1 ? selection[0].file.path : selection.length === 0 ? openPath : null
+  const fileHeight = fileRowHeight(useDensity())
   const rowVirtualizer = useVirtualizer({
     count: listRows.length,
     getScrollElement: () => scrollRef.current,
@@ -186,10 +187,11 @@ function WorkingTreeFileList({
       const row = listRows[i]
       if (row.kind === 'header') return HEADER_ROW_HEIGHT
       if (row.kind === 'folder') return FOLDER_ROW_HEIGHT
-      return FILE_ROW_HEIGHT
+      return fileHeight
     },
     overscan: 10,
   })
+  useEffect(() => rowVirtualizer.measure(), [rowVirtualizer, fileHeight])
 
   // A selection made elsewhere, such as the first file on opening, stays in view.
   useEffect(() => {

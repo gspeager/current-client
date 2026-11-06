@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Monitor, Moon, Sun } from 'lucide-react'
+import { Monitor, Moon, Rows3, Rows4, Sun } from 'lucide-react'
 import { System } from '@wailsio/runtime'
 import { SettingsService } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
@@ -79,6 +79,7 @@ function SettingsPanel({
     setEditorPath,
     setAutoFetchIntervalMinutes,
     setLaneColorTheme,
+    setDensity,
     setDisableConventionalCommits,
     setPruneOnFetch,
     setRiskRulesOff,
@@ -147,6 +148,16 @@ function SettingsPanel({
                     { value: 'system', label: 'System', icon: Monitor },
                     { value: 'dark', label: 'Dark', icon: Moon },
                     { value: 'light', label: 'Light', icon: Sun },
+                  ]}
+                />
+              </SettingsRow>
+              <SettingsRow label="Density" hint="How tightly History, the file list and the sidebar pack their rows.">
+                <SegmentedControl
+                  value={values.density}
+                  onChange={setDensity}
+                  options={[
+                    { value: 'comfortable', label: 'Comfortable', icon: Rows3 },
+                    { value: 'compact', label: 'Compact', icon: Rows4 },
                   ]}
                 />
               </SettingsRow>

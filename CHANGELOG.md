@@ -40,6 +40,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Added
 
+- **Compact density.** Settings > Appearance > Density tightens History, the file list and the sidebar, so more fits on screen. Comfortable stays the default.
 - **A keyboard shortcut for nearly everything.** **?** lists them all. **⌘1**–**⌘6** (Ctrl on Windows and Linux) switch views, **F6** moves between panes, **⌘B** collapses the sidebar, and **⌘⇧T**, **⌘⇧L** and **⌘⇧K** fetch, pull and push. Lists are one Tab stop: the arrow keys move through commits, files, branches, pull requests and issues, and left and right reach a row's buttons. Tooltips also show on keyboard focus.
 
 - **Stacked branches.** Work as a chain of branches, each on the one below. **New stacked branch…** and **Stack current on this**, in a branch's menu, add a layer, and the **Stacks** section shows the chain with what's behind. **Restack** previews every layer and rebases the ones whose parent moved, with their own commits only, including after the bottom branch is amended or merged, by squash too. A conflict stops at its layer, with the usual banner, and restacking again carries on. **Undo restack** puts every branch back. **Push all** always uses `--force-with-lease`, and all or none where the server allows. ([#274](https://github.com/gspeager/current-client/issues/274))

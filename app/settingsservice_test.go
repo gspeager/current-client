@@ -107,3 +107,11 @@ func TestSidebarSectionsAreKeptPerRepository(t *testing.T) {
 		t.Errorf("another repository has sections %#v", other)
 	}
 }
+
+func TestNormalizeDensityFallsBackToComfortable(t *testing.T) {
+	for input, want := range map[string]string{"compact": "compact", "comfortable": "comfortable", "": "comfortable", "tiny": "comfortable"} {
+		if got := normalizeDensity(input); got != want {
+			t.Errorf("normalizeDensity(%q) = %q, want %q", input, got, want)
+		}
+	}
+}

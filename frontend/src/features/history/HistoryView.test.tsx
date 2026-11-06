@@ -21,6 +21,7 @@ import {
 import { Links } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { giveElementsLayout } from '../../test/bindings'
+import { DensityContext } from '../../lib/density'
 import HistoryView from './HistoryView'
 
 const REPO = '/repos/app'
@@ -67,6 +68,19 @@ describe('HistoryView', () => {
     expect(onSelectedShaChange).toHaveBeenCalledWith(history[1].sha)
     expect(HistoryService.GetChangedFiles).toHaveBeenCalledWith(REPO, history[1].sha)
     expect(screen.getByRole('button', { name: 'Copy full commit hash' }).parentElement).toHaveTextContent('a1b2c3d')
+  })
+
+  it('tightens its rows in compact density', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    render(
+      <DensityContext.Provider value="compact">
+        <DialogProvider>
+          <HistoryView repoPath={REPO} />
+        </DialogProvider>
+      </DensityContext.Provider>,
+    )
+
+    expect(await screen.findByRole('button', { name: /Initial commit/ })).toHaveStyle({ height: '28px' })
   })
 
   it('links issue references in the row and the inspector to the host', async () => {

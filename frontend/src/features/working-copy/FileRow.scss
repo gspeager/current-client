@@ -14,7 +14,11 @@
   &:hover {
     background: var(--surface-container);
 
-    .file-row-actions {
+    [data-density='compact'] .file-row {
+  height: var(--h-row-tree);
+}
+
+.file-row-actions {
       opacity: 1;
     }
   }

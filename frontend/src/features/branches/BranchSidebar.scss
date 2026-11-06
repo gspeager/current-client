@@ -188,6 +188,10 @@
   gap: 2px;
 }
 
+[data-density='compact'] .branch-row {
+  height: var(--h-chip);
+}
+
 .branch-row {
   position: relative;
   display: flex;
