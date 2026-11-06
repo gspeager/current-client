@@ -22,7 +22,8 @@
 
 .file-row-actions {
   @include patterns.row-actions;
-  right: var(--space-sm);
+  // Beside the status letter, which stays readable.
+  right: calc(var(--space-sm) + 22px);
 }
 
 .file-row-selected {

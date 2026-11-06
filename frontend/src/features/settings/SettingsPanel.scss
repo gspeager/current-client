@@ -46,6 +46,8 @@
 }
 
 .settings-body {
+  // Lets the last groups reach the top when picked from the rail.
+  padding-bottom: 50vh;
   flex: 1;
   min-width: 0;
   display: flex;

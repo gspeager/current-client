@@ -15,6 +15,11 @@
   border-radius: var(--radius-lg);
 }
 
+.repo-stat-strip-value.repo-stat-strip-branch {
+  font: var(--body-lg);
+  letter-spacing: 0;
+}
+
 .repo-stat-strip-group {
   flex-shrink: 0;
   display: flex;
@@ -38,7 +43,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  font: var(--body-lg);
+  font: var(--headline-md);
+  letter-spacing: var(--headline-md-tracking);
   color: var(--on-surface);
   white-space: nowrap;
   @include typography.mono-numeric;

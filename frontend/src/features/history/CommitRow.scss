@@ -40,7 +40,7 @@
   }
 }
 
-@container (max-width: 620px) {
+@container (max-width: 760px) {
   .commit-row {
     grid-template-columns: 108px minmax(0, 1fr) 20px 20px 60px;
   }
@@ -110,7 +110,7 @@
 .commit-row-refs {
   display: flex;
   flex: 0 0 auto;
-  max-width: 40%;
+  max-width: 36%;
   gap: var(--space-xs);
   min-width: 0;
   overflow: hidden;

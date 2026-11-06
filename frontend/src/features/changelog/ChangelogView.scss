@@ -329,6 +329,12 @@
   .changelog-output {
     min-height: 240px;
   }
+
+  .changelog-markdown {
+    flex: none;
+    min-height: 240px;
+    overflow: visible;
+  }
 }
 
 .changelog-section-title {

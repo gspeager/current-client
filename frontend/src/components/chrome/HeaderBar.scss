@@ -263,7 +263,7 @@
 .header-bar-quick-switch {
   display: flex;
   align-items: center;
-  flex: 0 1 170px;
+  flex: 0 1 216px;
   min-width: 0;
   justify-content: space-between;
   gap: var(--space-xs);
@@ -328,12 +328,31 @@
     flex: 0 0 auto;
   }
 
-  .header-bar-sync-fetch .header-bar-sync-label {
-    display: none;
-  }
-
   .header-bar-switcher,
   .header-bar-repo {
     max-width: 240px;
   }
+}
+
+.header-bar-tabs-more {
+  flex-shrink: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: var(--surface-container);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+.header-bar-quick-switch-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
 }

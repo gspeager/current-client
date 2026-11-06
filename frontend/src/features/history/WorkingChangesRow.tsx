@@ -42,7 +42,7 @@ function WorkingChangesRow({ node, laneCount, rowHeight, changedFiles, user, sty
       </div>
       {user?.name && (
         <div className="commit-row-author">
-          <IdentityBadge identity={user} name={user.name} email={user.email} size={18} />
+          <IdentityBadge identity={user} name={user.name} email={user.email} size={20} />
           <span className="commit-row-author-name">{user.name}</span>
         </div>
       )}

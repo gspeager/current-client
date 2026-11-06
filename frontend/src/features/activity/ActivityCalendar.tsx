@@ -51,7 +51,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
               <span
                 key={intensity}
                 className="activity-legend-swatch"
-                style={{ background: `color-mix(in srgb, var(--tertiary) ${intensity}%, var(--surface-container))` }}
+                style={{ background: `color-mix(in srgb, var(--tertiary) ${intensity}%, var(--surface-high))` }}
               />
             ))}
             <span className="activity-legend-label">More</span>
@@ -91,7 +91,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
                 style={{
                   gridColumn: cell.weekIndex + 2,
                   gridRow: cell.dayOfWeek + 2,
-                  background: `color-mix(in srgb, var(--tertiary) ${activityIntensity(cell.commits)}%, var(--surface-container))`,
+                  background: `color-mix(in srgb, var(--tertiary) ${activityIntensity(cell.commits)}%, var(--surface-high))`,
                 }}
                 title={`${cell.date}: ${plural(cell.commits, 'commit')}`}
               />

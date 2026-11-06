@@ -137,3 +137,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.status-bar-terminal,
+.status-bar-repo-path,
+.status-bar-host {
+  align-items: center;
+  height: var(--h-micro);
+}

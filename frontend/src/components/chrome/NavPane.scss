@@ -193,3 +193,11 @@
 .nav-pane-feedback-notice {
   color: var(--tertiary);
 }
+
+// A short window keeps room for branches with the Toolbox open.
+@media (max-height: 760px) {
+  .nav-pane-footer {
+    max-height: 38%;
+    overflow-y: auto;
+  }
+}

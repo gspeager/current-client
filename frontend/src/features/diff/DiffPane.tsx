@@ -244,12 +244,24 @@ function HunkActionButtons({
   const run = (action: (hunkRaw: string, lines?: LineSelection) => void) => (count ? action(raw, lines) : action(raw))
   return (
     <span className="diff-hunk-actions">
-      <button type="button" className="diff-stage-hunk" onClick={() => run(toggle)}>
+      <button
+        type="button"
+        className="diff-stage-hunk"
+        aria-label={onStageHunk ? `Stage ${what}` : `Unstage ${what}`}
+        onClick={() => run(toggle)}
+      >
         {onStageHunk ? `Stage ${what}` : `Unstage ${what}`}
+        <span className="diff-hunk-key">{onStageHunk ? 'S' : 'U'}</span>
       </button>
       {onDiscardHunk && (count === 0 || canDiscardLines) && (
-        <button type="button" className="diff-discard-hunk" onClick={() => run(onDiscardHunk)}>
+        <button
+          type="button"
+          className="diff-discard-hunk"
+          aria-label={count ? `Discard ${what}` : 'Discard'}
+          onClick={() => run(onDiscardHunk)}
+        >
           {count ? `Discard ${what}` : 'Discard'}
+          <span className="diff-hunk-key">D</span>
         </button>
       )}
     </span>

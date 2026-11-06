@@ -84,7 +84,7 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasC
 
             <div className="repo-health-row">
               <div className="repo-health-row-text">
-                <span className="repo-health-row-title">Working directory</span>
+                <span className="repo-health-row-title">Working tree</span>
                 <span className="repo-health-row-subtitle">
                   {hasConflict
                     ? 'Merge in progress, conflicts to resolve'

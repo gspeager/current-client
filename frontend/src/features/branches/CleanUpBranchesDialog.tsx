@@ -23,6 +23,9 @@ interface CleanUpBranchesDialogProps {
 // Local branches whose work is already merged: found with Git alone, which
 // sees squash and rebase merges too, or merged on the host as a change the
 // cache knows. Building the list makes no request.
+// Merged right now, but kept on purpose by most teams, so never ticked for you.
+const LONG_LIVED = new Set(['develop', 'dev', 'staging', 'production', 'release'])
+
 function CleanUpBranchesDialog({ repoPath, onDeleted, onClose }: CleanUpBranchesDialogProps) {
   const { signIn } = useDialogs()
   const { data: report, error: loadError } = useAsyncData(() => BranchService.MergedBranches(repoPath), [repoPath])
@@ -32,7 +35,8 @@ function CleanUpBranchesDialog({ repoPath, onDeleted, onClose }: CleanUpBranches
   const branches = report?.branches ?? []
 
   useEffect(() => {
-    if (report) setSelected(new Set(report.branches.filter((b) => !b.newer).map((b) => b.name)))
+    if (report)
+      setSelected(new Set(report.branches.filter((b) => !b.newer && !LONG_LIVED.has(b.name)).map((b) => b.name)))
   }, [report])
 
   const toggle = (name: string, checked: boolean) => setSelected((prev) => toggled(prev, name, checked))

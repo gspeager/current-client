@@ -371,3 +371,11 @@
   padding: 0;
   background: none;
 }
+
+.branch-row .branch-pill:not(.branch-pill-current) {
+  color: var(--on-surface-variant);
+}
+
+.branch-row:hover .branch-pill:not(.branch-pill-current) {
+  color: var(--on-surface);
+}

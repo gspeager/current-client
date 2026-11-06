@@ -294,7 +294,9 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
                         <Icon size={14} strokeWidth={1.75} className="inbox-row-icon" />
                         <span className="inbox-row-text">
                           <span className="inbox-row-subject">{subject}</span>
-                          <span className="inbox-row-reason">{reason}</span>
+                          <span className="inbox-row-reason" title={reason}>
+                            {reason}
+                          </span>
                         </span>
                       </button>
                       {row.todoId && (

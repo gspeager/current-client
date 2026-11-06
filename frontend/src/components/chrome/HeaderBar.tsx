@@ -1,5 +1,5 @@
 import type { NoteInfo } from '@current-client-bindings/app'
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import {
   ArrowDown,
   ArrowUp,
@@ -7,6 +7,7 @@ import {
   Inbox,
   Plus,
   RefreshCw,
+  Search,
   Settings,
   Undo2,
   type LucideIcon,
@@ -81,6 +82,9 @@ interface HeaderBarProps {
   // Supplied by an app embedding Current Client, such as a switch between its views.
   accessory?: ReactNode
 }
+
+const CHIP_WIDTH = 124
+const RESERVED_TAB_WIDTH = 84
 
 function HeaderBar({
   repoPath,
@@ -215,6 +219,28 @@ function HeaderBar({
     )
   }
 
+  // Names stay readable: what doesn't fit moves to a menu rather than shrinking.
+  const tabStrip = useRef<HTMLDivElement>(null)
+  const [chipsThatFit, setChipsThatFit] = useState(Infinity)
+  useLayoutEffect(() => {
+    const strip = tabStrip.current
+    if (!strip || typeof ResizeObserver === 'undefined') return
+    const measure = () => {
+      const active = strip.querySelector<HTMLElement>('.header-bar-switcher')?.offsetWidth ?? 0
+      if (strip.clientWidth > 0)
+        setChipsThatFit(Math.floor((strip.clientWidth - active - RESERVED_TAB_WIDTH) / CHIP_WIDTH))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(strip)
+    const active = strip.querySelector('.header-bar-switcher')
+    if (active) observer.observe(active)
+    return () => observer.disconnect()
+  }, [repoPath])
+  const inactiveTabs = repo.tabs.filter((path) => path !== repoPath)
+  const overflowTabs = inactiveTabs.length > chipsThatFit ? inactiveTabs.slice(Math.max(chipsThatFit, 0)) : []
+  const shownTabs = repo.tabs.filter((path) => !overflowTabs.includes(path))
+
   useWindowKeydown((e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault()
@@ -241,8 +267,8 @@ function HeaderBar({
 
   return (
     <header className="header-bar" data-pane="header">
-      <div className="header-bar-tabs" aria-label="Open repositories">
-        {repo.tabs.map((path) =>
+      <div ref={tabStrip} className="header-bar-tabs" aria-label="Open repositories">
+        {shownTabs.map((path) =>
           path === repoPath ? (
             <details
               key={path}
@@ -325,6 +351,24 @@ function HeaderBar({
             />
           ),
         )}
+        {overflowTabs.length > 0 && (
+          <button
+            type="button"
+            className="header-bar-tabs-more"
+            aria-label={`${overflowTabs.length} more open repositories`}
+            title={overflowTabs.map(baseName).join('\n')}
+            onClick={(e) => {
+              const box = e.currentTarget.getBoundingClientRect()
+              setSyncMenu({
+                x: box.left,
+                y: box.bottom + 4,
+                items: overflowTabs.map((path) => ({ label: baseName(path), onClick: () => repo.openRecent(path) })),
+              })
+            }}
+          >
+            +{overflowTabs.length}
+          </button>
+        )}
         <button
           type="button"
           className="header-bar-icon-button"
@@ -400,6 +444,7 @@ function HeaderBar({
         aria-label="Go to anything"
         onClick={() => setQuickSwitchOpen(true)}
       >
+        <Search size={14} strokeWidth={1.75} aria-hidden="true" />
         <span className="header-bar-quick-switch-label">Go to anything</span> <Kbd>{shortcutLabel('mod+K')}</Kbd>
       </button>
 

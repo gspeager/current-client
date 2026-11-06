@@ -148,8 +148,17 @@
 }
 
 .host-change-row-title {
-  @include patterns.truncate;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
   font: var(--ui-sm);
+}
+
+.host-change-row-title-text {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
 }
 
 .host-change-row-branches,
@@ -265,7 +274,7 @@
 // One fact per line; a warning in the warning color, an unknown in outline.
 .host-change-fact {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-xs);
 
   > svg,
@@ -419,4 +428,57 @@
 
 .host-change-protection {
   color: var(--outline);
+}
+
+.host-change-author {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.host-change-overview-commits {
+  margin-top: var(--space-lg);
+}
+
+.host-change-overview-heading {
+  margin: 0 0 var(--space-sm);
+  color: var(--outline);
+  @include patterns.eyebrow;
+}
+
+// The change's commits on one line, as the graph draws them.
+.host-change-overview-commits .host-change-commit {
+  position: relative;
+  padding-left: var(--space-lg);
+  border-bottom: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 3px;
+    width: 2px;
+    background: var(--surface-highest);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--on-surface-variant);
+    transform: translateY(-50%);
+  }
+
+  &:first-child::before {
+    top: 50%;
+  }
+
+  &:last-child::before {
+    bottom: 50%;
+  }
 }

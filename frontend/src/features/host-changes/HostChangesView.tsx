@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { useLaneColors } from '../../lib/laneColor'
+import { useNameIdentities } from '../../lib/useNameIdentities'
+import IdentityBadge from '../../components/git/IdentityBadge'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import {
   ArrowRight,
@@ -16,7 +18,9 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import {
+  type IdentityInfo,
   BranchChange,
+  HistoryService,
   HostService,
   PlatformService,
   type ChangeList,
@@ -126,6 +130,7 @@ function HostChangesView({
   }
 
   // Opening the panel is a refresh trigger, once: later opens read the cache.
+  const identities = useNameIdentities((list?.changes ?? []).map((c) => c.author.name || c.author.username))
   const neverFetched = list?.enabled === true && list.fetchedAt === null
   useEffect(() => {
     if (neverFetched) refresh()
@@ -216,6 +221,7 @@ function HostChangesView({
                   selected={active?.number === change.number}
                   onSelect={() => setSelected(change.number)}
                   me={list.me}
+                  identity={identities.get(change.author.name || change.author.username)}
                 />
               </li>
             ))}
@@ -251,6 +257,7 @@ function HostChangesView({
 }
 
 interface ChangeRowProps {
+  identity?: IdentityInfo
   change: Change
   prefix: string
   selected: boolean
@@ -259,7 +266,8 @@ interface ChangeRowProps {
   me: string
 }
 
-function ChangeRow({ change, prefix, selected, onSelect, me }: ChangeRowProps) {
+function ChangeRow({ change, prefix, selected, onSelect, me, identity }: ChangeRowProps) {
+  const author = change.author.name || change.author.username
   return (
     <button
       type="button"
@@ -277,7 +285,10 @@ function ChangeRow({ change, prefix, selected, onSelect, me }: ChangeRowProps) {
           <span className="host-change-row-time">{relativeTime(new Date(change.updatedAt))}</span>
         </span>
       </span>
-      <span className="host-change-row-title">{change.title}</span>
+      <span className="host-change-row-title">
+        {identity && <IdentityBadge identity={identity} name={author} email="" size={20} />}
+        <span className="host-change-row-title-text">{change.title}</span>
+      </span>
       <span className="host-change-row-branches">
         {change.sourceProject ? `${change.sourceProject}:` : ''}
         {change.sourceBranch} → {change.targetBranch}
@@ -312,6 +323,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
   const hostLinks = useHostLinks(repoPath)
   const { branchColor } = useLaneColors()
   const currentBranch = useBranchStatus(repoPath, 0)?.current
+  const authorIdentity = useNameIdentities([change.author.name]).get(change.author.name)
   const HostIcon = hostLogo(hostLinks?.style)
   const closes = useMemo(() => details?.closes ?? [], [details?.closes])
   const closesCards = useReferenceCards(repoPath, closes, NO_CHANGES)
@@ -399,7 +411,10 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
         <h3 className="host-change-detail-title">{change.title}</h3>
       </header>
       <p className="host-change-subtitle">
-        <span>{change.author.name}</span>
+        <span className="host-change-author">
+          {authorIdentity && <IdentityBadge identity={authorIdentity} name={change.author.name} email="" size={20} />}
+          {change.author.name}
+        </span>
         <span className="host-change-flow" aria-label={`${change.sourceBranch} into ${change.targetBranch}`}>
           <span
             className="host-change-flow-dot"
@@ -609,6 +624,9 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           ) : (
             <p className="host-changes-empty">No description.</p>
           ))}
+        {tab === 'overview' && details && (
+          <OverviewCommits repoPath={repoPath} target={change.targetBranch} source={change.sourceBranch} />
+        )}
         {tab === 'checks' &&
           (mark ? (
             <PipelineJobList repoPath={repoPath} pipelineId={mark.pipelineId} onLoaded={countFor.checks} />
@@ -702,6 +720,32 @@ function FilesTab({ repoPath, number, onLoaded }: TabProps) {
         })}
       </ul>
     </>
+  )
+}
+
+// The change's commits from what is already fetched, so opening it asks the host
+// for nothing more. Silent when the branch isn't here locally.
+function OverviewCommits({ repoPath, target, source }: { repoPath: string; target: string; source: string }) {
+  const { data } = useAsyncData(
+    () => HistoryService.RangeCommits(repoPath, `origin/${target}`, `origin/${source}`).catch(() => null),
+    [repoPath, target, source],
+  )
+  if (!data || data.length === 0) return null
+  return (
+    <section className="host-change-overview-commits" aria-label="Commits">
+      <h4 className="host-change-overview-heading">{plural(data.length, 'commit')}</h4>
+      <ul className="host-change-commits">
+        {data.map((commit) => (
+          <li key={commit.sha} className="host-change-commit">
+            <span className="host-change-commit-subject">{commit.subject}</span>
+            <span className="host-change-commit-sha">{commit.sha.slice(0, 7)}</span>
+            <span className="host-change-commit-meta">
+              {commit.authorName} · {relativeTime(new Date(commit.date))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

@@ -634,3 +634,15 @@
 .diff-row-removed .diff-content :is(.token-string, .token-type, .token-keyword) {
   color: inherit;
 }
+
+.diff-stage-hunk,
+.diff-discard-hunk {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.diff-hunk-key {
+  color: var(--outline);
+  font: var(--data-sm);
+}

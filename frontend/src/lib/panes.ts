@@ -34,3 +34,10 @@ export function restoreFocus(previous: Element | null) {
   }
   focusMain()
 }
+
+// For a view that may still be mounting: keeps trying for about half a second.
+export function focusMainSoon(tries = 30) {
+  focusMain()
+  const insideMain = document.activeElement?.closest('[data-pane="main"]')
+  if (!insideMain && tries > 0) requestAnimationFrame(() => focusMainSoon(tries - 1))
+}

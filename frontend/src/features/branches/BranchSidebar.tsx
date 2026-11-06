@@ -687,7 +687,7 @@ function BranchSidebar({
               <Search size={14} strokeWidth={1.5} />
               <input
                 aria-label="Filter branches"
-                onKeyDown={arrowIntoList}
+                onKeyDown={(e) => arrowIntoList(e, '.branch-row')}
                 placeholder="Filter branches…"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}

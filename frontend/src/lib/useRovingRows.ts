@@ -153,9 +153,9 @@ export function useRovingRows(
 }
 
 // From a list's filter field, the down arrow goes on into the list.
-export function arrowIntoList(e: ReactKeyboardEvent<HTMLElement>) {
+export function arrowIntoList(e: ReactKeyboardEvent<HTMLElement>, rowSelector = '[data-roving] [tabindex="0"]') {
   if (e.key !== 'ArrowDown') return
-  const target = e.currentTarget.closest('[data-pane]')?.querySelector<HTMLElement>('[data-roving] [tabindex="0"]')
+  const target = e.currentTarget.closest('[data-pane]')?.querySelector<HTMLElement>(rowSelector)
   if (target) {
     e.preventDefault()
     target.focus()

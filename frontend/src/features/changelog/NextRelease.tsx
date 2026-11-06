@@ -100,7 +100,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
         <h2 className="next-release-title">Next release</h2>
         <span className="next-release-version">{data.tag || 'No version'}</span>
         <span className="next-release-meta">
-          {data.previous ? `from ${data.previous}` : 'first release'} · candidate {data.ref}{' '}
+          {data.previous ? `from ${data.previous}` : 'first release'} · {data.ref}{' '}
           <span className="next-release-sha">{data.sha.slice(0, 7)}</span> · target {data.target}
           {tagged && ` · tagged ${data.taggedAs}`}
         </span>
@@ -134,10 +134,24 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
       )}
       {error && <p className="next-release-error">{error}</p>}
       <ul className="next-release-checks" aria-label="Checks">
-        {data.checks.map((check) => (
-          <CheckRow key={check.label} check={check} />
-        ))}
+        {data.checks
+          .filter((check) => check.level === 'warn')
+          .map((check) => (
+            <CheckRow key={check.label} check={check} />
+          ))}
       </ul>
+      {data.checks.some((check) => check.level !== 'warn') && (
+        <details className="next-release-more" open={warnings === 0}>
+          <summary>{plural(data.checks.filter((check) => check.level !== 'warn').length, 'other check')}</summary>
+          <ul className="next-release-checks">
+            {data.checks
+              .filter((check) => check.level !== 'warn')
+              .map((check) => (
+                <CheckRow key={check.label} check={check} />
+              ))}
+          </ul>
+        </details>
+      )}
       <footer className="next-release-steps">
         <button
           type="button"
@@ -146,6 +160,9 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
           disabled={!data.tag || tagged}
           title={tagged ? `Already tagged ${data.taggedAs}` : undefined}
         >
+          <span className="next-release-step-number" aria-hidden="true">
+            1
+          </span>
           <Tag size={14} strokeWidth={1.75} />
           Tag {data.tag}…
         </button>
@@ -157,6 +174,9 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
           disabled={!tagged || !canPublish}
           title={publishHint}
         >
+          <span className="next-release-step-number" aria-hidden="true">
+            2
+          </span>
           <PackagePlus size={14} strokeWidth={1.75} />
           Publish release…
         </button>

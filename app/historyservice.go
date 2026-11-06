@@ -90,6 +90,16 @@ func (s *HistoryService) SearchHistory(repoPath, query string, limit int) ([]Com
 	return commitInfos(entries), nil
 }
 
+// RangeCommits reads from what is already fetched, so a change's commits can
+// show without asking its host.
+func (s *HistoryService) RangeCommits(repoPath, from, to string) ([]CommitInfo, error) {
+	entries, err := git.RangeHistory(context.Background(), repoPath, from, to, "")
+	if err != nil {
+		return nil, err
+	}
+	return commitInfos(entries), nil
+}
+
 func (s *HistoryService) FollowsConventionalCommits(repoPath string) (bool, error) {
 	return git.FollowsConventionalCommits(context.Background(), repoPath)
 }

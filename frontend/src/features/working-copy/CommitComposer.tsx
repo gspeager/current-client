@@ -316,7 +316,7 @@ function CommitComposer({
                 className={`commit-composer-counter-value${subject.length > SUBJECT_TARGET ? ' commit-composer-counter-over' : ''}`}
               >
                 {subject.length}
-              </span>{' '}
+              </span>
               /{SUBJECT_TARGET}
               <span className="commit-composer-counter-bar">
                 <span
@@ -382,7 +382,12 @@ function CommitComposer({
                 Sign this commit
               </label>
               <div className="split-button-menu-divider" />
-              <button type="button" onClick={() => commit(true)} disabled={blockReason !== null}>
+              <button
+                type="button"
+                onClick={() => commit(true)}
+                disabled={blockReason !== null}
+                title={blockReason ?? undefined}
+              >
                 Commit and push
               </button>
               <div className="split-button-menu-divider" />

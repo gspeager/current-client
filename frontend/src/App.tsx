@@ -2,8 +2,8 @@ import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
 import {
-  Activity,
   Broom,
+  ChartColumn,
   CircleDot,
   ClipboardCheck,
   ClipboardList,
@@ -14,10 +14,9 @@ import {
   Package,
   GitBranchPlus,
   GitPullRequest,
-  History,
+  GitCommitVertical,
   Inbox,
   PackagePlus,
-  ScrollText,
   Settings,
   Tag,
   Layers,
@@ -57,7 +56,7 @@ import { useAsyncData } from './lib/useAsyncData'
 import { useWindowKeydown } from './lib/useWindowKeydown'
 import { isTypingTarget } from './lib/shortcuts'
 import { NARROW_SIDEBAR_WIDTH, useWindowNarrowerThan } from './lib/useWindowNarrowerThan'
-import { cyclePanes, focusMain } from './lib/panes'
+import { cyclePanes, focusMain, focusMainSoon } from './lib/panes'
 import ShortcutSheet from './components/chrome/ShortcutSheet'
 import WaveMark from './components/chrome/WaveMark'
 import { useAutoFetch } from './features/remotes/useAutoFetch'
@@ -314,7 +313,7 @@ function App({
     if (view && repo.repoPath) {
       e.preventDefault()
       changeTab(view)
-      requestAnimationFrame(focusMain)
+      requestAnimationFrame(() => focusMainSoon())
     }
   })
   const closeRepoTab = (path: string) =>
@@ -332,6 +331,7 @@ function App({
 
   const changeTab = (tab: AppTab) => {
     setOpenIssueKey(null)
+    setOpenedInPlace(false)
     setActiveTab(tab)
     setCommitFocus(null)
   }
@@ -633,7 +633,7 @@ function App({
       label: 'History',
       shortcut: 'mod+2',
       section: 'Views',
-      icon: History,
+      icon: GitCommitVertical,
       keywords: ['log', 'graph', 'commits', 'cherry-pick', 'revert', 'reset', 'blame', 'rebase'],
       run: () => changeTab('history'),
     },
@@ -641,6 +641,7 @@ function App({
       ? [
           {
             id: 'view-host-changes',
+            shortcut: 'mod+3',
             label: changesLabel,
             section: 'Views' as const,
             icon: GitPullRequest,
@@ -653,6 +654,7 @@ function App({
       ? [
           {
             id: 'view-issues',
+            shortcut: changesLabel ? 'mod+4' : 'mod+3',
             label: 'Issues',
             section: 'Views' as const,
             icon: CircleDot,
@@ -663,17 +665,19 @@ function App({
       : []),
     {
       id: 'view-activity',
+      shortcut: `mod+${3 + (changesLabel ? 1 : 0) + (issuesOn ? 1 : 0)}`,
       label: 'Activity',
       section: 'Views',
-      icon: Activity,
+      icon: ChartColumn,
       keywords: ['stats', 'contributors', 'health'],
       run: () => changeTab('activity'),
     },
     {
       id: 'view-releases',
+      shortcut: `mod+${4 + (changesLabel ? 1 : 0) + (issuesOn ? 1 : 0)}`,
       label: 'Releases',
       section: 'Views',
-      icon: ScrollText,
+      icon: Tag,
       keywords: ['changelog', 'release notes', 'next release', 'version'],
       run: () => changeTab('changelog'),
     },

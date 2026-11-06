@@ -161,3 +161,19 @@
   resize: vertical;
   font: var(--prose);
 }
+
+@media (max-height: 700px) {
+  .issue-detail-footer {
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+  }
+
+  .issue-detail-actions .dialog-button {
+    height: var(--h-chip);
+  }
+}
+
+.issue-detail-title {
+  flex: 1;
+  min-width: 0;
+}

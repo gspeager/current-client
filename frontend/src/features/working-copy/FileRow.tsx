@@ -1,6 +1,6 @@
 import { NoteMark } from '../notes/notes'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
-import { Ellipsis, Users, X } from 'lucide-react'
+import { Ellipsis, Users, Undo2 } from 'lucide-react'
 import { isMenuKey } from '../../components/controls/ContextMenu'
 import Checkbox from '../../components/forms/Checkbox'
 import DiffStat from '../../components/git/DiffStat'
@@ -111,7 +111,7 @@ function FileRow({
               aria-label={`Discard ${label}`}
               title="Discard"
             >
-              <X size={14} strokeWidth={1.5} />
+              <Undo2 size={14} strokeWidth={1.5} />
             </button>
           )}
         </span>

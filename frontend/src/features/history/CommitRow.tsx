@@ -162,7 +162,7 @@ function CommitRow({
             identity={identity}
             name={commit.authorName}
             email={commit.authorEmail}
-            size={18}
+            size={20}
             onClick={onHighlightAuthor}
             pressed={authorHighlighted}
           />

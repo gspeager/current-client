@@ -1,3 +1,5 @@
+import IdentityBadge from '../../components/git/IdentityBadge'
+import { useNameIdentities } from '../../lib/useNameIdentities'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { CircleCheck, CircleDot, GitBranch, GitBranchPlus } from 'lucide-react'
 import { BranchService, HostService, PlatformService } from '@current-client-bindings/app'
@@ -76,13 +78,13 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
     )
   }
 
+  const identities = useNameIdentities((data?.comments ?? []).map((c) => c.author.name || c.author.username))
   return (
     <article className="issue-detail" data-pane="issue-detail" aria-label={data?.reference ?? issueKey}>
       <header className="issue-detail-header">
         <span className="issue-detail-reference">{data?.reference ?? issueKey}</span>
         {issue?.state && <span className={`host-change-state host-change-state-${issue.state}`}>{issue.state}</span>}
         {issue && <h3 className="host-change-detail-title issue-detail-title">{issue.title}</h3>}
-        <span className="issue-detail-spacer" />
         {headerAccessory}
       </header>
       <div className="issue-panel-body">
@@ -134,6 +136,14 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
               {data.comments.map((c, i) => (
                 <article key={i} className="issue-panel-comment">
                   <p className="issue-panel-comment-head">
+                    {identities.get(c.author.name || c.author.username) && (
+                      <IdentityBadge
+                        identity={identities.get(c.author.name || c.author.username)!}
+                        name={c.author.name || c.author.username}
+                        email=""
+                        size={20}
+                      />
+                    )}
                     <span className="issue-panel-comment-author">{c.author.name || c.author.username}</span>
                     <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
                   </p>

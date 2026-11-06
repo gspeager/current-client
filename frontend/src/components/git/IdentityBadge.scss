@@ -12,7 +12,7 @@
   border-radius: 50%;
   color: var(--badge-ink);
   font-family: var(--font-mono);
-  font-size: max(9.5px, calc(var(--badge-size) * 0.42));
+  font-size: round(max(10px, calc(var(--badge-size) * 0.42)), 1px);
   font-weight: 600;
   line-height: 1;
 }

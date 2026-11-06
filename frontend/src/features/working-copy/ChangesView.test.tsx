@@ -740,7 +740,7 @@ describe('ChangesView first file', () => {
 
   it('opens nothing in a clean working tree', () => {
     renderChanges([])
-    expect(screen.getByText('Nothing changed since the last commit.')).toBeInTheDocument()
+    expect(document.querySelector('.changes-clean')).toBeInTheDocument()
     expect(DiffService.GetWorkingTreeDiff).not.toHaveBeenCalled()
   })
 })

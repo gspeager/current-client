@@ -20,6 +20,9 @@
 }
 
 .ci-mark {
+  min-width: var(--h-micro);
+  min-height: var(--h-micro);
+  justify-content: center;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;

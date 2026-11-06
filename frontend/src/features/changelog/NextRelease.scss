@@ -184,7 +184,7 @@
 
 .next-release-step-primary {
   @include patterns.primary-button;
-  height: var(--h-chip);
+  height: var(--h-field);
 }
 
 .next-release-arrow {
@@ -194,4 +194,31 @@
 .next-release-note {
   color: var(--warning);
   font: var(--ui-xs);
+}
+
+.next-release-more {
+  color: var(--outline);
+  font: var(--ui-sm);
+
+  > summary {
+    width: fit-content;
+    min-height: var(--h-row-tree);
+    line-height: var(--h-row-tree);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--on-surface);
+    }
+  }
+}
+
+.next-release-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  font: var(--kbd);
 }
