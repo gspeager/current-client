@@ -330,7 +330,7 @@ func tidyTodo(plan TidyPlan, steps []TidyStep, messageDir string) (string, map[s
 		if custom {
 			name := filepath.Join(messageDir, group[0].SHA+".msg")
 			files[name] = message + "\n"
-			fmt.Fprintf(&todo, "exec git commit --amend --no-verify --allow-empty --cleanup=strip -F %s\n", shellQuote(filepath.ToSlash(name)))
+			fmt.Fprintf(&todo, "exec git commit --amend --no-verify --allow-empty --cleanup=whitespace -F %s\n", shellQuote(filepath.ToSlash(name)))
 		}
 	}
 	var group []TidyStep
@@ -358,6 +358,12 @@ func shellQuote(text string) string {
 // RunTidy rewrites the branch as steps say. A conflict stops it like any rebase,
 // with Continue and Abort, and Undo takes a finished one back.
 func RunTidy(ctx context.Context, repoPath, expectedHead string, steps []TidyStep) error {
+	// Before anything else: a stopped tidy-up still needs its message files.
+	if state, err := DetectConflictState(ctx, repoPath); err != nil {
+		return err
+	} else if state.Operation != "" {
+		return fmt.Errorf("finish or abort the %s in progress first", state.Operation)
+	}
 	plan, err := PlanTidy(ctx, repoPath)
 	if err != nil {
 		return err
@@ -415,7 +421,13 @@ func RunTidy(ctx context.Context, repoPath, expectedHead string, steps []TidySte
 			"GIT_EDITOR=true",
 		},
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	if state, err := DetectConflictState(ctx, repoPath); err == nil && state.Operation == "" {
+		return os.RemoveAll(messageDir)
+	}
+	return nil
 }
 
 // FixupInto commits what's staged as a fixup of sha, for Tidy up history to fold in.

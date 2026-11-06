@@ -167,6 +167,47 @@ func TestARewordAfterAConflictSurvivesContinue(t *testing.T) {
 	}
 }
 
+func TestARewordKeepsLinesStartingWithAHash(t *testing.T) {
+	dir := tidyRepo(t)
+	plan, steps := plannedSteps(t, dir)
+	steps[1].Action, steps[1].Message = TidyReword, "#123 fix login\n\n# Notes\nmore"
+	runTidy(t, dir, plan, steps)
+	if got := gittest.Run(t, dir, "log", "-1", "--format=%B", "HEAD~1"); got != "#123 fix login\n\n# Notes\nmore" {
+		t.Fatalf("message = %q", got)
+	}
+}
+
+func TestRunTidyDuringAStopLeavesItsMessagesAlone(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "branch", "-M", "main")
+	gittest.CommitFile(t, dir, "f.txt", "1\n", "base")
+	gittest.Run(t, dir, "switch", "-c", "topic")
+	gittest.CommitFile(t, dir, "f.txt", "2\n", "first")
+	gittest.CommitFile(t, dir, "f.txt", "3\n", "second")
+	gittest.CommitFile(t, dir, "g.txt", "g\n", "third")
+	plan, steps := plannedSteps(t, dir)
+	steps[0], steps[1] = steps[1], steps[0]
+	steps[2].Action, steps[2].Message = TidyReword, "kept"
+	runTidy(t, dir, plan, steps)
+	ctx := context.Background()
+	if err := RunTidy(ctx, dir, plan.Head, steps); err == nil || !strings.Contains(err.Error(), "in progress") {
+		t.Fatalf("err = %v", err)
+	}
+	if _, err := os.Stat(dir + "/.git/current-client-tidy"); err != nil {
+		t.Fatalf("the message files went: %v", err)
+	}
+}
+
+func TestAFinishedTidyLeavesNoMessageFiles(t *testing.T) {
+	dir := tidyRepo(t)
+	plan, steps := plannedSteps(t, dir)
+	steps[0].Action, steps[0].Message = TidyReword, "new"
+	runTidy(t, dir, plan, steps)
+	if _, err := os.Stat(dir + "/.git/current-client-tidy"); !os.IsNotExist(err) {
+		t.Fatalf("left behind: %v", err)
+	}
+}
+
 func TestPreviewTidyMatchesTheResult(t *testing.T) {
 	dir := tidyRepo(t)
 	plan, steps := plannedSteps(t, dir)
