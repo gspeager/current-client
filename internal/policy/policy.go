@@ -19,6 +19,8 @@ type Policy struct {
 	Hosts     map[string]Switch `json:"hosts"`
 	AutoFetch *AutoFetch        `json:"autoFetch"`
 	Tracker   *Tracker          `json:"tracker"`
+	// LocalCommands off removes the terminal panel and task runner.
+	LocalCommands *Switch `json:"localCommands"`
 }
 
 // Tracker is the organization's issue tracker, the default for every
@@ -115,6 +117,14 @@ func Host(hostname string) (enabled, managed bool) {
 
 // AutoFetchMinutes is the background fetch interval in force: the policy's
 // when it sets one, else the user's. Zero is off.
+// LocalCommandsOff says the organization has turned off running commands from the app.
+func LocalCommandsOff() bool {
+	mu.Lock()
+	defer mu.Unlock()
+	lock := current.LocalCommands
+	return lock != nil && lock.Enabled != nil && !*lock.Enabled
+}
+
 func AutoFetchMinutes(user int) (minutes int, managed bool) {
 	mu.Lock()
 	defer mu.Unlock()

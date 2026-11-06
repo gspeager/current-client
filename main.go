@@ -30,6 +30,7 @@ func main() {
 	currentClient := application.New(application.Options{
 		Name:           "current-client",
 		SingleInstance: app.SingleInstance(),
+		OnShutdown:     app.Shutdown,
 		Description:    "A privacy-first, cross-platform desktop Git client.",
 		Services:       app.Services(),
 		Assets: application.AssetOptions{
@@ -56,6 +57,7 @@ func main() {
 	})
 
 	app.ListenForOpenRequests(currentClient, win)
+	app.GuardWindowClose(currentClient, win)
 
 	win.OnWindowEvent(events.Common.WindowClosing, func(*application.WindowEvent) {
 		width, height := win.Size()

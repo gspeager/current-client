@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type UIEvent } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
+import { System } from '@wailsio/runtime'
 import { SettingsService } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import Switch from '../../components/forms/Switch'
@@ -82,6 +83,7 @@ function SettingsPanel({
     setPruneOnFetch,
     setRiskRulesOff,
     setSnapshotLimit,
+    setTerminalShell,
   } = settings
   const [gitPathError, setGitPathError] = useState<string | null>(null)
   const [editorPathError, setEditorPathError] = useState<string | null>(null)
@@ -249,6 +251,20 @@ function SettingsPanel({
               onReset={resetPath(setEditorPath, setEditorPathError)}
               resetLabel="Use default"
             />
+            {System.IsWindows() && !values.localCommandsOff && (
+              <SettingsRow label="Terminal shell" hint="What the terminal panel runs. New shells use it.">
+                <select
+                  className="settings-field"
+                  value={values.terminalShell}
+                  onChange={(e) => setTerminalShell(e.target.value)}
+                  aria-label="Terminal shell"
+                >
+                  <option value="">PowerShell</option>
+                  <option value="git-bash">Git Bash</option>
+                  <option value="cmd">Command Prompt</option>
+                </select>
+              </SettingsRow>
+            )}
             <PathSettingRow
               label="Default repository location"
               hint="Where the Open and Clone dialogs start."

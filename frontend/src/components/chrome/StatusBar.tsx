@@ -1,3 +1,4 @@
+import { SquareTerminal } from 'lucide-react'
 import { System } from '@wailsio/runtime'
 import { PlatformService, type HostStatusInfo } from '@current-client-bindings/app'
 import { baseName, tildePath } from '../../lib/paths'
@@ -16,9 +17,11 @@ interface StatusBarProps {
   integration?: HostIndicator | null
   lastFetchedAt?: Date | null
   onOpenSettings?: () => void
+  onToggleTerminal?: () => void
 }
 
 function StatusBar({
+  onToggleTerminal,
   repoPath,
   repoVersion,
   gitVersion,
@@ -49,6 +52,17 @@ function StatusBar({
       </span>
       {branchLabel && <span className="status-bar-branch">{branchLabel}</span>}
       <div className="status-bar-spacer" />
+      {onToggleTerminal && (
+        <button
+          type="button"
+          className="status-bar-terminal"
+          title="Terminal panel (Ctrl+`)"
+          onClick={onToggleTerminal}
+        >
+          <SquareTerminal size={12} strokeWidth={1.75} />
+          Terminal
+        </button>
+      )}
       <span className="status-bar-fetched">
         {lastFetchedAt ? `fetched ${relativeTime(lastFetchedAt)}` : 'not fetched yet'}
       </span>
