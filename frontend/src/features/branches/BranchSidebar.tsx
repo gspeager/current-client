@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
-import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X } from 'lucide-react'
+import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X, Table } from 'lucide-react'
 import {
   type BranchInfo,
   BranchService,
@@ -18,6 +18,7 @@ import { localNameFor } from './branches'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import SetUpstreamDialog from './SetUpstreamDialog'
+import BranchReviewDialog from './BranchReviewDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
 import { operationBadge, operationNoun } from '../../lib/conflictWords'
@@ -127,8 +128,10 @@ function BranchSidebar({
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
   const [cleanUp, setCleanUp] = useState(false)
+  const [branchReview, setBranchReview] = useState(false)
   useEffect(() => {
     if (request?.action === 'clean-up') setCleanUp(true)
+    if (request?.action === 'branch-review') setBranchReview(true)
     if (request?.action === 'new-branch') setShowNewBranch(true)
   }, [request])
   const [squashed, setSquashed] = useState<string | null>(null)
@@ -269,6 +272,7 @@ function BranchSidebar({
 
   const cleanedUp = (branches: DeletedBranch[]) => {
     setCleanUp(false)
+    setBranchReview(false)
     setDeleted(branches.length > 0 ? branches : null)
     loadBranches()
     onBranchChanged?.()
@@ -511,6 +515,15 @@ function BranchSidebar({
             >
               <BrushCleaning size={18} strokeWidth={1.75} />
             </button>
+            <button
+              type="button"
+              className="branch-sidebar-add"
+              onClick={() => setBranchReview(true)}
+              aria-label="Branch review"
+              title="Branch review"
+            >
+              <Table size={18} strokeWidth={1.75} />
+            </button>
           </>
         }
         pinned={
@@ -635,6 +648,9 @@ function BranchSidebar({
       </SidebarSection>
 
       {cleanUp && <CleanUpBranchesDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setCleanUp(false)} />}
+      {branchReview && (
+        <BranchReviewDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setBranchReview(false)} />
+      )}
       {upstreamFor && (
         <SetUpstreamDialog
           repoPath={repoPath}

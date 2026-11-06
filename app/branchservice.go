@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"strconv"
+	"time"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
@@ -161,6 +163,74 @@ func (s *BranchService) MergedBranches(repoPath string) (MergedBranches, error) 
 		})
 	}
 	return result, nil
+}
+
+// BranchReviewRowInfo.Deletable is false for the current branch, the default
+// branch and a branch checked out in a worktree.
+type BranchReviewRowInfo struct {
+	Name           string       `json:"name"`
+	Current        bool         `json:"current"`
+	Upstream       string       `json:"upstream"`
+	Ahead          int          `json:"ahead"`
+	Behind         int          `json:"behind"`
+	AheadBase      int          `json:"aheadBase"`
+	BehindBase     int          `json:"behindBase"`
+	Merged         bool         `json:"merged"`
+	MergedChange   string       `json:"mergedChange"`
+	OpenChange     string       `json:"openChange"`
+	Stale          bool         `json:"stale"`
+	Unpushed       bool         `json:"unpushed"`
+	LastCommitDate string       `json:"lastCommitDate"`
+	AuthorName     string       `json:"authorName"`
+	AuthorEmail    string       `json:"authorEmail"`
+	Author         IdentityInfo `json:"author"`
+	Deletable      bool         `json:"deletable"`
+}
+
+type BranchReviewInfo struct {
+	Base string                `json:"base"`
+	Rows []BranchReviewRowInfo `json:"rows"`
+}
+
+// ReviewBranches makes no request: the host's part comes from the cache.
+func (s *BranchService) ReviewBranches(repoPath string) (BranchReviewInfo, error) {
+	review, err := git.ReviewBranches(context.Background(), repoPath)
+	if err != nil {
+		return BranchReviewInfo{}, err
+	}
+	info := BranchReviewInfo{Base: review.Base, Rows: []BranchReviewRowInfo{}}
+	merged, open := mergedOnHost(repoPath), openChangesByBranch(repoPath)
+	cfgIdentities := (&IdentityService{}).GetIdentities(mapSlice(review.Rows, func(row git.BranchReviewRow) IdentityRef {
+		return IdentityRef{Name: row.AuthorName, Email: row.AuthorEmail}
+	}))
+	now := time.Now()
+	for i, row := range review.Rows {
+		last, err := time.Parse(time.RFC3339, row.LastCommitDate)
+		mergedChange := ""
+		if change, ok := merged[row.Upstream]; ok && row.Upstream != "" {
+			mergedChange = change.Prefix + strconv.Itoa(change.Number)
+		}
+		info.Rows = append(info.Rows, BranchReviewRowInfo{
+			Name:           row.Name,
+			Current:        row.Current,
+			Upstream:       row.Upstream,
+			Ahead:          row.Ahead,
+			Behind:         row.Behind,
+			AheadBase:      row.AheadBase,
+			BehindBase:     row.BehindBase,
+			Merged:         row.Merged || mergedChange != "",
+			MergedChange:   mergedChange,
+			OpenChange:     open[row.Name],
+			Stale:          err == nil && !row.Current && now.Sub(last) > staleAfter,
+			Unpushed:       row.Upstream == "" || row.Ahead > 0,
+			LastCommitDate: row.LastCommitDate,
+			AuthorName:     row.AuthorName,
+			AuthorEmail:    row.AuthorEmail,
+			Author:         cfgIdentities[i],
+			Deletable:      !row.Current && row.Name != review.Default && row.WorktreePath == "",
+		})
+	}
+	return info, nil
 }
 
 // hostMergedChange is what the cache knows of a merged change, by its

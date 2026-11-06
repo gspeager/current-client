@@ -18,6 +18,8 @@ func afterFetch(context.Context, string) {}
 
 func mergedOnHost(string) map[string]hostMergedChange { return nil }
 
+func openChangesByBranch(string) map[string]string { return nil }
+
 func protectionOf(string, string, string) (*PushWarning, error) { return nil, nil }
 
 func trackerReading(string) bool { return false }
