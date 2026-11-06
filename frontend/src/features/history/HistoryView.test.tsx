@@ -135,6 +135,7 @@ describe('HistoryView', () => {
       'Branch here',
       'Cherry-pick',
       'Revert',
+      'Fixup into this commit',
       'Reset to here…',
       'Export patch…',
       'Add note…',

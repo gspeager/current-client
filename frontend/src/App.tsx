@@ -16,6 +16,7 @@ import {
   ScrollText,
   Settings,
   Tag,
+  ListOrdered,
   StickyNote,
   Table,
 } from 'lucide-react'
@@ -628,6 +629,14 @@ function App({
       icon: ClipboardList,
       keywords: ['what i did', 'summary', 'yesterday', 'this week'],
       run: () => setStandupOpen(true),
+    },
+    {
+      id: 'tidy-up',
+      label: 'Tidy up history',
+      section: 'Tools',
+      icon: ListOrdered,
+      keywords: ['interactive rebase', 'reorder', 'squash', 'fixup', 'reword', 'drop'],
+      run: () => requestSidebar('tidy-up'),
     },
     {
       id: 'notes',
