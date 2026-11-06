@@ -101,7 +101,10 @@ func (s *RepositoryService) RemoveRecentRepository(path string) error {
 	if !slices.Contains(tabs, path) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		_ = snapshot.DeleteAll(ctx, path)
+		// Worktrees share refs, so the repository is still in use through another.
+		if worktrees, err := git.ListWorktrees(ctx, path); err == nil && len(worktrees) <= 1 {
+			_ = snapshot.DeleteAll(ctx, path)
+		}
 	}
 	return err
 }

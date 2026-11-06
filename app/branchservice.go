@@ -47,6 +47,7 @@ func (s *BranchService) CreateBranch(repoPath, name string) error {
 }
 
 func (s *BranchService) CheckoutCommit(repoPath, sha string) error {
+	snapshotBefore(repoPath, "checkout")
 	return git.CheckoutCommit(context.Background(), repoPath, sha)
 }
 

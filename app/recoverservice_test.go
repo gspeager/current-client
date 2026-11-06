@@ -118,6 +118,20 @@ func TestDeletingAnUnmergedBranchKeepsItsCommits(t *testing.T) {
 	}
 }
 
+func TestRemovingALinkedWorktreeKeepsTheSharedSnapshots(t *testing.T) {
+	repo := recoverRepo(t)
+	linked := filepath.Join(t.TempDir(), "linked")
+	gitIn(t, repo, "worktree", "add", "-q", "-b", "side", linked)
+	write(t, repo, "a.txt", "edit\n")
+	snapshotBefore(repo, "discard")
+	if err := new(RepositoryService).RemoveRecentRepository(linked); err != nil {
+		t.Fatal(err)
+	}
+	if list := snapshots(t, repo); len(list) != 1 {
+		t.Fatalf("snapshots = %+v", list)
+	}
+}
+
 func TestSnapshotLimitAndRemoval(t *testing.T) {
 	repo := recoverRepo(t)
 	if err := updateConfig(func(cfg *config.Config) { cfg.SnapshotLimit = 1; cfg.RecentRepositories = []string{repo} }); err != nil {

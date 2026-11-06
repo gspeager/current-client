@@ -32,6 +32,10 @@ const (
 	// An untracked file this large is left out, so a build output or a data file
 	// doesn't land in the object store on every checkout.
 	largestUntracked = 10 << 20
+	// A folder of unignored output shouldn't either, and listing what's left out
+	// is limited by the command line's length.
+	mostUntrackedBytes = 100 << 20
+	mostLeftOut        = 500
 )
 
 // ErrNotFound means the snapshot has been pruned.
@@ -98,14 +102,24 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 
 	args := []string{"add", "-A", "--", "."}
 	skipped := 0
+	var kept int64
 	for _, status := range statuses {
 		if status.WorktreeStatus != '?' {
 			continue
 		}
-		if info, err := os.Stat(filepath.Join(repoPath, status.Path)); err == nil && info.Size() >= largestUntracked {
+		info, err := os.Stat(filepath.Join(repoPath, status.Path))
+		if err != nil {
+			continue
+		}
+		if info.Size() >= largestUntracked || kept+info.Size() > mostUntrackedBytes {
 			args = append(args, ":(exclude,literal)"+status.Path)
 			skipped++
+			if skipped > mostLeftOut {
+				return false, fmt.Errorf("too many large untracked files to snapshot")
+			}
+			continue
 		}
+		kept += info.Size()
 	}
 	if _, err := run(ctx, repoPath, env, args...); err != nil {
 		return false, err

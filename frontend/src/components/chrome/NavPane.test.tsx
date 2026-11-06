@@ -103,7 +103,7 @@ describe('NavPane collapsed rail', () => {
       expect.stringMatching(/^(Reveal in|Open in File Manager)/),
       'Open in VS Code',
       'Undo last operation',
-      'Recover',
+      'Recover discarded work',
       'Reflog',
       'Bisect',
       'Apply patch…',

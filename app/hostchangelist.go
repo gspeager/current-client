@@ -244,6 +244,7 @@ func (s *HostService) CheckoutChange(ctx context.Context, repoPath string, numbe
 	}
 	for _, b := range branches {
 		if b.Name == name {
+			snapshotBefore(repoPath, "checkout")
 			return CheckoutResult{Branch: name, Existed: true}, git.CheckoutBranch(ctx, repoPath, name)
 		}
 	}
@@ -253,6 +254,7 @@ func (s *HostService) CheckoutChange(ctx context.Context, repoPath string, numbe
 	if err := git.CreateBranchAt(ctx, repoPath, name, git.HostChangeRef(remote.Name, number)); err != nil {
 		return CheckoutResult{}, err
 	}
+	snapshotBefore(repoPath, "checkout")
 	if err := git.CheckoutBranch(ctx, repoPath, name); err != nil {
 		return CheckoutResult{}, err
 	}

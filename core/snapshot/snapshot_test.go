@@ -185,6 +185,19 @@ func TestLeavesIgnoredFilesOutAndNamesLargeOnes(t *testing.T) {
 	}
 }
 
+func TestLimitsWhatUntrackedFilesAddUpTo(t *testing.T) {
+	dir := newRepo(t)
+	chunk := strings.Repeat("x", 6<<20)
+	for i := range 20 {
+		gittest.WriteFile(t, dir, "out"+string(rune('a'+i))+".bin", chunk)
+	}
+	take(t, dir, "checkout")
+	snapshot := newest(t, dir)
+	if snapshot.Skipped != 4 {
+		t.Fatalf("skipped = %d", snapshot.Skipped)
+	}
+}
+
 func TestPrunesToTheLimit(t *testing.T) {
 	dir := newRepo(t)
 	ctx := context.Background()
@@ -272,7 +285,17 @@ func TestWorksBeforeTheFirstCommit(t *testing.T) {
 	if !take(t, dir, "discard") {
 		t.Fatal("no snapshot taken")
 	}
-	if snapshot := newest(t, dir); snapshot.Parent != "" {
+	snapshot := newest(t, dir)
+	if snapshot.Parent != "" {
 		t.Fatalf("snapshot = %+v", snapshot)
+	}
+	if err := os.Remove(filepath.Join(dir, "first.txt")); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(context.Background(), dir, snapshot.ID, nil, 0); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, dir, "first.txt"); got != "first\n" {
+		t.Fatalf("restored %q", got)
 	}
 }
