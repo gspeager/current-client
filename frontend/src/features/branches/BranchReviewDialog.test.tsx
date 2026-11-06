@@ -98,6 +98,20 @@ describe('BranchReviewDialog', () => {
     expect(onDeleted).toHaveBeenCalledWith([{ name: 'old', tip: 'abc' }])
   })
 
+  it("doesn't delete a selected branch the filter hides", async () => {
+    const user = userEvent.setup()
+    vi.mocked(BranchService.DeleteBranch).mockResolvedValue('abc')
+    const onDeleted = renderDialog()
+
+    await user.click(await screen.findByRole('checkbox', { name: 'local-only' }))
+    await user.click(screen.getByRole('checkbox', { name: 'old' }))
+    await user.click(screen.getByRole('button', { name: 'Stale' }))
+    await user.click(screen.getByRole('button', { name: 'Delete 1 branch' }))
+
+    expect(onDeleted).toHaveBeenCalledWith([{ name: 'old', tip: 'abc' }])
+    expect(BranchService.DeleteBranch).toHaveBeenCalledTimes(1)
+  })
+
   it('asks first before deleting an unmerged branch', async () => {
     const user = userEvent.setup()
     vi.mocked(BranchService.DeleteBranch).mockResolvedValue('def')

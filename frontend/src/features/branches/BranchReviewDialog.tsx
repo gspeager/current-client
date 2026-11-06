@@ -21,7 +21,7 @@ const COLUMN_VALUE: Record<Column, (row: BranchReviewRowInfo) => string | number
   upstream: (row) => row.ahead + row.behind,
   base: (row) => row.aheadBase + row.behindBase,
   merged: (row) => (row.merged ? 1 : 0),
-  date: (row) => row.lastCommitDate,
+  date: (row) => Date.parse(row.lastCommitDate) || 0,
   author: (row) => row.authorName,
 }
 
@@ -50,8 +50,9 @@ function BranchReviewDialog({ repoPath, onDeleted, onClose }: BranchReviewDialog
     return [...shown].sort((a, b) => compare(value(a), value(b)) * (sort.ascending ? 1 : -1))
   }, [review, filter, sort])
 
-  const toDelete = (review?.rows ?? []).filter((row) => row.deletable && selected.has(row.name))
   const shownDeletable = rows.filter((row) => row.deletable)
+  // Only what's on screen: a selection hidden by the filter isn't deleted.
+  const toDelete = shownDeletable.filter((row) => selected.has(row.name))
   const allSelected = shownDeletable.length > 0 && shownDeletable.every((row) => selected.has(row.name))
 
   const header = (column: Column, label: string) => (

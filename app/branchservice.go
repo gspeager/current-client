@@ -207,7 +207,8 @@ func (s *BranchService) ReviewBranches(repoPath string) (BranchReviewInfo, error
 	for i, row := range review.Rows {
 		last, err := time.Parse(time.RFC3339, row.LastCommitDate)
 		mergedChange := ""
-		if change, ok := merged[row.Upstream]; ok && row.Upstream != "" {
+		// Commits added since it merged aren't merged, so they aren't called so.
+		if change, ok := merged[row.Upstream]; ok && row.Tip == change.HeadSHA {
 			mergedChange = change.Prefix + strconv.Itoa(change.Number)
 		}
 		info.Rows = append(info.Rows, BranchReviewRowInfo{
@@ -218,7 +219,7 @@ func (s *BranchService) ReviewBranches(repoPath string) (BranchReviewInfo, error
 			Behind:         row.Behind,
 			AheadBase:      row.AheadBase,
 			BehindBase:     row.BehindBase,
-			Merged:         row.Merged || mergedChange != "",
+			Merged:         row.Name != review.Default && (row.Merged || mergedChange != ""),
 			MergedChange:   mergedChange,
 			OpenChange:     open[row.Name],
 			Stale:          err == nil && !row.Current && now.Sub(last) > staleAfter,

@@ -41,7 +41,7 @@ func TestReviewBranchesFlagsAndUndo(t *testing.T) {
 	for _, row := range review.Rows {
 		rows[row.Name] = row
 	}
-	if main := rows["main"]; main.Deletable || !main.Current || main.Stale {
+	if main := rows["main"]; main.Deletable || !main.Current || main.Stale || main.Merged {
 		t.Fatalf("main = %+v", main)
 	}
 	if stale := rows["stale-one"]; !stale.Stale || !stale.Merged || !stale.Deletable || stale.BehindBase != 1 {
