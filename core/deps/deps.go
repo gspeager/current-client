@@ -57,6 +57,29 @@ func parserFor(filePath string) func([]byte) (versions, error) {
 	return nil
 }
 
+// locks lists each manifest's possible lockfiles, by file name.
+var locks = map[string][]string{
+	"package.json":   {"package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml"},
+	"go.mod":         {"go.sum"},
+	"Cargo.toml":     {"Cargo.lock"},
+	"pyproject.toml": {"poetry.lock", "uv.lock"},
+}
+
+// LocksOf returns the lockfile names a manifest of this name can have beside it.
+func LocksOf(manifest string) []string {
+	return locks[manifest]
+}
+
+// ManifestOf returns the manifest name a lockfile of this name belongs to, or "".
+func ManifestOf(lock string) string {
+	for manifest, names := range locks {
+		if slices.Contains(names, lock) {
+			return manifest
+		}
+	}
+	return ""
+}
+
 // Recognized says whether Summarize can read a file of this name.
 func Recognized(filePath string) bool {
 	return parserFor(filePath) != nil

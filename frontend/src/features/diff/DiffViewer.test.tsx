@@ -130,6 +130,22 @@ describe('DiffViewer dependency summary', () => {
   })
 })
 
+describe('DiffViewer focus line', () => {
+  it('scrolls to the line once per request, not on a reload', () => {
+    const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+    scrollIntoView.mockClear()
+    const focusLine = { line: 10 }
+    const { rerender } = render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" focusLine={focusLine} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+
+    rerender(<DiffViewer diff={{ ...diff }} path="a.ts" viewMode="unified" focusLine={focusLine} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+
+    rerender(<DiffViewer diff={diff} path="a.ts" viewMode="unified" focusLine={{ line: 10 }} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(2)
+  })
+})
+
 describe('DiffViewer scroll reports', () => {
   it('ignores something else scrolling inside the pane', () => {
     const onScrollTopChange = vi.fn()
