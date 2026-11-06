@@ -1,5 +1,5 @@
 import type { CSSProperties, MouseEvent } from 'react'
-import { Cloud } from 'lucide-react'
+import { Cloud, Tag } from 'lucide-react'
 import type { BranchChange, RefInfo } from '@current-client-bindings/app'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import './RefBadge.scss'
@@ -36,6 +36,7 @@ function RefBadge({ refInfo, color, onClick, active, change, upstream }: RefBadg
       style={{ '--lane': color } as CSSProperties}
     >
       {isBranch && <span className="ref-badge-dot" />}
+      {refInfo.kind === 'tag' && <Tag size={11} strokeWidth={2} className="ref-badge-tag-icon" aria-hidden="true" />}
       <span className="ref-badge-name">{refInfo.name}</span>
       {upstream && <Cloud size={10} strokeWidth={2} className="ref-badge-upstream" aria-label={upstream.name} />}
     </span>

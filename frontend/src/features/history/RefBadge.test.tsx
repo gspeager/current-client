@@ -21,4 +21,16 @@ describe('RefBadge', () => {
     render(<RefBadge refInfo={new RefInfo({ name: 'main', kind: 'branch', sha: 'abc' })} color="red" />)
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
+
+  it('starts a tag with the tag icon', () => {
+    render(<RefBadge refInfo={new RefInfo({ name: 'v1.1', kind: 'tag', sha: 'abc' })} color="red" />)
+    expect(screen.getByText('v1.1').parentElement?.firstElementChild).toHaveClass('ref-badge-tag-icon')
+  })
+
+  it('gives a branch no tag icon', () => {
+    const { container } = render(
+      <RefBadge refInfo={new RefInfo({ name: 'main', kind: 'branch', sha: 'abc' })} color="red" />,
+    )
+    expect(container.querySelector('.ref-badge-tag-icon')).toBeNull()
+  })
 })
