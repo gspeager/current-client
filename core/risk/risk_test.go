@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -108,6 +109,43 @@ func TestConflictMarkerLeftIn(t *testing.T) {
 	findings := withRule(check(t, dir), RuleConflictMarker)
 	if len(findings) != 2 || findings[0].Line != 2 || findings[1].Line != 6 {
 		t.Fatalf("findings = %+v", findings)
+	}
+}
+
+func TestAnAddedLineLikeAFileHeaderKeepsPathsRight(t *testing.T) {
+	dir := newRepo(t)
+	stage(t, dir, "a.txt", "++ counter\n<<<<<<< HEAD\n")
+	findings := check(t, dir)
+	if len(findings) != 1 || findings[0].Path != "a.txt" || findings[0].Line != 2 {
+		t.Fatalf("findings = %+v", findings)
+	}
+}
+
+func TestFindingsAreCapped(t *testing.T) {
+	dir := newRepo(t)
+	stage(t, dir, "a.txt", strings.Repeat("<<<<<<< HEAD\n", mostFindings+5))
+	if findings := check(t, dir); len(findings) != mostFindings {
+		t.Fatalf("got %d findings", len(findings))
+	}
+}
+
+func TestAllowlistConditions(t *testing.T) {
+	regex := regexp.MustCompile("^abc$")
+	paths := regexp.MustCompile("^ok/")
+	any := secretRule{allowlists: []allowlist{{regexes: []*regexp.Regexp{regex}, paths: []*regexp.Regexp{paths}}}}
+	all := secretRule{allowlists: []allowlist{{regexes: []*regexp.Regexp{regex}, paths: []*regexp.Regexp{paths}, all: true}}}
+	if !any.allowed("other/x", "", "abc", "abc") {
+		t.Fatal("either check should be enough by default")
+	}
+	if all.allowed("other/x", "", "abc", "abc") {
+		t.Fatal("AND should need both checks")
+	}
+	if !all.allowed("ok/x", "", "abc", "abc") {
+		t.Fatal("AND should hold when both do")
+	}
+	line := secretRule{allowlists: []allowlist{{regexes: []*regexp.Regexp{regexp.MustCompile("EXAMPLE")}, target: "line"}}}
+	if !line.allowed("x", "key EXAMPLE", "key", "key") || line.allowed("x", "key", "key", "key") {
+		t.Fatal("a line target should test the line")
 	}
 }
 

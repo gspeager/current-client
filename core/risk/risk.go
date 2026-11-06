@@ -25,6 +25,7 @@ const (
 const (
 	largeFileBytes = 10 << 20
 	generatedFiles = 20
+	mostFindings   = 100
 	// Minified bundles aren't where a key is pasted, and regexes over them are slow.
 	longestLineScanned = 8 << 10
 )
@@ -75,6 +76,9 @@ func Check(ctx context.Context, repoPath string, off []string) ([]Finding, error
 	}
 	if on(RuleGenerated) {
 		findings = append(findings, generatedFindings(staged)...)
+	}
+	if len(findings) > mostFindings {
+		findings = findings[:mostFindings]
 	}
 	return findings, nil
 }
@@ -148,7 +152,7 @@ type addedLine struct {
 	text string
 }
 
-var hunkHeader = regexp.MustCompile(`^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@`)
+var hunkHeader = regexp.MustCompile(`^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@`)
 
 // addedLines reads the staged diff, leaving out skip, which is too large to hold.
 func addedLines(ctx context.Context, repoPath string, skip []string) ([]addedLine, error) {
@@ -164,18 +168,25 @@ func addedLines(ctx context.Context, repoPath string, skip []string) ([]addedLin
 		return nil, err
 	}
 	var lines []addedLine
-	current, number := "", 0
+	// Counting a hunk's new lines keeps an added "++ x", which the diff shows as
+	// "+++ x", from reading as a file header.
+	current, number, left := "", 0, 0
 	for _, line := range strings.Split(result.Stdout, "\n") {
 		switch {
+		case left > 0 && strings.HasPrefix(line, "+"):
+			lines = append(lines, addedLine{current, number, strings.TrimSuffix(line[1:], "\r")})
+			number++
+			left--
 		case strings.HasPrefix(line, "+++ "):
 			current = diffPath(strings.TrimPrefix(line, "+++ "))
 		case strings.HasPrefix(line, "@@ "):
 			if match := hunkHeader.FindStringSubmatch(line); match != nil {
 				number, _ = strconv.Atoi(match[1])
+				left = 1
+				if match[2] != "" {
+					left, _ = strconv.Atoi(match[2])
+				}
 			}
-		case strings.HasPrefix(line, "+"):
-			lines = append(lines, addedLine{current, number, strings.TrimSuffix(line[1:], "\r")})
-			number++
 		}
 	}
 	return lines, nil

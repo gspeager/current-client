@@ -58,8 +58,8 @@ interface DiffViewerProps extends HunkActions {
   // Where the first diff shown opens, and where the diff has since been scrolled.
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
-  // A new-side line to bring into view.
-  focusLine?: number | null
+  // A new-side line to bring into view; a new object asks again.
+  focusLine?: { line: number } | null
 }
 
 function DiffViewer({
@@ -111,8 +111,15 @@ function DiffViewer({
 
   useEffect(() => setShowRawDiff(false), [path])
 
+  // Once per request: a reload of the diff shouldn't pull the view back.
+  const focused = useRef<{ line: number } | null>(null)
   useEffect(() => {
-    if (focusLine) paneRef.current?.querySelector(`[data-line="${focusLine}"]`)?.scrollIntoView({ block: 'center' })
+    if (!focusLine || focused.current === focusLine) return
+    const row = paneRef.current?.querySelector(`[data-line="${focusLine.line}"]`)
+    if (row) {
+      focused.current = focusLine
+      row.scrollIntoView({ block: 'center' })
+    }
   }, [focusLine, diff])
 
   // The pane only exists once the diff has lines to show.

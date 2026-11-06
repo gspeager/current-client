@@ -23,8 +23,10 @@ type allowlist struct {
 	regexes   []*regexp.Regexp
 	stopwords []string
 	paths     []*regexp.Regexp
-	// The match's whole line rather than the secret, when the rule says so.
-	onLine bool
+	// "line" or "match" tests that rather than the secret.
+	target string
+	// Every kind of check must hold, rather than any one.
+	all bool
 }
 
 type secretRule struct {
@@ -69,6 +71,7 @@ var loadSecretRules = sync.OnceValue(func() secretRules {
 				Stopwords   []string `toml:"stopwords"`
 				Paths       []string `toml:"paths"`
 				RegexTarget string   `toml:"regexTarget"`
+				Condition   string   `toml:"condition"`
 			} `toml:"allowlists"`
 		} `toml:"rules"`
 	}
@@ -96,7 +99,8 @@ var loadSecretRules = sync.OnceValue(func() secretRules {
 				regexes:   compileAll(list.Regexes),
 				stopwords: list.Stopwords,
 				paths:     compileAll(list.Paths),
-				onLine:    list.RegexTarget == "line",
+				target:    list.RegexTarget,
+				all:       list.Condition == "AND",
 			})
 		}
 		loaded.rules = append(loaded.rules, compiled)
@@ -134,7 +138,7 @@ func (r secretRules) scanLine(path, line string) []secretMatch {
 		if rule.entropy > 0 && entropy(secret) < rule.entropy {
 			continue
 		}
-		if rule.allowed(path, line, secret) {
+		if rule.allowed(path, line, groups[0], secret) {
 			continue
 		}
 		found = append(found, secretMatch{rule.id, mask(secret)})
@@ -158,16 +162,32 @@ func secretOf(groups []string, group int) string {
 	return groups[0]
 }
 
-func (rule *secretRule) allowed(path, line, secret string) bool {
+func (rule *secretRule) allowed(path, line, match, secret string) bool {
 	return slices.ContainsFunc(rule.allowlists, func(list allowlist) bool {
 		target := secret
-		if list.onLine {
+		switch list.target {
+		case "line":
 			target = line
+		case "match":
+			target = match
 		}
 		lower := strings.ToLower(secret)
-		return slices.ContainsFunc(list.paths, func(regex *regexp.Regexp) bool { return regex.MatchString(path) }) ||
-			slices.ContainsFunc(list.regexes, func(regex *regexp.Regexp) bool { return regex.MatchString(target) }) ||
-			slices.ContainsFunc(list.stopwords, func(word string) bool { return strings.Contains(lower, word) })
+		checks := []struct {
+			present, holds bool
+		}{
+			{len(list.paths) > 0, slices.ContainsFunc(list.paths, func(regex *regexp.Regexp) bool { return regex.MatchString(path) })},
+			{len(list.regexes) > 0, slices.ContainsFunc(list.regexes, func(regex *regexp.Regexp) bool { return regex.MatchString(target) })},
+			{len(list.stopwords) > 0, slices.ContainsFunc(list.stopwords, func(word string) bool { return strings.Contains(lower, word) })},
+		}
+		anyHolds, allHold := false, true
+		for _, check := range checks {
+			anyHolds = anyHolds || check.holds
+			allHold = allHold && (!check.present || check.holds)
+		}
+		if list.all {
+			return allHold
+		}
+		return anyHolds
 	})
 }
 

@@ -110,7 +110,7 @@ function ChangesView({
     onSelectedPathChange?.(path)
   }
 
-  const [focusLine, setFocusLine] = useState<number | null>(null)
+  const [focusLine, setFocusLine] = useState<{ line: number } | null>(null)
 
   const openFile = (path: string, section: WorkingTreeSection) => {
     setFocusLine(null)
@@ -120,7 +120,7 @@ function ChangesView({
 
   const openFinding = (path: string, line: number) => {
     openFile(path, 'staged')
-    setFocusLine(line || null)
+    setFocusLine(line ? { line } : null)
   }
 
   const previousLists = useRef<SectionPaths | null>(null)
