@@ -8,13 +8,16 @@ export interface Shell {
   number: number
 }
 
+export type PanelView = 'shells' | 'tasks'
+
 interface RepoTerminals {
   shells: Shell[]
   active: string | null
   open: boolean
+  view: PanelView
 }
 
-const NONE: RepoTerminals = { shells: [], active: null, open: false }
+const NONE: RepoTerminals = { shells: [], active: null, open: false, view: 'shells' }
 
 // Each repository tab has its own shells, which keep running in the background.
 export function useTerminals(repoPath: string | null) {
@@ -39,7 +42,7 @@ export function useTerminals(repoPath: string | null) {
         .then((id) => {
           counter.current += 1
           const shell = { id, number: counter.current }
-          update(repo, (prev) => ({ shells: [...prev.shells, shell], active: id, open: true }))
+          update(repo, (prev) => ({ shells: [...prev.shells, shell], active: id, open: true, view: 'shells' }))
         })
         .catch((err: unknown) => setError(errorMessage(err)))
     },
@@ -51,7 +54,7 @@ export function useTerminals(repoPath: string | null) {
       update(repo, (prev) => {
         const shells = prev.shells.filter((shell) => shell.id !== id)
         const active = prev.active === id ? (shells[shells.length - 1]?.id ?? null) : prev.active
-        return { shells, active, open: shells.length > 0 && prev.open }
+        return { ...prev, shells, active, open: prev.open && (shells.length > 0 || prev.view === 'tasks') }
       }),
     [update],
   )
@@ -96,12 +99,11 @@ export function useTerminals(repoPath: string | null) {
 
   // Opens the panel, starting a shell if there isn't one.
   const show = (repo: string) => {
-    if (current.shells.length > 0) {
-      update(repo, (prev) => ({ ...prev, open: true }))
-    } else {
-      newShell(repo)
-    }
+    update(repo, (prev) => ({ ...prev, open: true, view: 'shells' }))
+    if (current.shells.length === 0) newShell(repo)
   }
+  const showTasks = (repo: string) => update(repo, (prev) => ({ ...prev, open: true, view: 'tasks' }))
+  const setView = (repo: string, view: PanelView) => update(repo, (prev) => ({ ...prev, view }))
   const hide = (repo: string) => update(repo, (prev) => ({ ...prev, open: false }))
   const select = (repo: string, id: string) => update(repo, (prev) => ({ ...prev, active: id }))
 
@@ -119,6 +121,8 @@ export function useTerminals(repoPath: string | null) {
     removeShell,
     confirmCloseRepo,
     show,
+    showTasks,
+    setView,
     hide,
     select,
   }

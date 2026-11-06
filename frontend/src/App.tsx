@@ -16,7 +16,9 @@ import {
   ScrollText,
   Settings,
   Tag,
+  ListChecks,
   ListOrdered,
+  Play,
   SquareTerminal,
   StickyNote,
   Table,
@@ -71,6 +73,8 @@ import { useHostLinks } from './lib/useHostLinks'
 import { useBranchChanges } from './lib/useBranchChanges'
 import { useSettings } from './features/settings/useSettings'
 import { useOpenRequests } from './features/repositories/useOpenRequests'
+import TasksView from './features/tasks/TasksView'
+import { useTasks } from './features/tasks/useTasks'
 import TerminalPanel from './features/terminal/TerminalPanel'
 import { isTerminalToggle } from './features/terminal/terminalKeys'
 import { useTerminals } from './features/terminal/useTerminals'
@@ -174,10 +178,13 @@ function App({
   }
 
   // A pull fetches too, so it moves "fetched … ago" as well as the branch.
+  const terminalsOff = hideTerminal || (settings.settings?.localCommandsOff ?? false)
+  const tasks = useTasks(terminalsOff ? null : repo.repoPath, repoVersion)
   const { pull, pullMerge, pullRebase, push, forcePush, pushTags, pushSetUpstream, pullOp, pushOp } = useRemoteSync(
     repo.repoPath,
     onFetched,
     setPushed,
+    () => void tasks.runChecklist('push'),
   )
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
@@ -232,9 +239,11 @@ function App({
   useAutoFetch(repo.repoPath, settings.settings?.autoFetchIntervalMinutes ?? 0, onFetched)
   useFileWatcher(repo.repoPath, onFileWatcherChanged)
   const terminals = useTerminals(repo.repoPath)
-  const terminalsOff = hideTerminal || (settings.settings?.localCommandsOff ?? false)
   const [terminalFocus, setTerminalFocus] = useState(0)
   const beforeTerminal = useRef<HTMLElement | null>(null)
+  const openTasks = () => {
+    if (repo.repoPath && !terminalsOff) terminals.showTasks(repo.repoPath)
+  }
   // Opens the panel and takes the focus; from inside it, hides it and goes back.
   const toggleTerminal = () => {
     if (!repo.repoPath || terminalsOff) return
@@ -669,6 +678,25 @@ function App({
       ? []
       : [
           {
+            id: 'tasks-panel',
+            label: 'Tasks',
+            section: 'Tools' as const,
+            icon: ListChecks,
+            keywords: ['run', 'test', 'build', 'lint', 'make', 'npm', 'commands'],
+            run: openTasks,
+          },
+          ...(tasks.list?.tasks ?? []).map((task) => ({
+            id: `task-${task.id}`,
+            label: `Run ${task.name}`,
+            section: 'Tools' as const,
+            icon: Play,
+            keywords: [task.command, task.source],
+            run: () => {
+              openTasks()
+              void tasks.run(task)
+            },
+          })),
+          {
             id: 'terminal-panel',
             label: 'Terminal panel',
             section: 'Tools' as const,
@@ -893,6 +921,7 @@ function App({
                         workingTree={workingTree}
                         onPushRequested={push}
                         onBranchChanged={onBranchChanged}
+                        onCommitted={() => void tasks.runChecklist('commit')}
                         defaultIgnoreWhitespace={settings.settings?.diffIgnoreWhitespaceDefault ?? false}
                         diffExpanded={settings.settings?.diffExpanded ?? false}
                         onDiffExpandedChange={settings.setDiffExpanded}
@@ -990,6 +1019,7 @@ function App({
                       terminals={terminals}
                       focusRequest={terminalFocus}
                       theme={settings.settings?.theme}
+                      tasks={<TasksView key={repo.repoPath} repoPath={repo.repoPath} tasks={tasks} />}
                     />
                   )}
                   {terminals.error && <p className="app-terminal-error">{terminals.error}</p>}

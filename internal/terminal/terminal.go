@@ -378,3 +378,8 @@ func Environment(base []string, gitBinary string) []string {
 	}
 	return append(env, "PATH="+path, "TERM=xterm-256color", "COLORTERM=truecolor")
 }
+
+// KillTree ends a process and everything it started.
+func KillTree(pid int) {
+	killTree(pid)
+}

@@ -38,6 +38,7 @@ func Services() []application.Service {
 		application.NewService(&RecoverService{}),
 		application.NewService(&TidyService{}),
 		application.NewService(&TerminalService{}),
+		application.NewService(&TaskService{}),
 		application.NewService(&CompareService{}),
 		application.NewService(&ChangelogService{}),
 		application.NewService(&UndoService{}),

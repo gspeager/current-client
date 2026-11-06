@@ -9,10 +9,17 @@ const NO_UPSTREAM = 'This branch has no upstream configured.'
 // Matches core/gitexec's divergedMessage.
 export const DIVERGED = 'This branch and its upstream have diverged. Choose Pull (merge) or Pull (rebase).'
 
-export function useRemoteSync(repoPath: string | null, onSynced: () => void, onPushed?: (result: PushResult) => void) {
+export function useRemoteSync(
+  repoPath: string | null,
+  onSynced: () => void,
+  onPushed?: (result: PushResult) => void,
+  // After every kind of push, including a force-push, which has no report.
+  afterPush?: () => void,
+) {
   const pushed = (result: PushResult) => {
     onSynced()
     onPushed?.(result)
+    afterPush?.()
   }
   const { confirm } = useDialogs()
   const pullOp = useCancellableOperation(repoPath ?? '')
@@ -50,6 +57,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
         (result) => {
           if (!then) return pushed(result)
           onSynced()
+          afterPush?.()
           then(result)
         },
       )
@@ -104,7 +112,13 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
         destructive: true,
       })
       if (!confirmed) return
-      void pushOp.run((auth) => RemoteService.ForcePush(repoPath, auth), onSynced)
+      void pushOp.run(
+        (auth) => RemoteService.ForcePush(repoPath, auth),
+        () => {
+          onSynced()
+          afterPush?.()
+        },
+      )
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
     }

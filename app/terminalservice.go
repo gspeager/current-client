@@ -117,12 +117,13 @@ func (s *TerminalService) CloseRepo(repoPath string) {
 // Shutdown leaves nothing running when the app quits.
 func Shutdown() {
 	terminals.CloseAll()
+	taskRunner.StopAll()
 }
 
 // GuardWindowClose asks before quitting with something running in a terminal.
 func GuardWindowClose(current *application.App, window *application.WebviewWindow) {
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
-		if !terminals.AnyBusy("") {
+		if !terminals.AnyBusy("") && !taskRunner.Running() {
 			return
 		}
 		event.Cancel()
@@ -132,7 +133,7 @@ func GuardWindowClose(current *application.App, window *application.WebviewWindo
 
 // ShouldQuit covers quitting from the menu, which doesn't close a window first.
 func ShouldQuit() bool {
-	if !terminals.AnyBusy("") {
+	if !terminals.AnyBusy("") && !taskRunner.Running() {
 		return true
 	}
 	if running := application.Get(); running != nil {
@@ -144,10 +145,10 @@ func ShouldQuit() bool {
 func askBeforeQuitting(current *application.App) {
 	dialog := current.Dialog.Question()
 	dialog.SetTitle("Quit Current Client")
-	dialog.SetMessage("A process is still running in a terminal. Quitting ends it.")
+	dialog.SetMessage("A process is still running in a terminal or task. Quitting ends it.")
 	quit := dialog.AddButton("Quit")
 	quit.OnClick(func() {
-		terminals.CloseAll()
+		Shutdown()
 		current.Quit()
 	})
 	cancel := dialog.AddButton("Cancel")

@@ -15,9 +15,8 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-sm);
-  height: var(--h-row-tree);
+  height: var(--h-row-table);
   padding: 0 var(--space-sm);
   border-bottom: var(--border-structure);
 }
@@ -55,6 +54,10 @@
   color: var(--on-surface);
 }
 
+.terminal-panel-hide {
+  margin-left: auto;
+}
+
 .terminal-panel-action,
 .terminal-panel-hide {
   display: inline-flex;
@@ -86,4 +89,15 @@
   &[hidden] {
     display: none;
   }
+}
+
+.terminal-panel-tabs[hidden],
+.terminal-panel-body[hidden] {
+  display: none;
+}
+
+.terminal-panel-tasks {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-xs) var(--space-sm);
 }
