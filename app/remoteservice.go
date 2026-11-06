@@ -19,12 +19,16 @@ type RemoteInfo struct {
 	PushURL  string `json:"pushUrl"`
 }
 
+// List's URLs are for showing, with any sign-in hidden. Whatever talks to a
+// remote or reads its host uses git.ListRemotes, or leaves the URL to Git.
 func (s *RemoteService) List(repoPath string) ([]RemoteInfo, error) {
 	remotes, err := git.ListRemotes(context.Background(), repoPath)
 	if err != nil {
 		return nil, err
 	}
-	return mapSlice(remotes, func(r git.Remote) RemoteInfo { return RemoteInfo(r) }), nil
+	return mapSlice(remotes, func(r git.Remote) RemoteInfo {
+		return RemoteInfo{Name: r.Name, FetchURL: gitexec.RedactSecrets(r.FetchURL), PushURL: gitexec.RedactSecrets(r.PushURL)}
+	}), nil
 }
 
 func (s *RemoteService) AddRemote(repoPath, name, url string) error {
@@ -35,7 +39,13 @@ func (s *RemoteService) RemoveRemote(repoPath, name string) error {
 	return git.RemoveRemote(context.Background(), repoPath, name)
 }
 
+// EditRemote refuses the placeholder rather than restoring the sign-in behind
+// it: the edit may have changed the host, and the sign-in shouldn't follow
+// unseen. The edit form starts from List's URL, so it can arrive here.
 func (s *RemoteService) EditRemote(repoPath, name, url string) error {
+	if strings.Contains(url, gitexec.RedactedSecret) {
+		return &gitexec.AppError{Message: "Replace " + gitexec.RedactedSecret + " with the sign-in, or remove it to use Git's credential helper."}
+	}
 	return git.EditRemote(context.Background(), repoPath, name, url)
 }
 

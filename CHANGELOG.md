@@ -14,6 +14,8 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- **A password in a remote's URL no longer shows in the Remotes section.** A remote such as `https://deploy:secret@git.example.com/a.git` showed its password in the row, its tooltip and **Edit…**. The row now shows the host alone, and the tooltip and **Edit…** show `<token>` in its place. Git keeps using the URL as it was, so fetch, pull, push and host links are unaffected. To change such a URL, replace `<token>` with the sign-in or remove it. ([#399](https://github.com/gspeager/current-client/issues/399))
+
 - **Diagnostics now hide more credentials.** A password in a URL and an `Authorization` header are left out of the report, as tokens already were. ([#383](https://github.com/gspeager/current-client/issues/383))
 
 - **Fetched merge request / pull request heads no longer count as history.** With host integration on, commits only reachable from a fetched head could appear in History's All branches, Activity, repository stats, file churn and Standup. Removing a repository from the recent list now also deletes its fetched heads, as the integrations guide promised. ([#392](https://github.com/gspeager/current-client/issues/392))
