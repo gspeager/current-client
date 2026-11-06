@@ -58,6 +58,8 @@ interface DiffViewerProps extends HunkActions {
   // Where the first diff shown opens, and where the diff has since been scrolled.
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
+  // A new-side line to bring into view.
+  focusLine?: number | null
 }
 
 function DiffViewer({
@@ -66,6 +68,7 @@ function DiffViewer({
   viewMode,
   initialScrollTop = 0,
   onScrollTopChange,
+  focusLine = null,
   baseSide,
   targetSide,
   onForceLoad,
@@ -107,6 +110,10 @@ function DiffViewer({
   )
 
   useEffect(() => setShowRawDiff(false), [path])
+
+  useEffect(() => {
+    if (focusLine) paneRef.current?.querySelector(`[data-line="${focusLine}"]`)?.scrollIntoView({ block: 'center' })
+  }, [focusLine, diff])
 
   // The pane only exists once the diff has lines to show.
   useLayoutEffect(() => {
@@ -188,7 +195,7 @@ function DiffViewer({
   const lfs = lfsPointerChange(diff)
   if (lfs) return <LfsDiff change={lfs} />
 
-  const summarized = dependencies?.available && dependencies.changes.length > 0 && !diff.conflicted
+  const summarized = dependencies?.available && dependencies.changes.length > 0 && !diff.conflicted && !focusLine
   const summaryToggle = summarized && (
     <div className="diff-image-toggle">
       <SegmentedControl

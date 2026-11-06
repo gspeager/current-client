@@ -66,6 +66,9 @@ type Config struct {
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
 
+	// Rules of the staged changes' risk report that are turned off.
+	RiskRulesOff []string `json:"riskRulesOff,omitempty"`
+
 	// Working Copy's diff takes the file list's space too.
 	DiffExpanded bool `json:"diffExpanded,omitempty"`
 	// Zero keeps long diff lines wrapping, as they always have.

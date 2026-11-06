@@ -9,6 +9,7 @@ import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggl
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import { Columns2, Rows2 } from 'lucide-react'
 import type { ConflictView } from '../diff/conflictRows'
+import RiskReport from './RiskReport'
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
 import { errorMessage } from '../../lib/errors'
@@ -46,6 +47,8 @@ interface ChangesViewProps {
   showCommitTypePicker?: boolean
   // The merge, rebase, cherry-pick or revert in progress, if any.
   conflict?: ConflictStateInfo | null
+  // Rereads the risk report when its rules change.
+  riskRulesOff?: string[]
 }
 
 function splitDirFile(path: string): { dir: string; file: string } {
@@ -69,6 +72,7 @@ function ChangesView({
   onCommitDraftChange,
   showCommitTypePicker = false,
   conflict = null,
+  riskRulesOff = [],
 }: ChangesViewProps) {
   const reviewThreads = useReviewThreads(repoPath)
   const hostLinks = useHostLinks(repoPath)
@@ -106,9 +110,17 @@ function ChangesView({
     onSelectedPathChange?.(path)
   }
 
+  const [focusLine, setFocusLine] = useState<number | null>(null)
+
   const openFile = (path: string, section: WorkingTreeSection) => {
+    setFocusLine(null)
     selectPath(path)
     setOpenSection(section)
+  }
+
+  const openFinding = (path: string, line: number) => {
+    openFile(path, 'staged')
+    setFocusLine(line || null)
   }
 
   const previousLists = useRef<SectionPaths | null>(null)
@@ -235,6 +247,7 @@ function ChangesView({
           }
           mergeMode={conflict !== null}
         />
+        <RiskReport repoPath={repoPath} staged={staged} rulesOff={riskRulesOff} onOpen={openFinding} />
         <CommitComposer
           repoPath={repoPath}
           stagedCount={staged.length}
@@ -347,6 +360,7 @@ function ChangesView({
                 path={selectedPath}
                 viewMode={viewMode}
                 initialScrollTop={diffScrollTop.current}
+                focusLine={focusLine}
                 onScrollTopChange={setDiffScrollTop}
                 threads={reviewThreads.byPath[selectedPath]}
                 outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}

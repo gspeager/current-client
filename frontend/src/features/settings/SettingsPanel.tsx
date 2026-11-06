@@ -15,6 +15,7 @@ import IntegrationsSection from './IntegrationsSection'
 import TrackersSection from './TrackersSection'
 import Modal from '../../components/chrome/Modal'
 import PathSettingRow from './PathSettingRow'
+import RiskRuleSettings from './RiskRuleSettings'
 import SettingsRow, { SettingsGroup, settingsGroupId } from './SettingsRow'
 import './SettingsPanel.scss'
 
@@ -79,6 +80,7 @@ function SettingsPanel({
     setLaneColorTheme,
     setDisableConventionalCommits,
     setPruneOnFetch,
+    setRiskRulesOff,
   } = settings
   const [gitPathError, setGitPathError] = useState<string | null>(null)
   const [editorPathError, setEditorPathError] = useState<string | null>(null)
@@ -214,6 +216,7 @@ function SettingsPanel({
                 ariaLabel="Conventional Commits"
               />
             </SettingsRow>
+            <RiskRuleSettings off={values.riskRulesOff ?? []} onChange={setRiskRulesOff} />
             {repoPath && <GitSettingsSection repoPath={repoPath} refreshKey={identityVersion} />}
           </SettingsGroup>
 

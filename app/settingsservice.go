@@ -28,6 +28,7 @@ type Settings struct {
 	HistoryBranchFilter         string                `json:"historyBranchFilter"`
 	HistoryFirstParent          bool                  `json:"historyFirstParent"`
 	DisableConventionalCommits  bool                  `json:"disableConventionalCommits"`
+	RiskRulesOff                []string              `json:"riskRulesOff"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
 }
 
@@ -62,6 +63,7 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		HistoryBranchFilter:         cfg.HistoryBranchFilter,
 		HistoryFirstParent:          cfg.HistoryFirstParent,
 		DisableConventionalCommits:  cfg.DisableConventionalCommits,
+		RiskRulesOff:                append([]string{}, cfg.RiskRulesOff...),
 		Changelog:                   changelogPrefs(cfg),
 	}, nil
 }
@@ -159,6 +161,10 @@ func (s *SettingsService) SetDiffNoWrap(noWrap bool) error {
 
 func (s *SettingsService) SetDisableConventionalCommits(disable bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.DisableConventionalCommits = disable })
+}
+
+func (s *SettingsService) SetRiskRulesOff(rules []string) error {
+	return updateConfig(func(cfg *config.Config) { cfg.RiskRulesOff = rules })
 }
 
 func (s *SettingsService) SetChangelogPrefs(prefs config.ChangelogPrefs) error {

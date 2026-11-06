@@ -803,6 +803,7 @@ function App({
                     onCommitDraftChange={(message) => remember({ commitDraft: message })}
                     showCommitTypePicker={conventionalCommitsOn}
                     conflict={conflictState}
+                    riskRulesOff={settings.settings?.riskRulesOff}
                   />
                 </KeepAlive>
                 <KeepAlive active={activeTab === 'history'}>
