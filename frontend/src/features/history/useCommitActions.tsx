@@ -8,6 +8,7 @@ import {
   RotateCcw,
   StickyNote,
   Undo2,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react'
 import { noteMenuLabel, useNotes } from '../notes/notes'
@@ -102,6 +103,12 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
       label: 'Revert',
       icon: RotateCcw,
       run: () => run(CommitService.Revert(repoPath, commit.sha), 'Could not revert', true),
+    },
+    {
+      id: 'fixup',
+      label: 'Fixup into this commit',
+      icon: Wrench,
+      run: () => run(CommitService.FixupInto(repoPath, commit.sha), 'Could not commit the fixup'),
     },
     { id: 'reset', label: 'Reset to here…', icon: Undo2, run: () => setResetTarget(commit) },
     { id: 'export-patch', label: 'Export patch…', icon: FileDown, run: () => exportPatch(commit) },

@@ -1,0 +1,132 @@
+.tidy-panel {
+  width: min(760px, 92vw);
+}
+
+.tidy-list {
+  max-height: 45vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.tidy-row {
+  padding: var(--space-xs) 0;
+  background: var(--surface);
+  border-top: var(--border-structure);
+}
+
+.tidy-row-dragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 2px 0 0 0 var(--outline);
+}
+
+.tidy-row-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-row-table);
+  min-width: 0;
+}
+
+.tidy-handle,
+.tidy-move {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-micro);
+  height: var(--h-micro);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.tidy-handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.tidy-sha {
+  flex-shrink: 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.tidy-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tidy-subject-dropped {
+  color: var(--outline);
+  text-decoration: line-through;
+}
+
+.tidy-conflict {
+  flex-shrink: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+.tidy-action {
+  flex-shrink: 0;
+  height: var(--h-chip);
+  background: var(--surface-container);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+}
+
+.tidy-message {
+  width: 100%;
+  min-height: 72px;
+  margin-top: var(--space-xs);
+  padding: var(--space-sm);
+  resize: vertical;
+  background: var(--surface-container);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.tidy-files {
+  margin: var(--space-xs) 0 0;
+  overflow-wrap: anywhere;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.tidy-result-list {
+  max-height: 120px;
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-lg);
+  overflow-y: auto;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.tidy-folded {
+  color: var(--outline);
+}

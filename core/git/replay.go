@@ -190,17 +190,10 @@ func PreviewRebase(ctx context.Context, repoPath, onto string) (RebasePreview, e
 		}
 	}
 
-	statuses, err := GetStatus(ctx, repoPath)
+	preview.Dirty, err = rebaseBlockedByChanges(ctx, repoPath)
 	if err != nil {
 		return preview, err
 	}
-	dirty := false
-	for _, status := range statuses {
-		if status.WorktreeStatus != '?' {
-			dirty = true
-		}
-	}
-	preview.Dirty = dirty && configValue(ctx, repoPath, "--type=bool", "rebase.autostash") != "true"
 	return preview, nil
 }
 

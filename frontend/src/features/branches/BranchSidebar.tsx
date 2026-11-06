@@ -21,6 +21,7 @@ import SetUpstreamDialog from './SetUpstreamDialog'
 import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
 import BranchReviewDialog from './BranchReviewDialog'
 import RebasePreviewDialog from './RebasePreviewDialog'
+import TidyUpDialog from './TidyUpDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
 import { operationBadge, operationNoun } from '../../lib/conflictWords'
@@ -133,9 +134,11 @@ function BranchSidebar({
   const [cleanUp, setCleanUp] = useState(false)
   const [branchReview, setBranchReview] = useState(false)
   const [rebasePreview, setRebasePreview] = useState<string | null>(null)
+  const [tidyUp, setTidyUp] = useState(false)
   useEffect(() => {
     if (request?.action === 'clean-up') setCleanUp(true)
     if (request?.action === 'branch-review') setBranchReview(true)
+    if (request?.action === 'tidy-up') setTidyUp(true)
     if (request?.action === 'new-branch') setShowNewBranch(true)
   }, [request])
   const [squashed, setSquashed] = useState<string | null>(null)
@@ -310,6 +313,7 @@ function BranchSidebar({
         ...(b.current && defaultBranch && defaultBranch !== b.name
           ? [{ label: `Merge ${defaultBranch} into current`, onClick: () => mergeDefaultBranch(defaultBranch) }]
           : []),
+        ...(b.current ? [{ label: 'Tidy up history…', onClick: () => setTidyUp(true) }] : []),
         { label: 'Rebase current onto…', onClick: () => setRebasePreview(b.name), disabled: b.current },
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
         ...(hostLinks?.tree
@@ -658,6 +662,17 @@ function BranchSidebar({
       </SidebarSection>
 
       {cleanUp && <CleanUpBranchesDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setCleanUp(false)} />}
+      {tidyUp && (
+        <TidyUpDialog
+          repoPath={repoPath}
+          onDone={() => {
+            setTidyUp(false)
+            loadBranches()
+            onBranchChanged?.()
+          }}
+          onClose={() => setTidyUp(false)}
+        />
+      )}
       {rebasePreview && (
         <RebasePreviewDialog
           repoPath={repoPath}
