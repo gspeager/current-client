@@ -46,6 +46,12 @@ func deleteHeadsUnlessOpen(path string, tabs []string) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	// Worktrees share their refs, so another's tab may still be showing these.
+	for _, tab := range tabs {
+		if git.SameRepository(ctx, path, tab) {
+			return
+		}
+	}
 	_ = git.DeleteHostRefs(ctx, path, "")
 }
 

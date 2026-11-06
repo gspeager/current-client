@@ -24,6 +24,8 @@ export interface TaskRun {
 // Colors and cursor moves, which a captured run has no use for.
 const ESCAPES = /\x1b(?:\[[0-9;?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\-_])/g // eslint-disable-line no-control-regex
 
+const UNFINISHED = /(?:\x1b(?:\[[0-9;?]*[ -/]*|\][^\x07\x1b]*)?|\r)$/ // eslint-disable-line no-control-regex
+
 export function useTasks(repoPath: string | null, refreshKey: unknown) {
   const { confirm } = useDialogs()
   const {
@@ -37,20 +39,27 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
   const taskOfRun = useRef(new Map<string, string>())
   // Read when starting one, as a closure kept from before a push can be behind `runs`.
   const running = useRef(new Set<string>())
-  const decoders = useRef(new Map<string, TextDecoder>())
+  const streams = useRef(new Map<string, { decoder: TextDecoder; partial: string }>())
   const checklistRuns = useRef(new Map<string, string>())
 
   useEffect(() => {
     const offOutput = Events.On(OUTPUT_EVENT, ({ data }: { data: { runId: string; data: string } }) => {
       const taskKey = taskOfRun.current.get(data.runId)
       if (!taskKey) return
-      let decoder = decoders.current.get(data.runId)
-      if (!decoder) {
-        decoder = new TextDecoder()
-        decoders.current.set(data.runId, decoder)
+      let stream = streams.current.get(data.runId)
+      if (!stream) {
+        stream = { decoder: new TextDecoder(), partial: '' }
+        streams.current.set(data.runId, stream)
       }
       const bytes = Uint8Array.from(atob(data.data), (char) => char.charCodeAt(0))
-      const text = decoder.decode(bytes, { stream: true }).replace(ESCAPES, '').replace(/\r\n/g, '\n')
+      const decoded = stream.partial + stream.decoder.decode(bytes, { stream: true })
+      // An escape or line ending cut off by the read waits for the rest of it.
+      const cut = decoded.match(UNFINISHED)?.[0] ?? ''
+      stream.partial = cut
+      const text = decoded
+        .slice(0, decoded.length - cut.length)
+        .replace(ESCAPES, '')
+        .replace(/\r\n/g, '\n')
       setRuns((prev) => {
         const run = prev[taskKey]
         if (!run || run.runId !== data.runId) return prev
@@ -63,7 +72,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
       ({ data }: { data: { runId: string; exitCode: number; durationMs: number; stopped: boolean } }) => {
         const taskKey = taskOfRun.current.get(data.runId)
         if (!taskKey) return
-        decoders.current.delete(data.runId)
+        streams.current.delete(data.runId)
         taskOfRun.current.delete(data.runId)
         running.current.delete(taskKey)
         const status: RunStatus = data.stopped ? 'stopped' : data.exitCode === 0 ? 'passed' : 'failed'

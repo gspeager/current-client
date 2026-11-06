@@ -126,6 +126,17 @@ describe('tasks', () => {
     expect(TaskService.Run).toHaveBeenCalledTimes(1)
   })
 
+  it('joins an escape split across two reads', async () => {
+    const user = userEvent.setup()
+    renderTasks()
+    await user.click(await screen.findByRole('button', { name: 'Run test' }))
+    await screen.findByText('Running')
+    await act(async () => handlers['task:output']({ data: { runId: runId(), data: btoa('red\x1b[3') } }))
+    await act(async () => handlers['task:output']({ data: { runId: runId(), data: btoa('1mok\r') } }))
+    await act(async () => handlers['task:output']({ data: { runId: runId(), data: btoa('\nnext') } }))
+    expect(screen.getByLabelText('Output of test').textContent).toBe('redok\nnext')
+  })
+
   it('stops a running command', async () => {
     const user = userEvent.setup()
     vi.mocked(TaskService.Stop).mockResolvedValue()
