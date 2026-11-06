@@ -82,7 +82,10 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
     )
   }
 
-  const identities = useNameIdentities((data?.comments ?? []).map((c) => c.author.name || c.author.username))
+  const identities = useNameIdentities(
+    (data?.comments ?? []).map((c) => c.author.name || c.author.username),
+    repoPath,
+  )
   return (
     <article className="issue-detail" data-pane="issue-detail" aria-label={data?.reference ?? issueKey}>
       <header className="issue-detail-header">

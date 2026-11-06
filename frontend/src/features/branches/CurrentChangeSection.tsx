@@ -54,36 +54,30 @@ function CurrentChangeSection({
   const kind = kindWord[0].toUpperCase() + kindWord.slice(1)
   const createChange = () => createChangeFor(repoPath, data.branch, onCreateChange)
 
-  const forecastBlock = forecast?.enabled && forecast.checked > 0 && (
+  const forecastBlock = forecast?.enabled && conflicts.length > 0 && (
     <div className="current-change-forecast" aria-label="Conflict forecast">
-      {conflicts.length === 0 ? (
-        <span className="current-change-forecast-clean">
-          No conflicts with {forecast.checked} other open on {forecast.base}.
-        </span>
-      ) : (
-        <ul className="current-change-conflicts">
-          {conflicts.map((c) => (
-            <li key={c.number}>
-              <TriangleAlert size={12} strokeWidth={1.75} className="current-change-conflict-icon" />
-              <button
-                type="button"
-                className="current-change-conflict"
-                onClick={() =>
-                  onOpenChange
-                    ? onOpenChange(c.number)
-                    : PlatformService.OpenWebPage(c.webUrl).catch(ignoreDecorativeFailure)
-                }
-                title={c.title}
-              >
-                Conflicts with {c.prefix}
-                {c.number}
-                {c.author ? ` by ${c.author}` : ''} in{' '}
-                <span className="current-change-conflict-files">{c.files.join(', ')}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="current-change-conflicts">
+        {conflicts.map((c) => (
+          <li key={c.number}>
+            <TriangleAlert size={12} strokeWidth={1.75} className="current-change-conflict-icon" />
+            <button
+              type="button"
+              className="current-change-conflict"
+              onClick={() =>
+                onOpenChange
+                  ? onOpenChange(c.number)
+                  : PlatformService.OpenWebPage(c.webUrl).catch(ignoreDecorativeFailure)
+              }
+              title={c.title}
+            >
+              Conflicts with {c.prefix}
+              {c.number}
+              {c.author ? ` by ${c.author}` : ''} in{' '}
+              <span className="current-change-conflict-files">{c.files.join(', ')}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
       {forecast.checked < forecast.total && (
         <span className="current-change-forecast-cap">
           {forecast.checked} of {forecast.total} checked
@@ -135,10 +129,18 @@ function CurrentChangeSection({
         <span className="current-change-row-text">Push to create a {kindWord}</span>
       </button>
     )
+    const hint = !data.proposable
+      ? null
+      : !data.checked && data.upstream
+        ? 'Not checked yet'
+        : data.upstream
+          ? `None open from ${data.branch}`
+          : 'This branch has no upstream'
     return (
       <section className="current-change-slot" aria-label={`${kind} for ${data.branch}`}>
         {row}
-        {conflicts.length > 0 && forecastBlock}
+        {hint && <p className="current-change-slot-hint">{hint}</p>}
+        {forecastBlock}
       </section>
     )
   }

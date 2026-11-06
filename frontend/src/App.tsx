@@ -170,7 +170,7 @@ function App({
   // The branch's known change, to offer a create link only while it has none.
   const changes = useBranchChanges(repo.repoPath ?? '', repoVersion)
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
-  const navWidth = useResizableWidth('pane-width-nav', 264, 180, 400)
+  const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
   const settings = useSettings()
   // A refresh may have found something changed on the checked-out branch's change.
   const collectHostNotices = () => {

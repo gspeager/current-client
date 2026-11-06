@@ -14,6 +14,7 @@ import RiskReport from './RiskReport'
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
 import { conflictCount } from '../diff/conflictRows'
+import { useLaneColors } from '../../lib/laneColor'
 import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -234,6 +235,7 @@ function ChangesView({
     staged.some((f) => f.path === selectedPath) &&
     !unstaged.some((f) => f.path === selectedPath)
   const stats = diff ? diffStats(diff) : null
+  const { branchColor } = useLaneColors()
   const { dir, file } = selectedPath ? splitDirFile(selectedPath) : { dir: '', file: '' }
 
   // With nothing open there'd be nothing to show, so the file list always comes back.
@@ -317,7 +319,7 @@ function ChangesView({
                 <span className="changes-diff-owners" title={`Code owners: ${selectedOwners.join(' ')}`}>
                   <Users size={12} strokeWidth={1.75} aria-hidden="true" />
                   <span className="changes-diff-owners-names">{selectedOwners.join(' ')}</span>
-                  <span className="changes-diff-owners-count">{selectedOwners.length}</span>
+                  <span className="changes-diff-owners-count">{plural(selectedOwners.length, 'owner')}</span>
                 </span>
               )}
 
@@ -354,11 +356,7 @@ function ChangesView({
             </div>
             {openConflict && (
               <div className="changes-conflict-actions">
-                <button
-                  type="button"
-                  className="changes-conflict-primary"
-                  onClick={() => void conflicts.markResolved(openConflict)}
-                >
+                <button type="button" onClick={() => void conflicts.markResolved(openConflict)}>
                   Mark resolved
                 </button>
                 <button type="button" onClick={() => void conflicts.keep(openConflict, 'ours')}>
@@ -387,14 +385,20 @@ function ChangesView({
                 outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
                 baseSide={
                   openConflict
-                    ? { label: `${conflict?.ours || 'HEAD'} (current branch)` }
+                    ? {
+                        label: `${conflict?.ours || 'HEAD'} (current branch)`,
+                        color: branchColor(conflict?.ours ?? '', true),
+                      }
                     : showsStaged
                       ? { label: 'HEAD', sha: headCommit?.sha.slice(0, 7) }
                       : { label: untracked ? 'Untracked' : 'Staged' }
                 }
                 targetSide={
                   openConflict
-                    ? { label: `${conflict?.theirs || 'incoming'} (incoming)` }
+                    ? {
+                        label: `${conflict?.theirs || 'incoming'} (incoming)`,
+                        color: branchColor(conflict?.theirs ?? '', false),
+                      }
                     : showsStaged
                       ? { label: 'Staged' }
                       : { label: 'Working tree' }

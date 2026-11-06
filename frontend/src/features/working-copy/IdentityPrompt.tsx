@@ -1,3 +1,4 @@
+import Checkbox from '../../components/forms/Checkbox'
 import { useState } from 'react'
 import { IdentityService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
@@ -35,10 +36,9 @@ function IdentityPrompt({ repoPath, initialName, initialEmail, onSaved }: Identi
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <label className="identity-prompt-scope">
-        <input type="checkbox" checked={repoOnly} onChange={(e) => setRepoOnly(e.target.checked)} />
-        This repository only
-      </label>
+      <span className="identity-prompt-scope">
+        <Checkbox checked={repoOnly} onChange={setRepoOnly} label="This repository only" />
+      </span>
       <button type="button" onClick={save} disabled={name.trim() === '' || email.trim() === ''}>
         Save identity
       </button>

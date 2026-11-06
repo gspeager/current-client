@@ -1,3 +1,4 @@
+import Checkbox from '../../components/forms/Checkbox'
 import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { TrackerService, type TrackerInfo } from '@current-client-bindings/app'
 import Switch from '../../components/forms/Switch'
@@ -208,14 +209,13 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
             <legend className="settings-hint">Repositories</legend>
             {repos.length === 0 && <span className="settings-hint">Open a repository to give it this tracker.</span>}
             {repos.map((path) => (
-              <label key={path} className="settings-tracker-repo" title={path}>
-                <input
-                  type="checkbox"
+              <span key={path} className="settings-tracker-repo" title={path}>
+                <Checkbox
                   checked={tracker.repos.includes(path)}
-                  onChange={(e) => void toggleRepo(path, e.target.checked)}
+                  onChange={(on) => void toggleRepo(path, on)}
+                  label={repoName(path)}
                 />
-                {repoName(path)}
-              </label>
+              </span>
             ))}
           </fieldset>
         </>

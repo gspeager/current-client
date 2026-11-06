@@ -9,6 +9,20 @@
   border-radius: var(--radius);
 }
 
+.current-change-slot-hint {
+  margin: 0;
+  padding: 0 var(--space-xs) 0 calc(var(--space-xs) + 14px + var(--space-sm));
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+// As tall as a change's card, so finding one doesn't move the list below.
+.current-change,
+.current-change-slot {
+  box-sizing: border-box;
+  min-height: 64px;
+}
+
 .current-change-slot {
   display: flex;
   flex-direction: column;

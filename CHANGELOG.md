@@ -6,6 +6,8 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **A person keeps one badge everywhere.** A host's username now matches the same person's commits where it can, so initials and color agree across views.
+- **The sidebar opens narrower and doesn't jump** when a pull request is found, leaving the diff more room.
 - **Pull requests show whether they can merge** in one line above the checks, and Overview lists reviewers with their state.
 - **Issues show task progress**, labels are tinted by name, and comments read as a thread.
 - **Activity uses more color from its data:** weekly bars with the average marked, a trend beside the commit count, status icons in Repository state, and file bars in their language's color.
@@ -63,6 +65,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- **History's activity strip shows the right date**, with its tooltip beside the strip.
 - **A conflicted file's Side by side view numbers each column by its own version of the file**, and its header counts conflicts instead of showing `+0 -0`.
 - **History stays readable when commit detail is open.** The subject gets more room, a row shows one branch plus a count, and a link it cuts keeps its text rather than a lone logo.
 - **The diff header keeps the file path.** At narrower widths, code owners become a count with their names on hover.

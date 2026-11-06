@@ -37,6 +37,8 @@ function formatMegabytes(bytes: number): string {
 interface DiffSideLabel {
   label: string
   sha?: string
+  // A branch's lane color, where the side is a branch.
+  color?: string
 }
 
 interface DiffViewerProps extends HunkActions {
@@ -381,7 +383,10 @@ function DiffViewer({
       {mode === 'split' && baseSide && targetSide && (
         <div className="diff-side-headers">
           <div className="diff-side-header">
-            <span className="diff-side-header-dot diff-side-header-dot-base" />
+            <span
+              className="diff-side-header-dot diff-side-header-dot-base"
+              style={baseSide.color ? { background: baseSide.color } : undefined}
+            />
             <span className="diff-side-header-label">
               {baseSide.label}
               {baseSide.sha && <span className="diff-side-header-sha">{baseSide.sha}</span>}
@@ -391,7 +396,10 @@ function DiffViewer({
             )}
           </div>
           <div className="diff-side-header">
-            <span className="diff-side-header-dot diff-side-header-dot-target" />
+            <span
+              className="diff-side-header-dot diff-side-header-dot-target"
+              style={targetSide.color ? { background: targetSide.color } : undefined}
+            />
             <span className="diff-side-header-label">
               {targetSide.label}
               {targetSide.sha && <span className="diff-side-header-sha">{targetSide.sha}</span>}

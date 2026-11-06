@@ -132,7 +132,10 @@ function HostChangesView({
   }
 
   // Opening the panel is a refresh trigger, once: later opens read the cache.
-  const identities = useNameIdentities((list?.changes ?? []).map((c) => c.author.name || c.author.username))
+  const identities = useNameIdentities(
+    (list?.changes ?? []).map((c) => c.author.name || c.author.username),
+    repoPath,
+  )
   const neverFetched = list?.enabled === true && list.fetchedAt === null
   useEffect(() => {
     if (neverFetched) refresh()
@@ -325,7 +328,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
   const hostLinks = useHostLinks(repoPath)
   const { branchColor } = useLaneColors()
   const currentBranch = useBranchStatus(repoPath, 0)?.current
-  const authorIdentity = useNameIdentities([change.author.name]).get(change.author.name)
+  const authorIdentity = useNameIdentities([change.author.name], repoPath).get(change.author.name)
   const HostIcon = hostLogo(hostLinks?.style)
   const closes = useMemo(() => details?.closes ?? [], [details?.closes])
   const closesCards = useReferenceCards(repoPath, closes, NO_CHANGES)
@@ -629,7 +632,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
               <OverviewCommits repoPath={repoPath} target={change.targetBranch} source={change.sourceBranch} />
             </div>
             <aside className="host-change-overview-aside" aria-label="People and timing">
-              <ChangeReviewers reviews={change.reviews} />
+              <ChangeReviewers repoPath={repoPath} reviews={change.reviews} />
               <FactList>
                 <Fact label="Updated">{relativeTime(new Date(change.updatedAt))}</Fact>
               </FactList>
@@ -734,8 +737,8 @@ function FilesTab({ repoPath, number, onLoaded }: TabProps) {
 
 // The change's commits from what is already fetched, so opening it asks the host
 // for nothing more. Silent when the branch isn't here locally.
-// Whether the change can merge, in one line, with a segment per check.
-function MergeVerdict({ facts }: { facts: { label: string; level: string; value: string }[] }) {
+// Whether the change can merge, in one line.
+function MergeVerdict({ facts }: { facts: { level: string }[] }) {
   const blocking = facts.filter((f) => f.level === 'warn').length
   const Icon = blocking ? TriangleAlert : CircleCheck
   return (
@@ -743,11 +746,6 @@ function MergeVerdict({ facts }: { facts: { label: string; level: string; value:
       <span className="host-change-verdict-text">
         <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
         {blocking ? `${plural(blocking, 'item')} to resolve before merging` : 'Ready to merge'}
-      </span>
-      <span className="host-change-verdict-segments" aria-hidden="true">
-        {facts.map((f) => (
-          <span key={f.label} className={`host-change-verdict-segment host-change-verdict-segment-${f.level}`} />
-        ))}
       </span>
     </div>
   )
@@ -760,9 +758,9 @@ const REVIEW_STATE_LABELS: Partial<Record<ReviewState, string>> = {
   [ReviewState.ReviewCommented]: 'Commented',
 }
 
-function ChangeReviewers({ reviews }: { reviews: Review[] | null }) {
+function ChangeReviewers({ repoPath, reviews }: { repoPath: string; reviews: Review[] | null }) {
   const nameOf = (review: Review) => review.reviewer.name || review.reviewer.username
-  const identities = useNameIdentities((reviews ?? []).map(nameOf))
+  const identities = useNameIdentities((reviews ?? []).map(nameOf), repoPath)
   return (
     <section className="host-change-reviewers" aria-label="Reviewers">
       <h4 className="host-change-overview-heading">Reviewers</h4>

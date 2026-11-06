@@ -29,7 +29,7 @@ function ActivityView({ repoPath, repoVersion, dirty, changedCount, hasConflict,
           onStandup && (
             <button type="button" className="activity-view-standup" onClick={onStandup}>
               <ClipboardList size={14} strokeWidth={1.75} />
-              Standup…
+              Standup summary…
             </button>
           )
         }

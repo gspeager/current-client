@@ -331,6 +331,7 @@ function NavPane({
         )}
         <SidebarSection
           label="Toolbox"
+          title="Undo, recover, reflog, bisect and repository upkeep"
           open={sections.isOpen('toolbox', false)}
           onToggle={() => sections.toggle('toolbox', false)}
           actions={

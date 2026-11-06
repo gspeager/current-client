@@ -557,7 +557,7 @@ describe('ChangesView file groups', () => {
 describe('ChangesView conflicts', () => {
   const conflictedFile = () => file('src/app.ts', { indexStatus: 'U', worktreeStatus: 'U', conflicted: true })
 
-  it('groups files as Conflicted and Resolved during a merge, with Mark resolved as the primary action', async () => {
+  it('groups files as Conflicted and Resolved during a merge, with Mark resolved beside the Keep actions', async () => {
     vi.mocked(ConflictService.GetConflictSides).mockResolvedValue({ ours: 'main', theirs: 'feature' })
     const workingTree = workingTreeFor([
       conflictedFile(),
@@ -588,7 +588,6 @@ describe('ChangesView conflicts', () => {
     await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
     const actions = document.querySelector('.changes-conflict-actions')!
     expect(actions.querySelector('button')).toHaveTextContent('Mark resolved')
-    expect(actions.querySelector('button')).toHaveClass('changes-conflict-primary')
   })
 
   it('offers Side by side and Result for a conflicted file, with the columns named by branch', async () => {

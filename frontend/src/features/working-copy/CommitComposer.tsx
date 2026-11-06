@@ -1,3 +1,4 @@
+import Checkbox from '../../components/forms/Checkbox'
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import { GitCommitVertical, UserPlus, X } from 'lucide-react'
 import {
@@ -265,6 +266,7 @@ function CommitComposer({
               value={subject}
               onChange={(e) => setMessage(e.target.value, body)}
               onKeyDown={onMessageKeyDown}
+              aria-label="Summary"
               placeholder="Summary"
             />
             <div className="commit-composer-body-wrap">
@@ -273,6 +275,7 @@ function CommitComposer({
                 value={body}
                 onChange={(e) => setMessage(subject, e.target.value)}
                 onKeyDown={onMessageKeyDown}
+                aria-label="Description"
                 placeholder="Description"
                 rows={2}
               />
@@ -295,14 +298,13 @@ function CommitComposer({
                     <p className="commit-composer-coauthors-empty">No recent authors.</p>
                   ) : (
                     recentAuthors.map((a) => (
-                      <label key={a.email} className="commit-composer-coauthors-option">
-                        <input
-                          type="checkbox"
+                      <span key={a.email} className="commit-composer-coauthors-option">
+                        <Checkbox
                           checked={coAuthors.some((c) => c.email === a.email)}
                           onChange={() => toggleCoAuthor(a)}
+                          label={a.name}
                         />
-                        {a.name}
-                      </label>
+                      </span>
                     ))
                   )}
                 </div>
@@ -369,10 +371,9 @@ function CommitComposer({
           onOpenChange={setMenuOpen}
           menu={
             <>
-              <label className="commit-composer-menu-checkbox">
-                <input type="checkbox" checked={amend} onChange={(e) => toggleAmend(e.target.checked)} />
-                Amend last commit
-              </label>
+              <span className="commit-composer-menu-checkbox">
+                <Checkbox checked={amend} onChange={toggleAmend} label="Amend last commit" />
+              </span>
               <label className="commit-composer-menu-checkbox">
                 <input type="checkbox" checked={allowEmpty} onChange={(e) => setAllowEmpty(e.target.checked)} />
                 Allow empty commit

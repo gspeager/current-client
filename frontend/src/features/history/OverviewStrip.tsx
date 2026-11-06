@@ -106,7 +106,7 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
       onMouseMove={(e) => {
         const left = e.currentTarget.getBoundingClientRect().left
         const day = dayAt(e.clientX, left)
-        const date = new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, {
+        const date = new Date(Date.parse(day.date)).toLocaleDateString(undefined, {
           month: 'short',
           day: 'numeric',
           year: 'numeric',

@@ -4,6 +4,7 @@ import './SidebarSection.scss'
 
 interface SidebarSectionProps {
   label: string
+  title?: string
   // Shown beside the label, open or closed; absent while unknown.
   count?: number
   open: boolean
@@ -19,6 +20,7 @@ interface SidebarSectionProps {
 
 function SidebarSection({
   label,
+  title,
   count,
   open,
   onToggle,
@@ -35,6 +37,7 @@ function SidebarSection({
           className="sidebar-section-toggle"
           onClick={onToggle}
           aria-expanded={open}
+          title={title}
           aria-label={count === undefined ? label : `${label}, ${count}`}
         >
           {open ? (
