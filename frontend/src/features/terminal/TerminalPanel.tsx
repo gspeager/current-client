@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import { Plus, X } from 'lucide-react'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
+import SegmentedControl from '../../components/controls/SegmentedControl'
 import { useResizableWidth } from '../../lib/useResizableWidth'
 import TerminalPane from './TerminalPane'
 import type { useTerminals } from './useTerminals'
@@ -10,20 +12,36 @@ interface TerminalPanelProps {
   terminals: ReturnType<typeof useTerminals>
   focusRequest: number
   theme?: string
+  // The task runner, shown beside the shells.
+  tasks?: ReactNode
 }
 
 // Every repository's shells stay mounted, so they keep their output, and only
 // the open repository's are shown.
-function TerminalPanel({ repoPath, terminals, focusRequest, theme }: TerminalPanelProps) {
+function TerminalPanel({ repoPath, terminals, focusRequest, theme, tasks }: TerminalPanelProps) {
   const height = useResizableWidth('pane-height-terminal', 260, 120, 720, 'grow-left', 'y')
   const { current } = terminals
+  const view = current.view
 
   return (
     <>
       {current.open && <ResizeHandle onDragStart={height.onDragStart} ariaLabel="Resize terminal" horizontal />}
       <section className="terminal-panel" aria-label="Terminal" style={{ height: height.width }} hidden={!current.open}>
         <header className="terminal-panel-header">
-          <div className="terminal-panel-tabs" role="tablist" aria-label="Shells">
+          {tasks && (
+            <SegmentedControl
+              value={view}
+              onChange={(next) => {
+                terminals.setView(repoPath, next)
+                if (next === 'shells' && current.shells.length === 0) terminals.newShell(repoPath)
+              }}
+              options={[
+                { value: 'shells', label: 'Terminal' },
+                { value: 'tasks', label: 'Tasks' },
+              ]}
+            />
+          )}
+          <div className="terminal-panel-tabs" role="tablist" aria-label="Shells" hidden={view !== 'shells'}>
             {current.shells.map((shell) => (
               <span
                 key={shell.id}
@@ -61,10 +79,11 @@ function TerminalPanel({ repoPath, terminals, focusRequest, theme }: TerminalPan
             Hide
           </button>
         </header>
-        <div className="terminal-panel-body">
+        {view === 'tasks' && <div className="terminal-panel-tasks">{tasks}</div>}
+        <div className="terminal-panel-body" hidden={view !== 'shells'}>
           {Object.entries(terminals.byRepo).flatMap(([repo, state]) =>
             state.shells.map((shell) => {
-              const shown = repo === repoPath && state.open && shell.id === state.active
+              const shown = view === 'shells' && repo === repoPath && state.open && shell.id === state.active
               return (
                 <TerminalPane
                   key={shell.id}

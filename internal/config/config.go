@@ -35,6 +35,17 @@ type HostConfig struct {
 	Dismissed bool `json:"dismissed,omitempty"`
 }
 
+type CustomTask struct {
+	Name    string `json:"name"`
+	Command string `json:"command"`
+}
+
+// TaskChecklist runs alongside a commit or push. Failures warn and never block.
+type TaskChecklist struct {
+	BeforeCommit []string `json:"beforeCommit,omitempty"`
+	BeforePush   []string `json:"beforePush,omitempty"`
+}
+
 type Config struct {
 	Version            int               `json:"version"`
 	RecentRepositories []string          `json:"recentRepositories,omitempty"`
@@ -65,6 +76,11 @@ type Config struct {
 	FocusedTab string   `json:"focusedTab,omitempty"`
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
+
+	// Commands, by repository path. TaskApprovals holds what each approval saw.
+	CustomTasks   map[string][]CustomTask      `json:"customTasks,omitempty"`
+	TaskApprovals map[string]map[string]string `json:"taskApprovals,omitempty"`
+	TaskChecklist map[string]TaskChecklist     `json:"taskChecklist,omitempty"`
 
 	// The terminal panel's shell on Windows: "", "git-bash" or "cmd". "" is PowerShell.
 	TerminalShell string `json:"terminalShell,omitempty"`
