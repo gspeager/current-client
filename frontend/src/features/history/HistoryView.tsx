@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type KeyboardEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { BranchService, type CommitInfo } from '@current-client-bindings/app'
+import { BranchService, HistoryService, type CommitInfo } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import CommitDetailPanel from './CommitDetailPanel'
 import CommitFileDiff from './CommitFileDiff'
@@ -28,6 +28,7 @@ import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { ALL_BRANCHES, isBranchName } from './branchFilter'
+import OverviewStrip from './OverviewStrip'
 import './HistoryView.scss'
 
 interface HistoryViewProps {
@@ -76,7 +77,11 @@ function HistoryView({
   onSelectedShaChange,
 }: HistoryViewProps) {
   const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef, firstParent })
-  const { commits, loading, done, error, loadMore } = useCommitHistory(repoPath, filter, initialLoadThrough)
+  const { commits, loading, done, error, loadMore, loadThrough } = useCommitHistory(
+    repoPath,
+    filter,
+    initialLoadThrough,
+  )
   const head = useHeadCommit(repoPath)
   // Read only where a working-changes row can appear.
   const currentUser = useCurrentUser(changedFiles > 0 && onOpenChanges ? repoPath : null)
@@ -235,6 +240,43 @@ function HistoryView({
     virtualizer.scrollToIndex(index + offset, { align: 'center' })
   }, [rows, offset, initialSelectedSha, virtualizer])
 
+  // A jump from the overview strip waits for its row to load. A row the search or
+  // Hide merges has taken out lands on the next one still shown.
+  const [jumpRow, setJumpRow] = useState<number | null>(null)
+  useEffect(() => {
+    if (jumpRow === null) return
+    if (jumpRow >= commits.length && !done) {
+      loadThrough(jumpRow)
+      return
+    }
+    setJumpRow(null)
+    const positions = new Map(commits.map((commit, index) => [commit.sha, index]))
+    const shown = rows.findIndex((row) => (positions.get(row.commit.sha) ?? 0) >= jumpRow)
+    if (shown !== -1) virtualizer.scrollToIndex(shown + offset, { align: 'start' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jumpRow, commits.length, done, loading])
+
+  const { data: overview } = useAsyncData(
+    () => HistoryService.GetHistoryOverview(repoPath, filter),
+    [repoPath, filter],
+    { keepData: true },
+  )
+  const visibleRange = useMemo(() => {
+    const { scrollOffset, scrollRect } = virtualizer
+    if (rows.length === 0 || scrollOffset === null || !scrollRect) return null
+    const first = Math.max(0, Math.floor(scrollOffset / ROW_HEIGHT) - offset)
+    const last = Math.min(rows.length - 1, Math.ceil((scrollOffset + scrollRect.height) / ROW_HEIGHT) - offset)
+    if (first > last) return null
+    return {
+      newest: Date.parse(rows[first].commit.date),
+      oldest: Date.parse(rows[last].commit.date),
+    }
+  }, [rows, offset, virtualizer.scrollOffset, virtualizer.scrollRect])
+  const searchMarkers = useMemo(
+    () => (query ? rows.map((row) => ({ kind: 'match', name: row.commit.subject, date: row.commit.date })) : []),
+    [rows, query],
+  )
+
   if (error) {
     return <p className="history-empty-state history-empty-state-error">Could not load history: {error}</p>
   }
@@ -304,6 +346,15 @@ function HistoryView({
               onCopyAsciiGraph={copyAsciiGraph}
               copied={graphCopied}
             />
+
+            {overview && overview.days.length > 0 && (
+              <OverviewStrip
+                days={overview.days}
+                markers={[...overview.markers, ...searchMarkers]}
+                visible={visibleRange}
+                onJump={setJumpRow}
+              />
+            )}
 
             <div ref={parentRef} className="history-scroll">
               <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>

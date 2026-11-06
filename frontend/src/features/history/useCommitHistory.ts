@@ -48,6 +48,12 @@ export function useCommitHistory(
     fetchPage(skip, PAGE_SIZE)
   }
 
+  // Loads every commit down to a row a jump has asked for.
+  const loadThrough = (row: number) => {
+    if (loading || done || row < commits.length) return
+    fetchPage(commits.length, row - commits.length + PAGE_SIZE)
+  }
+
   useEffect(() => {
     generation.current++
     setCommits([])
@@ -57,5 +63,5 @@ export function useCommitHistory(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repoPath, filter.ref, filter.since, filter.until, filter.author, filter.type, filter.firstParent])
 
-  return { commits, loading, done, error, loadMore }
+  return { commits, loading, done, error, loadMore, loadThrough }
 }

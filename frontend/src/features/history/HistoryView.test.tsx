@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   type BranchInfo,
@@ -403,5 +403,31 @@ describe('HistoryView branch filter', () => {
 
     await screen.findByRole('option', { name: 'feature' })
     expect(screen.getByRole('combobox', { name: 'Branch filter' })).toHaveValue('feature')
+  })
+
+  it('jumps from the overview strip, loading the rows down to the commit first', async () => {
+    const commitAt = (i: number) => commit(`sha${i}`, `Commit ${i}`, [`sha${i + 1}`])
+    vi.mocked(HistoryService.GetHistory).mockImplementation(((_repo: string, limit: number, skip: number) =>
+      Promise.resolve(Array.from({ length: Math.min(limit, 500 - skip) }, (_, i) => commitAt(skip + i)))) as never)
+    vi.mocked(HistoryService.GetHistoryOverview).mockResolvedValue({
+      days: [
+        { date: '2020-01-01T00:00:00Z', commits: 100, firstRow: 450 },
+        { date: '2026-01-01T00:00:00Z', commits: 400, firstRow: 0 },
+      ],
+      markers: [],
+    })
+    renderHistory()
+
+    const strip = await screen.findByRole('img', { name: 'Commit activity over time' })
+    vi.spyOn(strip, 'getBoundingClientRect').mockReturnValue({ left: 0 } as DOMRect)
+    const scroller = document.querySelector('.history-scroll') as HTMLElement
+    const scrollTo = vi.fn()
+    scroller.scrollTo = scrollTo
+
+    fireEvent.click(strip, { clientX: 0 })
+
+    await vi.waitFor(() => expect(HistoryService.GetHistory).toHaveBeenCalledWith(REPO, 450, 200, expect.anything()))
+    await vi.waitFor(() => expect(scrollTo).toHaveBeenCalled())
+    expect(scrollTo.mock.lastCall?.[0].top).toBe(450 * 38)
   })
 })

@@ -1,0 +1,25 @@
+.overview-strip {
+  flex-shrink: 0;
+  height: 40px;
+  overflow: hidden;
+  border-bottom: var(--border-structure);
+  cursor: pointer;
+
+  svg {
+    display: block;
+  }
+}
+
+.overview-strip-area {
+  fill: var(--surface-container-high, var(--surface-container));
+  stroke: var(--outline);
+  stroke-width: 0.5;
+}
+
+.overview-strip-window {
+  fill: var(--on-surface);
+  fill-opacity: 0.08;
+  stroke: var(--on-surface-variant);
+  stroke-width: 1;
+  pointer-events: none;
+}

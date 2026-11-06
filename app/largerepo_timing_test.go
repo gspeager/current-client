@@ -148,6 +148,10 @@ func TestLargeRepoTiming(t *testing.T) {
 	timeIt("ListFiles (quick switch)", func() (int, error) { r, err := (&StatusService{}).ListFiles(dir); return len(r), err })
 	timeIt("SearchHistory", func() (int, error) { r, err := history.SearchHistory(dir, "commit 4999", 50); return len(r), err })
 	timeIt("GetFileHistory", func() (int, error) { r, err := history.GetFileHistory(dir, path(7), 200, 0); return len(r), err })
+	timeIt("GetHistoryOverview", func() (int, error) {
+		r, err := history.GetHistoryOverview(dir, HistoryFilterInfo{Ref: "--all"})
+		return len(r.Days), err
+	})
 	timeIt("GetRepoStats", func() (int, error) { _, err := (&DashboardService{}).GetRepoStats(dir); return 1, err })
 	timeIt("GetFileChurn", func() (int, error) { r, err := (&DashboardService{}).GetFileChurn(dir); return len(r), err })
 	timeIt("GetLanguageBreakdown", func() (int, error) { r, err := (&DashboardService{}).GetLanguageBreakdown(dir); return len(r), err })
