@@ -40,6 +40,27 @@ type CustomTask struct {
 	Command string `json:"command"`
 }
 
+// StackLink is one layer of a stack. Git stores no branch's base, and amending the
+// layer below breaks the ancestry, so ParentTip remembers what it was built on.
+type StackLink struct {
+	Branch    string `json:"branch"`
+	Parent    string `json:"parent"`
+	ParentTip string `json:"parentTip"`
+}
+
+type StackMove struct {
+	Branch string `json:"branch"`
+	Before string `json:"before"`
+	After  string `json:"after"`
+}
+
+// StackUndo takes back the last restack, which moves several branches.
+type StackUndo struct {
+	Links   []StackLink `json:"links"`
+	Moves   []StackMove `json:"moves"`
+	Stopped bool        `json:"stopped,omitempty"`
+}
+
 // TaskChecklist runs alongside a commit or push. Failures warn and never block.
 type TaskChecklist struct {
 	BeforeCommit []string `json:"beforeCommit,omitempty"`
@@ -81,6 +102,8 @@ type Config struct {
 	CustomTasks   map[string][]CustomTask      `json:"customTasks,omitempty"`
 	TaskApprovals map[string]map[string]string `json:"taskApprovals,omitempty"`
 	TaskChecklist map[string]TaskChecklist     `json:"taskChecklist,omitempty"`
+	Stacks        map[string][]StackLink       `json:"stacks,omitempty"`
+	StackUndo     map[string]StackUndo         `json:"stackUndo,omitempty"`
 
 	// The terminal panel's shell on Windows: "", "git-bash" or "cmd". "" is PowerShell.
 	TerminalShell string `json:"terminalShell,omitempty"`

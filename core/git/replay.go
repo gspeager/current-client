@@ -35,26 +35,33 @@ type ReplayStep struct {
 //
 // It returns ErrMergeTreeUnsupported on Git before 2.40, which added --merge-base.
 func ReplayCommits(ctx context.Context, repoPath, onto string, commits []string) ([]ReplayStep, error) {
+	steps, _, err := replayToTip(ctx, repoPath, onto, commits)
+	return steps, err
+}
+
+// replayToTip also returns the commit the replay ends on, which is "" after a
+// conflict, for predicting what is built on top of it next.
+func replayToTip(ctx context.Context, repoPath, onto string, commits []string) ([]ReplayStep, string, error) {
 	current, err := ResolveCommit(ctx, repoPath, onto)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	currentTree, err := treeOf(ctx, repoPath, current)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	steps := make([]ReplayStep, 0, len(commits))
 	for i, sha := range commits {
 		merge, err := replayOne(ctx, repoPath, current, sha)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if !merge.Clean {
 			steps = append(steps, ReplayStep{SHA: sha, Outcome: ReplayConflict, Files: merge.Files})
 			for _, rest := range commits[i+1:] {
 				steps = append(steps, ReplayStep{SHA: rest, Outcome: ReplayUnknown})
 			}
-			return steps, nil
+			return steps, "", nil
 		}
 		if merge.Tree == currentTree {
 			steps = append(steps, ReplayStep{SHA: sha, Outcome: ReplayEmpty})
@@ -62,12 +69,12 @@ func ReplayCommits(ctx context.Context, repoPath, onto string, commits []string)
 		}
 		current, err = commitTree(ctx, repoPath, merge.Tree, current)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		currentTree = merge.Tree
 		steps = append(steps, ReplayStep{SHA: sha, Outcome: ReplayClean})
 	}
-	return steps, nil
+	return steps, current, nil
 }
 
 func replayOne(ctx context.Context, repoPath, onto, sha string) (MergeResult, error) {

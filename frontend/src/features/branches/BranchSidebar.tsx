@@ -1,6 +1,7 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
 import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X, Table } from 'lucide-react'
 import {
+  StackService,
   type BranchInfo,
   BranchService,
   type ConflictStateInfo,
@@ -21,6 +22,7 @@ import SetUpstreamDialog from './SetUpstreamDialog'
 import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
 import BranchReviewDialog from './BranchReviewDialog'
 import RebasePreviewDialog from './RebasePreviewDialog'
+import StackSection from './StackSection'
 import TidyUpDialog from './TidyUpDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
@@ -135,11 +137,27 @@ function BranchSidebar({
   const [branchReview, setBranchReview] = useState(false)
   const [rebasePreview, setRebasePreview] = useState<string | null>(null)
   const [tidyUp, setTidyUp] = useState(false)
+  const { data: stackList, reload: reloadStacks } = useAsyncData(() => StackService.List(repoPath), [repoPath], {
+    refreshKey,
+  })
+  const [restack, setRestack] = useState<string | null>(null)
+  const stackWith = (name: string) => stackList?.stacks.find((stack) => stack.layers.some((l) => l.branch === name))
   useEffect(() => {
     if (request?.action === 'clean-up') setCleanUp(true)
     if (request?.action === 'branch-review') setBranchReview(true)
     if (request?.action === 'tidy-up') setTidyUp(true)
+    if (request?.action === 'restack') {
+      const stack = stackWith(branchStatus?.current ?? '')
+      if (stack) {
+        if (!sections.isOpen('branches', true)) sections.toggle('branches', true)
+        if (!sections.isOpen('branches-stacks', true)) sections.toggle('branches-stacks', true)
+        setRestack(stack.root)
+      } else {
+        setActionError("The current branch isn't in a stack.")
+      }
+    }
     if (request?.action === 'new-branch') setShowNewBranch(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request])
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
@@ -168,6 +186,40 @@ function BranchSidebar({
         loadBranches()
         onBranchChanged?.()
       })
+      .catch((err: unknown) => setActionError(errorMessage(err)))
+  }
+
+  const stacksChanged = () => {
+    reloadStacks()
+    loadBranches()
+    onBranchChanged?.()
+  }
+
+  const newStackedBranch = async (parent: string) => {
+    const name = await prompt({
+      title: `New branch on ${parent}`,
+      label: 'New branch name',
+      confirmLabel: 'Create',
+      transform: toBranchName,
+    })
+    if (!name) return
+    setActionError(null)
+    StackService.NewLayer(repoPath, name, parent)
+      .then(stacksChanged)
+      .catch((err: unknown) => setActionError(errorMessage(err)))
+  }
+
+  const stackCurrentOn = (parent: string) => {
+    setActionError(null)
+    StackService.AddLayer(repoPath, branchStatus?.current ?? '', parent)
+      .then(reloadStacks)
+      .catch((err: unknown) => setActionError(errorMessage(err)))
+  }
+
+  const removeFromStack = (name: string) => {
+    setActionError(null)
+    StackService.RemoveLayer(repoPath, name)
+      .then(reloadStacks)
       .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
@@ -316,6 +368,13 @@ function BranchSidebar({
         ...(b.current ? [{ label: 'Tidy up history…', onClick: () => setTidyUp(true) }] : []),
         { label: 'Rebase current onto…', onClick: () => setRebasePreview(b.name), disabled: b.current },
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
+        { label: 'New stacked branch…', onClick: () => void newStackedBranch(b.name) },
+        {
+          label: 'Stack current on this',
+          onClick: () => stackCurrentOn(b.name),
+          disabled: b.current || !branchStatus?.current || branchStatus.current === defaultBranch,
+        },
+        ...(stackWith(b.name) ? [{ label: 'Remove from stack', onClick: () => removeFromStack(b.name) }] : []),
         ...(hostLinks?.tree
           ? [{ label: 'Open on host', onClick: () => void PlatformService.OpenWebPage(branchHostPage(b)) }]
           : []),
@@ -626,6 +685,30 @@ function BranchSidebar({
                 <ul className="branch-sidebar-list">{renderLocalRow(current)}</ul>
               </div>
             )}
+            {stackList && stackList.stacks.length > 0 && (
+              <div className="branch-sidebar-group">
+                <SidebarSection
+                  label="Stacks"
+                  count={stackList.stacks.length}
+                  open={sections.isOpen('branches-stacks', true)}
+                  onToggle={() => sections.toggle('branches-stacks', true)}
+                >
+                  <StackSection
+                    repoPath={repoPath}
+                    list={stackList}
+                    current={branchStatus?.current ?? null}
+                    restack={restack}
+                    onRestackChange={setRestack}
+                    onCheckout={(name) => !blocked && checkoutBranch(name)}
+                    onRowMenu={(name) => {
+                      const branch = branches.find((b) => b.name === name)
+                      return branch && branchContextMenu(branch)
+                    }}
+                    onChanged={stacksChanged}
+                  />
+                </SidebarSection>
+              </div>
+            )}
             <div className="branch-sidebar-group">
               <SidebarSection
                 label="Local"
@@ -646,7 +729,7 @@ function BranchSidebar({
                   remoteConflicts > 0 && (
                     <span
                       className="branch-conflicts-badge"
-                      title={`${plural(remoteConflicts, 'remote branch')} would conflict with the current branch`}
+                      title={`${plural(remoteConflicts, 'remote branch', 'remote branches')} would conflict with the current branch`}
                     >
                       {remoteConflicts} conflicts
                     </span>

@@ -308,3 +308,62 @@
   color: var(--outline);
   font: var(--ui-xs);
 }
+
+.stack-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.stack-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--h-row-tree);
+}
+
+.stack-base {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--outline);
+  font: var(--data-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stack-action {
+  flex-shrink: 0;
+  height: var(--h-micro);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    color: var(--outline);
+    cursor: default;
+  }
+}
+
+.stack-undo {
+  align-self: flex-start;
+}
+
+.stack-mark {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.stack-mark-behind {
+  color: var(--warning);
+}
