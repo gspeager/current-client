@@ -111,33 +111,27 @@ func (s *TaskService) Approve(repoPath, id string) error {
 
 // Run starts an approved command. It checks again here, so nothing that changed
 // since the list was read runs without being seen.
-func (s *TaskService) Run(repoPath, id string) (string, error) {
+func (s *TaskService) Run(repoPath, id, runID string) error {
 	if policy.LocalCommandsOff() {
-		return "", errLocalCommandsOff
+		return errLocalCommandsOff
 	}
 	cfg := configOrDefault()
 	task, ok := tasks.Find(repoPath, customTasks(cfg, repoPath), id)
 	if !ok {
-		return "", errors.New("this command is no longer here")
+		return errors.New("this command is no longer here")
 	}
 	if cfg.TaskApprovals[repoPath][id] != tasks.Fingerprint(repoPath, task) {
-		return "", errTaskNotApproved
+		return errTaskNotApproved
 	}
-	var runID string
-	started := make(chan struct{})
-	runID, err := taskRunner.Start(repoPath, task.Command, tasks.Options{
+	return taskRunner.Start(runID, repoPath, task.Command, tasks.Options{
 		Env: os.Environ(),
 		OnOutput: func(data []byte) {
-			<-started
 			emit(taskOutputEvent, TaskOutputEvent{runID, base64.StdEncoding.EncodeToString(data)})
 		},
 		OnDone: func(result tasks.Result) {
-			<-started
 			emit(taskDoneEvent, TaskDoneEvent{runID, result.ExitCode, result.Duration.Milliseconds(), result.Stopped})
 		},
 	})
-	close(started)
-	return runID, err
 }
 
 func (s *TaskService) Stop(runID string) {
@@ -173,6 +167,9 @@ func (s *TaskService) AddCustom(repoPath, name, command string) error {
 
 func (s *TaskService) RemoveCustom(repoPath, name string) error {
 	return updateConfig(func(cfg *config.Config) {
+		if cfg.CustomTasks == nil {
+			return
+		}
 		cfg.CustomTasks[repoPath] = slices.DeleteFunc(slices.Clone(cfg.CustomTasks[repoPath]), func(item config.CustomTask) bool { return item.Name == name })
 	})
 }

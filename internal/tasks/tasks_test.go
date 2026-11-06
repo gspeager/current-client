@@ -119,7 +119,7 @@ func TestRunCapturesOutputExitAndDuration(t *testing.T) {
 	dir := t.TempDir()
 	runner := NewRunner()
 	c := &collected{result: make(chan Result, 1)}
-	if _, err := runner.Start(dir, "pwd; echo to-stdout; echo to-stderr >&2; exit 3", c.options()); err != nil {
+	if err := runner.Start("r1", dir, "pwd; echo to-stdout; echo to-stderr >&2; exit 3", c.options()); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -146,7 +146,8 @@ func TestStopEndsTheProcessAndItsChildren(t *testing.T) {
 	runner := NewRunner()
 	c := &collected{result: make(chan Result, 1)}
 	pids := filepath.Join(dir, "pids")
-	id, err := runner.Start(dir, "sleep 300 & echo $! > "+pids+"; (sleep 301 & echo $! >> "+pids+"; wait) & echo started; wait", c.options())
+	id := "r1"
+	err := runner.Start(id, dir, "sleep 300 & echo $! > "+pids+"; (sleep 301 & echo $! >> "+pids+"; wait) & echo started; wait", c.options())
 	if err != nil {
 		t.Fatal(err)
 	}

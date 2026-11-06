@@ -1019,7 +1019,7 @@ function App({
                       terminals={terminals}
                       focusRequest={terminalFocus}
                       theme={settings.settings?.theme}
-                      tasks={<TasksView repoPath={repo.repoPath} tasks={tasks} />}
+                      tasks={<TasksView key={repo.repoPath} repoPath={repo.repoPath} tasks={tasks} />}
                     />
                   )}
                   {terminals.error && <p className="app-terminal-error">{terminals.error}</p>}

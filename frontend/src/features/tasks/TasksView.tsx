@@ -150,9 +150,7 @@ function TasksView({ repoPath, tasks }: TasksViewProps) {
             </pre>
           </>
         ) : (
-          <p className="tasks-hint">
-            Choose a command to see its output. Output stays in memory until the app closes.
-          </p>
+          <p className="tasks-hint">Choose a command to see its output. Output stays in memory until the app closes.</p>
         )}
       </div>
     </div>

@@ -9,6 +9,7 @@ const OUTPUT_EVENT = 'task:output'
 const DONE_EVENT = 'task:done'
 // What's kept of a run's output, from the end, in memory only.
 const MOST_OUTPUT = 2 << 20
+let nextRun = 0
 
 export type RunStatus = 'running' | 'passed' | 'failed' | 'stopped'
 
@@ -82,18 +83,26 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
 
   const key = useCallback((id: string) => `${repoPath}\0${id}`, [repoPath])
 
-  const launch = async (task: TaskInfo): Promise<string | null> => {
-    if (!repoPath) return null
+  // The run is known before it starts, since a quick one can finish before the
+  // call that started it returns.
+  const launch = async (task: TaskInfo, checklist = false) => {
+    if (!repoPath) return
     setError(null)
+    nextRun += 1
+    const runId = `run-${Date.now()}-${nextRun}`
+    const taskKey = key(task.id)
+    taskOfRun.current.set(runId, taskKey)
+    if (checklist) checklistRuns.current.set(runId, task.name)
+    setRuns((prev) => ({ ...prev, [taskKey]: { runId, status: 'running', output: '', exitCode: 0, durationMs: 0 } }))
     try {
-      const runId = await TaskService.Run(repoPath, task.id)
-      const taskKey = key(task.id)
-      taskOfRun.current.set(runId, taskKey)
-      setRuns((prev) => ({ ...prev, [taskKey]: { runId, status: 'running', output: '', exitCode: 0, durationMs: 0 } }))
-      return runId
+      await TaskService.Run(repoPath, task.id, runId)
     } catch (err: unknown) {
       setError(errorMessage(err))
-      return null
+      setRuns((prev) => {
+        const next = { ...prev }
+        delete next[taskKey]
+        return next
+      })
     }
   }
 
@@ -143,12 +152,9 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
     const chosen = fresh.tasks.filter((task) => ids.includes(task.id))
     const skipped = chosen.filter((task) => !task.approved)
     setWarning(skipped.length > 0 ? `Not run, since not approved: ${skipped.map((t) => t.name).join(', ')}.` : null)
+    // One already running isn't started twice, as a commit can follow a commit quickly.
     for (const task of chosen) {
-      if (task.approved) {
-        void launch(task).then((runId) => {
-          if (runId) checklistRuns.current.set(runId, task.name)
-        })
-      }
+      if (task.approved && runs[key(task.id)]?.status !== 'running') void launch(task, true)
     }
   }
 

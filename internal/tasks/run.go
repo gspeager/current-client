@@ -3,7 +3,6 @@ package tasks
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"os/exec"
 	"runtime"
@@ -34,9 +33,8 @@ type run struct {
 }
 
 type Runner struct {
-	mu     sync.Mutex
-	runs   map[string]*run
-	nextID atomic.Int64
+	mu   sync.Mutex
+	runs map[string]*run
 }
 
 func NewRunner() *Runner {
@@ -51,8 +49,9 @@ func shellCommand(command string) *exec.Cmd {
 }
 
 // Start runs command in dir, with its output and errors together, as a terminal
-// would show them. Nothing is kept here: output only goes to OnOutput.
-func (r *Runner) Start(dir, command string, options Options) (string, error) {
+// would show them. Nothing is kept here: output only goes to OnOutput. The caller
+// picks the id, so it knows the run before the first of its output can arrive.
+func (r *Runner) Start(id, dir, command string, options Options) error {
 	cmd := shellCommand(command)
 	cmd.Dir = dir
 	cmd.Env = options.Env
@@ -61,9 +60,8 @@ func (r *Runner) Start(dir, command string, options Options) (string, error) {
 	cmd.Stderr = writer
 	started := time.Now()
 	if err := cmd.Start(); err != nil {
-		return "", err
+		return err
 	}
-	id := fmt.Sprintf("r%d", r.nextID.Add(1))
 	current := &run{cmd: cmd, done: make(chan struct{})}
 	r.mu.Lock()
 	r.runs[id] = current
@@ -95,7 +93,7 @@ func (r *Runner) Start(dir, command string, options Options) (string, error) {
 			options.OnDone(Result{ExitCode: exitCode(err), Duration: time.Since(started), Stopped: current.stopped.Load()})
 		}
 	}()
-	return id, nil
+	return nil
 }
 
 func exitCode(err error) int {

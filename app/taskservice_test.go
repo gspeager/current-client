@@ -22,7 +22,7 @@ func TestARunNeedsApprovalAndAgainAfterAChange(t *testing.T) {
 	if err != nil || len(list.Tasks) != 1 || list.Tasks[0].Approved {
 		t.Fatalf("first list = %+v, %v", list, err)
 	}
-	if _, err := s.Run(repo, "make:go"); !errors.Is(err, errTaskNotApproved) {
+	if err := s.Run(repo, "make:go", "r1"); !errors.Is(err, errTaskNotApproved) {
 		t.Fatalf("an unapproved run: %v", err)
 	}
 	if _, err := os.Stat(marker); !os.IsNotExist(err) {
@@ -35,7 +35,7 @@ func TestARunNeedsApprovalAndAgainAfterAChange(t *testing.T) {
 	if list, _ = s.List(repo); !list.Tasks[0].Approved {
 		t.Fatalf("after approving = %+v", list)
 	}
-	if _, err := s.Run(repo, "make:go"); err != nil {
+	if err := s.Run(repo, "make:go", "r2"); err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(10 * time.Second)
@@ -55,7 +55,7 @@ func TestARunNeedsApprovalAndAgainAfterAChange(t *testing.T) {
 	if list, _ = s.List(repo); list.Tasks[0].Approved {
 		t.Fatal("a changed recipe should need approving again")
 	}
-	if _, err := s.Run(repo, "make:go"); !errors.Is(err, errTaskNotApproved) {
+	if err := s.Run(repo, "make:go", "r1"); !errors.Is(err, errTaskNotApproved) {
 		t.Fatalf("after a change: %v", err)
 	}
 }

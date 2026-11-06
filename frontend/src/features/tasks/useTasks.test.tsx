@@ -47,7 +47,7 @@ function Harness() {
 
 function renderTasks(info = list()) {
   vi.mocked(TaskService.List).mockResolvedValue(info)
-  vi.mocked(TaskService.Run).mockResolvedValue('r1')
+  vi.mocked(TaskService.Run).mockResolvedValue()
   vi.mocked(TaskService.Approve).mockResolvedValue()
   render(
     <DialogProvider>
@@ -56,8 +56,10 @@ function renderTasks(info = list()) {
   )
 }
 
+const runId = () => vi.mocked(TaskService.Run).mock.lastCall![2]
+
 const finish = (exitCode: number, stopped = false) =>
-  act(async () => handlers['task:done']({ data: { runId: 'r1', exitCode, durationMs: 1500, stopped } }))
+  act(async () => handlers['task:done']({ data: { runId: runId(), exitCode, durationMs: 1500, stopped } }))
 
 describe('tasks', () => {
   it('shows the command and folder before a first run, and runs only after a yes', async () => {
@@ -71,7 +73,7 @@ describe('tasks', () => {
     expect(TaskService.Run).not.toHaveBeenCalled()
 
     await user.click(within(dialog).getByRole('button', { name: 'Run' }))
-    await vi.waitFor(() => expect(TaskService.Run).toHaveBeenCalledWith('/repo', 'make:test'))
+    await vi.waitFor(() => expect(TaskService.Run).toHaveBeenCalledWith('/repo', 'make:test', expect.any(String)))
     expect(TaskService.Approve).toHaveBeenCalledWith('/repo', 'make:test')
   })
 
@@ -92,12 +94,25 @@ describe('tasks', () => {
     await user.click(await screen.findByRole('button', { name: 'Run test' }))
     expect(await screen.findByText('Running')).toBeInTheDocument()
 
-    await act(async () => handlers['task:output']({ data: { runId: 'r1', data: btoa('\x1b[31mok\x1b[0m\r\n') } }))
+    await act(async () => handlers['task:output']({ data: { runId: runId(), data: btoa('\x1b[31mok\x1b[0m\r\n') } }))
     expect(screen.getByLabelText('Output of test').textContent).toBe('ok\n')
 
     await finish(0)
     expect(screen.getByText('Passed')).toBeInTheDocument()
     expect(screen.getByText(/Exit 0 · 1\.5 s/)).toBeInTheDocument()
+  })
+
+  it('hears from a run that finishes before the call that started it returns', async () => {
+    const user = userEvent.setup()
+    renderTasks()
+    vi.mocked(TaskService.Run).mockImplementation(((_repo: string, _id: string, run: string) => {
+      handlers['task:output']({ data: { runId: run, data: btoa('quick') } })
+      handlers['task:done']({ data: { runId: run, exitCode: 0, durationMs: 1, stopped: false } })
+      return Promise.resolve()
+    }) as unknown as typeof TaskService.Run)
+    await user.click(await screen.findByRole('button', { name: 'Run test' }))
+    expect(await screen.findByText('Passed')).toBeInTheDocument()
+    expect(screen.getByLabelText('Output of test').textContent).toBe('quick')
   })
 
   it('stops a running command', async () => {
@@ -106,7 +121,7 @@ describe('tasks', () => {
     renderTasks()
     await user.click(await screen.findByRole('button', { name: 'Run test' }))
     await user.click(await screen.findByRole('button', { name: 'Stop test' }))
-    expect(TaskService.Stop).toHaveBeenCalledWith('r1')
+    expect(TaskService.Stop).toHaveBeenCalledWith(runId())
     await finish(-1, true)
     expect(screen.getAllByText('Stopped').length).toBeGreaterThan(0)
   })
