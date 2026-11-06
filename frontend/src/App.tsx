@@ -178,7 +178,8 @@ function App({
   }
 
   // A pull fetches too, so it moves "fetched … ago" as well as the branch.
-  const tasks = useTasks(repo.repoPath, repoVersion)
+  const terminalsOff = hideTerminal || (settings.settings?.localCommandsOff ?? false)
+  const tasks = useTasks(terminalsOff ? null : repo.repoPath, repoVersion)
   const { pull, pullMerge, pullRebase, push, forcePush, pushTags, pushSetUpstream, pullOp, pushOp } = useRemoteSync(
     repo.repoPath,
     onFetched,
@@ -238,7 +239,6 @@ function App({
   useAutoFetch(repo.repoPath, settings.settings?.autoFetchIntervalMinutes ?? 0, onFetched)
   useFileWatcher(repo.repoPath, onFileWatcherChanged)
   const terminals = useTerminals(repo.repoPath)
-  const terminalsOff = hideTerminal || (settings.settings?.localCommandsOff ?? false)
   const [terminalFocus, setTerminalFocus] = useState(0)
   const beforeTerminal = useRef<HTMLElement | null>(null)
   const openTasks = () => {

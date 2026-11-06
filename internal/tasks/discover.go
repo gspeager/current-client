@@ -77,7 +77,9 @@ func Fingerprint(repoPath string, task Task) string {
 
 var (
 	taskfileKey = regexp.MustCompile(`^(\s+)([A-Za-z0-9_][A-Za-z0-9_:.-]*)\s*:`)
-	makeTarget  = regexp.MustCompile(`^([A-Za-z0-9_][A-Za-z0-9_.-]*)\s*:([^=]|$)`)
+	makeTarget  = regexp.MustCompile(`^([A-Za-z0-9_][A-Za-z0-9_.-]*)\s*::?([^=:]|$)`)
+	// A script's name goes on a command line, so anything else isn't offered.
+	npmScriptName = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_:.-]*$`)
 )
 
 func taskfileTasks(repoPath string) []Task {
@@ -155,7 +157,9 @@ func npmTasks(repoPath string) []Task {
 	}
 	names := make([]string, 0, len(manifest.Scripts))
 	for name := range manifest.Scripts {
-		names = append(names, name)
+		if npmScriptName.MatchString(name) {
+			names = append(names, name)
+		}
 	}
 	sort.Strings(names)
 	found := make([]Task, 0, len(names))

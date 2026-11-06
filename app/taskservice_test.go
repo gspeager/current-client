@@ -29,7 +29,11 @@ func TestARunNeedsApprovalAndAgainAfterAChange(t *testing.T) {
 		t.Fatal("an unapproved command ran")
 	}
 
-	if err := s.Approve(repo, "make:go"); err != nil {
+	listed, _ := s.List(repo)
+	if err := s.Approve(repo, "make:go", "something else"); err == nil {
+		t.Fatal("approved a version that wasn't shown")
+	}
+	if err := s.Approve(repo, "make:go", listed.Tasks[0].Fingerprint); err != nil {
 		t.Fatal(err)
 	}
 	if list, _ = s.List(repo); !list.Tasks[0].Approved {

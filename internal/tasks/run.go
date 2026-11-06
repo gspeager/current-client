@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
 	"os/exec"
 	"runtime"
 	"sync"
@@ -45,7 +46,13 @@ func shellCommand(command string) *exec.Cmd {
 	if runtime.GOOS == "windows" {
 		return exec.Command("cmd.exe", "/C", command)
 	}
-	return exec.Command("/bin/sh", "-c", command)
+	// A login shell, as the terminal uses: an app opened from the desktop has a
+	// bare PATH, without Homebrew, nvm and the like.
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+	return exec.Command(shell, "-lc", command)
 }
 
 // Start runs command in dir, with its output and errors together, as a terminal

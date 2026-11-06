@@ -25,6 +25,7 @@ const task = (overrides: Partial<TaskInfo> = {}): TaskInfo => ({
   file: 'Makefile',
   note: '',
   approved: true,
+  fingerprint: 'seen',
   custom: false,
   ...overrides,
 })
@@ -74,7 +75,7 @@ describe('tasks', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'Run' }))
     await vi.waitFor(() => expect(TaskService.Run).toHaveBeenCalledWith('/repo', 'make:test', expect.any(String)))
-    expect(TaskService.Approve).toHaveBeenCalledWith('/repo', 'make:test')
+    expect(TaskService.Approve).toHaveBeenCalledWith('/repo', 'make:test', 'seen')
   })
 
   it('runs nothing when the question is declined', async () => {
@@ -113,6 +114,16 @@ describe('tasks', () => {
     await user.click(await screen.findByRole('button', { name: 'Run test' }))
     expect(await screen.findByText('Passed')).toBeInTheDocument()
     expect(screen.getByLabelText('Output of test').textContent).toBe('quick')
+  })
+
+  it("doesn't start a command that's already running", async () => {
+    const user = userEvent.setup()
+    renderTasks(list({ beforeCommit: ['make:test'] }))
+    await user.click(await screen.findByRole('button', { name: 'Run test' }))
+    await screen.findByText('Running')
+    await user.click(screen.getByRole('button', { name: 'committed' }))
+    await act(async () => {})
+    expect(TaskService.Run).toHaveBeenCalledTimes(1)
   })
 
   it('stops a running command', async () => {

@@ -33,8 +33,10 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
   } = useAsyncData(() => (repoPath ? TaskService.List(repoPath) : null), [repoPath], { refreshKey })
   const [runs, setRuns] = useState<Record<string, TaskRun>>({})
   const [error, setError] = useState<string | null>(null)
-  const [warning, setWarning] = useState<string | null>(null)
+  const [warning, setWarning] = useState<{ repo: string; text: string } | null>(null)
   const taskOfRun = useRef(new Map<string, string>())
+  // Read when starting one, as a closure kept from before a push can be behind `runs`.
+  const running = useRef(new Set<string>())
   const decoders = useRef(new Map<string, TextDecoder>())
   const checklistRuns = useRef(new Map<string, string>())
 
@@ -62,6 +64,8 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
         const taskKey = taskOfRun.current.get(data.runId)
         if (!taskKey) return
         decoders.current.delete(data.runId)
+        taskOfRun.current.delete(data.runId)
+        running.current.delete(taskKey)
         const status: RunStatus = data.stopped ? 'stopped' : data.exitCode === 0 ? 'passed' : 'failed'
         setRuns((prev) => {
           const run = prev[taskKey]
@@ -70,7 +74,10 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
         })
         const checklist = checklistRuns.current.get(data.runId)
         if (checklist && status === 'failed') {
-          setWarning(`${checklist} failed after the last commit or push. It didn't stop it.`)
+          setWarning({
+            repo: taskKey.split('\0')[0],
+            text: `${checklist} failed after the last commit or push. It didn't stop it.`,
+          })
         }
         checklistRuns.current.delete(data.runId)
       },
@@ -87,10 +94,12 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
   // call that started it returns.
   const launch = async (task: TaskInfo, checklist = false) => {
     if (!repoPath) return
+    const taskKey = key(task.id)
+    if (running.current.has(taskKey)) return
+    running.current.add(taskKey)
     setError(null)
     nextRun += 1
     const runId = `run-${Date.now()}-${nextRun}`
-    const taskKey = key(task.id)
     taskOfRun.current.set(runId, taskKey)
     if (checklist) checklistRuns.current.set(runId, task.name)
     setRuns((prev) => ({ ...prev, [taskKey]: { runId, status: 'running', output: '', exitCode: 0, durationMs: 0 } }))
@@ -98,6 +107,9 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
       await TaskService.Run(repoPath, task.id, runId)
     } catch (err: unknown) {
       setError(errorMessage(err))
+      taskOfRun.current.delete(runId)
+      checklistRuns.current.delete(runId)
+      running.current.delete(taskKey)
       setRuns((prev) => {
         const next = { ...prev }
         delete next[taskKey]
@@ -127,7 +139,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
       })
       if (!confirmed) return
       try {
-        await TaskService.Approve(repoPath, task.id)
+        await TaskService.Approve(repoPath, task.id, task.fingerprint)
       } catch (err: unknown) {
         setError(errorMessage(err))
         return
@@ -151,10 +163,13 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
     const ids = kind === 'commit' ? fresh.beforeCommit : fresh.beforePush
     const chosen = fresh.tasks.filter((task) => ids.includes(task.id))
     const skipped = chosen.filter((task) => !task.approved)
-    setWarning(skipped.length > 0 ? `Not run, since not approved: ${skipped.map((t) => t.name).join(', ')}.` : null)
-    // One already running isn't started twice, as a commit can follow a commit quickly.
+    setWarning(
+      skipped.length > 0
+        ? { repo: repoPath, text: `Not run, since not approved: ${skipped.map((t) => t.name).join(', ')}.` }
+        : null,
+    )
     for (const task of chosen) {
-      if (task.approved && runs[key(task.id)]?.status !== 'running') void launch(task, true)
+      if (task.approved) void launch(task, true)
     }
   }
 
@@ -171,7 +186,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
   return {
     list,
     error: error ?? listError,
-    warning,
+    warning: warning?.repo === repoPath ? warning.text : null,
     dismissWarning: () => setWarning(null),
     run,
     stop,

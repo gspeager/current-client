@@ -44,7 +44,9 @@ type TaskInfo struct {
 	File     string `json:"file"`
 	Note     string `json:"note"`
 	Approved bool   `json:"approved"`
-	Custom   bool   `json:"custom"`
+	// Fingerprint goes back to Approve, so approval covers what was shown.
+	Fingerprint string `json:"fingerprint"`
+	Custom      bool   `json:"custom"`
 }
 
 type TaskListInfo struct {
@@ -76,28 +78,33 @@ func (s *TaskService) List(repoPath string) (TaskListInfo, error) {
 		Dir:          repoPath,
 	}
 	for _, task := range tasks.Discover(repoPath, customTasks(cfg, repoPath)) {
+		fingerprint := tasks.Fingerprint(repoPath, task)
 		list.Tasks = append(list.Tasks, TaskInfo{
-			ID:       task.ID,
-			Source:   task.Source,
-			Name:     task.Name,
-			Command:  task.Command,
-			File:     task.File,
-			Note:     task.Note,
-			Approved: cfg.TaskApprovals[repoPath][task.ID] == tasks.Fingerprint(repoPath, task),
-			Custom:   task.Source == tasks.SourceCustom,
+			ID:          task.ID,
+			Source:      task.Source,
+			Name:        task.Name,
+			Command:     task.Command,
+			File:        task.File,
+			Note:        task.Note,
+			Approved:    cfg.TaskApprovals[repoPath][task.ID] == fingerprint,
+			Fingerprint: fingerprint,
+			Custom:      task.Source == tasks.SourceCustom,
 		})
 	}
 	return list, nil
 }
 
-// Approve records what the user saw, so it asks again if the command changes.
-func (s *TaskService) Approve(repoPath, id string) error {
+// Approve records what the user saw, so it asks again if the command changes. It
+// refuses if the file changed while they were reading.
+func (s *TaskService) Approve(repoPath, id, seen string) error {
 	cfg := configOrDefault()
 	task, ok := tasks.Find(repoPath, customTasks(cfg, repoPath), id)
 	if !ok {
 		return errors.New("this command is no longer here")
 	}
-	fingerprint := tasks.Fingerprint(repoPath, task)
+	if tasks.Fingerprint(repoPath, task) != seen {
+		return errors.New("this command changed while it was shown. Run it again to see the new version")
+	}
 	return updateConfig(func(cfg *config.Config) {
 		if cfg.TaskApprovals == nil {
 			cfg.TaskApprovals = map[string]map[string]string{}
@@ -105,7 +112,7 @@ func (s *TaskService) Approve(repoPath, id string) error {
 		if cfg.TaskApprovals[repoPath] == nil {
 			cfg.TaskApprovals[repoPath] = map[string]string{}
 		}
-		cfg.TaskApprovals[repoPath][id] = fingerprint
+		cfg.TaskApprovals[repoPath][id] = seen
 	})
 }
 
