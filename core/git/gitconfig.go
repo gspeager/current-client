@@ -88,7 +88,7 @@ var secretConfigKey = regexp.MustCompile(`(?i)(password|passwd|smtppass|token|se
 func redactConfig(key, value string) (string, string) {
 	inlineHelper := strings.HasPrefix(key, "credential.") && strings.HasSuffix(key, ".helper") && strings.HasPrefix(value, "!")
 	if value != "" && (secretConfigKey.MatchString(key) || inlineHelper) {
-		return gitexec.RedactSecrets(key), "<token>"
+		return gitexec.RedactSecrets(key), gitexec.RedactedSecret
 	}
 	return gitexec.RedactSecrets(key), gitexec.RedactSecrets(value)
 }
