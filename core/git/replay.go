@@ -2,8 +2,6 @@ package git
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -170,15 +168,18 @@ func PreviewRebase(ctx context.Context, repoPath, onto string) (RebasePreview, e
 	if merges, err := CountCommits(ctx, repoPath, "--merges", onto+"..HEAD"); err == nil {
 		preview.DroppedMerges = merges
 	}
+	// git rebase has nothing to do on a line already built on onto.
+	if preview.DroppedMerges == 0 && isAncestor(ctx, repoPath, onto, "HEAD") {
+		shas, preview.Commits = nil, nil
+	}
 
 	if len(shas) > 0 {
+		// The rebase may still work, such as with a root commit in the range,
+		// which has no parent to replay from.
 		steps, err := ReplayCommits(ctx, repoPath, onto, shas)
-		switch {
-		case errors.Is(err, ErrMergeTreeUnsupported):
+		if err != nil {
 			preview.Predicted = false
-		case err != nil:
-			return preview, fmt.Errorf("predicting the rebase: %w", err)
-		default:
+		} else {
 			for i, step := range steps {
 				preview.Commits[i].Outcome = step.Outcome
 				preview.Commits[i].Files = step.Files

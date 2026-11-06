@@ -208,6 +208,30 @@ func TestPreviewRebaseWithNothingToDo(t *testing.T) {
 	}
 }
 
+func TestPreviewRebaseWithABranchAlreadyOnTheTarget(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "branch", "-M", "main")
+	gittest.CommitFile(t, dir, "f.txt", "1\n", "base")
+	gittest.Run(t, dir, "switch", "-c", "topic")
+	gittest.CommitFile(t, dir, "g.txt", "g\n", "ahead")
+	preview, err := PreviewRebase(context.Background(), dir, "main")
+	if err != nil || len(preview.Commits) != 0 {
+		t.Fatalf("preview = %+v, %v", preview, err)
+	}
+}
+
+func TestPreviewRebaseWithUnrelatedHistoryStillOffersIt(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.Run(t, dir, "branch", "-M", "main")
+	gittest.CommitFile(t, dir, "f.txt", "1\n", "base")
+	gittest.Run(t, dir, "switch", "--orphan", "other")
+	gittest.CommitFile(t, dir, "g.txt", "g\n", "unrelated root")
+	preview, err := PreviewRebase(context.Background(), dir, "main")
+	if err != nil || preview.Predicted || len(preview.Commits) != 1 {
+		t.Fatalf("preview = %+v, %v", preview, err)
+	}
+}
+
 func TestPreviewRebaseCountsMergesItWouldFlatten(t *testing.T) {
 	dir := gittest.InitRepo(t)
 	gittest.Run(t, dir, "branch", "-M", "main")
