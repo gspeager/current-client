@@ -16,6 +16,7 @@ import {
   ScrollText,
   Settings,
   Tag,
+  Table,
 } from 'lucide-react'
 import {
   BranchService,
@@ -604,6 +605,14 @@ function App({
       icon: ClipboardList,
       keywords: ['what i did', 'summary', 'yesterday', 'this week'],
       run: () => setStandupOpen(true),
+    },
+    {
+      id: 'branch-review',
+      label: 'Branch review',
+      section: 'Tools',
+      icon: Table,
+      keywords: ['branches', 'stale', 'unpushed', 'bulk delete', 'grid'],
+      run: () => requestSidebar('branch-review'),
     },
     {
       id: 'clean-up-branches',

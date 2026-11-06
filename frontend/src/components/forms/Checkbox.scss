@@ -38,3 +38,8 @@
   font: var(--ui-sm);
   white-space: nowrap;
 }
+
+.checkbox:has(input:disabled) {
+  opacity: 0.45;
+  cursor: default;
+}
