@@ -20,7 +20,7 @@ interface RemotesPanelProps {
 
 // The host for a URL; null for a filesystem remote, whose path is shown instead.
 function hostLabel(url: string): string | null {
-  const httpMatch = url.match(/^\w+:\/\/([^/]+)/)
+  const httpMatch = url.match(/^\w+:\/\/(?:[^/]*@)?([^/]+)/)
   if (httpMatch) return httpMatch[1].replace(/^www\./, '')
   const sshMatch = url.match(/^[\w.-]+@([^:/]+)/)
   if (sshMatch) return sshMatch[1]
