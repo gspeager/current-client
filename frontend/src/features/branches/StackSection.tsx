@@ -78,7 +78,7 @@ function StackSection({
     setNotice(null)
     try {
       const remote = await primaryRemoteName(repoPath)
-      const branches = stack.layers.filter((layer) => !layer.missing).map((layer) => layer.branch)
+      const branches = stack.layers.filter((layer) => !layer.missing && !layer.merged).map((layer) => layer.branch)
       const protections = await Promise.all(
         branches.map((branch) => protectionFor(repoPath, `${remote}/${branch}`, 'force-push')),
       )

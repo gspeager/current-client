@@ -335,7 +335,8 @@ function App({
   )
   const { data: tracker } = useAsyncData(
     () => (repo.repoPath ? TrackerService.Links(repo.repoPath) : null),
-    [repo.repoPath, hostsVersion],
+    [repo.repoPath],
+    { refreshKey: hostsVersion },
   )
   const issueActions = useMemo(
     () => ({

@@ -148,10 +148,16 @@ function BranchSidebar({
     if (request?.action === 'tidy-up') setTidyUp(true)
     if (request?.action === 'restack') {
       const stack = stackWith(branchStatus?.current ?? '')
-      if (stack) setRestack(stack.root)
-      else setActionError("The current branch isn't in a stack.")
+      if (stack) {
+        if (!sections.isOpen('branches', true)) sections.toggle('branches', true)
+        if (!sections.isOpen('branches-stacks', true)) sections.toggle('branches-stacks', true)
+        setRestack(stack.root)
+      } else {
+        setActionError("The current branch isn't in a stack.")
+      }
     }
     if (request?.action === 'new-branch') setShowNewBranch(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request])
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
@@ -363,7 +369,11 @@ function BranchSidebar({
         { label: 'Rebase current onto…', onClick: () => setRebasePreview(b.name), disabled: b.current },
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
         { label: 'New stacked branch…', onClick: () => void newStackedBranch(b.name) },
-        { label: 'Stack current on this', onClick: () => stackCurrentOn(b.name), disabled: b.current },
+        {
+          label: 'Stack current on this',
+          onClick: () => stackCurrentOn(b.name),
+          disabled: b.current || !branchStatus?.current || branchStatus.current === defaultBranch,
+        },
         ...(stackWith(b.name) ? [{ label: 'Remove from stack', onClick: () => removeFromStack(b.name) }] : []),
         ...(hostLinks?.tree
           ? [{ label: 'Open on host', onClick: () => void PlatformService.OpenWebPage(branchHostPage(b)) }]
@@ -689,7 +699,7 @@ function BranchSidebar({
                     current={branchStatus?.current ?? null}
                     restack={restack}
                     onRestackChange={setRestack}
-                    onCheckout={checkoutBranch}
+                    onCheckout={(name) => !blocked && checkoutBranch(name)}
                     onRowMenu={(name) => {
                       const branch = branches.find((b) => b.name === name)
                       return branch && branchContextMenu(branch)

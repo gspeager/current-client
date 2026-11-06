@@ -68,6 +68,8 @@ func planRestack(ctx context.Context, repoPath string, links []StackLink) ([]res
 			onto = next
 		}
 		step := restackStep{link: link, onto: onto}
+		// Qualified, as a tag of the same name would otherwise win.
+		ontoRef := "refs/heads/" + onto
 		tip, err := ResolveCommit(ctx, repoPath, "refs/heads/"+link.Branch)
 		if err != nil {
 			step.missing = true
@@ -77,7 +79,7 @@ func planRestack(ctx context.Context, repoPath string, links []StackLink) ([]res
 		}
 		step.from = link.ParentTip
 		if step.from == "" || !isAncestor(ctx, repoPath, step.from, tip) {
-			base, err := MergeBase(ctx, repoPath, onto, tip)
+			base, err := MergeBase(ctx, repoPath, ontoRef, tip)
 			if err != nil {
 				return nil, err
 			}
@@ -86,13 +88,13 @@ func planRestack(ctx context.Context, repoPath string, links []StackLink) ([]res
 		if step.commits, err = CountCommits(ctx, repoPath, step.from+".."+tip); err != nil {
 			return nil, err
 		}
-		if step.commits > 0 && mergedInto(ctx, repoPath, onto, tip) {
+		if step.commits > 0 && mergedInto(ctx, repoPath, ontoRef, tip) {
 			step.merged = true
 			replaced[link.Branch] = onto
 			steps = append(steps, step)
 			continue
 		}
-		step.moves = moved[onto] || !isAncestor(ctx, repoPath, onto, tip)
+		step.moves = moved[onto] || !isAncestor(ctx, repoPath, ontoRef, tip)
 		moved[link.Branch] = step.moves
 		steps = append(steps, step)
 	}
@@ -200,10 +202,11 @@ func PreviewRestack(ctx context.Context, repoPath string, links []StackLink) (Re
 			}
 			onto, known := predicted[step.onto]
 			if !known {
-				onto = step.onto
+				onto = "refs/heads/" + step.onto
 			}
-			tip := ""
+			tip := onto
 			if onto != "" && len(shas) > 0 {
+				tip = ""
 				replay, end, err := replayToTip(ctx, repoPath, onto, shas)
 				if err != nil {
 					preview.Predicted = false
@@ -311,8 +314,9 @@ func Restack(ctx context.Context, repoPath string, links []StackLink) (RestackRe
 			if err != nil {
 				return result, err
 			}
-			args := []string{"rebase", "--onto", step.onto, step.from, step.link.Branch}
+			args := []string{"rebase", "--onto", "refs/heads/" + step.onto, step.from, step.link.Branch}
 			if _, err := runStoppable(ctx, gitexec.Command{Dir: repoPath, Args: args}); err != nil {
+				_ = CheckoutBranch(ctx, repoPath, start)
 				return result, err
 			}
 			state, err := DetectConflictState(ctx, repoPath)
@@ -339,6 +343,11 @@ func Restack(ctx context.Context, repoPath string, links []StackLink) (RestackRe
 	return result, CheckoutBranch(ctx, repoPath, start)
 }
 
+// StackMovedError is a restack that can no longer be undone, however long it waits.
+type StackMovedError struct{ Message string }
+
+func (e *StackMovedError) Error() string { return e.Message }
+
 // UndoRestack puts each moved branch back, refusing if one has moved since, so it
 // can't throw away later work.
 func UndoRestack(ctx context.Context, repoPath string, moves []StackMove) error {
@@ -361,10 +370,10 @@ func UndoRestack(ctx context.Context, repoPath string, moves []StackMove) error 
 	for _, move := range moves {
 		tip, err := ResolveCommit(ctx, repoPath, "refs/heads/"+move.Branch)
 		if err != nil {
-			return &gitexec.AppError{Message: move.Branch + " is gone, so the restack can't be undone."}
+			return &StackMovedError{move.Branch + " is gone, so the restack can't be undone."}
 		}
 		if move.After != "" && tip != move.After {
-			return &gitexec.AppError{Message: move.Branch + " has changed since the restack, so it can't be undone."}
+			return &StackMovedError{move.Branch + " has changed since the restack, so it can't be undone."}
 		}
 		tips[move.Branch] = tip
 		for _, worktree := range worktrees {
@@ -390,7 +399,7 @@ func UndoRestack(ctx context.Context, repoPath string, moves []StackMove) error 
 // PushStack pushes every layer with --force-with-lease, all or none where the
 // server can do that, so a rejected layer can't leave the rest out of step.
 func PushStack(ctx context.Context, repoPath, remote string, branches []string) error {
-	args := []string{"push", "--force-with-lease", "--set-upstream", remote}
+	args := []string{"push", "--force-with-lease", remote}
 	for _, branch := range branches {
 		args = append(args, "refs/heads/"+branch+":refs/heads/"+branch)
 	}
@@ -399,5 +408,16 @@ func PushStack(ctx context.Context, repoPath, remote string, branches []string) 
 	if err != nil && strings.Contains(err.Error(), "--atomic") {
 		_, err = runResult(ctx, repoPath, args...)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	// Only where there's none: a layer tracking somewhere else keeps tracking it.
+	for _, branch := range branches {
+		if _, err := runResult(ctx, repoPath, "rev-parse", "--abbrev-ref", branch+"@{upstream}"); err != nil {
+			if err := SetUpstream(ctx, repoPath, branch, remote+"/"+branch); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

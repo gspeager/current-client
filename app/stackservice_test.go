@@ -94,3 +94,51 @@ func TestStackServiceFollowsAStackThroughARestack(t *testing.T) {
 		t.Fatalf("after remove and rename: %+v", layer)
 	}
 }
+
+func TestUndoRestackKeepsItsOfferWhenItCanOnlyWaitButNotWhenABranchMoved(t *testing.T) {
+	s := &StackService{}
+	repo := recoverRepo(t)
+	if err := s.NewLayer(repo, "bottom", "main"); err != nil {
+		t.Fatal(err)
+	}
+	write(t, repo, "b.txt", "b\n")
+	gitIn(t, repo, "add", ".")
+	gitIn(t, repo, "commit", "-q", "-m", "bottom")
+	gitIn(t, repo, "switch", "-q", "main")
+	write(t, repo, "m.txt", "m\n")
+	gitIn(t, repo, "add", ".")
+	gitIn(t, repo, "commit", "-q", "-m", "main moved")
+	gitIn(t, repo, "switch", "-q", "bottom")
+	if _, err := s.Restack(repo, "bottom"); err != nil {
+		t.Fatal(err)
+	}
+
+	// A conflict in progress only has to finish.
+	gitIn(t, repo, "switch", "-q", "main")
+	write(t, repo, "m.txt", "main's\n")
+	gitIn(t, repo, "commit", "-qam", "ours")
+	gitIn(t, repo, "switch", "-q", "-c", "side", "HEAD~1")
+	write(t, repo, "m.txt", "side's\n")
+	gitIn(t, repo, "commit", "-qam", "theirs")
+	if err := exec.Command("git", "-C", repo, "merge", "main").Run(); err == nil {
+		t.Fatal("wanted a conflict")
+	}
+	if err := s.UndoRestack(repo); err == nil {
+		t.Fatal("undid during a conflict")
+	}
+	if list, _ := s.List(repo); !list.CanUndo {
+		t.Fatal("waiting for a conflict ended the offer")
+	}
+	gitIn(t, repo, "merge", "--abort")
+
+	gitIn(t, repo, "switch", "-q", "bottom")
+	write(t, repo, "later.txt", "later\n")
+	gitIn(t, repo, "add", ".")
+	gitIn(t, repo, "commit", "-q", "-m", "later")
+	if err := s.UndoRestack(repo); err == nil {
+		t.Fatal("undid over later work")
+	}
+	if list, _ := s.List(repo); list.CanUndo {
+		t.Fatal("a branch that moved on should end the offer")
+	}
+}

@@ -279,9 +279,17 @@ func (s *StackService) UndoRestack(repoPath string) error {
 		return errors.New("there's no restack to undo")
 	}
 	moves := mapSlice(undo.Moves, func(move config.StackMove) git.StackMove { return git.StackMove(move) })
+	// The layer a restack stopped on may have gained work since. Recover keeps it.
+	for _, move := range moves {
+		if move.After == "" {
+			if tip, err := git.ResolveCommit(context.Background(), repoPath, "refs/heads/"+move.Branch); err == nil && tip != move.Before {
+				snapshotTip(repoPath, "undo restack", move.Branch, tip)
+			}
+		}
+	}
 	err := git.UndoRestack(context.Background(), repoPath, moves)
-	var refusal *gitexec.AppError
-	if err != nil && !errors.As(err, &refusal) {
+	var movedOn *git.StackMovedError
+	if err != nil && !errors.As(err, &movedOn) {
 		return err
 	}
 	return errors.Join(err, updateConfig(func(cfg *config.Config) {
@@ -297,8 +305,16 @@ func (s *StackService) PushAll(ctx context.Context, repoPath, root, remote strin
 	if err != nil {
 		return err
 	}
+	layers, err := git.StackLayers(ctx, repoPath, stackOf(linksOf(repoPath), root))
+	if err != nil {
+		return err
+	}
 	var branches []string
-	for _, link := range stackOf(linksOf(repoPath), root) {
+	for _, link := range layers {
+		// Merged: a host may have deleted it, and this would bring it back.
+		if link.Merged {
+			continue
+		}
 		if tip, err := git.ResolveCommit(ctx, repoPath, "refs/heads/"+link.Branch); err == nil {
 			branches = append(branches, link.Branch)
 			// What the push overwrites on the remote, as of the last fetch.

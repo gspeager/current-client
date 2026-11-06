@@ -140,12 +140,32 @@ describe('StackSection', () => {
 
     await user.click(screen.getByRole('button', { name: 'Push all' }))
     const dialog = await screen.findByRole('alertdialog', { name: 'Push all' })
-    expect(within(dialog).getByText(/bottom, top to origin with --force-with-lease/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/Push top to origin with --force-with-lease/)).toBeInTheDocument()
     expect(StackService.PushAll).not.toHaveBeenCalled()
 
     await user.click(within(dialog).getByRole('button', { name: 'Push all' }))
-    expect(await screen.findByText('Pushed 2 branches.')).toBeInTheDocument()
+    expect(await screen.findByText('Pushed 1 branch.')).toBeInTheDocument()
     expect(StackService.PushAll).toHaveBeenCalledWith('/repo', 'bottom', 'origin', null)
+  })
+
+  it('leaves a merged layer out of Push all', async () => {
+    const user = userEvent.setup()
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin' } as never])
+    renderStacks(
+      list({
+        stacks: [
+          {
+            root: 'bottom',
+            base: 'main',
+            needsRestack: true,
+            layers: [layer('bottom', 'main', 0, { merged: true }), layer('top', 'bottom', 1)],
+          },
+        ],
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Push all' }))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Push all' })
+    expect(within(dialog).getByText(/Push top to origin/)).toBeInTheDocument()
   })
 
   it('checks out a layer, but not the current one', async () => {

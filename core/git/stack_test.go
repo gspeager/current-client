@@ -354,3 +354,53 @@ func TestPushStackIsAllOrNoneAndUsesTheLease(t *testing.T) {
 	}
 }
 
+func TestPushStackKeepsAnUpstreamAlreadySet(t *testing.T) {
+	ctx := context.Background()
+	dir, _ := threeLayers(t)
+	for _, name := range []string{"origin", "fork"} {
+		remote := t.TempDir()
+		gittest.Run(t, remote, "init", "--bare", "-q")
+		gittest.Run(t, dir, "remote", "add", name, remote)
+	}
+	gittest.Run(t, dir, "push", "-q", "-u", "fork", "top")
+	if err := PushStack(ctx, dir, "origin", []string{"middle", "top"}); err != nil {
+		t.Fatal(err)
+	}
+	if up := gittest.Run(t, dir, "rev-parse", "--abbrev-ref", "top@{upstream}"); up != "fork/top" {
+		t.Fatalf("top now tracks %s", up)
+	}
+	if up := gittest.Run(t, dir, "rev-parse", "--abbrev-ref", "middle@{upstream}"); up != "origin/middle" {
+		t.Fatalf("middle tracks %s", up)
+	}
+}
+
+func TestRestackPrefersTheBranchOverATagOfTheSameName(t *testing.T) {
+	ctx := context.Background()
+	dir, links := threeLayers(t)
+	gittest.Run(t, dir, "tag", "bottom", "main")
+	gittest.Run(t, dir, "switch", "bottom")
+	gittest.Run(t, dir, "commit", "--amend", "-m", "bottom amended")
+	gittest.Run(t, dir, "switch", "top")
+	if _, err := Restack(ctx, dir, links); err != nil {
+		t.Fatal(err)
+	}
+	assertLine(t, dir, "refs/heads/top", "base", "bottom amended", "middle", "top")
+}
+
+func TestPreviewPredictsAboveALayerWithNoCommits(t *testing.T) {
+	ctx := context.Background()
+	dir, links := threeLayers(t)
+	bottom := gittest.Run(t, dir, "rev-parse", "bottom")
+	links = []StackLink{links[0], {Branch: "empty", Parent: "bottom", ParentTip: bottom}, {Branch: "top", Parent: "empty", ParentTip: bottom}}
+	gittest.Run(t, dir, "branch", "empty", "bottom")
+	gittest.Run(t, dir, "switch", "bottom")
+	gittest.Run(t, dir, "commit", "--amend", "-m", "bottom amended")
+	gittest.Run(t, dir, "switch", "top")
+	preview, err := PreviewRestack(ctx, dir, links)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := preview.Layers[2].Commits[0].Outcome; got != ReplayClean {
+		t.Fatalf("above the empty layer: %s", got)
+	}
+}
