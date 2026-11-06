@@ -49,6 +49,39 @@ func (s *HistoryService) GetHistory(repoPath string, limit, skip int, filter His
 	return commitInfos(entries), nil
 }
 
+type OverviewDayInfo struct {
+	Date     string `json:"date"`
+	Commits  int    `json:"commits"`
+	FirstRow int    `json:"firstRow"`
+}
+
+type OverviewMarkerInfo struct {
+	Kind string `json:"kind"`
+	Name string `json:"name"`
+	Date string `json:"date"`
+}
+
+type HistoryOverviewInfo struct {
+	Days    []OverviewDayInfo    `json:"days"`
+	Markers []OverviewMarkerInfo `json:"markers"`
+}
+
+// GetHistoryOverview describes every commit GetHistory would list under filter.
+func (s *HistoryService) GetHistoryOverview(repoPath string, filter HistoryFilterInfo) (HistoryOverviewInfo, error) {
+	overview, err := git.Overview(context.Background(), repoPath, git.HistoryFilter(filter))
+	if err != nil {
+		return HistoryOverviewInfo{}, err
+	}
+	return HistoryOverviewInfo{
+		Days: mapSlice(overview.Days, func(day git.OverviewDay) OverviewDayInfo {
+			return OverviewDayInfo{day.Day.Format(time.RFC3339), day.Commits, day.FirstRow}
+		}),
+		Markers: mapSlice(overview.Markers, func(marker git.OverviewMarker) OverviewMarkerInfo {
+			return OverviewMarkerInfo{marker.Kind, marker.Name, marker.At.Format(time.RFC3339)}
+		}),
+	}, nil
+}
+
 func (s *HistoryService) SearchHistory(repoPath, query string, limit int) ([]CommitInfo, error) {
 	entries, err := git.SearchHistory(context.Background(), repoPath, query, limit)
 	if err != nil {
