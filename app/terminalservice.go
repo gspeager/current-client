@@ -66,6 +66,7 @@ func (s *TerminalService) Start(repoPath string, cols, rows int) (string, error)
 		Env:  terminal.Environment(os.Environ(), gitPath),
 		Cols: cols,
 		Rows: rows,
+		Hold: true,
 		OnOutput: func(data []byte) {
 			<-started
 			emit(terminalOutputEvent, TerminalOutputEvent{id, base64.StdEncoding.EncodeToString(data)})
@@ -77,6 +78,11 @@ func (s *TerminalService) Start(repoPath string, cols, rows int) (string, error)
 	})
 	close(started)
 	return id, err
+}
+
+// Attach says the view is listening, so output can start.
+func (s *TerminalService) Attach(id string) {
+	terminals.Attach(id)
 }
 
 func (s *TerminalService) Write(id, data string) error {
@@ -120,16 +126,31 @@ func GuardWindowClose(current *application.App, window *application.WebviewWindo
 			return
 		}
 		event.Cancel()
-		dialog := current.Dialog.Question()
-		dialog.SetTitle("Quit Current Client")
-		dialog.SetMessage("A process is still running in a terminal. Quitting ends it.")
-		quit := dialog.AddButton("Quit")
-		quit.OnClick(func() {
-			terminals.CloseAll()
-			current.Quit()
-		})
-		cancel := dialog.AddButton("Cancel")
-		dialog.SetCancelButton(cancel)
-		dialog.Show()
+		askBeforeQuitting(current)
 	})
+}
+
+// ShouldQuit covers quitting from the menu, which doesn't close a window first.
+func ShouldQuit() bool {
+	if !terminals.AnyBusy("") {
+		return true
+	}
+	if running := application.Get(); running != nil {
+		askBeforeQuitting(running)
+	}
+	return false
+}
+
+func askBeforeQuitting(current *application.App) {
+	dialog := current.Dialog.Question()
+	dialog.SetTitle("Quit Current Client")
+	dialog.SetMessage("A process is still running in a terminal. Quitting ends it.")
+	quit := dialog.AddButton("Quit")
+	quit.OnClick(func() {
+		terminals.CloseAll()
+		current.Quit()
+	})
+	cancel := dialog.AddButton("Cancel")
+	dialog.SetCancelButton(cancel)
+	dialog.Show()
 }

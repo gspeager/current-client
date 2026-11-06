@@ -27,12 +27,14 @@ const (
 
 // Options starts a session. OnOutput and OnExit run on the session's goroutines.
 type Options struct {
-	Dir      string
-	Name     string
-	Args     []string
-	Env      []string
-	Cols     int
-	Rows     int
+	Dir  string
+	Name string
+	Args []string
+	Env  []string
+	Cols int
+	Rows int
+	// Hold keeps output back until Attach, for a view that can't listen yet.
+	Hold     bool
 	OnOutput func(data []byte)
 	OnExit   func(code int)
 }
@@ -43,6 +45,9 @@ type session struct {
 	console pty.Pty
 	cmd     *pty.Cmd
 	done    chan struct{}
+	ready   chan struct{}
+	attach  sync.Once
+	closing sync.Once
 
 	mu      sync.Mutex
 	unread  sync.Cond
@@ -86,6 +91,10 @@ func (m *Manager) Start(repo string, options Options) (string, error) {
 		console: console,
 		cmd:     cmd,
 		done:    make(chan struct{}),
+		ready:   make(chan struct{}),
+	}
+	if !options.Hold {
+		s.attach.Do(func() { close(s.ready) })
 	}
 	s.unread.L = &s.mu
 	m.mu.Lock()
@@ -110,7 +119,7 @@ func (m *Manager) Start(repo string, options Options) (string, error) {
 		m.mu.Unlock()
 		close(s.done)
 		<-flushed
-		console.Close()
+		s.closeConsole()
 		if options.OnExit != nil {
 			options.OnExit(code)
 		}
@@ -124,6 +133,17 @@ func exitCode(err error) int {
 		return coded.ExitCode()
 	}
 	return 1
+}
+
+// Attach releases output held back by Options.Hold.
+func (m *Manager) Attach(id string) {
+	if s, err := m.get(id); err == nil {
+		s.attach.Do(func() { close(s.ready) })
+	}
+}
+
+func (s *session) closeConsole() {
+	s.closing.Do(func() { s.console.Close() })
 }
 
 func (s *session) read() {
@@ -150,6 +170,10 @@ func (s *session) read() {
 // thousands of events.
 func (s *session) flush(output func([]byte), finished chan struct{}) {
 	defer close(finished)
+	select {
+	case <-s.ready:
+	case <-s.done:
+	}
 	send := func() {
 		s.mu.Lock()
 		data := s.buffer
@@ -250,7 +274,7 @@ func (m *Manager) Close(id string) error {
 	if s.cmd.Process != nil {
 		killTree(s.cmd.Process.Pid)
 	}
-	s.console.Close()
+	s.closeConsole()
 	select {
 	case <-s.done:
 	case <-time.After(3 * time.Second):

@@ -70,7 +70,7 @@ function TerminalPanel({ repoPath, terminals, focusRequest, theme }: TerminalPan
                   key={shell.id}
                   id={shell.id}
                   visible={shown}
-                  focusRequest={shown ? focusRequest : 0}
+                  focusRequest={focusRequest}
                   theme={theme}
                   onExit={() => terminals.removeShell(repo, shell.id)}
                 />

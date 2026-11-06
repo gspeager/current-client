@@ -31,6 +31,7 @@ func main() {
 		Name:           "current-client",
 		SingleInstance: app.SingleInstance(),
 		OnShutdown:     app.Shutdown,
+		ShouldQuit:     app.ShouldQuit,
 		Description:    "A privacy-first, cross-platform desktop Git client.",
 		Services:       app.Services(),
 		Assets: application.AssetOptions{

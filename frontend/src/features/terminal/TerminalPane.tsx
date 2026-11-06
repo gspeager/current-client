@@ -55,8 +55,20 @@ function TerminalPane({ id, visible, focusRequest, theme, onExit }: TerminalPane
     const fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
     term.open(element)
-    // The toggle goes on to the app; everything else belongs to the shell.
-    term.attachCustomKeyEventHandler((event) => !isTerminalToggle(event))
+    // The toggle goes on to the app, copy and paste are here since Ctrl+C and Ctrl+V
+    // belong to the shell, and everything else goes to the shell.
+    term.attachCustomKeyEventHandler((event) => {
+      if (isTerminalToggle(event)) return false
+      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
+        void navigator.clipboard?.writeText(term.getSelection())
+        return false
+      }
+      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') {
+        void navigator.clipboard?.readText().then((text) => term.paste(text))
+        return false
+      }
+      return true
+    })
     const typed = term.onData((data) => void TerminalService.Write(id, data).catch(() => undefined))
     const resized = term.onResize(
       ({ cols, rows }) => void TerminalService.Resize(id, cols, rows).catch(() => undefined),
@@ -72,6 +84,7 @@ function TerminalPane({ id, visible, focusRequest, theme, onExit }: TerminalPane
     const offExit = Events.On(EXIT_EVENT, ({ data }: { data: { id: string } }) => {
       if (data.id === id) exited.current()
     })
+    void TerminalService.Attach(id).catch(() => undefined)
     return () => {
       offOutput()
       offExit()
@@ -104,8 +117,13 @@ function TerminalPane({ id, visible, focusRequest, theme, onExit }: TerminalPane
     return () => observer.disconnect()
   }, [visible])
 
+  // Only for a new request: a repository tab switch shouldn't pull the focus in.
+  const focused = useRef(0)
   useEffect(() => {
-    if (visible && focusRequest > 0) terminal.current?.focus()
+    if (visible && focusRequest !== focused.current) {
+      focused.current = focusRequest
+      terminal.current?.focus()
+    }
   }, [visible, focusRequest])
 
   useEffect(() => {

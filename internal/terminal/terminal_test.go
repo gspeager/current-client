@@ -253,6 +253,50 @@ func TestBackpressureDoesntLoseOutput(t *testing.T) {
 	}
 }
 
+func TestHeldOutputWaitsForAttach(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses /bin/sh")
+	}
+	dir := t.TempDir()
+	manager := NewManager()
+	var mu sync.Mutex
+	var seen bytes.Buffer
+	id, err := manager.Start(dir, Options{
+		Dir: dir, Name: "/bin/sh", Args: []string{"-c", "echo first; sleep 30"},
+		Env: Environment(os.Environ(), ""), Cols: 80, Rows: 24, Hold: true,
+		OnOutput: func(data []byte) {
+			mu.Lock()
+			seen.Write(data)
+			mu.Unlock()
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = manager.Close(id) })
+	time.Sleep(200 * time.Millisecond)
+	mu.Lock()
+	early := seen.Len()
+	mu.Unlock()
+	if early != 0 {
+		t.Fatalf("output before attach: %d bytes", early)
+	}
+	manager.Attach(id)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		mu.Lock()
+		text := seen.String()
+		mu.Unlock()
+		if strings.Contains(text, "first") {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no output after attach: %q", text)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func TestEnvironmentAddsGitAndATerminalType(t *testing.T) {
 	sep := string(os.PathListSeparator)
 	env := Environment([]string{"PATH=/usr/bin", "TERM=dumb", "HOME=/h"}, filepath.FromSlash("/opt/git/bin/git"))

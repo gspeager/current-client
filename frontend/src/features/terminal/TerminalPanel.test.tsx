@@ -101,6 +101,7 @@ beforeEach(() => {
   document.body.removeAttribute('data-closed')
   vi.mocked(SettingsService.GetPaneWidths).mockResolvedValue({})
   vi.mocked(TerminalService.Start).mockResolvedValue('t1')
+  vi.mocked(TerminalService.Attach).mockResolvedValue()
   vi.mocked(TerminalService.Close).mockResolvedValue()
   vi.mocked(TerminalService.CloseRepo).mockResolvedValue()
   vi.mocked(TerminalService.Write).mockResolvedValue()
@@ -116,6 +117,7 @@ describe('TerminalPanel', () => {
 
     expect(await screen.findByRole('tab', { name: 'Shell 1' })).toBeInTheDocument()
     expect(TerminalService.Start).toHaveBeenCalledWith('/repo', 80, 24)
+    expect(TerminalService.Attach).toHaveBeenCalledWith('t1')
 
     await act(async () => handlers['terminal:output']({ data: { id: 't1', data: btoa('hi') } }))
     expect(new TextDecoder().decode(created[0].written[0])).toBe('hi')
