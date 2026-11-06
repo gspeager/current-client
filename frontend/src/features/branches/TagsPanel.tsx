@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronRight, CloudOff, Copy, PackagePlus, Plus, Tag, Upload, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, CloudOff, Copy, PackagePlus, Plus, StickyNote, Tag, Upload, X } from 'lucide-react'
+import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
 import {
   HostService,
   PlatformService,
@@ -149,6 +150,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     }
   }
 
+  const notes = useNotes()
   const hasTags = (tags?.length ?? 0) > 0
 
   const busy = busyName !== null
@@ -174,6 +176,12 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
           },
         ]
       : []),
+    {
+      label: noteMenuLabel(notes, 'tag', name),
+      ariaLabel: `${noteMenuLabel(notes, 'tag', name)} on tag ${name}`,
+      icon: StickyNote,
+      run: () => notes.edit({ kind: 'tag', target: name }),
+    },
     { label: 'Push tag', ariaLabel: `Push tag ${name}`, icon: Upload, run: () => pushTag(name), disabled: busy },
     { label: 'Copy name', ariaLabel: `Copy ${name}`, icon: Copy, run: () => copy(name), menuOnly: true },
     {
@@ -267,6 +275,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
                     <Tag size={14} strokeWidth={1.5} className="tag-row-icon" />
                   )}
                   <span className="tag-row-name">{t.name}</span>
+                  <NoteMark kind="tag" target={t.name} />
                   <span className="tag-row-time">{relativeTime(new Date(t.date))}</span>
                   <RowActionButtons actions={tagActions(t.name)} className="tag-row-actions" />
                 </div>

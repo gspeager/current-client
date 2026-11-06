@@ -1,3 +1,4 @@
+import { NoteMark } from '../notes/notes'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Ellipsis } from 'lucide-react'
 import { isMenuKey } from '../../components/controls/ContextMenu'
@@ -141,6 +142,7 @@ function CommitRow({
             render={(segment) => highlightMatch(segment, searchQuery, 'search-match')}
           />
         </span>
+        <NoteMark kind="commit" target={commit.sha} />
         {environments && environments.length > 0 && <EnvironmentMarker environments={environments} />}
       </div>
 

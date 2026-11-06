@@ -1,3 +1,4 @@
+import type { NoteInfo } from '@current-client-bindings/app'
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { System } from '@wailsio/runtime'
 import { ArrowDown, ArrowUp, ChevronDown, Inbox, Plus, RefreshCw, Settings, type LucideIcon, X } from 'lucide-react'
@@ -53,6 +54,7 @@ interface HeaderBarProps {
   onBranchChanged?: () => void
   onFetched?: () => void
   onOpenCommit: (sha: string, position: number) => void
+  onOpenNote?: (note: NoteInfo) => void
   syncing: boolean
   // "merge", "rebase", "cherry-pick", "revert" or "am" while one is in progress.
   operation?: string | null
@@ -86,6 +88,7 @@ function HeaderBar({
   onBranchChanged,
   onFetched,
   onOpenCommit,
+  onOpenNote,
   syncing,
   operation = null,
   defaultRepoLocation = '',
@@ -395,6 +398,7 @@ function HeaderBar({
           onOpenFile={setFileHistoryPath}
           onSearchFiles={() => setSearchOpen(true)}
           onOpenCommit={onOpenCommit}
+          onOpenNote={onOpenNote}
         />
       )}
       {fileHistoryPath && (

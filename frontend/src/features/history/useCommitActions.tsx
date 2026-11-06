@@ -6,9 +6,11 @@ import {
   GitBranchPlus,
   GitCommitVertical,
   RotateCcw,
+  StickyNote,
   Undo2,
   type LucideIcon,
 } from 'lucide-react'
+import { noteMenuLabel, useNotes } from '../notes/notes'
 import {
   BranchService,
   type CommitInfo,
@@ -41,6 +43,7 @@ export const PRIMARY_COMMIT_ACTIONS = 4
 // mid-operation.
 export function useCommitActions(repoPath: string, onChanged?: () => void, hostLinks: Links | null = null) {
   const { confirm, prompt } = useDialogs()
+  const notes = useNotes()
   const [error, setError] = useState<string | null>(null)
   const [resetTarget, setResetTarget] = useState<CommitInfo | null>(null)
 
@@ -102,6 +105,12 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
     },
     { id: 'reset', label: 'Reset to here…', icon: Undo2, run: () => setResetTarget(commit) },
     { id: 'export-patch', label: 'Export patch…', icon: FileDown, run: () => exportPatch(commit) },
+    {
+      id: 'note',
+      label: noteMenuLabel(notes, 'commit', commit.sha),
+      icon: StickyNote,
+      run: () => notes.edit({ kind: 'commit', target: commit.sha, subject: commit.subject }),
+    },
     { id: 'copy-sha', label: 'Copy SHA', icon: Copy, run: () => void navigator.clipboard.writeText(commit.sha) },
     ...(hostLinks?.commit
       ? [

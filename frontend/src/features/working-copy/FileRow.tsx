@@ -1,3 +1,4 @@
+import { NoteMark } from '../notes/notes'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Ellipsis, Users, X } from 'lucide-react'
 import { isMenuKey } from '../../components/controls/ContextMenu'
@@ -9,6 +10,8 @@ import ThreadCount from '../../components/git/ThreadCount'
 import './FileRow.scss'
 
 interface FileRowProps {
+  // The file's path when it can carry a note.
+  notePath?: string
   status: string
   label: string
   selected: boolean
@@ -33,6 +36,7 @@ interface FileRowProps {
 }
 
 function FileRow({
+  notePath,
   status,
   label,
   selected,
@@ -75,6 +79,7 @@ function FileRow({
       >
         <PathText path={label} />
       </button>
+      {notePath && <NoteMark kind="file" target={notePath} />}
       <span className="file-row-stats">
         {owners && owners.length > 0 && (
           <span
