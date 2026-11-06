@@ -31,7 +31,6 @@ export function useNotes(): Notes {
 export function useNotesState(repoPath: string | null, refreshKey: unknown) {
   const { data, reload } = useAsyncData(() => (repoPath ? NotesService.List(repoPath) : null), [repoPath], {
     refreshKey,
-    keepData: true,
   })
   const [editing, setEditing] = useState<NoteTarget | null>(null)
   const [listOpen, setListOpen] = useState(false)

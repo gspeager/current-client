@@ -105,6 +105,19 @@ func TestNotesGoStaleRatherThanBeingLost(t *testing.T) {
 	}
 }
 
+func TestANoteOnADetachedCommitIsntStale(t *testing.T) {
+	repo := notesRepo(t)
+	gitIn(t, repo, "switch", "-q", "--detach")
+	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "detached")
+	head := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	if err := new(NotesService).Set(repo, "commit", head, "detached", "here"); err != nil {
+		t.Fatal(err)
+	}
+	if note := noteOn(t, repo, "commit", head); note == nil || note.Stale {
+		t.Fatalf("note = %+v", note)
+	}
+}
+
 func TestNotesNeverReachTheRepositoryOrItsRemote(t *testing.T) {
 	repo := notesRepo(t)
 	const secret = "private note text"

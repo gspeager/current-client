@@ -74,7 +74,7 @@ import ChangelogView from './features/changelog/ChangelogView'
 import ChangesView from './features/working-copy/ChangesView'
 import HistoryView from './features/history/HistoryView'
 import NotesDialogs from './features/notes/NotesDialogs'
-import { NotesContext, useNotesState } from './features/notes/notes'
+import { NotesContext, useNotesState, type NoteKind } from './features/notes/notes'
 import { refFromSaved, savedFromRef } from './features/history/branchFilter'
 import './App.scss'
 
@@ -407,7 +407,9 @@ function App({
 
   const openNote = (note: NoteInfo) => {
     if (!repo.repoPath) return
-    if (note.kind === 'file') {
+    if (note.stale) {
+      notesState.context.edit({ kind: note.kind as NoteKind, target: note.target, subject: note.subject })
+    } else if (note.kind === 'file') {
       openWorkingFile(note.target)
     } else if (note.kind === 'commit') {
       openCommit(note.target)
