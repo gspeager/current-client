@@ -12,6 +12,11 @@ info:
   comments: "Licensed under the Apache License 2.0"
   version: "0.5.0"
 
+protocols:
+  - scheme: current-client
+    description: Current Client repository link
+    role: Viewer
+
 dev_mode:
   root_path: .
   log_level: warn

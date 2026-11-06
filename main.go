@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
 
 	"github.com/gspeager/current-client/app"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -23,10 +24,14 @@ func main() {
 		windowWidth, windowHeight = defaultWindowWidth, defaultWindowHeight
 	}
 
+	workingDir, _ := os.Getwd()
+	app.QueueOpenArgs(os.Args[1:], workingDir)
+
 	currentClient := application.New(application.Options{
-		Name:        "current-client",
-		Description: "A privacy-first, cross-platform desktop Git client.",
-		Services:    app.Services(),
+		Name:           "current-client",
+		SingleInstance: app.SingleInstance(),
+		Description:    "A privacy-first, cross-platform desktop Git client.",
+		Services:       app.Services(),
 		Assets: application.AssetOptions{
 			Handler:    application.AssetFileServerFS(assets),
 			Middleware: app.CSPMiddleware(),
@@ -49,6 +54,8 @@ func main() {
 		Windows:          application.WindowsWindow{Theme: app.TitleBarTheme()},
 		URL:              "/",
 	})
+
+	app.ListenForOpenRequests(currentClient, win)
 
 	win.OnWindowEvent(events.Common.WindowClosing, func(*application.WindowEvent) {
 		width, height := win.Size()

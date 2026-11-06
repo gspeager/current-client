@@ -31,5 +31,31 @@
 		<string>true</string>
 		<key>NSHumanReadableCopyright</key>
 		<string>Copyright 2026 Garrett Speager</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLName</key>
+				<string>io.github.gspeager.current-client</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>current-client</string>
+				</array>
+			</dict>
+		</array>
+		<key>CFBundleDocumentTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeName</key>
+				<string>Folder</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Alternate</string>
+				<key>LSItemContentTypes</key>
+				<array>
+					<string>public.folder</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

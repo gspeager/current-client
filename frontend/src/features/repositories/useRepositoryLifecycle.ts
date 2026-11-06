@@ -57,13 +57,17 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
 
   const openPath = (open: Promise<string>) => {
     setRepoError(null)
-    open
+    return open
       .then((path) => {
         addTab(path)
         refreshRecentRepos()
       })
       .catch((err: unknown) => setRepoError(errorMessage(err)))
   }
+
+  // A request to open a repository from outside waits for this, so restoring
+  // the saved tabs can't take the focus back from it.
+  const [restored, setRestored] = useState(false)
 
   // Restores saved tabs, falling back to the most recent repo.
   useEffect(() => {
@@ -78,7 +82,7 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
       const savedTabs = tabsResult?.tabs ?? []
       if (initialRepoPath) {
         setTabs(savedTabs)
-        openPath(RepositoryService.OpenRepository(initialRepoPath))
+        void openPath(RepositoryService.OpenRepository(initialRepoPath)).finally(() => setRestored(true))
         refreshTabSummaries(savedTabs.filter((p) => p !== initialRepoPath))
       } else if (savedTabs.length > 0) {
         setTabs(savedTabs)
@@ -88,9 +92,14 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
         RepositoryService.OpenRepository(focused)
           .then((path) => setRepoPathState(path))
           .catch((err: unknown) => setRepoError(errorMessage(err)))
-          .finally(() => refreshTabSummaries(savedTabs.filter((p) => p !== focused)))
+          .finally(() => {
+            refreshTabSummaries(savedTabs.filter((p) => p !== focused))
+            setRestored(true)
+          })
       } else if (recentList.length > 0) {
-        openPath(RepositoryService.OpenRepository(recentList[0]))
+        void openPath(RepositoryService.OpenRepository(recentList[0])).finally(() => setRestored(true))
+      } else {
+        setRestored(true)
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -197,6 +206,12 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     cloneRepository,
     tabs,
     tabSummaries,
+    restored,
+    openFromOutside: (path: string) =>
+      RepositoryService.OpenRepository(path).then((opened) => {
+        addTab(opened)
+        refreshRecentRepos()
+      }),
     closeTab,
     reorderTabs,
   }

@@ -6,6 +6,8 @@ export interface ConfirmOptions {
   message: string
   confirmLabel: string
   cancelLabel?: string
+  // Only something to acknowledge, with nothing to decline.
+  noCancel?: boolean
   destructive?: boolean
 }
 
