@@ -96,6 +96,7 @@ function CommitRow({
   useClockTick()
   const { branchColor } = useLaneColors()
   const prefix = (conventional && parsePrefix(commit.subject)?.prefix) || ''
+  const pills = refs ? pairUpstreams(refs, upstreams) : []
   const classes = ['commit-row']
   if (selected) classes.push('commit-row-selected')
   if (isNew) classes.push('commit-row-new')
@@ -128,9 +129,9 @@ function CommitRow({
 
       <div className="commit-row-commit">
         {isHead && <span className="commit-row-head">HEAD</span>}
-        {refs && refs.length > 0 && (
+        {pills.length > 0 && (
           <span className="commit-row-refs">
-            {pairUpstreams(refs, upstreams).map(({ ref: r, upstream }) => (
+            {pills.map(({ ref: r, upstream }) => (
               <RefBadge
                 key={`${r.kind}-${r.name}`}
                 refInfo={r}
@@ -141,6 +142,17 @@ function CommitRow({
                 change={changes?.[upstream?.name ?? (r.kind === 'remote' ? r.name : '')]}
               />
             ))}
+            {pills.length > 1 && (
+              <span
+                className="commit-row-refs-more"
+                title={pills
+                  .slice(1)
+                  .map((p) => p.ref.name)
+                  .join(', ')}
+              >
+                +{pills.length - 1}
+              </span>
+            )}
           </span>
         )}
         <span className="commit-row-subject">

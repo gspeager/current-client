@@ -12,6 +12,11 @@ export interface ConflictRows {
 const isMarker = (line: DiffLine) => line.kind === 'conflict-marker'
 const opensBlock = (line: DiffLine) => isMarker(line) && line.content.startsWith('<<<<<<<')
 
+export const conflictCount = (hunks: DiffHunk[]) => hunks.flatMap((h) => h.lines).filter(opensBlock).length
+
+// A combined header's second range is where the hunk starts on their side.
+const theirsStart = (hunk: DiffHunk) => Number(/^@@@ -\d+(?:,\d+)? -(\d+)/.exec(hunk.header)?.[1] ?? 1)
+
 // The working file as it is, markers included, with no hunk headers.
 function resultRows(lines: DiffLine[]): ConflictRows {
   const rows: DisplayRow[] = []
@@ -25,7 +30,9 @@ function resultRows(lines: DiffLine[]): ConflictRows {
 
 // Ours on the left, theirs on the right. Lines both sides have keep the two
 // columns in step; between them each side's own lines are paired by position.
-function sideBySideRows(lines: DiffLine[]): ConflictRows {
+// Each column numbers its lines as that side's version of the file does: left
+// is the parser's oldLine, right is counted here from the hunk header.
+function sideBySideRows(hunks: DiffHunk[]): ConflictRows {
   const rows: DisplayRow[] = []
   const blockStarts: number[] = []
   let left: DiffLine[] = []
@@ -37,23 +44,27 @@ function sideBySideRows(lines: DiffLine[]): ConflictRows {
     left = []
     right = []
   }
-  for (const line of lines) {
-    if (isMarker(line)) {
-      if (opensBlock(line)) {
-        flush()
-        blockStarts.push(rows.length)
-      } else if (line.content.startsWith('>>>>>>>')) {
-        flush()
+  for (const hunk of hunks) {
+    let theirsLine = theirsStart(hunk)
+    for (const line of hunk.lines) {
+      if (isMarker(line)) {
+        if (opensBlock(line)) {
+          flush()
+          blockStarts.push(rows.length)
+        } else if (line.content.startsWith('>>>>>>>')) {
+          flush()
+        }
+        continue
       }
-      continue
-    }
-    if (line.inOurs && line.inTheirs) {
-      flush()
-      rows.push({ pair: { left: line, right: line } })
-    } else if (line.inOurs) {
-      left.push(line)
-    } else if (line.inTheirs) {
-      right.push(line)
+      const theirs = line.inTheirs ? { ...line, newLine: theirsLine++ } : null
+      if (line.inOurs && theirs) {
+        flush()
+        rows.push({ pair: { left: line, right: theirs } })
+      } else if (line.inOurs) {
+        left.push(line)
+      } else if (theirs) {
+        right.push(theirs)
+      }
     }
   }
   flush()
@@ -61,6 +72,5 @@ function sideBySideRows(lines: DiffLine[]): ConflictRows {
 }
 
 export function conflictRows(hunks: DiffHunk[], view: ConflictView): ConflictRows {
-  const lines = hunks.flatMap((h) => h.lines)
-  return view === 'result' ? resultRows(lines) : sideBySideRows(lines)
+  return view === 'result' ? resultRows(hunks.flatMap((h) => h.lines)) : sideBySideRows(hunks)
 }

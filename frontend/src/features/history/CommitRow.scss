@@ -49,8 +49,21 @@
     display: none;
   }
 
-  // One ref, named, is more use than several cut to nothing.
-  .commit-row-refs > :not(:first-child) {
+  // One ref, named, is more use than several cut to nothing. The subject comes
+  // first here, and a link it cuts keeps its text rather than a lone logo.
+  .commit-row-refs {
+    max-width: 28%;
+
+    > :not(:first-child):not(.commit-row-refs-more) {
+      display: none;
+    }
+  }
+
+  .commit-row-refs-more {
+    display: inline;
+  }
+
+  .commit-row-subject .reference-logo {
     display: none;
   }
 }
@@ -125,6 +138,13 @@
     min-width: 32px;
     @include patterns.truncate;
   }
+}
+
+.commit-row-refs-more {
+  display: none;
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
 }
 
 .commit-row-subject {

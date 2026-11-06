@@ -53,6 +53,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- **A conflicted file's Side by side view numbers each column by its own version of the file**, and its header counts conflicts instead of showing `+0 -0`.
+- **History stays readable when commit detail is open.** The subject gets more room, a row shows one branch plus a count, and a link it cuts keeps its text rather than a lone logo.
+- **The diff header keeps the file path.** At narrower widths, code owners become a count with their names on hover.
 - **Space no longer stages a file while another control has focus.** It works the focused button, menu or dropdown instead. On a file row or with nothing focused, it still stages or unstages the selected file.
 - **The sidebar no longer says "No pull request" before checking.** Until the host has been read it says **Pull request not checked**, and **Check** reads it.
 - **Focus stays in the file list after staging**, and **Alt+↑**/**Alt+↓** move between hunks without also moving the list.

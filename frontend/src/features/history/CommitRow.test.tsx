@@ -76,6 +76,14 @@ describe('CommitRow', () => {
     expect(within(row).getByRole('button', { name: '#7 · open' })).toBeInTheDocument()
   })
 
+  it('counts the other pills beside the first, naming them on hover', () => {
+    const refs = ['main', 'develop', 'next'].map((name) => new RefInfo({ name, kind: 'branch', sha: 'abc' }))
+    const row = renderRow({ refs })
+    const more = row.querySelector('.commit-row-refs-more')
+    expect(more).toHaveTextContent('+2')
+    expect(more).toHaveAttribute('title', 'develop, next')
+  })
+
   it('keeps two pills when the branch and its upstream are not the same commit', () => {
     const refs = [
       new RefInfo({ kind: 'remote', name: 'origin/feature', sha: commit.sha }),

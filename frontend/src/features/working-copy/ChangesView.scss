@@ -113,6 +113,14 @@
   font: var(--data-sm);
 }
 
+.changes-diff-owners-names {
+  @include patterns.truncate;
+}
+
+.changes-diff-owners-count {
+  display: none;
+}
+
 .changes-diff-stats {
   display: flex;
   align-items: center;
@@ -212,6 +220,20 @@
 }
 
 // Facts give way before the filename does.
+@container (max-width: 760px) {
+  .changes-diff-owners {
+    flex-shrink: 0;
+  }
+
+  .changes-diff-owners-names {
+    display: none;
+  }
+
+  .changes-diff-owners-count {
+    display: inline;
+  }
+}
+
 @container (max-width: 520px) {
   .changes-diff-owners,
   .changes-diff-stat-hunks {

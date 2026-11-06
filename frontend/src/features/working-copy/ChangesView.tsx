@@ -13,6 +13,7 @@ import type { ConflictView } from '../diff/conflictRows'
 import RiskReport from './RiskReport'
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
+import { conflictCount } from '../diff/conflictRows'
 import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -301,17 +302,22 @@ function ChangesView({
                 )}
                 <span className="changes-diff-path-file">{file}</span>
               </span>
-              {stats && (
-                <span className="changes-diff-stats">
-                  <span className="changes-diff-stat-added">+{stats.added}</span>
-                  <span className="changes-diff-stat-removed">-{stats.removed}</span>
-                  <span className="changes-diff-stat-hunks">{plural(stats.hunks, 'hunk')}</span>
-                </span>
+              {diff?.conflicted ? (
+                <span className="changes-diff-stats">{plural(conflictCount(diff.hunks), 'conflict')}</span>
+              ) : (
+                stats && (
+                  <span className="changes-diff-stats">
+                    <span className="changes-diff-stat-added">+{stats.added}</span>
+                    <span className="changes-diff-stat-removed">-{stats.removed}</span>
+                    <span className="changes-diff-stat-hunks">{plural(stats.hunks, 'hunk')}</span>
+                  </span>
+                )
               )}
               {selectedOwners && selectedOwners.length > 0 && (
-                <span className="changes-diff-owners" title="Code owners">
+                <span className="changes-diff-owners" title={`Code owners: ${selectedOwners.join(' ')}`}>
                   <Users size={12} strokeWidth={1.75} aria-hidden="true" />
-                  {selectedOwners.join(' ')}
+                  <span className="changes-diff-owners-names">{selectedOwners.join(' ')}</span>
+                  <span className="changes-diff-owners-count">{selectedOwners.length}</span>
                 </span>
               )}
 

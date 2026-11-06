@@ -1,5 +1,5 @@
 import type { DiffLine } from '@current-client-bindings/app'
-import { conflictRows } from './conflictRows'
+import { conflictCount, conflictRows } from './conflictRows'
 
 const line = (kind: string, content: string, inOurs: boolean, inTheirs: boolean, newLine = 0): DiffLine => ({
   kind,
@@ -44,5 +44,15 @@ describe('conflictRows', () => {
       ['tail', 'tail'],
     ])
     expect(blockStarts).toEqual([2])
+  })
+
+  it("numbers the right column by their side's version of the file", () => {
+    const { rows } = conflictRows([{ header: '@@@ -5,4 -9,3 +1,9 @@@', raw: '', lines }], 'side-by-side')
+    const right = rows.map((r) => ('pair' in r ? r.pair.right?.newLine : undefined))
+    expect(right).toEqual([9, 10, 11, undefined, 12])
+  })
+
+  it('counts conflict blocks', () => {
+    expect(conflictCount(hunks)).toBe(1)
   })
 })
