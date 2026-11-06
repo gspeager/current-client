@@ -423,6 +423,7 @@ describe('HistoryView branch filter', () => {
     const scroller = document.querySelector('.history-scroll') as HTMLElement
     const scrollTo = vi.fn()
     scroller.scrollTo = scrollTo
+    Object.defineProperty(scroller, 'scrollHeight', { value: 100000 })
 
     fireEvent.click(strip, { clientX: 0 })
 

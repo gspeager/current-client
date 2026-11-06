@@ -252,7 +252,8 @@ function HistoryView({
     setJumpRow(null)
     const positions = new Map(commits.map((commit, index) => [commit.sha, index]))
     const shown = rows.findIndex((row) => (positions.get(row.commit.sha) ?? 0) >= jumpRow)
-    if (shown !== -1) virtualizer.scrollToIndex(shown + offset, { align: 'start' })
+    const target = shown === -1 ? rows.length - 1 : shown
+    if (target >= 0) virtualizer.scrollToIndex(target + offset, { align: 'start' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jumpRow, commits.length, done, loading])
 

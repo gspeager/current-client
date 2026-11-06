@@ -52,6 +52,12 @@ describe('OverviewStrip', () => {
     expect(fills('tag')).toHaveLength(1)
   })
 
+  it('draws one tick per pixel and color, however many refs share it', () => {
+    const markers = Array.from({ length: 500 }, (_, i) => ({ kind: 'tag', name: `v${i}`, date: iso('2026-01-11') }))
+    const { container } = render(<OverviewStrip days={days} markers={markers} visible={null} onJump={vi.fn()} />)
+    expect(container.querySelectorAll('[data-marker="tag"]')).toHaveLength(1)
+  })
+
   it('shows where the rows on screen fall, and follows them', () => {
     const at = (date: string) => Date.parse(iso(date))
     const { rerender } = render(

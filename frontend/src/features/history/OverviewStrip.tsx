@@ -48,7 +48,6 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
     [days],
   )
   const x = (ms: number) => ((ms - start) / (end - start)) * width
-  const inRange = (ms: number) => ms >= start && ms <= end
   const path = useMemo(() => (width > 0 ? activityPath(days, x, width) : ''), [days, width, start, end]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const color = (marker: OverviewMarkerInfo): string => {
@@ -75,28 +74,39 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
     onJump(nearest.firstRow)
   }
 
-  const windowLeft = visible ? x(Math.max(visible.oldest, start)) : 0
-  const windowRight = visible ? x(Math.min(visible.newest, end)) : 0
+  // Rows are in graph order, which dates needn't follow.
+  const windowLeft = visible ? x(Math.max(Math.min(visible.oldest, visible.newest), start)) : 0
+  const windowRight = visible ? x(Math.min(Math.max(visible.oldest, visible.newest), end)) : 0
+
+  // One tick per pixel and color, however many refs share it. Last wins, so HEAD,
+  // listed first, is drawn again on top.
+  const ticks = useMemo(() => {
+    const byPixel = new Map<string, OverviewMarkerInfo>()
+    for (const marker of markers) {
+      const ms = Date.parse(marker.date)
+      if (ms >= start && ms <= end) byPixel.set(`${Math.round(x(ms))}-${color(marker)}`, marker)
+    }
+    return [...byPixel.values()].sort((a, b) => Number(a.kind === 'head') - Number(b.kind === 'head'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markers, width, start, end])
 
   return (
     <div ref={box} className="overview-strip" role="img" aria-label="Commit activity over time" onClick={jump}>
       <svg width={width} height={HEIGHT} aria-hidden="true">
         <path className="overview-strip-area" d={path} />
-        {markers
-          .filter((marker) => inRange(Date.parse(marker.date)))
-          .map((marker, index) => (
-            <rect
-              key={`${marker.kind}-${marker.name}-${index}`}
-              data-marker={marker.kind}
-              x={x(Date.parse(marker.date))}
-              y={0}
-              width={1}
-              height={HEIGHT}
-              fill={color(marker)}
-            >
-              <title>{marker.name}</title>
-            </rect>
-          ))}
+        {ticks.map((marker, index) => (
+          <rect
+            key={`${marker.kind}-${marker.name}-${index}`}
+            data-marker={marker.kind}
+            x={x(Date.parse(marker.date))}
+            y={0}
+            width={1}
+            height={HEIGHT}
+            fill={color(marker)}
+          >
+            <title>{marker.name}</title>
+          </rect>
+        ))}
         {visible && (
           <rect
             className="overview-strip-window"
