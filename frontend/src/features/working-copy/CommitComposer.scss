@@ -133,7 +133,7 @@
 }
 
 .commit-composer-coauthors-toggle {
-  position: relative;
+  @include patterns.hit-target;
   display: inline-flex;
   align-items: center;
   justify-content: center;

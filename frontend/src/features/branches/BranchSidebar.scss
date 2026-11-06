@@ -46,11 +46,18 @@
   .sidebar-section-header {
     margin-bottom: 0;
   }
+
+  // Sub-groups read one step quieter than the Branches section they sit in.
+  .sidebar-section-label {
+    @include patterns.subgroup-label;
+  }
 }
 
+// Lines up with the text of the collapsible sub-groups below, past their chevron.
 .branch-sidebar-group-label {
-  @include patterns.eyebrow;
+  @include patterns.subgroup-label;
   height: var(--h-micro);
+  padding-left: 18px;
   line-height: var(--h-micro);
   color: var(--outline);
 }

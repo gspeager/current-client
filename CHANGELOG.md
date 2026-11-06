@@ -6,6 +6,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **Settings shows one section at a time**, and its toggles all sit on the right.
+- **Undo names what it will undo** in its tooltip, such as "Undo commit 2e37208".
+- **The sidebar's sub-groups read a step quieter** than the sections they sit in, and line up with each other.
+- **Pull request rows use one check mark.** It's for CI; review results are spelled out, such as "2 approved".
 - **Commits, pull requests and issues read the same way.** Facts share one list, actions sit at the top of the pane, and panes are divided by a simple line.
 - **Cyan is saved for what matters.** Selected rows now use a neutral marker, so `HEAD`, focus and the main action stand out.
 - **Tags in History start with a tag icon**, so they stand out from the branches and subject beside them.

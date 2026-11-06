@@ -69,6 +69,24 @@
   @include disabled-primary;
 }
 
+@mixin subgroup-label {
+  font: var(--ui-xs);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+// A 24px target around a smaller control, with no change to how it looks.
+@mixin hit-target {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+  }
+}
+
 @mixin icon-button {
   display: inline-flex;
   align-items: center;

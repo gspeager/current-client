@@ -65,6 +65,8 @@
 }
 
 .nav-pane-collapse {
+  @include patterns.hit-target;
+
   width: var(--h-chip);
   height: var(--h-chip);
 }

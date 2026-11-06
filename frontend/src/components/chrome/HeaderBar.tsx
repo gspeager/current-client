@@ -1,4 +1,4 @@
-import type { NoteInfo } from '@current-client-bindings/app'
+import { UndoService, type NoteInfo } from '@current-client-bindings/app'
 import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import {
   ArrowDown,
@@ -21,6 +21,7 @@ import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import BlameView from '../../features/history/BlameView'
+import { undoActionLabel } from '../../features/history/undoPreview'
 import { shortcutLabel } from '../../lib/shortcuts'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
@@ -87,6 +88,7 @@ interface HeaderBarProps {
 const chipWidth = (path: string, summary?: { ahead?: number; behind?: number }) =>
   baseName(path).length * 7.3 + 30 + (summary?.ahead || summary?.behind ? 24 : 0)
 const RESERVED_TAB_WIDTH = 72
+const UNDO_LABEL = 'Undo last operation'
 
 function HeaderBar({
   repoPath,
@@ -132,6 +134,12 @@ function HeaderBar({
   const [panelView, setPanelView] = useState<PanelView>('branch')
   const [quickSwitchOpen, setQuickSwitchOpen] = useState(false)
   const [blamePath, setBlamePath] = useState<string | null>(null)
+  const [undoLabel, setUndoLabel] = useState(UNDO_LABEL)
+  const previewUndo = () => {
+    UndoService.Preview(repoPath)
+      .then((plan) => setUndoLabel(undoActionLabel(plan)))
+      .catch(() => setUndoLabel(UNDO_LABEL))
+  }
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
@@ -435,8 +443,10 @@ function HeaderBar({
         <button
           type="button"
           className="header-bar-icon-button"
-          aria-label="Undo last operation"
-          title={`Undo last operation (${shortcutLabel('mod+shift+Z')})`}
+          aria-label={undoLabel}
+          title={`${undoLabel} (${shortcutLabel('mod+shift+Z')})`}
+          onPointerEnter={previewUndo}
+          onFocus={previewUndo}
           onClick={onUndo}
         >
           <Undo2 size={16} strokeWidth={1.75} />

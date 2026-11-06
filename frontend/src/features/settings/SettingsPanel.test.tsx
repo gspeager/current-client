@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HostService, IdentityService, SettingsService } from '@current-client-bindings/app'
 import { DialogContext, type Dialogs } from '../../lib/useDialogs'
@@ -7,10 +7,15 @@ import SettingsPanel from './SettingsPanel'
 
 const dialogs: Dialogs = { confirm: vi.fn(), prompt: vi.fn(), signIn: vi.fn() }
 
-function renderPanel(settings: ReturnType<typeof useSettings>, hostIntegration = true) {
+function renderPanel(settings: ReturnType<typeof useSettings>, hostIntegration = true, initialGroup?: string) {
   return render(
     <DialogContext.Provider value={dialogs}>
-      <SettingsPanel settings={settings} hostIntegration={hostIntegration} onClose={vi.fn()} />
+      <SettingsPanel
+        settings={settings}
+        hostIntegration={hostIntegration}
+        initialGroup={initialGroup}
+        onClose={vi.fn()}
+      />
     </DialogContext.Provider>,
   )
 }
@@ -49,40 +54,34 @@ beforeEach(() => {
 describe('SettingsPanel', () => {
   it('groups every setting and keeps each control reachable by its label', async () => {
     renderPanel(settingsWith())
+    const rail = within(screen.getByRole('navigation', { name: 'Settings sections' }))
+    const open = async (group: string) => {
+      await userEvent.click(rail.getByRole('button', { name: group }))
+      return within(screen.getByRole('region', { name: group }))
+    }
 
-    for (const group of [
-      'Appearance',
-      'Git',
-      'Tools and folders',
-      'Diff',
-      'Network',
-      'Integrations',
-      'Identity colors',
-      'Support',
-    ]) {
-      expect(screen.getByRole('region', { name: group })).toBeInTheDocument()
-    }
-    expect(
-      within(screen.getByRole('region', { name: 'Appearance' })).getByRole('button', { name: /Dark/ }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: 'Lane colors' })).toBeInTheDocument()
-    expect(await screen.findByDisplayValue('Ada')).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveValue('ada@example.com')
-    for (const name of [
-      'Choose git executable',
-      'Choose editor',
-      'Choose default repository location',
-      'Copy diagnostics',
-    ]) {
-      expect(screen.getByRole('button', { name })).toBeInTheDocument()
-    }
-    expect(screen.getByRole('checkbox', { name: 'Ignore whitespace' })).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: 'Background fetch' })).toHaveValue('0')
-    expect(screen.getByRole('button', { name: 'Add host…' })).toBeInTheDocument()
+    const appearance = await open('Appearance')
+    expect(appearance.getByRole('button', { name: /Dark/ })).toBeInTheDocument()
+    expect(appearance.getByRole('combobox', { name: 'Lane colors' })).toBeInTheDocument()
+
+    const git = await open('Git')
+    expect(await git.findByDisplayValue('Ada')).toBeInTheDocument()
+    expect(git.getByRole('textbox', { name: 'Email' })).toHaveValue('ada@example.com')
+    expect(git.getByRole('button', { name: 'Choose git executable' })).toBeInTheDocument()
+
+    const tools = await open('Tools and folders')
+    expect(tools.getByRole('button', { name: 'Choose editor' })).toBeInTheDocument()
+    expect(tools.getByRole('button', { name: 'Choose default repository location' })).toBeInTheDocument()
+
+    expect((await open('Diff')).getByRole('checkbox', { name: 'Ignore whitespace' })).toBeInTheDocument()
+    expect((await open('Network')).getByRole('combobox', { name: 'Background fetch' })).toHaveValue('0')
+    expect((await open('Integrations')).getByRole('button', { name: 'Add host…' })).toBeInTheDocument()
+    await open('Identity colors')
+    expect((await open('Support')).getByRole('button', { name: 'Copy diagnostics' })).toBeInTheDocument()
   })
 
   it('shows a managed background fetch disabled, with the label', () => {
-    renderPanel(settingsWith({ autoFetchIntervalMinutes: 5, autoFetchManaged: true }))
+    renderPanel(settingsWith({ autoFetchIntervalMinutes: 5, autoFetchManaged: true }), true, 'Network')
 
     const select = screen.getByRole('combobox', { name: 'Background fetch' })
     expect(select).toBeDisabled()
@@ -99,7 +98,7 @@ describe('SettingsPanel', () => {
 
   it('shows a chosen path so its end stays visible, with a way back to the default', async () => {
     const settings = settingsWith({ gitExecutablePath: 'C:\\Program Files\\Git\\cmd\\git.exe' })
-    renderPanel(settings)
+    renderPanel(settings, true, 'Git')
 
     const git = within(screen.getByRole('region', { name: 'Git' }))
     expect(git.getByTitle('C:\\Program Files\\Git\\cmd\\git.exe')).toHaveClass('path-text')
@@ -110,7 +109,7 @@ describe('SettingsPanel', () => {
 
   it('changes background fetch from its menu', async () => {
     const settings = settingsWith()
-    renderPanel(settings)
+    renderPanel(settings, true, 'Network')
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Background fetch' }), 'Every 15 minutes')
 
@@ -118,7 +117,7 @@ describe('SettingsPanel', () => {
   })
   it('turns Conventional Commits off, and it starts on', async () => {
     const settings = settingsWith()
-    renderPanel(settings)
+    renderPanel(settings, true, 'Git')
 
     const toggle = screen.getByRole('checkbox', { name: 'Conventional Commits' })
     expect(toggle).toBeChecked()
@@ -131,7 +130,7 @@ describe('SettingsPanel', () => {
 describe('SettingsPanel network', () => {
   it('keeps prune on fetch as a setting', async () => {
     const settings = settingsWith({ pruneOnFetch: false } as never)
-    renderPanel(settings)
+    renderPanel(settings, true, 'Network')
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Prune on fetch' }))
 
@@ -140,8 +139,7 @@ describe('SettingsPanel network', () => {
 })
 
 describe('SettingsPanel rail', () => {
-  it('lists every group and jumps to the one clicked', async () => {
-    Element.prototype.scrollIntoView = vi.fn()
+  it('lists every group and shows only the one clicked', async () => {
     renderPanel(settingsWith())
 
     const rail = screen.getByRole('navigation', { name: 'Settings sections' })
@@ -158,47 +156,9 @@ describe('SettingsPanel rail', () => {
     await userEvent.click(within(rail).getByRole('button', { name: 'Integrations' }))
 
     expect(within(rail).getByRole('button', { name: 'Integrations' })).toHaveClass('settings-rail-item-active')
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
+    expect(screen.getByRole('region', { name: 'Integrations' })).toBeVisible()
+    expect(screen.queryByRole('region', { name: 'Appearance' })).not.toBeInTheDocument()
+    expect(document.querySelector('.settings-group[aria-label="Appearance"]')).not.toBeVisible()
     expect(screen.getByRole('dialog')).toHaveClass('settings-panel')
-  })
-
-  it('follows the scroll, reaching the last group at the end', async () => {
-    Element.prototype.scrollIntoView = vi.fn()
-    renderPanel(settingsWith())
-    const rail = screen.getByRole('navigation', { name: 'Settings sections' })
-    const body = document.querySelector('.settings-body') as HTMLElement
-    let tops: Record<string, number> = { Appearance: -400, Git: -100, 'Tools and folders': 200 }
-    for (const group of document.querySelectorAll('.settings-group')) {
-      vi.spyOn(group, 'getBoundingClientRect').mockImplementation(
-        () => ({ top: tops[group.getAttribute('aria-label') ?? ''] ?? 900 }) as DOMRect,
-      )
-    }
-    Object.defineProperties(body, {
-      scrollHeight: { value: 2000, configurable: true },
-      clientHeight: { value: 600, configurable: true },
-    })
-    const active = () => rail.querySelector('.settings-rail-item-active')
-
-    body.scrollTop = 100
-    fireEvent.scroll(body)
-    expect(active()).toHaveTextContent('Git')
-
-    tops = {
-      Appearance: -1200,
-      Git: -900,
-      'Tools and folders': -600,
-      Diff: -300,
-      Network: 0,
-      Integrations: 150,
-      'Identity colors': 300,
-      Support: 500,
-    }
-    body.scrollTop = 1400
-    fireEvent.scroll(body)
-    expect(active()).toHaveTextContent('Support')
-
-    await userEvent.click(within(rail).getByRole('button', { name: 'Integrations' }))
-    fireEvent.scroll(body)
-    expect(active()).toHaveTextContent('Integrations')
   })
 })

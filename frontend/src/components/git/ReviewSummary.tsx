@@ -1,4 +1,4 @@
-import { Check, CircleDot, CircleX } from 'lucide-react'
+import { CircleDot } from 'lucide-react'
 import { type Review, ReviewState } from '@current-client-bindings/core/hostapi'
 import './ReviewSummary.scss'
 
@@ -37,7 +37,6 @@ function ReviewSummary({ reviews, open, me = '' }: { reviews: Review[] | null; o
   if (count(ReviewState.ReviewChangesRequested) > 0) {
     return (
       <span className="review-summary review-summary-changes" title={title}>
-        <CircleX size={12} strokeWidth={1.75} />
         Changes requested
       </span>
     )
@@ -46,7 +45,6 @@ function ReviewSummary({ reviews, open, me = '' }: { reviews: Review[] | null; o
   if (approved > 0) {
     return (
       <span className="review-summary review-summary-approved" title={title}>
-        <Check size={12} strokeWidth={1.75} />
         {approved} approved
       </span>
     )

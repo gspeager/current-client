@@ -1,17 +1,17 @@
-import type { ReactNode } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 
 interface SettingsGroupProps {
   title: string
   children: ReactNode
 }
 
-export function settingsGroupId(title: string): string {
-  return `settings-${title.toLowerCase().replace(/[^a-z]+/g, '-')}`
-}
+// The section the rail has open; the rest stay mounted, so edits in them survive.
+export const SettingsSectionContext = createContext<string | null>(null)
 
 export function SettingsGroup({ title, children }: SettingsGroupProps) {
+  const section = useContext(SettingsSectionContext)
   return (
-    <section className="settings-group" id={settingsGroupId(title)} aria-label={title}>
+    <section className="settings-group" aria-label={title} hidden={section !== null && section !== title}>
       <h3 className="settings-group-title">{title}</h3>
       <div className="settings-group-rows">{children}</div>
     </section>

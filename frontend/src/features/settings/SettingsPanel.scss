@@ -57,6 +57,10 @@
   padding: var(--space-lg);
 }
 
+.settings-group[hidden] {
+  display: none;
+}
+
 .settings-group {
   display: flex;
   flex-direction: column;
@@ -179,8 +183,14 @@
 .settings-risk-rules {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: var(--space-xs);
+
+  // Toggles sit on the right, like every other row's control.
+  .switch {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
 }
 
 .settings-git-config {
