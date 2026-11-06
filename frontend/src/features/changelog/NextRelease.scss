@@ -18,7 +18,7 @@
 
 .next-release-title {
   margin: 0;
-  font: var(--ui-md);
+  font: var(--headline-sm);
   color: var(--on-surface);
 }
 
@@ -116,6 +116,22 @@
   gap: 2px var(--space-sm);
   min-height: var(--h-row-tree);
   font: var(--ui-sm);
+}
+
+.release-check-ok,
+.release-check-info,
+.release-check-unknown {
+  .release-check-label {
+    color: var(--on-surface-variant);
+  }
+
+  .release-check-value {
+    color: var(--outline);
+  }
+}
+
+.release-check-warn .release-check-label {
+  font-weight: 600;
 }
 
 .release-check-ok svg {

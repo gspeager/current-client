@@ -284,3 +284,18 @@
   width: 100%;
   height: var(--h-action);
 }
+
+@media (max-height: 700px) {
+  .commit-composer-body {
+    height: var(--h-row-table);
+    min-height: var(--h-row-table);
+  }
+}
+
+.commit-composer-counter-over {
+  color: var(--warning);
+}
+
+.commit-composer-counter-fill-over {
+  background: var(--warning);
+}

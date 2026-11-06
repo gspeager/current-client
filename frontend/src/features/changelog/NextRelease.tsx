@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
   CircleCheck,
+  CircleDashed,
   CircleHelp,
   Info,
   PackagePlus,
@@ -170,7 +171,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
 // when it needs attention, and in the tooltip otherwise.
 function CheckRow({ check }: { check: ReleaseCheck }) {
   const level = LEVELS[check.level] ?? LEVELS.unknown
-  const Icon = level.icon
+  const Icon = check.label.startsWith('CI') && /running/i.test(check.value) ? CircleDashed : level.icon
   const evidence = check.evidence ?? []
   return (
     <li

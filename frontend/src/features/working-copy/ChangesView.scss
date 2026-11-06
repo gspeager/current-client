@@ -77,7 +77,8 @@
 }
 
 .changes-diff-path {
-  min-width: 0;
+  flex: 0 1 auto;
+  min-width: 96px;
   @include patterns.truncate;
   font: var(--data-md);
 }
@@ -92,6 +93,7 @@
 }
 
 .changes-diff-owners {
+  flex: 0 1000 auto;
   display: flex;
   align-items: center;
   gap: var(--space-xs);

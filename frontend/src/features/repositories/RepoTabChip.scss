@@ -3,10 +3,10 @@
 .header-bar-tab {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  flex: 0 1 auto;
   gap: var(--space-xs);
   height: var(--h-chip);
-  min-width: 0;
+  min-width: 88px;
   max-width: 220px;
   padding: 0 var(--space-xs) 0 var(--space-sm);
   border-radius: var(--radius);

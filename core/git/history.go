@@ -69,10 +69,25 @@ func History(ctx context.Context, repoPath string, limit, skip int, filter Histo
 	return logHistory(ctx, repoPath, args...)
 }
 
+var abbreviatedHash = regexp.MustCompile(`^[0-9a-fA-F]{4,40}$`)
+
 // SearchHistory is limited to HEAD's ancestry so every match has a
 // well-defined CommitPosition.
 func SearchHistory(ctx context.Context, repoPath, query string, limit int) ([]HistoryEntry, error) {
-	return logHistory(ctx, repoPath, append([]string{"-i", "--grep=" + query}, pageArgs(limit, 0)...)...)
+	matches, err := logHistory(ctx, repoPath, append([]string{"-i", "--grep=" + query}, pageArgs(limit, 0)...)...)
+	if err != nil || !abbreviatedHash.MatchString(query) {
+		return matches, err
+	}
+	byHash, err := logHistory(ctx, repoPath, append(pageArgs(1, 0), query, "--")...)
+	if err != nil || len(byHash) == 0 {
+		return matches, nil
+	}
+	for _, entry := range matches {
+		if entry.SHA == byHash[0].SHA {
+			return matches, nil
+		}
+	}
+	return append(byHash, matches...), nil
 }
 
 // CommitPosition returns how many commits on HEAD's ancestry are newer than sha.

@@ -7,8 +7,11 @@ import {
   CircleDot,
   ClipboardCheck,
   ClipboardList,
+  Cloud,
   FileDiff,
+  FolderGit2,
   Keyboard,
+  Package,
   GitBranchPlus,
   GitPullRequest,
   History,
@@ -53,6 +56,7 @@ import { LaneThemeContext, toLaneThemeName } from './lib/laneColor'
 import { useAsyncData } from './lib/useAsyncData'
 import { useWindowKeydown } from './lib/useWindowKeydown'
 import { isTypingTarget } from './lib/shortcuts'
+import { NARROW_SIDEBAR_WIDTH, useWindowNarrowerThan } from './lib/useWindowNarrowerThan'
 import { cyclePanes } from './lib/panes'
 import ShortcutSheet from './components/chrome/ShortcutSheet'
 import WaveMark from './components/chrome/WaveMark'
@@ -166,9 +170,15 @@ function App({
   // The branch's known change, to offer a create link only while it has none.
   const changes = useBranchChanges(repo.repoPath ?? '', repoVersion)
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
-  const navWidth = useResizableWidth('pane-width-nav', 248, 180, 400)
+  const navWidth = useResizableWidth('pane-width-nav', 264, 180, 400)
   const settings = useSettings()
-  const navCollapsed = settings.settings?.navCollapsed ?? false
+  const savedNavCollapsed = settings.settings?.navCollapsed ?? false
+  const narrowWindow = useWindowNarrowerThan(NARROW_SIDEBAR_WIDTH)
+  const [narrowNavOpen, setNarrowNavOpen] = useState(false)
+  const navCollapsed = narrowWindow ? !narrowNavOpen : savedNavCollapsed
+  // A narrow window's rail is temporary, so it isn't saved as the choice.
+  const setNavCollapsed = (collapsed: boolean) =>
+    narrowWindow ? setNarrowNavOpen(!collapsed) : settings.setNavCollapsed(collapsed)
   // A refresh may have found something changed on the checked-out branch's change.
   const collectHostNotices = () => {
     if (!repo.repoPath || !hostIntegration) return
@@ -286,7 +296,7 @@ function App({
     if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return
     if (e.key.toLowerCase() === 'b') {
       e.preventDefault()
-      settings.setNavCollapsed(!navCollapsed)
+      setNavCollapsed(!navCollapsed)
     }
     const views: AppTab[] = [
       'working-copy',
@@ -335,7 +345,7 @@ function App({
     operation: conflictState?.operation ?? null,
     onBranchChanged,
     onOpenCommit: (sha) => openCommit(sha),
-    onFailure: () => settings.setNavCollapsed(false),
+    onFailure: () => setNavCollapsed(false),
   })
 
   useImperativeHandle(handle, () => ({
@@ -599,7 +609,7 @@ function App({
       shortcut: 'mod+1',
       section: 'Views',
       icon: FileDiff,
-      keywords: ['working tree', 'staged', 'diff', 'commit'],
+      keywords: ['working tree', 'staged', 'diff', 'commit', 'stage', 'discard'],
       run: () => changeTab('working-copy'),
     },
     {
@@ -608,7 +618,7 @@ function App({
       shortcut: 'mod+2',
       section: 'Views',
       icon: History,
-      keywords: ['log', 'graph', 'commits'],
+      keywords: ['log', 'graph', 'commits', 'cherry-pick', 'revert', 'reset', 'blame', 'rebase'],
       run: () => changeTab('history'),
     },
     ...(changesLabel
@@ -692,6 +702,30 @@ function App({
           },
         ]
       : []),
+    {
+      id: 'new-stash',
+      label: 'Stash changes',
+      section: 'Create',
+      icon: Package,
+      keywords: ['stash', 'shelve', 'save'],
+      run: () => requestSidebar('new-stash'),
+    },
+    {
+      id: 'new-worktree',
+      label: 'Add worktree',
+      section: 'Create',
+      icon: FolderGit2,
+      keywords: ['worktree'],
+      run: () => requestSidebar('new-worktree'),
+    },
+    {
+      id: 'new-remote',
+      label: 'Add remote',
+      section: 'Create',
+      icon: Cloud,
+      keywords: ['remote', 'origin'],
+      run: () => requestSidebar('new-remote'),
+    },
     {
       id: 'new-tag',
       label: 'New tag…',
@@ -814,7 +848,9 @@ function App({
                 className="app-skip-link"
                 onClick={() =>
                   document
-                    .querySelector<HTMLElement>('[data-pane="main"] button, [data-pane="main"] [tabindex="0"]')
+                    .querySelector<HTMLElement>(
+                      '[data-pane="main"] [data-roving] [tabindex="0"], [data-pane="main"] button',
+                    )
                     ?.focus()
                 }
               >
@@ -982,7 +1018,7 @@ function App({
                   onOpenRepository={repo.openRecent}
                   width={navWidth.width}
                   collapsed={navCollapsed}
-                  onCollapsedChange={settings.setNavCollapsed}
+                  onCollapsedChange={setNavCollapsed}
                 />
                 {!navCollapsed && <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />}
 

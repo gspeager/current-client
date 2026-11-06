@@ -36,6 +36,10 @@
   color: var(--on-surface-variant);
 }
 
+.split-button-compact {
+  --split-button-height: var(--h-field);
+}
+
 .split-button-secondary {
   .split-button-main,
   .split-button-toggle {

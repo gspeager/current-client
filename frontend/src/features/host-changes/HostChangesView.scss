@@ -197,7 +197,7 @@
   flex: 1;
   margin: 0;
   min-width: 0;
-  font: var(--ui-md);
+  font: var(--headline-sm);
   color: var(--on-surface);
 }
 
@@ -245,6 +245,7 @@
 
 .host-change-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
 }
 

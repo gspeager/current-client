@@ -68,7 +68,8 @@
   gap: var(--space-lg);
   height: 100vh;
   height: 100dvh;
-  padding-top: 15vh;
+  justify-content: center;
+  padding-bottom: 12vh;
   color: var(--on-surface);
 
   h1 {
@@ -137,4 +138,16 @@
   &:focus-visible {
     transform: none;
   }
+}
+
+// The form sits on the same centre line as the name above it.
+.app-welcome .repo-switcher {
+  align-items: center;
+  width: min(420px, 100%);
+  padding: 0 var(--space-lg);
+  text-align: center;
+}
+
+.app-welcome .repo-switcher-open-row {
+  justify-content: center;
 }

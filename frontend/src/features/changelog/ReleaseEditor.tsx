@@ -373,6 +373,7 @@ function ReleaseEditor({
           </button>
           <SplitButton
             secondary
+            compact
             onClick={() => void write()}
             disabled={blocked || (untagged !== undefined && !version.trim())}
             menuLabel="More save options"

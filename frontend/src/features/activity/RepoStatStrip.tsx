@@ -64,12 +64,9 @@ function RepoStatStrip({ repoPath, repoVersion, dirty }: RepoStatStripProps) {
           </div>
           {statsFor(...data).map((stat) => (
             <div key={stat.label} className="repo-stat-strip-group">
-              <span className="repo-stat-strip-divider" />
               <div className="repo-stat-strip-item">
                 <span className="repo-stat-strip-label">{stat.label}</span>
-                <span className="repo-stat-strip-value">
-                  {stat.value}
-                </span>
+                <span className="repo-stat-strip-value">{stat.value}</span>
               </div>
             </div>
           ))}

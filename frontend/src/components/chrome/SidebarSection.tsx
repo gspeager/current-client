@@ -12,10 +12,21 @@ interface SidebarSectionProps {
   actions?: ReactNode
   // Shown under the header whether or not the section is open, such as an add form.
   pinned?: ReactNode
+  // Esc in a pinned form closes it.
+  onPinnedEscape?: () => void
   children: ReactNode
 }
 
-function SidebarSection({ label, count, open, onToggle, actions, pinned, children }: SidebarSectionProps) {
+function SidebarSection({
+  label,
+  count,
+  open,
+  onToggle,
+  actions,
+  pinned,
+  onPinnedEscape,
+  children,
+}: SidebarSectionProps) {
   return (
     <>
       <div className="sidebar-section-header">
@@ -36,7 +47,16 @@ function SidebarSection({ label, count, open, onToggle, actions, pinned, childre
         </button>
         {actions && <span className="sidebar-section-actions">{actions}</span>}
       </div>
-      {pinned}
+      {pinned && (
+        <div
+          style={{ display: 'contents' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') onPinnedEscape?.()
+          }}
+        >
+          {pinned}
+        </div>
+      )}
       {open && children}
     </>
   )

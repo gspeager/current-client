@@ -174,3 +174,8 @@
 .changes-folder-row-name {
   @include patterns.truncate;
 }
+
+// The list keeps a useful height however much sits below it.
+.changes-files-scroll {
+  min-height: 112px;
+}

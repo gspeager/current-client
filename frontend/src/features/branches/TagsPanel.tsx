@@ -231,6 +231,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
             </button>
           </>
         }
+        onPinnedEscape={() => setShowNewTag(false)}
         pinned={
           showNewTag && (
             <div className="tags-panel-new">

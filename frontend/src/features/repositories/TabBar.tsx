@@ -1,4 +1,5 @@
 import Tab from '../../components/controls/Tab'
+import { useRovingRows } from '../../lib/useRovingRows'
 import { plural } from '../../lib/plural'
 import './TabBar.scss'
 
@@ -32,8 +33,9 @@ function TabBar({
   offHost = null,
   onOffHost,
 }: TabBarProps) {
+  const rovingTabs = useRovingRows('.tab', { horizontal: true })
   return (
-    <nav className="tab-bar" aria-label="Views" data-pane="views">
+    <nav ref={rovingTabs} className="tab-bar" aria-label="Views" data-pane="views">
       <Tab
         active={active === 'working-copy'}
         onClick={() => onChange('working-copy')}

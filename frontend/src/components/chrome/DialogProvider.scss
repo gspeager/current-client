@@ -77,6 +77,9 @@
 
 .dialog-button-primary {
   background: var(--primary-container);
+
+  @include patterns.disabled-primary;
+
   border-color: transparent;
   color: var(--on-primary-container);
   font-weight: 600;

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { BranchService, RepositoryService, WorktreeService, type WorktreeInfo } from '@current-client-bindings/app'
@@ -15,6 +16,7 @@ import './WorktreesPanel.scss'
 const NEW_BRANCH = ''
 
 interface WorktreesPanelProps {
+  request?: SidebarRequest | null
   repoPath: string
   refreshKey?: unknown
   sections: SidebarSections
@@ -26,7 +28,14 @@ function parentFolder(path: string): string {
   return path.replace(/[\\/]+[^\\/]+[\\/]*$/, '')
 }
 
-function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWorktreesChanged }: WorktreesPanelProps) {
+function WorktreesPanel({
+  repoPath,
+  refreshKey,
+  sections,
+  onOpenRepository,
+  onWorktreesChanged,
+  request = null,
+}: WorktreesPanelProps) {
   const {
     data: worktrees,
     error: loadError,
@@ -36,6 +45,9 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
   const { confirm } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
+  useEffect(() => {
+    if (request?.action === 'new-worktree') setShowNew(true)
+  }, [request])
   const [existingBranch, setExistingBranch] = useState(NEW_BRANCH)
   const [newBranchName, setNewBranchName] = useState('')
   const [parent, setParent] = useState<string | null>(null)
@@ -153,6 +165,7 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
             <Plus size={18} strokeWidth={1.75} />
           </button>
         }
+        onPinnedEscape={() => setShowNew(false)}
         pinned={
           showNew && (
             <div className="worktrees-panel-new">

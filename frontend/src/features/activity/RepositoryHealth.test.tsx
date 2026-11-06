@@ -17,8 +17,8 @@ describe('RepositoryHealth', () => {
     stubRepository()
     render(<RepositoryHealth repoPath="/repos/app" repoVersion={0} dirty hasConflict={false} />)
 
-    expect(await screen.findByText('Nothing blocking')).toBeInTheDocument()
-    expect(screen.getByText('Uncommitted changes')).toBeInTheDocument()
+    expect(await screen.findByText('Uncommitted changes')).toBeInTheDocument()
+    expect(screen.queryByText('All clear')).not.toBeInTheDocument()
   })
 
   it('counts a conflict as an issue', async () => {

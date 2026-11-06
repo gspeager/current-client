@@ -311,10 +311,16 @@ function CommitComposer({
           </div>
           <div className="commit-composer-meta">
             <span className="commit-composer-counter">
-              Subject <span className="commit-composer-counter-value">{subject.length}</span> /{SUBJECT_TARGET}
+              Subject{' '}
+              <span
+                className={`commit-composer-counter-value${subject.length > SUBJECT_TARGET ? ' commit-composer-counter-over' : ''}`}
+              >
+                {subject.length}
+              </span>{' '}
+              /{SUBJECT_TARGET}
               <span className="commit-composer-counter-bar">
                 <span
-                  className="commit-composer-counter-fill"
+                  className={`commit-composer-counter-fill${subject.length > SUBJECT_TARGET ? ' commit-composer-counter-fill-over' : ''}`}
                   style={{ width: `${Math.min(100, (subject.length / SUBJECT_TARGET) * 100)}%` }}
                 />
               </span>

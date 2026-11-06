@@ -48,6 +48,19 @@
   .commit-row-sha {
     display: none;
   }
+
+  // Too narrow to read names: the dots stay, and hovering names them.
+  .ref-badge-name {
+    display: none;
+  }
+
+  .commit-row-refs .ref-badge {
+    min-width: 0;
+  }
+
+  .ref-badge-dot {
+    margin-right: 0;
+  }
 }
 
 .commit-row-actions {
@@ -104,7 +117,8 @@
 // A pill with a PR marker shortens its name and keeps the marker whole.
 .commit-row-refs {
   display: flex;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  max-width: 45%;
   gap: var(--space-xs);
   min-width: 0;
   overflow: hidden;
@@ -122,8 +136,8 @@
 }
 
 .commit-row-subject {
-  flex: 1 1 auto;
-  min-width: 50%;
+  flex: 1 1 0;
+  min-width: 0;
   @include patterns.truncate;
   font: var(--title-md);
 }

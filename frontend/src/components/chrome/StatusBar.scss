@@ -1,4 +1,5 @@
 .status-bar {
+  container-type: inline-size;
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -8,6 +9,7 @@
   border-top: var(--border-structure);
   color: var(--outline);
   font: var(--ui-xs);
+  overflow: hidden;
 }
 
 .status-bar-ready {
@@ -31,7 +33,6 @@
   flex: 1;
 }
 
-.status-bar-branch,
 .status-bar > span {
   flex-shrink: 0;
   white-space: nowrap;
@@ -106,4 +107,25 @@
     background: var(--surface-container);
     color: var(--on-surface);
   }
+}
+
+// What a window can spare goes first: versions, then the folder name, and the
+// upstream truncates before anything is cut off.
+@container (max-width: 1240px) {
+  .status-bar-version {
+    display: none;
+  }
+}
+
+@container (max-width: 1000px) {
+  .status-bar-repo-path {
+    display: none;
+  }
+}
+
+.status-bar-branch {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

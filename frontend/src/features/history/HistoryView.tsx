@@ -331,9 +331,12 @@ function HistoryView({
     setContextMenu({
       ...menuAnchor(e),
       items: [
-        ...commitActions
-          .actionsFor(commit)
-          .map((a) => ({ label: a.label, onClick: a.run, destructive: a.destructive })),
+        ...commitActions.actionsFor(commit).map((a) => ({
+          label: a.label,
+          onClick: a.run,
+          destructive: a.destructive,
+          separatorBefore: a.separatorBefore,
+        })),
         {
           label: highlightedAuthor === commit.authorEmail ? 'Clear author highlight' : 'Highlight author’s commits',
           onClick: () => highlightAuthor(commit.authorEmail),

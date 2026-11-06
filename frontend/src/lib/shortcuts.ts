@@ -12,7 +12,7 @@ export const SHORTCUT_GROUPS: { name: string; shortcuts: Shortcut[] }[] = [
     shortcuts: [
       { keys: 'mod+K', label: 'Go to anything' },
       { keys: 'mod+shift+F', label: 'Search in files' },
-      { keys: 'mod+1…7', label: 'Switch view' },
+      { keys: 'mod+1…6', label: 'Switch view' },
       { keys: 'F6', label: 'Next pane' },
       { keys: 'mod+B', label: 'Collapse sidebar' },
       { keys: 'ctrl+`', label: 'Terminal panel' },

@@ -53,7 +53,7 @@ function IdentitySettings({ onSaved }: IdentitySettingsProps) {
     >
       <div className="settings-identity-fields">
         <input
-          className="settings-field"
+          className="settings-field settings-field-text"
           aria-label="Name"
           placeholder="Name"
           value={name}

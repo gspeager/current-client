@@ -364,8 +364,13 @@ function HeaderBar({
       {syncMenu && <ContextMenu state={syncMenu} onClose={() => setSyncMenu(null)} />}
       <span className="header-bar-divider" />
 
-      <button type="button" className="header-bar-quick-switch" onClick={() => setQuickSwitchOpen(true)}>
-        Go to anything <Kbd>{shortcutLabel('mod+K')}</Kbd>
+      <button
+        type="button"
+        className="header-bar-quick-switch"
+        aria-label="Go to anything"
+        onClick={() => setQuickSwitchOpen(true)}
+      >
+        <span className="header-bar-quick-switch-label">Go to anything</span> <Kbd>{shortcutLabel('mod+K')}</Kbd>
       </button>
 
       {accessory}
@@ -384,7 +389,7 @@ function HeaderBar({
           onClick={onToggleInbox}
         >
           <Inbox size={14} strokeWidth={1.75} />
-          Inbox
+          <span className="header-bar-inbox-label">Inbox</span>
           {inboxUnseen > 0 && <span className="header-bar-inbox-count">{inboxUnseen}</span>}
         </button>
       )}

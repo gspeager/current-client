@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { Cloud, Pencil, Plus, RefreshCw, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { RemoteService, type RemoteInfo } from '@current-client-bindings/app'
@@ -12,6 +13,7 @@ import type { SidebarSections } from '../../lib/useSidebarSections'
 import './RemotesPanel.scss'
 
 interface RemotesPanelProps {
+  request?: SidebarRequest | null
   repoPath: string
   sections: SidebarSections
   onFetched?: () => void
@@ -27,7 +29,7 @@ function hostLabel(url: string): string | null {
   return null
 }
 
-function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: RemotesPanelProps) {
+function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false, request = null }: RemotesPanelProps) {
   const {
     data: remotes,
     error: loadError,
@@ -39,6 +41,9 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
   const [newName, setNewName] = useState('')
   const [newUrl, setNewUrl] = useState('')
   const [showAddRemote, setShowAddRemote] = useState(false)
+  useEffect(() => {
+    if (request?.action === 'new-remote') setShowAddRemote(true)
+  }, [request])
   const [fetchingRemote, setFetchingRemote] = useState<string | null>(null)
   const fetchOp = useCancellableOperation()
   const rowMenu = useRowMenu()
@@ -134,6 +139,7 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
             <Plus size={18} strokeWidth={1.75} />
           </button>
         }
+        onPinnedEscape={() => setShowAddRemote(false)}
         pinned={
           showAddRemote && (
             <div className="remotes-panel-new">

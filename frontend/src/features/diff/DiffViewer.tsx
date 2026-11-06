@@ -25,6 +25,7 @@ import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import { plural } from '../../lib/plural'
 import { toggled } from '../../lib/sets'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { NARROW_SPLIT_WIDTH, useWindowNarrowerThan } from '../../lib/useWindowNarrowerThan'
 import './DiffViewer.scss'
 
 function formatMegabytes(bytes: number): string {
@@ -90,6 +91,7 @@ function DiffViewer({
   const newIssue = useNewIssue()
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
   const { wrap } = useDiffWrap()
+  const tooNarrowForSplit = useWindowNarrowerThan(NARROW_SPLIT_WIDTH)
   const paneRef = useRef<HTMLDivElement>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
@@ -275,7 +277,8 @@ function DiffViewer({
   const stats = diffStats(diff)
   // A conflicted file shows its two sides, or the working file with the markers
   // inline; either way there's no hunk to stage on its own.
-  const mode = diff.conflicted ? (conflictView === 'side-by-side' ? 'split' : 'unified') : viewMode
+  const chosenMode = diff.conflicted ? (conflictView === 'side-by-side' ? 'split' : 'unified') : viewMode
+  const mode = tooNarrowForSplit ? 'unified' : chosenMode
   // Threads pin to a new-side line the diff shows; the rest, and all of them
   // when each side scrolls on its own, are listed under the diff.
   const sidesApart = mode === 'split' && !wrap

@@ -16,6 +16,7 @@ interface SplitButtonProps {
   onOpenChange?: (open: boolean) => void
   // Secondary where the pane's one primary is elsewhere.
   secondary?: boolean
+  compact?: boolean
 }
 
 function SplitButton({
@@ -28,6 +29,7 @@ function SplitButton({
   open,
   onOpenChange,
   secondary = false,
+  compact = false,
 }: SplitButtonProps) {
   const [ownOpen, setOwnOpen] = useState(false)
   const isOpen = open ?? ownOpen
@@ -35,7 +37,9 @@ function SplitButton({
   const ref = useDismissibleDetails()
 
   return (
-    <div className={secondary ? 'split-button split-button-secondary' : 'split-button'}>
+    <div
+      className={`split-button${secondary ? ' split-button-secondary' : ''}${compact ? ' split-button-compact' : ''}`}
+    >
       <button type="button" className="split-button-main" onClick={onClick} disabled={disabled}>
         {children}
       </button>

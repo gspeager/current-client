@@ -18,6 +18,9 @@
   height: var(--h-action);
   padding: 0 var(--space-sm);
   background: var(--primary-container);
+
+  @include patterns.disabled-primary;
+
   border: none;
   border-radius: var(--radius);
   color: var(--on-primary-container);

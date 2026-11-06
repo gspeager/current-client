@@ -4,3 +4,6 @@ vi.mock('@current-client-bindings/app', async (importOriginal) => {
   const { mockServices } = await import('./bindings')
   return mockServices(await importOriginal())
 })
+
+// A desktop window, wider than the narrow-layout breakpoints.
+window.innerWidth = 1400

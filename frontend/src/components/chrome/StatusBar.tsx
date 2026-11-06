@@ -48,7 +48,7 @@ function StatusBar({
 
   return (
     <footer className="status-bar">
-      <span className="status-bar-ready">
+      <span className="status-bar-ready" role="status">
         <span className="status-bar-dot" />
         Ready
       </span>
@@ -99,8 +99,8 @@ function StatusBar({
       >
         {copied ? 'Copied' : baseName(repoPath)}
       </button>
-      {gitVersion && <span>git {gitVersion}</span>}
-      {appVersion && <span>Current Client {appVersion}</span>}
+      {gitVersion && <span className="status-bar-version">git {gitVersion}</span>}
+      {appVersion && <span className="status-bar-version">Current Client {appVersion}</span>}
     </footer>
   )
 }

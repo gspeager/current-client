@@ -6,6 +6,7 @@ package hostcontent
 import (
 	"bytes"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -133,4 +134,13 @@ func webLink(dest, webRoot string) string {
 		return ""
 	}
 	return u.String()
+}
+
+var wikiHeading = regexp.MustCompile(`(?m)^h([1-6])\.\s+`)
+
+// WikiHeadings turns Jira's "h3. Title" into Markdown's "### Title".
+func WikiHeadings(source string) string {
+	return wikiHeading.ReplaceAllStringFunc(source, func(match string) string {
+		return strings.Repeat("#", int(match[1]-'0')) + " "
+	})
 }

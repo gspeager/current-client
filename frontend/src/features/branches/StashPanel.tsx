@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { ArrowDownToLine, Download, Eye, Package, PackagePlus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { StashService, type StashInfo } from '@current-client-bindings/app'
@@ -14,6 +15,7 @@ import type { SidebarSections } from '../../lib/useSidebarSections'
 import './StashPanel.scss'
 
 interface StashPanelProps {
+  request?: SidebarRequest | null
   repoPath: string
   dirty: boolean
   // Reloads the list when it changes, such as after a stash made from Changes.
@@ -22,7 +24,7 @@ interface StashPanelProps {
   onStashChanged?: () => void
 }
 
-function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: StashPanelProps) {
+function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, request = null }: StashPanelProps) {
   useClockTick()
   const {
     data: stashes,
@@ -36,6 +38,9 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
   const [includeUntracked, setIncludeUntracked] = useState(false)
   const [keepIndex, setKeepIndex] = useState(false)
   const [showNewStash, setShowNewStash] = useState(false)
+  useEffect(() => {
+    if (request?.action === 'new-stash') setShowNewStash(true)
+  }, [request])
   const [busyIndex, setBusyIndex] = useState<number | null>(null)
   const [shownStash, setShownStash] = useState<StashInfo | null>(null)
   const rowMenu = useRowMenu()
@@ -153,6 +158,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
             <PackagePlus size={18} strokeWidth={1.75} />
           </button>
         }
+        onPinnedEscape={() => setShowNewStash(false)}
         pinned={
           showNewStash && (
             <div className="stash-panel-new">
@@ -184,7 +190,11 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
                 <Package size={14} strokeWidth={1.5} className="stash-row-icon" />
                 <span className="stash-row-message">{s.message}</span>
                 <span className="stash-row-time">{relativeTime(new Date(s.date))}</span>
-                <RowActionButtons actions={stashActions(s)} className="stash-row-actions" onMore={rowMenu.open(stashActions(s))} />
+                <RowActionButtons
+                  actions={stashActions(s)}
+                  className="stash-row-actions"
+                  onMore={rowMenu.open(stashActions(s))}
+                />
               </li>
             ))}
           </ul>

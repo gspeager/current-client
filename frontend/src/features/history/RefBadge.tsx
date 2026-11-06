@@ -36,7 +36,7 @@ function RefBadge({ refInfo, color, onClick, active, change, upstream }: RefBadg
       style={{ '--lane': color } as CSSProperties}
     >
       {isBranch && <span className="ref-badge-dot" />}
-      {refInfo.name}
+      <span className="ref-badge-name">{refInfo.name}</span>
       {upstream && <Cloud size={10} strokeWidth={2} className="ref-badge-upstream" aria-label={upstream.name} />}
     </span>
   )

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Command } from 'cmdk'
 import { useDebounceValue } from 'usehooks-ts'
 import {
@@ -40,6 +40,7 @@ import Kbd from '../controls/Kbd'
 import PathText from '../git/PathText'
 import Modal from './Modal'
 import { shortcutLabel } from '../../lib/shortcuts'
+import { plural } from '../../lib/plural'
 import { PALETTE_SECTIONS, matchesAction, type PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
 import './QuickSwitchPalette.scss'
@@ -270,6 +271,15 @@ function QuickSwitchPalette({
     settingsResults.length +
     actionResults.length
 
+  // The list fills in as searches return, so the first row can change after
+  // it opens; the selection follows the top of the list until the arrows move it.
+  const commandRef = useRef<HTMLDivElement>(null)
+  const [selectedValue, setSelectedValue] = useState('')
+  useLayoutEffect(() => {
+    const first = commandRef.current?.querySelector('[cmdk-item]')?.getAttribute('data-value')
+    setSelectedValue(first ?? '')
+  }, [q, resultCount])
+
   const runAndClose = (run: () => void) => {
     run()
     onClose()
@@ -311,7 +321,14 @@ function QuickSwitchPalette({
 
   return (
     <Modal title="Go to anything" onClose={onClose} className="quick-switch-palette" placement="top" hideHeader>
-      <Command shouldFilter={false} loop className="quick-switch-command">
+      <Command
+        ref={commandRef}
+        shouldFilter={false}
+        loop
+        className="quick-switch-command"
+        value={selectedValue}
+        onValueChange={setSelectedValue}
+      >
         <div className="quick-switch-search">
           <Search size={16} strokeWidth={1.5} />
           <Command.Input
@@ -327,20 +344,7 @@ function QuickSwitchPalette({
         {error && <p className="quick-switch-error">{error}</p>}
 
         <Command.List className="quick-switch-results">
-          {q && resultCount === 0 && (
-            <Section heading="No matches" count={1}>
-              <Command.Item
-                value="no-matches:settings"
-                aria-label="Open Settings"
-                className="quick-switch-row"
-                onSelect={() => runAndClose(() => onOpenSettings())}
-              >
-                <SettingsIcon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
-                <span className="quick-switch-row-name">Open Settings</span>
-                <span className="quick-switch-row-meta">Nothing named “{query.trim()}”</span>
-              </Command.Item>
-            </Section>
-          )}
+          {q && resultCount === 0 && <p className="quick-switch-empty">Nothing named “{query.trim()}”.</p>}
 
           <Section heading={`Branches in ${baseName(repoPath)}`} icon={GitBranch} count={branchResults.length}>
             {branchResults.map((b) => (
@@ -498,7 +502,7 @@ function QuickSwitchPalette({
           <span className="quick-switch-hint">
             <CornerDownLeft size={12} strokeWidth={1.5} /> select
           </span>
-          <span className="quick-switch-result-count">{resultCount} results</span>
+          {resultCount > 0 && <span className="quick-switch-result-count">{plural(resultCount, 'result')}</span>}
         </div>
       </Command>
     </Modal>

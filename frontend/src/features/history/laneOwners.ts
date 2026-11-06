@@ -33,9 +33,7 @@ export function assignLaneColors(
   return nodes.map((node) => {
     const before = new Map(owners)
     const owner = ownerBranch(refsFor(node.sha) ?? [], currentBranch)
-    const color = owner
-      ? branchColor(owner, owner === currentBranch)
-      : (owners.get(node.lane) ?? laneColor(node.lane))
+    const color = owner ? branchColor(owner, owner === currentBranch) : (owners.get(node.lane) ?? laneColor(node.lane))
     node.convergingLanes.forEach((lane) => owners.delete(lane))
     owners.set(node.lane, color)
     for (const lane of node.parentLanes) {

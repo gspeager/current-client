@@ -38,9 +38,7 @@ function FileChurnList({ repoPath, repoVersion }: FileChurnListProps) {
               const extension = extensionOf(c.path)
               return (
                 <li key={c.path} className="file-churn-row">
-                  <span className="file-churn-extension">
-                    {extension === 'other' ? '—' : extension.toUpperCase()}
-                  </span>
+                  <span className="file-churn-extension">{extension === 'other' ? '—' : extension.toUpperCase()}</span>
                   <PathText path={c.path} className="file-churn-path" />
                   <span className="file-churn-bar-wrap">
                     <span

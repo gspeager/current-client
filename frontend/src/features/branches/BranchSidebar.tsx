@@ -599,6 +599,7 @@ function BranchSidebar({
             </button>
           </>
         }
+        onPinnedEscape={() => setShowNewBranch(false)}
         pinned={
           showNewBranch && (
             <div className="branch-sidebar-new">
@@ -712,7 +713,7 @@ function BranchSidebar({
             )}
             <div className="branch-sidebar-group">
               <SidebarSection
-                label="Local"
+                label="Local branches"
                 count={localBranches.length}
                 open={localOpen}
                 onToggle={() => sections.toggle('branches-local', true)}
@@ -722,7 +723,7 @@ function BranchSidebar({
             </div>
             <div className="branch-sidebar-group">
               <SidebarSection
-                label="Remote"
+                label="Remote branches"
                 count={remoteBranches === null ? undefined : remoteList.length}
                 open={remoteOpen}
                 onToggle={() => sections.toggle('branches-remote', false)}

@@ -151,6 +151,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  position: relative;
   width: 16px;
   height: 16px;
   padding: 0;
@@ -158,6 +159,14 @@
   border: none;
   border-radius: var(--radius-xs);
   color: var(--outline);
+
+  // A bigger target than the mark it wraps.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+
   cursor: pointer;
 
   &:hover {

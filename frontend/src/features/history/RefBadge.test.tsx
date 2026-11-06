@@ -13,7 +13,7 @@ describe('RefBadge', () => {
       />,
     )
 
-    expect(screen.getByText('origin/feature').style.getPropertyValue('--lane')).toBe('rgb(1, 2, 3)')
+    expect(screen.getByText('origin/feature').parentElement?.style.getPropertyValue('--lane')).toBe('rgb(1, 2, 3)')
     expect(screen.getByRole('button', { name: '#42 · merged' })).toHaveAttribute('data-state', 'merged')
   })
 

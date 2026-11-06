@@ -396,3 +396,21 @@ func TestHistoryAllLeavesOutStashes(t *testing.T) {
 		t.Fatalf("--all history includes the stash: %+v", all)
 	}
 }
+
+func TestSearchHistoryFindsAnAbbreviatedHash(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "one", "first")
+	gittest.CommitFile(t, dir, "b.txt", "two", "second")
+	entries, err := logHistory(context.Background(), dir, pageArgs(2, 0)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	older := entries[1]
+	found, err := SearchHistory(context.Background(), dir, older.SHA[:7], 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(found) != 1 || found[0].SHA != older.SHA {
+		t.Errorf("found = %+v, want only %s", found, older.SHA)
+	}
+}

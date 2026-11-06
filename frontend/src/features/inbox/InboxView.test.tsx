@@ -64,9 +64,7 @@ describe('InboxView', () => {
         .getAllByRole('heading', { level: 4 })
         .map((h) => h.textContent),
     ).toEqual(['Waiting1', 'In progress3', 'Tidy up1Clean up…'])
-    expect(
-      within(screen.getByRole('region', { name: 'app: Waiting' })).getByText(/Add the thing/),
-    ).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'app: Waiting' })).getByText(/Add the thing/)).toBeInTheDocument()
     expect(within(app).getByText(/^host /)).toBeInTheDocument()
     expect(InboxService.Rows).toHaveBeenCalledWith(['/repos/app', '/repos/lib'], true)
     // Only the open repository starts expanded; the rest fold to a header.

@@ -224,3 +224,11 @@
 .quick-switch-result-count {
   margin-left: auto;
 }
+
+.quick-switch-empty {
+  margin: 0;
+  padding: var(--space-xl) var(--space-lg);
+  color: var(--outline);
+  font: var(--ui-md);
+  text-align: center;
+}

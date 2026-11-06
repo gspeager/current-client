@@ -37,9 +37,9 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
     <div className="repo-health">
       <div className="repo-health-header">
         <span className="repo-health-title">Repository state</span>
-        {loaded && (
+        {loaded && (issueCount > 0 || !dirty) && (
           <span className={`repo-health-badge repo-health-badge-${issueCount === 0 ? 'optimal' : 'attention'}`}>
-            {issueCount > 0 ? `${issueCount} to check` : dirty ? 'Nothing blocking' : 'All clear'}
+            {issueCount > 0 ? `${issueCount} to check` : 'All clear'}
           </span>
         )}
       </div>

@@ -162,8 +162,9 @@
   color: var(--outline);
 }
 
-.issue-panel-reply-input {
+.dialog-input.issue-panel-reply-input {
+  height: auto;
   min-height: 64px;
   resize: vertical;
-  font: var(--ui-sm);
+  font: var(--prose);
 }

@@ -1,4 +1,5 @@
-import { TriangleAlert } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronDown, ChevronRight, TriangleAlert } from 'lucide-react'
 import { CommitService, type FileStatus } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
 import { plural } from '../../lib/plural'
@@ -22,15 +23,19 @@ function RiskReport({ repoPath, staged, rulesOff, onOpen }: RiskReportProps) {
     [repoPath, anyStaged],
     { refreshKey: `${stagedKey}${rulesOff.join()}`, keepData: true },
   )
+  const [choice, setChoice] = useState<boolean | null>(null)
   if (!anyStaged || !findings || findings.length === 0) return null
+  // A long list stays folded to its count, so the file list keeps its room.
+  const open = choice ?? findings.length <= 2
 
   return (
     <section className="risk-report" aria-label="Staged changes report">
-      <header className="risk-report-header">
+      <button type="button" className="risk-report-header" aria-expanded={open} onClick={() => setChoice(!open)}>
         <TriangleAlert size={12} strokeWidth={1.75} />
         <span>{plural(findings.length, 'thing')} to check before committing</span>
-      </header>
-      <ul className="risk-report-list">
+        {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
+      </button>
+      <ul className="risk-report-list" hidden={!open}>
         {findings.map((finding) => (
           <li key={`${finding.rule}-${finding.path}-${finding.line}-${finding.message}`}>
             <button type="button" className="risk-report-row" onClick={() => onOpen(finding.path, finding.line)}>

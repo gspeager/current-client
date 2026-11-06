@@ -48,7 +48,9 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
                 title={`Week of ${week.weekStart}: ${plural(week.commits, 'commit')}`}
               >
                 <span
-                  className={i === weeks.length - 1 ? 'commit-velocity-bar commit-velocity-bar-current' : 'commit-velocity-bar'}
+                  className={
+                    i === weeks.length - 1 ? 'commit-velocity-bar commit-velocity-bar-current' : 'commit-velocity-bar'
+                  }
                   style={{ height: `${Math.max(4, (week.commits / maxCommits) * 100)}%` }}
                 />
                 <span
@@ -61,7 +63,6 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
           </div>
         )}
       </div>
-
     </div>
   )
 }

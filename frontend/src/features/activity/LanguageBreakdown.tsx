@@ -1,5 +1,5 @@
 import { DashboardService } from '@current-client-bindings/app'
-import { groupTopLanguages, languageColor } from './languageColors'
+import { groupTopLanguages } from './languageColors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './LanguageBreakdown.scss'
@@ -7,6 +7,15 @@ import './LanguageBreakdown.scss'
 interface LanguageBreakdownProps {
   repoPath: string
   repoVersion: number
+}
+
+const TYPE_COLORS = ['feature', 'release', 'hotfix', 'experimental', 'integration', 'main'].map(
+  (b) => `var(--branch-${b})`,
+)
+
+// By rank, so no two listed types look alike.
+function typeColor(extension: string, rank: number): string {
+  return extension === 'other' ? 'var(--surface-highest)' : TYPE_COLORS[rank % TYPE_COLORS.length]
 }
 
 const DISPLAY_LIMIT = 5
@@ -48,7 +57,7 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
                   className="language-breakdown-segment"
                   style={{
                     width: `${total === 0 ? 0 : (l.count / total) * 100}%`,
-                    background: languageColor(l.extension),
+                    background: typeColor(l.extension, languages.indexOf(l)),
                   }}
                   title={`${extensionLabel(l.extension)}: ${l.count} files`}
                 />
@@ -60,15 +69,13 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
                 const percent = total === 0 ? 0 : (l.count / total) * 100
                 return (
                   <li key={l.extension} className="language-breakdown-row">
-                    <span className="language-breakdown-dot" style={{ background: languageColor(l.extension) }} />
+                    <span
+                      className="language-breakdown-dot"
+                      style={{ background: typeColor(l.extension, languages.indexOf(l)) }}
+                    />
                     <span className="language-breakdown-extension">{extensionLabel(l.extension)}</span>
                     <span className="language-breakdown-count">{plural(l.count, 'file')}</span>
-                    <span
-                      className="language-breakdown-percent"
-                      
-                    >
-                      {percent.toFixed(1)}%
-                    </span>
+                    <span className="language-breakdown-percent">{percent.toFixed(1)}%</span>
                   </li>
                 )
               })}
@@ -76,7 +83,6 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
           </>
         )}
       </div>
-
     </div>
   )
 }

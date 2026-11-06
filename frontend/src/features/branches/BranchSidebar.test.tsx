@@ -62,8 +62,8 @@ describe('BranchSidebar groups', () => {
 
     const checkedOut = (await screen.findByText('Checked out')).parentElement!
     expect(within(checkedOut).getByRole('button', { name: /^main/ })).toHaveTextContent('HEAD')
-    expect(screen.getByRole('button', { name: 'Local, 2' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('button', { name: 'Remote, 2' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Local branches, 2' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Remote branches, 2' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('origin/login')).not.toBeInTheDocument()
   })
 
@@ -73,7 +73,7 @@ describe('BranchSidebar groups', () => {
     await screen.findByText('origin/login')
     await userEvent.type(screen.getByRole('textbox', { name: 'Filter branches' }), 'log')
 
-    expect(screen.getByRole('button', { name: 'Local, 0' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Local branches, 0' })).toBeInTheDocument()
     expect(screen.getByText('origin/login')).toBeInTheDocument()
     expect(screen.queryByText('origin/feature')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^main/ })).toBeInTheDocument()
@@ -645,7 +645,7 @@ describe('BranchSidebar overlap prediction', () => {
     // The Remote group is closed by default, so its header carries the count.
     expect(screen.getByTitle('1 remote branch would conflict with the current branch')).toHaveTextContent('1 conflicts')
     expect(screen.queryByText('origin/login')).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Remote, 2' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Remote branches, 2' }))
     expect(sections.toggle).toHaveBeenCalledWith('branches-remote', false)
   })
 

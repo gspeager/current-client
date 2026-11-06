@@ -195,14 +195,12 @@ describe('QuickSwitchPalette features', () => {
     await vi.waitFor(() => expect(onOpenCommit).toHaveBeenCalledWith('abc1234def', 12))
   })
 
-  it('offers Settings instead of a dead end', async () => {
-    const onOpenSettings = vi.fn()
-    renderPalette(undefined, { onOpenSettings })
+  it('says plainly when nothing matches, with nothing to select', async () => {
+    renderPalette()
 
     await userEvent.type(screen.getByRole('combobox'), 'zzzz')
-    expect(within(palette()).getByText('No matches')).toBeInTheDocument()
-    await userEvent.click(paletteAction('Open Settings'))
-    expect(onOpenSettings).toHaveBeenCalledWith()
+    expect(within(palette()).getByText('Nothing named “zzzz”.')).toBeInTheDocument()
+    expect(within(palette()).queryAllByRole('option')).toHaveLength(0)
   })
 })
 

@@ -185,7 +185,7 @@ function ChangesView({
         ? `Discard ${count === 1 ? 'this line' : `these ${count} lines`}? A snapshot goes to Recover first.`
         : showsStaged
           ? 'Discard this staged hunk from the index and the working tree? A snapshot goes to Recover first.'
-          : 'Discard this hunk? This cannot be undone.',
+          : 'Discard this hunk? A snapshot goes to Recover first.',
       confirmLabel: 'Discard',
       destructive: true,
     })
@@ -400,15 +400,13 @@ function ChangesView({
               <p className="changes-empty">Loading diff…</p>
             )}
           </>
+        ) : (files?.length ?? 0) === 0 ? (
+          <div className="changes-clean">
+            <WaveMark />
+            <p>No changes to show.</p>
+          </div>
         ) : (
-          (files?.length ?? 0) === 0 ? (
-            <div className="changes-clean">
-              <WaveMark />
-              <p>No changes to show.</p>
-            </div>
-          ) : (
-            <p className="changes-empty">Select a file to see its diff.</p>
-          )
+          <p className="changes-empty">Select a file to see its diff.</p>
         )}
       </div>
     </div>

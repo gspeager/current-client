@@ -4,4 +4,3 @@ export function formatAge(days: number): string {
   if (days < 365) return `${Math.round(days / 30)}mo`
   return `${Math.round(days / 365)}y`
 }
-

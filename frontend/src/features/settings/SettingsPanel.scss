@@ -405,3 +405,8 @@
   font: var(--data-sm);
   color: var(--on-surface);
 }
+
+// A person's name is chrome, not data.
+.settings-field-text {
+  font: var(--ui-sm);
+}

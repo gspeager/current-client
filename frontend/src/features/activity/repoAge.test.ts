@@ -9,4 +9,3 @@ describe('formatAge', () => {
     expect(formatAge(400)).toBe('1y')
   })
 })
-

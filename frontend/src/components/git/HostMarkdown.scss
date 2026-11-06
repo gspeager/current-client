@@ -1,6 +1,6 @@
 .host-markdown {
   color: var(--on-surface);
-  font: var(--ui-sm);
+  font: var(--prose);
   overflow-wrap: anywhere;
 
   > :first-child {
@@ -22,8 +22,17 @@
 
   // A task list's checkbox is its marker; a bullet beside it says it twice.
   li:has(> input[type='checkbox']) {
-    list-style: none;
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
     margin-left: -1.25em;
+    list-style: none;
+
+    > input {
+      align-self: center;
+      flex-shrink: 0;
+      margin: 0;
+    }
   }
 
   h1,

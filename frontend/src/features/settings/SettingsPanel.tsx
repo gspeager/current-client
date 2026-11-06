@@ -211,7 +211,7 @@ function SettingsPanel({
             />
             <SettingsRow
               label="Conventional Commits"
-              hint="Adds the Changelog tab to the tab bar and the type picker to the commit form. History still shows types in repositories that use the format."
+              hint="Adds the type picker to the commit form. History still shows types in repositories that use the format."
             >
               <Switch
                 checked={!values.disableConventionalCommits}

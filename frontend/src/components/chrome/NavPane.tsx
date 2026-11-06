@@ -35,7 +35,17 @@ type SectionId = 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 // Something elsewhere in the app, such as the palette, asking a sidebar
 // section to open one of its forms or dialogs; n makes each ask distinct.
 export interface SidebarRequest {
-  action: 'new-branch' | 'clean-up' | 'branch-review' | 'tidy-up' | 'restack' | 'new-tag' | 'publish-release'
+  action:
+    | 'new-branch'
+    | 'clean-up'
+    | 'branch-review'
+    | 'tidy-up'
+    | 'restack'
+    | 'new-tag'
+    | 'publish-release'
+    | 'new-stash'
+    | 'new-worktree'
+    | 'new-remote'
   n: number
 }
 
@@ -126,7 +136,8 @@ function ToolGroup({ label, actions, children }: { label: string; actions: Works
   )
 }
 
-const SIDEBAR_ROWS = '.branch-row, .tag-row, .stash-row, .remote-row, .worktree-row, .submodule-row'
+const SIDEBAR_ROWS =
+  '.sidebar-section-header, .branch-row, .tag-row, .stash-row, .remote-row, .worktree-row, .submodule-row'
 
 function NavPane({
   repoPath,
@@ -174,7 +185,14 @@ function NavPane({
 
   useEffect(() => {
     if (!request) return
-    showSection(request.action === 'new-branch' || request.action === 'clean-up' ? 'branches' : 'tags')
+    const owner: Partial<Record<SidebarRequest['action'], SectionId>> = {
+      'new-branch': 'branches',
+      'clean-up': 'branches',
+      'new-stash': 'stash',
+      'new-worktree': 'worktrees',
+      'new-remote': 'remotes',
+    }
+    showSection(owner[request.action] ?? 'tags')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request])
 
@@ -250,6 +268,7 @@ function NavPane({
             refreshKey={repoVersion}
             sections={sections}
             onStashChanged={onBranchChanged}
+            request={request}
           />
         </section>
 
@@ -258,7 +277,13 @@ function NavPane({
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('remotes')}>
-          <RemotesPanel repoPath={repoPath} sections={sections} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
+          <RemotesPanel
+            repoPath={repoPath}
+            sections={sections}
+            onFetched={onFetched}
+            pruneOnFetch={pruneOnFetch}
+            request={request}
+          />
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('worktrees')}>
@@ -268,6 +293,7 @@ function NavPane({
             sections={sections}
             onOpenRepository={onOpenRepository}
             onWorktreesChanged={onBranchChanged}
+            request={request}
           />
         </section>
         <SubmodulesPanel

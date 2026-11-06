@@ -1,6 +1,7 @@
 @use '../../styles/patterns';
 
 .header-bar {
+  container-type: inline-size;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -79,11 +80,13 @@
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: none;
 }
 
 .header-bar-switcher {
   position: relative;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 200px;
 
   > summary {
     list-style: none;
@@ -271,4 +274,23 @@
   }
 
   @include patterns.disabled;
+}
+
+// Words make way before repository names do; icons and keycaps stay.
+@container (max-width: 1240px) {
+  .header-bar-tab-sep,
+  .header-bar-tab-branch {
+    display: none;
+  }
+}
+
+@container (max-width: 1060px) {
+  .header-bar-quick-switch-label,
+  .header-bar-inbox-label {
+    display: none;
+  }
+
+  .header-bar-tab-close {
+    display: none;
+  }
 }

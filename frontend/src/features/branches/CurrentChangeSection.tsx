@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { GitPullRequest, PanelRight, TriangleAlert, Upload } from 'lucide-react'
 import { HostService, PlatformService } from '@current-client-bindings/app'
 import ChangeMarker from '../../components/git/ChangeMarker'
@@ -32,7 +33,12 @@ function CurrentChangeSection({
   onCreateChange,
   onPushToCreate,
 }: CurrentChangeSectionProps) {
-  const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath], { refreshKey, keepData: true })
+  const [checks, setChecks] = useState(0)
+  const [checking, setChecking] = useState(false)
+  const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath, checks], {
+    refreshKey,
+    keepData: true,
+  })
   const HostIcon = useHostLogo(repoPath)
   const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath], {
     refreshKey,
@@ -89,7 +95,34 @@ function CurrentChangeSection({
   if (!change) {
     if (!data.proposable && conflicts.length === 0) return null
     // Without an upstream there is nothing on the host to open a change from.
-    const row = !data.proposable ? null : data.upstream ? (
+    const row = !data.proposable ? null : !data.checked && data.upstream ? (
+      <button
+        type="button"
+        className="current-change-row"
+        disabled={checking}
+        onClick={() => {
+          setChecking(true)
+          void HostService.Refresh(repoPath)
+            .catch(ignoreDecorativeFailure)
+            .finally(() => {
+              setChecking(false)
+              setChecks((n) => n + 1)
+            })
+        }}
+      >
+        <GitPullRequest size={14} strokeWidth={1.75} className="current-change-row-icon" />
+        <span className="current-change-row-text">
+          {checking ? (
+            'Checking…'
+          ) : (
+            <>
+              {kind} not checked <span className="current-change-row-sep">·</span>{' '}
+              <span className="current-change-row-action">Check</span>
+            </>
+          )}
+        </span>
+      </button>
+    ) : data.upstream ? (
       <button type="button" className="current-change-row" onClick={() => void createChange()}>
         <GitPullRequest size={14} strokeWidth={1.75} className="current-change-row-icon" />
         <span className="current-change-row-text">
