@@ -70,6 +70,14 @@ Section
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
+
+    # Explorer's context menu, on a folder and on a folder's background.
+    WriteRegStr SHELL_CONTEXT "Software\Classes\Directory\shell\CurrentClient" "" "Open in Current Client"
+    WriteRegStr SHELL_CONTEXT "Software\Classes\Directory\shell\CurrentClient" "Icon" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    WriteRegStr SHELL_CONTEXT "Software\Classes\Directory\shell\CurrentClient\command" "" "$\"$INSTDIR\${PRODUCT_EXECUTABLE}$\" $\"%1$\""
+    WriteRegStr SHELL_CONTEXT "Software\Classes\Directory\Background\shell\CurrentClient" "" "Open in Current Client"
+    WriteRegStr SHELL_CONTEXT "Software\Classes\Directory\Background\shell\CurrentClient" "Icon" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    WriteRegStr SHELL_CONTEXT "Software\Classes\Directory\Background\shell\CurrentClient\command" "" "$\"$INSTDIR\${PRODUCT_EXECUTABLE}$\" $\"%V$\""
     
     !insertmacro wails.writeUninstaller
 SectionEnd
@@ -86,6 +94,8 @@ Section "uninstall"
 
     !insertmacro wails.unassociateFiles
     !insertmacro wails.unassociateCustomProtocols
+    DeleteRegKey SHELL_CONTEXT "Software\Classes\Directory\shell\CurrentClient"
+    DeleteRegKey SHELL_CONTEXT "Software\Classes\Directory\Background\shell\CurrentClient"
 
     !insertmacro wails.deleteUninstaller
 SectionEnd

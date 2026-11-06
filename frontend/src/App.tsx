@@ -67,6 +67,7 @@ import { useHostIndicator } from './lib/useHostIndicator'
 import { useHostLinks } from './lib/useHostLinks'
 import { useBranchChanges } from './lib/useBranchChanges'
 import { useSettings } from './features/settings/useSettings'
+import { useOpenRequests } from './features/repositories/useOpenRequests'
 import { useTabMemory } from './features/repositories/useTabMemory'
 import { useWorkingTree } from './features/working-copy/useWorkingTree'
 import ActivityView from './features/activity/ActivityView'
@@ -221,6 +222,7 @@ function App({
 
   useAutoFetch(repo.repoPath, settings.settings?.autoFetchIntervalMinutes ?? 0, onFetched)
   useFileWatcher(repo.repoPath, onFileWatcherChanged)
+  useOpenRequests(repo)
   useHostPrompt(hostIntegration ? repo.repoPath : null, bumpHostsVersion)
 
   // Settings may have changed the git executable path.

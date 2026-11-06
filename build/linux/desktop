@@ -9,5 +9,6 @@ Type=Application
 Icon=current-client
 Categories=Development;RevisionControl;
 StartupWMClass=current-client
+MimeType=x-scheme-handler/current-client;inode/directory;
 
  
