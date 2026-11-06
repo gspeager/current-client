@@ -79,6 +79,7 @@ export function useSettings() {
     setDiffNoWrap: setter('diffNoWrap', SettingsService.SetDiffNoWrap),
     setPruneOnFetch: setter('pruneOnFetch', SettingsService.SetPruneOnFetch),
     setRiskRulesOff: setter('riskRulesOff', SettingsService.SetRiskRulesOff),
+    setSnapshotLimit: setter('snapshotLimit', SettingsService.SetSnapshotLimit),
     setHistoryBranchFilter: setter('historyBranchFilter', SettingsService.SetHistoryBranchFilter),
     setHistoryFirstParent: setter('historyFirstParent', SettingsService.SetHistoryFirstParent),
     setDisableConventionalCommits: setter('disableConventionalCommits', SettingsService.SetDisableConventionalCommits),

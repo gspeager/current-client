@@ -235,7 +235,7 @@ function BranchSidebar({
         if (!force && errorMessage(err) === 'This branch has unmerged changes.') {
           const confirmed = await confirm({
             title: 'Delete branch',
-            message: `"${name}" has unmerged changes. Delete anyway?`,
+            message: `"${name}" has unmerged changes. Delete anyway? Its commits stay in Recover.`,
             confirmLabel: 'Delete',
             destructive: true,
           })

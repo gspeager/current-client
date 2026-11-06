@@ -220,6 +220,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       expect.stringMatching(/^(Reveal in|Open in File Manager)/),
       'Open in VS Code',
       'Undo last operation',
+      'Recover discarded work',
       'Reflog',
       'Bisect',
       'Apply patch…',

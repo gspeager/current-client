@@ -33,6 +33,7 @@ type StashOptions struct {
 }
 
 func (s *StashService) StashSave(repoPath string, opts StashOptions) error {
+	snapshotBefore(repoPath, "stash")
 	return git.StashPush(context.Background(), repoPath, git.StashOptions(opts))
 }
 

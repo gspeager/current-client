@@ -10,11 +10,13 @@ import {
   Terminal,
   Undo2,
   type LucideIcon,
+  LifeBuoy,
 } from 'lucide-react'
 import { DashboardService, PatchService, PlatformService, UndoService } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { hostName, repositoryPage } from '../../lib/hostPages'
 import BisectWizard from '../../features/history/BisectWizard'
+import RecoverPanel from '../../features/history/RecoverPanel'
 import ReflogPanel from '../../features/history/ReflogPanel'
 import { undoConfirmOptions } from '../../features/history/undoPreview'
 import { errorMessage } from '../../lib/errors'
@@ -85,7 +87,7 @@ export function useWorkspaceActions({
 }: WorkspaceActionsOptions): WorkspaceActions {
   const { confirm } = useDialogs()
   const [feedback, setFeedback] = useState<(WorkspaceFeedback & { repoPath: string }) | null>(null)
-  const [open, setOpen] = useState<'reflog' | 'bisect' | null>(null)
+  const [open, setOpen] = useState<'reflog' | 'recover' | 'bisect' | null>(null)
   const dismissFeedback = () => setFeedback(null)
 
   if (!repoPath) return { actions: [], feedback: null, dismissFeedback, modals: null }
@@ -171,6 +173,14 @@ export function useWorkspaceActions({
       run: () => run(undoLast(), 'Could not undo'),
       ...blocked,
     },
+    {
+      id: 'recover',
+      label: 'Recover discarded work',
+      short: 'Recover',
+      group: 'tools',
+      icon: LifeBuoy,
+      run: () => setOpen('recover'),
+    },
     { id: 'reflog', label: 'Reflog', short: 'Reflog', group: 'tools', icon: History, run: () => setOpen('reflog') },
     {
       id: 'bisect',
@@ -209,6 +219,9 @@ export function useWorkspaceActions({
 
   const modals = (
     <>
+      {open === 'recover' && (
+        <RecoverPanel repoPath={repoPath} onClose={() => setOpen(null)} onBranchChanged={onBranchChanged} />
+      )}
       {open === 'reflog' && (
         <ReflogPanel repoPath={repoPath} onClose={() => setOpen(null)} onBranchChanged={onBranchChanged} />
       )}

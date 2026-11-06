@@ -106,10 +106,12 @@ func (s *DiffService) UnstageHunk(repoPath, path, hunkText string) error {
 }
 
 func (s *DiffService) DiscardHunk(repoPath, path, hunkText string) error {
+	snapshotBefore(repoPath, "discard")
 	return diff.DiscardHunk(context.Background(), repoPath, path, hunkText)
 }
 
 func (s *DiffService) DiscardStagedHunk(repoPath, path, hunkText string) error {
+	snapshotBefore(repoPath, "discard")
 	return diff.DiscardStagedHunk(context.Background(), repoPath, path, hunkText)
 }
 
@@ -129,6 +131,7 @@ func (s *DiffService) UnstageLines(repoPath, path, hunkText string, sel LineSele
 }
 
 func (s *DiffService) DiscardLines(repoPath, path, hunkText string, sel LineSelection) error {
+	snapshotBefore(repoPath, "discard")
 	return diff.DiscardLines(context.Background(), repoPath, path, hunkText, diff.LineSelection(sel))
 }
 

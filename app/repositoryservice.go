@@ -10,6 +10,7 @@ import (
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/repository"
+	"github.com/gspeager/current-client/core/snapshot"
 	"github.com/gspeager/current-client/internal/config"
 )
 
@@ -96,6 +97,12 @@ func (s *RepositoryService) RemoveRecentRepository(path string) error {
 		cfg.RecentRepositories = repository.RemoveRecent(cfg.RecentRepositories, path)
 	})
 	deleteHeadsUnlessOpen(path, tabs)
+	// Only here, not when the list's limit evicts it: this is the user's own choice.
+	if !slices.Contains(tabs, path) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = snapshot.DeleteAll(ctx, path)
+	}
 	return err
 }
 

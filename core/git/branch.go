@@ -265,3 +265,18 @@ func CommitReachable(ctx context.Context, repoPath, sha string) bool {
 	_, err = runResult(ctx, repoPath, "merge-base", "--is-ancestor", sha, "HEAD")
 	return err == nil
 }
+
+// CommitOnAnotherRef says whether any branch, remote branch or tag besides except
+// leads to sha.
+func CommitOnAnotherRef(ctx context.Context, repoPath, sha, except string) bool {
+	result, err := runResult(ctx, repoPath, "for-each-ref", "--format=%(refname)", "--contains="+sha, "refs/heads", "refs/remotes", "refs/tags")
+	if err != nil {
+		return false
+	}
+	for _, ref := range strings.Fields(result.Stdout) {
+		if ref != except {
+			return true
+		}
+	}
+	return false
+}
