@@ -44,21 +44,32 @@ func parseOpenArg(arg, workingDir string) (OpenRequestInfo, bool) {
 	if arg == "" || strings.HasPrefix(arg, "-") {
 		return OpenRequestInfo{}, false
 	}
-	lower := strings.ToLower(arg)
 	switch {
-	case strings.HasPrefix(lower, "current-client:"):
+	case isLink(arg):
 		return parseOpenLink(arg), true
-	case strings.HasPrefix(lower, "file://"):
+	case strings.HasPrefix(strings.ToLower(arg), "file://"):
 		parsed, err := url.Parse(arg)
 		if err != nil || parsed.Path == "" {
 			return OpenRequestInfo{Problem: "This address isn't a folder on this computer."}, true
 		}
-		return OpenRequestInfo{Path: filepath.Clean(filepath.FromSlash(parsed.Path))}, true
+		return OpenRequestInfo{Path: filepath.Clean(filepath.FromSlash(fileURLPath(parsed.Path)))}, true
 	}
 	if !filepath.IsAbs(arg) && !isNetworkPath(arg) {
 		arg = filepath.Join(workingDir, arg)
 	}
 	return OpenRequestInfo{Path: filepath.Clean(arg)}, true
+}
+
+func isLink(arg string) bool {
+	return strings.HasPrefix(strings.ToLower(arg), "current-client:")
+}
+
+// A Windows file URL's path is /C:/repo.
+func fileURLPath(path string) string {
+	if len(path) > 2 && path[0] == '/' && path[2] == ':' {
+		return path[1:]
+	}
+	return path
 }
 
 func parseOpenLink(link string) OpenRequestInfo {
@@ -91,6 +102,11 @@ func knownRepository(path string) bool {
 // QueueOpenArgs takes command-line arguments, without the program's name.
 func QueueOpenArgs(args []string, workingDir string) {
 	added := false
+	// A link arrives as one quoted argument. Anything beside it came from breaking
+	// out of the quotes, and isn't a path someone chose.
+	if slices.ContainsFunc(args, isLink) {
+		args = slices.DeleteFunc(slices.Clone(args), func(arg string) bool { return !isLink(arg) })
+	}
 	openRequests.Lock()
 	for _, arg := range args {
 		request, ok := parseOpenArg(arg, workingDir)

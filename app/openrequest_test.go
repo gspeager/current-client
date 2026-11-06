@@ -71,6 +71,27 @@ func TestParseOpenArgRefusesWhatALinkMayNotDo(t *testing.T) {
 	}
 }
 
+func TestArgumentsBesideALinkAreDropped(t *testing.T) {
+	useTempSettings(t)
+	abs := t.TempDir()
+	var s RepositoryService
+	s.TakeOpenRequests()
+	QueueOpenArgs([]string{link(filepath.Join(abs, "linked")), filepath.Join(abs, "smuggled")}, "/work")
+	taken := s.TakeOpenRequests()
+	if len(taken) != 1 || taken[0].Path != filepath.Join(abs, "linked") || !taken[0].Confirm {
+		t.Fatalf("taken = %+v", taken)
+	}
+}
+
+func TestFileURLPathOnWindows(t *testing.T) {
+	if got := fileURLPath("/C:/repo"); got != "C:/repo" {
+		t.Fatalf("got %q", got)
+	}
+	if got := fileURLPath("/home/a"); got != "/home/a" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestParseOpenArgIgnoresFlags(t *testing.T) {
 	for _, arg := range []string{"", "--help", "-psn_0_12345"} {
 		if _, ok := parseOpenArg(arg, "/work"); ok {

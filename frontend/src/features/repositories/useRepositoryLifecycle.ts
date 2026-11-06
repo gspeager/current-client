@@ -207,8 +207,11 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     tabs,
     tabSummaries,
     restored,
-    openFromOutside: (path: string) => void openPath(RepositoryService.OpenRepository(path)),
-    showOpenProblem: setRepoError,
+    openFromOutside: (path: string) =>
+      RepositoryService.OpenRepository(path).then((opened) => {
+        addTab(opened)
+        refreshRecentRepos()
+      }),
     closeTab,
     reorderTabs,
   }

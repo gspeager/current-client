@@ -10,7 +10,7 @@ function Harness({ repo }: { repo: Parameters<typeof useOpenRequests>[0] }) {
 }
 
 function renderWith(restored = true) {
-  const repo = { restored, openFromOutside: vi.fn(), showOpenProblem: vi.fn() }
+  const repo = { restored, openFromOutside: vi.fn().mockResolvedValue(undefined) }
   const view = render(
     <DialogProvider>
       <Harness repo={repo} />
@@ -24,7 +24,7 @@ const take = () => vi.mocked(RepositoryService.TakeOpenRequests)
 describe('useOpenRequests', () => {
   it('waits for tabs to be restored, then opens a path straight away', async () => {
     take().mockResolvedValue([{ path: '/repos/a', confirm: false, problem: '' }])
-    const repo = { restored: false, openFromOutside: vi.fn(), showOpenProblem: vi.fn() }
+    const repo = { restored: false, openFromOutside: vi.fn().mockResolvedValue(undefined) }
     const { rerender } = render(
       <DialogProvider>
         <Harness repo={repo} />
@@ -65,12 +65,20 @@ describe('useOpenRequests', () => {
     expect(repo.openFromOutside).not.toHaveBeenCalled()
   })
 
-  it('says why a link is no use', async () => {
+  it('says why a link is no use, with a repository open', async () => {
     take().mockResolvedValue([{ path: '', confirm: false, problem: "This link isn't one Current Client can open." }])
     const { repo } = renderWith()
-    await vi.waitFor(() =>
-      expect(repo.showOpenProblem).toHaveBeenCalledWith("This link isn't one Current Client can open."),
-    )
+    const dialog = await screen.findByRole('alertdialog', { name: 'Could not open repository' })
+    expect(within(dialog).getByText("This link isn't one Current Client can open.")).toBeInTheDocument()
+    expect(within(dialog).queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
     expect(repo.openFromOutside).not.toHaveBeenCalled()
+  })
+
+  it('says when a path is not a repository', async () => {
+    take().mockResolvedValue([{ path: '/not/a/repo', confirm: false, problem: '' }])
+    const { repo } = renderWith()
+    repo.openFromOutside.mockRejectedValue(new Error("This folder isn't a Git repository."))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Could not open repository' })
+    expect(within(dialog).getByText("This folder isn't a Git repository.")).toBeInTheDocument()
   })
 })

@@ -25,7 +25,9 @@ function ConfirmDialog({ options, onSettle }: { options: ConfirmOptions; onSettl
             <div className="dialog-body">
               <AlertDialog.Description className="dialog-message">{options.message}</AlertDialog.Description>
               <div className="dialog-actions">
-                <AlertDialog.Cancel className="dialog-button">{options.cancelLabel ?? 'Cancel'}</AlertDialog.Cancel>
+                {!options.noCancel && (
+                  <AlertDialog.Cancel className="dialog-button">{options.cancelLabel ?? 'Cancel'}</AlertDialog.Cancel>
+                )}
                 <AlertDialog.Action
                   className={`dialog-button ${options.destructive ? 'dialog-button-destructive' : 'dialog-button-primary'}`}
                   onClick={() => onSettle(true)}
