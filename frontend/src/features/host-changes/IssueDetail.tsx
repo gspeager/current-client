@@ -5,6 +5,8 @@ import { CircleCheck, CircleDot, GitBranch, GitBranchPlus } from 'lucide-react'
 import { BranchService, HostService, PlatformService } from '@current-client-bindings/app'
 import { Fact, FactList } from '../../components/chrome/FactList'
 import HostMarkdown from '../../components/git/HostMarkdown'
+import LabelChip from '../../components/git/LabelChip'
+import { taskProgress } from './taskProgress'
 import { issueBranchName } from '../../lib/branchName'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
 import { useNewIssue } from '../../lib/issuePanel'
@@ -44,6 +46,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
   const issue = data?.issue
   const writable = canWrite && !!data?.writable
   const closed = issue?.state === 'closed'
+  const tasks = data?.descriptionHtml ? taskProgress(data.descriptionHtml) : null
 
   const run = (kind: 'comment' | 'state' | 'branch', request: () => Promise<unknown>, after: () => void) => {
     setRunning(kind)
@@ -127,10 +130,18 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
               {issue.labels.length > 0 && (
                 <Fact label="Labels" className="issue-panel-labels">
                   {issue.labels.map((label) => (
-                    <span key={label} className="issue-panel-label">
-                      {label}
-                    </span>
+                    <LabelChip key={label} label={label} />
                   ))}
+                </Fact>
+              )}
+              {tasks && (
+                <Fact label="Tasks" className="issue-panel-tasks">
+                  <progress
+                    value={tasks.done}
+                    max={tasks.total}
+                    aria-label={`${tasks.done} of ${tasks.total} tasks done`}
+                  />
+                  {tasks.done} of {tasks.total}
                 </Fact>
               )}
               {branch && (

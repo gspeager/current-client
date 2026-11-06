@@ -41,18 +41,27 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
           <p className="commit-velocity-hint">Loading…</p>
         ) : (
           <div className="commit-velocity-bars">
+            {average !== null && average > 0 && (
+              <span
+                className="commit-velocity-average"
+                title={`Average ${average.toFixed(1)} a week`}
+                style={{ bottom: `calc(20px + (100% - 20px) * ${average / maxCommits})` }}
+              />
+            )}
             {weeks.map((week, i) => (
               <div
                 key={week.weekStart}
                 className="commit-velocity-bar-wrap"
                 title={`Week of ${week.weekStart}: ${plural(week.commits, 'commit')}`}
               >
-                <span
-                  className={
-                    i === weeks.length - 1 ? 'commit-velocity-bar commit-velocity-bar-current' : 'commit-velocity-bar'
-                  }
-                  style={{ height: `${Math.max(4, (week.commits / maxCommits) * 100)}%` }}
-                />
+                <span className="commit-velocity-bar-area">
+                  <span
+                    className={
+                      i === weeks.length - 1 ? 'commit-velocity-bar commit-velocity-bar-current' : 'commit-velocity-bar'
+                    }
+                    style={{ height: `${Math.max(4, (week.commits / maxCommits) * 100)}%` }}
+                  />
+                </span>
                 <span
                   className={`commit-velocity-week-label${i === weeks.length - 1 ? ' commit-velocity-week-label-current' : ''}`}
                 >

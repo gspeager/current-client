@@ -68,9 +68,23 @@
 }
 
 .repo-health-row-text {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+.repo-health-row svg {
+  flex-shrink: 0;
+}
+
+.repo-health-icon-ok {
+  color: var(--tertiary);
+}
+
+.repo-health-icon-warn {
+  color: var(--warning);
 }
 
 .repo-health-row-title {

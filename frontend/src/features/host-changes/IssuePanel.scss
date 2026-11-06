@@ -82,6 +82,35 @@
   gap: var(--space-xs);
 }
 
+.issue-panel-tasks {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font: var(--data-sm);
+
+  progress {
+    width: 96px;
+    height: 6px;
+    overflow: hidden;
+    appearance: none;
+    border: none;
+    border-radius: 3px;
+    background: var(--surface-highest);
+  }
+
+  progress::-webkit-progress-bar {
+    background: var(--surface-highest);
+  }
+
+  progress::-webkit-progress-value {
+    background: var(--tertiary);
+  }
+
+  progress::-moz-progress-bar {
+    background: var(--tertiary);
+  }
+}
+
 .issue-panel-comments {
   display: flex;
   flex-direction: column;
@@ -97,9 +126,28 @@
 }
 
 .issue-panel-comment {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+  padding-left: 28px;
+
+  // The thread's rail, from each author's badge down to the next.
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    bottom: calc(-1 * var(--space-sm));
+    left: 9.5px;
+    width: 1px;
+    background: var(--outline-variant);
+  }
+
+  .identity-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
 }
 
 .issue-panel-comment-head {

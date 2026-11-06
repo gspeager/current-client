@@ -1,10 +1,22 @@
-import { Check, X } from 'lucide-react'
+import { Check, CircleCheck, TriangleAlert, X } from 'lucide-react'
 import { BranchService, DashboardService } from '@current-client-bindings/app'
 import { countHealthIssues, isStaleBranch, STALE_THRESHOLD_DAYS } from './repoHealth'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import './RepositoryHealth.scss'
+
+function HealthIcon({ warn }: { warn: boolean }) {
+  const Icon = warn ? TriangleAlert : CircleCheck
+  return (
+    <Icon
+      size={16}
+      strokeWidth={1.75}
+      className={warn ? 'repo-health-icon-warn' : 'repo-health-icon-ok'}
+      aria-hidden="true"
+    />
+  )
+}
 
 interface RepositoryHealthProps {
   repoPath: string
@@ -53,6 +65,7 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasC
         ) : (
           <>
             <div className="repo-health-row">
+              <HealthIcon warn={staleBranchCount > 0} />
               <div className="repo-health-row-text">
                 <span className="repo-health-row-title">Stale branches</span>
                 <span className="repo-health-row-subtitle">
@@ -67,6 +80,7 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasC
             </div>
 
             <div className="repo-health-row">
+              <HealthIcon warn={!!unpushedCount} />
               <div className="repo-health-row-text">
                 <span className="repo-health-row-title">Unpushed commits</span>
                 <span className="repo-health-row-subtitle">
@@ -83,6 +97,7 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasC
             </div>
 
             <div className="repo-health-row">
+              <HealthIcon warn={hasConflict || dirty} />
               <div className="repo-health-row-text">
                 <span className="repo-health-row-title">Working tree</span>
                 <span className="repo-health-row-subtitle">

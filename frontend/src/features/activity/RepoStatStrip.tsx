@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react'
-import { DashboardService, type RepoDiskUsageInfo, type RepoStatsInfo } from '@current-client-bindings/app'
+import {
+  ActivityService,
+  DashboardService,
+  type RepoDiskUsageInfo,
+  type RepoStatsInfo,
+} from '@current-client-bindings/app'
+import { weeklyBuckets } from './commitVelocity'
 import { formatAge } from './repoAge'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './RepoStatStrip.scss'
@@ -35,6 +41,30 @@ function statsFor(s: RepoStatsInfo, disk: RepoDiskUsageInfo): Stat[] {
   ]
 }
 
+// The last twelve weeks beside the all-time count, so the total has a direction.
+function CommitSparkline({ repoPath, repoVersion }: { repoPath: string; repoVersion: number }) {
+  const { data } = useAsyncData(() => ActivityService.GetCommitActivity(repoPath, 84), [repoPath], {
+    refreshKey: repoVersion,
+  })
+  if (!data) return null
+  const weeks = weeklyBuckets(data)
+  const max = Math.max(1, ...weeks.map((w) => w.commits))
+  return (
+    <svg
+      className="repo-stat-strip-spark"
+      width={weeks.length * 5}
+      height="20"
+      role="img"
+      aria-label="Commits per week, last 12 weeks"
+    >
+      {weeks.map((week, i) => {
+        const height = Math.max(2, (week.commits / max) * 20)
+        return <rect key={week.weekStart} x={i * 5} y={20 - height} width="4" height={height} rx="1" />
+      })}
+    </svg>
+  )
+}
+
 function RepoStatStrip({ repoPath, repoVersion, dirty, action }: RepoStatStripProps) {
   const { data, error } = useAsyncData(
     () => Promise.all([DashboardService.GetRepoStats(repoPath), DashboardService.GetRepoDiskUsage(repoPath)]),
@@ -65,7 +95,10 @@ function RepoStatStrip({ repoPath, repoVersion, dirty, action }: RepoStatStripPr
             <div key={stat.label} className="repo-stat-strip-group">
               <div className="repo-stat-strip-item">
                 <span className="repo-stat-strip-label">{stat.label}</span>
-                <span className="repo-stat-strip-value">{stat.value}</span>
+                <span className="repo-stat-strip-value">
+                  {stat.value}
+                  {stat.label === 'Commits' && <CommitSparkline repoPath={repoPath} repoVersion={repoVersion} />}
+                </span>
               </div>
             </div>
           ))}

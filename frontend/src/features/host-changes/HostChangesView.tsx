@@ -26,7 +26,9 @@ import {
   type ChangeList,
   type MergeResult,
 } from '@current-client-bindings/app'
-import type { Change } from '@current-client-bindings/core/hostapi'
+import { ReviewState, type Change, type Review } from '@current-client-bindings/core/hostapi'
+import { Fact, FactList } from '../../components/chrome/FactList'
+import LabelChip from '../../components/git/LabelChip'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark, { ciLabel, PipelineJobList } from '../../components/git/CIMark'
 import { EnvironmentReach } from '../../components/git/EnvironmentMarker'
@@ -477,11 +479,10 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           </span>
         )}
         {change.labels?.map((label) => (
-          <span key={label} className="host-change-label">
-            {label}
-          </span>
+          <LabelChip key={label} label={label} />
         ))}
       </p>
+      {change.state === 'open' && !merged && tileFacts.length > 0 && <MergeVerdict facts={tileFacts} />}
       <dl className="host-change-facts">
         {readiness && readiness.facts.length > 0 ? (
           tileFacts.map((f) => {
@@ -617,15 +618,23 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
         ))}
       </nav>
       <div className="host-change-tab-body">
-        {tab === 'overview' &&
-          details &&
-          (details.descriptionHtml ? (
-            <HostMarkdown html={details.descriptionHtml} className="host-change-description" />
-          ) : (
-            <p className="host-changes-empty">No description.</p>
-          ))}
         {tab === 'overview' && details && (
-          <OverviewCommits repoPath={repoPath} target={change.targetBranch} source={change.sourceBranch} />
+          <div className="host-change-overview">
+            <div className="host-change-overview-main">
+              {details.descriptionHtml ? (
+                <HostMarkdown html={details.descriptionHtml} className="host-change-description" />
+              ) : (
+                <p className="host-changes-empty">No description.</p>
+              )}
+              <OverviewCommits repoPath={repoPath} target={change.targetBranch} source={change.sourceBranch} />
+            </div>
+            <aside className="host-change-overview-aside" aria-label="People and timing">
+              <ChangeReviewers reviews={change.reviews} />
+              <FactList>
+                <Fact label="Updated">{relativeTime(new Date(change.updatedAt))}</Fact>
+              </FactList>
+            </aside>
+          </div>
         )}
         {tab === 'checks' &&
           (mark ? (
@@ -725,6 +734,58 @@ function FilesTab({ repoPath, number, onLoaded }: TabProps) {
 
 // The change's commits from what is already fetched, so opening it asks the host
 // for nothing more. Silent when the branch isn't here locally.
+// Whether the change can merge, in one line, with a segment per check.
+function MergeVerdict({ facts }: { facts: { label: string; level: string; value: string }[] }) {
+  const blocking = facts.filter((f) => f.level === 'warn').length
+  const Icon = blocking ? TriangleAlert : CircleCheck
+  return (
+    <div className={`host-change-verdict host-change-verdict-${blocking ? 'warn' : 'ok'}`}>
+      <span className="host-change-verdict-text">
+        <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
+        {blocking ? `${plural(blocking, 'item')} to resolve before merging` : 'Ready to merge'}
+      </span>
+      <span className="host-change-verdict-segments" aria-hidden="true">
+        {facts.map((f) => (
+          <span key={f.label} className={`host-change-verdict-segment host-change-verdict-segment-${f.level}`} />
+        ))}
+      </span>
+    </div>
+  )
+}
+
+const REVIEW_STATE_LABELS: Partial<Record<ReviewState, string>> = {
+  [ReviewState.ReviewApproved]: 'Approved',
+  [ReviewState.ReviewChangesRequested]: 'Changes requested',
+  [ReviewState.ReviewRequested]: 'Waiting',
+  [ReviewState.ReviewCommented]: 'Commented',
+}
+
+function ChangeReviewers({ reviews }: { reviews: Review[] | null }) {
+  const nameOf = (review: Review) => review.reviewer.name || review.reviewer.username
+  const identities = useNameIdentities((reviews ?? []).map(nameOf))
+  return (
+    <section className="host-change-reviewers" aria-label="Reviewers">
+      <h4 className="host-change-overview-heading">Reviewers</h4>
+      {!reviews?.length && <p className="host-changes-empty">None requested</p>}
+      <ul>
+        {reviews?.map((review) => {
+          const name = nameOf(review)
+          const identity = identities.get(name)
+          return (
+            <li key={name}>
+              {identity && <IdentityBadge identity={identity} name={name} email="" size={20} />}
+              <span className="host-change-reviewer-name">{name}</span>
+              <span className={`host-change-reviewer-state host-change-reviewer-state-${review.state}`}>
+                {REVIEW_STATE_LABELS[review.state]}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
 function OverviewCommits({ repoPath, target, source }: { repoPath: string; target: string; source: string }) {
   const { data } = useAsyncData(
     () => HistoryService.RangeCommits(repoPath, `origin/${target}`, `origin/${source}`).catch(() => null),

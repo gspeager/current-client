@@ -1,5 +1,5 @@
 import { DashboardService } from '@current-client-bindings/app'
-import { extensionOf } from './languageColors'
+import { extensionOf, languageColor } from './languageColors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import PathText from '../../components/git/PathText'
 import './FileChurnList.scss'
@@ -43,7 +43,7 @@ function FileChurnList({ repoPath, repoVersion }: FileChurnListProps) {
                   <span className="file-churn-bar-wrap">
                     <span
                       className="file-churn-bar"
-                      style={{ width: `${(c.changes / maxChanges) * 100}%`, background: 'var(--on-surface-variant)' }}
+                      style={{ width: `${(c.changes / maxChanges) * 100}%`, background: languageColor(extension) }}
                     />
                   </span>
                   <span className="file-churn-count">{c.changes}</span>

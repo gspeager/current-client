@@ -400,14 +400,6 @@
   height: var(--h-field);
 }
 
-.host-change-label,
-.issue-panel-label {
-  padding: 0 var(--space-xs);
-  background: var(--surface-high);
-  border-radius: var(--radius-sm);
-  color: var(--on-surface-variant);
-  font: var(--ui-xs);
-}
 
 .host-change-flow {
   display: inline-flex;
@@ -490,4 +482,105 @@
 
 .host-change-row .change-marker {
   padding-left: 0;
+}
+
+.host-change-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.host-change-verdict-text {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--title-md);
+}
+
+.host-change-verdict-ok .host-change-verdict-text {
+  color: var(--tertiary);
+}
+
+.host-change-verdict-warn .host-change-verdict-text {
+  color: var(--warning);
+}
+
+.host-change-verdict-segments {
+  display: flex;
+  gap: 2px;
+}
+
+.host-change-verdict-segment {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-highest);
+}
+
+.host-change-verdict-segment-ok {
+  background: var(--tertiary);
+}
+
+.host-change-verdict-segment-warn {
+  background: var(--warning);
+}
+
+.host-change-tile-warn {
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface-low));
+}
+
+.host-change-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: var(--space-xl);
+}
+
+.host-change-overview-main,
+.host-change-overview-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.host-change-reviewers ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.host-change-reviewers li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--ui-sm);
+}
+
+.host-change-reviewer-name {
+  @include patterns.truncate;
+}
+
+.host-change-reviewer-state {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.host-change-reviewer-state-approved {
+  color: var(--tertiary);
+}
+
+.host-change-reviewer-state-changes_requested {
+  color: var(--error);
+}
+
+@media (max-width: 1100px) {
+  .host-change-overview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+  }
 }

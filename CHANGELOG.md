@@ -6,6 +6,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **Pull requests show whether they can merge** in one line above the checks, and Overview lists reviewers with their state.
+- **Issues show task progress**, labels are tinted by name, and comments read as a thread.
+- **Activity uses more color from its data:** weekly bars with the average marked, a trend beside the commit count, status icons in Repository state, and file bars in their language's color.
 - **Settings shows one section at a time**, and its toggles all sit on the right.
 - **Undo names what it will undo** in its tooltip, such as "Undo commit 2e37208".
 - **The sidebar's sub-groups read a step quieter** than the sections they sit in, and line up with each other.
