@@ -93,6 +93,45 @@ func (s *BranchService) DefaultBranch(repoPath string) (string, error) {
 	return git.DefaultBranch(context.Background(), repoPath)
 }
 
+type RebasePreviewCommitInfo struct {
+	SHA     string   `json:"sha"`
+	Subject string   `json:"subject"`
+	Outcome string   `json:"outcome"`
+	Files   []string `json:"files"`
+}
+
+type RebasePreviewInfo struct {
+	Current       string                    `json:"current"`
+	Onto          string                    `json:"onto"`
+	Commits       []RebasePreviewCommitInfo `json:"commits"`
+	Predicted     bool                      `json:"predicted"`
+	DroppedMerges int                       `json:"droppedMerges"`
+	ForcePush     bool                      `json:"forcePush"`
+	Upstream      string                    `json:"upstream"`
+	Dirty         bool                      `json:"dirty"`
+	Command       string                    `json:"command"`
+}
+
+func (s *BranchService) PreviewRebase(repoPath, onto string) (RebasePreviewInfo, error) {
+	preview, err := git.PreviewRebase(context.Background(), repoPath, onto)
+	if err != nil {
+		return RebasePreviewInfo{}, err
+	}
+	return RebasePreviewInfo{
+		Current: preview.Current,
+		Onto:    preview.Onto,
+		Commits: mapSlice(preview.Commits, func(commit git.PreviewCommit) RebasePreviewCommitInfo {
+			return RebasePreviewCommitInfo{commit.SHA, commit.Subject, string(commit.Outcome), append([]string{}, commit.Files...)}
+		}),
+		Predicted:     preview.Predicted,
+		DroppedMerges: preview.DroppedMerges,
+		ForcePush:     preview.ForcePush,
+		Upstream:      preview.Upstream,
+		Dirty:         preview.Dirty,
+		Command:       preview.Command,
+	}, nil
+}
+
 func (s *BranchService) RebaseOnto(repoPath, onto string) error {
 	return git.RebaseOnto(context.Background(), repoPath, onto)
 }

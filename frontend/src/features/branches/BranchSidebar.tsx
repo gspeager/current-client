@@ -20,6 +20,7 @@ import type { SidebarSections } from '../../lib/useSidebarSections'
 import SetUpstreamDialog from './SetUpstreamDialog'
 import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
 import BranchReviewDialog from './BranchReviewDialog'
+import RebasePreviewDialog from './RebasePreviewDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
 import { operationBadge, operationNoun } from '../../lib/conflictWords'
@@ -131,6 +132,7 @@ function BranchSidebar({
   const notes = useNotes()
   const [cleanUp, setCleanUp] = useState(false)
   const [branchReview, setBranchReview] = useState(false)
+  const [rebasePreview, setRebasePreview] = useState<string | null>(null)
   useEffect(() => {
     if (request?.action === 'clean-up') setCleanUp(true)
     if (request?.action === 'branch-review') setBranchReview(true)
@@ -211,6 +213,7 @@ function BranchSidebar({
   }
 
   const rebaseOnto = (name: string) => {
+    setRebasePreview(null)
     setActionError(null)
     BranchService.RebaseOnto(repoPath, name)
       .catch((err: unknown) => setActionError(errorMessage(err)))
@@ -307,7 +310,7 @@ function BranchSidebar({
         ...(b.current && defaultBranch && defaultBranch !== b.name
           ? [{ label: `Merge ${defaultBranch} into current`, onClick: () => mergeDefaultBranch(defaultBranch) }]
           : []),
-        { label: 'Rebase current onto', onClick: () => rebaseOnto(b.name), disabled: b.current },
+        { label: 'Rebase current onto…', onClick: () => setRebasePreview(b.name), disabled: b.current },
         { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
         ...(hostLinks?.tree
           ? [{ label: 'Open on host', onClick: () => void PlatformService.OpenWebPage(branchHostPage(b)) }]
@@ -655,6 +658,14 @@ function BranchSidebar({
       </SidebarSection>
 
       {cleanUp && <CleanUpBranchesDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setCleanUp(false)} />}
+      {rebasePreview && (
+        <RebasePreviewDialog
+          repoPath={repoPath}
+          onto={rebasePreview}
+          onRebase={() => rebaseOnto(rebasePreview)}
+          onClose={() => setRebasePreview(null)}
+        />
+      )}
       {branchReview && (
         <BranchReviewDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setBranchReview(false)} />
       )}
