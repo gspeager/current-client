@@ -16,6 +16,7 @@ import {
   ScrollText,
   Settings,
   Tag,
+  Layers,
   ListChecks,
   ListOrdered,
   Play,
@@ -705,6 +706,14 @@ function App({
             run: toggleTerminal,
           },
         ]),
+    {
+      id: 'restack',
+      label: 'Restack current stack',
+      section: 'Tools' as const,
+      icon: Layers,
+      keywords: ['stacked branches', 'rebase'],
+      run: () => requestSidebar('restack'),
+    },
     {
       id: 'tidy-up',
       label: 'Tidy up history',

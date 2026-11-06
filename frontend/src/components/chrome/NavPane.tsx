@@ -34,7 +34,7 @@ type SectionId = 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 // Something elsewhere in the app, such as the palette, asking a sidebar
 // section to open one of its forms or dialogs; n makes each ask distinct.
 export interface SidebarRequest {
-  action: 'new-branch' | 'clean-up' | 'branch-review' | 'tidy-up' | 'new-tag' | 'publish-release'
+  action: 'new-branch' | 'clean-up' | 'branch-review' | 'tidy-up' | 'restack' | 'new-tag' | 'publish-release'
   n: number
 }
 

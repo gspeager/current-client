@@ -11,7 +11,7 @@ const OUTCOME_LABEL: Record<string, string> = {
   clean: '',
 }
 
-function CommitRow({ commit }: { commit: RebasePreviewCommitInfo }) {
+export function PreviewCommitRow({ commit }: { commit: RebasePreviewCommitInfo }) {
   return (
     <li className="rebase-preview-commit">
       <div className="rebase-preview-commit-line">
@@ -61,7 +61,7 @@ function RebasePreviewDialog({ repoPath, onto, onRebase, onClose }: RebasePrevie
             <p className="dialog-message">{plural(preview.commits.length, 'commit')} to move, oldest first.</p>
             <ol className="rebase-preview-commits">
               {preview.commits.map((commit) => (
-                <CommitRow key={commit.sha} commit={commit} />
+                <PreviewCommitRow key={commit.sha} commit={commit} />
               ))}
             </ol>
             {conflict && (

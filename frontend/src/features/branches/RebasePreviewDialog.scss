@@ -63,3 +63,23 @@
   color: var(--on-surface-variant);
   font: var(--data-sm);
 }
+
+.restack-layer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.restack-layer-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.restack-layer-branch {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}

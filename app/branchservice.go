@@ -69,7 +69,10 @@ func (s *BranchService) UnsetUpstream(repoPath, branch string) error {
 }
 
 func (s *BranchService) RenameBranch(repoPath, oldName, newName string) error {
-	return git.RenameBranch(context.Background(), repoPath, oldName, newName)
+	if err := git.RenameBranch(context.Background(), repoPath, oldName, newName); err != nil {
+		return err
+	}
+	return renameInStacks(repoPath, oldName, newName)
 }
 
 // DeleteBranch returns the deleted branch's tip, so it can be recreated.
