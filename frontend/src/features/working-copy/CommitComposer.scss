@@ -8,6 +8,10 @@
   gap: var(--space-sm);
 }
 
+.commit-composer-header[hidden] {
+  display: none;
+}
+
 .commit-composer-header {
   display: flex;
   align-items: center;

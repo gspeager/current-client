@@ -402,7 +402,7 @@ function WorkingTreeFileList({
         </button>
       </div>
 
-      <div className="changes-filter-wrap">
+      <div className="changes-filter-wrap" hidden={(files?.length ?? 0) === 0}>
         <Search size={14} strokeWidth={1.5} className="changes-filter-icon" />
         <input
           className="changes-filter-input"

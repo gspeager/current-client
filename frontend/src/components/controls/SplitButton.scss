@@ -36,6 +36,23 @@
   color: var(--on-surface-variant);
 }
 
+.split-button-secondary {
+  .split-button-main,
+  .split-button-toggle {
+    background: var(--surface-high);
+    color: var(--on-surface);
+
+    &:hover:not(:disabled) {
+      background: var(--surface-highest);
+      box-shadow: none;
+    }
+  }
+
+  .split-button-toggle {
+    border-left-color: var(--outline-variant);
+  }
+}
+
 .split-button-more > summary {
   list-style: none;
 

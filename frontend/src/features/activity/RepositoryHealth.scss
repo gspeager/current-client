@@ -34,9 +34,8 @@
 }
 
 .repo-health-badge-optimal {
-  background: color-mix(in srgb, var(--tertiary) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tertiary) 40%, transparent);
-  color: var(--tertiary);
+  background: var(--surface-high);
+  color: var(--on-surface-variant);
 }
 
 .repo-health-badge-attention {
@@ -77,7 +76,8 @@
 }
 
 .repo-health-row-title {
-  font: var(--data-md);
+  font: var(--ui-sm);
+  font-weight: 500;
   color: var(--on-surface);
 }
 

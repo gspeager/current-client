@@ -29,7 +29,11 @@ export const SHORTCUT_GROUPS: { name: string; shortcuts: Shortcut[] }[] = [
   },
   {
     name: 'Commit',
-    shortcuts: [{ keys: 'mod+Enter', label: 'Commit staged files' }],
+    shortcuts: [
+      { keys: 'mod+Enter', label: 'Commit staged files' },
+      { keys: 'Space', label: 'Stage or unstage the selected file' },
+      { keys: 'alt+↑ ↓', label: 'Previous or next hunk' },
+    ],
   },
   {
     name: 'Lists',

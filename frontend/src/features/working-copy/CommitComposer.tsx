@@ -223,7 +223,7 @@ function CommitComposer({
 
   return (
     <section className="commit-composer">
-      <div className="commit-composer-header">
+      <div className="commit-composer-header" hidden={nothingToCommit}>
         <span className="commit-composer-label">
           {conflict
             ? `${operationNoun(conflict.operation)[0].toUpperCase()}${operationNoun(conflict.operation).slice(1)} commit`

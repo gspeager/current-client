@@ -4,7 +4,16 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- **A cleaner, calmer interface.** A branch now has one color everywhere: its sidebar dot, its pill in History, and its nodes and line in the graph. Cyan marks only `HEAD`, keyboard focus and the one main action in a pane. Text is a size larger throughout. The Toolbox starts closed so branches stay in view. Stage hunk is more prominent than Discard, and buttons that can't run yet go neutral instead of staying bright.
+- **Activity reads as facts.** Contributors, commits per week and repository state use plain charts and plain wording. The donut and the uppercase card titles are gone.
+- **New windows open at 1280×800**, with a minimum of 960×600. Saved window sizes still apply.
+- **A clean repository says so.** Changes shows **Working tree clean** and **Nothing to commit** rather than asking for a commit message.
+
 ### Added
+
+- **A keyboard shortcut for nearly everything.** **?** lists them all. **⌘1**–**⌘7** (Ctrl on Windows and Linux) switch views, **F6** moves between panes, **⌘B** collapses the sidebar, and **⌘⇧T**, **⌘⇧L** and **⌘⇧K** fetch, pull and push. Lists are one Tab stop: the arrow keys move through commits, files, branches, pull requests and issues, and left and right reach a row's buttons. Tooltips also show on keyboard focus.
 
 - **Stacked branches.** Work as a chain of branches, each on the one below. **New stacked branch…** and **Stack current on this**, in a branch's menu, add a layer, and the **Stacks** section shows the chain with what's behind. **Restack** previews every layer and rebases the ones whose parent moved, with their own commits only, including after the bottom branch is amended or merged, by squash too. A conflict stops at its layer, with the usual banner, and restacking again carries on. **Undo restack** puts every branch back. **Push all** always uses `--force-with-lease`, and all or none where the server allows. ([#274](https://github.com/gspeager/current-client/issues/274))
 - **Run the project's own commands.** **Tasks**, beside the terminal panel and in Go to anything, finds commands from a Taskfile, Makefile, npm scripts and `go test`, or a list you add to. A run shows its output, exit status and duration, with **Stop**. Nothing runs on its own: the command and folder are shown before its first run, and again if the file it comes from changes. A command can also run alongside each commit or push, in the app and with no Git hooks installed; a failure warns and never blocks. ([#380](https://github.com/gspeager/current-client/issues/380))
@@ -22,6 +31,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - **Which Git settings apply, and where they come from.** Settings → Git → **Settings in effect** lists the Git settings the open repository uses, with each one's scope and file, and flags the usual surprises: an author name or email that's missing or overridden (including by an `includeIf`), `core.autocrlf`, commit signing that's on with no program or key to be found, no credential helper, and a global ignore file. It changes nothing and signs nothing, and credentials are hidden. It needs Git 2.26 or newer. ([#383](https://github.com/gspeager/current-client/issues/383))
 
 ### Fixed
+
+- **The split diff no longer cuts off wrapped lines.** When a diff was taller than its pane, wrapped lines could be clipped or printed over each other. Rows now keep their full height and the pane scrolls.
+- **JetBrains Mono's Cyrillic and Vietnamese characters now load.** They were embedded in a way the app's own font policy refused, so they fell back to another font.
 
 - **A password in a remote's URL no longer shows in the Remotes section.** A remote such as `https://deploy:secret@git.example.com/a.git` showed its password in the row, its tooltip and **Edit…**. The row now shows the host alone, and the tooltip and **Edit…** show `<token>` in its place. Git keeps using the URL as it was, so fetch, pull, push and host links are unaffected. To change such a URL, replace `<token>` with the sign-in or remove it. ([#399](https://github.com/gspeager/current-client/issues/399))
 

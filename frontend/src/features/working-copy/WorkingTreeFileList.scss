@@ -29,6 +29,10 @@
   white-space: nowrap;
 }
 
+.changes-filter-wrap[hidden] {
+  display: none;
+}
+
 .changes-filter-wrap {
   position: relative;
   margin-bottom: var(--space-sm);
