@@ -272,6 +272,7 @@ function HistoryView({
       newest: Date.parse(rows[first].commit.date),
       oldest: Date.parse(rows[last].commit.date),
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, offset, virtualizer.scrollOffset, virtualizer.scrollRect])
   const searchMarkers = useMemo(
     () => (query ? rows.map((row) => ({ kind: 'match', name: row.commit.subject, date: row.commit.date })) : []),
