@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **Issue and pull request links are colored**, and so is the host logo beside them, so they stand out from the text around them.
 - **A cleaner, calmer interface.** A branch now has one color everywhere: its sidebar dot, its pill in History, and its nodes and line in the graph. Cyan marks only `HEAD`, keyboard focus and the one main action in a pane. Text is a size larger throughout. The Toolbox starts closed so branches stay in view. Stage hunk is more prominent than Discard, and buttons that can't run yet go neutral instead of staying bright.
 - **Activity reads as facts.** Contributors, commits per week and repository state use plain charts and plain wording. The donut and the uppercase card titles are gone.
 - **New windows open at 1280×800**, with a minimum of 960×600. Saved window sizes still apply.
