@@ -23,3 +23,16 @@
   stroke-width: 1;
   pointer-events: none;
 }
+
+.overview-strip-tip {
+  position: absolute;
+  top: 100%;
+  z-index: 5;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-highest);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  white-space: nowrap;
+  pointer-events: none;
+}

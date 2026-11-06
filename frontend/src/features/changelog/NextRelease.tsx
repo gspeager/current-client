@@ -160,7 +160,9 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
           <PackagePlus size={14} strokeWidth={1.75} />
           Publish release…
         </button>
-        {!tagged && warnings > 0 && <span className="next-release-note">{plural(warnings, 'warning')} above</span>}
+        {!tagged && warnings > 0 && (
+          <span className="next-release-note">Review {plural(warnings, 'warning')} above, then tag</span>
+        )}
         {actionError && <span className="next-release-error">{actionError}</span>}
       </footer>
       {publishing && (

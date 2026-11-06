@@ -74,10 +74,11 @@ function renderNav(collapsed: boolean, onCollapsedChange = vi.fn(), onOpenHeadCo
 const openToolbox = () => userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
 
 describe('NavPane collapsed rail', () => {
-  it('runs workspace actions straight from their icons', async () => {
+  it('runs workspace actions from the Toolbox menu', async () => {
     vi.mocked(PlatformService.OpenTerminal).mockResolvedValue()
     const { onCollapsedChange } = renderNav(true)
 
+    await userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
     await userEvent.click(screen.getByRole('button', { name: 'Open Terminal' }))
 
     expect(PlatformService.OpenTerminal).toHaveBeenCalledWith(REPO)
@@ -85,11 +86,10 @@ describe('NavPane collapsed rail', () => {
     expect(screen.queryByText('Branches')).not.toBeInTheDocument()
   })
 
-  it('follows the sidebar: sections, then the Toolbox groups, each set off by a rule', () => {
+  it('follows the sidebar: sections, then one Toolbox button', () => {
     renderNav(true)
 
     const rail = screen.getByRole('navigation', { name: 'Repository' })
-    expect(rail.querySelectorAll('.nav-pane-rail-divider')).toHaveLength(4)
     expect(
       within(rail)
         .getAllByRole('button')
@@ -101,16 +101,7 @@ describe('NavPane collapsed rail', () => {
       'Show Tags',
       'Show Remotes',
       'Show Worktrees',
-      'Open Terminal',
-      expect.stringMatching(/^(Reveal in|Open in File Manager)/),
-      'Open in VS Code',
-      'Undo last operation',
-      'Recover discarded work',
-      'Reflog',
-      'Bisect',
-      'Apply patch…',
-      'Check integrity',
-      'Run cleanup',
+      'Toolbox',
     ])
   })
 
@@ -128,6 +119,7 @@ describe('NavPane collapsed rail', () => {
     vi.mocked(PlatformService.OpenInEditor).mockRejectedValue(new Error('Editor not found.'))
     const { onCollapsedChange, setCollapsed } = renderNav(true)
 
+    await userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
     await userEvent.click(screen.getByRole('button', { name: 'Open in VS Code' }))
     await vi.waitFor(() => expect(onCollapsedChange).toHaveBeenCalledWith(false))
     setCollapsed(false)

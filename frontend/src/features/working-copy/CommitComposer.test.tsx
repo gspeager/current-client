@@ -201,12 +201,12 @@ describe('CommitComposer button', () => {
       </DialogProvider>,
     )
 
-    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Enter a commit message' })).toBeDisabled())
-    expect(screen.queryByText('Enter a commit message.')).not.toBeInTheDocument()
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Stage files to commit' })).toBeDisabled())
+    expect(screen.queryByText('Stage files to commit.')).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Scope' })).not.toBeInTheDocument()
 
     await userEvent.type(screen.getByPlaceholderText('Summary'), 'Add thing')
-    expect(screen.getByRole('button', { name: 'Nothing is staged' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Stage files to commit' })).toBeDisabled()
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Commit type' }), 'feat')
     expect(screen.getByRole('textbox', { name: 'Scope' })).toBeInTheDocument()

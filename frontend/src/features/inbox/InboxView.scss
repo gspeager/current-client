@@ -219,15 +219,24 @@
 
 // What, then why, on one line; the subject shortens first.
 .inbox-row-text {
-  display: flex;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
   align-items: baseline;
   gap: var(--space-sm);
   min-width: 0;
 }
 
+.inbox-spacer {
+  flex: 1;
+}
+
+.inbox-group-quiet .inbox-row-subject {
+  color: var(--on-surface-variant);
+}
+
 .inbox-row-subject {
-  flex: 0 1 auto;
-  min-width: 40%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -236,6 +245,7 @@
 
 .inbox-row-reason {
   min-width: 0;
+  text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--on-surface-variant);
@@ -277,4 +287,22 @@
   &:hover {
     background: var(--surface-container);
   }
+}
+
+// Done appears over the row's end, so every row's reason lines up.
+.inbox-rows li {
+  position: relative;
+}
+
+.inbox-rows li > .inbox-row-done {
+  position: absolute;
+  top: 3px;
+  right: var(--space-xs);
+  background: var(--surface-high);
+  opacity: 0;
+}
+
+.inbox-rows li:hover > .inbox-row-done,
+.inbox-rows li:focus-within > .inbox-row-done {
+  opacity: 1;
 }

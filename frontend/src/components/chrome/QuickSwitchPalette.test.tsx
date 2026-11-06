@@ -129,7 +129,7 @@ beforeAll(() => {
 })
 
 describe('QuickSwitchPalette at rest', () => {
-  it('lists the checked-out branch first, at most eight local branches, and no settings until typed for', async () => {
+  it('lists the checked-out branch first, at most four local branches, and no settings until typed for', async () => {
     const names = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
     vi.mocked(BranchService.ListLocal).mockResolvedValue([
       ...names.map((name) => ({ name, current: false })),
@@ -143,7 +143,7 @@ describe('QuickSwitchPalette at rest', () => {
     const branches = within(palette())
       .getAllByRole('option')
       .filter((o) => o.getAttribute('data-value')?.startsWith('branch:'))
-    expect(branches).toHaveLength(8)
+    expect(branches).toHaveLength(4)
     expect(branches[0]).toHaveAccessibleName('main, current branch')
     expect(within(palette()).queryByRole('option', { name: /origin\/zed/ })).not.toBeInTheDocument()
     expect(within(palette()).queryByRole('option', { name: 'Settings: Appearance' })).not.toBeInTheDocument()

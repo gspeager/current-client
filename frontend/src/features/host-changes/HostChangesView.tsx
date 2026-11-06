@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { useLaneColors } from '../../lib/laneColor'
+import { useBranchStatus } from '../../lib/useBranchStatus'
 import {
   ArrowRight,
   CircleCheck,
@@ -192,7 +193,7 @@ function HostChangesView({
         <p className="host-changes-error">{refreshError ?? error ?? closedError}</p>
       )}
       <div className="host-changes-body">
-        <div className="host-changes-column">
+        <div className="host-changes-column" data-pane="change-list">
           <ul ref={rovingRows} className="host-changes-list" aria-label={`${label} list`}>
             {shown.length === 0 && (
               <li className="host-changes-empty">
@@ -310,6 +311,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
   )
   const hostLinks = useHostLinks(repoPath)
   const { branchColor } = useLaneColors()
+  const currentBranch = useBranchStatus(repoPath, 0)?.current
   const HostIcon = hostLogo(hostLinks?.style)
   const closes = useMemo(() => details?.closes ?? [], [details?.closes])
   const closesCards = useReferenceCards(repoPath, closes, NO_CHANGES)
@@ -387,7 +389,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
   ]
 
   return (
-    <article className="host-change-detail" aria-label={`${list.prefix}${change.number}`}>
+    <article className="host-change-detail" data-pane="change-detail" aria-label={`${list.prefix}${change.number}`}>
       <header className="host-change-detail-header">
         <span className="host-change-detail-number">
           {list.prefix}
@@ -399,7 +401,10 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
       <p className="host-change-subtitle">
         <span>{change.author.name}</span>
         <span className="host-change-flow" aria-label={`${change.sourceBranch} into ${change.targetBranch}`}>
-          <span className="host-change-flow-dot" style={{ background: branchColor(change.sourceBranch, false) }} />
+          <span
+            className="host-change-flow-dot"
+            style={{ background: branchColor(change.sourceBranch, change.sourceBranch === currentBranch) }}
+          />
           {change.sourceProject ? `${change.sourceProject}:` : ''}
           {change.sourceBranch}
           <ArrowRight size={12} strokeWidth={1.75} aria-hidden="true" />
@@ -412,7 +417,11 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           </span>
         )}
         {(details?.environments?.length ?? 0) > 0 && <EnvironmentReach reach={details!.environments} />}
-        {protection && <span className="host-change-protection">{protection.value}</span>}
+        {protection && (
+          <span className="host-change-protection">
+            {/^protected/i.test(protection.value) ? `${change.targetBranch} is ${protection.value}` : protection.value}
+          </span>
+        )}
         {change.labels?.map((label) => (
           <span key={label} className="host-change-label">
             {label}

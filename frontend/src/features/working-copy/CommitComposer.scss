@@ -288,7 +288,11 @@
 // A short window gives the file list the room until the message is being written.
 @media (max-height: 700px) {
   .commit-composer:not(:focus-within) {
-    .commit-composer-body-wrap,
+    .commit-composer-body {
+      height: var(--h-row-table);
+      min-height: var(--h-row-table);
+    }
+
     .commit-composer-meta {
       display: none;
     }

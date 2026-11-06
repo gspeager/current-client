@@ -21,15 +21,19 @@ interface ActivityViewProps {
 function ActivityView({ repoPath, repoVersion, dirty, changedCount, hasConflict, onStandup }: ActivityViewProps) {
   return (
     <div className="activity-view">
-      {onStandup && (
-        <header className="activity-view-header">
-          <button type="button" className="activity-view-standup" onClick={onStandup}>
-            <ClipboardList size={14} strokeWidth={1.75} />
-            Standup…
-          </button>
-        </header>
-      )}
-      <RepoStatStrip repoPath={repoPath} repoVersion={repoVersion} dirty={dirty} />
+      <RepoStatStrip
+        repoPath={repoPath}
+        repoVersion={repoVersion}
+        dirty={dirty}
+        action={
+          onStandup && (
+            <button type="button" className="activity-view-standup" onClick={onStandup}>
+              <ClipboardList size={14} strokeWidth={1.75} />
+              Standup…
+            </button>
+          )
+        }
+      />
       <ActivityCalendar repoPath={repoPath} repoVersion={repoVersion} />
       <div className="activity-view-pair">
         <ContributorsChart repoPath={repoPath} repoVersion={repoVersion} />

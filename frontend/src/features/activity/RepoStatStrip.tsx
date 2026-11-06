@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { DashboardService, type RepoDiskUsageInfo, type RepoStatsInfo } from '@current-client-bindings/app'
 import { formatAge } from './repoAge'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -7,6 +8,7 @@ interface RepoStatStripProps {
   repoPath: string
   repoVersion: number
   dirty: boolean
+  action?: ReactNode
 }
 
 interface Stat {
@@ -33,7 +35,7 @@ function statsFor(s: RepoStatsInfo, disk: RepoDiskUsageInfo): Stat[] {
   ]
 }
 
-function RepoStatStrip({ repoPath, repoVersion, dirty }: RepoStatStripProps) {
+function RepoStatStrip({ repoPath, repoVersion, dirty, action }: RepoStatStripProps) {
   const { data, error } = useAsyncData(
     () => Promise.all([DashboardService.GetRepoStats(repoPath), DashboardService.GetRepoDiskUsage(repoPath)]),
     [repoPath],
@@ -69,6 +71,7 @@ function RepoStatStrip({ repoPath, repoVersion, dirty }: RepoStatStripProps) {
           ))}
         </>
       )}
+      {action}
     </div>
   )
 }

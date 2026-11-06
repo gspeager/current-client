@@ -58,8 +58,15 @@
 }
 
 .history-toolbar-first-parent {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
+  height: var(--h-field);
   white-space: nowrap;
+
+  .checkbox-label {
+    line-height: 16px;
+  }
 }
 
 .history-toolbar-filters {

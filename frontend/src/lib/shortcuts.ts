@@ -34,6 +34,9 @@ export const SHORTCUT_GROUPS: { name: string; shortcuts: Shortcut[] }[] = [
       { keys: 'mod+Enter', label: 'Commit staged files' },
       { keys: 'Space', label: 'Stage or unstage the selected file' },
       { keys: 'alt+↑ ↓', label: 'Previous or next hunk' },
+      { keys: 'S', label: 'Stage the hunk, from the diff' },
+      { keys: 'U', label: 'Unstage the hunk, from the diff' },
+      { keys: 'D', label: 'Discard the hunk, from the diff' },
     ],
   },
   {

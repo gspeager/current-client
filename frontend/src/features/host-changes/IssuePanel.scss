@@ -84,12 +84,6 @@
   margin-left: auto;
 }
 
-.issue-panel-title {
-  margin: 0;
-  font: var(--title-md);
-  color: var(--on-surface);
-}
-
 .issue-panel-hint {
   margin: 0;
   color: var(--outline);
@@ -157,7 +151,13 @@
 
 .dialog-input.issue-panel-reply-input {
   height: auto;
-  min-height: 64px;
+  min-height: var(--h-field);
+
+  &:focus,
+  &:not(:placeholder-shown) {
+    min-height: 64px;
+  }
+
   resize: vertical;
   font: var(--prose);
 }

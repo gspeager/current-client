@@ -29,9 +29,20 @@
     list-style: none;
 
     > input {
+      appearance: none;
       align-self: center;
       flex-shrink: 0;
+      width: 14px;
+      height: 14px;
       margin: 0;
+      border: 1.5px solid var(--outline);
+      border-radius: var(--radius-xs);
+
+      &:checked {
+        border-color: var(--on-surface-variant);
+        background: var(--on-surface-variant);
+        box-shadow: inset 0 0 0 2px var(--surface);
+      }
     }
   }
 

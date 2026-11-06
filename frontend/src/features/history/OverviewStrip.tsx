@@ -1,3 +1,4 @@
+import { plural } from '../../lib/plural'
 import { useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import type { OverviewDayInfo, OverviewMarkerInfo } from '@current-client-bindings/app'
 import { useLaneColors } from '../../lib/laneColor'
@@ -31,6 +32,7 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
   const { branchColor } = useLaneColors()
   const box = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
+  const [hover, setHover] = useState<{ x: number; text: string } | null>(null)
 
   useLayoutEffect(() => {
     const element = box.current
@@ -63,15 +65,18 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
     }
   }
 
-  const jump = (e: MouseEvent<HTMLDivElement>) => {
-    const left = e.currentTarget.getBoundingClientRect().left
-    const clicked = start + ((e.clientX - left) / (width || 1)) * (end - start)
+  const dayAt = (clientX: number, left: number) => {
+    const at = start + ((clientX - left) / (width || 1)) * (end - start)
     let nearest = days[0]
     for (const day of days) {
-      const middle = (ms: number) => Math.abs(ms + DAY_MS / 2 - clicked)
+      const middle = (ms: number) => Math.abs(ms + DAY_MS / 2 - at)
       if (middle(Date.parse(day.date)) < middle(Date.parse(nearest.date))) nearest = day
     }
-    onJump(nearest.firstRow)
+    return nearest
+  }
+
+  const jump = (e: MouseEvent<HTMLDivElement>) => {
+    onJump(dayAt(e.clientX, e.currentTarget.getBoundingClientRect().left).firstRow)
   }
 
   // Rows are in graph order, which dates needn't follow.
@@ -91,7 +96,24 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
   }, [markers, width, start, end])
 
   return (
-    <div ref={box} className="overview-strip" role="img" aria-label="Commit activity over time" onClick={jump}>
+    <div
+      ref={box}
+      className="overview-strip"
+      role="img"
+      aria-label="Commit activity over time"
+      onClick={jump}
+      onMouseLeave={() => setHover(null)}
+      onMouseMove={(e) => {
+        const left = e.currentTarget.getBoundingClientRect().left
+        const day = dayAt(e.clientX, left)
+        const date = new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        setHover({ x: e.clientX - left, text: `${date}: ${plural(day.commits, 'commit')}. Click to go there` })
+      }}
+    >
       <svg width={width} height={HEIGHT} aria-hidden="true">
         <path className="overview-strip-area" d={path} />
         {ticks.map((marker, index) => (
@@ -118,6 +140,11 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
           />
         )}
       </svg>
+      {hover && (
+        <span className="overview-strip-tip" style={{ left: Math.min(hover.x, width - 220) }}>
+          {hover.text}
+        </span>
+      )}
     </div>
   )
 }

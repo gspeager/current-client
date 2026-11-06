@@ -70,10 +70,6 @@
   display: none;
 }
 
-.file-row .diff-stat-bar {
-  display: none;
-}
-
 // The row's actions take the stats' place on hover.
 .file-row:hover .diff-stat,
 .file-row:focus-within .diff-stat {

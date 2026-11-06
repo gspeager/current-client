@@ -127,7 +127,7 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
       </header>
       {(refreshError || projectError) && <p className="host-changes-error">{refreshError ?? projectError}</p>}
       <div className="host-changes-body">
-        <ul ref={rovingRows} className="host-changes-list" aria-label="Issues list">
+        <ul ref={rovingRows} data-pane="issue-list" className="host-changes-list" aria-label="Issues list">
           {issues.length === 0 && (
             <li className="host-changes-empty">
               {filter !== 'mine' && !projectList

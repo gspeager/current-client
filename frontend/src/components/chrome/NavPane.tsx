@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { ConflictStateInfo } from '@current-client-bindings/app'
+import ContextMenu, { menuAnchor, type ContextMenuState } from '../controls/ContextMenu'
 import BranchSidebar from '../../features/branches/BranchSidebar'
 import CurrentChangeSection from '../../features/branches/CurrentChangeSection'
 import CurrentIssueSection from '../../features/branches/CurrentIssueSection'
@@ -95,7 +96,7 @@ function RailButton({
 }: {
   label: string
   icon: LucideIcon
-  onClick: () => void
+  onClick: (e: MouseEvent) => void
   disabled?: boolean
   reason?: string
 }) {
@@ -166,6 +167,7 @@ function NavPane({
   const sections = useSidebarSections(repoPath)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
   const rovingRows = useRovingRows(SIDEBAR_ROWS)
+  const [toolboxMenu, setToolboxMenu] = useState<ContextMenuState | null>(null)
   const sectionRefs = useRef<Partial<Record<SectionId, HTMLElement | null>>>({})
   const pendingSection = useRef<SectionId | null>(null)
   const dirty = (workingTree.files?.length ?? 0) > 0
@@ -198,6 +200,22 @@ function NavPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request])
 
+  const openToolboxMenu = (e: MouseEvent) => {
+    const groups = (['open', 'tools', 'maintenance'] as const).map(group)
+    setToolboxMenu({
+      ...menuAnchor(e),
+      x: e.currentTarget.getBoundingClientRect().right + 4,
+      items: groups.flatMap((actions, g) =>
+        actions.map((a, i) => ({
+          label: a.label,
+          onClick: a.run,
+          disabled: a.disabled,
+          separatorBefore: g > 0 && i === 0,
+        })),
+      ),
+    })
+  }
+
   const sectionRef = (id: SectionId) => (el: HTMLElement | null) => {
     sectionRefs.current[id] = el
   }
@@ -211,15 +229,10 @@ function NavPane({
           <RailButton key={id} label={`Show ${label}`} icon={icon} onClick={() => showSection(id)} />
         ))}
         <div className="nav-pane-rail-toolbox">
-          {(['open', 'tools', 'maintenance'] as const).map((name) => (
-            <div key={name} className="nav-pane-rail-group">
-              <div className="nav-pane-rail-divider" />
-              {group(name).map(({ id, label, icon, run, disabled, reason }) => (
-                <RailButton key={id} label={label} icon={icon} onClick={run} disabled={disabled} reason={reason} />
-              ))}
-            </div>
-          ))}
+          <div className="nav-pane-rail-divider" />
+          <RailButton label="Toolbox" icon={Wrench} onClick={openToolboxMenu} />
         </div>
+        {toolboxMenu && <ContextMenu state={toolboxMenu} onClose={() => setToolboxMenu(null)} />}
       </nav>
     )
   }

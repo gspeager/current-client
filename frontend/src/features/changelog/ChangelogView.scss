@@ -318,3 +318,21 @@
   padding: var(--space-lg);
   overflow-y: auto;
 }
+
+@media (max-width: 1120px) {
+  .changelog-editor {
+    grid-template-columns: minmax(0, 1fr);
+    flex-basis: auto;
+  }
+
+  .changelog-entries,
+  .changelog-output {
+    min-height: 240px;
+  }
+}
+
+.changelog-section-title {
+  margin: 0;
+  color: var(--on-surface);
+  font: var(--headline-sm);
+}

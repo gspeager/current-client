@@ -107,6 +107,7 @@ function ChangelogView({
       <NextRelease repoPath={repoPath} repoVersion={repoVersion} onTagged={onTagged} />
       {changelog && (
         <>
+          <h2 className="changelog-section-title">Changelog</h2>
           <div className="changelog-range">
             <span className="changelog-label">From</span>
             <RefSelect

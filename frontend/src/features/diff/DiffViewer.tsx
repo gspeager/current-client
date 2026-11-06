@@ -178,6 +178,14 @@ function DiffViewer({
   const canSelectLines = !diff.conflicted && Boolean(hunkActions.onStageHunk ?? hunkActions.onUnstageHunk)
 
   useWindowKeydown((e) => {
+    // S, U and D act on the current hunk while focus is in the diff.
+    if (!e.metaKey && !e.ctrlKey && !e.altKey && paneRef.current?.contains(document.activeElement)) {
+      const hunk = diff.hunks[currentHunkIndex]
+      const key = e.key.toLowerCase()
+      if (hunk && key === 's') hunkActions.onStageHunk?.(hunk.raw)
+      if (hunk && key === 'u') hunkActions.onUnstageHunk?.(hunk.raw)
+      if (hunk && key === 'd') hunkActions.onDiscardHunk?.(hunk.raw)
+    }
     if (!e.altKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
     if (diff.conflicted) {
       if (blocks.blockStarts.length === 0) return

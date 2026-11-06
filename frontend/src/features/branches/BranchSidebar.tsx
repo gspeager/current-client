@@ -356,7 +356,7 @@ function BranchSidebar({
       ...menuAnchor(e),
       items: [
         { label: 'Check out', onClick: () => checkoutBranch(b.name), disabled: b.current || !!blocked },
-        { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
+        { separatorBefore: true, label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
         {
           label: 'Merge into current (no fast-forward)',
           onClick: () => mergeBranch(b.name, 'no-ff'),
@@ -368,7 +368,12 @@ function BranchSidebar({
           : []),
         ...(b.current ? [{ label: 'Tidy up history…', onClick: () => setTidyUp(true) }] : []),
         { label: 'Rebase current onto…', onClick: () => setRebasePreview(b.name), disabled: b.current },
-        { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
+        {
+          separatorBefore: true,
+          label: 'Compare with current',
+          onClick: () => setCompareWith(b.name),
+          disabled: b.current,
+        },
         { label: 'New stacked branch…', onClick: () => void newStackedBranch(b.name) },
         {
           label: 'Stack current on this',
@@ -391,10 +396,16 @@ function BranchSidebar({
           label: noteMenuLabel(notes, 'branch', b.name),
           onClick: () => notes.edit({ kind: 'branch', target: b.name }),
         },
-        { label: 'Rename…', onClick: () => renameBranch(b.name) },
+        { separatorBefore: true, label: 'Rename…', onClick: () => renameBranch(b.name) },
         { label: 'Set upstream…', onClick: () => setUpstreamFor(b) },
         ...(b.upstream ? [{ label: 'Unset upstream', onClick: () => unsetUpstream(b.name) }] : []),
-        { label: 'Delete', onClick: () => deleteBranch(b.name, false), destructive: true, disabled: b.current },
+        {
+          separatorBefore: true,
+          label: 'Delete',
+          onClick: () => deleteBranch(b.name, false),
+          destructive: true,
+          disabled: b.current,
+        },
         ...(b.upstream
           ? [
               {

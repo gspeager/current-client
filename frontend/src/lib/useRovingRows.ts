@@ -45,9 +45,11 @@ export function useRovingRows(
         lostAt = null
         focusTarget(current)?.focus()
       }
+      const focused = rows.find((row) => row.contains(document.activeElement))
+      const pinned = rows.find((row) => row.getAttribute('aria-current'))
       const active =
-        current && rows.includes(current)
-          ? current
+        (focused ?? pinned ?? (current && rows.includes(current)))
+          ? (focused ?? pinned ?? current)
           : (container.querySelector<HTMLElement>(
               `${rowSelector}[aria-selected='true'], ${rowSelector}[class*='-selected']`,
             ) ?? rows[0])
@@ -135,7 +137,7 @@ export function useRovingRows(
 
     sync()
     const observer = new MutationObserver(sync)
-    observer.observe(container, { childList: true, subtree: true })
+    observer.observe(container, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-current'] })
     container.addEventListener('keydown', onKeyDown)
     container.addEventListener('focusin', onFocusIn)
     container.addEventListener('focusout', onFocusOut)

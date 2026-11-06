@@ -207,10 +207,10 @@ function CommitComposer({
             : null
       : needsIdentity
         ? 'Set a name and email to commit.'
-        : subject.trim() === ''
-          ? 'Enter a commit message.'
-          : !amend && !allowEmpty && stagedCount === 0
-            ? 'Nothing is staged.'
+        : !amend && !allowEmpty && stagedCount === 0
+          ? 'Stage files to commit.'
+          : subject.trim() === ''
+            ? 'Enter a commit message.'
             : null
 
   const onMessageKeyDown = (e: KeyboardEvent) => {

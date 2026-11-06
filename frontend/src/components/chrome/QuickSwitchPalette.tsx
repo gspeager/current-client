@@ -113,7 +113,7 @@ const SETTINGS_KEYWORDS: Record<string, string> = {
 const MAX_FILE_RESULTS = 20
 // At rest the palette shows where you can go, not an inventory: this many
 // local branches, the recent repositories and the actions.
-const MAX_IDLE_BRANCHES = 8
+const MAX_IDLE_BRANCHES = 4
 const MAX_COMMIT_RESULTS = 10
 const MAX_TAG_RESULTS = 10
 const COMMIT_SEARCH_DEBOUNCE_MS = 200
@@ -405,7 +405,7 @@ function QuickSwitchPalette({
               >
                 <FolderGit2 size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(baseName(r.path))}</span>
-                <PathText path={r.path} className="quick-switch-path" />
+                <PathText path={r.path.slice(0, -baseName(r.path).length - 1)} className="quick-switch-path" />
                 <span className="quick-switch-row-meta">
                   <span className={`quick-switch-dot quick-switch-dot-${r.uncommitted > 0 ? 'dirty' : 'clean'}`} />
                   <span className={r.uncommitted > 0 ? 'quick-switch-dirty' : 'quick-switch-clean'}>

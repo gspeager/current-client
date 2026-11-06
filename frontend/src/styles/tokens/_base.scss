@@ -68,6 +68,18 @@
     padding: 0;
   }
 
+  // Fields need to read as fields: 3:1 against the surface.
+  input:not([type='checkbox'], [type='radio'], :focus),
+  select:not(:focus),
+  textarea:not(:focus) {
+    border-color: var(--outline-control) !important;
+  }
+
+  ::placeholder {
+    color: var(--outline);
+    opacity: 1;
+  }
+
   input[type='radio'] {
     appearance: none;
     flex-shrink: 0;

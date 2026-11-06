@@ -1,6 +1,7 @@
 import { Keyboard, SquareTerminal } from 'lucide-react'
 import { System } from '@wailsio/runtime'
 import { PlatformService, type HostStatusInfo } from '@current-client-bindings/app'
+import WaveMark from './WaveMark'
 import { baseName, tildePath } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
@@ -49,7 +50,7 @@ function StatusBar({
   return (
     <footer className="status-bar">
       <span className="status-bar-ready" role="status">
-        <span className="status-bar-dot" />
+        <WaveMark width={16} />
         Ready
       </span>
       {branchLabel && <span className="status-bar-branch">{branchLabel}</span>}

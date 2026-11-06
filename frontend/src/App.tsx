@@ -57,7 +57,7 @@ import { useAsyncData } from './lib/useAsyncData'
 import { useWindowKeydown } from './lib/useWindowKeydown'
 import { isTypingTarget } from './lib/shortcuts'
 import { NARROW_SIDEBAR_WIDTH, useWindowNarrowerThan } from './lib/useWindowNarrowerThan'
-import { cyclePanes } from './lib/panes'
+import { cyclePanes, focusMain } from './lib/panes'
 import ShortcutSheet from './components/chrome/ShortcutSheet'
 import WaveMark from './components/chrome/WaveMark'
 import { useAutoFetch } from './features/remotes/useAutoFetch'
@@ -314,6 +314,7 @@ function App({
     if (view && repo.repoPath) {
       e.preventDefault()
       changeTab(view)
+      requestAnimationFrame(focusMain)
     }
   })
   const closeRepoTab = (path: string) =>
@@ -330,6 +331,7 @@ function App({
   }
 
   const changeTab = (tab: AppTab) => {
+    setOpenIssueKey(null)
     setActiveTab(tab)
     setCommitFocus(null)
   }
@@ -858,17 +860,7 @@ function App({
           <IssuePanelContext.Provider value={issueActions}>
             <NotesContext.Provider value={notesState.context}>
               <div className="app-shell">
-                <button
-                  type="button"
-                  className="app-skip-link"
-                  onClick={() =>
-                    document
-                      .querySelector<HTMLElement>(
-                        '[data-pane="main"] [data-roving] [tabindex="0"], [data-pane="main"] button',
-                      )
-                      ?.focus()
-                  }
-                >
+                <button type="button" className="app-skip-link" onClick={focusMain}>
                   Skip to content
                 </button>
                 <HeaderBar

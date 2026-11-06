@@ -365,3 +365,9 @@
 .stack-mark-behind {
   color: var(--warning);
 }
+
+// Rows are the shape here; a pill on each would only add noise.
+.branch-row .branch-pill {
+  padding: 0;
+  background: none;
+}

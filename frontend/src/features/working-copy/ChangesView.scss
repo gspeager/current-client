@@ -77,17 +77,23 @@
 }
 
 .changes-diff-path {
+  display: flex;
   flex: 0 1 auto;
-  min-width: 96px;
-  @include patterns.truncate;
+  min-width: 0;
   font: var(--data-md);
 }
 
+// The folder gives way, from its start, so the filename stays whole.
 .changes-diff-path-dir {
+  flex: 0 1 auto;
+  min-width: 0;
+  direction: rtl;
+  @include patterns.truncate;
   color: var(--outline);
 }
 
 .changes-diff-path-file {
+  flex-shrink: 0;
   color: var(--on-surface);
   font-weight: 600;
 }

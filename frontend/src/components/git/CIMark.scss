@@ -49,7 +49,7 @@
 .ci-job,
 .ci-job-row {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: 14px minmax(0, 1fr) minmax(64px, max-content) minmax(56px, max-content) max-content;
   align-items: center;
   gap: var(--space-sm);
   min-height: var(--h-row-tree);

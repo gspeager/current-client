@@ -1,4 +1,7 @@
 .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   height: 100%;
   padding: 0 var(--space-sm);
   background: none;
@@ -16,7 +19,6 @@
 .tab-active {
   box-shadow: inset 0 -2px 0 0 var(--primary);
   color: var(--on-surface);
-  font-weight: 600;
 }
 
 .tab-count {

@@ -38,7 +38,7 @@ function WorkingChangesRow({ node, laneCount, rowHeight, changedFiles, user, sty
         <CommitGraph node={node} laneCount={laneCount} rowHeight={rowHeight} dashed />
       </div>
       <div className="commit-row-commit">
-        <span className="commit-row-working-label">{plural(changedFiles, 'file')} changed</span>
+        <span className="commit-row-working-label">{plural(changedFiles, 'uncommitted file')}</span>
       </div>
       {user?.name && (
         <div className="commit-row-author">

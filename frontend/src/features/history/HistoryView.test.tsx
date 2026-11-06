@@ -159,7 +159,7 @@ describe('HistoryView', () => {
     const user = userEvent.setup()
     renderHistory({ changedFiles: 3, onOpenChanges })
 
-    const row = await screen.findByRole('button', { name: /3 files changed/ })
+    const row = await screen.findByRole('button', { name: /3 uncommitted files/ })
     expect(row.querySelector('circle')).toHaveAttribute('stroke-dasharray')
     // The lane line starts at the node's rim, not its centre.
     expect(row.querySelector('line')).toHaveAttribute('y1', String(38 / 2 + 4))
@@ -174,13 +174,15 @@ describe('HistoryView', () => {
 
     await user.click(screen.getByText('Filters'))
     await user.type(screen.getByRole('textbox', { name: 'Author filter' }), 'Ada')
-    await vi.waitFor(() => expect(screen.queryByRole('button', { name: /3 files changed/ })).not.toBeInTheDocument())
+    await vi.waitFor(() =>
+      expect(screen.queryByRole('button', { name: /3 uncommitted files/ })).not.toBeInTheDocument(),
+    )
     expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].sha).toBe(history[0].sha)
 
     cleanup()
     renderHistory({ changedFiles: 0, onOpenChanges })
     await screen.findByRole('button', { name: /Fix login redirect/ })
-    expect(screen.queryByText(/files changed/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/uncommitted files/)).not.toBeInTheDocument()
   })
 
   it('follows only first parents when the toggle is on, saving the choice and drawing one lane', async () => {

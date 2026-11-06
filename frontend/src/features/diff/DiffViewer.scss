@@ -629,3 +629,8 @@
     background: var(--surface-container);
   }
 }
+
+// A removed line's strings shouldn't read as added.
+.diff-row-removed .diff-content :is(.token-string, .token-type, .token-keyword) {
+  color: inherit;
+}

@@ -195,8 +195,8 @@ function HeaderBar({
           disabled={!!blocked}
           title={blocked ?? title}
         >
-          <Icon size={12} strokeWidth={1.5} />
-          {label}
+          <Icon size={14} strokeWidth={1.5} />
+          <span className="header-bar-sync-label">{label}</span>
         </button>
         <button
           type="button"

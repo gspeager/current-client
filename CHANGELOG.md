@@ -15,7 +15,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - **Syntax colors for more languages:** TSX, JSX, CSS, SCSS, HTML, JSON, YAML, TOML, Markdown, shell, Python, Ruby, Rust, Java, Kotlin, Swift, C, C++, C#, PHP and SQL, all bundled with the app.
 - **Branch colors spread out.** A repository's branches now share the colors evenly, rather than several landing on one by chance. A new branch shifts few others.
 - **Home and End reach the ends of History**, and **F6** visits the file list, commit message and diff. A diff's line numbers are one Tab stop, moved through with the arrow keys.
-- **Larger text**, with file rows giving their width to the filename. Owners and the diff bar show on hover and in the diff header.
+- **The icon rail is shorter.** It keeps the sections, and one Toolbox button opens a labeled menu of the rest. View tabs gain icons.
+- **Stage, unstage and discard a hunk from the keyboard:** **S**, **U** and **D** while focus is in the diff.
+- **The Inbox takes focus when it opens,** with arrow keys across its rows, and tidying up reads quieter than what waits for review.
+- **Larger text**, with file rows giving their width to the filename. Owners show on hover and in the diff header.
 - **Small windows adapt.** Below 1120 px wide the sidebar becomes its icon rail, and below 1040 px diffs read as unified. Status bar details and repository tab branches step aside before anything is cut off.
 - **Go to anything finds more.** A commit's hash, a pull request's number or title, a stash's message, **blame** plus a file name, and worktree, remote, cherry-pick and revert all lead somewhere, and the top row is always the one selected.
 - **The staged report folds to its count** when it has more than two findings, so the file list keeps its room.

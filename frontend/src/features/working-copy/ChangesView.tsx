@@ -293,7 +293,11 @@ function ChangesView({
                 </button>
               )}
               <span className="changes-diff-path">
-                {dir && <span className="changes-diff-path-dir">{dir}</span>}
+                {dir && (
+                  <span className="changes-diff-path-dir">
+                    <bdi>{dir}</bdi>
+                  </span>
+                )}
                 <span className="changes-diff-path-file">{file}</span>
               </span>
               {stats && (

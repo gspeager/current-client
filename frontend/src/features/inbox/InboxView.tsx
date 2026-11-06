@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRovingRows } from '../../lib/useRovingRows'
 import {
   Bell,
@@ -141,6 +141,9 @@ function describe(row: InboxRow): { subject: string; reason: string } {
 // Everything waiting on you across the open repositories: local facts from
 // Git, host facts from the last refresh's cache, each row a jump to it.
 function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, onClose }: InboxViewProps) {
+  const setRows = useRovingRows('.inbox-row')
+  const [aside, setAside] = useState<HTMLElement | null>(null)
+  const focusedOnOpen = useRef(false)
   useClockTick()
   const key = paths.join('\n')
   // Showing the rows counts as seeing them: the header's badge clears.
@@ -154,13 +157,22 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
   const [folded, setFolded] = useState<Record<string, boolean>>({})
   const isOpen = (path: string) => folded[path] ?? path === activePath
 
+  useEffect(() => setRows(aside), [aside, setRows])
+  // Opening it moves there, so the arrows work straight away.
+  useEffect(() => {
+    if (focusedOnOpen.current || !repos || !aside) return
+    focusedOnOpen.current = true
+    requestAnimationFrame(() => aside.querySelector<HTMLElement>('.inbox-row')?.focus())
+  }, [repos, aside])
+
   return (
-    <aside className="inbox" aria-label="Inbox">
+    <aside ref={setAside} className="inbox" data-pane="inbox" aria-label="Inbox">
       <header className="inbox-header">
         <h2 className="inbox-title">Inbox</h2>
         <span className="inbox-summary">
-          {repos ? (total === 0 ? 'Nothing waiting' : plural(total, 'item')) : 'Looking…'}
+          {repos ? (total === 0 ? 'Nothing waiting' : `${total} waiting`) : 'Looking…'}
         </span>
+        <span className="inbox-spacer" />
         {onClose && (
           <button type="button" className="inbox-close" onClick={onClose} aria-label="Close Inbox" title="Close Inbox">
             <X size={16} strokeWidth={1.75} />
@@ -193,7 +205,6 @@ interface InboxRepoSectionProps {
 
 function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepoSectionProps) {
   const fresh = repo.rows.filter((row) => row.new).length
-  const rovingRows = useRovingRows('.inbox-row')
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [doneError, setDoneError] = useState<string | null>(null)
@@ -218,7 +229,7 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
       .finally(() => setRefreshing(false))
   }
   return (
-    <section ref={rovingRows} className="inbox-repo" aria-label={repo.name}>
+    <section className="inbox-repo" aria-label={repo.name}>
       <h3 className="inbox-repo-name">
         <button type="button" className="inbox-repo-toggle" aria-expanded={open} onClick={onToggle}>
           {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
@@ -249,7 +260,11 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
           const rows = repo.rows.filter((row) => groupOf(row.kind) === group)
           if (rows.length === 0) return null
           return (
-            <section key={group.name} className="inbox-group" aria-label={`${repo.name}: ${group.name}`}>
+            <section
+              key={group.name}
+              className={group.name === 'Tidy up' ? 'inbox-group inbox-group-quiet' : 'inbox-group'}
+              aria-label={`${repo.name}: ${group.name}`}
+            >
               <h4 className="inbox-group-label">
                 {group.name}
                 <span className="inbox-group-count">{rows.length}</span>

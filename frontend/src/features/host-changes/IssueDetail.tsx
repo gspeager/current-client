@@ -77,10 +77,11 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
   }
 
   return (
-    <article className="issue-detail" aria-label={data?.reference ?? issueKey}>
+    <article className="issue-detail" data-pane="issue-detail" aria-label={data?.reference ?? issueKey}>
       <header className="issue-detail-header">
         <span className="issue-detail-reference">{data?.reference ?? issueKey}</span>
         {issue?.state && <span className={`host-change-state host-change-state-${issue.state}`}>{issue.state}</span>}
+        {issue && <h3 className="host-change-detail-title issue-detail-title">{issue.title}</h3>}
         <span className="issue-detail-spacer" />
         {headerAccessory}
       </header>
@@ -93,7 +94,6 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
         {!data && !error && <p className="issue-panel-hint">Loading…</p>}
         {data && issue && (
           <>
-            <h3 className="issue-panel-title">{issue.title}</h3>
             <dl className="issue-panel-facts">
               <dt>Author</dt>
               <dd>{issue.author.name || issue.author.username}</dd>
@@ -153,7 +153,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
               placeholder="Comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              rows={3}
+              rows={1}
             />
           )}
           <div className="issue-detail-actions">

@@ -195,9 +195,11 @@ function WorkingTreeFileList({
   useEffect(() => {
     if (!selectedPath) return
     const index = listRows.findIndex((row) => row.kind === 'file' && row.file.path === selectedPath)
-    if (index >= 0) rowVirtualizer.scrollToIndex(index, { align: 'auto' })
+    if (index < 0) return
+    const frame = requestAnimationFrame(() => rowVirtualizer.scrollToIndex(index, { align: 'center' }))
+    return () => cancelAnimationFrame(frame)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPath])
+  }, [selectedPath, listRows.length > 0])
 
   const runPatchExport = (exportPatch: Promise<void>) => {
     setPatchError(null)
@@ -267,7 +269,12 @@ function WorkingTreeFileList({
       items.push({ label: `Stash ${paths.length} files`, onClick: () => actions.stashFiles(files) })
     }
     if (section === 'unstaged') {
-      items.push({ label: 'Discard', onClick: () => actions.discardPaths(paths), destructive: true })
+      items.push({
+        separatorBefore: true,
+        label: 'Discard',
+        onClick: () => actions.discardPaths(paths),
+        destructive: true,
+      })
     }
     return items
   }
@@ -306,7 +313,7 @@ function WorkingTreeFileList({
       items.push({ label: 'Stash', onClick: () => actions.stashFiles([f]) })
     }
     if (section === 'unstaged') {
-      items.push({ label: 'Discard', onClick: () => actions.discardFile(f), destructive: true })
+      items.push({ separatorBefore: true, label: 'Discard', onClick: () => actions.discardFile(f), destructive: true })
     }
     fileTools.openMenu(e, items)
   }
@@ -397,7 +404,7 @@ function WorkingTreeFileList({
   return (
     <>
       <div className="changes-files-header">
-        <span className="changes-files-title">Changed files</span>
+        <h2 className="changes-files-title">Changed files</h2>
         <div className="changes-files-header-spacer" />
         <SegmentedControl
           value={viewMode}
