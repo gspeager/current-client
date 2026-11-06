@@ -147,3 +147,20 @@ func TestListWorktreesWithoutLinkedOnesMatchesGit(t *testing.T) {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}
 }
+
+func TestSameRepositoryFollowsWorktrees(t *testing.T) {
+	ctx := context.Background()
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a\n", "a")
+	linked := filepath.Join(t.TempDir(), "linked")
+	gittest.Run(t, dir, "worktree", "add", "-q", linked, "-b", "side")
+	if !SameRepository(ctx, dir, linked) {
+		t.Fatal("a worktree should be the same repository")
+	}
+	if SameRepository(ctx, dir, gittest.InitRepo(t)) {
+		t.Fatal("another repository isn't")
+	}
+	if SameRepository(ctx, dir, filepath.Join(dir, "missing")) {
+		t.Fatal("a missing folder isn't")
+	}
+}
