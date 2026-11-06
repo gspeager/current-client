@@ -95,6 +95,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
         title: 'Force-push',
         message: [
           `Force-push ${status.current} to ${status.upstream}? This rewrites remote history and can discard commits other people have pushed.`,
+          'What it overwrites, as of the last fetch, stays in Recover.',
           protection,
         ]
           .filter(Boolean)

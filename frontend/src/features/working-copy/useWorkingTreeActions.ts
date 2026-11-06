@@ -19,8 +19,8 @@ export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, 
     const confirmed = await confirm({
       title: untracked ? (folder ? 'Delete folder' : 'Delete file') : 'Discard changes',
       message: untracked
-        ? `Delete ${f.path}${folder ? ' and everything in it' : ''}? This cannot be undone.`
-        : `Discard changes to ${f.path}? This cannot be undone.`,
+        ? `Delete ${f.path}${folder ? ' and everything in it' : ''}? A snapshot goes to Recover first.`
+        : `Discard changes to ${f.path}? A snapshot goes to Recover first.`,
       confirmLabel: untracked ? 'Delete' : 'Discard',
       destructive: true,
     })
@@ -30,7 +30,7 @@ export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, 
   const discardPaths = async (paths: string[]) => {
     const confirmed = await confirm({
       title: 'Discard changes',
-      message: `Discard changes to ${paths.length} files? This cannot be undone.`,
+      message: `Discard changes to ${paths.length} files? A snapshot goes to Recover first.`,
       confirmLabel: 'Discard',
       destructive: true,
     })

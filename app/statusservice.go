@@ -106,10 +106,12 @@ func (s *StatusService) UnstageFiles(repoPath string, paths []string) error {
 }
 
 func (s *StatusService) DiscardFile(repoPath, path string) error {
+	snapshotBefore(repoPath, "discard")
 	return git.DiscardFile(context.Background(), repoPath, path)
 }
 
 func (s *StatusService) DiscardFiles(repoPath string, paths []string) error {
+	snapshotBefore(repoPath, "discard")
 	return git.DiscardFiles(context.Background(), repoPath, paths)
 }
 

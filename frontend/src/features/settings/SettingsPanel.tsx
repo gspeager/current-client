@@ -81,6 +81,7 @@ function SettingsPanel({
     setDisableConventionalCommits,
     setPruneOnFetch,
     setRiskRulesOff,
+    setSnapshotLimit,
   } = settings
   const [gitPathError, setGitPathError] = useState<string | null>(null)
   const [editorPathError, setEditorPathError] = useState<string | null>(null)
@@ -215,6 +216,23 @@ function SettingsPanel({
                 onChange={(on) => setDisableConventionalCommits(!on)}
                 ariaLabel="Conventional Commits"
               />
+            </SettingsRow>
+            <SettingsRow
+              label="Snapshots kept"
+              hint="Taken before a discard, checkout, stash or hard reset, and listed in Recover. Per repository, kept on this computer, and never pushed."
+            >
+              <select
+                className="settings-field"
+                value={values.snapshotLimit}
+                onChange={(e) => setSnapshotLimit(Number(e.target.value))}
+                aria-label="Snapshots kept"
+              >
+                {[10, 25, 50, 100, 200].map((count) => (
+                  <option key={count} value={count}>
+                    {count}
+                  </option>
+                ))}
+              </select>
             </SettingsRow>
             <RiskRuleSettings off={values.riskRulesOff ?? []} onChange={setRiskRulesOff} />
             {repoPath && <GitSettingsSection repoPath={repoPath} refreshKey={identityVersion} />}

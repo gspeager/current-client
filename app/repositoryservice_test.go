@@ -13,7 +13,7 @@ import (
 	"github.com/gspeager/current-client/internal/config"
 )
 
-func TestRemoveRecentRepositoryDeletesFetchedHeadsOnly(t *testing.T) {
+func TestRemoveRecentRepositoryDeletesTheAppsRefs(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
 	gitIn(t, repo, "init", "-q", "-b", "main")
@@ -28,7 +28,7 @@ func TestRemoveRecentRepositoryDeletesFetchedHeadsOnly(t *testing.T) {
 	if err := s.RemoveRecentRepository(repo); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "--format=%(refname)", "refs/current-client"))); got != "refs/current-client/snapshots/1" {
+	if got := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "--format=%(refname)", "refs/current-client"))); got != "" {
 		t.Fatalf("refs left = %q", got)
 	}
 	if err := s.RemoveRecentRepository(filepath.Join(repo, "gone")); err != nil {

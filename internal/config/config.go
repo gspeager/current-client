@@ -66,6 +66,9 @@ type Config struct {
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
 
+	// Snapshots kept per repository; zero means the default.
+	SnapshotLimit int `json:"snapshotLimit,omitempty"`
+
 	// Rules of the staged changes' risk report that are turned off.
 	RiskRulesOff []string `json:"riskRulesOff,omitempty"`
 

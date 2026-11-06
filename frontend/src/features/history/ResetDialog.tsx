@@ -23,7 +23,8 @@ const MODES: { mode: ResetMode; label: string; effect: string }[] = [
   {
     mode: 'hard',
     label: 'Hard',
-    effect: 'The later commits leave the branch and their changes are discarded, along with any uncommitted work.',
+    effect:
+      'The later commits leave the branch and their changes are discarded, along with any uncommitted work. A snapshot goes to Recover first.',
   },
 ]
 

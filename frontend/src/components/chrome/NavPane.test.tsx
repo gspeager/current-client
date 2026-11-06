@@ -103,6 +103,7 @@ describe('NavPane collapsed rail', () => {
       expect.stringMatching(/^(Reveal in|Open in File Manager)/),
       'Open in VS Code',
       'Undo last operation',
+      'Recover discarded work',
       'Reflog',
       'Bisect',
       'Apply patch…',
@@ -168,7 +169,7 @@ describe('NavPane expanded', () => {
     const groups = [...document.querySelectorAll('.nav-pane-footer .nav-pane-tool-group')]
     expect(groups.map((row) => row.textContent)).toEqual([
       expect.stringMatching(/^Open inTerminal(Finder|File Explorer|File Manager)VS Code$/),
-      'ToolsUndoReflogBisectApply patchMaintenance',
+      'ToolsUndoRecoverReflogBisectApply patchMaintenance',
     ])
     for (const button of groups.flatMap((g) => [...g.querySelectorAll('button')])) {
       expect(button).toHaveClass('nav-pane-tool')

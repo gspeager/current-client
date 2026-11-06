@@ -47,10 +47,12 @@ func (s *BranchService) CreateBranch(repoPath, name string) error {
 }
 
 func (s *BranchService) CheckoutCommit(repoPath, sha string) error {
+	snapshotBefore(repoPath, "checkout")
 	return git.CheckoutCommit(context.Background(), repoPath, sha)
 }
 
 func (s *BranchService) CheckoutBranch(repoPath, name string) error {
+	snapshotBefore(repoPath, "checkout")
 	return git.CheckoutBranch(context.Background(), repoPath, name)
 }
 
@@ -76,6 +78,10 @@ func (s *BranchService) DeleteBranch(repoPath, name string, force bool) (string,
 	tip, err := git.ResolveCommit(ctx, repoPath, "refs/heads/"+name)
 	if err != nil {
 		return "", err
+	}
+	// Only when deleting it would leave its commits unreachable.
+	if force && !git.CommitOnAnotherRef(ctx, repoPath, tip, "refs/heads/"+name) {
+		snapshotTip(repoPath, "branch delete", name, tip)
 	}
 	return tip, git.DeleteBranch(ctx, repoPath, name, force)
 }

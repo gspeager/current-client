@@ -28,5 +28,6 @@ func (s *UndoService) Preview(repoPath string) (UndoPlanInfo, error) {
 }
 
 func (s *UndoService) Apply(repoPath string, plan UndoPlanInfo) error {
+	snapshotBefore(repoPath, "undo")
 	return undo.Apply(context.Background(), repoPath, undo.Plan(plan))
 }

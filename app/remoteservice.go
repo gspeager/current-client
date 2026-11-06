@@ -244,6 +244,12 @@ func (s *RemoteService) ForcePush(ctx context.Context, repoPath string, auth *gi
 	if err != nil {
 		return err
 	}
+	// What the push overwrites on the remote, as of the last fetch.
+	if status, err := git.CurrentBranchStatus(ctx, repoPath); err == nil && status.Upstream != "" {
+		if tip, err := git.ResolveCommit(ctx, repoPath, "refs/remotes/"+status.Upstream); err == nil {
+			snapshotTip(repoPath, "force-push", status.Current, tip)
+		}
+	}
 	return git.ForcePushUpstream(ctx, repoPath)
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/identity"
+	"github.com/gspeager/current-client/core/snapshot"
 	"github.com/gspeager/current-client/internal/config"
 	"github.com/gspeager/current-client/internal/policy"
 )
@@ -29,6 +30,7 @@ type Settings struct {
 	HistoryFirstParent          bool                  `json:"historyFirstParent"`
 	DisableConventionalCommits  bool                  `json:"disableConventionalCommits"`
 	RiskRulesOff                []string              `json:"riskRulesOff"`
+	SnapshotLimit               int                   `json:"snapshotLimit"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
 }
 
@@ -64,6 +66,7 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		HistoryFirstParent:          cfg.HistoryFirstParent,
 		DisableConventionalCommits:  cfg.DisableConventionalCommits,
 		RiskRulesOff:                append([]string{}, cfg.RiskRulesOff...),
+		SnapshotLimit:               snapshotLimitOrDefault(cfg.SnapshotLimit),
 		Changelog:                   changelogPrefs(cfg),
 	}, nil
 }
@@ -161,6 +164,17 @@ func (s *SettingsService) SetDiffNoWrap(noWrap bool) error {
 
 func (s *SettingsService) SetDisableConventionalCommits(disable bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.DisableConventionalCommits = disable })
+}
+
+func snapshotLimitOrDefault(limit int) int {
+	if limit <= 0 {
+		return snapshot.DefaultLimit
+	}
+	return limit
+}
+
+func (s *SettingsService) SetSnapshotLimit(limit int) error {
+	return updateConfig(func(cfg *config.Config) { cfg.SnapshotLimit = limit })
 }
 
 func (s *SettingsService) SetRiskRulesOff(rules []string) error {

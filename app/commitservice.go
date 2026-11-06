@@ -65,6 +65,9 @@ func (s *CommitService) Revert(repoPath, sha string) error {
 
 // Reset's mode is "soft", "mixed", or "hard".
 func (s *CommitService) Reset(repoPath, ref, mode string) error {
+	if mode == "hard" {
+		snapshotBefore(repoPath, "reset")
+	}
 	return git.Reset(context.Background(), repoPath, ref, git.ResetMode(mode))
 }
 

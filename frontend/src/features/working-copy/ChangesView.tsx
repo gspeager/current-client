@@ -179,9 +179,9 @@ function ChangesView({
     const confirmed = await confirm({
       title: count ? 'Discard lines' : 'Discard hunk',
       message: count
-        ? `Discard ${count === 1 ? 'this line' : `these ${count} lines`}? This cannot be undone.`
+        ? `Discard ${count === 1 ? 'this line' : `these ${count} lines`}? A snapshot goes to Recover first.`
         : showsStaged
-          ? 'Discard this staged hunk from the index and the working tree? This cannot be undone.'
+          ? 'Discard this staged hunk from the index and the working tree? A snapshot goes to Recover first.'
           : 'Discard this hunk? This cannot be undone.',
       confirmLabel: 'Discard',
       destructive: true,
