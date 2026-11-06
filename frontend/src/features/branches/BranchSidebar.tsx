@@ -170,7 +170,7 @@ function BranchSidebar({
         loadBranches()
         onBranchChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch((err: unknown) => setActionError(`Could not check out ${name}: ${errorMessage(err)}`))
   }
 
   const createBranch = () => {
@@ -474,12 +474,18 @@ function BranchSidebar({
     <li
       key={b.name}
       className={`branch-row${b.current ? ' branch-row-current' : ''}${blocked && !b.current ? ' branch-row-blocked' : ''}`}
-      onClick={() => !b.current && !blocked && checkoutBranch(b.name)}
+      onDoubleClick={() => !b.current && !blocked && checkoutBranch(b.name)}
       onContextMenu={branchContextMenu(b)}
       role="button"
       tabIndex={0}
       aria-disabled={blocked && !b.current ? true : undefined}
-      title={blocked && !b.current ? blocked : branchSummary(b)}
+      title={
+        blocked && !b.current
+          ? blocked
+          : b.current
+            ? branchSummary(b)
+            : `${branchSummary(b)}\nDouble-click to check out`
+      }
       onKeyDown={rowKeys(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill
@@ -548,12 +554,12 @@ function BranchSidebar({
     <li
       key={name}
       className={blocked ? 'branch-row branch-row-remote branch-row-blocked' : 'branch-row branch-row-remote'}
-      onClick={() => !blocked && checkoutBranch(localNameFor(name, remoteNames))}
+      onDoubleClick={() => !blocked && checkoutBranch(localNameFor(name, remoteNames))}
       onContextMenu={remoteMenu(name)}
       role="button"
       tabIndex={0}
       aria-disabled={blocked ? true : undefined}
-      title={blocked ?? undefined}
+      title={blocked ?? 'Double-click to check out'}
       onKeyDown={rowKeys(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
@@ -653,7 +659,16 @@ function BranchSidebar({
           )
         }
       >
-        {error && <p className="branch-sidebar-error">{error}</p>}
+        {error && (
+          <p className="branch-sidebar-error" role="alert">
+            <span>{error}</span>
+            {actionError && (
+              <button type="button" aria-label="Dismiss" title="Dismiss" onClick={() => setActionError(null)}>
+                <X size={14} strokeWidth={1.75} />
+              </button>
+            )}
+          </p>
+        )}
         {deleteRemote.error && <p className="branch-sidebar-error">Could not delete on remote: {deleteRemote.error}</p>}
         {deleted && (
           <p className="branch-sidebar-deleted" role="status">

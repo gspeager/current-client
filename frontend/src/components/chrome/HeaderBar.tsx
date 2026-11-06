@@ -83,8 +83,10 @@ interface HeaderBarProps {
   accessory?: ReactNode
 }
 
-const CHIP_WIDTH = 124
-const RESERVED_TAB_WIDTH = 84
+// What a chip needs: the name in mono, its margins, and room for dirty or ahead marks.
+const chipWidth = (path: string, summary?: { ahead?: number; behind?: number }) =>
+  baseName(path).length * 7.3 + 30 + (summary?.ahead || summary?.behind ? 24 : 0)
+const RESERVED_TAB_WIDTH = 72
 
 function HeaderBar({
   repoPath,
@@ -221,14 +223,13 @@ function HeaderBar({
 
   // Names stay readable: what doesn't fit moves to a menu rather than shrinking.
   const tabStrip = useRef<HTMLDivElement>(null)
-  const [chipsThatFit, setChipsThatFit] = useState(Infinity)
+  const [tabRoom, setTabRoom] = useState(Infinity)
   useLayoutEffect(() => {
     const strip = tabStrip.current
     if (!strip || typeof ResizeObserver === 'undefined') return
     const measure = () => {
       const active = strip.querySelector<HTMLElement>('.header-bar-switcher')?.offsetWidth ?? 0
-      if (strip.clientWidth > 0)
-        setChipsThatFit(Math.floor((strip.clientWidth - active - RESERVED_TAB_WIDTH) / CHIP_WIDTH))
+      if (strip.clientWidth > 0) setTabRoom(strip.clientWidth - active - RESERVED_TAB_WIDTH)
     }
     measure()
     const observer = new ResizeObserver(measure)
@@ -238,7 +239,12 @@ function HeaderBar({
     return () => observer.disconnect()
   }, [repoPath])
   const inactiveTabs = repo.tabs.filter((path) => path !== repoPath)
-  const overflowTabs = inactiveTabs.length > chipsThatFit ? inactiveTabs.slice(Math.max(chipsThatFit, 0)) : []
+  let usedRoom = 0
+  const fitting = inactiveTabs.filter((path) => {
+    usedRoom += chipWidth(path, repo.tabSummaries[path])
+    return usedRoom <= tabRoom
+  })
+  const overflowTabs = inactiveTabs.filter((path) => !fitting.includes(path))
   const shownTabs = repo.tabs.filter((path) => !overflowTabs.includes(path))
 
   useWindowKeydown((e) => {
@@ -465,9 +471,7 @@ function HeaderBar({
         >
           <Inbox size={14} strokeWidth={1.75} />
           <span className="header-bar-inbox-label">Inbox</span>
-          <span className="header-bar-inbox-count" style={inboxUnseen > 0 ? undefined : { visibility: 'hidden' }}>
-            {inboxUnseen}
-          </span>
+          {inboxUnseen > 0 && <span className="header-bar-inbox-count">{inboxUnseen}</span>}
         </button>
       )}
 

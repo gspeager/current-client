@@ -66,6 +66,7 @@
 }
 
 .changes-diff-header {
+  container-type: inline-size;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -207,5 +208,19 @@
 
   span {
     font: var(--data-sm);
+  }
+}
+
+// Facts give way before the filename does.
+@container (max-width: 520px) {
+  .changes-diff-owners,
+  .changes-diff-stat-hunks {
+    display: none;
+  }
+}
+
+@container (max-width: 400px) {
+  .changes-diff-header .diff-stat {
+    display: none;
   }
 }

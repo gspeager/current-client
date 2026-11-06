@@ -18,12 +18,20 @@ export function cyclePanes(backwards: boolean, root: Document | HTMLElement = do
 
 // The first thing to act on in the view on screen: its list's stop, else its first control.
 export function focusMain() {
-  const stops = [
-    ...document.querySelectorAll<HTMLElement>(
-      '[data-pane="main"] [data-roving] [tabindex="0"], [data-pane="main"] button:not([disabled])',
-    ),
-  ]
-  stops.find(visible)?.focus()
+  const list = [...document.querySelectorAll<HTMLElement>('[data-pane="main"] [data-roving] [tabindex="0"]')].find(
+    visible,
+  )
+  if (list) {
+    list.focus()
+    return
+  }
+  // A view with no list, such as Activity: the view itself takes focus.
+  const views = [...document.querySelectorAll<HTMLElement>('[data-pane="main"] > *')].filter(visible)
+  const view = views[0]
+  if (view) {
+    view.tabIndex = -1
+    view.focus({ preventScroll: true })
+  }
 }
 
 // Where focus goes when a dialog closes: back where it was, else into the main pane.
@@ -38,6 +46,6 @@ export function restoreFocus(previous: Element | null) {
 // For a view that may still be mounting: keeps trying for about half a second.
 export function focusMainSoon(tries = 30) {
   focusMain()
-  const insideMain = document.activeElement?.closest('[data-pane="main"]')
-  if (!insideMain && tries > 0) requestAnimationFrame(() => focusMainSoon(tries - 1))
+  const onList = document.activeElement?.closest('[data-roving]')
+  if (!onList && tries > 0) requestAnimationFrame(() => focusMainSoon(tries - 1))
 }

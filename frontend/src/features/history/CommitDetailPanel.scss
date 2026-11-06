@@ -360,3 +360,9 @@
     display: none;
   }
 }
+
+.commit-detail-close {
+  @include patterns.icon-button;
+  width: var(--h-chip);
+  height: var(--h-chip);
+}

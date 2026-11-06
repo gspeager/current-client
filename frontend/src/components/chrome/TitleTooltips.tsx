@@ -63,7 +63,7 @@ function TitleTooltips({ root }: { root: HTMLElement }) {
     let navigating = false
     const onFocus = (e: FocusEvent) => {
       const el = e.target as HTMLElement
-      if (navigating && el.hasAttribute('title')) show(el)
+      if (navigating && el.hasAttribute('title') && !el.classList.contains('modal-close')) show(el)
     }
     const onKey = (e: KeyboardEvent) => {
       navigating = e.key === 'Tab' || e.key.startsWith('Arrow') || e.key === 'F6'

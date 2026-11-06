@@ -30,9 +30,9 @@
   font: var(--ui-xs);
 }
 
-.review-dialog-summary {
+.dialog-input.review-dialog-summary {
+  height: auto;
   min-height: 80px;
   resize: vertical;
-  font: var(--ui-sm);
-  line-height: 1.5;
+  font: var(--prose);
 }

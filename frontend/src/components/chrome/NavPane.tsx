@@ -333,6 +333,17 @@ function NavPane({
           label="Toolbox"
           open={sections.isOpen('toolbox', false)}
           onToggle={() => sections.toggle('toolbox', false)}
+          actions={
+            !sections.isOpen('toolbox', false) && (
+              <span className="nav-pane-toolbox-quick">
+                {group('tools')
+                  .slice(0, 4)
+                  .map(({ id, label, icon, run, disabled, reason }) => (
+                    <RailButton key={id} label={label} icon={icon} onClick={run} disabled={disabled} reason={reason} />
+                  ))}
+              </span>
+            )
+          }
         >
           <ToolGroup label="Open in" actions={group('open')} />
           <ToolGroup label="Tools" actions={group('tools')}>

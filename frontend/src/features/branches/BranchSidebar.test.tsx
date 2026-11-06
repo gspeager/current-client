@@ -86,7 +86,7 @@ describe('BranchSidebar groups', () => {
     const login = (await screen.findByText('origin/login')).closest('.branch-row')!
     expect(login).toHaveTextContent('not local')
     expect((await screen.findByText('origin/feature')).closest('.branch-row')).not.toHaveTextContent('not local')
-    await userEvent.click(login)
+    await userEvent.dblClick(login)
 
     expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'login')
   })
@@ -262,12 +262,12 @@ describe('BranchSidebar', () => {
     expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
   })
 
-  it('checks out a branch when its row is clicked', async () => {
+  it('checks out a branch when its row is double-clicked', async () => {
     vi.mocked(BranchService.ListLocal).mockResolvedValue([branch('main', true), branch('feature/login')])
     vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
     const onBranchChanged = renderSidebar()
 
-    await userEvent.click(await screen.findByRole('button', { name: /^feature\/login/ }))
+    await userEvent.dblClick(await screen.findByRole('button', { name: /^feature\/login/ }))
 
     expect(BranchService.CheckoutBranch).toHaveBeenCalledWith(REPO, 'feature/login')
     expect(onBranchChanged).toHaveBeenCalled()

@@ -4,7 +4,7 @@ const numbered = (palette: string) => [1, 2, 3, 4, 5, 6].map((n) => `var(--lane-
 
 // Tokens, so each palette follows the dark or light theme.
 export const LANE_THEMES = {
-  default: ['main', 'feature', 'release', 'hotfix', 'experimental', 'integration', 'spare'].map(
+  default: ['main', 'feature', 'release', 'hotfix', 'experimental', 'integration', 'spare', 'sand'].map(
     (b) => `var(--branch-${b})`,
   ),
   vivid: numbered('vivid'),

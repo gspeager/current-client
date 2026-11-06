@@ -57,7 +57,6 @@ describe('InboxView', () => {
     render(<InboxView paths={['/repos/app', '/repos/lib']} activePath="/repos/app" refreshKey={0} onGo={onGo} />)
 
     const app = await screen.findByRole('region', { name: 'app' })
-    expect(screen.getByText('5 waiting')).toBeInTheDocument()
     // Grouped by what each asks of you, in that order.
     expect(
       within(app)

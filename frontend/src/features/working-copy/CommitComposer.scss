@@ -67,7 +67,8 @@
 }
 
 .commit-composer-subject {
-  padding: var(--space-sm);
+  height: var(--h-action);
+  padding: 0 var(--space-sm);
   background: none;
   border: none;
   border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 40%, transparent);

@@ -409,6 +409,45 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
         </span>
         <span className={`host-change-state host-change-state-${state}`}>{state}</span>
         <h3 className="host-change-detail-title">{change.title}</h3>
+        <div className="host-change-actions">
+          <button type="button" className="host-change-button" onClick={checkOut} disabled={checkout.running}>
+            <GitBranch size={14} strokeWidth={1.75} />
+            {checkout.running ? 'Checking out…' : 'Check out locally'}
+          </button>
+          {change.state === 'open' && !merged && reviewActions && (
+            <button
+              type="button"
+              className={primary === 'review' ? 'host-changes-new' : 'host-change-button'}
+              onClick={() => setReviewing(true)}
+            >
+              <ClipboardCheck size={14} strokeWidth={1.75} />
+              Review…
+            </button>
+          )}
+          {change.state === 'open' && !merged && (
+            <button
+              type="button"
+              className={primary === 'merge' ? 'host-changes-new' : 'host-change-button'}
+              onClick={() => setMerging(true)}
+            >
+              <GitMerge size={14} strokeWidth={1.75} />
+              Merge…
+            </button>
+          )}
+          <button
+            type="button"
+            className="host-change-button"
+            onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
+          >
+            <HostIcon size={14} strokeWidth={1.75} />
+            Open on host
+          </button>
+          {checkout.running && (
+            <button type="button" className="host-change-button" onClick={checkout.cancel}>
+              Cancel
+            </button>
+          )}
+        </div>
       </header>
       <p className="host-change-subtitle">
         <span className="host-change-author">
@@ -433,8 +472,8 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
         )}
         {(details?.environments?.length ?? 0) > 0 && <EnvironmentReach reach={details!.environments} />}
         {protection && (
-          <span className="host-change-protection">
-            {/^protected/i.test(protection.value) ? `${change.targetBranch} is ${protection.value}` : protection.value}
+          <span className="host-change-protection" title={protection.value}>
+            {/^protected/i.test(protection.value) ? `${change.targetBranch} is protected` : protection.value}
           </span>
         )}
         {change.labels?.map((label) => (
@@ -516,45 +555,6 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           </>
         )}
       </dl>
-      <div className="host-change-actions">
-        <button type="button" className="host-change-button" onClick={checkOut} disabled={checkout.running}>
-          <GitBranch size={14} strokeWidth={1.75} />
-          {checkout.running ? 'Checking out…' : 'Check out locally'}
-        </button>
-        {change.state === 'open' && !merged && reviewActions && (
-          <button
-            type="button"
-            className={primary === 'review' ? 'host-changes-new' : 'host-change-button'}
-            onClick={() => setReviewing(true)}
-          >
-            <ClipboardCheck size={14} strokeWidth={1.75} />
-            Review…
-          </button>
-        )}
-        {change.state === 'open' && !merged && (
-          <button
-            type="button"
-            className={primary === 'merge' ? 'host-changes-new' : 'host-change-button'}
-            onClick={() => setMerging(true)}
-          >
-            <GitMerge size={14} strokeWidth={1.75} />
-            Merge…
-          </button>
-        )}
-        <button
-          type="button"
-          className="host-change-button"
-          onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
-        >
-          <HostIcon size={14} strokeWidth={1.75} />
-          Open on host
-        </button>
-        {checkout.running && (
-          <button type="button" className="host-change-button" onClick={checkout.cancel}>
-            Cancel
-          </button>
-        )}
-      </div>
       {checkedOut && (
         <p className="host-changes-notice" role="status">
           {checkedOut}

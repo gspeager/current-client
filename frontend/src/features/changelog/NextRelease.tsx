@@ -76,7 +76,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
     const message = `Release ${data.version}`
     const confirmed = await confirm({
       title: `Tag ${data.tag}`,
-      message: `Tag ${data.sha.slice(0, 7)} as ${data.tag}, annotated "${message}". The tag stays local until Publish release pushes it.`,
+      message: `Tag ${data.sha.slice(0, 7)} as ${data.tag}, annotated "${message}".${warnings > 0 ? ` ${plural(warnings, 'warning')} still open.` : ''} The tag stays local until Publish release pushes it.`,
       confirmLabel: 'Tag',
     })
     if (!confirmed) return
@@ -164,7 +164,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
             1
           </span>
           <Tag size={14} strokeWidth={1.75} />
-          Tag {data.tag}…
+          {data.tag ? `Tag ${data.tag}…` : 'Tag…'}
         </button>
         <ArrowRight size={14} strokeWidth={1.75} className="next-release-arrow" aria-hidden="true" />
         <button
@@ -194,6 +194,8 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
 
 // One check: an icon, what it is, what it found. What it rests on is shown
 // when it needs attention, and in the tooltip otherwise.
+const EVIDENCE_SHOWN = 4
+
 function CheckRow({ check }: { check: ReleaseCheck }) {
   const level = LEVELS[check.level] ?? LEVELS.unknown
   const Icon = check.label.startsWith('CI') && /running/i.test(check.value) ? CircleDashed : level.icon
@@ -211,9 +213,12 @@ function CheckRow({ check }: { check: ReleaseCheck }) {
       {check.asOf && <span className="release-check-asof">{relativeTime(new Date(check.asOf))}</span>}
       {check.level === 'warn' && evidence.length > 0 && (
         <ul className="release-check-evidence">
-          {evidence.map((line, i) => (
+          {evidence.slice(0, EVIDENCE_SHOWN).map((line, i) => (
             <li key={i}>{line}</li>
           ))}
+          {evidence.length > EVIDENCE_SHOWN && (
+            <li title={evidence.slice(EVIDENCE_SHOWN).join('\n')}>and {evidence.length - EVIDENCE_SHOWN} more</li>
+          )}
         </ul>
       )}
     </li>

@@ -17,9 +17,11 @@ import { useCommitGraph } from './useCommitGraph'
 import { assignLaneColors } from './laneOwners'
 import { useLaneColors } from '../../lib/laneColor'
 import { useRovingRows } from '../../lib/useRovingRows'
+import { useResizableWidth } from '../../lib/useResizableWidth'
+import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import ResizeHandle from '../../components/chrome/ResizeHandle'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
-import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import { useHeadCommit } from '../working-copy/useHeadCommit'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useHostLinks } from '../../lib/useHostLinks'
@@ -183,6 +185,21 @@ function HistoryView({
     setFilter(next)
   }
 
+  const inspectorWidth = useResizableWidth('pane-width-history-detail', 340, 280, 640, 'grow-left')
+  const closeDetail = () => {
+    setSelectedSha(null)
+    parentRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus()
+  }
+  useWindowKeydown((e) => {
+    if (
+      e.key === 'Escape' &&
+      selectedSha &&
+      parentRef.current?.offsetParent &&
+      !document.querySelector('.modal-panel, .context-menu')
+    ) {
+      closeDetail()
+    }
+  })
   const selectSha = (sha: string) => {
     setSelectedSha(sha)
     onSelectedShaChange?.(sha)
@@ -436,7 +453,7 @@ function HistoryView({
                       onFocusRef={onFocusRef}
                       searchQuery={query}
                       style={rowStyle}
-                      onSelect={() => selectSha(commit.sha)}
+                      onSelect={() => (commit.sha === selectedSha ? closeDetail() : selectSha(commit.sha))}
                       onOpenChecks={() => {
                         selectSha(commit.sha)
                         setChecksFor(commit.sha)
@@ -461,24 +478,28 @@ function HistoryView({
       </div>
 
       {selectedCommit && (
-        <div className="history-inspector" data-pane="commit-detail">
-          <CommitDetailPanel
-            repoPath={repoPath}
-            commit={selectedCommit}
-            identity={selectedIdentity}
-            hostLinks={hostLinks}
-            referenceCards={referenceCards}
-            colorError={colorError}
-            onColorChange={(color) => setAuthorColor(selectedCommit.authorName, selectedCommit.authorEmail, color)}
-            actions={commitActions.actionsFor(selectedCommit)}
-            actionError={commitActions.error}
-            openedPath={openedPath}
-            onOpenFile={(path) => setOpenedFile({ sha: selectedCommit.sha, path })}
-            threadCounts={reviewThreads.counts}
-            ci={ciMarks[selectedCommit.sha]}
-            checksOpen={checksFor === selectedCommit.sha}
-          />
-        </div>
+        <>
+          <ResizeHandle onDragStart={inspectorWidth.onDragStart} ariaLabel="Resize commit detail" />
+          <div className="history-inspector" data-pane="commit-detail" style={{ width: inspectorWidth.width }}>
+            <CommitDetailPanel
+              onClose={closeDetail}
+              repoPath={repoPath}
+              commit={selectedCommit}
+              identity={selectedIdentity}
+              hostLinks={hostLinks}
+              referenceCards={referenceCards}
+              colorError={colorError}
+              onColorChange={(color) => setAuthorColor(selectedCommit.authorName, selectedCommit.authorEmail, color)}
+              actions={commitActions.actionsFor(selectedCommit)}
+              actionError={commitActions.error}
+              openedPath={openedPath}
+              onOpenFile={(path) => setOpenedFile({ sha: selectedCommit.sha, path })}
+              threadCounts={reviewThreads.counts}
+              ci={ciMarks[selectedCommit.sha]}
+              checksOpen={checksFor === selectedCommit.sha}
+            />
+          </div>
+        </>
       )}
 
       {commitActions.overlays}

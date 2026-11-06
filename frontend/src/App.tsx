@@ -625,7 +625,7 @@ function App({
       shortcut: 'mod+1',
       section: 'Views',
       icon: FileDiff,
-      keywords: ['working tree', 'staged', 'diff', 'commit', 'stage', 'discard'],
+      keywords: ['working tree', 'staged', 'diff', 'commit', 'stage', 'discard', 'amend'],
       run: () => changeTab('working-copy'),
     },
     {

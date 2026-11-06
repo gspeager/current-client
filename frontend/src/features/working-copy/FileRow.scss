@@ -76,3 +76,7 @@
 .file-row:focus-within .diff-stat {
   display: none;
 }
+
+.file-row-path {
+  align-self: stretch;
+}

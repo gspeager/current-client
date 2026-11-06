@@ -56,7 +56,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  width: clamp(280px, 30%, 376px);
+  max-width: 46%;
   min-height: 0;
   background: var(--surface-low);
   border-left: var(--border-structure);

@@ -8,7 +8,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(88px, auto));
   justify-content: space-between;
-  align-items: center;
+  align-items: start;
   gap: var(--space-md) var(--space-lg);
   padding: var(--space-md) var(--space-lg);
   background: var(--surface-low);
@@ -40,6 +40,7 @@
 }
 
 .repo-stat-strip-value {
+  min-height: 28px;
   display: flex;
   align-items: center;
   gap: var(--space-xs);

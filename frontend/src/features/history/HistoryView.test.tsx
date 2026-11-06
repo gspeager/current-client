@@ -272,7 +272,7 @@ describe('HistoryView', () => {
     expect(document.querySelector('.history-inspector')).not.toBeNull()
 
     await userEvent.click(screen.getByRole('button', { name: 'History' }))
-    expect(screen.getByPlaceholderText('Search commits, authors, hashes…')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search commits…')).toBeInTheDocument()
   })
 
   it("counts the branch's review threads on the commit's files, as they are at that commit", async () => {
@@ -295,15 +295,14 @@ describe('HistoryView', () => {
     expect(HostService.ReviewThreadsAt).toHaveBeenCalledWith(REPO, 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1')
   })
 
-  it('opens a fixed inspector whose actions match the menu, and says how many commits there are', async () => {
+  it('opens a resizable inspector whose actions match the menu, and says how many commits there are', async () => {
     vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
     renderHistory()
 
     await userEvent.click(await screen.findByRole('button', { name: /Initial commit/ }))
 
     const inspector = document.querySelector('.history-inspector')!
-    expect(inspector).not.toHaveAttribute('style')
-    expect(screen.queryByRole('separator', { name: 'Resize commit inspector' })).not.toBeInTheDocument()
+    expect(screen.getByRole('separator', { name: 'Resize commit detail' })).toBeInTheDocument()
     expect([...inspector.querySelectorAll('.commit-detail-actions > button')].map((b) => b.textContent)).toEqual([
       'Check out',
       'Branch here',

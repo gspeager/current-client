@@ -21,6 +21,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - **Repository tabs stay readable.** Those that don't fit move to a **+N** menu rather than shrinking.
 - **People get their initials badge** on pull request rows and detail, and on issue comments. Colors are local, as everywhere: nothing is fetched.
 - **A pull request's Overview shows its commits**, and **Releases** folds checks that didn't warn, with numbered Tag and Publish steps.
+- **Double-click a branch to check it out.** A single click no longer switches branches, so a misclick can't. **Enter** still does, and so does its menu.
+- **Commit detail closes and resizes.** **Esc**, its close button or clicking the commit again gives the list its width back, and the pane's edge drags.
+- **Quieter History.** Passed CI marks are neutral so a failure stands out, and a closed Toolbox keeps Undo, Recover, Reflog and Bisect as icons on its header.
 - **Larger text**, with file rows giving their width to the filename. Owners show on hover and in the diff header.
 - **Small windows adapt.** Below 1120 px wide the sidebar becomes its icon rail, and below 1040 px diffs read as unified. Status bar details and repository tab branches step aside before anything is cut off.
 - **Go to anything finds more.** A commit's hash, a pull request's number or title, a stash's message, **blame** plus a file name, and worktree, remote, cherry-pick and revert all lead somewhere, and the top row is always the one selected.

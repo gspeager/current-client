@@ -54,7 +54,15 @@
   color: var(--on-surface);
 }
 
+.header-bar-inbox {
+  position: relative;
+}
+
+// On the button's corner, so it arriving moves nothing.
 .header-bar-inbox-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
   min-width: 14px;
   height: 14px;
   padding: 0 3px;
@@ -326,11 +334,6 @@
 
   .header-bar-quick-switch {
     flex: 0 0 auto;
-  }
-
-  .header-bar-switcher,
-  .header-bar-repo {
-    max-width: 240px;
   }
 }
 

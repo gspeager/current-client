@@ -48,7 +48,8 @@ function HistoryToolbar({
         <input
           className="history-toolbar-search"
           type="search"
-          placeholder="Search commits, authors, hashes…"
+          placeholder="Search commits…"
+          title="Search by subject, author or hash"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={arrowIntoList}

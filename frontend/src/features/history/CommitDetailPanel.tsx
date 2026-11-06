@@ -8,6 +8,7 @@ import {
   Palette,
   ShieldAlert,
   ShieldCheck,
+  X,
 } from 'lucide-react'
 import {
   type ChangedFile,
@@ -43,6 +44,7 @@ interface CommitDetailPanelProps {
   hostLinks?: Links | null
   referenceCards?: ReferenceCards
   colorError: string | null
+  onClose?: () => void
   onColorChange: (color: string) => void
   // The commit's actions, in order; the first few are buttons, the rest under More.
   actions: CommitAction[]
@@ -65,6 +67,7 @@ function CommitDetailPanel({
   hostLinks = null,
   referenceCards,
   colorError,
+  onClose,
   onColorChange,
   actions,
   actionError = null,
@@ -127,8 +130,22 @@ function CommitDetailPanel({
           >
             {shaCopied ? <Check size={14} strokeWidth={1.75} /> : <Copy size={14} strokeWidth={1.75} />}
           </button>
+          {onClose && (
+            <button
+              type="button"
+              className="commit-detail-close"
+              aria-label="Close commit detail"
+              title="Close (Esc)"
+              onClick={onClose}
+            >
+              <X size={16} strokeWidth={1.75} />
+            </button>
+          )}
         </div>
 
+        <p className="commit-detail-subject">
+          <ReferenceText text={commit.subject} links={hostLinks} cards={referenceCards} />
+        </p>
         <div className="commit-detail-author">
           {identity && (
             <IdentityBadge identity={identity} name={commit.authorName} email={commit.authorEmail} size={32} />
@@ -207,10 +224,6 @@ function CommitDetailPanel({
             </div>
           )}
         </div>
-
-        <p className="commit-detail-subject">
-          <ReferenceText text={commit.subject} links={hostLinks} cards={referenceCards} />
-        </p>
         {commit.body && (
           <p className="commit-detail-body">
             <ReferenceText text={commit.body} links={hostLinks} cards={referenceCards} />

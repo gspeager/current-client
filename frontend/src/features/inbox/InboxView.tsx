@@ -169,9 +169,7 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
     <aside ref={setAside} className="inbox" data-pane="inbox" aria-label="Inbox">
       <header className="inbox-header">
         <h2 className="inbox-title">Inbox</h2>
-        <span className="inbox-summary">
-          {repos ? (total === 0 ? 'Nothing waiting' : `${total} waiting`) : 'Looking…'}
-        </span>
+        {(!repos || total === 0) && <span className="inbox-summary">{repos ? 'Nothing waiting' : 'Looking…'}</span>}
         <span className="inbox-spacer" />
         {onClose && (
           <button type="button" className="inbox-close" onClick={onClose} aria-label="Close Inbox" title="Close Inbox">

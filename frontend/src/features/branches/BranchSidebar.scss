@@ -379,3 +379,27 @@
 .branch-row:hover .branch-pill:not(.branch-pill-current) {
   color: var(--on-surface);
 }
+
+.branch-sidebar-filter input {
+  font: var(--ui-sm);
+}
+
+.branch-sidebar-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+
+  > span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  button {
+    flex-shrink: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+  }
+}
