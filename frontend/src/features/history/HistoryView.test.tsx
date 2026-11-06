@@ -137,6 +137,7 @@ describe('HistoryView', () => {
       'Revert',
       'Reset to here…',
       'Export patch…',
+      'Add note…',
       'Copy SHA',
       'Highlight author’s commits',
     ])

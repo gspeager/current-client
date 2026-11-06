@@ -251,3 +251,17 @@ func defaultBranch(branches []Branch, remoteHead string) string {
 	}
 	return ""
 }
+
+// CommitReachable says whether any ref still leads to sha. A commit a rebase
+// replaced is unreachable, though the object lingers until Git collects it.
+func CommitReachable(ctx context.Context, repoPath, sha string) bool {
+	result, err := runResult(ctx, repoPath, "for-each-ref", "--count=1", "--contains="+sha, "refs/heads", "refs/remotes", "refs/tags")
+	if err != nil {
+		return false
+	}
+	if strings.TrimSpace(result.Stdout) != "" {
+		return true
+	}
+	_, err = runResult(ctx, repoPath, "merge-base", "--is-ancestor", sha, "HEAD")
+	return err == nil
+}

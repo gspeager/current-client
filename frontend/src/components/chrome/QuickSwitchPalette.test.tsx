@@ -19,6 +19,7 @@ import { DialogProvider } from './DialogProvider'
 import NavPane from './NavPane'
 import QuickSwitchPalette from './QuickSwitchPalette'
 import { useWorkspaceActions } from './useWorkspaceActions'
+import { NotesContext } from '../../features/notes/notes'
 import { settingsGroups } from '../../features/settings/SettingsPanel'
 
 const REPO = '/repos/app'
@@ -305,6 +306,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       'Revert',
       'Reset to here…',
       'Export patch…',
+      'Add note…',
       'Copy SHA',
     ])
     await userEvent.click(screen.getByRole('button', { name: 'Check out' }))
@@ -332,5 +334,45 @@ describe('QuickSwitchPalette Workspace actions', () => {
       'nav-pane-feedback-notice',
     )
     expect(PatchService.ImportPatch).toHaveBeenCalledWith(REPO)
+  })
+
+  it('finds a note from Go to anything and opens it', async () => {
+    const user = userEvent.setup()
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([])
+    const note = {
+      kind: 'branch',
+      target: 'release',
+      subject: '',
+      text: 'Wait for the audit',
+      updatedAt: '2026-01-01T00:00:00Z',
+      stale: false,
+    }
+    const onOpenNote = vi.fn()
+    const notes = { notes: [note], noteFor: () => undefined, edit: vi.fn(), openList: vi.fn() }
+    render(
+      <NotesContext.Provider value={notes}>
+        <QuickSwitchPalette
+          repoPath={REPO}
+          repo={repo}
+          workspaceActions={[]}
+          onClose={vi.fn()}
+          onOpenSettings={vi.fn()}
+          onPull={vi.fn()}
+          onPullMerge={vi.fn()}
+          onPullRebase={vi.fn()}
+          onPush={vi.fn()}
+          onFetchAll={vi.fn()}
+          onOpenFile={vi.fn()}
+          onSearchFiles={vi.fn()}
+          onOpenCommit={vi.fn()}
+          onOpenNote={onOpenNote}
+        />
+      </NotesContext.Provider>,
+    )
+
+    await user.type(screen.getByRole('combobox'), 'audit')
+    await user.click(await screen.findByRole('option', { name: /Note on release/ }))
+
+    expect(onOpenNote).toHaveBeenCalledWith(note)
   })
 })

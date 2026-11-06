@@ -43,6 +43,7 @@ describe('TagsPanel', () => {
     await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByTitle('v1.0') })
     const menu = document.querySelector<HTMLElement>('.context-menu')!
     expect([...menu.querySelectorAll('button')].map((i) => i.textContent)).toEqual([
+      'Add note…',
       'Push tag',
       'Copy name',
       'Delete on remote…',

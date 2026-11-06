@@ -1,3 +1,4 @@
+import { noteMenuLabel, useNotes } from '../notes/notes'
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
@@ -105,6 +106,7 @@ function WorkingTreeFileList({
   // Multi-select for bulk actions, which can span sections.
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [anchorKey, setAnchorKey] = useState<string | null>(null)
+  const notes = useNotes()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const sectionLabel = (section: WorkingTreeSection) =>
@@ -268,6 +270,7 @@ function WorkingTreeFileList({
               : { label: 'Stage', onClick: () => actions.stage(f) },
           ]),
       ...fileTools.pathItems(f.path, !untracked),
+      { label: noteMenuLabel(notes, 'file', f.path), onClick: () => notes.edit({ kind: 'file', target: f.path }) },
     ]
     if (untracked) {
       items.push({ label: 'Add to .gitignore', onClick: () => actions.addToGitignore(f.path) })
@@ -340,6 +343,7 @@ function WorkingTreeFileList({
     const f = row.file
     return (
       <FileRow
+        notePath={f.path}
         // A partially staged file appears in both sections.
         key={`${row.section}-${f.path}`}
         style={style}

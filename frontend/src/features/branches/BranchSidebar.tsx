@@ -18,6 +18,7 @@ import { localNameFor } from './branches'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import SetUpstreamDialog from './SetUpstreamDialog'
+import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
 import BranchReviewDialog from './BranchReviewDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
@@ -127,6 +128,7 @@ function BranchSidebar({
   })
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
+  const notes = useNotes()
   const [cleanUp, setCleanUp] = useState(false)
   const [branchReview, setBranchReview] = useState(false)
   useEffect(() => {
@@ -318,6 +320,10 @@ function BranchSidebar({
               },
             ]
           : []),
+        {
+          label: noteMenuLabel(notes, 'branch', b.name),
+          onClick: () => notes.edit({ kind: 'branch', target: b.name }),
+        },
         { label: 'Rename…', onClick: () => renameBranch(b.name) },
         { label: 'Set upstream…', onClick: () => setUpstreamFor(b) },
         ...(b.upstream ? [{ label: 'Unset upstream', onClick: () => unsetUpstream(b.name) }] : []),
@@ -406,6 +412,7 @@ function BranchSidebar({
         hostLinks={hostLinks}
         referenceCards={referenceCards}
       />
+      <NoteMark kind="branch" target={b.name} />
       {b.current && <span className="branch-row-head">HEAD</span>}
       {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
       {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode">incoming</span>}

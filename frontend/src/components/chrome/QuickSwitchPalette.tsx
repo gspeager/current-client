@@ -12,11 +12,21 @@ import {
   GitCommitVertical,
   Search,
   Settings as SettingsIcon,
+  StickyNote,
   Tag,
   type LucideIcon,
 } from 'lucide-react'
-import { BranchService, HistoryService, RemoteService, StatusService, TagService } from '@current-client-bindings/app'
+import {
+  BranchService,
+  HistoryService,
+  type NoteInfo,
+  RemoteService,
+  StatusService,
+  TagService,
+} from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
+import { noteLabel } from '../../features/notes/NotesDialogs'
+import { useNotes } from '../../features/notes/notes'
 import { highlightMatch } from '../../lib/highlightMatch'
 import { localNameFor } from '../../features/branches/branches'
 import { useLaneColors } from '../../lib/laneColor'
@@ -52,6 +62,7 @@ interface QuickSwitchPaletteProps {
   onOpenFile: (path: string) => void
   onSearchFiles: () => void
   onOpenCommit: (sha: string, position: number) => void
+  onOpenNote?: (note: NoteInfo) => void
 }
 
 interface BranchResult {
@@ -177,6 +188,7 @@ function QuickSwitchPalette({
   onOpenFile,
   onSearchFiles,
   onOpenCommit,
+  onOpenNote,
 }: QuickSwitchPaletteProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
@@ -203,6 +215,10 @@ function QuickSwitchPalette({
     { keepData: true },
   ).data
   const commits = q ? (searchResults ?? []) : []
+  const notes = useNotes()
+  const noteResults = q
+    ? notes.notes.filter((note) => matches(note.text, q) || matches(note.target, q) || matches(note.subject, q))
+    : []
 
   const actions: PaletteAction[] = [
     ...appActions,
@@ -401,6 +417,28 @@ function QuickSwitchPalette({
                 <span className="quick-switch-row-meta">
                   <span className="quick-switch-commit-sha">{c.sha.slice(0, 7)}</span>
                   <span className="quick-switch-commit-date">{relativeTime(new Date(c.date))}</span>
+                </span>
+              </Command.Item>
+            ))}
+          </Section>
+
+          <Section heading="Notes" icon={StickyNote} count={noteResults.length}>
+            {noteResults.map((note) => (
+              <Command.Item
+                key={`note:${note.kind}:${note.target}`}
+                value={`note:${note.kind}:${note.target}`}
+                aria-label={`Note on ${noteLabel(note)}: ${note.text}`}
+                className="quick-switch-row"
+                onSelect={() => {
+                  onClose()
+                  onOpenNote?.(note)
+                }}
+              >
+                <StickyNote size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">{highlight(note.text)}</span>
+                <span className="quick-switch-row-meta">
+                  {note.stale ? 'Gone · ' : ''}
+                  {noteLabel(note)}
                 </span>
               </Command.Item>
             ))}
