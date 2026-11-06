@@ -16,7 +16,7 @@
 
 .host-changes-title {
   margin: 0;
-  font: var(--ui-md);
+  font: var(--title-md);
   color: var(--on-surface);
 }
 
@@ -136,7 +136,7 @@
 
   &.host-change-row-selected {
     background: var(--surface-container);
-    box-shadow: inset 2px 0 0 0 var(--primary);
+    box-shadow: inset 2px 0 0 0 var(--outline);
   }
 }
 
@@ -191,9 +191,8 @@
   gap: var(--space-md);
   min-width: 0;
   overflow-y: auto;
-  padding: var(--space-md);
-  border: var(--border-structure);
-  border-radius: var(--radius);
+  padding: 0 0 0 var(--space-md);
+  border-left: var(--border-structure);
 }
 
 .host-change-detail-header {

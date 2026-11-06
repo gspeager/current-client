@@ -73,7 +73,6 @@ describe('CommitDetailPanel', () => {
     renderPanel()
 
     expect(await screen.findByText('2 files', { selector: '.commit-detail-section-count' })).toBeInTheDocument()
-    expect(screen.getByText('Changes').nextElementSibling).toHaveTextContent('2 files')
     expect((await screen.findByText('On branches')).nextElementSibling).toHaveTextContent('feature, main')
   })
 

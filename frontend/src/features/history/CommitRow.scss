@@ -94,7 +94,7 @@
 
 .commit-row-selected {
   background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  box-shadow: inset 2px 0 0 0 var(--outline);
 }
 
 // Appears instantly, then fades out over --dur-base.

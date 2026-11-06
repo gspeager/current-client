@@ -19,7 +19,7 @@
   height: var(--h-action);
   padding: 0 var(--space-md);
   border-bottom: var(--border-structure);
-  color: var(--primary);
+  color: var(--outline);
 
   input {
     flex: 1;
@@ -114,7 +114,7 @@
 
 .quick-switch-row[data-selected='true'] {
   background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  box-shadow: inset 2px 0 0 0 var(--outline);
 }
 
 .quick-switch-row-icon {

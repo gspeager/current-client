@@ -3,6 +3,7 @@ import { useNameIdentities } from '../../lib/useNameIdentities'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { CircleCheck, CircleDot, GitBranch, GitBranchPlus } from 'lucide-react'
 import { BranchService, HostService, PlatformService } from '@current-client-bindings/app'
+import { Fact, FactList } from '../../components/chrome/FactList'
 import HostMarkdown from '../../components/git/HostMarkdown'
 import { issueBranchName } from '../../lib/branchName'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
@@ -85,6 +86,29 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
         <span className="issue-detail-reference">{data?.reference ?? issueKey}</span>
         {issue?.state && <span className={`host-change-state host-change-state-${issue.state}`}>{issue.state}</span>}
         {issue && <h3 className="host-change-detail-title issue-detail-title">{issue.title}</h3>}
+        {issue && (
+          <div className="host-change-actions">
+            {writable && (
+              <button type="button" className="host-change-button" disabled={running !== null} onClick={toggleState}>
+                {closed ? <CircleDot size={14} strokeWidth={1.75} /> : <CircleCheck size={14} strokeWidth={1.75} />}
+                {running === 'state' ? (closed ? 'Reopening…' : 'Closing…') : closed ? 'Reopen issue' : 'Close issue'}
+              </button>
+            )}
+            <button type="button" className="host-change-button" disabled={running !== null} onClick={switchToBranch}>
+              {branch ? <GitBranch size={14} strokeWidth={1.75} /> : <GitBranchPlus size={14} strokeWidth={1.75} />}
+              {branch ? `Check out ${branch}` : 'New branch from issue'}
+            </button>
+            <button
+              type="button"
+              className="host-change-button"
+              onClick={() => PlatformService.OpenWebPage(issue.webUrl).catch(ignoreDecorativeFailure)}
+              disabled={!issue.webUrl}
+            >
+              <HostIcon size={14} strokeWidth={1.75} />
+              Open on host
+            </button>
+          </div>
+        )}
         {headerAccessory}
       </header>
       <div className="issue-panel-body">
@@ -96,36 +120,25 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
         {!data && !error && <p className="issue-panel-hint">Loading…</p>}
         {data && issue && (
           <>
-            <dl className="issue-panel-facts">
-              <dt>Author</dt>
-              <dd>{issue.author.name || issue.author.username}</dd>
-              <dt>Opened</dt>
-              <dd>{relativeTime(new Date(issue.createdAt))}</dd>
-              {issue.milestone && (
-                <>
-                  <dt>Milestone</dt>
-                  <dd>{issue.milestone}</dd>
-                </>
-              )}
+            <FactList>
+              <Fact label="Author">{issue.author.name || issue.author.username}</Fact>
+              <Fact label="Opened">{relativeTime(new Date(issue.createdAt))}</Fact>
+              {issue.milestone && <Fact label="Milestone">{issue.milestone}</Fact>}
               {issue.labels.length > 0 && (
-                <>
-                  <dt>Labels</dt>
-                  <dd className="issue-panel-labels">
-                    {issue.labels.map((label) => (
-                      <span key={label} className="issue-panel-label">
-                        {label}
-                      </span>
-                    ))}
-                  </dd>
-                </>
+                <Fact label="Labels" className="issue-panel-labels">
+                  {issue.labels.map((label) => (
+                    <span key={label} className="issue-panel-label">
+                      {label}
+                    </span>
+                  ))}
+                </Fact>
               )}
               {branch && (
-                <>
-                  <dt>Branch</dt>
-                  <dd className="issue-panel-branch">{branch}</dd>
-                </>
+                <Fact label="Branch" className="fact-list-data">
+                  {branch}
+                </Fact>
               )}
-            </dl>
+            </FactList>
             {data.descriptionHtml ? (
               <HostMarkdown html={data.descriptionHtml} className="issue-panel-description" />
             ) : (
@@ -154,53 +167,28 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
           </>
         )}
       </div>
-      {data && issue && (
+      {actionError && (
+        <p className="dialog-error issue-detail-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {writable && (
         <form className="issue-detail-footer" onSubmit={submitComment}>
-          {writable && (
-            <textarea
-              className="dialog-input issue-panel-reply-input"
-              aria-label="Comment"
-              placeholder="Comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={1}
-            />
-          )}
-          <div className="issue-detail-actions">
-            {writable && (
-              <button type="button" className="dialog-button" disabled={running !== null} onClick={toggleState}>
-                {closed ? <CircleDot size={14} strokeWidth={1.75} /> : <CircleCheck size={14} strokeWidth={1.75} />}
-                {running === 'state' ? (closed ? 'Reopening…' : 'Closing…') : closed ? 'Reopen issue' : 'Close issue'}
-              </button>
-            )}
-            <button type="button" className="dialog-button" disabled={running !== null} onClick={switchToBranch}>
-              {branch ? <GitBranch size={14} strokeWidth={1.75} /> : <GitBranchPlus size={14} strokeWidth={1.75} />}
-              {branch ? `Check out ${branch}` : 'New branch from issue'}
-            </button>
-            <button
-              type="button"
-              className="dialog-button"
-              onClick={() => PlatformService.OpenWebPage(issue.webUrl).catch(ignoreDecorativeFailure)}
-              disabled={!issue.webUrl}
-            >
-              <HostIcon size={14} strokeWidth={1.75} />
-              Open on host
-            </button>
-            {writable && (
-              <button
-                type="submit"
-                className="dialog-button dialog-button-primary issue-detail-comment"
-                disabled={!comment.trim() || running !== null}
-              >
-                {running === 'comment' ? 'Commenting…' : 'Comment'}
-              </button>
-            )}
-          </div>
-          {actionError && (
-            <p className="dialog-error" role="alert">
-              {actionError}
-            </p>
-          )}
+          <textarea
+            className="dialog-input issue-panel-reply-input"
+            aria-label="Comment"
+            placeholder="Comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={1}
+          />
+          <button
+            type="submit"
+            className="dialog-button dialog-button-primary issue-detail-comment"
+            disabled={!comment.trim() || running !== null}
+          >
+            {running === 'comment' ? 'Commenting…' : 'Comment'}
+          </button>
         </form>
       )}
     </article>
