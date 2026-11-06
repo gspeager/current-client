@@ -66,6 +66,9 @@ type Config struct {
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
 
+	// The terminal panel's shell on Windows: "", "git-bash" or "cmd". "" is PowerShell.
+	TerminalShell string `json:"terminalShell,omitempty"`
+
 	// Snapshots kept per repository; zero means the default.
 	SnapshotLimit int `json:"snapshotLimit,omitempty"`
 

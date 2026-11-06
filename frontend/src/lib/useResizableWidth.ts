@@ -6,6 +6,7 @@ function clamp(width: number, min: number, max: number): number {
 }
 
 type ResizeDirection = 'grow-right' | 'grow-left'
+type ResizeAxis = 'x' | 'y'
 
 // 'grow-left' is for a pane to the right of its divider.
 export function useResizableWidth(
@@ -14,11 +15,13 @@ export function useResizableWidth(
   min: number,
   max: number,
   direction: ResizeDirection = 'grow-right',
+  axis: ResizeAxis = 'x',
 ) {
   const [width, setWidth] = useState(clamp(defaultWidth, min, max))
   const startX = useRef(0)
   const startWidth = useRef(0)
   const sign = direction === 'grow-right' ? 1 : -1
+  const pointer = (e: { clientX: number; clientY: number }) => (axis === 'y' ? e.clientY : e.clientX)
 
   useEffect(() => {
     SettingsService.GetPaneWidths()
@@ -34,10 +37,11 @@ export function useResizableWidth(
 
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
-      const next = Math.min(max, Math.max(min, startWidth.current + sign * (e.clientX - startX.current)))
+      const next = Math.min(max, Math.max(min, startWidth.current + sign * (pointer(e) - startX.current)))
       setWidth(next)
     },
-    [min, max, sign],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [min, max, sign, axis],
   )
 
   const onMouseUp = useCallback(() => {
@@ -52,12 +56,13 @@ export function useResizableWidth(
   const onDragStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
-      startX.current = e.clientX
+      startX.current = pointer(e)
       startWidth.current = width
       window.addEventListener('mousemove', onMouseMove)
       window.addEventListener('mouseup', onMouseUp)
     },
-    [width, onMouseMove, onMouseUp],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [width, onMouseMove, onMouseUp, axis],
   )
 
   return { width, onDragStart }

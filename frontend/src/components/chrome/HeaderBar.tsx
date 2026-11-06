@@ -55,6 +55,9 @@ interface HeaderBarProps {
   onFetched?: () => void
   onOpenCommit: (sha: string, position: number) => void
   onOpenNote?: (note: NoteInfo) => void
+  onCloseTab?: (path: string) => void
+  // Repositories with a shell open in the terminal panel, marked on their tabs.
+  terminalsRunning?: string[]
   syncing: boolean
   // "merge", "rebase", "cherry-pick", "revert" or "am" while one is in progress.
   operation?: string | null
@@ -89,6 +92,8 @@ function HeaderBar({
   onFetched,
   onOpenCommit,
   onOpenNote,
+  onCloseTab,
+  terminalsRunning,
   syncing,
   operation = null,
   defaultRepoLocation = '',
@@ -280,7 +285,8 @@ function HeaderBar({
               path={path}
               summary={repo.tabSummaries[path]}
               onFocus={() => repo.openRecent(path)}
-              onClose={() => repo.closeTab(path)}
+              onClose={() => (onCloseTab ?? repo.closeTab)(path)}
+              terminalRunning={terminalsRunning?.includes(path)}
               onDragStart={() => setDragPath(path)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => onDropTab(path)}

@@ -21,3 +21,9 @@
     background: var(--outline);
   }
 }
+
+.resize-handle-horizontal {
+  width: auto;
+  height: 5px;
+  cursor: row-resize;
+}

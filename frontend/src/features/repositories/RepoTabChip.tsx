@@ -1,5 +1,5 @@
 import type { DragEvent } from 'react'
-import { X } from 'lucide-react'
+import { X, SquareTerminal } from 'lucide-react'
 import type { RepoSummaryInfo } from '@current-client-bindings/app'
 import { baseName } from '../../lib/paths'
 import './RepoTabChip.scss'
@@ -12,6 +12,7 @@ interface RepoTabChipProps {
   onDragStart: () => void
   onDragOver: (e: DragEvent) => void
   onDrop: () => void
+  terminalRunning?: boolean
 }
 
 // What a screen reader hears for the tab: name, branch, and how far it is from its upstream.
@@ -26,7 +27,16 @@ function tabLabel(path: string, summary?: RepoSummaryInfo): string {
 }
 
 // Background tabs only; the focused tab renders as HeaderBar's breadcrumb.
-function RepoTabChip({ path, summary, onFocus, onClose, onDragStart, onDragOver, onDrop }: RepoTabChipProps) {
+function RepoTabChip({
+  path,
+  summary,
+  onFocus,
+  onClose,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  terminalRunning = false,
+}: RepoTabChipProps) {
   const dotClass = !summary
     ? 'header-bar-tab-dot'
     : !summary.available
@@ -47,6 +57,11 @@ function RepoTabChip({ path, summary, onFocus, onClose, onDragStart, onDragOver,
       <button type="button" className="header-bar-tab-open" onClick={onFocus} aria-label={tabLabel(path, summary)}>
         <span className={dotClass} />
         <span className="header-bar-tab-name">{baseName(path)}</span>
+        {terminalRunning && (
+          <span className="header-bar-tab-terminal" role="img" aria-label="Terminal running" title="Terminal running">
+            <SquareTerminal size={12} strokeWidth={1.75} />
+          </span>
+        )}
         {summary?.available && summary.currentBranch && (
           <>
             <span className="header-bar-tab-sep">|</span>

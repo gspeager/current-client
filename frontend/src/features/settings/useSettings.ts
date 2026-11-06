@@ -80,6 +80,7 @@ export function useSettings() {
     setPruneOnFetch: setter('pruneOnFetch', SettingsService.SetPruneOnFetch),
     setRiskRulesOff: setter('riskRulesOff', SettingsService.SetRiskRulesOff),
     setSnapshotLimit: setter('snapshotLimit', SettingsService.SetSnapshotLimit),
+    setTerminalShell: setter('terminalShell', SettingsService.SetTerminalShell),
     setHistoryBranchFilter: setter('historyBranchFilter', SettingsService.SetHistoryBranchFilter),
     setHistoryFirstParent: setter('historyFirstParent', SettingsService.SetHistoryFirstParent),
     setDisableConventionalCommits: setter('disableConventionalCommits', SettingsService.SetDisableConventionalCommits),

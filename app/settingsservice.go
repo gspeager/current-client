@@ -31,6 +31,8 @@ type Settings struct {
 	DisableConventionalCommits  bool                  `json:"disableConventionalCommits"`
 	RiskRulesOff                []string              `json:"riskRulesOff"`
 	SnapshotLimit               int                   `json:"snapshotLimit"`
+	TerminalShell               string                `json:"terminalShell"`
+	LocalCommandsOff            bool                  `json:"localCommandsOff"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
 }
 
@@ -67,6 +69,8 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		DisableConventionalCommits:  cfg.DisableConventionalCommits,
 		RiskRulesOff:                append([]string{}, cfg.RiskRulesOff...),
 		SnapshotLimit:               snapshotLimitOrDefault(cfg.SnapshotLimit),
+		TerminalShell:               cfg.TerminalShell,
+		LocalCommandsOff:            policy.LocalCommandsOff(),
 		Changelog:                   changelogPrefs(cfg),
 	}, nil
 }
@@ -171,6 +175,10 @@ func snapshotLimitOrDefault(limit int) int {
 		return snapshot.DefaultLimit
 	}
 	return limit
+}
+
+func (s *SettingsService) SetTerminalShell(shell string) error {
+	return updateConfig(func(cfg *config.Config) { cfg.TerminalShell = shell })
 }
 
 func (s *SettingsService) SetSnapshotLimit(limit int) error {
