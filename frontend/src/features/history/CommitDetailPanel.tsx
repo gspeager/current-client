@@ -8,6 +8,7 @@ import {
   Palette,
   ShieldAlert,
   ShieldCheck,
+  X,
 } from 'lucide-react'
 import {
   type ChangedFile,
@@ -22,6 +23,7 @@ import type { Links } from '@current-client-bindings/core/hostlink'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
+import { Fact, FactList } from '../../components/chrome/FactList'
 import { PRIMARY_COMMIT_ACTIONS, type CommitAction } from './useCommitActions'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { plural } from '../../lib/plural'
@@ -43,6 +45,7 @@ interface CommitDetailPanelProps {
   hostLinks?: Links | null
   referenceCards?: ReferenceCards
   colorError: string | null
+  onClose?: () => void
   onColorChange: (color: string) => void
   // The commit's actions, in order; the first few are buttons, the rest under More.
   actions: CommitAction[]
@@ -65,6 +68,7 @@ function CommitDetailPanel({
   hostLinks = null,
   referenceCards,
   colorError,
+  onClose,
   onColorChange,
   actions,
   actionError = null,
@@ -127,8 +131,52 @@ function CommitDetailPanel({
           >
             {shaCopied ? <Check size={14} strokeWidth={1.75} /> : <Copy size={14} strokeWidth={1.75} />}
           </button>
+          {onClose && (
+            <button
+              type="button"
+              className="commit-detail-close"
+              aria-label="Close commit detail"
+              title="Close (Esc)"
+              onClick={onClose}
+            >
+              <X size={16} strokeWidth={1.75} />
+            </button>
+          )}
         </div>
 
+        <p className="commit-detail-subject">
+          <ReferenceText text={commit.subject} links={hostLinks} cards={referenceCards} />
+        </p>
+        <div className="commit-detail-actions">
+          {actions.slice(0, PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run }) => (
+            <button key={id} type="button" onClick={run}>
+              <Icon size={14} strokeWidth={1.75} />
+              {label}
+            </button>
+          ))}
+          {actions.length > PRIMARY_COMMIT_ACTIONS && (
+            <details ref={moreRef} className="commit-detail-more">
+              <summary className="commit-detail-more-toggle" aria-label="More actions" title="More actions">
+                More
+                <ChevronDown size={14} strokeWidth={1.75} />
+              </summary>
+              <div className="commit-detail-more-menu">
+                {actions.slice(PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run, destructive }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={destructive ? 'commit-detail-more-destructive' : undefined}
+                    onClick={() => runMore(run)}
+                  >
+                    <Icon size={14} strokeWidth={1.75} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+        {actionError && <p className="commit-detail-error">{actionError}</p>}
         <div className="commit-detail-author">
           {identity && (
             <IdentityBadge identity={identity} name={commit.authorName} email={commit.authorEmail} size={32} />
@@ -164,53 +212,34 @@ function CommitDetailPanel({
         </div>
         {colorError && <p className="commit-detail-error">Could not set color: {colorError}</p>}
 
-        <div className="commit-detail-stats">
-          <div>
-            <span className="commit-detail-stat-label">Committed</span>
-            <span>{relativeTime(new Date(commit.date))}</span>
-          </div>
-          <div>
-            <span className="commit-detail-stat-label">Parent</span>
-            <span className="commit-detail-parent-sha">
-              {commit.parentShas.length > 0
-                ? commit.parentShas.map((p) => p.slice(0, 7)).join(', ')
-                : 'None (root commit)'}
-            </span>
-          </div>
-          <div>
-            <span className="commit-detail-stat-label">Changes</span>
-            <span>{changedFiles ? plural(changedFiles.length, 'file') : '…'}</span>
-          </div>
-          <div>
-            <span className="commit-detail-stat-label">On branches</span>
-            <span className="commit-detail-branches" title={branches?.join(', ')}>
+        <FactList>
+          <Fact label="Committed">{relativeTime(new Date(commit.date))}</Fact>
+          <Fact label="Parent" className="fact-list-data">
+            {commit.parentShas.length > 0
+              ? commit.parentShas.map((p) => p.slice(0, 7)).join(', ')
+              : 'None (root commit)'}
+          </Fact>
+          <Fact label="On branches" className="fact-list-data">
+            <span title={branches?.join(', ')}>
               {branches === null ? '…' : branches.length === 0 ? 'None' : branches.join(', ')}
             </span>
-          </div>
+          </Fact>
           {environments.length > 0 && (
-            <div>
-              <span className="commit-detail-stat-label">Environments</span>
+            <Fact label="Environments">
               <EnvironmentReach reach={environments} />
-            </div>
+            </Fact>
           )}
           {commit.coAuthors.length > 0 && (
-            <div className="commit-detail-coauthors">
-              <span className="commit-detail-stat-label">Co-authors</span>
-              <span>
-                {commit.coAuthors.map((a, i) => (
-                  <span key={`${a.name}${a.email}`} title={a.email || undefined}>
-                    {i > 0 && ', '}
-                    {a.name}
-                  </span>
-                ))}
-              </span>
-            </div>
+            <Fact label="Co-authors">
+              {commit.coAuthors.map((a, i) => (
+                <span key={`${a.name}${a.email}`} title={a.email || undefined}>
+                  {i > 0 && ', '}
+                  {a.name}
+                </span>
+              ))}
+            </Fact>
           )}
-        </div>
-
-        <p className="commit-detail-subject">
-          <ReferenceText text={commit.subject} links={hostLinks} cards={referenceCards} />
-        </p>
+        </FactList>
         {commit.body && (
           <p className="commit-detail-body">
             <ReferenceText text={commit.body} links={hostLinks} cards={referenceCards} />
@@ -246,37 +275,6 @@ function CommitDetailPanel({
             ))}
           </ul>
         )}
-      </div>
-
-      <div className="commit-detail-actions-footer">
-        <div className="commit-detail-section-header">
-          <span className="commit-detail-label">Actions</span>
-        </div>
-        <div className="commit-detail-actions">
-          {actions.slice(0, PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run }) => (
-            <button key={id} type="button" onClick={run}>
-              <Icon size={14} strokeWidth={1.75} />
-              {label}
-            </button>
-          ))}
-          {actions.length > PRIMARY_COMMIT_ACTIONS && (
-            <details ref={moreRef} className="commit-detail-more">
-              <summary className="commit-detail-more-toggle" aria-label="More actions" title="More actions">
-                More
-                <ChevronDown size={14} strokeWidth={1.75} />
-              </summary>
-              <div className="commit-detail-more-menu">
-                {actions.slice(PRIMARY_COMMIT_ACTIONS).map(({ id, label, icon: Icon, run }) => (
-                  <button key={id} type="button" onClick={() => runMore(run)}>
-                    <Icon size={14} strokeWidth={1.75} />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
-        {actionError && <p className="commit-detail-error">{actionError}</p>}
       </div>
 
       {fileTools.overlays}

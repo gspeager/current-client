@@ -1,6 +1,17 @@
 import { noteMenuLabel, useNotes } from '../notes/notes'
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react'
+import { arrowIntoList, useRovingRows } from '../../lib/useRovingRows'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { fileRowHeight, useDensity } from '../../lib/density'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
 import { PatchService, type FileStatus } from '@current-client-bindings/app'
 import type { ContextMenuItem } from '../../components/controls/ContextMenu'
@@ -40,10 +51,9 @@ type ListRow =
   | { kind: 'folder'; section: WorkingTreeSection; path: string; name: string; depth: number }
   | { kind: 'file'; section: WorkingTreeSection; file: FileStatus; depth: number }
 
-// Must match --h-micro, --h-row-tree, --h-row-table, and --space-md.
+// Must match --h-micro and --h-row-tree.
 const HEADER_ROW_HEIGHT = 20
 const FOLDER_ROW_HEIGHT = 26
-const FILE_ROW_HEIGHT = 28
 const TREE_INDENT_PX = 12
 
 function label(f: FileStatus): string {
@@ -108,6 +118,7 @@ function WorkingTreeFileList({
   const [anchorKey, setAnchorKey] = useState<string | null>(null)
   const notes = useNotes()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const rovingRows = useRovingRows('.file-row', { selectOnMove: true })
 
   const sectionLabel = (section: WorkingTreeSection) =>
     mergeMode && section === 'staged' ? 'Resolved' : SECTION_LABEL[section]
@@ -117,7 +128,9 @@ function WorkingTreeFileList({
 
   const query = filter.trim().toLowerCase()
   const filtered = useMemo(() => {
-    const match = (list: FileStatus[]) => (query ? list.filter((f) => f.path.toLowerCase().includes(query)) : list)
+    const byName = (a: FileStatus, b: FileStatus) => a.path.localeCompare(b.path, undefined, { numeric: true })
+    const match = (list: FileStatus[]) =>
+      [...(query ? list.filter((f) => f.path.toLowerCase().includes(query)) : list)].sort(byName)
     return { conflicted: match(conflicted), staged: match(staged), unstaged: match(unstaged) }
   }, [conflicted, staged, unstaged, query])
   const hasConflicts = conflicted.length > 0
@@ -165,6 +178,8 @@ function WorkingTreeFileList({
   const isSelected = (section: WorkingTreeSection, path: string) =>
     selection.some((s) => s.section === section && s.file.path === path)
 
+  const selectedPath = selection.length === 1 ? selection[0].file.path : selection.length === 0 ? openPath : null
+  const fileHeight = fileRowHeight(useDensity())
   const rowVirtualizer = useVirtualizer({
     count: listRows.length,
     getScrollElement: () => scrollRef.current,
@@ -172,10 +187,21 @@ function WorkingTreeFileList({
       const row = listRows[i]
       if (row.kind === 'header') return HEADER_ROW_HEIGHT
       if (row.kind === 'folder') return FOLDER_ROW_HEIGHT
-      return FILE_ROW_HEIGHT
+      return fileHeight
     },
     overscan: 10,
   })
+  useEffect(() => rowVirtualizer.measure(), [rowVirtualizer, fileHeight])
+
+  // A selection made elsewhere, such as the first file on opening, stays in view.
+  useEffect(() => {
+    if (!selectedPath) return
+    const index = listRows.findIndex((row) => row.kind === 'file' && row.file.path === selectedPath)
+    if (index < 0) return
+    const frame = requestAnimationFrame(() => rowVirtualizer.scrollToIndex(index, { align: 'center' }))
+    return () => cancelAnimationFrame(frame)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPath, listRows.length > 0])
 
   const runPatchExport = (exportPatch: Promise<void>) => {
     setPatchError(null)
@@ -245,7 +271,12 @@ function WorkingTreeFileList({
       items.push({ label: `Stash ${paths.length} files`, onClick: () => actions.stashFiles(files) })
     }
     if (section === 'unstaged') {
-      items.push({ label: 'Discard', onClick: () => actions.discardPaths(paths), destructive: true })
+      items.push({
+        separatorBefore: true,
+        label: 'Discard',
+        onClick: () => actions.discardPaths(paths),
+        destructive: true,
+      })
     }
     return items
   }
@@ -284,7 +315,7 @@ function WorkingTreeFileList({
       items.push({ label: 'Stash', onClick: () => actions.stashFiles([f]) })
     }
     if (section === 'unstaged') {
-      items.push({ label: 'Discard', onClick: () => actions.discardFile(f), destructive: true })
+      items.push({ separatorBefore: true, label: 'Discard', onClick: () => actions.discardFile(f), destructive: true })
     }
     fileTools.openMenu(e, items)
   }
@@ -375,7 +406,7 @@ function WorkingTreeFileList({
   return (
     <>
       <div className="changes-files-header">
-        <span className="changes-files-title">Changed files</span>
+        <h2 className="changes-files-title">Files</h2>
         <div className="changes-files-header-spacer" />
         <SegmentedControl
           value={viewMode}
@@ -400,7 +431,7 @@ function WorkingTreeFileList({
         </button>
       </div>
 
-      <div className="changes-filter-wrap">
+      <div className="changes-filter-wrap" hidden={(files?.length ?? 0) === 0}>
         <Search size={14} strokeWidth={1.5} className="changes-filter-icon" />
         <input
           className="changes-filter-input"
@@ -409,6 +440,7 @@ function WorkingTreeFileList({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           aria-label="Filter working tree files"
+          onKeyDown={arrowIntoList}
         />
       </div>
 
@@ -416,15 +448,15 @@ function WorkingTreeFileList({
       {patchError && <p className="changes-error">Could not export patch: {patchError}</p>}
 
       {/* Stays mounted when empty so the commit composer remains pinned to the bottom. */}
-      <div ref={scrollRef} className="changes-files-scroll">
+      <div ref={scrollRef} className="changes-files-scroll" data-pane="file-list">
         {error ? (
           <p className="changes-empty">Could not load changes: {error}</p>
         ) : files === null ? (
           <p className="changes-empty">Loading changes…</p>
         ) : files.length === 0 ? (
-          <p className="changes-empty">No changes.</p>
+          <p className="changes-empty">Working tree clean.</p>
         ) : (
-          <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+          <div ref={rovingRows} style={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
             {rowVirtualizer.getVirtualItems().map((vi) =>
               renderRow(listRows[vi.index], {
                 position: 'absolute',

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Command } from 'cmdk'
 import { useDebounceValue } from 'usehooks-ts'
 import {
@@ -10,6 +10,8 @@ import {
   FolderGit2,
   GitBranch,
   GitCommitVertical,
+  GitPullRequest,
+  Package,
   Search,
   Settings as SettingsIcon,
   StickyNote,
@@ -19,6 +21,8 @@ import {
 import {
   BranchService,
   HistoryService,
+  HostService,
+  StashService,
   type NoteInfo,
   RemoteService,
   StatusService,
@@ -39,6 +43,8 @@ import type { useRepositoryLifecycle } from '../../features/repositories/useRepo
 import Kbd from '../controls/Kbd'
 import PathText from '../git/PathText'
 import Modal from './Modal'
+import { shortcutLabel } from '../../lib/shortcuts'
+import { plural } from '../../lib/plural'
 import { PALETTE_SECTIONS, matchesAction, type PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
 import './QuickSwitchPalette.scss'
@@ -60,6 +66,9 @@ interface QuickSwitchPaletteProps {
   onPush: () => void
   onFetchAll: () => void
   onOpenFile: (path: string) => void
+  onBlameFile?: (path: string) => void
+  onOpenChange?: (number: number) => void
+  onShowStashes?: () => void
   onSearchFiles: () => void
   onOpenCommit: (sha: string, position: number) => void
   onOpenNote?: (note: NoteInfo) => void
@@ -104,10 +113,12 @@ const SETTINGS_KEYWORDS: Record<string, string> = {
 const MAX_FILE_RESULTS = 20
 // At rest the palette shows where you can go, not an inventory: this many
 // local branches, the recent repositories and the actions.
-const MAX_IDLE_BRANCHES = 8
+const MAX_IDLE_BRANCHES = 4
 const MAX_COMMIT_RESULTS = 10
 const MAX_TAG_RESULTS = 10
 const COMMIT_SEARCH_DEBOUNCE_MS = 200
+const CUT_MARGIN = 4
+const ROW_CUT = 14
 
 function loadBranchResults(repoPath: string): Promise<BranchResult[]> {
   return Promise.all([
@@ -186,12 +197,29 @@ function QuickSwitchPalette({
   onPush,
   onFetchAll,
   onOpenFile,
+  onBlameFile,
+  onOpenChange,
+  onShowStashes,
   onSearchFiles,
   onOpenCommit,
   onOpenNote,
 }: QuickSwitchPaletteProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
+  const resultsRef = useRef<HTMLDivElement>(null)
+  // A list ending exactly on a row boundary doesn't look like it continues.
+  useLayoutEffect(() => {
+    const list = resultsRef.current
+    if (!list || list.scrollTop > 0) return
+    list.style.maxHeight = ''
+    if (list.scrollHeight <= list.clientHeight) return
+    const edge = list.getBoundingClientRect().bottom
+    const rowCut = [...list.querySelectorAll('[cmdk-item], [cmdk-group-heading]')].some((row) => {
+      const { top, bottom } = row.getBoundingClientRect()
+      return top < edge - CUT_MARGIN && bottom > edge + CUT_MARGIN
+    })
+    if (!rowCut) list.style.maxHeight = `${list.clientHeight - ROW_CUT}px`
+  })
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const q = query.trim().toLowerCase()
@@ -215,6 +243,17 @@ function QuickSwitchPalette({
     { keepData: true },
   ).data
   const commits = q ? (searchResults ?? []) : []
+  const hostChanges = useAsyncData(() => HostService.Changes(repoPath).catch(() => null), [repoPath]).data
+  const changeResults = q
+    ? (hostChanges?.changes ?? [])
+        .filter((c) => matches(`${hostChanges?.prefix}${c.number} ${c.title}`, q))
+        .slice(0, MAX_TAG_RESULTS)
+    : []
+  const stashes = useAsyncData(() => StashService.ListStash(repoPath).catch(() => []), [repoPath]).data ?? []
+  const stashResults = q ? stashes.filter((s) => matches(s.message, q)) : []
+  const blameQuery = q.startsWith('blame') ? q.replace(/^blame\s*/, '') : null
+  const blameResults =
+    blameQuery !== null && onBlameFile ? files.filter((p) => matches(p, blameQuery)).slice(0, MAX_FILE_RESULTS) : []
   const notes = useNotes()
   const noteResults = q
     ? notes.notes.filter((note) => matches(note.text, q) || matches(note.target, q) || matches(note.subject, q))
@@ -267,7 +306,19 @@ function QuickSwitchPalette({
     commits.length +
     tagResults.length +
     settingsResults.length +
-    actionResults.length
+    actionResults.length +
+    changeResults.length +
+    stashResults.length +
+    blameResults.length
+
+  // The list fills in as searches return, so the first row can change after
+  // it opens; the selection follows the top of the list until the arrows move it.
+  const commandRef = useRef<HTMLDivElement>(null)
+  const [selectedValue, setSelectedValue] = useState('')
+  useLayoutEffect(() => {
+    const first = commandRef.current?.querySelector('[cmdk-item]')?.getAttribute('data-value')
+    setSelectedValue(first ?? '')
+  }, [q, resultCount])
 
   const runAndClose = (run: () => void) => {
     run()
@@ -299,23 +350,31 @@ function QuickSwitchPalette({
       key={`action:${a.id}`}
       value={`action:${a.id}`}
       aria-label={a.label}
-      className="quick-switch-row"
+      className="quick-switch-row quick-switch-row-action"
       onSelect={() => runAndClose(a.run)}
     >
       <a.icon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
       <span className="quick-switch-row-name">{highlight(a.label)}</span>
+      {a.shortcut && <Kbd>{shortcutLabel(a.shortcut)}</Kbd>}
     </Command.Item>
   )
 
   return (
     <Modal title="Go to anything" onClose={onClose} className="quick-switch-palette" placement="top" hideHeader>
-      <Command shouldFilter={false} loop className="quick-switch-command">
+      <Command
+        ref={commandRef}
+        shouldFilter={false}
+        loop
+        className="quick-switch-command"
+        value={selectedValue}
+        onValueChange={setSelectedValue}
+      >
         <div className="quick-switch-search">
           <Search size={16} strokeWidth={1.5} />
           <Command.Input
             autoFocus
             aria-label="Search branches, repositories, files, commits, tags, settings, and actions"
-            placeholder="Go to a branch, file, commit, tag, setting or action…"
+            placeholder="Go to a branch, file, commit, #pull request, tag or action…"
             value={query}
             onValueChange={setQuery}
           />
@@ -324,23 +383,10 @@ function QuickSwitchPalette({
 
         {error && <p className="quick-switch-error">{error}</p>}
 
-        <Command.List className="quick-switch-results">
-          {q && resultCount === 0 && (
-            <Section heading="No matches" count={1}>
-              <Command.Item
-                value="no-matches:settings"
-                aria-label="Open Settings"
-                className="quick-switch-row"
-                onSelect={() => runAndClose(() => onOpenSettings())}
-              >
-                <SettingsIcon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
-                <span className="quick-switch-row-name">Open Settings</span>
-                <span className="quick-switch-row-meta">Nothing named “{query.trim()}”</span>
-              </Command.Item>
-            </Section>
-          )}
+        <Command.List ref={resultsRef} className="quick-switch-results">
+          {q && resultCount === 0 && <p className="quick-switch-empty">Nothing named “{query.trim()}”.</p>}
 
-          <Section heading={`Branches in ${baseName(repoPath)}`} icon={GitBranch} count={branchResults.length}>
+          <Section heading="Branches" icon={GitBranch} count={branchResults.length}>
             {branchResults.map((b) => (
               <Command.Item
                 key={`branch:${b.name}`}
@@ -375,7 +421,7 @@ function QuickSwitchPalette({
               >
                 <FolderGit2 size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(baseName(r.path))}</span>
-                <PathText path={r.path} className="quick-switch-path" />
+                <PathText path={r.path.slice(0, -baseName(r.path).length - 1)} className="quick-switch-path" />
                 <span className="quick-switch-row-meta">
                   <span className={`quick-switch-dot quick-switch-dot-${r.uncommitted > 0 ? 'dirty' : 'clean'}`} />
                   <span className={r.uncommitted > 0 ? 'quick-switch-dirty' : 'quick-switch-clean'}>
@@ -383,6 +429,60 @@ function QuickSwitchPalette({
                   </span>
                   {r.currentBranch && <span className="quick-switch-repo-branch">{r.currentBranch}</span>}
                 </span>
+              </Command.Item>
+            ))}
+          </Section>
+
+          <Section
+            heading={hostChanges?.prefix === '!' ? 'Merge requests' : 'Pull requests'}
+            icon={GitPullRequest}
+            count={changeResults.length}
+          >
+            {changeResults.map((c) => (
+              <Command.Item
+                key={`change:${c.number}`}
+                value={`change:${c.number}`}
+                aria-label={`${hostChanges?.prefix}${c.number}: ${c.title}`}
+                className="quick-switch-row quick-switch-row-action"
+                onSelect={() => runAndClose(() => onOpenChange?.(c.number))}
+              >
+                <GitPullRequest size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">{highlight(c.title)}</span>
+                <span className="quick-switch-commit-sha">
+                  {hostChanges?.prefix}
+                  {c.number}
+                </span>
+              </Command.Item>
+            ))}
+          </Section>
+
+          <Section heading="Stashes" icon={Package} count={stashResults.length}>
+            {stashResults.map((s) => (
+              <Command.Item
+                key={`stash:${s.index}`}
+                value={`stash:${s.index}`}
+                aria-label={`Stash: ${s.message}`}
+                className="quick-switch-row quick-switch-row-action"
+                onSelect={() => runAndClose(() => onShowStashes?.())}
+              >
+                <Package size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">{highlight(s.message)}</span>
+              </Command.Item>
+            ))}
+          </Section>
+
+          <Section heading="Blame" icon={FileText} count={blameResults.length}>
+            {blameResults.map((path) => (
+              <Command.Item
+                key={`blame:${path}`}
+                value={`blame:${path}`}
+                aria-label={`Blame ${path}`}
+                className="quick-switch-row"
+                onSelect={() => runAndClose(() => onBlameFile?.(path))}
+              >
+                <FileText size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
+                <span className="quick-switch-row-name">{baseName(path)}</span>
+                <PathText path={path} className="quick-switch-path" />
               </Command.Item>
             ))}
           </Section>
@@ -409,7 +509,7 @@ function QuickSwitchPalette({
                 key={`commit:${c.sha}`}
                 value={`commit:${c.sha}`}
                 aria-label={`Commit ${c.sha.slice(0, 7)}: ${c.subject}`}
-                className="quick-switch-row"
+                className="quick-switch-row quick-switch-row-action"
                 onSelect={() => openCommit(c.sha)}
               >
                 <GitCommitVertical size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
@@ -496,7 +596,8 @@ function QuickSwitchPalette({
           <span className="quick-switch-hint">
             <CornerDownLeft size={12} strokeWidth={1.5} /> select
           </span>
-          <span className="quick-switch-result-count">{resultCount} results</span>
+          <span className="quick-switch-hint">Type blame and a file name to blame it</span>
+          {resultCount > 0 && <span className="quick-switch-result-count">{plural(resultCount, 'result')}</span>}
         </div>
       </Command>
     </Modal>

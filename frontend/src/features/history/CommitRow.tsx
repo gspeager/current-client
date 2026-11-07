@@ -19,6 +19,7 @@ import type { Links } from '@current-client-bindings/core/hostlink'
 import type { BranchChanges } from '../../lib/useBranchChanges'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
 import CommitGraph from './CommitGraph'
+import { withoutRemote, type RowLaneColors } from './laneOwners'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import CIMark from '../../components/git/CIMark'
@@ -30,6 +31,9 @@ import './CommitRow.scss'
 interface CommitRowProps {
   commit: CommitInfo
   graphNode?: GraphNode
+  laneColors?: RowLaneColors
+  isHead?: boolean
+  currentBranch?: string
   laneCount: number
   rowHeight: number
   identity?: IdentityInfo
@@ -61,6 +65,9 @@ interface CommitRowProps {
 function CommitRow({
   commit,
   graphNode,
+  laneColors,
+  isHead = false,
+  currentBranch,
   laneCount,
   rowHeight,
   identity,
@@ -87,8 +94,9 @@ function CommitRow({
   onOpenChecks,
 }: CommitRowProps) {
   useClockTick()
-  const { laneColor } = useLaneColors()
+  const { branchColor } = useLaneColors()
   const prefix = (conventional && parsePrefix(commit.subject)?.prefix) || ''
+  const pills = refs ? pairUpstreams(refs, upstreams) : []
   const classes = ['commit-row']
   if (selected) classes.push('commit-row-selected')
   if (isNew) classes.push('commit-row-new')
@@ -99,7 +107,9 @@ function CommitRow({
       onClick={onSelect}
       onContextMenu={onContextMenu}
       style={{ ...style, opacity: dimmed ? 0.4 : 1 }}
-      role="button"
+      role="row"
+      aria-selected={selected}
+      aria-label={`${commit.subject}, ${commit.sha.slice(0, 7)}, ${commit.authorName}`}
       tabIndex={0}
       onKeyDown={(e) => {
         if (isMenuKey(e)) {
@@ -113,24 +123,38 @@ function CommitRow({
         }
       }}
     >
-      <div className="commit-row-graph">
-        {graphNode && <CommitGraph node={graphNode} laneCount={laneCount} rowHeight={rowHeight} />}
+      <div className="commit-row-graph" role="gridcell">
+        {graphNode && (
+          <CommitGraph node={graphNode} laneCount={laneCount} rowHeight={rowHeight} colors={laneColors} head={isHead} />
+        )}
       </div>
 
-      <div className="commit-row-commit">
-        {refs && refs.length > 0 && (
+      <div className="commit-row-commit" role="gridcell">
+        {isHead && <span className="commit-row-head">HEAD</span>}
+        {pills.length > 0 && (
           <span className="commit-row-refs">
-            {pairUpstreams(refs, upstreams).map(({ ref: r, upstream }) => (
+            {pills.map(({ ref: r, upstream }) => (
               <RefBadge
                 key={`${r.kind}-${r.name}`}
                 refInfo={r}
                 upstream={upstream}
-                color={laneColor(graphNode?.lane ?? 0)}
+                color={branchColor(withoutRemote(r), r.kind === 'branch' && r.name === currentBranch)}
                 onClick={onFocusRef}
                 active={focusedSha === r.sha}
                 change={changes?.[upstream?.name ?? (r.kind === 'remote' ? r.name : '')]}
               />
             ))}
+            {pills.length > 1 && (
+              <span
+                className="commit-row-refs-more"
+                title={pills
+                  .slice(1)
+                  .map((p) => p.ref.name)
+                  .join(', ')}
+              >
+                +{pills.length - 1}
+              </span>
+            )}
           </span>
         )}
         <span className="commit-row-subject">
@@ -146,13 +170,13 @@ function CommitRow({
         {environments && environments.length > 0 && <EnvironmentMarker environments={environments} />}
       </div>
 
-      <div className="commit-row-author">
+      <div className="commit-row-author" role="gridcell">
         {identity && (
           <IdentityBadge
             identity={identity}
             name={commit.authorName}
             email={commit.authorEmail}
-            size={18}
+            size={20}
             onClick={onHighlightAuthor}
             pressed={authorHighlighted}
           />
@@ -160,12 +184,12 @@ function CommitRow({
         <span className="commit-row-author-name">{highlightMatch(commit.authorName, searchQuery, 'search-match')}</span>
       </div>
 
-      <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
-      <span className="commit-row-ci">
+      <span className="commit-row-sha" role="gridcell">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
+      <span className="commit-row-ci" role="gridcell">
         <CIMark repoPath={repoPath} mark={ci} onOpenJobs={onOpenChecks} />
       </span>
-      <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
-      <span className="commit-row-actions">
+      <span className="commit-row-time" role="gridcell">{relativeTime(new Date(commit.date))}</span>
+      <span className="commit-row-actions" role="gridcell">
         <button
           type="button"
           onClick={onContextMenu}

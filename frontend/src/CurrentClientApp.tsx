@@ -2,6 +2,7 @@ import { forwardRef, useMemo, useState } from 'react'
 import { System } from '@wailsio/runtime'
 import App, { type AppProps, type CurrentClientAppHandle } from './App'
 import { DialogProvider } from './components/chrome/DialogProvider'
+import TitleTooltips from './components/chrome/TitleTooltips'
 import { ReviewDraftProvider } from './lib/reviewDraft'
 import { CurrentClientRootContext } from './lib/currentClientRoot'
 // Bundled locally so fonts never load from a CDN.
@@ -45,6 +46,7 @@ const CurrentClientApp = forwardRef<CurrentClientAppHandle, CurrentClientAppProp
           </ReviewDraftProvider>
         </DialogProvider>
       </CurrentClientRootContext.Provider>
+      {element && <TitleTooltips root={element} />}
     </div>
   )
 })

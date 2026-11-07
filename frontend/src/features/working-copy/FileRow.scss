@@ -3,7 +3,7 @@
 .file-row {
   position: relative;
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto 20px;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto auto 20px;
   align-items: center;
   gap: var(--space-xs);
   height: var(--h-row-table);
@@ -15,19 +15,34 @@
     background: var(--surface-container);
 
     .file-row-actions {
+      width: auto;
       opacity: 1;
     }
   }
 }
 
+[data-density='compact'] .file-row {
+  height: var(--h-row-tree);
+}
+
 .file-row-actions {
   @include patterns.row-actions;
-  right: var(--space-sm);
+  // Beside the stats. The path gives up the room from its left, so the filename
+  // stays. Zero width rather than hidden, so Tab still reaches the buttons.
+  position: static;
+  grid-column: 4;
+  grid-row: 1;
+  width: 0;
+  overflow: hidden;
+  background: none;
+
+  &:focus-within {
+    width: auto;
+  }
 }
 
 .file-row-selected {
-  background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  @include patterns.selected-row;
 }
 
 .file-row-path {
@@ -63,4 +78,29 @@
   flex-shrink: 0;
   color: var(--outline);
   font: var(--ui-xs);
+}
+
+// The filename gets the room: owners show on hover, and always in the diff's header.
+.file-row:not(:hover) .file-row-owners {
+  display: none;
+}
+
+.file-row-stats {
+  grid-column: 5;
+  grid-row: 1;
+}
+
+.file-row > .status-badge {
+  grid-column: 6;
+  grid-row: 1;
+}
+
+.file-row-path {
+  align-self: stretch;
+  align-items: center;
+}
+
+.file-row-path {
+  grid-column: 2;
+  grid-row: 1;
 }

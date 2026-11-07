@@ -1,11 +1,11 @@
 @use '../../styles/tokens/typography';
 
 .reference-link {
-  color: inherit;
+  color: var(--secondary);
   font-family: var(--font-mono);
   @include typography.mono-numeric;
   text-decoration: underline;
-  text-decoration-color: var(--outline);
+  text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
   text-underline-offset: 2px;
   border-radius: var(--radius-xs);
   cursor: pointer;
@@ -15,9 +15,7 @@
   }
 }
 
-// The host the reference opens, before it, quieter than its text.
 .reference-logo {
   margin-right: 2px;
-  color: var(--outline);
   vertical-align: -2px;
 }

@@ -1,0 +1,26 @@
+.scroll-cue {
+  position: sticky;
+  bottom: calc(var(--space-md) * -1);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: 100%;
+  height: var(--h-micro);
+  padding: 0;
+  background: var(--surface-low);
+  border: none;
+  border-top: var(--border-structure);
+  color: var(--outline);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+
+  &[data-more='false'] {
+    visibility: hidden;
+  }
+}

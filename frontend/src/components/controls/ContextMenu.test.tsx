@@ -32,13 +32,13 @@ describe('ContextMenu from the keyboard', () => {
     screen.getByRole('button', { name: 'Open' }).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
 
-    expect(await screen.findByRole('button', { name: 'First' })).toHaveFocus()
+    expect(await screen.findByRole('menuitem', { name: 'First' })).toHaveFocus()
     await user.keyboard('{ArrowDown}')
-    expect(screen.getByRole('button', { name: 'Last' })).toHaveFocus()
+    expect(screen.getByRole('menuitem', { name: 'Last' })).toHaveFocus()
     await user.keyboard('{ArrowDown}')
-    expect(screen.getByRole('button', { name: 'First' })).toHaveFocus()
+    expect(screen.getByRole('menuitem', { name: 'First' })).toHaveFocus()
     await user.keyboard('{ArrowUp}')
-    expect(screen.getByRole('button', { name: 'Last' })).toHaveFocus()
+    expect(screen.getByRole('menuitem', { name: 'Last' })).toHaveFocus()
   })
 
   it('gives focus back to what opened it when it closes', async () => {
@@ -47,10 +47,10 @@ describe('ContextMenu from the keyboard', () => {
 
     screen.getByRole('button', { name: 'Open' }).focus()
     await user.keyboard('{Enter}')
-    await screen.findByRole('button', { name: 'First' })
+    await screen.findByRole('menuitem', { name: 'First' })
     await user.keyboard('{Escape}')
 
-    expect(screen.queryByRole('button', { name: 'First' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'First' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus()
   })
 

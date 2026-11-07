@@ -25,6 +25,7 @@ type Settings struct {
 	NavCollapsed                bool                  `json:"navCollapsed"`
 	DiffExpanded                bool                  `json:"diffExpanded"`
 	DiffNoWrap                  bool                  `json:"diffNoWrap"`
+	Density                     string                `json:"density"`
 	PruneOnFetch                bool                  `json:"pruneOnFetch"`
 	HistoryBranchFilter         string                `json:"historyBranchFilter"`
 	HistoryFirstParent          bool                  `json:"historyFirstParent"`
@@ -34,6 +35,13 @@ type Settings struct {
 	TerminalShell               string                `json:"terminalShell"`
 	LocalCommandsOff            bool                  `json:"localCommandsOff"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
+}
+
+func normalizeDensity(density string) string {
+	if density == "compact" {
+		return density
+	}
+	return "comfortable"
 }
 
 func normalizeTheme(theme string) string {
@@ -63,6 +71,7 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		NavCollapsed:                cfg.NavCollapsed,
 		DiffExpanded:                cfg.DiffExpanded,
 		DiffNoWrap:                  cfg.DiffNoWrap,
+		Density:                     normalizeDensity(cfg.Density),
 		PruneOnFetch:                cfg.PruneOnFetch,
 		HistoryBranchFilter:         cfg.HistoryBranchFilter,
 		HistoryFirstParent:          cfg.HistoryFirstParent,
@@ -160,6 +169,10 @@ func (s *SettingsService) SetPruneOnFetch(prune bool) error {
 
 func (s *SettingsService) SetDiffExpanded(expanded bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.DiffExpanded = expanded })
+}
+
+func (s *SettingsService) SetDensity(density string) error {
+	return updateConfig(func(cfg *config.Config) { cfg.Density = normalizeDensity(density) })
 }
 
 func (s *SettingsService) SetDiffNoWrap(noWrap bool) error {

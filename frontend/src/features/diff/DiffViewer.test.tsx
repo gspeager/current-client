@@ -162,6 +162,16 @@ describe('DiffViewer scroll reports', () => {
 })
 
 describe('DiffViewer hunk navigation', () => {
+  it('moves between hunks with F7 and Shift+F7, as editors do', () => {
+    render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" />)
+
+    fireEvent.keyDown(window, { key: 'F7' })
+    expect(currentHeader()).toContain('second')
+
+    fireEvent.keyDown(window, { key: 'F7', shiftKey: true })
+    expect(currentHeader()).toContain('first')
+  })
+
   it('starts on the first hunk and moves forward/backward with Alt+ArrowDown/Up', () => {
     render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" />)
 
@@ -556,7 +566,7 @@ describe('DiffViewer issue from a line', () => {
       </IssuePanelContext.Provider>,
     )
     fireEvent.contextMenu(screen.getByText(/drop the shim/))
-    await userEvent.click(screen.getByRole('button', { name: 'Create issue from line…' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Create issue from line…' }))
     expect(newIssue).toHaveBeenCalledWith({
       title: 'drop the shim',
       description: '`src/a.ts` line 7\n\n```\n// TODO: drop the shim\n```',
@@ -566,6 +576,6 @@ describe('DiffViewer issue from a line', () => {
   it('leaves the line menu alone without issue writes', () => {
     render(<DiffViewer diff={todo} path="src/a.ts" viewMode="unified" />)
     fireEvent.contextMenu(screen.getByText(/drop the shim/))
-    expect(screen.queryByRole('button', { name: 'Create issue from line…' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Create issue from line…' })).not.toBeInTheDocument()
   })
 })

@@ -46,3 +46,7 @@
   display: flex;
   align-items: center;
 }
+
+.sidebar-section-toggle {
+  @include patterns.hit-target(2px);
+}

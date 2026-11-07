@@ -56,7 +56,7 @@
 
 .reflog-row-sha {
   flex-shrink: 0;
-  color: var(--primary);
+  color: var(--on-surface-variant);
   font: var(--data-sm);
 }
 
@@ -102,6 +102,9 @@
   padding: 0 var(--space-sm);
   opacity: 0;
   background: var(--primary-container);
+
+  @include patterns.disabled-primary;
+
   border: none;
   border-radius: var(--radius);
   color: var(--on-primary-container);

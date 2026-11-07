@@ -18,7 +18,7 @@
 
 .next-release-title {
   margin: 0;
-  font: var(--ui-md);
+  font: var(--title-md);
   color: var(--on-surface);
 }
 
@@ -56,6 +56,19 @@
   gap: var(--space-xs);
   height: var(--h-chip);
   @include patterns.secondary-button;
+}
+
+.next-release-step {
+  height: var(--h-action);
+
+  &:not(:disabled) {
+    border-color: var(--outline-control);
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+  }
 }
 
 .next-release-hint,
@@ -118,6 +131,22 @@
   font: var(--ui-sm);
 }
 
+.release-check-ok,
+.release-check-info,
+.release-check-unknown {
+  .release-check-label {
+    color: var(--on-surface-variant);
+  }
+
+  .release-check-value {
+    color: var(--outline);
+  }
+}
+
+.release-check-warn .release-check-label {
+  font-weight: 600;
+}
+
 .release-check-ok svg {
   color: var(--tertiary);
 }
@@ -168,9 +197,49 @@
 
 .next-release-step-primary {
   @include patterns.primary-button;
-  height: var(--h-chip);
+  height: var(--h-field);
 }
 
 .next-release-arrow {
   color: var(--outline);
+}
+
+.next-release-note {
+  color: var(--warning);
+  font: var(--ui-xs);
+}
+
+.next-release-more {
+  color: var(--outline);
+  font: var(--ui-sm);
+
+  &[open] > summary svg {
+    transform: rotate(90deg);
+  }
+
+  > summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    list-style: none;
+    width: fit-content;
+    min-height: var(--h-row-tree);
+    line-height: var(--h-row-tree);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--on-surface);
+    }
+  }
+}
+
+.next-release-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  font: var(--kbd);
 }

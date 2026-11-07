@@ -1,4 +1,7 @@
+@use '../../styles/patterns';
+
 .status-bar {
+  container-type: inline-size;
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -8,19 +11,22 @@
   border-top: var(--border-structure);
   color: var(--outline);
   font: var(--ui-xs);
+  overflow: hidden;
 }
 
-.status-bar-ready {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
+.status-bar > .status-bar-ready {
+  display: block;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 40cqi;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
-.status-bar-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--tertiary);
+  .wave-mark {
+    margin-right: var(--space-xs);
+    color: var(--on-surface-variant);
+    vertical-align: middle;
+  }
 }
 
 .status-bar-branch {
@@ -31,13 +37,23 @@
   flex: 1;
 }
 
-.status-bar-branch,
 .status-bar > span {
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 // The repository's folder name; the full path is its tooltip and what a click copies.
+.status-bar-repo-path,
+.status-bar-terminal {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -5px -2px;
+  }
+}
+
 .status-bar-repo-path {
   display: flex;
   flex-shrink: 0;
@@ -78,10 +94,10 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  border: 1px solid var(--secondary);
+  border: 1px solid var(--on-surface-variant);
 
   .status-bar-host-busy & {
-    background: var(--secondary);
+    background: var(--on-surface-variant);
   }
 }
 
@@ -106,4 +122,46 @@
     background: var(--surface-container);
     color: var(--on-surface);
   }
+}
+
+// What a window can spare goes first: versions, then the folder name, and the
+// upstream truncates before anything is cut off.
+@container (max-width: 1480px) {
+  .status-bar-version {
+    display: none;
+  }
+}
+
+@container (max-width: 1080px) {
+  .status-bar-repo-path {
+    display: none;
+  }
+
+  .status-bar-branch {
+    display: none;
+  }
+}
+
+.status-bar-branch {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-bar-terminal,
+.status-bar-repo-path,
+.status-bar-host {
+  align-items: center;
+  height: var(--h-micro);
+}
+
+.status-bar-api-label {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.status-bar-host {
+  @include patterns.hit-target(2px);
 }

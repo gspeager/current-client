@@ -1,4 +1,4 @@
-import { Check, CircleDot, CircleX } from 'lucide-react'
+import { CircleDot } from 'lucide-react'
 import { type Review, ReviewState } from '@current-client-bindings/core/hostapi'
 import './ReviewSummary.scss'
 
@@ -30,14 +30,23 @@ export function reviewRequestedOf(reviews: Review[] | null, username: string): b
 // One line for a change card: a request for changes outweighs approvals,
 // which outweigh reviews still waiting. A review waiting on you reads as a
 // request; one waiting on others names them.
-function ReviewSummary({ reviews, open, me = '' }: { reviews: Review[] | null; open: boolean; me?: string }) {
+function ReviewSummary({
+  reviews,
+  open,
+  me = '',
+  displayName = (name) => name,
+}: {
+  reviews: Review[] | null
+  open: boolean
+  me?: string
+  displayName?: (name: string) => string
+}) {
   const groups = reviewGroups(reviews, open)
   const count = (state: ReviewState) => (reviews ?? []).filter((r) => r.state === state).length
   const title = groups.map((g) => `${g.label}: ${g.names.join(', ')}`).join('\n')
   if (count(ReviewState.ReviewChangesRequested) > 0) {
     return (
       <span className="review-summary review-summary-changes" title={title}>
-        <CircleX size={12} strokeWidth={1.75} />
         Changes requested
       </span>
     )
@@ -46,7 +55,6 @@ function ReviewSummary({ reviews, open, me = '' }: { reviews: Review[] | null; o
   if (approved > 0) {
     return (
       <span className="review-summary review-summary-approved" title={title}>
-        <Check size={12} strokeWidth={1.75} />
         {approved} approved
       </span>
     )
@@ -54,7 +62,7 @@ function ReviewSummary({ reviews, open, me = '' }: { reviews: Review[] | null; o
   if (open && count(ReviewState.ReviewRequested) > 0) {
     const waitingOn = (reviews ?? [])
       .filter((r) => r.state === ReviewState.ReviewRequested)
-      .map((r) => r.reviewer.name || r.reviewer.username)
+      .map((r) => displayName(r.reviewer.name || r.reviewer.username))
     return (
       <span className="review-summary" title={title}>
         <CircleDot size={12} strokeWidth={1.75} />

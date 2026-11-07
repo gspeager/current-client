@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
-import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X, Table } from 'lucide-react'
+import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, TriangleAlert, X, Table } from 'lucide-react'
 import {
   StackService,
   type BranchInfo,
@@ -40,6 +40,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
+import { arrowIntoList } from '../../lib/useRovingRows'
 import CIMark, { ciLabel } from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
@@ -169,7 +170,7 @@ function BranchSidebar({
         loadBranches()
         onBranchChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch((err: unknown) => setActionError(`Could not check out ${name}: ${errorMessage(err)}`))
   }
 
   const createBranch = () => {
@@ -355,7 +356,7 @@ function BranchSidebar({
       ...menuAnchor(e),
       items: [
         { label: 'Check out', onClick: () => checkoutBranch(b.name), disabled: b.current || !!blocked },
-        { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
+        { separatorBefore: true, label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
         {
           label: 'Merge into current (no fast-forward)',
           onClick: () => mergeBranch(b.name, 'no-ff'),
@@ -367,7 +368,12 @@ function BranchSidebar({
           : []),
         ...(b.current ? [{ label: 'Tidy up history…', onClick: () => setTidyUp(true) }] : []),
         { label: 'Rebase current onto…', onClick: () => setRebasePreview(b.name), disabled: b.current },
-        { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
+        {
+          separatorBefore: true,
+          label: 'Compare with current',
+          onClick: () => setCompareWith(b.name),
+          disabled: b.current,
+        },
         { label: 'New stacked branch…', onClick: () => void newStackedBranch(b.name) },
         {
           label: 'Stack current on this',
@@ -390,10 +396,16 @@ function BranchSidebar({
           label: noteMenuLabel(notes, 'branch', b.name),
           onClick: () => notes.edit({ kind: 'branch', target: b.name }),
         },
-        { label: 'Rename…', onClick: () => renameBranch(b.name) },
+        { separatorBefore: true, label: 'Rename…', onClick: () => renameBranch(b.name) },
         { label: 'Set upstream…', onClick: () => setUpstreamFor(b) },
         ...(b.upstream ? [{ label: 'Unset upstream', onClick: () => unsetUpstream(b.name) }] : []),
-        { label: 'Delete', onClick: () => deleteBranch(b.name, false), destructive: true, disabled: b.current },
+        {
+          separatorBefore: true,
+          label: 'Delete',
+          onClick: () => deleteBranch(b.name, false),
+          destructive: true,
+          disabled: b.current,
+        },
         ...(b.upstream
           ? [
               {
@@ -462,12 +474,18 @@ function BranchSidebar({
     <li
       key={b.name}
       className={`branch-row${b.current ? ' branch-row-current' : ''}${blocked && !b.current ? ' branch-row-blocked' : ''}`}
-      onClick={() => !b.current && !blocked && checkoutBranch(b.name)}
+      onDoubleClick={() => !b.current && !blocked && checkoutBranch(b.name)}
       onContextMenu={branchContextMenu(b)}
       role="button"
       tabIndex={0}
       aria-disabled={blocked && !b.current ? true : undefined}
-      title={blocked && !b.current ? blocked : branchSummary(b)}
+      title={
+        blocked && !b.current
+          ? blocked
+          : b.current
+            ? branchSummary(b)
+            : `${branchSummary(b)}\nDouble-click to check out`
+      }
       onKeyDown={rowKeys(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill
@@ -479,12 +497,11 @@ function BranchSidebar({
         referenceCards={referenceCards}
       />
       <NoteMark kind="branch" target={b.name} />
-      {b.current && <span className="branch-row-head">HEAD</span>}
       {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
-      {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
-      <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
+      {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode branch-row-mode-incoming">incoming</span>}
+      {!b.current && <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />}
       {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
-      <ConflictsBadge overlap={overlapFor.get(b.name)} />
+      {!(conflict && b.name === conflict.theirs) && <ConflictsBadge overlap={overlapFor.get(b.name)} />}
       {!b.current && b.worktreePath && (
         <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>
           worktree
@@ -536,17 +553,17 @@ function BranchSidebar({
     <li
       key={name}
       className={blocked ? 'branch-row branch-row-remote branch-row-blocked' : 'branch-row branch-row-remote'}
-      onClick={() => !blocked && checkoutBranch(localNameFor(name, remoteNames))}
+      onDoubleClick={() => !blocked && checkoutBranch(localNameFor(name, remoteNames))}
       onContextMenu={remoteMenu(name)}
       role="button"
       tabIndex={0}
       aria-disabled={blocked ? true : undefined}
-      title={blocked ?? undefined}
+      title={blocked ?? 'Double-click to check out'}
       onKeyDown={rowKeys(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
       <span className="branch-row-remote-name">{name}</span>
-      {conflict && name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
+      {conflict && name === conflict.theirs && <span className="branch-row-mode branch-row-mode-incoming">incoming</span>}
       <ConflictsBadge overlap={overlapFor.get(name)} />
       {!localNames.has(localNameFor(name, remoteNames)) && <span className="branch-row-meta">not local</span>}
     </li>
@@ -599,6 +616,7 @@ function BranchSidebar({
             </button>
           </>
         }
+        onPinnedEscape={() => setShowNewBranch(false)}
         pinned={
           showNewBranch && (
             <div className="branch-sidebar-new">
@@ -640,7 +658,16 @@ function BranchSidebar({
           )
         }
       >
-        {error && <p className="branch-sidebar-error">{error}</p>}
+        {error && (
+          <p className="branch-sidebar-error" role="alert">
+            <span>{error}</span>
+            {actionError && (
+              <button type="button" aria-label="Dismiss" title="Dismiss" onClick={() => setActionError(null)}>
+                <X size={14} strokeWidth={1.75} />
+              </button>
+            )}
+          </p>
+        )}
         {deleteRemote.error && <p className="branch-sidebar-error">Could not delete on remote: {deleteRemote.error}</p>}
         {deleted && (
           <p className="branch-sidebar-deleted" role="status">
@@ -674,6 +701,7 @@ function BranchSidebar({
               <Search size={14} strokeWidth={1.5} />
               <input
                 aria-label="Filter branches"
+                onKeyDown={(e) => arrowIntoList(e, '.branch-row')}
                 placeholder="Filter branches…"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
@@ -712,7 +740,7 @@ function BranchSidebar({
             )}
             <div className="branch-sidebar-group">
               <SidebarSection
-                label="Local"
+                label="Local branches"
                 count={localBranches.length}
                 open={localOpen}
                 onToggle={() => sections.toggle('branches-local', true)}
@@ -722,7 +750,7 @@ function BranchSidebar({
             </div>
             <div className="branch-sidebar-group">
               <SidebarSection
-                label="Remote"
+                label="Remote branches"
                 count={remoteBranches === null ? undefined : remoteList.length}
                 open={remoteOpen}
                 onToggle={() => sections.toggle('branches-remote', false)}
@@ -800,7 +828,7 @@ function ConflictsBadge({ overlap }: { overlap?: OverlapInfo }) {
       className="branch-conflicts-badge"
       title={`Would conflict with the current branch: ${overlap.files.join(', ')}`}
     >
-      conflicts
+      <TriangleAlert size={12} strokeWidth={1.75} aria-label="Conflicts" />
     </span>
   )
 }

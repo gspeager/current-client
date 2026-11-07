@@ -27,7 +27,37 @@
     box-shadow: var(--glow-action);
   }
 
-  @include patterns.disabled;
+  @include patterns.disabled-primary;
+}
+
+.split-button:has(.split-button-main:disabled) .split-button-toggle {
+  background: var(--surface-high);
+  border-left-color: var(--outline-variant);
+  color: var(--on-surface-variant);
+}
+
+.split-button-compact {
+  --split-button-height: var(--h-field);
+}
+
+.split-button-secondary {
+  .split-button-main,
+  .split-button-toggle {
+    background: none;
+    border: var(--border-structure);
+    color: var(--on-surface-variant);
+    font-weight: 500;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-container);
+      color: var(--on-surface);
+      box-shadow: none;
+    }
+  }
+
+  .split-button-toggle {
+    border-left-color: var(--outline-variant);
+  }
 }
 
 .split-button-more > summary {

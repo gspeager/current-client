@@ -1,4 +1,6 @@
+import { ChartColumn, CircleDot, FileDiff, GitCommitVertical, GitPullRequest, Tag } from 'lucide-react'
 import Tab from '../../components/controls/Tab'
+import { useRovingRows } from '../../lib/useRovingRows'
 import { plural } from '../../lib/plural'
 import './TabBar.scss'
 
@@ -32,11 +34,13 @@ function TabBar({
   offHost = null,
   onOffHost,
 }: TabBarProps) {
+  const rovingTabs = useRovingRows('.tab', { horizontal: true })
   return (
-    <nav className="tab-bar">
+    <nav ref={rovingTabs} className="tab-bar" aria-label="Views" data-pane="views">
       <Tab
         active={active === 'working-copy'}
         onClick={() => onChange('working-copy')}
+        shortcut="mod+1"
         label={
           conflictCount > 0
             ? `Changes, ${plural(conflictCount, 'conflicted file')}`
@@ -45,6 +49,7 @@ function TabBar({
               : 'Changes'
         }
       >
+        <FileDiff size={14} strokeWidth={1.75} aria-hidden="true" />
         Changes
         {conflictCount > 0 ? (
           <span className="tab-count tab-count-conflict">{conflictCount}</span>
@@ -52,11 +57,13 @@ function TabBar({
           changedCount > 0 && <span className="tab-count">{changedCount}</span>
         )}
       </Tab>
-      <Tab active={active === 'history'} onClick={() => onChange('history')}>
+      <Tab active={active === 'history'} onClick={() => onChange('history')} shortcut="mod+2">
+        <GitCommitVertical size={14} strokeWidth={1.75} aria-hidden="true" />
         History
       </Tab>
       {changesLabel && (
-        <Tab active={active === 'changes'} onClick={() => onChange('changes')}>
+        <Tab active={active === 'changes'} onClick={() => onChange('changes')} shortcut="mod+3">
+          <GitPullRequest size={14} strokeWidth={1.75} aria-hidden="true" />
           {changesLabel}
         </Tab>
       )}
@@ -86,17 +93,31 @@ function TabBar({
         <Tab
           active={active === 'issues'}
           onClick={() => onChange('issues')}
-          label={issueCount > 0 ? `Issues, ${plural(issueCount, 'assigned to you', 'assigned to you')}` : 'Issues'}
+          shortcut={changesLabel ? 'mod+4' : 'mod+3'}
+          label={issueCount > 0 ? `Issues, ${plural(issueCount, 'assigned', 'assigned')}` : 'Issues'}
         >
+          <CircleDot size={14} strokeWidth={1.75} aria-hidden="true" />
           Issues
-          {issueCount > 0 && <span className="tab-count">{issueCount}</span>}
+          <span className="tab-count" style={issueCount > 0 ? undefined : { visibility: 'hidden' }}>
+            {issueCount}
+          </span>
         </Tab>
       )}
       <span className="tab-bar-divider" aria-hidden="true" />
-      <Tab active={active === 'activity'} onClick={() => onChange('activity')}>
+      <Tab
+        active={active === 'activity'}
+        onClick={() => onChange('activity')}
+        shortcut={`mod+${issueCount === null ? (changesLabel ? 4 : 3) : changesLabel ? 5 : 4}`}
+      >
+        <ChartColumn size={14} strokeWidth={1.75} aria-hidden="true" />
         Activity
       </Tab>
-      <Tab active={active === 'changelog'} onClick={() => onChange('changelog')}>
+      <Tab
+        active={active === 'changelog'}
+        onClick={() => onChange('changelog')}
+        shortcut={`mod+${issueCount === null ? (changesLabel ? 5 : 4) : changesLabel ? 6 : 5}`}
+      >
+        <Tag size={14} strokeWidth={1.75} aria-hidden="true" />
         Releases
       </Tab>
     </nav>

@@ -1,7 +1,12 @@
+import IdentityBadge from '../../components/git/IdentityBadge'
+import { useNameIdentities } from '../../lib/useNameIdentities'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { CircleCheck, CircleDot, GitBranch, GitBranchPlus } from 'lucide-react'
 import { BranchService, HostService, PlatformService } from '@current-client-bindings/app'
+import { Fact, FactList } from '../../components/chrome/FactList'
 import HostMarkdown from '../../components/git/HostMarkdown'
+import LabelChip from '../../components/git/LabelChip'
+import { taskProgress } from './taskProgress'
 import { issueBranchName } from '../../lib/branchName'
 import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
 import { useNewIssue } from '../../lib/issuePanel'
@@ -11,6 +16,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import './IssuePanel.scss'
 import { hostLogo, issueProvider } from '../../components/git/hostLogos'
 import { useHostLinks } from '../../lib/useHostLinks'
+import ChangeStateLabel from './ChangeStateLabel'
 
 interface IssueDetailProps {
   repoPath: string
@@ -41,6 +47,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
   const issue = data?.issue
   const writable = canWrite && !!data?.writable
   const closed = issue?.state === 'closed'
+  const tasks = data?.descriptionHtml ? taskProgress(data.descriptionHtml) : null
 
   const run = (kind: 'comment' | 'state' | 'branch', request: () => Promise<unknown>, after: () => void) => {
     setRunning(kind)
@@ -76,12 +83,41 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
     )
   }
 
+  const identities = useNameIdentities(
+    [data?.issue.author, ...(data?.comments ?? []).map((c) => c.author)].flatMap((a) =>
+      a ? [a.name || a.username] : [],
+    ),
+    repoPath,
+  )
   return (
-    <article className="issue-detail" aria-label={data?.reference ?? issueKey}>
+    <article className="issue-detail" data-pane="issue-detail" aria-label={data?.reference ?? issueKey}>
       <header className="issue-detail-header">
         <span className="issue-detail-reference">{data?.reference ?? issueKey}</span>
-        {issue?.state && <span className={`host-change-state host-change-state-${issue.state}`}>{issue.state}</span>}
-        <span className="issue-detail-spacer" />
+        {issue?.state && <ChangeStateLabel state={issue.state} issue />}
+        {issue && <h3 className="host-change-detail-title issue-detail-title">{issue.title}</h3>}
+        {issue && (
+          <div className="host-change-actions">
+            {writable && (
+              <button type="button" className="host-change-button" disabled={running !== null} onClick={toggleState}>
+                {closed ? <CircleDot size={14} strokeWidth={1.75} /> : <CircleCheck size={14} strokeWidth={1.75} />}
+                {running === 'state' ? (closed ? 'Reopening…' : 'Closing…') : closed ? 'Reopen issue' : 'Close issue'}
+              </button>
+            )}
+            <button type="button" className="host-change-button" disabled={running !== null} onClick={switchToBranch}>
+              {branch ? <GitBranch size={14} strokeWidth={1.75} /> : <GitBranchPlus size={14} strokeWidth={1.75} />}
+              {branch ? `Check out ${branch}` : 'New branch from issue'}
+            </button>
+            <button
+              type="button"
+              className="host-change-button host-change-button-quiet"
+              onClick={() => PlatformService.OpenWebPage(issue.webUrl).catch(ignoreDecorativeFailure)}
+              disabled={!issue.webUrl}
+            >
+              <HostIcon size={14} strokeWidth={1.75} />
+              Open on host
+            </button>
+          </div>
+        )}
         {headerAccessory}
       </header>
       <div className="issue-panel-body">
@@ -92,105 +128,94 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
         )}
         {!data && !error && <p className="issue-panel-hint">Loading…</p>}
         {data && issue && (
-          <>
-            <h3 className="issue-panel-title">{issue.title}</h3>
-            <dl className="issue-panel-facts">
-              <dt>Author</dt>
-              <dd>{issue.author.name || issue.author.username}</dd>
-              <dt>Opened</dt>
-              <dd>{relativeTime(new Date(issue.createdAt))}</dd>
-              {issue.milestone && (
-                <>
-                  <dt>Milestone</dt>
-                  <dd>{issue.milestone}</dd>
-                </>
+          <div className="issue-panel-columns">
+            <div className="issue-panel-main">
+              {data.descriptionHtml ? (
+                <HostMarkdown html={data.descriptionHtml} className="issue-panel-description" />
+              ) : (
+                <p className="issue-panel-hint">No description.</p>
               )}
-              {issue.labels.length > 0 && (
-                <>
-                  <dt>Labels</dt>
-                  <dd className="issue-panel-labels">
-                    {issue.labels.map((label) => (
-                      <span key={label} className="issue-panel-label">
-                        {label}
+              <section className="issue-panel-comments" aria-label="Comments">
+                <h4 className="issue-panel-comments-title">{plural(data.comments.length, 'comment')}</h4>
+                {data.comments.map((c, i) => (
+                  <article key={i} className="issue-panel-comment">
+                    <p className="issue-panel-comment-head">
+                      {identities.get(c.author.name || c.author.username) && (
+                        <IdentityBadge
+                          identity={identities.get(c.author.name || c.author.username)!}
+                          name={c.author.name || c.author.username}
+                          email=""
+                          size={20}
+                        />
+                      )}
+                      <span className="issue-panel-comment-author">
+                        {identities.get(c.author.name || c.author.username)?.displayName ??
+                          (c.author.name || c.author.username)}
                       </span>
+                      <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
+                    </p>
+                    <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
+                  </article>
+                ))}
+              </section>
+            </div>
+            <div className="issue-panel-aside">
+              <FactList>
+                <Fact label="Author">
+                  {identities.get(issue.author.name || issue.author.username)?.displayName ??
+                    (issue.author.name || issue.author.username)}
+                </Fact>
+                <Fact label="Opened">{relativeTime(new Date(issue.createdAt))}</Fact>
+                {issue.milestone && <Fact label="Milestone">{issue.milestone}</Fact>}
+                {issue.labels.length > 0 && (
+                  <Fact label="Labels" className="issue-panel-labels">
+                    {issue.labels.map((label) => (
+                      <LabelChip key={label} label={label} />
                     ))}
-                  </dd>
-                </>
-              )}
-              {branch && (
-                <>
-                  <dt>Branch</dt>
-                  <dd className="issue-panel-branch">{branch}</dd>
-                </>
-              )}
-            </dl>
-            {data.descriptionHtml ? (
-              <HostMarkdown html={data.descriptionHtml} className="issue-panel-description" />
-            ) : (
-              <p className="issue-panel-hint">No description.</p>
-            )}
-            <section className="issue-panel-comments" aria-label="Comments">
-              <h4 className="issue-panel-comments-title">{plural(data.comments.length, 'comment')}</h4>
-              {data.comments.map((c, i) => (
-                <article key={i} className="issue-panel-comment">
-                  <p className="issue-panel-comment-head">
-                    <span className="issue-panel-comment-author">{c.author.name || c.author.username}</span>
-                    <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
-                  </p>
-                  <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
-                </article>
-              ))}
-            </section>
-          </>
+                  </Fact>
+                )}
+                {tasks && (
+                  <Fact label="Tasks" className="issue-panel-tasks">
+                    <progress
+                      value={tasks.done}
+                      max={tasks.total}
+                      aria-label={`${tasks.done} of ${tasks.total} tasks done`}
+                    />
+                    {tasks.done} of {tasks.total}
+                  </Fact>
+                )}
+                {branch && (
+                  <Fact label="Branch" className="fact-list-data">
+                    {branch}
+                  </Fact>
+                )}
+              </FactList>
+            </div>
+          </div>
         )}
       </div>
-      {data && issue && (
+      {actionError && (
+        <p className="dialog-error issue-detail-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {writable && (
         <form className="issue-detail-footer" onSubmit={submitComment}>
-          {writable && (
-            <textarea
-              className="dialog-input issue-panel-reply-input"
-              aria-label="Comment"
-              placeholder="Comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-            />
-          )}
-          <div className="issue-detail-actions">
-            {writable && (
-              <button type="button" className="dialog-button" disabled={running !== null} onClick={toggleState}>
-                {closed ? <CircleDot size={14} strokeWidth={1.75} /> : <CircleCheck size={14} strokeWidth={1.75} />}
-                {running === 'state' ? (closed ? 'Reopening…' : 'Closing…') : closed ? 'Reopen issue' : 'Close issue'}
-              </button>
-            )}
-            <button type="button" className="dialog-button" disabled={running !== null} onClick={switchToBranch}>
-              {branch ? <GitBranch size={14} strokeWidth={1.75} /> : <GitBranchPlus size={14} strokeWidth={1.75} />}
-              {branch ? `Check out ${branch}` : 'New branch from issue'}
-            </button>
-            <button
-              type="button"
-              className="dialog-button"
-              onClick={() => PlatformService.OpenWebPage(issue.webUrl).catch(ignoreDecorativeFailure)}
-              disabled={!issue.webUrl}
-            >
-              <HostIcon size={14} strokeWidth={1.75} />
-              Open on host
-            </button>
-            {writable && (
-              <button
-                type="submit"
-                className="dialog-button dialog-button-primary issue-detail-comment"
-                disabled={!comment.trim() || running !== null}
-              >
-                {running === 'comment' ? 'Commenting…' : 'Comment'}
-              </button>
-            )}
-          </div>
-          {actionError && (
-            <p className="dialog-error" role="alert">
-              {actionError}
-            </p>
-          )}
+          <textarea
+            className="dialog-input issue-panel-reply-input"
+            aria-label="Comment"
+            placeholder="Comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={1}
+          />
+          <button
+            type="submit"
+            className="dialog-button dialog-button-primary issue-detail-comment"
+            disabled={!comment.trim() || running !== null}
+          >
+            {running === 'comment' ? 'Commenting…' : 'Comment'}
+          </button>
         </form>
       )}
     </article>

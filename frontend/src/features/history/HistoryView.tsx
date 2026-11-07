@@ -14,9 +14,14 @@ import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
+import { assignLaneColors } from './laneOwners'
+import { useLaneColors } from '../../lib/laneColor'
+import { useRovingRows } from '../../lib/useRovingRows'
+import { useResizableWidth } from '../../lib/useResizableWidth'
+import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import ResizeHandle from '../../components/chrome/ResizeHandle'
 import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
-import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import { useHeadCommit } from '../working-copy/useHeadCommit'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useHostLinks } from '../../lib/useHostLinks'
@@ -27,6 +32,7 @@ import { useReferenceCards } from '../../lib/useReferenceCards'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
+import { commitRowHeight, useDensity } from '../../lib/density'
 import { ALL_BRANCHES, isBranchName } from './branchFilter'
 import OverviewStrip from './OverviewStrip'
 import './HistoryView.scss'
@@ -53,10 +59,9 @@ interface HistoryViewProps {
   previousTopSha?: string | null
   onTopShaChange?: (sha: string) => void
   onSelectedShaChange?: (sha: string) => void
+  currentBranch?: string
 }
 
-// Must match --h-commit-row.
-const ROW_HEIGHT = 38
 const NEW_COMMIT_FLASH_MS = 400
 
 function HistoryView({
@@ -75,6 +80,7 @@ function HistoryView({
   previousTopSha,
   onTopShaChange,
   onSelectedShaChange,
+  currentBranch,
 }: HistoryViewProps) {
   const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef, firstParent })
   const { commits, loading, done, error, loadMore, loadThrough } = useCommitHistory(
@@ -99,6 +105,20 @@ function HistoryView({
       : null
   const { graphNodes, workingNode } = useCommitGraph(commits, filter.firstParent, workingTreeParent)
   const refsBySha = useRefBadges(repoPath)
+  const rowHeight = commitRowHeight(useDensity())
+  const { branchColor, laneColor } = useLaneColors()
+  const laneColors = useMemo(
+    () =>
+      assignLaneColors(
+        [...(workingNode ? [workingNode] : []), ...graphNodes],
+        (sha) => refsBySha.get(sha),
+        currentBranch,
+        branchColor,
+        laneColor,
+      ),
+    [graphNodes, workingNode, refsBySha, currentBranch, branchColor, laneColor],
+  )
+  const rowLaneColors = workingNode ? laneColors.slice(1) : laneColors
   const hostLinks = useHostLinks(repoPath)
   // History remounts on every ref move, so the repository path is the only key.
   const changes = useBranchChanges(repoPath)
@@ -165,6 +185,21 @@ function HistoryView({
     setFilter(next)
   }
 
+  const inspectorWidth = useResizableWidth('pane-width-history-detail', 340, 280, 640, 'grow-left')
+  const closeDetail = () => {
+    setSelectedSha(null)
+    parentRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus()
+  }
+  useWindowKeydown((e) => {
+    if (
+      e.key === 'Escape' &&
+      selectedSha &&
+      parentRef.current?.offsetParent &&
+      !document.querySelector('.modal-panel, .context-menu')
+    ) {
+      closeDetail()
+    }
+  })
   const selectSha = (sha: string) => {
     setSelectedSha(sha)
     onSelectedShaChange?.(sha)
@@ -212,10 +247,15 @@ function HistoryView({
   const virtualizer = useVirtualizer({
     count: rows.length + offset,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: 10,
   })
+  useEffect(() => virtualizer.measure(), [virtualizer, rowHeight])
   const virtualItems = virtualizer.getVirtualItems()
+  const rovingRows = useRovingRows('.commit-row', {
+    selectOnMove: true,
+    scrollToEdge: (edge) => virtualizer.scrollToIndex(edge === 'first' ? 0 : rows.length + offset - 1),
+  })
   const deployedAt = useDeploymentsBySha(repoPath)
   const ciMarks = useCIStatus(
     repoPath,
@@ -265,8 +305,8 @@ function HistoryView({
   const visibleRange = useMemo(() => {
     const { scrollOffset, scrollRect } = virtualizer
     if (rows.length === 0 || scrollOffset === null || !scrollRect) return null
-    const first = Math.max(0, Math.floor(scrollOffset / ROW_HEIGHT) - offset)
-    const last = Math.min(rows.length - 1, Math.ceil((scrollOffset + scrollRect.height) / ROW_HEIGHT) - offset)
+    const first = Math.max(0, Math.floor(scrollOffset / rowHeight) - offset)
+    const last = Math.min(rows.length - 1, Math.ceil((scrollOffset + scrollRect.height) / rowHeight) - offset)
     if (first > last) return null
     return {
       newest: Date.parse(rows[first].commit.date),
@@ -312,9 +352,12 @@ function HistoryView({
     setContextMenu({
       ...menuAnchor(e),
       items: [
-        ...commitActions
-          .actionsFor(commit)
-          .map((a) => ({ label: a.label, onClick: a.run, destructive: a.destructive })),
+        ...commitActions.actionsFor(commit).map((a) => ({
+          label: a.label,
+          onClick: a.run,
+          destructive: a.destructive,
+          separatorBefore: a.separatorBefore,
+        })),
         {
           label: highlightedAuthor === commit.authorEmail ? 'Clear author highlight' : 'Highlight author’s commits',
           onClick: () => highlightAuthor(commit.authorEmail),
@@ -325,7 +368,7 @@ function HistoryView({
 
   return (
     <div className="history-view">
-      <div className="history-canvas">
+      <div className="history-canvas" data-pane="history">
         {selectedCommit && openedPath ? (
           <CommitFileDiff
             repoPath={repoPath}
@@ -349,6 +392,7 @@ function HistoryView({
               copied={graphCopied}
             />
 
+            <h2 className="visually-hidden">History</h2>
             {overview && overview.days.length > 0 && (
               <OverviewStrip
                 days={overview.days}
@@ -359,14 +403,26 @@ function HistoryView({
             )}
 
             <div ref={parentRef} className="history-scroll">
-              <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+              <div
+                ref={rovingRows}
+                role="grid"
+                aria-label="Commit history"
+                style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+              >
+                <div role="row" className="visually-hidden">
+                  {['Graph', 'Commit', 'Author', 'Hash', 'CI', 'Time', 'Actions'].map((name) => (
+                    <span key={name} role="columnheader">
+                      {name}
+                    </span>
+                  ))}
+                </div>
                 {virtualItems.map((row) => {
                   const rowStyle = {
                     position: 'absolute' as const,
                     top: 0,
                     left: 0,
                     width: '100%',
-                    height: ROW_HEIGHT,
+                    height: rowHeight,
                     transform: `translateY(${row.start}px)`,
                   }
                   if (workingRow && row.index === 0) {
@@ -375,7 +431,7 @@ function HistoryView({
                         key="working-tree"
                         node={workingRow}
                         laneCount={laneCount}
-                        rowHeight={ROW_HEIGHT}
+                        rowHeight={rowHeight}
                         changedFiles={changedFiles}
                         user={currentUser}
                         style={rowStyle}
@@ -383,12 +439,15 @@ function HistoryView({
                       />
                     )
                   }
-                  const { commit, graphNode } = rows[row.index - offset]
+                  const { commit, graphNode, index } = rows[row.index - offset]
                   return (
                     <CommitRow
                       key={commit.sha}
                       commit={commit}
                       graphNode={graphNode}
+                      laneColors={rowLaneColors[index]}
+                      isHead={commit.sha === head?.sha}
+                      currentBranch={currentBranch}
                       laneCount={laneCount}
                       hostLinks={hostLinks}
                       changes={changes}
@@ -396,7 +455,7 @@ function HistoryView({
                       ci={ciMarks[commit.sha]}
                       environments={deployedAt.get(commit.sha)}
                       referenceCards={referenceCards}
-                      rowHeight={ROW_HEIGHT}
+                      rowHeight={rowHeight}
                       identity={identities.get(identityKey(commit.authorName, commit.authorEmail))}
                       refs={refsBySha.get(commit.sha)}
                       upstreams={upstreams}
@@ -408,7 +467,7 @@ function HistoryView({
                       onFocusRef={onFocusRef}
                       searchQuery={query}
                       style={rowStyle}
-                      onSelect={() => selectSha(commit.sha)}
+                      onSelect={() => (commit.sha === selectedSha ? closeDetail() : selectSha(commit.sha))}
                       onOpenChecks={() => {
                         selectSha(commit.sha)
                         setChecksFor(commit.sha)
@@ -433,24 +492,28 @@ function HistoryView({
       </div>
 
       {selectedCommit && (
-        <div className="history-inspector">
-          <CommitDetailPanel
-            repoPath={repoPath}
-            commit={selectedCommit}
-            identity={selectedIdentity}
-            hostLinks={hostLinks}
-            referenceCards={referenceCards}
-            colorError={colorError}
-            onColorChange={(color) => setAuthorColor(selectedCommit.authorName, selectedCommit.authorEmail, color)}
-            actions={commitActions.actionsFor(selectedCommit)}
-            actionError={commitActions.error}
-            openedPath={openedPath}
-            onOpenFile={(path) => setOpenedFile({ sha: selectedCommit.sha, path })}
-            threadCounts={reviewThreads.counts}
-            ci={ciMarks[selectedCommit.sha]}
-            checksOpen={checksFor === selectedCommit.sha}
-          />
-        </div>
+        <>
+          <ResizeHandle onDragStart={inspectorWidth.onDragStart} ariaLabel="Resize commit detail" />
+          <div className="history-inspector" data-pane="commit-detail" style={{ width: inspectorWidth.width }}>
+            <CommitDetailPanel
+              onClose={closeDetail}
+              repoPath={repoPath}
+              commit={selectedCommit}
+              identity={selectedIdentity}
+              hostLinks={hostLinks}
+              referenceCards={referenceCards}
+              colorError={colorError}
+              onColorChange={(color) => setAuthorColor(selectedCommit.authorName, selectedCommit.authorEmail, color)}
+              actions={commitActions.actionsFor(selectedCommit)}
+              actionError={commitActions.error}
+              openedPath={openedPath}
+              onOpenFile={(path) => setOpenedFile({ sha: selectedCommit.sha, path })}
+              threadCounts={reviewThreads.counts}
+              ci={ciMarks[selectedCommit.sha]}
+              checksOpen={checksFor === selectedCommit.sha}
+            />
+          </div>
+        </>
       )}
 
       {commitActions.overlays}

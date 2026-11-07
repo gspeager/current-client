@@ -1,3 +1,4 @@
+import Kbd from '../../components/controls/Kbd'
 import {
   Fragment,
   useLayoutEffect,
@@ -8,7 +9,7 @@ import {
   type RefObject,
   type UIEvent,
 } from 'react'
-import { MessageSquarePlus } from 'lucide-react'
+import { ChevronsUpDown, MessageSquarePlus } from 'lucide-react'
 import type { DiffLine, LineSelection } from '@current-client-bindings/app'
 import { useDiffWrap } from './diffWrap'
 import { unifiedRowsForPair, type DisplayRow, type PairedLine, type UnifiedRow } from './diffRows'
@@ -244,12 +245,24 @@ function HunkActionButtons({
   const run = (action: (hunkRaw: string, lines?: LineSelection) => void) => (count ? action(raw, lines) : action(raw))
   return (
     <span className="diff-hunk-actions">
-      <button type="button" className="diff-stage-hunk" onClick={() => run(toggle)}>
+      <button
+        type="button"
+        className="diff-stage-hunk"
+        aria-label={onStageHunk ? `Stage ${what}` : `Unstage ${what}`}
+        onClick={() => run(toggle)}
+      >
         {onStageHunk ? `Stage ${what}` : `Unstage ${what}`}
+        <Kbd>{onStageHunk ? 'S' : 'U'}</Kbd>
       </button>
       {onDiscardHunk && (count === 0 || canDiscardLines) && (
-        <button type="button" className="diff-discard-hunk" onClick={() => run(onDiscardHunk)}>
+        <button
+          type="button"
+          className="diff-discard-hunk"
+          aria-label={count ? `Discard ${what}` : 'Discard'}
+          onClick={() => run(onDiscardHunk)}
+        >
           {count ? `Discard ${what}` : 'Discard'}
+          <Kbd>D</Kbd>
         </button>
       )}
     </span>
@@ -390,6 +403,7 @@ function DiffPane({
         if (side === 'right') return <div key={i} className="diff-side-spacer" />
         return (
           <button key={i} type="button" className="diff-collapsed" onClick={() => onToggleGroup(i)}>
+            <ChevronsUpDown size={12} strokeWidth={1.75} />
             {row.collapsed.length} unchanged lines
           </button>
         )
@@ -410,6 +424,7 @@ function DiffPane({
       <div
         className="diff-pane diff-pane-sides"
         ref={scrollRef}
+        tabIndex={0}
         onContextMenu={lineMenu}
         onScrollCapture={reportScroll}
       >
@@ -422,6 +437,7 @@ function DiffPane({
     <div
       className={`diff-pane diff-pane-${mode}`}
       ref={scrollRef}
+      tabIndex={0}
       onContextMenu={lineMenu}
       onScrollCapture={reportScroll}
     >

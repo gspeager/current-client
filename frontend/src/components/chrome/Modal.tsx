@@ -1,7 +1,8 @@
-import type { ReactNode, SyntheticEvent } from 'react'
+import { useRef, type ReactNode, type SyntheticEvent } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
+import { restoreFocus } from '../../lib/panes'
 import './Modal.scss'
 
 interface ModalProps {
@@ -28,6 +29,7 @@ function Modal({
   children,
 }: ModalProps) {
   const { element } = useCurrentClientRoot()
+  const opener = useRef(document.activeElement)
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal container={element}>
@@ -36,7 +38,24 @@ function Modal({
           onClick={stopPropagation}
           onContextMenu={stopPropagation}
         >
-          <Dialog.Content className={`modal-panel ${className}`} aria-describedby={undefined}>
+          <Dialog.Content
+            className={`modal-panel ${className}`}
+            aria-describedby={undefined}
+            onOpenAutoFocus={(e) => {
+              // The first real control, rather than the header's Close.
+              const first = (e.currentTarget as HTMLElement).querySelector<HTMLElement>(
+                '[autofocus], input:not([type=hidden]), textarea, select, .modal-body button, button:not(.modal-close)',
+              )
+              if (first) {
+                e.preventDefault()
+                first.focus()
+              }
+            }}
+            onCloseAutoFocus={(e) => {
+              e.preventDefault()
+              restoreFocus(opener.current)
+            }}
+          >
             {hideHeader ? (
               <Dialog.Title className="modal-hidden-title">{title}</Dialog.Title>
             ) : (

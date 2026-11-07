@@ -1,3 +1,4 @@
+import { arrowIntoList } from '../../lib/useRovingRows'
 import { useState } from 'react'
 import { Check, Copy, Search, SlidersHorizontal } from 'lucide-react'
 import type { HistoryFilterInfo } from '@current-client-bindings/app'
@@ -47,9 +48,11 @@ function HistoryToolbar({
         <input
           className="history-toolbar-search"
           type="search"
-          placeholder="Search commits, authors, hashes…"
+          placeholder="Search commits…"
+          title="Search by subject, author or hash"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={arrowIntoList}
         />
       </div>
       <select

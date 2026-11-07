@@ -41,11 +41,12 @@ describe('NextRelease', () => {
     const config = within(checks).getByText('build/config.yml').closest('li')!
     expect(config).toHaveTextContent('line 3: still 0.4.0')
     expect(within(config).getByRole('img', { name: 'Needs attention' })).toBeInTheDocument()
-    const commits = within(checks).getByText('Commits since v0.4.0').closest('li')!
+    const others = screen.getByText(/other check/).closest('details')!
+    const commits = within(others).getByText('Commits since v0.4.0').closest('li')!
     expect(commits).not.toHaveTextContent('abc1234')
     expect(commits).toHaveAttribute('title', 'abc1234 feat: x')
-    expect(within(checks).getByText('CI on the candidate').closest('li')).toHaveTextContent('just now')
-    expect(screen.getByText(/from v0\.4\.0 · candidate HEAD/)).toBeInTheDocument()
+    expect(within(others).getByText('CI on the candidate').closest('li')).toHaveTextContent('just now')
+    expect(screen.getByText(/from v0\.4\.0 · HEAD/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Publish release…' })).toBeDisabled()
   })
 
@@ -58,7 +59,6 @@ describe('NextRelease', () => {
     const onTagged = renderBlock()
 
     const tag = await screen.findByRole('button', { name: 'Tag v0.5.0…' })
-    expect(tag).toHaveClass('next-release-step-primary')
     await userEvent.click(tag)
     const dialog = await screen.findByRole('alertdialog', { name: 'Tag v0.5.0' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Tag' }))

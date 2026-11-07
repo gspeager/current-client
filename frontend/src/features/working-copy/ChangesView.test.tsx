@@ -126,6 +126,50 @@ describe('ChangesView staging', () => {
     expect(StatusService.UnstageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
   })
 
+  describe('Space', () => {
+    const selectFile = async () => {
+      vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue({
+        conflicted: false,
+        oldPath: 'src/app.ts',
+        newPath: 'src/app.ts',
+        binary: false,
+        tooLarge: false,
+        sizeBytes: 0,
+        hunks: [],
+      })
+      vi.mocked(StatusService.StageFile).mockResolvedValue()
+      renderChanges([file('src/app.ts')])
+      const path = document.querySelector<HTMLElement>('.file-row-path')!
+      await userEvent.click(path)
+      return path
+    }
+
+    it('stages the selected file from its row', async () => {
+      const path = await selectFile()
+
+      fireEvent.keyDown(path, { code: 'Space' })
+
+      expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
+    })
+
+    it('stages the selected file when no control has focus', async () => {
+      await selectFile()
+
+      fireEvent.keyDown(document.body, { code: 'Space' })
+
+      expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
+    })
+
+    it('leaves the file alone when another control has focus', async () => {
+      await selectFile()
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Refresh' }), { code: 'Space' })
+      fireEvent.keyDown(screen.getByRole('checkbox', { name: 'Stage src/app.ts' }), { code: 'Space' })
+
+      expect(StatusService.StageFile).not.toHaveBeenCalled()
+    })
+  })
+
   it('stages a single hunk from the open diff', async () => {
     vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue({
       conflicted: false,
@@ -269,7 +313,7 @@ describe('ChangesView file menu', () => {
     const user = userEvent.setup()
 
     await user.click(screen.getByRole('button', { name: 'More actions for src/app.ts' }))
-    await user.click(await screen.findByRole('button', { name: 'Stage' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Stage' }))
 
     expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
   })
@@ -311,7 +355,7 @@ describe('ChangesView multi-select', () => {
     await user.click(screen.getByRole('button', { name: 'src/c.ts' }))
     await user.keyboard('{/Shift}')
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/b.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stage 3 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stage 3 files' }))
 
     expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/b.ts', 'src/c.ts'])
   })
@@ -326,7 +370,7 @@ describe('ChangesView multi-select', () => {
     await user.click(screen.getByRole('button', { name: 'src/c.ts' }))
     await user.keyboard('{/Control}')
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stage 2 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stage 2 files' }))
 
     expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/c.ts'])
   })
@@ -341,10 +385,10 @@ describe('ChangesView multi-select', () => {
     fireEvent.mouseDown(c, { ctrlKey: true, button: 0 })
     fireEvent.contextMenu(c, { ctrlKey: true, button: 0 })
     fireEvent.click(c, { ctrlKey: true, button: 0 })
-    expect(screen.queryByRole('button', { name: 'Stage' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Stage' })).not.toBeInTheDocument()
 
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stage 2 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stage 2 files' }))
 
     expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/c.ts'])
   })
@@ -378,7 +422,7 @@ describe('ChangesView stashing', () => {
 
     expect(screen.queryByRole('button', { name: /^(Stage|Unstage) 3 files$/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Discard' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Stash 3 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stash 3 files' }))
 
     expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
       message: '',
@@ -402,7 +446,7 @@ describe('ChangesView stashing', () => {
     await user.click(screen.getByRole('button', { name: 'notes.md' }))
     await user.keyboard('{/Control}')
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stash 2 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stash 2 files' }))
 
     expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
       message: '',
@@ -419,7 +463,7 @@ describe('ChangesView stashing', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/b.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stash' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stash' }))
 
     expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
       message: '',
@@ -513,7 +557,7 @@ describe('ChangesView file groups', () => {
 describe('ChangesView conflicts', () => {
   const conflictedFile = () => file('src/app.ts', { indexStatus: 'U', worktreeStatus: 'U', conflicted: true })
 
-  it('groups files as Conflicted and Resolved during a merge, with Mark resolved as the primary action', async () => {
+  it('groups files as Conflicted and Resolved during a merge, with Mark resolved beside the Keep actions', async () => {
     vi.mocked(ConflictService.GetConflictSides).mockResolvedValue({ ours: 'main', theirs: 'feature' })
     const workingTree = workingTreeFor([
       conflictedFile(),
@@ -543,8 +587,7 @@ describe('ChangesView conflicts', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
     const actions = document.querySelector('.changes-conflict-actions')!
-    expect(actions.querySelector('button')).toHaveTextContent('Mark resolved')
-    expect(actions.querySelector('button')).toHaveClass('changes-conflict-primary')
+    expect([...actions.querySelectorAll('button')].pop()).toHaveTextContent('Mark resolved')
   })
 
   it('offers Side by side and Result for a conflicted file, with the columns named by branch', async () => {
@@ -740,7 +783,7 @@ describe('ChangesView first file', () => {
 
   it('opens nothing in a clean working tree', () => {
     renderChanges([])
-    expect(screen.getByText('Select a file to see its diff.')).toBeInTheDocument()
+    expect(document.querySelector('.changes-clean')).toBeInTheDocument()
     expect(DiffService.GetWorkingTreeDiff).not.toHaveBeenCalled()
   })
 })

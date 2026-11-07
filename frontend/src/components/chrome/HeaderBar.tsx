@@ -1,14 +1,30 @@
-import type { NoteInfo } from '@current-client-bindings/app'
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
+import { UndoService, type NoteInfo } from '@current-client-bindings/app'
 import { System } from '@wailsio/runtime'
-import { ArrowDown, ArrowUp, ChevronDown, Inbox, Plus, RefreshCw, Settings, type LucideIcon, X } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  Inbox,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+  Undo2,
+  type LucideIcon,
+  X,
+} from 'lucide-react'
 import { useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../git/BranchPill'
 import ContextMenu, { type ContextMenuItem, type ContextMenuState } from '../controls/ContextMenu'
 import FileHistoryPanel from '../../features/history/FileHistoryPanel'
 import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
+import type { ActionResult } from '../../lib/actionResult'
 import { useBranchStatus } from '../../lib/useBranchStatus'
+import BlameView from '../../features/history/BlameView'
+import { undoActionLabel } from '../../features/history/undoPreview'
+import { shortcutLabel } from '../../lib/shortcuts'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
@@ -32,11 +48,15 @@ interface HeaderBarProps {
   repoVersion: number
   lastFetchedAt: Date | null
   pruneOnFetch: boolean
+  onResult?: (result: ActionResult) => void
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
   // The Inbox, a view across every open repository, beside the tabs.
   inboxOpen?: boolean
   onToggleInbox?: () => void
+  onUndo?: () => void
+  onOpenChange?: (number: number) => void
+  onShowStashes?: () => void
   // Host rows the Inbox hasn't shown yet, after a refresh.
   inboxUnseen?: number
   workspaceActions: WorkspaceAction[]
@@ -67,15 +87,25 @@ interface HeaderBarProps {
   accessory?: ReactNode
 }
 
+// What a chip needs: the name in mono, its margins, and room for dirty or ahead marks.
+const chipWidth = (path: string, summary?: { ahead?: number; behind?: number }) =>
+  baseName(path).length * 7.3 + 30 + (summary?.ahead || summary?.behind ? 24 : 0)
+const RESERVED_TAB_WIDTH = 72
+const UNDO_LABEL = 'Undo last operation'
+
 function HeaderBar({
   repoPath,
   repoVersion,
   lastFetchedAt,
   pruneOnFetch,
+  onResult,
   repo,
   dirty,
   inboxOpen = false,
   onToggleInbox,
+  onUndo,
+  onOpenChange,
+  onShowStashes,
   inboxUnseen = 0,
   workspaceActions,
   paletteActions,
@@ -103,10 +133,24 @@ function HeaderBar({
   const { branchColor } = useLaneColors()
   const currentUser = useCurrentUser(repoPath)
   const branchStatus = useBranchStatus(repoPath, repoVersion)
-  const fetchAllOp = useFetchAll(repoPath, onFetched, pruneOnFetch)
+  const fetchAllOp = useFetchAll(
+    repoPath,
+    () => {
+      onFetched?.()
+      onResult?.({ text: 'Fetched' })
+    },
+    pruneOnFetch,
+  )
   const [branchSwitcherOpen, setBranchSwitcherOpen] = useState(false)
   const [panelView, setPanelView] = useState<PanelView>('branch')
   const [quickSwitchOpen, setQuickSwitchOpen] = useState(false)
+  const [blamePath, setBlamePath] = useState<string | null>(null)
+  const [undoLabel, setUndoLabel] = useState(UNDO_LABEL)
+  const previewUndo = () => {
+    UndoService.Preview(repoPath)
+      .then((plan) => setUndoLabel(undoActionLabel(plan)))
+      .catch(() => setUndoLabel(UNDO_LABEL))
+  }
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
@@ -176,8 +220,8 @@ function HeaderBar({
           disabled={!!blocked}
           title={blocked ?? title}
         >
-          <Icon size={12} strokeWidth={1.5} />
-          {label}
+          <Icon size={14} strokeWidth={1.5} />
+          <span className="header-bar-sync-label">{label}</span>
         </button>
         <button
           type="button"
@@ -196,21 +240,67 @@ function HeaderBar({
     )
   }
 
+  // Names stay readable: what doesn't fit moves to a menu rather than shrinking.
+  const tabStrip = useRef<HTMLDivElement>(null)
+  const [tabRoom, setTabRoom] = useState(Infinity)
+  useLayoutEffect(() => {
+    const strip = tabStrip.current
+    if (!strip || typeof ResizeObserver === 'undefined') return
+    const measure = () => {
+      const active = strip.querySelector<HTMLElement>('.header-bar-switcher')?.offsetWidth ?? 0
+      if (strip.clientWidth > 0) setTabRoom(strip.clientWidth - active - RESERVED_TAB_WIDTH)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(strip)
+    const active = strip.querySelector('.header-bar-switcher')
+    if (active) observer.observe(active)
+    return () => observer.disconnect()
+  }, [repoPath])
+  const inactiveTabs = repo.tabs.filter((path) => path !== repoPath)
+  let usedRoom = 0
+  const fitting = inactiveTabs.filter((path) => {
+    usedRoom += chipWidth(path, repo.tabSummaries[path])
+    return usedRoom <= tabRoom
+  })
+  const overflowTabs = inactiveTabs.filter((path) => !fitting.includes(path))
+  const shownTabs = repo.tabs.filter((path) => !overflowTabs.includes(path))
+
   useWindowKeydown((e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    const paletteKey = e.key.toLowerCase()
+    // Ctrl+P is the cursor-up key in a Mac text field, so only Command takes it there.
+    const quickOpenMod = System.IsMac() ? e.metaKey : e.ctrlKey
+    if (
+      ((e.metaKey || e.ctrlKey) && !e.shiftKey && paletteKey === 'k') ||
+      ((e.metaKey || e.ctrlKey) && e.shiftKey && paletteKey === 'p') ||
+      (quickOpenMod && !e.shiftKey && paletteKey === 'p')
+    ) {
       e.preventDefault()
-      setQuickSwitchOpen(true)
+      setQuickSwitchOpen((open) => !open)
     }
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
       e.preventDefault()
       setSearchOpen(true)
     }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && !operation && !syncing) {
+      const key = e.key.toLowerCase()
+      if (key === 't') {
+        e.preventDefault()
+        void fetchAllOp.fetchPrimary()
+      } else if (key === 'l') {
+        e.preventDefault()
+        onPull()
+      } else if (key === 'k') {
+        e.preventDefault()
+        onPush()
+      }
+    }
   })
 
   return (
-    <header className="header-bar">
-      <div className="header-bar-tabs" aria-label="Open repositories">
-        {repo.tabs.map((path) =>
+    <header className="header-bar" data-pane="header">
+      <div ref={tabStrip} className="header-bar-tabs" aria-label="Open repositories">
+        {shownTabs.map((path) =>
           path === repoPath ? (
             <details
               key={path}
@@ -293,6 +383,24 @@ function HeaderBar({
             />
           ),
         )}
+        {overflowTabs.length > 0 && (
+          <button
+            type="button"
+            className="header-bar-tabs-more"
+            aria-label={`${overflowTabs.length} more open repositories`}
+            title={overflowTabs.map(baseName).join('\n')}
+            onClick={(e) => {
+              const box = e.currentTarget.getBoundingClientRect()
+              setSyncMenu({
+                x: box.left,
+                y: box.bottom + 4,
+                items: overflowTabs.map((path) => ({ label: baseName(path), onClick: () => repo.openRecent(path) })),
+              })
+            }}
+          >
+            +{overflowTabs.length}
+          </button>
+        )}
         <button
           type="button"
           className="header-bar-icon-button"
@@ -309,7 +417,9 @@ function HeaderBar({
           'fetch',
           fetchAllOp.running ? 'Cancel' : 'Fetch',
           RefreshCw,
-          fetchAllOp.running ? 'Cancel fetch' : `${fetchedLabel}. Fetch${pruneOnFetch ? ' and prune' : ''}`,
+          fetchAllOp.running
+            ? 'Cancel fetch'
+            : `${fetchedLabel}. Fetch${pruneOnFetch ? ' and prune' : ''} (${shortcutLabel('mod+shift+T')})`,
           fetchAllOp.running ? fetchAllOp.cancel : () => fetchAllOp.fetchPrimary(),
           [
             { label: 'Fetch and prune', onClick: fetchAllOp.fetchPrune },
@@ -321,7 +431,7 @@ function HeaderBar({
           'pull',
           branchStatus && branchStatus.behind > 0 ? `Pull ${branchStatus.behind}` : 'Pull',
           ArrowDown,
-          'Pull (shift-click to rebase)',
+          `Pull (${shortcutLabel('mod+shift+L')}), shift-click to rebase`,
           (e?: React.MouseEvent) => (e?.shiftKey ? onPullRebase() : onPull()),
           [
             { label: 'Pull (merge)', onClick: onPullMerge },
@@ -334,7 +444,7 @@ function HeaderBar({
           'push',
           branchStatus && branchStatus.ahead > 0 ? `Push ${branchStatus.ahead}` : 'Push',
           ArrowUp,
-          'Push (shift-click to force-push)',
+          `Push (${shortcutLabel('mod+shift+K')}), shift-click to force-push`,
           (e?: React.MouseEvent) => (e?.shiftKey ? onForcePush() : onPush()),
           [
             { label: 'Push tags', onClick: onPushTags },
@@ -347,10 +457,29 @@ function HeaderBar({
         {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
       </div>
       {syncMenu && <ContextMenu state={syncMenu} onClose={() => setSyncMenu(null)} />}
+      {onUndo && (
+        <button
+          type="button"
+          className="header-bar-icon-button"
+          aria-label={undoLabel}
+          title={`${undoLabel} (${shortcutLabel('mod+shift+Z')})`}
+          onPointerEnter={previewUndo}
+          onFocus={previewUndo}
+          onClick={onUndo}
+        >
+          <Undo2 size={16} strokeWidth={1.75} />
+        </button>
+      )}
       <span className="header-bar-divider" />
 
-      <button type="button" className="header-bar-quick-switch" onClick={() => setQuickSwitchOpen(true)}>
-        Go to anything <Kbd>{System.IsMac() ? '⌘K' : 'Ctrl K'}</Kbd>
+      <button
+        type="button"
+        className="header-bar-quick-switch"
+        aria-label="Go to anything"
+        onClick={() => setQuickSwitchOpen(true)}
+      >
+        <Search size={14} strokeWidth={1.75} aria-hidden="true" />
+        <span className="header-bar-quick-switch-label">Go to anything</span> <Kbd>{shortcutLabel('mod+K')}</Kbd>
       </button>
 
       {accessory}
@@ -364,12 +493,12 @@ function HeaderBar({
           title={
             inboxUnseen > 0
               ? `${inboxUnseen} new since the last refresh, across the open repositories`
-              : 'What waits on you across the open repositories'
+              : 'What is waiting across the open repositories'
           }
           onClick={onToggleInbox}
         >
           <Inbox size={14} strokeWidth={1.75} />
-          Inbox
+          <span className="header-bar-inbox-label">Inbox</span>
           {inboxUnseen > 0 && <span className="header-bar-inbox-count">{inboxUnseen}</span>}
         </button>
       )}
@@ -386,6 +515,7 @@ function HeaderBar({
 
       {currentUser && <IdentityBadge identity={currentUser} name={currentUser.name} email={currentUser.email} />}
 
+      {blamePath && <BlameView repoPath={repoPath} path={blamePath} onClose={() => setBlamePath(null)} />}
       {quickSwitchOpen && (
         <QuickSwitchPalette
           repoPath={repoPath}
@@ -402,6 +532,9 @@ function HeaderBar({
           onPush={onPush}
           onFetchAll={fetchAllOp.fetchAll}
           onOpenFile={setFileHistoryPath}
+          onBlameFile={setBlamePath}
+          onOpenChange={onOpenChange}
+          onShowStashes={onShowStashes}
           onSearchFiles={() => setSearchOpen(true)}
           onOpenCommit={onOpenCommit}
           onOpenNote={onOpenNote}

@@ -10,5 +10,7 @@ export default defineConfig({
     strictPort: true,
   },
   resolve: { alias: bindingsAlias },
+  // Fonts stay files: the app's font-src 'self' refuses data: URIs.
+  build: { assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined) },
   plugins: [react(), wails('./bindings')],
 })

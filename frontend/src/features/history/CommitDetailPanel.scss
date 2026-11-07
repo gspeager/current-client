@@ -38,8 +38,8 @@
 .commit-detail-title {
   flex: 1;
   min-width: 0;
-  color: var(--on-surface);
-  font: var(--title-md);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
 }
 
 .commit-detail-label {
@@ -59,7 +59,7 @@
 }
 
 .commit-detail-sha {
-  color: var(--primary);
+  color: var(--on-surface-variant);
   font: var(--data-sm);
 }
 
@@ -157,47 +157,6 @@
   border-radius: var(--radius-xs);
 }
 
-.commit-detail-branches {
-  @include patterns.truncate;
-}
-
-.commit-detail-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-  padding: var(--space-sm);
-  background: var(--surface);
-  border-radius: var(--radius);
-
-  > div {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    color: var(--on-surface-variant);
-    font: var(--data-sm);
-    @include patterns.truncate;
-
-    > span {
-      @include patterns.truncate;
-    }
-  }
-
-  > .commit-detail-coauthors {
-    grid-column: 1 / -1;
-    white-space: normal;
-  }
-}
-
-.commit-detail-parent-sha {
-  color: var(--primary);
-}
-
-.commit-detail-stat-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
 .commit-detail-subject {
   margin: 0;
   color: var(--on-surface);
@@ -223,26 +182,17 @@
   font: var(--ui-xs);
 }
 
-.commit-detail-actions-footer {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-md);
-  border-top: var(--border-structure);
-}
-
 .commit-detail-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-xs);
 
-  button {
+  > button {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: var(--space-xs);
-    height: var(--h-action);
+    height: var(--h-field);
     padding: 0 var(--space-sm);
     background: none;
     border: var(--border-structure);
@@ -258,26 +208,19 @@
   }
 }
 
-.commit-detail-more {
-  position: relative;
-  grid-column: 1 / -1;
+.commit-detail-more > summary {
+  list-style: none;
 
-  > summary {
-    list-style: none;
-
-    &::-webkit-details-marker {
-      display: none;
-    }
+  &::-webkit-details-marker {
+    display: none;
   }
 }
 
 .commit-detail-more-toggle {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: var(--space-xs);
-  width: 100%;
-  height: var(--h-action);
+  height: var(--h-field);
   padding: 0 var(--space-sm);
   background: none;
   border: var(--border-structure);
@@ -292,12 +235,11 @@
   }
 }
 
-// Opens upward, the width of the button, like the commit button's menu.
 .commit-detail-more-menu {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(100% + var(--space-xs));
+  top: calc(100% + var(--space-xs));
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -348,5 +290,16 @@
 
   .commit-detail-section-count {
     margin-left: auto;
+    font: var(--ui-xs);
   }
+}
+
+.commit-detail-more-menu .commit-detail-more-destructive {
+  color: var(--error);
+}
+
+.commit-detail-close {
+  @include patterns.icon-button;
+  width: var(--h-chip);
+  height: var(--h-chip);
 }

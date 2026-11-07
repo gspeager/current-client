@@ -76,9 +76,9 @@ func (s *HostService) IssueDetails(repoPath, key string) (IssueDetails, error) {
 	if err != nil {
 		return IssueDetails{}, err
 	}
-	details := IssueDetails{Issue: issue, Reference: src.tracker.Reference(key), DescriptionHTML: hostcontent.RenderMarkdown(issue.Description, src.webRoot), Writable: src.writable}
+	details := IssueDetails{Issue: issue, Reference: src.tracker.Reference(key), DescriptionHTML: hostcontent.RenderMarkdown(hostcontent.WikiHeadings(issue.Description), src.webRoot), Writable: src.writable}
 	for _, n := range notes {
-		details.Comments = append(details.Comments, IssueComment{Author: n.Author, BodyHTML: hostcontent.RenderMarkdown(n.Body, src.webRoot), CreatedAt: n.CreatedAt})
+		details.Comments = append(details.Comments, IssueComment{Author: n.Author, BodyHTML: hostcontent.RenderMarkdown(hostcontent.WikiHeadings(n.Body), src.webRoot), CreatedAt: n.CreatedAt})
 	}
 	return details, nil
 }

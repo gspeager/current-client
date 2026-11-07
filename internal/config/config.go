@@ -118,6 +118,8 @@ type Config struct {
 	DiffExpanded bool `json:"diffExpanded,omitempty"`
 	// Zero keeps long diff lines wrapping, as they always have.
 	DiffNoWrap bool `json:"diffNoWrap,omitempty"`
+	// "compact" tightens History, the file list and the sidebar; empty is comfortable.
+	Density string `json:"density,omitempty"`
 
 	// History's branch filter: "" is all branches, "HEAD" the current branch,
 	// anything else a branch name.

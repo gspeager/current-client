@@ -22,7 +22,8 @@ function WorkingChangesRow({ node, laneCount, rowHeight, changedFiles, user, sty
   return (
     <div
       className="commit-row commit-row-working"
-      role="button"
+      role="row"
+      aria-label={plural(changedFiles, 'uncommitted file')}
       tabIndex={0}
       title="Open Changes"
       style={style}
@@ -38,11 +39,11 @@ function WorkingChangesRow({ node, laneCount, rowHeight, changedFiles, user, sty
         <CommitGraph node={node} laneCount={laneCount} rowHeight={rowHeight} dashed />
       </div>
       <div className="commit-row-commit">
-        <span className="commit-row-working-label">{plural(changedFiles, 'file')} changed</span>
+        <span className="commit-row-working-label">{plural(changedFiles, 'uncommitted file')}</span>
       </div>
       {user?.name && (
         <div className="commit-row-author">
-          <IdentityBadge identity={user} name={user.name} email={user.email} size={18} />
+          <IdentityBadge identity={user} name={user.name} email={user.email} size={20} />
           <span className="commit-row-author-name">{user.name}</span>
         </div>
       )}

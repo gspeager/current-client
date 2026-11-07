@@ -3,11 +3,10 @@
 .header-bar-tab {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   gap: var(--space-xs);
   height: var(--h-chip);
-  min-width: 0;
-  max-width: 220px;
+  max-width: 150px;
   padding: 0 var(--space-xs) 0 var(--space-sm);
   border-radius: var(--radius);
   color: var(--outline);
@@ -57,6 +56,10 @@
 
 .header-bar-tab-name {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
   @include patterns.truncate;
 }
 
@@ -92,4 +95,16 @@
 
 .header-bar-tab-close {
   @include patterns.tab-close;
+}
+
+// Close appears when it can be used, so names keep the room.
+.header-bar-tab:not(:hover):not(:focus-within) .header-bar-tab-close {
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+
+// A dot on a tab means uncommitted work, as it does beside a branch name. Clean needs no mark.
+.header-bar-tab-dot:not(.header-bar-tab-dot-dirty):not(.header-bar-tab-dot-unavailable) {
+  display: none;
 }

@@ -1,4 +1,4 @@
-import { Check, X } from 'lucide-react'
+import { Check, CircleCheck, TriangleAlert, X } from 'lucide-react'
 import { BranchService, DashboardService } from '@current-client-bindings/app'
 import { countHealthIssues, isStaleBranch, STALE_THRESHOLD_DAYS } from './repoHealth'
 import { plural } from '../../lib/plural'
@@ -6,17 +6,30 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import './RepositoryHealth.scss'
 
+function HealthIcon({ warn }: { warn: boolean }) {
+  const Icon = warn ? TriangleAlert : CircleCheck
+  return (
+    <Icon
+      size={16}
+      strokeWidth={1.75}
+      className={warn ? 'repo-health-icon-warn' : 'repo-health-icon-ok'}
+      aria-hidden="true"
+    />
+  )
+}
+
 interface RepositoryHealthProps {
   repoPath: string
   repoVersion: number
   dirty: boolean
+  changedCount?: number
   hasConflict: boolean
 }
 
 // Well below git's own gc.auto (6700) so the suggestion surfaces sooner.
 const GC_SUGGEST_THRESHOLD = 1000
 
-function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: RepositoryHealthProps) {
+function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasConflict }: RepositoryHealthProps) {
   const branchStatus = useBranchStatus(repoPath, repoVersion)
   const { data, error } = useAsyncData(
     () => Promise.all([BranchService.ListLocal(repoPath), DashboardService.GetRepoDiskUsage(repoPath)]),
@@ -36,28 +49,29 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
   return (
     <div className="repo-health">
       <div className="repo-health-header">
-        <span className="repo-health-title">Repository health</span>
-        {loaded && (
+        <h3 className="repo-health-title">Repository state</h3>
+        {loaded && (issueCount > 0 || !dirty) && (
           <span className={`repo-health-badge repo-health-badge-${issueCount === 0 ? 'optimal' : 'attention'}`}>
-            {issueCount === 0 ? 'Optimal' : plural(issueCount, 'issue')}
+            {issueCount > 0 ? `${issueCount} to check` : 'All clear'}
           </span>
         )}
       </div>
 
       <div className="repo-health-body">
         {error ? (
-          <p className="repo-health-hint">Could not load repository health: {error}</p>
+          <p className="repo-health-hint">Could not load repository state: {error}</p>
         ) : !loaded ? (
           <p className="repo-health-hint">Loading…</p>
         ) : (
           <>
             <div className="repo-health-row">
+              <HealthIcon warn={staleBranchCount > 0} />
               <div className="repo-health-row-text">
                 <span className="repo-health-row-title">Stale branches</span>
                 <span className="repo-health-row-subtitle">
                   {staleBranchCount === 0
-                    ? `No inactive branches >${STALE_THRESHOLD_DAYS}d`
-                    : `${plural(staleBranchCount, 'branch', 'branches')} inactive >${STALE_THRESHOLD_DAYS}d`}
+                    ? `None inactive over ${STALE_THRESHOLD_DAYS} days`
+                    : `${plural(staleBranchCount, 'branch', 'branches')} inactive over ${STALE_THRESHOLD_DAYS} days`}
                 </span>
               </div>
               <span className={`repo-health-value repo-health-value-${staleBranchCount === 0 ? 'ok' : 'warn'}`}>
@@ -66,6 +80,7 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
             </div>
 
             <div className="repo-health-row">
+              <HealthIcon warn={!!unpushedCount} />
               <div className="repo-health-row-text">
                 <span className="repo-health-row-title">Unpushed commits</span>
                 <span className="repo-health-row-subtitle">
@@ -82,17 +97,22 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, hasConflict }: Reposit
             </div>
 
             <div className="repo-health-row">
+              <HealthIcon warn={hasConflict || dirty} />
               <div className="repo-health-row-text">
-                <span className="repo-health-row-title">Working directory</span>
+                <span className="repo-health-row-title">Working tree</span>
                 <span className="repo-health-row-subtitle">
                   {hasConflict
-                    ? 'Merge in progress — resolve conflicts'
+                    ? 'Merge in progress, conflicts to resolve'
                     : dirty
-                      ? 'Uncommitted changes present'
-                      : 'Clean tree, no merge conflicts'}
+                      ? changedCount > 0
+                        ? 'Uncommitted files'
+                        : 'Uncommitted changes'
+                      : 'Clean, no conflicts'}
                 </span>
               </div>
-              {hasConflict ? (
+              {!hasConflict && dirty && changedCount > 0 ? (
+                <span className="repo-health-value repo-health-value-warn">{changedCount}</span>
+              ) : hasConflict ? (
                 <X className="repo-health-icon repo-health-icon-warn" size={16} strokeWidth={2} />
               ) : (
                 !dirty && <Check className="repo-health-icon repo-health-icon-ok" size={16} strokeWidth={2} />

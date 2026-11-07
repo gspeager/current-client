@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import './ContextMenu.scss'
 
 export interface ContextMenuItem {
@@ -6,6 +6,8 @@ export interface ContextMenuItem {
   onClick: () => void
   destructive?: boolean
   disabled?: boolean
+  // Starts a new group, with a line above it.
+  separatorBefore?: boolean
 }
 
 export interface ContextMenuState {
@@ -96,22 +98,32 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
     <div
       ref={ref}
       className="context-menu"
+      role="menu"
       onKeyDown={moveFocus}
-      style={{ left: position.left, top: position.top, visibility: position.visible ? 'visible' : 'hidden' }}
+      style={{
+        left: position.left,
+        top: position.top,
+        maxHeight: 'calc(100vh - 16px)',
+        overflowY: 'auto',
+        visibility: position.visible ? 'visible' : 'hidden',
+      }}
     >
       {items.map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          className={item.destructive ? 'context-menu-item context-menu-item-destructive' : 'context-menu-item'}
-          disabled={item.disabled}
-          onClick={() => {
-            onClose()
-            item.onClick()
-          }}
-        >
-          {item.label}
-        </button>
+        <Fragment key={item.label}>
+          {item.separatorBefore && <div className="context-menu-separator" role="separator" />}
+          <button
+            type="button"
+            role="menuitem"
+            className={item.destructive ? 'context-menu-item context-menu-item-destructive' : 'context-menu-item'}
+            disabled={item.disabled}
+            onClick={() => {
+              onClose()
+              item.onClick()
+            }}
+          >
+            {item.label}
+          </button>
+        </Fragment>
       ))}
     </div>
   )

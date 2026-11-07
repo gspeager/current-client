@@ -38,7 +38,7 @@ function IssuePicker({ repoPath, onPick }: IssuePickerProps) {
         ) : !issues ? (
           <p className="issue-picker-note">Loading…</p>
         ) : issues.length === 0 ? (
-          <p className="issue-picker-note">No open issues assigned to you.</p>
+          <p className="issue-picker-note">No open issues assigned.</p>
         ) : (
           <ul className="issue-picker-list" aria-label="Assigned issues">
             {issues.map((issue) => (

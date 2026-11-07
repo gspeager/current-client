@@ -69,10 +69,41 @@ func History(ctx context.Context, repoPath string, limit, skip int, filter Histo
 	return logHistory(ctx, repoPath, args...)
 }
 
+var abbreviatedHash = regexp.MustCompile(`^[0-9a-fA-F]{4,40}$`)
+
 // SearchHistory is limited to HEAD's ancestry so every match has a
 // well-defined CommitPosition.
 func SearchHistory(ctx context.Context, repoPath, query string, limit int) ([]HistoryEntry, error) {
-	return logHistory(ctx, repoPath, append([]string{"-i", "--grep=" + query}, pageArgs(limit, 0)...)...)
+	matches, err := logHistory(ctx, repoPath, append([]string{"-i", "--grep=" + query}, pageArgs(limit, 0)...)...)
+	if err != nil {
+		return nil, err
+	}
+	if byAuthor, err := logHistory(ctx, repoPath, append([]string{"-i", "--author=" + query}, pageArgs(limit, 0)...)...); err == nil {
+		matches = mergeEntries(matches, byAuthor, limit)
+	}
+	if abbreviatedHash.MatchString(query) {
+		if byHash, err := logHistory(ctx, repoPath, append(pageArgs(1, 0), query, "--")...); err == nil {
+			matches = mergeEntries(byHash, matches, limit)
+		}
+	}
+	return matches, nil
+}
+
+// mergeEntries keeps first's order, then adds what second has that first doesn't.
+func mergeEntries(first, second []HistoryEntry, limit int) []HistoryEntry {
+	seen := make(map[string]bool, len(first))
+	for _, entry := range first {
+		seen[entry.SHA] = true
+	}
+	for _, entry := range second {
+		if !seen[entry.SHA] {
+			first = append(first, entry)
+		}
+	}
+	if limit > 0 && len(first) > limit {
+		return first[:limit]
+	}
+	return first
 }
 
 // CommitPosition returns how many commits on HEAD's ancestry are newer than sha.

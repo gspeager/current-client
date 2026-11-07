@@ -328,7 +328,7 @@ describe('ChangelogView', () => {
     expect(ChangelogService.Build).toHaveBeenLastCalledWith(REPO, 'v0.1.0', 'HEAD', '', true)
 
     const headings = screen.getAllByRole('heading').map((h) => h.textContent)
-    expect(headings).toEqual(['0.3.0', 'Added', '0.2.02026-09-20', 'Fixed', '0.1.02026-08-02', 'Added'])
+    expect(headings).toEqual(['Changelog', '0.3.0', 'Added', '0.2.02026-09-20', 'Fixed', '0.1.02026-08-02', 'Added'])
     await waitFor(() =>
       expect(markdown()).toHaveValue(
         '## [0.3.0]\n- filter by type\n## [0.2.0]\n- keep lane color\n## [0.1.0]\n- first release',

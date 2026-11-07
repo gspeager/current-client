@@ -84,7 +84,7 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 	} else if behind > 1 {
 		add("Behind "+change.TargetBranch, strconv.Itoa(behind)+" commits, as of the last fetch", "warn")
 	} else {
-		add("Behind "+change.TargetBranch, "up to date, as of the last fetch", "ok")
+		add("Base branch", "up to date with "+change.TargetBranch, "ok")
 	}
 	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRules, "all"); ok {
 		if rule, ok := hostapi.MatchRule(cached.([]hostapi.BranchRule), change.TargetBranch); ok {

@@ -372,6 +372,8 @@ function ReleaseEditor({
             {copied ? <Check size={14} strokeWidth={1.75} /> : <Copy size={14} strokeWidth={1.5} />}
           </button>
           <SplitButton
+            secondary
+            compact
             onClick={() => void write()}
             disabled={blocked || (untagged !== undefined && !version.trim())}
             menuLabel="More save options"

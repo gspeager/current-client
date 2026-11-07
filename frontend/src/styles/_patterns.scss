@@ -13,9 +13,30 @@
   text-transform: uppercase;
 }
 
+// HEAD's badge, the accent's clearest use.
+@mixin head-badge {
+  padding: 1px var(--space-xs);
+  background: var(--primary);
+  border-radius: var(--radius-xs);
+  color: var(--on-primary);
+  font: var(--eyebrow);
+  letter-spacing: var(--eyebrow-tracking);
+}
+
 @mixin disabled {
   &:disabled {
-    opacity: 0.45;
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+// A primary with nothing to do steps back to a neutral fill, so the accent only
+// ever marks an action that is available.
+@mixin disabled-primary {
+  &:disabled {
+    background: var(--surface-high);
+    color: var(--outline);
+    box-shadow: none;
     cursor: default;
   }
 }
@@ -45,7 +66,25 @@
     box-shadow: var(--glow-action);
   }
 
-  @include disabled;
+  @include disabled-primary;
+}
+
+@mixin subgroup-label {
+  font: var(--ui-xs);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+// A 24px target around a smaller control, with no change to how it looks.
+@mixin hit-target($reach: 2px) {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * $reach);
+  }
 }
 
 @mixin icon-button {
@@ -130,17 +169,38 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  position: relative;
+  width: var(--h-micro);
+  height: var(--h-micro);
   padding: 0;
   background: none;
   border: none;
   border-radius: var(--radius-xs);
   color: var(--outline);
+
+  // A bigger target than the mark it wraps.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+
   cursor: pointer;
 
   &:hover {
     background: var(--surface-high);
     color: var(--on-surface);
+  }
+}
+
+// Quieter while focus is in another pane. Without a focused pane, as after a click on
+// empty space or with a dialog open, every selection stays as it is.
+@mixin selected-row {
+  background: var(--surface-container);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
+
+  html:has([data-pane]:focus-within) [data-pane]:not(:focus-within) & {
+    background: var(--surface-low);
+    box-shadow: inset 2px 0 0 0 var(--outline-variant);
   }
 }

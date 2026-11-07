@@ -74,7 +74,9 @@ describe('image diffs', () => {
     await userEvent.click(screen.getByRole('button', { name: /Text/ }))
 
     expect(screen.queryByRole('img', { name: 'After' })).not.toBeInTheDocument()
-    expect(screen.getByText('<svg/>')).toBeInTheDocument()
+    expect(
+      screen.getByText((_, el) => el?.className === 'diff-content' && !!el.textContent?.includes('<svg/>')),
+    ).toBeInTheDocument()
   })
 
   it('keeps the binary message without image sources, or for other files', () => {

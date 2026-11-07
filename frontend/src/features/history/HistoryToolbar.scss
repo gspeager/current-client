@@ -1,14 +1,15 @@
 .history-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) var(--space-md);
   border-bottom: var(--border-structure);
 }
 
 .history-toolbar-search-wrap {
   position: relative;
-  flex: 1;
+  flex: 1 1 120px;
   min-width: 120px;
 }
 
@@ -57,8 +58,15 @@
 }
 
 .history-toolbar-first-parent {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
+  height: var(--h-field);
   white-space: nowrap;
+
+  .checkbox-label {
+    line-height: 16px;
+  }
 }
 
 .history-toolbar-filters {

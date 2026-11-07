@@ -43,7 +43,7 @@
 
 .file-history-row-selected {
   background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }
 
 .file-history-row-subject {
@@ -60,7 +60,7 @@
 }
 
 .file-history-row-sha {
-  color: var(--primary);
+  color: var(--on-surface-variant);
   font: var(--data-sm);
 }
 

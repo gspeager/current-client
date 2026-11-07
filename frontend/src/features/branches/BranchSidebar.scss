@@ -46,11 +46,18 @@
   .sidebar-section-header {
     margin-bottom: 0;
   }
+
+  // Sub-groups read one step quieter than the Branches section they sit in.
+  .sidebar-section-label {
+    @include patterns.subgroup-label;
+  }
 }
 
+// Lines up with the text of the collapsible sub-groups below, past their chevron.
 .branch-sidebar-group-label {
-  @include patterns.eyebrow;
+  @include patterns.subgroup-label;
   height: var(--h-micro);
+  padding-left: 18px;
   line-height: var(--h-micro);
   color: var(--outline);
 }
@@ -82,6 +89,9 @@
     height: var(--h-field);
     padding: 0 var(--space-sm);
     background: var(--primary-container);
+
+    @include patterns.disabled-primary;
+
     border: none;
     border-radius: var(--radius);
     color: var(--on-primary-container);
@@ -178,6 +188,10 @@
   gap: 2px;
 }
 
+[data-density='compact'] .branch-row {
+  height: var(--h-chip);
+}
+
 .branch-row {
   position: relative;
   display: flex;
@@ -206,7 +220,7 @@
 }
 
 .branch-row-blocked {
-  opacity: 0.55;
+  opacity: 0.75;
   cursor: default;
 }
 
@@ -272,12 +286,7 @@
 
 .branch-row-head {
   flex-shrink: 0;
-  padding: 1px var(--space-xs);
-  background: var(--primary);
-  border-radius: var(--radius-xs);
-  color: var(--on-primary);
-  font: var(--eyebrow);
-  letter-spacing: var(--eyebrow-tracking);
+  @include patterns.head-badge;
 }
 
 .branch-row-actions {
@@ -366,4 +375,57 @@
 
 .stack-mark-behind {
   color: var(--warning);
+}
+
+// Rows are the shape here; a pill on each would only add noise.
+.branch-row .branch-pill {
+  padding: 0;
+  background: none;
+}
+
+.branch-row .branch-pill:not(.branch-pill-current) {
+  color: var(--on-surface-variant);
+}
+
+.branch-row:hover .branch-pill:not(.branch-pill-current) {
+  color: var(--on-surface);
+}
+
+.branch-sidebar-filter input {
+  font: var(--ui-sm);
+}
+
+.branch-sidebar-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+
+  > span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  button {
+    flex-shrink: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+  }
+}
+
+.branch-row-mode-incoming {
+  border-color: var(--outline-variant);
+  color: var(--on-surface-variant);
+}
+
+// Passing CI stays quiet in a narrow list, so the names keep the room; a
+// failure still shows.
+.branch-row .ci-mark:has(.ci-icon-success) {
+  display: none;
+}
+
+.branch-row .ci-icon-success {
+  color: var(--outline);
 }

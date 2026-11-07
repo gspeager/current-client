@@ -1,6 +1,13 @@
-import { GitBranch } from 'lucide-react'
-import { DashboardService, type RepoDiskUsageInfo, type RepoStatsInfo } from '@current-client-bindings/app'
-import { ageColor, formatAge } from './repoAge'
+import type { ReactNode } from 'react'
+import {
+  ActivityService,
+  DashboardService,
+  type RepoDiskUsageInfo,
+  type RepoStatsInfo,
+} from '@current-client-bindings/app'
+import { weeklyBuckets } from './commitVelocity'
+import { formatAge } from './repoAge'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './RepoStatStrip.scss'
 
@@ -8,12 +15,13 @@ interface RepoStatStripProps {
   repoPath: string
   repoVersion: number
   dirty: boolean
+  changedCount?: number
+  action?: ReactNode
 }
 
 interface Stat {
   label: string
   value: string
-  color?: string
 }
 
 function formatDiskSize(kb: number): string {
@@ -30,15 +38,36 @@ function statsFor(s: RepoStatsInfo, disk: RepoDiskUsageInfo): Stat[] {
     { label: 'Tracked files', value: String(s.fileCount) },
     s.totalCommits === 0
       ? { label: 'Repository age', value: '—' }
-      : { label: 'Repository age', value: formatAge(s.repoAgeDays), color: ageColor(s.repoAgeDays) },
-    { label: 'Branches', value: String(s.branchCount) },
-    { label: 'Tags', value: String(s.tagCount) },
-    { label: 'Stashes', value: String(s.stashCount) },
-    { label: 'Repo size', value: formatDiskSize(disk.totalSizeKb) },
+      : { label: 'Repository age', value: formatAge(s.repoAgeDays) },
+    { label: 'Repository size', value: formatDiskSize(disk.totalSizeKb) },
   ]
 }
 
-function RepoStatStrip({ repoPath, repoVersion, dirty }: RepoStatStripProps) {
+// The last twelve weeks beside the all-time count, so the total has a direction.
+function CommitSparkline({ repoPath, repoVersion }: { repoPath: string; repoVersion: number }) {
+  const { data } = useAsyncData(() => ActivityService.GetCommitActivity(repoPath, 84), [repoPath], {
+    refreshKey: repoVersion,
+  })
+  if (!data) return null
+  const weeks = weeklyBuckets(data)
+  const max = Math.max(1, ...weeks.map((w) => w.commits))
+  return (
+    <svg
+      className="repo-stat-strip-spark"
+      width={weeks.length * 5}
+      height="20"
+      role="img"
+      aria-label="Commits per week, last 12 weeks"
+    >
+      {weeks.map((week, i) => {
+        const height = Math.max(2, (week.commits / max) * 20)
+        return <rect key={week.weekStart} x={i * 5} y={20 - height} width="4" height={height} rx="1" />
+      })}
+    </svg>
+  )
+}
+
+function RepoStatStrip({ repoPath, repoVersion, dirty, changedCount = 0, action }: RepoStatStripProps) {
   const { data, error } = useAsyncData(
     () => Promise.all([DashboardService.GetRepoStats(repoPath), DashboardService.GetRepoDiskUsage(repoPath)]),
     [repoPath],
@@ -54,9 +83,6 @@ function RepoStatStrip({ repoPath, repoVersion, dirty }: RepoStatStripProps) {
       ) : (
         <>
           <div className="repo-stat-strip-group">
-            <div className="repo-stat-strip-icon">
-              <GitBranch size={16} strokeWidth={1.75} />
-            </div>
             <div className="repo-stat-strip-item">
               <span className="repo-stat-strip-label">Branch</span>
               <span className="repo-stat-strip-value repo-stat-strip-branch" title={data[0].currentBranch}>
@@ -65,21 +91,25 @@ function RepoStatStrip({ repoPath, repoVersion, dirty }: RepoStatStripProps) {
                   className={`repo-stat-strip-dot${dirty ? ' repo-stat-strip-dot-dirty' : ' repo-stat-strip-dot-clean'}`}
                 />
               </span>
+              {changedCount > 0 && (
+                <span className="repo-stat-strip-note">{plural(changedCount, 'uncommitted file')}</span>
+              )}
             </div>
           </div>
           {statsFor(...data).map((stat) => (
             <div key={stat.label} className="repo-stat-strip-group">
-              <span className="repo-stat-strip-divider" />
               <div className="repo-stat-strip-item">
                 <span className="repo-stat-strip-label">{stat.label}</span>
-                <span className="repo-stat-strip-value" style={stat.color ? { color: stat.color } : undefined}>
+                <span className="repo-stat-strip-value">
                   {stat.value}
+                  {stat.label === 'Commits' && <CommitSparkline repoPath={repoPath} repoVersion={repoVersion} />}
                 </span>
               </div>
             </div>
           ))}
         </>
       )}
+      {action}
     </div>
   )
 }

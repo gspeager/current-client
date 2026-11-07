@@ -1,4 +1,5 @@
-import { GitPullRequest, PanelRight, TriangleAlert, Upload } from 'lucide-react'
+import { useState } from 'react'
+import { PanelRight, TriangleAlert } from 'lucide-react'
 import { HostService, PlatformService } from '@current-client-bindings/app'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark, { ciLabel } from '../../components/git/CIMark'
@@ -7,7 +8,6 @@ import { ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import './CurrentChangeSection.scss'
-import { useHostLogo } from '../../components/git/hostLogos'
 
 interface CurrentChangeSectionProps {
   repoPath: string
@@ -32,8 +32,12 @@ function CurrentChangeSection({
   onCreateChange,
   onPushToCreate,
 }: CurrentChangeSectionProps) {
-  const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath], { refreshKey, keepData: true })
-  const HostIcon = useHostLogo(repoPath)
+  const [checks, setChecks] = useState(0)
+  const [checking, setChecking] = useState(false)
+  const { data } = useAsyncData(() => HostService.CurrentChange(repoPath), [repoPath], {
+    refreshKey: `${refreshKey}:${checks}`,
+    keepData: true,
+  })
   const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath], {
     refreshKey,
     keepData: true,
@@ -48,36 +52,30 @@ function CurrentChangeSection({
   const kind = kindWord[0].toUpperCase() + kindWord.slice(1)
   const createChange = () => createChangeFor(repoPath, data.branch, onCreateChange)
 
-  const forecastBlock = forecast?.enabled && forecast.checked > 0 && (
+  const forecastBlock = forecast?.enabled && conflicts.length > 0 && (
     <div className="current-change-forecast" aria-label="Conflict forecast">
-      {conflicts.length === 0 ? (
-        <span className="current-change-forecast-clean">
-          No conflicts with the {forecast.checked} open on {forecast.base}.
-        </span>
-      ) : (
-        <ul className="current-change-conflicts">
-          {conflicts.map((c) => (
-            <li key={c.number}>
-              <TriangleAlert size={12} strokeWidth={1.75} className="current-change-conflict-icon" />
-              <button
-                type="button"
-                className="current-change-conflict"
-                onClick={() =>
-                  onOpenChange
-                    ? onOpenChange(c.number)
-                    : PlatformService.OpenWebPage(c.webUrl).catch(ignoreDecorativeFailure)
-                }
-                title={c.title}
-              >
-                Conflicts with {c.prefix}
-                {c.number}
-                {c.author ? ` by ${c.author}` : ''} in{' '}
-                <span className="current-change-conflict-files">{c.files.join(', ')}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="current-change-conflicts">
+        {conflicts.map((c) => (
+          <li key={c.number}>
+            <TriangleAlert size={12} strokeWidth={1.75} className="current-change-conflict-icon" />
+            <button
+              type="button"
+              className="current-change-conflict"
+              onClick={() =>
+                onOpenChange
+                  ? onOpenChange(c.number)
+                  : PlatformService.OpenWebPage(c.webUrl).catch(ignoreDecorativeFailure)
+              }
+              title={c.title}
+            >
+              Conflicts with {c.prefix}
+              {c.number}
+              {c.author ? ` by ${c.author}` : ''} in{' '}
+              <span className="current-change-conflict-files">{c.files.join(', ')}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
       {forecast.checked < forecast.total && (
         <span className="current-change-forecast-cap">
           {forecast.checked} of {forecast.total} checked
@@ -89,24 +87,48 @@ function CurrentChangeSection({
   if (!change) {
     if (!data.proposable && conflicts.length === 0) return null
     // Without an upstream there is nothing on the host to open a change from.
-    const row = !data.proposable ? null : data.upstream ? (
-      <button type="button" className="current-change-row" onClick={() => void createChange()}>
-        <GitPullRequest size={14} strokeWidth={1.75} className="current-change-row-icon" />
+    const row = !data.proposable ? null : !data.checked && data.upstream ? (
+      <button
+        type="button"
+        className="current-change-row"
+        disabled={checking}
+        onClick={() => {
+          setChecking(true)
+          void HostService.Refresh(repoPath)
+            .catch(ignoreDecorativeFailure)
+            .finally(() => {
+              setChecking(false)
+              setChecks((n) => n + 1)
+            })
+        }}
+      >
         <span className="current-change-row-text">
-          No {kindWord} <span className="current-change-row-sep">·</span>{' '}
+          {checking ? (
+            'Checking…'
+          ) : (
+            <>
+              <span className="current-change-row-action">Check status</span>
+            </>
+          )}
+        </span>
+      </button>
+    ) : data.upstream ? (
+      <button type="button" className="current-change-row" onClick={() => void createChange()}>
+        <span className="current-change-row-text">
+          None open <span className="current-change-row-sep">·</span>{' '}
           <span className="current-change-row-action">Create…</span>
         </span>
       </button>
     ) : (
       <button type="button" className="current-change-row" onClick={onPushToCreate} disabled={!onPushToCreate}>
-        <Upload size={14} strokeWidth={1.75} className="current-change-row-icon" />
-        <span className="current-change-row-text">Push to create a {kindWord}</span>
+        <span className="current-change-row-text">Push to create</span>
       </button>
     )
     return (
       <section className="current-change-slot" aria-label={`${kind} for ${data.branch}`}>
+        {row && <p className="current-change-slot-title">{kind}</p>}
         {row}
-        {conflicts.length > 0 && forecastBlock}
+        {forecastBlock}
       </section>
     )
   }
@@ -114,16 +136,27 @@ function CurrentChangeSection({
   const state = change.draft ? 'draft' : change.state
   return (
     <section className="current-change" aria-label={`${kind} for ${data.branch}`}>
-      <div className="current-change-head">
-        <span className="current-change-label">{kind}</span>
-        {state && <span className={`current-change-state current-change-state-${state}`}>{state}</span>}
-      </div>
       <div className="current-change-title">
         <ChangeMarker change={change} />
-        <span className="current-change-title-text">{change.title}</span>
+        <span className="current-change-title-text" title={change.title}>
+          {change.title}
+        </span>
+        {onOpenChange && (
+          <button
+            type="button"
+            className="current-change-button"
+            aria-label="Details"
+            title="Details"
+            onClick={() => onOpenChange(change.number)}
+          >
+            <PanelRight size={14} strokeWidth={1.75} />
+          </button>
+        )}
       </div>
       <div className="current-change-facts">
-        <span className="current-change-target">→ {change.targetBranch}</span>
+        {state && state !== 'open' && (
+          <span className={`current-change-state current-change-state-${state}`}>{state}</span>
+        )}
         {data.ci && (
           <span className="current-change-ci">
             <CIMark repoPath={repoPath} mark={data.ci} />
@@ -142,23 +175,6 @@ function CurrentChangeSection({
           ) : (
             <span className="current-change-threads">{change.unresolvedThreads} unresolved</span>
           ))}
-      </div>
-      <div className="current-change-actions">
-        {onOpenChange && (
-          <button type="button" className="current-change-button" onClick={() => onOpenChange(change.number)}>
-            <PanelRight size={14} strokeWidth={1.75} />
-            Details
-          </button>
-        )}
-        <button
-          type="button"
-          className="current-change-button"
-          onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
-          disabled={!change.webUrl}
-        >
-          <HostIcon size={14} strokeWidth={1.75} />
-          Open on host
-        </button>
       </div>
       {forecastBlock}
     </section>

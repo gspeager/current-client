@@ -27,7 +27,8 @@ describe('TagsPanel', () => {
     vi.mocked(TagService.DeleteRemoteTag).mockResolvedValue()
     renderPanel()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete tag v1.0 on remote' }))
+    await userEvent.click((await screen.findAllByRole('button', { name: 'More actions' }))[0])
+    await userEvent.click(await screen.findByText('Delete on remote…'))
     const dialog = await screen.findByRole('alertdialog', { name: 'Delete tag on remote' })
     expect(dialog).toHaveTextContent('Delete tag "v1.0" on origin?')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
@@ -49,14 +50,15 @@ describe('TagsPanel', () => {
       'Delete on remote…',
       'Delete…',
     ])
-    await userEvent.click(within(menu).getByRole('button', { name: 'Push tag' }))
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Push tag' }))
     await vi.waitFor(() => expect(TagService.PushTag).toHaveBeenCalledWith(REPO, 'origin', 'v1.0', null))
   })
 
   it('does nothing when the confirmation is cancelled', async () => {
     renderPanel()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete tag v1.0 on remote' }))
+    await userEvent.click((await screen.findAllByRole('button', { name: 'More actions' }))[0])
+    await userEvent.click(await screen.findByText('Delete on remote…'))
     const dialog = await screen.findByRole('alertdialog', { name: 'Delete tag on remote' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
@@ -67,7 +69,8 @@ describe('TagsPanel', () => {
     renderPanel()
     vi.mocked(RemoteService.List).mockResolvedValue([])
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete tag v1.0 on remote' }))
+    await userEvent.click((await screen.findAllByRole('button', { name: 'More actions' }))[0])
+    await userEvent.click(await screen.findByText('Delete on remote…'))
 
     expect(await screen.findByText('No remote configured.')).toBeInTheDocument()
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
@@ -84,7 +87,8 @@ describe('TagsPanel', () => {
       remote: 'origin',
     })
     renderPanel()
-    await userEvent.click(await screen.findByRole('button', { name: 'Publish release for v1.0 on host' }))
+    await userEvent.click((await screen.findAllByRole('button', { name: 'More actions' }))[0])
+    await userEvent.click(await screen.findByText('Publish release…'))
     expect(await screen.findByRole('dialog', { name: 'Publish release' })).toHaveTextContent(
       'From every commit up to the tag',
     )
@@ -95,6 +99,7 @@ describe('TagsPanel', () => {
     vi.mocked(HostService.CanPublishReleases).mockResolvedValue(false)
     renderPanel()
     await screen.findByRole('button', { name: 'Push tag v1.0' })
-    expect(screen.queryByRole('button', { name: 'Publish release for v1.0 on host' })).not.toBeInTheDocument()
+    await userEvent.click((await screen.findAllByRole('button', { name: 'More actions' }))[0])
+    expect(screen.queryByText('Publish release…')).not.toBeInTheDocument()
   })
 })

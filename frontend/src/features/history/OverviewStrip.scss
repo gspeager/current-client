@@ -1,7 +1,7 @@
 .overview-strip {
+  position: relative;
   flex-shrink: 0;
-  height: 40px;
-  overflow: hidden;
+  height: 44px;
   border-bottom: var(--border-structure);
   cursor: pointer;
 
@@ -10,16 +10,28 @@
   }
 }
 
-.overview-strip-area {
-  fill: var(--surface-container-high, var(--surface-container));
-  stroke: var(--outline);
-  stroke-width: 0.5;
+.overview-strip-line {
+  fill: none;
+  stroke: var(--tertiary);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
 }
 
 .overview-strip-window {
-  fill: var(--on-surface);
-  fill-opacity: 0.08;
-  stroke: var(--on-surface-variant);
-  stroke-width: 1;
+  fill: var(--secondary);
+  fill-opacity: 0.25;
+  pointer-events: none;
+}
+
+.overview-strip-tip {
+  position: absolute;
+  top: 100%;
+  z-index: 5;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-highest);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-xs);
+  white-space: nowrap;
   pointer-events: none;
 }

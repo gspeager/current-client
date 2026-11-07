@@ -2,7 +2,7 @@
 
 .settings-panel {
   width: 920px;
-  height: 100%;
+  height: min(620px, 100%);
 }
 
 .settings-layout {
@@ -42,10 +42,12 @@
 .settings-rail-item-active {
   background: var(--surface-container);
   color: var(--on-surface);
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }
 
 .settings-body {
+  // Lets the last groups reach the top when picked from the rail.
+  padding-bottom: 50vh;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -53,6 +55,10 @@
   gap: var(--space-xl);
   overflow-y: auto;
   padding: var(--space-lg);
+}
+
+.settings-group[hidden] {
+  display: none;
 }
 
 .settings-group {
@@ -121,6 +127,7 @@
 
 .settings-hint {
   margin: 0;
+  max-width: 80ch;
   color: var(--outline);
   font: var(--ui-xs);
 }
@@ -177,8 +184,14 @@
 .settings-risk-rules {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: var(--space-xs);
+
+  // Toggles sit on the right, like every other row's control.
+  .switch {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
 }
 
 .settings-git-config {
@@ -295,8 +308,7 @@
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: var(--surface);
-  border: var(--border-structure);
+  background: var(--surface-container);
   border-radius: var(--radius);
 }
 
@@ -404,4 +416,32 @@
   gap: var(--space-xs);
   font: var(--data-sm);
   color: var(--on-surface);
+}
+
+// A person's name is chrome, not data.
+.settings-field-text {
+  font: var(--ui-sm);
+}
+
+.settings-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-container);
+  border-radius: var(--radius);
+}
+
+.settings-preview-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-row-table);
+  color: var(--on-surface);
+  font: var(--title-md);
+}
+
+[data-density='compact'] .settings-preview-row {
+  min-height: var(--h-row-tree);
 }

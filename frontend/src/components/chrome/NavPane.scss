@@ -65,6 +65,8 @@
 }
 
 .nav-pane-collapse {
+  @include patterns.hit-target;
+
   width: var(--h-chip);
   height: var(--h-chip);
 }
@@ -72,7 +74,7 @@
 // Icon-only rail: one row-tree-sized button per action, centered in the column.
 .nav-pane-collapsed {
   align-items: center;
-  gap: var(--space-xs);
+  gap: 0;
   width: calc(var(--h-row-tree) + 2 * var(--space-sm));
   min-width: calc(var(--h-row-tree) + 2 * var(--space-sm));
   padding: var(--space-md) 0;
@@ -90,7 +92,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 0;
 }
 
 .nav-pane-rail-button {
@@ -118,7 +120,7 @@
   }
 }
 
-// "Open in" and "Tools": a caption over a wrapping row of outlined buttons.
+// "Open in" and "Tools": a caption over two even columns of quiet rows.
 .nav-pane-tool-group {
   display: flex;
   flex-direction: column;
@@ -131,22 +133,24 @@
 }
 
 .nav-pane-tool-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px var(--space-xs);
 }
 
 .nav-pane-tool {
-  display: inline-flex;
+  display: flex;
+  min-width: 0;
+  white-space: nowrap;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-row-table);
-  padding: 0 var(--space-sm);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
   background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius-md);
-  color: var(--on-surface);
-  font: 500 12px/16px var(--font-chrome);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
   cursor: pointer;
 
   svg {
@@ -154,10 +158,11 @@
   }
 
   &:hover:not(:disabled) {
-    background: var(--surface-low);
+    background: var(--surface-container);
+    color: var(--on-surface);
   }
 
-  // The outline stays; only the text goes quiet.
+  // Only the text goes quiet.
   &:disabled {
     color: var(--outline);
     cursor: default;
@@ -189,4 +194,17 @@
 
 .nav-pane-feedback-notice {
   color: var(--tertiary);
+}
+
+// A short window keeps room for branches with the Toolbox open.
+@media (max-height: 760px) {
+  .nav-pane-footer {
+    max-height: 38%;
+    overflow-y: auto;
+  }
+}
+
+.nav-pane-toolbox-quick {
+  display: inline-flex;
+  gap: 0;
 }

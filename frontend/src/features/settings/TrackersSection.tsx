@@ -1,3 +1,4 @@
+import Checkbox from '../../components/forms/Checkbox'
 import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { TrackerService, type TrackerInfo } from '@current-client-bindings/app'
 import Switch from '../../components/forms/Switch'
@@ -167,14 +168,14 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
           <span className="settings-host-name">{tracker.site}</span>
           <span className="settings-hint">
             {KIND_LABELS[tracker.kind] ?? tracker.kind}
-            {tracker.managed ? ' · Set by your organization' : ''}
+            {tracker.managed ? ' · Set by organization policy' : ''}
           </span>
           {!tracker.managed && tracker.repos.length === 0 && (
             <span className="settings-warning">Not used by any repository</span>
           )}
         </div>
         <div className="settings-host-switch">
-          {tracker.locked && <span className="settings-hint">Managed by your organization</span>}
+          {tracker.locked && <span className="settings-hint">Managed by organization policy</span>}
           <Switch
             checked={tracker.enabled}
             onChange={(on) => void run(TrackerService.SetEnabled(tracker.site, on))}
@@ -208,14 +209,13 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
             <legend className="settings-hint">Repositories</legend>
             {repos.length === 0 && <span className="settings-hint">Open a repository to give it this tracker.</span>}
             {repos.map((path) => (
-              <label key={path} className="settings-tracker-repo" title={path}>
-                <input
-                  type="checkbox"
+              <span key={path} className="settings-tracker-repo" title={path}>
+                <Checkbox
                   checked={tracker.repos.includes(path)}
-                  onChange={(e) => void toggleRepo(path, e.target.checked)}
+                  onChange={(on) => void toggleRepo(path, on)}
+                  label={repoName(path)}
                 />
-                {repoName(path)}
-              </label>
+              </span>
             ))}
           </fieldset>
         </>
@@ -249,7 +249,7 @@ function TrackerAccess({
       title: `Token for ${tracker.hostName}`,
       label: cloud
         ? 'An API token for that account, from id.atlassian.com. Reading issues is all it is used for.'
-        : 'A personal access token from your Jira profile. Reading issues is all it is used for.',
+        : 'A personal access token from a Jira profile. Reading issues is all it is used for.',
       confirmLabel: 'Save',
       secret: true,
     })

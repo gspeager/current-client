@@ -34,10 +34,11 @@ export interface CommitAction {
   icon: LucideIcon
   run: () => void
   destructive?: boolean
+  separatorBefore?: boolean
 }
 
 // The number of actions the inspector shows as buttons; the rest go under More.
-export const PRIMARY_COMMIT_ACTIONS = 4
+export const PRIMARY_COMMIT_ACTIONS = 2
 
 // The one ordered list of things to do with a commit, for the inspector and the
 // row's menu alike. Refreshes on failure too, since a conflict leaves the repo
@@ -110,8 +111,21 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
       icon: Wrench,
       run: () => run(CommitService.FixupInto(repoPath, commit.sha), 'Could not commit the fixup'),
     },
-    { id: 'reset', label: 'Reset to here…', icon: Undo2, run: () => setResetTarget(commit) },
-    { id: 'export-patch', label: 'Export patch…', icon: FileDown, run: () => exportPatch(commit) },
+    {
+      id: 'reset',
+      label: 'Reset to here…',
+      destructive: true,
+      separatorBefore: true,
+      icon: Undo2,
+      run: () => setResetTarget(commit),
+    },
+    {
+      id: 'export-patch',
+      label: 'Export patch…',
+      separatorBefore: true,
+      icon: FileDown,
+      run: () => exportPatch(commit),
+    },
     {
       id: 'note',
       label: noteMenuLabel(notes, 'commit', commit.sha),

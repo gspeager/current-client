@@ -4,7 +4,6 @@
   flex-direction: column;
   padding-top: var(--space-md);
   background: var(--surface-low);
-  border: var(--border-structure);
   border-radius: var(--radius-lg);
   color: var(--on-surface);
 }
@@ -25,26 +24,14 @@
 }
 
 .commit-velocity-title {
-  font: var(--title-sm);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font: var(--title-md);
+  font-weight: 600;
   color: var(--on-surface);
 }
 
 .commit-velocity-subtitle {
   color: var(--outline);
-  font: var(--ui-xs);
-}
-
-.commit-velocity-badge {
-  flex-shrink: 0;
-  padding: 2px var(--space-sm);
-  background: color-mix(in srgb, var(--tertiary) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tertiary) 40%, transparent);
-  border-radius: var(--radius);
-  color: var(--tertiary);
-  font: var(--ui-xs);
-  white-space: nowrap;
+  font: var(--ui-sm);
 }
 
 .commit-velocity-body {
@@ -61,15 +48,18 @@
 }
 
 .commit-velocity-bars {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  min-height: 96px;
+  height: 144px;
 }
 
 .commit-velocity-bar-wrap {
-  flex: 1;
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -78,15 +68,40 @@
   height: 100%;
 }
 
+.commit-velocity-bar-area {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+}
+
 .commit-velocity-bar {
   width: 100%;
   min-height: 4px;
   border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--tertiary) 60%, var(--surface-low));
+}
+
+.commit-velocity-bar-current {
   background: var(--tertiary);
+}
+
+.commit-velocity-average {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  border-top: 1px dashed var(--outline);
 }
 
 .commit-velocity-week-label {
   flex-shrink: 0;
+  width: 0;
+  min-height: 16px;
+  display: flex;
+  justify-content: center;
+  white-space: nowrap;
   color: var(--outline);
   font: var(--ui-xs);
 }
@@ -94,19 +109,4 @@
 .commit-velocity-week-label-current {
   color: var(--on-surface);
   font-weight: 600;
-}
-
-.commit-velocity-footer {
-  flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm) var(--space-md);
-  padding: var(--space-sm) var(--space-md) var(--space-md);
-}
-
-.commit-velocity-average {
-  color: var(--outline);
-  font: var(--ui-sm);
 }

@@ -17,14 +17,14 @@ describe('RepositoryHealth', () => {
     stubRepository()
     render(<RepositoryHealth repoPath="/repos/app" repoVersion={0} dirty hasConflict={false} />)
 
-    expect(await screen.findByText('Optimal')).toBeInTheDocument()
-    expect(screen.getByText('Uncommitted changes present')).toBeInTheDocument()
+    expect(await screen.findByText('Uncommitted changes')).toBeInTheDocument()
+    expect(screen.queryByText('All clear')).not.toBeInTheDocument()
   })
 
   it('counts a conflict as an issue', async () => {
     stubRepository()
     render(<RepositoryHealth repoPath="/repos/app" repoVersion={0} dirty hasConflict />)
 
-    expect(await screen.findByText('1 issue')).toBeInTheDocument()
+    expect(await screen.findByText('1 to check')).toBeInTheDocument()
   })
 })

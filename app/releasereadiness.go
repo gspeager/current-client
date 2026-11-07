@@ -208,7 +208,7 @@ func versionFileChecks(ctx context.Context, repoPath, sha, version, previous str
 		check := ReleaseCheck{Label: rev.Path}
 		data, ok := contents[rev]
 		if !ok {
-			check.Level, check.Value = "warn", "Not in the candidate"
+			check.Level, check.Value = "warn", "Not at this commit"
 			checks = append(checks, check)
 			continue
 		}
@@ -247,7 +247,7 @@ func changelogCheck(ctx context.Context, repoPath, sha, version string) ReleaseC
 	case err != nil:
 		check.Level, check.Value = "unknown", err.Error()
 	case !found:
-		check.Level, check.Value = "warn", "No "+file+" in the candidate"
+		check.Level, check.Value = "warn", "No "+file+" at this commit"
 	case version == "":
 		check.Level, check.Value = "unknown", "No version to look for"
 	default:

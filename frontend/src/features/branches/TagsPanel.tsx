@@ -162,6 +162,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
             ariaLabel: `Open tag ${name} on host`,
             icon: hostLogo(hostLinks.style),
             run: () => void PlatformService.OpenWebPage(tagPage(hostLinks, name)),
+            menuOnly: true,
           },
         ]
       : []),
@@ -173,6 +174,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
             icon: PackagePlus,
             run: () => setReleaseTag(name),
             disabled: busy,
+            menuOnly: true,
           },
         ]
       : []),
@@ -181,6 +183,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
       ariaLabel: `${noteMenuLabel(notes, 'tag', name)} on tag ${name}`,
       icon: StickyNote,
       run: () => notes.edit({ kind: 'tag', target: name }),
+      menuOnly: true,
     },
     { label: 'Push tag', ariaLabel: `Push tag ${name}`, icon: Upload, run: () => pushTag(name), disabled: busy },
     { label: 'Copy name', ariaLabel: `Copy ${name}`, icon: Copy, run: () => copy(name), menuOnly: true },
@@ -191,6 +194,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
       run: () => void deleteRemoteTag(name),
       disabled: busy,
       destructive: true,
+      menuOnly: true,
     },
     {
       label: 'Delete…',
@@ -227,6 +231,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
             </button>
           </>
         }
+        onPinnedEscape={() => setShowNewTag(false)}
         pinned={
           showNewTag && (
             <div className="tags-panel-new">
@@ -277,7 +282,11 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
                   <span className="tag-row-name">{t.name}</span>
                   <NoteMark kind="tag" target={t.name} />
                   <span className="tag-row-time">{relativeTime(new Date(t.date))}</span>
-                  <RowActionButtons actions={tagActions(t.name)} className="tag-row-actions" />
+                  <RowActionButtons
+                    actions={tagActions(t.name)}
+                    className="tag-row-actions"
+                    onMore={rowMenu.open(tagActions(t.name))}
+                  />
                 </div>
                 {t.annotated && expandedName === t.name && (
                   <div className="tag-row-message">

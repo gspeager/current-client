@@ -16,6 +16,7 @@ import { buildDisplayRows, diffStats } from './diffRows'
 import { conflictRows, type ConflictView } from './conflictRows'
 import DiffPane, { lineKey, lineRef, type HunkActions } from './DiffPane'
 import ReviewThreadBlock from './ReviewThreadBlock'
+import DiffMinimap from './DiffMinimap'
 import PendingCommentBlock from '../review/PendingCommentBlock'
 import ReviewComposer from '../review/ReviewComposer'
 import ReviewDialog from '../review/ReviewDialog'
@@ -25,6 +26,8 @@ import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import { plural } from '../../lib/plural'
 import { toggled } from '../../lib/sets'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { useRovingRows } from '../../lib/useRovingRows'
+import { NARROW_SPLIT_WIDTH, useWindowNarrowerThan } from '../../lib/useWindowNarrowerThan'
 import './DiffViewer.scss'
 
 function formatMegabytes(bytes: number): string {
@@ -34,6 +37,8 @@ function formatMegabytes(bytes: number): string {
 interface DiffSideLabel {
   label: string
   sha?: string
+  // A branch's lane color, where the side is a branch.
+  color?: string
 }
 
 interface DiffViewerProps extends HunkActions {
@@ -90,7 +95,10 @@ function DiffViewer({
   const newIssue = useNewIssue()
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
   const { wrap } = useDiffWrap()
+  const tooNarrowForSplit = useWindowNarrowerThan(NARROW_SPLIT_WIDTH)
   const paneRef = useRef<HTMLDivElement>(null)
+  const setLineStops = useRovingRows('.diff-line-select')
+  useEffect(() => setLineStops(paneRef.current))
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
   const [currentBlock, setCurrentBlock] = useState(0)
@@ -172,12 +180,22 @@ function DiffViewer({
   const canSelectLines = !diff.conflicted && Boolean(hunkActions.onStageHunk ?? hunkActions.onUnstageHunk)
 
   useWindowKeydown((e) => {
-    if (!e.altKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
+    // S, U and D act on the current hunk while focus is in the diff.
+    if (!e.metaKey && !e.ctrlKey && !e.altKey && paneRef.current?.contains(document.activeElement)) {
+      const hunk = diff.hunks[currentHunkIndex]
+      const key = e.key.toLowerCase()
+      if (hunk && key === 's') hunkActions.onStageHunk?.(hunk.raw)
+      if (hunk && key === 'u') hunkActions.onUnstageHunk?.(hunk.raw)
+      if (hunk && key === 'd') hunkActions.onDiscardHunk?.(hunk.raw)
+    }
+    const forward = e.key === 'F7' ? !e.shiftKey : e.altKey && e.key === 'ArrowDown'
+    const back = e.key === 'F7' ? e.shiftKey : e.altKey && e.key === 'ArrowUp'
+    if (!forward && !back) return
     if (diff.conflicted) {
       if (blocks.blockStarts.length === 0) return
       e.preventDefault()
       goToBlock(
-        e.key === 'ArrowDown'
+        forward
           ? Math.min(blocks.blockStarts.length - 1, currentBlock + 1)
           : Math.max(0, currentBlock - 1),
       )
@@ -187,7 +205,7 @@ function DiffViewer({
     if (total === 0) return
     e.preventDefault()
     setCurrentHunkIndex((i) => {
-      const next = e.key === 'ArrowDown' ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
+      const next = forward ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
       const headers = paneRef.current?.querySelectorAll('.diff-hunk-header')
       headers?.[next]?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
       return next
@@ -275,7 +293,9 @@ function DiffViewer({
   const stats = diffStats(diff)
   // A conflicted file shows its two sides, or the working file with the markers
   // inline; either way there's no hunk to stage on its own.
-  const mode = diff.conflicted ? (conflictView === 'side-by-side' ? 'split' : 'unified') : viewMode
+  const displayRows = diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)
+  const chosenMode = diff.conflicted ? (conflictView === 'side-by-side' ? 'split' : 'unified') : viewMode
+  const mode = tooNarrowForSplit ? 'unified' : chosenMode
   // Threads pin to a new-side line the diff shows; the rest, and all of them
   // when each side scrolls on its own, are listed under the diff.
   const sidesApart = mode === 'split' && !wrap
@@ -365,7 +385,10 @@ function DiffViewer({
       {mode === 'split' && baseSide && targetSide && (
         <div className="diff-side-headers">
           <div className="diff-side-header">
-            <span className="diff-side-header-dot diff-side-header-dot-base" />
+            <span
+              className="diff-side-header-dot diff-side-header-dot-base"
+              style={baseSide.color ? { background: baseSide.color } : undefined}
+            />
             <span className="diff-side-header-label">
               {baseSide.label}
               {baseSide.sha && <span className="diff-side-header-sha">{baseSide.sha}</span>}
@@ -375,7 +398,10 @@ function DiffViewer({
             )}
           </div>
           <div className="diff-side-header">
-            <span className="diff-side-header-dot diff-side-header-dot-target" />
+            <span
+              className="diff-side-header-dot diff-side-header-dot-target"
+              style={targetSide.color ? { background: targetSide.color } : undefined}
+            />
             <span className="diff-side-header-label">
               {targetSide.label}
               {targetSide.sha && <span className="diff-side-header-sha">{targetSide.sha}</span>}
@@ -391,7 +417,7 @@ function DiffViewer({
       >
         <DiffPane
           mode={mode}
-          rows={diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)}
+          rows={displayRows}
           blockStarts={diff.conflicted ? new Set(blocks.blockStarts) : undefined}
           resultView={diff.conflicted && conflictView === 'result'}
           path={path}
@@ -421,6 +447,7 @@ function DiffViewer({
           }
           {...(diff.conflicted ? {} : hunkActions)}
         />
+        <DiffMinimap rows={displayRows} paneRef={paneRef} />
         {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
           <section className="review-threads-outdated" aria-label="Threads not shown at a line">
             {unplaced.length > 0 && (

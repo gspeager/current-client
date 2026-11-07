@@ -3,8 +3,15 @@ import type { ConfirmOptions } from '../../lib/useDialogs'
 
 const commits = (n: number, one: string, many: string) => `${n} commit${n === 1 ? ` ${one}` : `s ${many}`}`
 
+const undoTitle = (plan: UndoPlanInfo) => `Undo ${plan.operation === 'switch' ? 'branch switch' : plan.operation}`
+
+// What Undo would do, for its button: the operation and the commit it leaves.
+export function undoActionLabel(plan: UndoPlanInfo): string {
+  return plan.operation === 'switch' ? undoTitle(plan) : `${undoTitle(plan)} ${plan.from.slice(0, 7)}`
+}
+
 export function undoConfirmOptions(plan: UndoPlanInfo): ConfirmOptions {
-  const title = `Undo ${plan.operation === 'switch' ? 'branch switch' : plan.operation}`
+  const title = undoTitle(plan)
   if (plan.operation === 'switch') {
     return {
       title,

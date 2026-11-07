@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ClipboardCheck } from 'lucide-react'
 import {
   BisectService,
+  SettingsService,
   BranchService,
   HistoryService,
   PatchService,
@@ -51,6 +52,7 @@ function Shell({
 }: ShellSpies) {
   const [paletteOpen, setPaletteOpen] = useState(true)
   const workspace = useWorkspaceActions({
+    onOpenTerminal: vi.fn(),
     repoPath: REPO,
     onBranchChanged,
     onOpenCommit: vi.fn(),
@@ -128,7 +130,7 @@ beforeAll(() => {
 })
 
 describe('QuickSwitchPalette at rest', () => {
-  it('lists the checked-out branch first, at most eight local branches, and no settings until typed for', async () => {
+  it('lists the checked-out branch first, at most four local branches, and no settings until typed for', async () => {
     const names = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
     vi.mocked(BranchService.ListLocal).mockResolvedValue([
       ...names.map((name) => ({ name, current: false })),
@@ -142,7 +144,7 @@ describe('QuickSwitchPalette at rest', () => {
     const branches = within(palette())
       .getAllByRole('option')
       .filter((o) => o.getAttribute('data-value')?.startsWith('branch:'))
-    expect(branches).toHaveLength(8)
+    expect(branches).toHaveLength(4)
     expect(branches[0]).toHaveAccessibleName('main, current branch')
     expect(within(palette()).queryByRole('option', { name: /origin\/zed/ })).not.toBeInTheDocument()
     expect(within(palette()).queryByRole('option', { name: 'Settings: Appearance' })).not.toBeInTheDocument()
@@ -163,7 +165,7 @@ describe('QuickSwitchPalette features', () => {
     const readiness = paletteAction('Release readiness')
     expect(groupOf(readiness)).toContain('Release')
     expect(groupOf(paletteAction('Pull'))).toContain('Sync')
-    expect(groupOf(paletteAction('Open Terminal'))).toContain('Tools')
+    expect(groupOf(paletteAction('Terminal panel'))).toContain('Tools')
 
     await userEvent.type(screen.getByRole('combobox'), 'rel')
     await userEvent.click(paletteAction('Release readiness'))
@@ -194,20 +196,20 @@ describe('QuickSwitchPalette features', () => {
     await vi.waitFor(() => expect(onOpenCommit).toHaveBeenCalledWith('abc1234def', 12))
   })
 
-  it('offers Settings instead of a dead end', async () => {
-    const onOpenSettings = vi.fn()
-    renderPalette(undefined, { onOpenSettings })
+  it('says plainly when nothing matches, with nothing to select', async () => {
+    renderPalette()
 
     await userEvent.type(screen.getByRole('combobox'), 'zzzz')
-    expect(within(palette()).getByText('No matches')).toBeInTheDocument()
-    await userEvent.click(paletteAction('Open Settings'))
-    expect(onOpenSettings).toHaveBeenCalledWith()
+    expect(within(palette()).getByText('Nothing named “zzzz”.')).toBeInTheDocument()
+    expect(within(palette()).queryAllByRole('option')).toHaveLength(0)
   })
 })
 
 describe('QuickSwitchPalette Workspace actions', () => {
-  it('lists every sidebar action by its sidebar name', () => {
+  it('lists every sidebar action by its sidebar name', async () => {
+    vi.mocked(SettingsService.GetSidebarSections).mockResolvedValue({ toolbox: true })
     renderPalette()
+    await waitFor(() => expect(document.querySelector('.nav-pane-tool')).not.toBeNull())
 
     const sidebar = [...document.querySelectorAll('.nav-pane-tool:not([aria-expanded])')].map((b) =>
       b.getAttribute('title'),
@@ -216,7 +218,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       .getAllByRole('option')
       .map((o) => o.getAttribute('aria-label'))
     expect(sidebar).toEqual([
-      'Open Terminal',
+      'Terminal panel',
       expect.stringMatching(/^(Reveal in|Open in File Manager)/),
       'Open in VS Code',
       'Undo last operation',
@@ -311,7 +313,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       'Add note…',
       'Copy SHA',
     ])
-    await userEvent.click(screen.getByRole('button', { name: 'Check out' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Check out' }))
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Check out' }))
     expect(BranchService.CheckoutCommit).toHaveBeenCalledWith(REPO, 'abc1234def')
   })

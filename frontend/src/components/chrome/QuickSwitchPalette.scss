@@ -19,7 +19,7 @@
   height: var(--h-action);
   padding: 0 var(--space-md);
   border-bottom: var(--border-structure);
-  color: var(--primary);
+  color: var(--outline);
 
   input {
     flex: 1;
@@ -103,9 +103,18 @@
   text-align: left;
 }
 
+.quick-switch-row-action {
+  font: var(--ui-sm);
+  justify-content: space-between;
+
+  .quick-switch-row-name {
+    flex: 1;
+  }
+}
+
 .quick-switch-row[data-selected='true'] {
   background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }
 
 .quick-switch-row-icon {
@@ -178,7 +187,7 @@
 }
 
 .quick-switch-commit-sha {
-  color: var(--primary);
+  color: var(--on-surface-variant);
   font: var(--data-sm);
 }
 
@@ -214,4 +223,12 @@
 
 .quick-switch-result-count {
   margin-left: auto;
+}
+
+.quick-switch-empty {
+  margin: 0;
+  padding: var(--space-xl) var(--space-lg);
+  color: var(--outline);
+  font: var(--ui-md);
+  text-align: center;
 }

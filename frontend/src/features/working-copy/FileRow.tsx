@@ -1,6 +1,6 @@
 import { NoteMark } from '../notes/notes'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
-import { Ellipsis, Users, X } from 'lucide-react'
+import { Ellipsis, Users, Undo2 } from 'lucide-react'
 import { isMenuKey } from '../../components/controls/ContextMenu'
 import Checkbox from '../../components/forms/Checkbox'
 import DiffStat from '../../components/git/DiffStat'
@@ -93,7 +93,7 @@ function FileRow({
         )}
         {tag && <span className="file-row-tag">{tag}</span>}
         <ThreadCount count={threads} />
-        <DiffStat added={added} removed={removed} binary={binary} />
+        {!status.startsWith('U') && <DiffStat added={added} removed={removed} binary={binary} />}
       </span>
       <StatusBadge status={status} />
       {(onContextMenu || onDiscard) && (
@@ -111,7 +111,7 @@ function FileRow({
               aria-label={`Discard ${label}`}
               title="Discard"
             >
-              <X size={14} strokeWidth={1.5} />
+              <Undo2 size={14} strokeWidth={1.5} />
             </button>
           )}
         </span>

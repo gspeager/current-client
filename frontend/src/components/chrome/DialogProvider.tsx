@@ -1,4 +1,5 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useRef, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { restoreFocus } from '../../lib/panes'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
 import { DialogContext, type ConfirmOptions, type Dialogs, type PromptOptions } from '../../lib/useDialogs'
@@ -14,11 +15,18 @@ type Request =
 
 function ConfirmDialog({ options, onSettle }: { options: ConfirmOptions; onSettle: (confirmed: boolean) => void }) {
   const { element } = useCurrentClientRoot()
+  const opener = useRef(document.activeElement)
   return (
     <AlertDialog.Root open onOpenChange={(open) => !open && onSettle(false)}>
       <AlertDialog.Portal container={element}>
         <AlertDialog.Overlay className="modal-overlay modal-overlay-center">
-          <AlertDialog.Content className="modal-panel dialog-panel">
+          <AlertDialog.Content
+            className="modal-panel dialog-panel"
+            onCloseAutoFocus={(e) => {
+              e.preventDefault()
+              restoreFocus(opener.current)
+            }}
+          >
             <div className="modal-header">
               <AlertDialog.Title className="modal-title">{options.title}</AlertDialog.Title>
             </div>

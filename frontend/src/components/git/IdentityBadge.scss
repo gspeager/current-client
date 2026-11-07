@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .identity-badge {
   // The ink must match core/identity's BadgeInk, which every badge color is
   // checked for contrast against; it doesn't follow the theme.
@@ -12,7 +14,7 @@
   border-radius: 50%;
   color: var(--badge-ink);
   font-family: var(--font-mono);
-  font-size: calc(var(--badge-size) * 0.42);
+  font-size: round(max(10px, calc(var(--badge-size) * 0.42)), 1px);
   font-weight: 600;
   line-height: 1;
 }
@@ -21,4 +23,8 @@
   padding: 0;
   border: none;
   cursor: pointer;
+}
+
+.identity-badge-button {
+  @include patterns.hit-target;
 }

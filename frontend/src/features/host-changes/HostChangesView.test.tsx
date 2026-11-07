@@ -204,10 +204,10 @@ describe('HostChangesView', () => {
 
     const detail = await screen.findByRole('article', { name: '!138' })
     expect(await within(detail).findByText('#4')).toBeInTheDocument()
-    expect(within(detail).getByText('feature → main')).toBeInTheDocument()
+    expect(within(detail).getByLabelText('feature into main')).toBeInTheDocument()
     expect(within(detail).getByText(/Would conflict with main in/)).toBeInTheDocument()
     expect(within(detail).getByText('CI passed')).toBeInTheDocument()
-    await userEvent.click(within(detail).getByRole('button', { name: 'Open on gitlab.example.com' }))
+    await userEvent.click(within(detail).getByRole('button', { name: 'Open on host' }))
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.example.com/g/r/-/merge_requests/138')
     expect(HostService.ChangeDetails).toHaveBeenCalledWith(REPO, 138)
   })

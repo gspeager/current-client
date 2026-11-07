@@ -34,3 +34,9 @@
 .context-menu-item-destructive {
   color: var(--error);
 }
+
+.context-menu-separator {
+  height: 1px;
+  margin: var(--space-xs) 0;
+  background: var(--surface-highest);
+}

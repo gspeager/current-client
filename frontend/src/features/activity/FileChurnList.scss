@@ -4,7 +4,6 @@
   flex-direction: column;
   padding-top: var(--space-md);
   background: var(--surface-low);
-  border: var(--border-structure);
   border-radius: var(--radius-lg);
   color: var(--on-surface);
 }
@@ -25,15 +24,14 @@
 }
 
 .file-churn-title {
-  font: var(--title-sm);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font: var(--title-md);
+  font-weight: 600;
   color: var(--on-surface);
 }
 
 .file-churn-subtitle {
   color: var(--outline);
-  font: var(--ui-xs);
+  font: var(--ui-sm);
 }
 
 .file-churn-badge {

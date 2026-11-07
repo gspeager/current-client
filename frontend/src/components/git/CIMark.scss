@@ -20,6 +20,11 @@
 }
 
 .ci-mark {
+  @include patterns.hit-target(5px);
+
+  min-width: var(--h-micro);
+  min-height: var(--h-micro);
+  justify-content: center;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -49,7 +54,7 @@
 .ci-job,
 .ci-job-row {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) max-content max-content max-content;
+  grid-template-columns: 14px minmax(0, 1fr) 128px 64px minmax(26px, max-content);
   align-items: center;
   gap: var(--space-sm);
   min-height: var(--h-row-tree);

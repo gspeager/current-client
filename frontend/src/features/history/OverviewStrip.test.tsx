@@ -33,11 +33,12 @@ describe('OverviewStrip', () => {
     expect(onJump).toHaveBeenLastCalledWith(0)
   })
 
-  it('marks HEAD in cyan and leaves other refs in their own colors', () => {
+  it('colors each kind of marker, with HEAD alone in cyan', () => {
     const markers = [
       { kind: 'head', name: 'HEAD', date: iso('2026-01-20') },
       { kind: 'branch', name: 'main', date: iso('2026-01-20') },
       { kind: 'tag', name: 'v1', date: iso('2026-01-11') },
+      { kind: 'stash', name: 'stash', date: iso('2026-01-05') },
       { kind: 'match', name: 'found', date: iso('2026-01-11') },
       { kind: 'tag', name: 'older', date: iso('2020-01-01') },
     ]
@@ -47,9 +48,55 @@ describe('OverviewStrip', () => {
 
     expect(fills('head')).toEqual(['var(--primary)'])
     expect(fills('branch')[0]).not.toContain('--primary')
-    expect(fills('match')).toHaveLength(1)
+    expect(fills('stash')).toEqual(['var(--warning)'])
+    expect(fills('match')).toEqual(['var(--warning)'])
     // A marker outside the listed range isn't drawn.
-    expect(fills('tag')).toHaveLength(1)
+    expect(fills('tag')).toEqual(['var(--secondary)'])
+  })
+
+  it('draws activity as an open line, not a filled area', () => {
+    const { container } = render(<OverviewStrip days={days} markers={[]} visible={null} onJump={vi.fn()} />)
+    const path = container.querySelector('.overview-strip-line')?.getAttribute('d') ?? ''
+    expect(path).toMatch(/^M0 /)
+    expect(path).toContain('C')
+    expect(path).not.toContain('Z')
+  })
+
+  it('keeps refs in short rows under the line, and HEAD and matches full height', () => {
+    const markers = [
+      { kind: 'head', name: 'HEAD', date: iso('2026-01-20') },
+      { kind: 'match', name: 'found', date: iso('2026-01-11') },
+      { kind: 'branch', name: 'main', date: iso('2026-01-20') },
+      { kind: 'tag', name: 'v1', date: iso('2026-01-11') },
+      { kind: 'stash', name: 'stash', date: iso('2026-01-05') },
+    ]
+    const { container } = render(<OverviewStrip days={days} markers={markers} visible={null} onJump={vi.fn()} />)
+    const box = (kind: string) => {
+      const tick = container.querySelector(`[data-marker="${kind}"]`)
+      return { y: Number(tick?.getAttribute('y')), height: Number(tick?.getAttribute('height')) }
+    }
+
+    expect(box('head')).toEqual({ y: 0, height: 44 })
+    expect(box('match')).toEqual({ y: 0, height: 44 })
+    expect(box('branch')).toEqual({ y: 32, height: 4 })
+    expect(box('tag')).toEqual({ y: 38, height: 4 })
+    expect(box('stash')).toEqual({ y: 38, height: 4 })
+  })
+
+  it('draws markers over the range band, so it never hides them', () => {
+    const at = Date.parse(iso('2026-01-11'))
+    const { container } = render(
+      <OverviewStrip
+        days={days}
+        markers={[{ kind: 'match', name: 'found', date: iso('2026-01-11') }]}
+        visible={{ newest: at, oldest: at }}
+        onJump={vi.fn()}
+      />,
+    )
+    const band = screen.getByTestId('overview-window')
+    const match = container.querySelector('[data-marker="match"]')!
+    expect(band.compareDocumentPosition(match) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(Number(band.getAttribute('width'))).toBe(4)
   })
 
   it('draws one tick per pixel and color, however many refs share it', () => {
