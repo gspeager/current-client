@@ -40,10 +40,8 @@ const LEVELS: Record<string, { icon: LucideIcon; label: string }> = {
 // A version file's label is its path; the rest are words.
 const isPath = (label: string) => !label.includes(' ') && /[./]/.test(label)
 
-// The release being finished: what it would be, what still stands in its
-// way, and the steps to make it, in order. Git answers all but CI and
-// protection, which come from the host's last refresh. Nothing is tagged or
-// published until a step's button is clicked.
+// Git answers every check but CI and protection, which come from the host's
+// last refresh. Nothing is tagged or published until a step's button is clicked.
 function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   useClockTick()
   const { confirm } = useDialogs()
@@ -72,7 +70,9 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   }
 
   const tagged = data.taggedAs !== ''
-  const warnings = data.checks.filter((check) => check.level === 'warn').length
+  const warningChecks = data.checks.filter((check) => check.level === 'warn')
+  const otherChecks = data.checks.filter((check) => check.level !== 'warn')
+  const warnings = warningChecks.length
   const tag = async () => {
     const message = `Release ${data.version}`
     const confirmed = await confirm({
@@ -135,24 +135,20 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
       )}
       {error && <p className="next-release-error">{error}</p>}
       <ul className="next-release-checks" aria-label="Checks">
-        {data.checks
-          .filter((check) => check.level === 'warn')
-          .map((check) => (
-            <CheckRow key={check.label} check={check} />
-          ))}
+        {warningChecks.map((check) => (
+          <CheckRow key={check.label} check={check} />
+        ))}
       </ul>
-      {data.checks.some((check) => check.level !== 'warn') && (
+      {otherChecks.length > 0 && (
         <details className="next-release-more" open={warnings === 0}>
           <summary>
             <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />
-            {plural(data.checks.filter((check) => check.level !== 'warn').length, 'other check')}
+            {plural(otherChecks.length, 'other check')}
           </summary>
           <ul className="next-release-checks">
-            {data.checks
-              .filter((check) => check.level !== 'warn')
-              .map((check) => (
-                <CheckRow key={check.label} check={check} />
-              ))}
+            {otherChecks.map((check) => (
+              <CheckRow key={check.label} check={check} />
+            ))}
           </ul>
         </details>
       )}
@@ -196,10 +192,9 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   )
 }
 
-// One check: an icon, what it is, what it found. What it rests on is shown
-// when it needs attention, and in the tooltip otherwise.
 const EVIDENCE_SHOWN = 2
 
+// A check's evidence is listed when it needs attention, and in the tooltip otherwise.
 function CheckRow({ check }: { check: ReleaseCheck }) {
   const level = LEVELS[check.level] ?? LEVELS.unknown
   const Icon = check.label.startsWith('CI') && /running/i.test(check.value) ? CircleDashed : level.icon

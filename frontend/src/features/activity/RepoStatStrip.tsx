@@ -36,9 +36,7 @@ function statsFor(s: RepoStatsInfo, disk: RepoDiskUsageInfo): Stat[] {
     { label: 'Commits', value: String(s.totalCommits) },
     { label: 'Contributors', value: String(s.contributorCount) },
     { label: 'Tracked files', value: String(s.fileCount) },
-    s.totalCommits === 0
-      ? { label: 'Repository age', value: '—' }
-      : { label: 'Repository age', value: formatAge(s.repoAgeDays) },
+    { label: 'Repository age', value: s.totalCommits === 0 ? '—' : formatAge(s.repoAgeDays) },
     { label: 'Repository size', value: formatDiskSize(disk.totalSizeKb) },
   ]
 }

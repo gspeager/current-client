@@ -1,20 +1,12 @@
+@use './card';
+
 .repo-health {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding-top: var(--space-md);
-  background: var(--surface-low);
-  border-radius: var(--radius-lg);
-  color: var(--on-surface);
+  @include card.card;
 }
 
 .repo-health-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-start;
+  @include card.card-header;
   min-height: 44px;
-  gap: var(--space-sm);
-  padding: 0 var(--space-md);
 }
 
 .repo-health-title {
@@ -108,18 +100,6 @@
 }
 
 .repo-health-value-warn {
-  color: var(--warning);
-}
-
-.repo-health-icon {
-  flex-shrink: 0;
-}
-
-.repo-health-icon-ok {
-  color: var(--tertiary);
-}
-
-.repo-health-icon-warn {
   color: var(--warning);
 }
 

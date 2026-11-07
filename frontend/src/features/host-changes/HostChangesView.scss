@@ -24,9 +24,7 @@
   flex: 1;
   color: var(--outline);
   font: var(--ui-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include patterns.truncate;
 }
 
 .host-changes-refresh,
@@ -35,7 +33,6 @@
   align-items: center;
   gap: var(--space-xs);
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
   @include patterns.secondary-button;
 }
 
@@ -109,6 +106,7 @@
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
+  @include patterns.hit-target(4px);
 
   &:hover {
     color: var(--on-surface);
@@ -401,14 +399,8 @@
   box-shadow: inset 0 2px 0 0 var(--tertiary);
 }
 
-.host-change-tile-warn,
-.host-change-tile-warning {
+.host-change-tile-warn {
   box-shadow: inset 0 2px 0 0 var(--warning);
-}
-
-.host-change-tile-blocker,
-.host-change-tile-error {
-  box-shadow: inset 0 2px 0 0 var(--error);
 }
 
 .host-change-actions .host-change-button,
@@ -559,7 +551,7 @@
   color: var(--tertiary);
 }
 
-.host-change-reviewer-state-changes_requested {
+.host-change-reviewer-state-changes-requested {
   color: var(--error);
 }
 
@@ -568,10 +560,6 @@
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-md);
   }
-}
-
-.host-changes-privacy-link {
-  @include patterns.hit-target(4px);
 }
 
 .host-change-row .ci-icon-success {

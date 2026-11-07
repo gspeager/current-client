@@ -17,26 +17,27 @@ interface CreateChangeDialogProps {
   onClose: () => void
 }
 
-// The in-app form for a merge request / pull request from a branch,
-// prefilled from its commits and the repository's template. The one write
-// to the host; a token without write scope gets the message naming the
-// scope.
+// A dialog whose draft could not be read from the host shows only why.
+export function DraftErrorModal({ title, error, onClose }: { title: string; error: string; onClose: () => void }) {
+  return (
+    <Modal title={title} onClose={onClose} className="dialog-panel">
+      <div className="dialog-body">
+        <p className="dialog-error" role="alert">
+          {error}
+        </p>
+      </div>
+    </Modal>
+  )
+}
+
+// Prefilled from the branch's commits and the repository's template; a token
+// without write scope gets the message naming the scope.
 function CreateChangeDialog({ repoPath, branch, kind, onCreated, onClose }: CreateChangeDialogProps) {
   const { data: draft, error: draftError } = useAsyncData(
     () => HostService.ChangeDraft(repoPath, branch),
     [repoPath, branch],
   )
-  if (draftError) {
-    return (
-      <Modal title={`Create ${kind}`} onClose={onClose} className="dialog-panel">
-        <div className="dialog-body">
-          <p className="dialog-error" role="alert">
-            {draftError}
-          </p>
-        </div>
-      </Modal>
-    )
-  }
+  if (draftError) return <DraftErrorModal title={`Create ${kind}`} error={draftError} onClose={onClose} />
   if (!draft) return null
   return <CreateChangeForm repoPath={repoPath} draft={draft} onCreated={onCreated} onClose={onClose} />
 }

@@ -137,26 +137,20 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
               )}
               <section className="issue-panel-comments" aria-label="Comments">
                 <h4 className="issue-panel-comments-title">{plural(data.comments.length, 'comment')}</h4>
-                {data.comments.map((c, i) => (
-                  <article key={i} className="issue-panel-comment">
-                    <p className="issue-panel-comment-head">
-                      {identities.get(c.author.name || c.author.username) && (
-                        <IdentityBadge
-                          identity={identities.get(c.author.name || c.author.username)!}
-                          name={c.author.name || c.author.username}
-                          email=""
-                          size={20}
-                        />
-                      )}
-                      <span className="issue-panel-comment-author">
-                        {identities.get(c.author.name || c.author.username)?.displayName ??
-                          (c.author.name || c.author.username)}
-                      </span>
-                      <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
-                    </p>
-                    <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
-                  </article>
-                ))}
+                {data.comments.map((c, i) => {
+                  const name = c.author.name || c.author.username
+                  const identity = identities.get(name)
+                  return (
+                    <article key={i} className="issue-panel-comment">
+                      <p className="issue-panel-comment-head">
+                        {identity && <IdentityBadge identity={identity} name={name} email="" size={20} />}
+                        <span className="issue-panel-comment-author">{identity?.displayName ?? name}</span>
+                        <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
+                      </p>
+                      <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
+                    </article>
+                  )
+                })}
               </section>
             </div>
             <div className="issue-panel-aside">

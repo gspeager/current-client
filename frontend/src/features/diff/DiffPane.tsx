@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { ChevronsUpDown, MessageSquarePlus } from 'lucide-react'
 import type { DiffLine, LineSelection } from '@current-client-bindings/app'
+import { plural } from '../../lib/plural'
 import { useDiffWrap } from './diffWrap'
 import { unifiedRowsForPair, type DisplayRow, type PairedLine, type UnifiedRow } from './diffRows'
 import { languageForPath, tokenizeLine } from './syntaxHighlight'
@@ -241,27 +242,24 @@ function HunkActionButtons({
   const toggle = onStageHunk ?? onUnstageHunk
   if (!toggle) return null
   const count = lines ? lines.added.length + lines.removed.length : 0
-  const what = count === 0 ? 'hunk' : count === 1 ? '1 line' : `${count} lines`
+  const what = count === 0 ? 'hunk' : plural(count, 'line')
+  const toggleLabel = `${onStageHunk ? 'Stage' : 'Unstage'} ${what}`
+  const discardLabel = count ? `Discard ${what}` : 'Discard'
   const run = (action: (hunkRaw: string, lines?: LineSelection) => void) => (count ? action(raw, lines) : action(raw))
   return (
     <span className="diff-hunk-actions">
-      <button
-        type="button"
-        className="diff-stage-hunk"
-        aria-label={onStageHunk ? `Stage ${what}` : `Unstage ${what}`}
-        onClick={() => run(toggle)}
-      >
-        {onStageHunk ? `Stage ${what}` : `Unstage ${what}`}
+      <button type="button" className="diff-stage-hunk" aria-label={toggleLabel} onClick={() => run(toggle)}>
+        {toggleLabel}
         <Kbd>{onStageHunk ? 'S' : 'U'}</Kbd>
       </button>
       {onDiscardHunk && (count === 0 || canDiscardLines) && (
         <button
           type="button"
           className="diff-discard-hunk"
-          aria-label={count ? `Discard ${what}` : 'Discard'}
+          aria-label={discardLabel}
           onClick={() => run(onDiscardHunk)}
         >
-          {count ? `Discard ${what}` : 'Discard'}
+          {discardLabel}
           <Kbd>D</Kbd>
         </button>
       )}
@@ -419,29 +417,16 @@ function DiffPane({
     onLineMenu(e, Number(row.dataset.line), row.querySelector('.diff-content')?.textContent ?? '')
   }
 
-  if (mode === 'split' && !wrap) {
-    return (
-      <div
-        className="diff-pane diff-pane-sides"
-        ref={scrollRef}
-        tabIndex={0}
-        onContextMenu={lineMenu}
-        onScrollCapture={reportScroll}
-      >
-        <SyncedSides left={renderRows('left')} right={renderRows('right')} />
-      </div>
-    )
-  }
-
+  const sidesApart = mode === 'split' && !wrap
   return (
     <div
-      className={`diff-pane diff-pane-${mode}`}
+      className={sidesApart ? 'diff-pane diff-pane-sides' : `diff-pane diff-pane-${mode}`}
       ref={scrollRef}
       tabIndex={0}
       onContextMenu={lineMenu}
       onScrollCapture={reportScroll}
     >
-      {renderRows()}
+      {sidesApart ? <SyncedSides left={renderRows('left')} right={renderRows('right')} /> : renderRows()}
     </div>
   )
 }

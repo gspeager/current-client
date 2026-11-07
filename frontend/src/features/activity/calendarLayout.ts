@@ -1,4 +1,5 @@
 import type { DayActivityInfo } from '@current-client-bindings/app'
+
 const COUNT_BANDS: { maxCount: number; intensity: number }[] = [
   { maxCount: 0, intensity: 0 },
   { maxCount: 1, intensity: 52 },
@@ -8,10 +9,12 @@ const COUNT_BANDS: { maxCount: number; intensity: number }[] = [
 ]
 
 export function activityIntensity(count: number): number {
-  for (const band of COUNT_BANDS) {
-    if (count <= band.maxCount) return band.intensity
-  }
-  return COUNT_BANDS[COUNT_BANDS.length - 1].intensity
+  return COUNT_BANDS.find((band) => count <= band.maxCount)!.intensity
+}
+
+// A YYYY-MM-DD day at local midnight; a bare date string parses as UTC.
+export function localDay(date: string): Date {
+  return new Date(`${date}T00:00:00`)
 }
 
 export const ACTIVITY_INTENSITY_STEPS = COUNT_BANDS.map((band) => band.intensity)
@@ -24,10 +27,10 @@ interface CalendarCell extends DayActivityInfo {
 // Columns are weeks, rows are weekdays; the front is padded so day one lands on its weekday.
 export function layoutActivityCalendar(activity: DayActivityInfo[]): CalendarCell[] {
   if (activity.length === 0) return []
-  const padDays = new Date(activity[0].date + 'T00:00:00').getDay()
+  const padDays = localDay(activity[0].date).getDay()
   return activity.map((d, i) => ({
     ...d,
     weekIndex: Math.floor((i + padDays) / 7),
-    dayOfWeek: new Date(d.date + 'T00:00:00').getDay(),
+    dayOfWeek: localDay(d.date).getDay(),
   }))
 }

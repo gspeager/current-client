@@ -30,7 +30,7 @@ describe('useHostPrompt', () => {
     expect(confirm).toHaveBeenCalledWith({
       title: 'Turn on GitLab integration?',
       message:
-        'Turns on GitLab integration for gitlab.internal.example. Current Client calls its API when you open merge requests or refresh, and at no other time. Nothing is sent until then.',
+        'Turns on GitLab integration for gitlab.internal.example. Current Client calls its API only when merge requests are opened or refreshed. Nothing is sent until then.',
       confirmLabel: 'Enable',
       cancelLabel: 'Not now',
     })

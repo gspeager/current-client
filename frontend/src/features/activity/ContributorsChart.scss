@@ -1,30 +1,19 @@
 @use '../../styles/patterns';
+@use './card';
 
 .contributors-chart {
-  width: 100%;
+  @include card.card;
   max-height: 640px;
-  display: flex;
-  flex-direction: column;
-  padding-top: var(--space-md);
-  background: var(--surface-low);
-  border-radius: var(--radius-lg);
-  color: var(--on-surface);
 }
 
 .contributors-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-start;
+  @include card.card-header;
   min-height: 44px;
-  gap: var(--space-sm);
-  padding: 0 var(--space-md);
 }
 
 .contributors-title {
   flex: 1;
-  font: var(--title-md);
-  font-weight: 600;
-  color: var(--on-surface);
+  @include card.card-title;
 }
 
 .contributors-date-filter {

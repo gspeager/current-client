@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .dependency-summary {
   display: flex;
   flex-direction: column;
@@ -28,9 +30,7 @@
   font: var(--data-sm);
 
   > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    @include patterns.truncate;
   }
 }
 

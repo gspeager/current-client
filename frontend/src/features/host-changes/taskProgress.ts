@@ -1,4 +1,4 @@
-export interface TaskProgress {
+interface TaskProgress {
   done: number
   total: number
 }

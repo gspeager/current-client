@@ -77,10 +77,8 @@ interface HostChangesViewProps {
   onMerged?: (result: MergeResult) => void
 }
 
-// The merge request / pull request panel: the open changes from the last
-// refresh, details for one, and checking it out locally. The host is
-// contacted when the panel first opens, on Refresh, when the Closed filter
-// is first chosen, and when a detail tab needs what the refresh didn't bring.
+// The host is contacted when the panel first opens, on Refresh, when the Closed
+// filter is first chosen, and when a detail tab needs what the refresh didn't bring.
 function HostChangesView({
   repoPath,
   label,
@@ -132,7 +130,6 @@ function HostChangesView({
       .finally(() => setRefreshing(false))
   }
 
-  // Opening the panel is a refresh trigger, once: later opens read the cache.
   const identities = useNameIdentities(
     (list?.changes ?? []).flatMap((c) => [
       c.author.name || c.author.username,
@@ -140,6 +137,7 @@ function HostChangesView({
     ]),
     repoPath,
   )
+  // Opening the panel is a refresh trigger, once: later opens read the cache.
   const neverFetched = list?.enabled === true && list.fetchedAt === null
   useEffect(() => {
     if (neverFetched) refresh()
@@ -154,8 +152,9 @@ function HostChangesView({
   const toReview = open.filter((c) => reviewRequestedOf(c.reviews, list.me))
   const shown = { open, mine, review: toReview, closed: closedList?.changes ?? [] }[filter]
   const active = shown.find((c) => c.number === selected) ?? shown[0] ?? null
-  const currentHasChange = !!current?.change
-  const newLabel = `New ${kind}`
+  const existingChange = current?.change
+    ? `${current.branch} already has ${current.change.prefix}${current.change.number}`
+    : null
   const filters = [
     { value: 'open' as const, label: `Open ${open.length}` },
     ...(list.me
@@ -174,9 +173,7 @@ function HostChangesView({
         <span className="host-changes-fetched">
           {list.host}
           {list.fetchedAt ? ` · fetched ${relativeTime(new Date(list.fetchedAt))}` : ' · not fetched yet'}
-          {currentHasChange && current?.change
-            ? ` · ${current.branch} already has ${current.change.prefix}${current.change.number}`
-            : ''}
+          {existingChange ? ` · ${existingChange}` : ''}
         </span>
         <SegmentedControl value={filter} onChange={setFilter} options={filters} />
         <button
@@ -193,17 +190,11 @@ function HostChangesView({
           type="button"
           className="host-change-button"
           onClick={() => current && void createChangeFor(repoPath, current.branch, onCreateChange)}
-          disabled={!current?.branch || currentHasChange}
-          title={
-            currentHasChange && current?.change
-              ? `${current.branch} already has ${current.change.prefix}${current.change.number}`
-              : current?.branch
-                ? `From ${current.branch}`
-                : undefined
-          }
+          disabled={!current?.branch || !!existingChange}
+          title={existingChange ?? (current?.branch ? `From ${current.branch}` : undefined)}
         >
           <Plus size={14} strokeWidth={1.75} />
-          {newLabel}
+          New {kind}
         </button>
       </header>
       {(error || refreshError || closedError) && (
@@ -683,6 +674,22 @@ interface TabProps {
   onLoaded: (count: number) => void
 }
 
+// What a tab shows in place of its list while it loads, fails or is empty; null once there is a list.
+function useTabPlaceholder(
+  count: number | undefined,
+  error: string | null,
+  onLoaded: (count: number) => void,
+  empty: string,
+) {
+  useEffect(() => {
+    if (count !== undefined) onLoaded(count)
+  }, [count, onLoaded])
+  if (error) return <p className="host-changes-error">{error}</p>
+  if (count === undefined) return <p className="host-changes-empty">Loading…</p>
+  if (count === 0) return <p className="host-changes-empty">{empty}</p>
+  return null
+}
+
 function ThreadsTab({ repoPath, number, onLoaded }: TabProps) {
   const actions = useReviewActions(repoPath, number)
   const { version } = useReviewDraft()
@@ -690,12 +697,8 @@ function ThreadsTab({ repoPath, number, onLoaded }: TabProps) {
     refreshKey: version,
     keepData: true,
   })
-  useEffect(() => {
-    if (data) onLoaded(data.threads?.length ?? 0)
-  }, [data, onLoaded])
-  if (error) return <p className="host-changes-error">{error}</p>
-  if (!data) return <p className="host-changes-empty">Loading…</p>
-  if (!data.threads?.length) return <p className="host-changes-empty">No threads.</p>
+  const placeholder = useTabPlaceholder(data ? (data.threads?.length ?? 0) : undefined, error, onLoaded, 'No threads.')
+  if (placeholder || !data?.threads) return placeholder
   return (
     <div className="host-change-threads">
       {data.threads.map((thread) => (
@@ -714,16 +717,12 @@ const FILE_LETTER: Record<string, string> = { added: 'A', deleted: 'D', renamed:
 
 function FilesTab({ repoPath, number, onLoaded }: TabProps) {
   const { data, error } = useAsyncData(() => HostService.ChangeFiles(repoPath, number), [repoPath, number])
-  useEffect(() => {
-    if (data) onLoaded(data.length)
-  }, [data, onLoaded])
+  const placeholder = useTabPlaceholder(data?.length, error, onLoaded, 'No files.')
   const { data: dependencies } = useAsyncData(
     () => (data ? HostService.ChangeDependencySummaries(repoPath, number, data) : null),
     [repoPath, number, data],
   )
-  if (error) return <p className="host-changes-error">{error}</p>
-  if (!data) return <p className="host-changes-empty">Loading…</p>
-  if (data.length === 0) return <p className="host-changes-empty">No files.</p>
+  if (placeholder || !data) return placeholder
   return (
     <>
       {dependencies?.hasManifests && !dependencies.headAvailable && (
@@ -757,8 +756,6 @@ function FilesTab({ repoPath, number, onLoaded }: TabProps) {
   )
 }
 
-// The change's commits from what is already fetched, so opening it asks the host
-// for nothing more. Silent when the branch isn't here locally.
 // A readiness fact names reviewers as the host does; the pane uses commit names.
 function withDisplayNames(text: string, identities: Map<string, HostIdentity>): string {
   return [...identities].reduce(
@@ -767,7 +764,6 @@ function withDisplayNames(text: string, identities: Map<string, HostIdentity>): 
   )
 }
 
-// Whether the change can merge, in one line.
 function MergeVerdict({ facts }: { facts: { level: string }[] }) {
   const blocking = facts.filter((f) => f.level === 'warn').length
   const Icon = blocking ? TriangleAlert : CircleCheck
@@ -803,7 +799,9 @@ function ChangeReviewers({ repoPath, reviews }: { repoPath: string; reviews: Rev
             <li key={name}>
               {identity && <IdentityBadge identity={identity} name={name} email="" size={20} />}
               <span className="host-change-reviewer-name">{identity?.displayName ?? name}</span>
-              <span className={`host-change-reviewer-state host-change-reviewer-state-${review.state}`}>
+              <span
+                className={`host-change-reviewer-state host-change-reviewer-state-${review.state.replace(/_/g, '-')}`}
+              >
                 {REVIEW_STATE_LABELS[review.state]}
               </span>
             </li>
@@ -814,6 +812,8 @@ function ChangeReviewers({ repoPath, reviews }: { repoPath: string; reviews: Rev
   )
 }
 
+// The change's commits from what is already fetched, so opening it asks the host
+// for nothing more. Silent when the branch isn't here locally.
 function OverviewCommits({
   repoPath,
   target,
@@ -855,12 +855,8 @@ function OverviewCommits({
 
 function CommitsTab({ repoPath, number, onLoaded }: TabProps) {
   const { data, error } = useAsyncData(() => HostService.ChangeCommits(repoPath, number), [repoPath, number])
-  useEffect(() => {
-    if (data) onLoaded(data.length)
-  }, [data, onLoaded])
-  if (error) return <p className="host-changes-error">{error}</p>
-  if (!data) return <p className="host-changes-empty">Loading…</p>
-  if (data.length === 0) return <p className="host-changes-empty">No commits.</p>
+  const placeholder = useTabPlaceholder(data?.length, error, onLoaded, 'No commits.')
+  if (placeholder || !data) return placeholder
   return (
     <ul className="host-change-commits" aria-label={plural(data.length, 'commit')}>
       {data.map((commit) => (

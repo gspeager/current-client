@@ -1,48 +1,45 @@
 import type { LanguageStatInfo } from '@current-client-bindings/app'
-// Each extension's --lang-* token: its brand color, adjusted per theme to stay
-// readable. Extensions that share a language share its token.
-const LANGUAGE_TOKENS: Record<string, string> = {
-  go: 'go',
-  ts: 'ts',
-  tsx: 'ts',
-  js: 'js',
-  jsx: 'js',
-  mjs: 'js',
-  scss: 'scss',
-  sass: 'scss',
-  css: 'css',
-  html: 'html',
-  md: 'md',
-  py: 'py',
-  rb: 'rb',
-  java: 'java',
-  c: 'c',
-  h: 'c',
-  cpp: 'cpp',
-  hpp: 'cpp',
-  cs: 'cs',
-  rs: 'rs',
-  sh: 'sh',
-  swift: 'swift',
-  kt: 'kt',
-  php: 'php',
-}
 
-// YAML has no brand color.
-const LANGUAGE_COLORS: Record<string, string> = {
-  ...Object.fromEntries(Object.entries(LANGUAGE_TOKENS).map(([ext, token]) => [ext, `var(--lang-${token})`])),
-  yml: 'var(--lang-scss)',
-  yaml: 'var(--lang-scss)',
+// Each extension's language name and --lang-* token: its brand color, adjusted
+// per theme to stay readable. YAML has no brand color.
+const LANGUAGES: Record<string, [name: string, token: string]> = {
+  go: ['Go', 'go'],
+  ts: ['TypeScript', 'ts'],
+  tsx: ['TypeScript', 'ts'],
+  js: ['JavaScript', 'js'],
+  jsx: ['JavaScript', 'js'],
+  mjs: ['JavaScript', 'js'],
+  scss: ['SCSS', 'scss'],
+  sass: ['SCSS', 'scss'],
+  css: ['CSS', 'css'],
+  html: ['HTML', 'html'],
+  md: ['Markdown', 'md'],
+  py: ['Python', 'py'],
+  rb: ['Ruby', 'rb'],
+  java: ['Java', 'java'],
+  c: ['C', 'c'],
+  h: ['C', 'c'],
+  cpp: ['C++', 'cpp'],
+  hpp: ['C++', 'cpp'],
+  cs: ['C#', 'cs'],
+  rs: ['Rust', 'rs'],
+  sh: ['Shell', 'sh'],
+  swift: ['Swift', 'swift'],
+  kt: ['Kotlin', 'kt'],
+  php: ['PHP', 'php'],
+  yml: ['YAML', 'scss'],
+  yaml: ['YAML', 'scss'],
 }
 
 export const OTHER_LANGUAGE_COLOR = 'var(--lang-other)'
 
 export function languageColor(extension: string): string {
-  return LANGUAGE_COLORS[extension.toLowerCase()] ?? OTHER_LANGUAGE_COLOR
+  const token = LANGUAGES[extension.toLowerCase()]?.[1]
+  return token ? `var(--lang-${token})` : OTHER_LANGUAGE_COLOR
 }
 
 export function isKnownLanguage(extension: string): boolean {
-  return extension.toLowerCase() in LANGUAGE_COLORS
+  return extension.toLowerCase() in LANGUAGES
 }
 
 // Folds unknown extensions and anything past `limit` into "other".
@@ -66,40 +63,11 @@ export function extensionOf(path: string): string {
   return base.slice(dotIndex + 1).toLowerCase()
 }
 
-const LANGUAGE_NAMES: Record<string, string> = {
-  go: 'Go',
-  ts: 'TypeScript',
-  tsx: 'TypeScript',
-  js: 'JavaScript',
-  jsx: 'JavaScript',
-  mjs: 'JavaScript',
-  scss: 'SCSS',
-  sass: 'SCSS',
-  css: 'CSS',
-  html: 'HTML',
-  md: 'Markdown',
-  py: 'Python',
-  rb: 'Ruby',
-  java: 'Java',
-  c: 'C',
-  h: 'C',
-  cpp: 'C++',
-  hpp: 'C++',
-  cs: 'C#',
-  rs: 'Rust',
-  sh: 'Shell',
-  swift: 'Swift',
-  kt: 'Kotlin',
-  php: 'PHP',
-  yml: 'YAML',
-  yaml: 'YAML',
-}
-
 // One row per language, so .ts and .tsx count together under one color.
 export function groupByLanguage(languages: LanguageStatInfo[]): LanguageStatInfo[] {
   const byName = new Map<string, LanguageStatInfo>()
   for (const language of languages) {
-    const name = LANGUAGE_NAMES[language.extension.toLowerCase()] ?? language.extension
+    const name = LANGUAGES[language.extension.toLowerCase()]?.[0] ?? language.extension
     const seen = byName.get(name)
     if (seen) byName.set(name, { ...seen, count: seen.count + language.count })
     else byName.set(name, language)
@@ -108,5 +76,5 @@ export function groupByLanguage(languages: LanguageStatInfo[]): LanguageStatInfo
 }
 
 export function languageName(extension: string): string {
-  return LANGUAGE_NAMES[extension.toLowerCase()] ?? (extension === 'other' ? 'Other' : `.${extension}`)
+  return LANGUAGES[extension.toLowerCase()]?.[0] ?? (extension === 'other' ? 'Other' : `.${extension}`)
 }

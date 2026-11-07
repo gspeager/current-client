@@ -5,10 +5,9 @@ import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SettingsRow from './SettingsRow'
 
-// The app's version and the one request the app makes to a vendor: a check
-// of github.com for a newer release, on this button alone. Nothing runs at
-// start-up or in the background, nothing is downloaded, and the answer
-// isn't kept between launches.
+// The one request the app makes to a vendor: a check of github.com for a newer
+// release, on this button alone. Nothing runs at start-up or in the background,
+// nothing is downloaded, and the answer isn't kept between launches.
 function UpdateSection() {
   const { data: version } = useAsyncData(() => PlatformService.AppVersion(), [])
   const { data: releasesUrl } = useAsyncData(() => UpdateService.ReleasesURL(), [])
@@ -91,11 +90,11 @@ function describe(result: Result): string {
   const released = result.releasedAt ? `, released ${result.releasedAt}` : ''
   switch (result.state) {
     case 'up-to-date':
-      return `You’re up to date (${result.current}).`
+      return `Up to date (${result.current}).`
     case 'newer':
       return `Version ${result.latest} is available${released}.`
     case 'ahead':
-      return `You’re ahead of the latest release (${result.latest}).`
+      return `Ahead of the latest release (${result.latest}).`
     case 'dev':
       return `A development build can’t be compared with the releases; the latest is ${result.latest}${released}.`
     default:

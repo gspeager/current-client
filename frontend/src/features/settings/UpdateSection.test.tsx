@@ -47,7 +47,7 @@ describe('UpdateSection', () => {
     )
     render(<UpdateSection />)
     await userEvent.click(await screen.findByRole('button', { name: 'Check for updates' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('You’re up to date (0.4.0).')
+    expect(await screen.findByRole('status')).toHaveTextContent('Up to date (0.4.0).')
     expect(screen.queryByRole('button', { name: 'Open releases page' })).toBeNull()
 
     await userEvent.click(screen.getByRole('button', { name: 'Check for updates' }))

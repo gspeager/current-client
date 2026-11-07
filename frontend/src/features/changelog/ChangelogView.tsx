@@ -29,8 +29,6 @@ interface ChangelogViewProps {
   onTagged?: () => void
 }
 
-// The Releases tab: the next release's checks and steps, then the changelog
-// it will carry.
 function ChangelogView({
   repoPath,
   repoVersion,
@@ -93,7 +91,7 @@ function ChangelogView({
         releases={releases}
         options={options}
         onOptionsChange={(o) => savePrefs({ authorNames: o.authors, dates: o.dates })}
-        mode={prefs?.preview ? 'preview' : 'markdown'}
+        mode={prefs.preview ? 'preview' : 'markdown'}
         onModeChange={(m) => savePrefs({ preview: m === 'preview' })}
         filters={filters}
         onFiltersChange={setFilters}

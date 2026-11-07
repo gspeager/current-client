@@ -1,5 +1,6 @@
 import { ActivityService } from '@current-client-bindings/app'
 import { averageWeeklyCommits, busiestWeekday, weeklyBuckets } from './commitVelocity'
+import { localDay } from './calendarLayout'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './CommitVelocityChart.scss'
@@ -68,7 +69,7 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
                   {i === weeks.length - 1
                     ? 'Now'
                     : (weeks.length - 1 - i) % 3 === 0
-                      ? new Date(`${week.weekStart}T00:00:00`).toLocaleDateString(undefined, {
+                      ? localDay(week.weekStart).toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',
                         })

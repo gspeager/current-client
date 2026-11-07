@@ -60,9 +60,10 @@ function ContributorsChart({ repoPath, repoVersion }: ContributorsChartProps) {
         ) : contributors.length === 0 ? (
           <p className="contributors-hint">No commits in this range.</p>
         ) : (
-          <>
-            <ul className="contributors-list">
-              {contributors.map((c) => (
+          <ul className="contributors-list">
+            {contributors.map((c) => {
+              const share = total === 0 ? 0 : (c.commits / total) * 100
+              return (
                 <li key={c.email} className="contributors-row">
                   <IdentityBadge identity={c} name={c.name} email={c.email} size={28} />
                   <div className="contributors-row-identity">
@@ -71,17 +72,17 @@ function ContributorsChart({ repoPath, repoVersion }: ContributorsChartProps) {
                         {c.name}
                       </span>
                       <span className="contributors-row-commits">
-                        {plural(c.commits, 'commit')} · {total === 0 ? 0 : Math.round((c.commits / total) * 100)}%
+                        {plural(c.commits, 'commit')} · {Math.round(share)}%
                       </span>
                     </span>
                     <span className="contributors-row-bar" aria-hidden="true">
-                      <span style={{ width: `${total === 0 ? 0 : (c.commits / total) * 100}%`, background: c.color }} />
+                      <span style={{ width: `${share}%`, background: c.color }} />
                     </span>
                   </div>
                 </li>
-              ))}
-            </ul>
-          </>
+              )
+            })}
+          </ul>
         )}
       </div>
     </div>
