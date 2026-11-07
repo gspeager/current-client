@@ -37,8 +37,7 @@ export function useResizableWidth(
 
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
-      const next = Math.min(max, Math.max(min, startWidth.current + sign * (pointer(e) - startX.current)))
-      setWidth(next)
+      setWidth(clamp(startWidth.current + sign * (pointer(e) - startX.current), min, max))
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [min, max, sign, axis],

@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, type MouseEvent } from 'react'
-import { PlatformService } from '@current-client-bindings/app'
-import { ignoreDecorativeFailure } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import './HostMarkdown.scss'
 
 interface HostMarkdownProps {
@@ -19,7 +18,7 @@ function HostMarkdown({ html, className }: HostMarkdownProps) {
     if (!link) return
     e.preventDefault()
     const href = link.getAttribute('href') ?? ''
-    if (/^https?:\/\//i.test(href)) PlatformService.OpenWebPage(href).catch(ignoreDecorativeFailure)
+    if (/^https?:\/\//i.test(href)) openWebPage(href)
   }
 
   const root = useRef<HTMLDivElement>(null)

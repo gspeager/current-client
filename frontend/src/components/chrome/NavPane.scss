@@ -45,23 +45,10 @@
 
 .nav-pane-collapse,
 .nav-pane-rail-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @include patterns.icon-button;
+
   flex-shrink: 0;
   padding: 0;
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--outline);
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-    color: var(--on-surface);
-  }
-
-  @include patterns.disabled;
 }
 
 .nav-pane-collapse {
@@ -85,19 +72,10 @@
 // Pinned to the foot of the rail, where the Toolbox sits in the open sidebar.
 .nav-pane-rail-toolbox {
   margin-top: auto;
-}
-
-.nav-pane-rail-toolbox,
-.nav-pane-rail-group {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
-}
-
-.nav-pane-rail-button {
-  width: var(--h-row-tree);
-  height: var(--h-row-tree);
 }
 
 .nav-pane-rail-divider {

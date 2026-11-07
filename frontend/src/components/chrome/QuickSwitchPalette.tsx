@@ -182,6 +182,29 @@ function Section({ heading, icon: Icon, count, children }: SectionProps) {
   )
 }
 
+interface RowProps {
+  value: string
+  label: string
+  icon?: LucideIcon
+  action?: boolean
+  onSelect: () => void
+  children: ReactNode
+}
+
+function Row({ value, label, icon: Icon, action = false, onSelect, children }: RowProps) {
+  return (
+    <Command.Item
+      value={value}
+      aria-label={label}
+      className={action ? 'quick-switch-row quick-switch-row-action' : 'quick-switch-row'}
+      onSelect={onSelect}
+    >
+      {Icon && <Icon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />}
+      {children}
+    </Command.Item>
+  )
+}
+
 function QuickSwitchPalette({
   repoPath,
   repo,
@@ -346,17 +369,17 @@ function QuickSwitchPalette({
   const highlight = (text: string) => highlightMatch(text, query, 'search-match')
 
   const actionRow = (a: PaletteAction) => (
-    <Command.Item
+    <Row
       key={`action:${a.id}`}
       value={`action:${a.id}`}
-      aria-label={a.label}
-      className="quick-switch-row quick-switch-row-action"
+      label={a.label}
+      icon={a.icon}
+      action
       onSelect={() => runAndClose(a.run)}
     >
-      <a.icon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
       <span className="quick-switch-row-name">{highlight(a.label)}</span>
       {a.shortcut && <Kbd>{shortcutLabel(a.shortcut)}</Kbd>}
-    </Command.Item>
+    </Row>
   )
 
   return (
@@ -388,16 +411,14 @@ function QuickSwitchPalette({
 
           <Section heading="Branches" icon={GitBranch} count={branchResults.length}>
             {branchResults.map((b) => (
-              <Command.Item
+              <Row
                 key={`branch:${b.name}`}
                 value={`branch:${b.name}`}
-                aria-label={b.current ? `${b.name}, current branch` : b.remote ? `${b.name}, remote branch` : b.name}
-                className="quick-switch-row"
+                label={b.current ? `${b.name}, current branch` : b.remote ? `${b.name}, remote branch` : b.name}
+                icon={b.remote ? Cloud : undefined}
                 onSelect={() => checkout(b)}
               >
-                {b.remote ? (
-                  <Cloud size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
-                ) : (
+                {!b.remote && (
                   <span className="quick-switch-dot" style={{ background: branchColor(b.name, b.current) }} />
                 )}
                 <span className="quick-switch-row-name">{highlight(b.name)}</span>
@@ -406,20 +427,19 @@ function QuickSwitchPalette({
                   {b.current && <span className="quick-switch-current-label">current</span>}
                   {b.current && ahead > 0 && <span className="quick-switch-ahead">↑{ahead}</span>}
                 </span>
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
           <Section heading="Repositories" icon={FolderGit2} count={repoResults.length}>
             {repoResults.map((r) => (
-              <Command.Item
+              <Row
                 key={`repo:${r.path}`}
                 value={`repo:${r.path}`}
-                aria-label={`${baseName(r.path)}, ${r.uncommitted > 0 ? `${r.uncommitted} uncommitted` : 'clean'}${r.currentBranch ? `, ${r.currentBranch}` : ''}`}
-                className="quick-switch-row"
+                label={`${baseName(r.path)}, ${r.uncommitted > 0 ? `${r.uncommitted} uncommitted` : 'clean'}${r.currentBranch ? `, ${r.currentBranch}` : ''}`}
+                icon={FolderGit2}
                 onSelect={() => runAndClose(() => repo.openRecent(r.path))}
               >
-                <FolderGit2 size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(baseName(r.path))}</span>
                 <PathText path={r.path.slice(0, -baseName(r.path).length - 1)} className="quick-switch-path" />
                 <span className="quick-switch-row-meta">
@@ -429,7 +449,7 @@ function QuickSwitchPalette({
                   </span>
                   {r.currentBranch && <span className="quick-switch-repo-branch">{r.currentBranch}</span>}
                 </span>
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
@@ -439,127 +459,123 @@ function QuickSwitchPalette({
             count={changeResults.length}
           >
             {changeResults.map((c) => (
-              <Command.Item
+              <Row
                 key={`change:${c.number}`}
                 value={`change:${c.number}`}
-                aria-label={`${hostChanges?.prefix}${c.number}: ${c.title}`}
-                className="quick-switch-row quick-switch-row-action"
+                label={`${hostChanges?.prefix}${c.number}: ${c.title}`}
+                icon={GitPullRequest}
+                action
                 onSelect={() => runAndClose(() => onOpenChange?.(c.number))}
               >
-                <GitPullRequest size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(c.title)}</span>
                 <span className="quick-switch-commit-sha">
                   {hostChanges?.prefix}
                   {c.number}
                 </span>
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
           <Section heading="Stashes" icon={Package} count={stashResults.length}>
             {stashResults.map((s) => (
-              <Command.Item
+              <Row
                 key={`stash:${s.index}`}
                 value={`stash:${s.index}`}
-                aria-label={`Stash: ${s.message}`}
-                className="quick-switch-row quick-switch-row-action"
+                label={`Stash: ${s.message}`}
+                icon={Package}
+                action
                 onSelect={() => runAndClose(() => onShowStashes?.())}
               >
-                <Package size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(s.message)}</span>
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
           <Section heading="Blame" icon={FileText} count={blameResults.length}>
             {blameResults.map((path) => (
-              <Command.Item
+              <Row
                 key={`blame:${path}`}
                 value={`blame:${path}`}
-                aria-label={`Blame ${path}`}
-                className="quick-switch-row"
+                label={`Blame ${path}`}
+                icon={FileText}
                 onSelect={() => runAndClose(() => onBlameFile?.(path))}
               >
-                <FileText size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{baseName(path)}</span>
                 <PathText path={path} className="quick-switch-path" />
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
           <Section heading="Files" icon={FileText} count={fileResults.length}>
             {fileResults.map((path) => (
-              <Command.Item
+              <Row
                 key={`file:${path}`}
                 value={`file:${path}`}
-                aria-label={`File history of ${path}`}
-                className="quick-switch-row"
+                label={`File history of ${path}`}
+                icon={FileText}
                 onSelect={() => runAndClose(() => onOpenFile(path))}
               >
-                <FileText size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(baseName(path))}</span>
                 <PathText path={path} className="quick-switch-path" />
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
           <Section heading="Commits" icon={GitCommitVertical} count={commits.length}>
             {commits.map((c) => (
-              <Command.Item
+              <Row
                 key={`commit:${c.sha}`}
                 value={`commit:${c.sha}`}
-                aria-label={`Commit ${c.sha.slice(0, 7)}: ${c.subject}`}
-                className="quick-switch-row quick-switch-row-action"
+                label={`Commit ${c.sha.slice(0, 7)}: ${c.subject}`}
+                icon={GitCommitVertical}
+                action
                 onSelect={() => openCommit(c.sha)}
               >
-                <GitCommitVertical size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(c.subject)}</span>
                 <span className="quick-switch-row-meta">
                   <span className="quick-switch-commit-sha">{c.sha.slice(0, 7)}</span>
                   <span className="quick-switch-commit-date">{relativeTime(new Date(c.date))}</span>
                 </span>
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
           <Section heading="Notes" icon={StickyNote} count={noteResults.length}>
             {noteResults.map((note) => (
-              <Command.Item
+              <Row
                 key={`note:${note.kind}:${note.target}`}
                 value={`note:${note.kind}:${note.target}`}
-                aria-label={`Note on ${noteLabel(note)}: ${note.text}`}
-                className="quick-switch-row"
+                label={`Note on ${noteLabel(note)}: ${note.text}`}
+                icon={StickyNote}
                 onSelect={() => {
                   onClose()
                   onOpenNote?.(note)
                 }}
               >
-                <StickyNote size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(note.text)}</span>
                 <span className="quick-switch-row-meta">
                   {note.stale ? 'Gone · ' : ''}
                   {noteLabel(note)}
                 </span>
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
           <Section heading="Tags" icon={Tag} count={tagResults.length}>
             {tagResults.map((t) => (
-              <Command.Item
+              <Row
                 key={`tag:${t.name}`}
                 value={`tag:${t.name}`}
-                aria-label={`Tag ${t.name}`}
-                className="quick-switch-row"
+                label={`Tag ${t.name}`}
+                icon={Tag}
                 onSelect={() => openCommit(t.sha)}
               >
-                <Tag size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                 <span className="quick-switch-row-name">{highlight(t.name)}</span>
                 <span className="quick-switch-row-meta">
                   <span className="quick-switch-commit-sha">{t.sha.slice(0, 7)}</span>
                   {t.date && <span className="quick-switch-commit-date">{relativeTime(new Date(t.date))}</span>}
                 </span>
-              </Command.Item>
+              </Row>
             ))}
           </Section>
 
@@ -572,17 +588,16 @@ function QuickSwitchPalette({
               {sectionActions(section).map(actionRow)}
               {section === 'Settings' &&
                 settingsResults.map((g) => (
-                  <Command.Item
+                  <Row
                     key={`settings:${g}`}
                     value={`settings:${g}`}
-                    aria-label={`Settings: ${g}`}
-                    className="quick-switch-row"
+                    label={`Settings: ${g}`}
+                    icon={SettingsIcon}
                     onSelect={() => runAndClose(() => onOpenSettings(g))}
                   >
-                    <SettingsIcon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />
                     <span className="quick-switch-row-name">{highlight(g)}</span>
                     <span className="quick-switch-row-meta">{SETTINGS_HINTS[g]}</span>
-                  </Command.Item>
+                  </Row>
                 ))}
             </Section>
           ))}

@@ -145,6 +145,26 @@
   }
 }
 
+// A row in a context or split-button menu.
+@mixin menu-item {
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+
+  @include disabled;
+}
+
 // Callers set the height.
 @mixin secondary-button {
   padding: 0 var(--space-sm);
@@ -165,11 +185,12 @@
 }
 
 @mixin tab-close {
+  @include hit-target(4px);
+
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  position: relative;
   width: var(--h-micro);
   height: var(--h-micro);
   padding: 0;
@@ -177,14 +198,6 @@
   border: none;
   border-radius: var(--radius-xs);
   color: var(--outline);
-
-  // A bigger target than the mark it wraps.
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -4px;
-  }
-
   cursor: pointer;
 
   &:hover {

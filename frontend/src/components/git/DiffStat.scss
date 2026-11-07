@@ -2,7 +2,7 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   font: var(--data-sm);
 }
 
@@ -15,7 +15,5 @@
 }
 
 .diff-stat-binary {
-  flex-shrink: 0;
   color: var(--outline);
-  font: var(--data-sm);
 }

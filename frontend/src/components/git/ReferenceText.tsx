@@ -43,7 +43,7 @@ export function ReferenceLink({ reference, card, children, logo = true }: Refere
   return <HoverCard card={<ReferenceCard reference={reference} card={card} />}>{link}</HoverCard>
 }
 
-export function ReferenceCard({ reference, card }: { reference: HostReference; card: ReferenceCardInfo }) {
+function ReferenceCard({ reference, card }: { reference: HostReference; card: ReferenceCardInfo }) {
   return (
     <>
       <p className="hover-card-title">{card.known ? card.title || 'Not found' : 'Title not fetched'}</p>

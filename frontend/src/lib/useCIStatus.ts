@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { HostService, type CIMark } from '@current-client-bindings/app'
 
-export type CIMarks = Record<string, CIMark | undefined>
+type CIMarks = Record<string, CIMark | undefined>
 
 const DEBOUNCE_MS = 250
 

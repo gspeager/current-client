@@ -105,36 +105,19 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const settle =
+    <T,>(resolve: (value: T) => void) =>
+    (value: T) => {
+      resolve(value)
+      setRequest(null)
+    }
+
   return (
     <DialogContext.Provider value={dialogs}>
       {children}
-      {request?.kind === 'confirm' && (
-        <ConfirmDialog
-          options={request.options}
-          onSettle={(confirmed) => {
-            request.resolve(confirmed)
-            setRequest(null)
-          }}
-        />
-      )}
-      {request?.kind === 'prompt' && (
-        <PromptDialog
-          options={request.options}
-          onSettle={(value) => {
-            request.resolve(value)
-            setRequest(null)
-          }}
-        />
-      )}
-      {request?.kind === 'signIn' && (
-        <SignInDialog
-          options={request.options}
-          onSettle={(value) => {
-            request.resolve(value)
-            setRequest(null)
-          }}
-        />
-      )}
+      {request?.kind === 'confirm' && <ConfirmDialog options={request.options} onSettle={settle(request.resolve)} />}
+      {request?.kind === 'prompt' && <PromptDialog options={request.options} onSettle={settle(request.resolve)} />}
+      {request?.kind === 'signIn' && <SignInDialog options={request.options} onSettle={settle(request.resolve)} />}
     </DialogContext.Provider>
   )
 }

@@ -27,8 +27,6 @@ export function standupGroups(repo: StandupRepo): [string, string[]][] {
   ].filter((group): group is [string, string[]] => group[1].length > 0)
 }
 
-// One block per repository with something in it; a repository with nothing
-// is left out.
 export function standupText(repos: StandupRepo[], format: StandupFormat): string {
   const blocks = repos.flatMap((repo) => {
     const parts = standupGroups(repo)

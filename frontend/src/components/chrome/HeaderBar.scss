@@ -12,15 +12,10 @@
   font: var(--ui-md);
   color: var(--on-surface);
 
-  // Clears the macOS window buttons, which CurrentClientApp's data-platform flags and
-  // the hidden inset title bar in main.go places over the left of this row.
-  // 80px sits flush against the green button with no breathing room; add
-  // --space-md past that edge.
-  //
-  // padding-top nudges the row's vertical centering down to match the
-  // buttons: they're centered in the OS's 50px InvisibleTitleBarHeight
-  // (main.go), taller than this row's own 44px, so plain center alignment
-  // sits ~4px above them.
+  // Clears the macOS window buttons main.go's inset title bar places over this
+  // row: 80px reaches the green button, plus --space-md. They're centered in
+  // the OS's 50px InvisibleTitleBarHeight, so padding-top centers this 44px row
+  // on them.
   .current-client[data-platform='mac'] & {
     padding-left: 92px;
     padding-top: 8px;
@@ -30,6 +25,7 @@
 // The count sits on the icon's top-right corner, in the review-state
 // color, reaching past the button so two digits leave the icon readable.
 .header-bar-inbox {
+  position: relative;
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -54,10 +50,6 @@
   color: var(--on-surface);
 }
 
-.header-bar-inbox {
-  position: relative;
-}
-
 // On the button's corner, so it arriving moves nothing.
 .header-bar-inbox-count {
   position: absolute;
@@ -72,11 +64,6 @@
   font: var(--data-sm);
   line-height: 14px;
   text-align: center;
-}
-
-.header-bar-icon-button-active {
-  background: var(--surface-container);
-  color: var(--on-surface);
 }
 
 .header-bar-tabs {
@@ -130,15 +117,6 @@
   min-width: 72px;
 }
 
-.header-bar-repo-name {
-  display: block;
-  flex: 0 0 auto;
-  max-width: 45%;
-  margin: 0;
-  padding: 0 var(--space-xs);
-  line-height: var(--h-chip);
-}
-
 .header-bar-repo-name,
 .header-bar-branch-target {
   display: inline-flex;
@@ -155,7 +133,9 @@
 }
 
 .header-bar-repo-name {
+  flex: 0 0 auto;
   min-width: 56px;
+  max-width: 45%;
   @include patterns.truncate;
   font: var(--data-md);
   font-weight: 600;
@@ -177,7 +157,7 @@
   flex-shrink: 0;
   padding: 0 var(--space-xs);
   border: 1px solid var(--error);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--error);
   font: var(--ui-xs);
 }
@@ -263,8 +243,6 @@
   width: 20px;
   justify-content: center;
   padding: 0;
-
-  @include patterns.disabled;
 }
 
 .header-bar-fetch-error {
@@ -296,25 +274,10 @@
 }
 
 .header-bar-icon-button {
+  @include patterns.icon-button;
+
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  width: var(--h-row-tree);
-  height: var(--h-row-tree);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--outline);
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-    color: var(--on-surface);
-  }
-
-  @include patterns.disabled;
 }
 
 // Words make way before repository names do; icons and keycaps stay.

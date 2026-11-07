@@ -8,7 +8,7 @@ export interface HostReference {
   provider?: string
 }
 
-export type ReferenceSegment = string | HostReference
+type ReferenceSegment = string | HostReference
 
 // A reference starts the text or follows a non-word character, so "foo#1"
 // inside an identifier and the fragment of a URL stay text.

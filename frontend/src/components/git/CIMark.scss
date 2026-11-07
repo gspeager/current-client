@@ -24,7 +24,6 @@
 
   min-width: var(--h-micro);
   min-height: var(--h-micro);
-  justify-content: center;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -144,9 +143,7 @@
 }
 
 .ci-job-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
   font: var(--data-sm);
 }
 
@@ -173,6 +170,5 @@
   align-items: center;
   gap: var(--space-xs);
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
   @include patterns.secondary-button;
 }

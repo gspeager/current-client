@@ -19,8 +19,7 @@
   flex-shrink: 1;
   min-width: 0;
   max-width: 40cqi;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include patterns.truncate;
 
   .wave-mark {
     margin-right: var(--space-xs);
@@ -30,7 +29,10 @@
 }
 
 .status-bar-branch {
+  flex-shrink: 1;
+  min-width: 0;
   font: var(--data-sm);
+  @include patterns.truncate;
 }
 
 .status-bar-spacer {
@@ -42,9 +44,8 @@
   white-space: nowrap;
 }
 
-// The repository's folder name; the full path is its tooltip and what a click copies.
 .status-bar-repo-path,
-.status-bar-terminal {
+.status-bar-button {
   position: relative;
 
   &::after {
@@ -54,6 +55,7 @@
   }
 }
 
+// The repository's folder name; the full path is its tooltip and what a click copies.
 .status-bar-repo-path {
   display: flex;
   flex-shrink: 0;
@@ -73,6 +75,8 @@
 // Visible whenever a host's API may be contacted, so the promise can be
 // watched: which host, and when it was last asked.
 .status-bar-host {
+  @include patterns.hit-target(2px);
+
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -105,11 +109,9 @@
   font: var(--data-sm);
 }
 
-.status-bar-terminal {
+.status-bar-button {
   display: inline-flex;
-  align-items: center;
   gap: var(--space-xs);
-  height: var(--h-micro);
   padding: 0 var(--space-xs);
   background: none;
   border: none;
@@ -142,14 +144,7 @@
   }
 }
 
-.status-bar-branch {
-  flex-shrink: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.status-bar-terminal,
+.status-bar-button,
 .status-bar-repo-path,
 .status-bar-host {
   align-items: center;
@@ -160,8 +155,4 @@
   flex-shrink: 0;
   color: var(--outline);
   font: var(--ui-xs);
-}
-
-.status-bar-host {
-  @include patterns.hit-target(2px);
 }

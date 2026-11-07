@@ -20,11 +20,9 @@
 }
 
 .identity-badge-button {
+  @include patterns.hit-target;
+
   padding: 0;
   border: none;
   cursor: pointer;
-}
-
-.identity-badge-button {
-  @include patterns.hit-target;
 }
