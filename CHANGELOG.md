@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **History's overview strip is easier to read.** It's taller and draws commits as a line, with branches, tags and stashes as short ticks underneath. `HEAD` and search matches stay full height, and a violet band shows the part on screen.
 - **The Toolbox's terminal opens the embedded terminal panel** (**Ctrl+\`**), and the separate system terminal action is gone. Where an organization turns off local commands, no terminal is offered.
 - **File rows keep their counts on hover**, and the path gives way from the left so the filename stays.
 - **Issues use the same two columns as pull requests**, and Windows High Contrast keeps selection, lanes and status visible.
