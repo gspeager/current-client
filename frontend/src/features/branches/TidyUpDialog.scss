@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .tidy-panel {
   width: min(760px, 92vw);
 }
@@ -70,11 +72,9 @@
 .tidy-subject {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  @include patterns.truncate;
   color: var(--on-surface);
   font: var(--ui-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .tidy-subject-dropped {

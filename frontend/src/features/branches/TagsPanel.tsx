@@ -46,6 +46,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
   const rowMenu = useRowMenu()
   const [actionError, setActionError] = useState<string | null>(null)
   const error = loadError ?? actionError
+  const fail = (err: unknown) => setActionError(errorMessage(err))
   const [newName, setNewName] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [showNewTag, setShowNewTag] = useState(false)
@@ -81,7 +82,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
         loadTags()
         onTagChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const deleteTag = async (name: string) => {
@@ -99,7 +100,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
         loadTags()
         onTagChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyName(null))
   }
 
@@ -108,7 +109,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     setBusyName(name)
     primaryRemoteName(repoPath)
       .then((remote) => withSignIn((auth) => TagService.PushTag(repoPath, remote, name, auth), signIn))
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyName(null))
   }
 
@@ -118,7 +119,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     try {
       remote = await primaryRemoteName(repoPath)
     } catch (err) {
-      setActionError(errorMessage(err))
+      fail(err)
       return
     }
     const confirmed = await confirm({
@@ -130,7 +131,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     if (!confirmed) return
     setBusyName(name)
     withSignIn((auth) => TagService.DeleteRemoteTag(repoPath, remote, name, auth), signIn)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyName(null))
   }
 
@@ -143,10 +144,8 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     setExpandedName(t.name)
     if (!messages.has(t.name)) {
       TagService.GetTagMessage(repoPath, t.name)
-        .then((result) =>
-          setMessages((prev) => new Map(prev).set(t.name, { subject: result.subject, body: result.body })),
-        )
-        .catch((err: unknown) => setActionError(errorMessage(err)))
+        .then((message) => setMessages((prev) => new Map(prev).set(t.name, message)))
+        .catch(fail)
     }
   }
 
@@ -219,17 +218,9 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
         open={sections.isOpen('tags', hasTags)}
         onToggle={() => sections.toggle('tags', hasTags)}
         actions={
-          <>
-            <button
-              type="button"
-              className="tags-panel-add"
-              onClick={toggleNewTag}
-              aria-label="New tag"
-              title="New tag"
-            >
-              <Plus size={18} strokeWidth={1.75} />
-            </button>
-          </>
+          <button type="button" className="tags-panel-add" onClick={toggleNewTag} aria-label="New tag" title="New tag">
+            <Plus size={18} strokeWidth={1.75} />
+          </button>
         }
         onPinnedEscape={() => setShowNewTag(false)}
         pinned={
@@ -288,20 +279,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
                     onMore={rowMenu.open(tagActions(t.name))}
                   />
                 </div>
-                {t.annotated && expandedName === t.name && (
-                  <div className="tag-row-message">
-                    {messages.has(t.name) ? (
-                      <>
-                        <p className="tag-row-message-subject">{messages.get(t.name)!.subject}</p>
-                        {messages.get(t.name)!.body && (
-                          <p className="tag-row-message-body">{messages.get(t.name)!.body}</p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="tag-row-message-subject">Loading…</p>
-                    )}
-                  </div>
-                )}
+                {t.annotated && expandedName === t.name && <TagMessage message={messages.get(t.name)} />}
               </li>
             ))}
           </ul>
@@ -309,6 +287,15 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
       </SidebarSection>
       {rowMenu.menu}
       {releaseTag && <PublishReleaseDialog repoPath={repoPath} tag={releaseTag} onClose={() => setReleaseTag(null)} />}
+    </div>
+  )
+}
+
+function TagMessage({ message }: { message?: TagMessageInfo }) {
+  return (
+    <div className="tag-row-message">
+      <p className="tag-row-message-subject">{message ? message.subject : 'Loading…'}</p>
+      {message?.body && <p className="tag-row-message-body">{message.body}</p>}
     </div>
   )
 }

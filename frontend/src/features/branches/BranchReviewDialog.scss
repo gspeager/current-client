@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .branch-review-panel {
   width: min(900px, 90vw);
 }
@@ -56,10 +58,8 @@
   td {
     height: var(--h-row-table);
     padding-right: var(--space-sm);
-    overflow: hidden;
+    @include patterns.truncate;
     border-top: var(--border-structure);
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 }
 

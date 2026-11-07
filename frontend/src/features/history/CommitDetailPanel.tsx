@@ -55,7 +55,6 @@ interface CommitDetailPanelProps {
   onOpenFile?: (path: string) => void
   // Unresolved review threads per file.
   threadCounts?: Record<string, number | undefined>
-  // The commit's pipeline result, when the host reported one.
   ci?: CIMarkInfo
   // Opens the Checks section, as a job clicked in the CI mark's list does.
   checksOpen?: boolean

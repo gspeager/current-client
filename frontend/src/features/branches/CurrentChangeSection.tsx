@@ -103,13 +103,7 @@ function CurrentChangeSection({
         }}
       >
         <span className="current-change-row-text">
-          {checking ? (
-            'Checking…'
-          ) : (
-            <>
-              <span className="current-change-row-action">Check status</span>
-            </>
-          )}
+          {checking ? 'Checking…' : <span className="current-change-row-action">Check status</span>}
         </span>
       </button>
     ) : data.upstream ? (

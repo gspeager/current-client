@@ -6,6 +6,7 @@ import Checkbox from '../../components/forms/Checkbox'
 import { BREAKING_FILTER, COMMIT_TYPES } from '../../lib/conventionalCommit'
 import { sinceDaysAgo } from '../../lib/relativeTime'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
+import { ALL_BRANCHES } from './branchFilter'
 import './HistoryToolbar.scss'
 
 interface HistoryToolbarProps {
@@ -62,7 +63,7 @@ function HistoryToolbar({
         aria-label="Branch filter"
       >
         <option value="">Current branch</option>
-        <option value="--all">All branches</option>
+        <option value={ALL_BRANCHES}>All branches</option>
         {branches.map((name) => (
           <option key={name} value={name}>
             {name}

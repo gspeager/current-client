@@ -264,9 +264,7 @@ function HistoryView({
 
   useEffect(() => {
     const last = virtualItems[virtualItems.length - 1]
-    if (last && last.index >= commits.length - 20) {
-      loadMore(commits.length, done)
-    }
+    if (last && last.index >= commits.length - 20) loadMore()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [virtualItems, commits.length, done])
 

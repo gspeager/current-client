@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { Ellipsis, GitBranchPlus } from 'lucide-react'
 import { BranchService, CommitInfo, ReflogService, type ReflogEntryInfo } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
@@ -33,7 +33,7 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
   const commitActions = useCommitActions(repoPath, onBranchChanged)
   const error = loadError ?? recoverError ?? commitActions.error
 
-  const openMenu = (entry: ReflogEntryInfo) => (e: React.MouseEvent | React.KeyboardEvent) =>
+  const openMenu = (entry: ReflogEntryInfo) => (e: MouseEvent | KeyboardEvent) =>
     setMenu({
       ...menuAnchor(e),
       items: commitActions

@@ -59,11 +59,6 @@
   @include patterns.disabled;
 }
 
-.current-change-row-icon {
-  flex-shrink: 0;
-  color: var(--outline);
-}
-
 .current-change-row-text {
   min-width: 0;
   @include patterns.truncate;
@@ -71,11 +66,6 @@
 
 .current-change-row-sep {
   color: var(--outline);
-}
-
-.current-change-row-action {
-  color: var(--on-surface);
-  font-weight: 600;
 }
 
 .current-change-head {
@@ -111,9 +101,7 @@
 }
 
 .current-change-title-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
   color: var(--on-surface);
   font: var(--ui-sm);
 }
@@ -134,6 +122,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
+  min-width: 0;
+  @include patterns.truncate;
 }
 
 .current-change-actions {
@@ -200,8 +190,7 @@
   font: var(--data-sm);
 }
 
-.current-change-forecast-cap,
-.current-change-forecast-clean {
+.current-change-forecast-cap {
   color: var(--outline);
 }
 
@@ -228,13 +217,6 @@
   text-decoration-color: var(--outline);
   text-underline-offset: 2px;
   font-weight: 500;
-}
-
-.current-change-ci {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .current-change-threads {

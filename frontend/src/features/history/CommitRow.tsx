@@ -184,11 +184,15 @@ function CommitRow({
         <span className="commit-row-author-name">{highlightMatch(commit.authorName, searchQuery, 'search-match')}</span>
       </div>
 
-      <span className="commit-row-sha" role="gridcell">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
+      <span className="commit-row-sha" role="gridcell">
+        {highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}
+      </span>
       <span className="commit-row-ci" role="gridcell">
         <CIMark repoPath={repoPath} mark={ci} onOpenJobs={onOpenChecks} />
       </span>
-      <span className="commit-row-time" role="gridcell">{relativeTime(new Date(commit.date))}</span>
+      <span className="commit-row-time" role="gridcell">
+        {relativeTime(new Date(commit.date))}
+      </span>
       <span className="commit-row-actions" role="gridcell">
         <button
           type="button"

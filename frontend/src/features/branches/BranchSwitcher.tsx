@@ -1,4 +1,3 @@
-import { plural } from '../../lib/plural'
 import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { Cloud, GitBranchPlus, RefreshCw, Search, X } from 'lucide-react'
 import { BranchService, RemoteService, StatusService } from '@current-client-bindings/app'
@@ -6,6 +5,7 @@ import { localNameFor } from './branches'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
+import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -52,15 +52,15 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
   const ahead = data?.ahead ?? 0
   const dirtyCount = data?.dirtyCount ?? 0
   const localName = (remoteBranch: string) => localNameFor(remoteBranch, data?.remoteNames ?? [])
+  const fail = (err: unknown) => setActionError(errorMessage(err))
+  const branchChanged = () => {
+    load()
+    onBranchChanged?.()
+  }
 
   const checkoutBranch = (name: string) => {
     setActionError(null)
-    BranchService.CheckoutBranch(repoPath, name)
-      .then(() => {
-        load()
-        onBranchChanged?.()
-      })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    BranchService.CheckoutBranch(repoPath, name).then(branchChanged).catch(fail)
   }
 
   const newBranchFromHead = async () => {
@@ -74,11 +74,8 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
     setActionError(null)
     BranchService.CreateBranch(repoPath, name)
       .then(() => BranchService.CheckoutBranch(repoPath, name))
-      .then(() => {
-        load()
-        onBranchChanged?.()
-      })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .then(branchChanged)
+      .catch(fail)
   }
 
   const fetchAllOp = useFetchAll(
@@ -91,10 +88,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
   )
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
-  const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
-    onBranchChanged?.()
-    load()
-  })
+  const deleteRemote = useDeleteRemoteBranch(repoPath, branchChanged)
 
   const remoteMenu = (name: string) => (e: MouseEvent | KeyboardEvent) => {
     e.preventDefault()

@@ -47,6 +47,10 @@
 
 .file-row-path {
   display: flex;
+  align-self: stretch;
+  align-items: center;
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   padding: 0;
   background: none;
@@ -64,6 +68,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  grid-column: 5;
+  grid-row: 1;
 }
 
 // A glyph, so owners never take the file name's room; the names are in its
@@ -85,22 +91,7 @@
   display: none;
 }
 
-.file-row-stats {
-  grid-column: 5;
-  grid-row: 1;
-}
-
 .file-row > .status-badge {
   grid-column: 6;
-  grid-row: 1;
-}
-
-.file-row-path {
-  align-self: stretch;
-  align-items: center;
-}
-
-.file-row-path {
-  grid-column: 2;
   grid-row: 1;
 }

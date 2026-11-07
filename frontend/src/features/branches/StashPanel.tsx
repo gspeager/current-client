@@ -34,6 +34,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
   const { confirm } = useDialogs()
   const [actionError, setActionError] = useState<string | null>(null)
   const error = loadError ?? actionError
+  const fail = (err: unknown) => setActionError(errorMessage(err))
   const [newMessage, setNewMessage] = useState('')
   const [includeUntracked, setIncludeUntracked] = useState(false)
   const [keepIndex, setKeepIndex] = useState(false)
@@ -56,7 +57,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
         loadStashes()
         onStashChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const applyStash = (index: number) => {
@@ -64,7 +65,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
     setBusyIndex(index)
     StashService.StashApply(repoPath, index)
       .then(() => onStashChanged?.())
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 
@@ -76,7 +77,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
         loadStashes()
         onStashChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 
@@ -92,7 +93,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
     setBusyIndex(index)
     StashService.StashDrop(repoPath, index)
       .then(() => loadStashes())
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 
