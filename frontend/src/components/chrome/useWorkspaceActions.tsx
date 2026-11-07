@@ -7,7 +7,7 @@ import {
   ShieldCheck,
   Sparkles,
   Split,
-  Terminal,
+  SquareTerminal,
   Undo2,
   type LucideIcon,
   LifeBuoy,
@@ -38,6 +38,7 @@ export interface WorkspaceAction {
   icon: LucideIcon
   // Other words the palette finds it by.
   keywords?: string[]
+  shortcut?: string
   run: () => void
   // Set while the action can't run, with the reason for its tooltip.
   disabled?: boolean
@@ -57,6 +58,8 @@ interface WorkspaceActionsOptions {
   editorPath?: string
   // The merge, rebase, cherry-pick or revert in progress; undo and bisect wait for it.
   operation?: string | null
+  // Opens the embedded terminal; absent where it's turned off.
+  onOpenTerminal?: () => void
   onBranchChanged: () => void
   onOpenCommit: (sha: string) => void
   onFailure: () => void
@@ -84,6 +87,7 @@ export function useWorkspaceActions({
   hostLinks = null,
   editorPath = '',
   operation = null,
+  onOpenTerminal,
 }: WorkspaceActionsOptions): WorkspaceActions {
   const { confirm } = useDialogs()
   const [feedback, setFeedback] = useState<(WorkspaceFeedback & { repoPath: string }) | null>(null)
@@ -128,14 +132,20 @@ export function useWorkspaceActions({
   const blocked = operation ? { disabled: true, reason: `Finish the ${operationNoun(operation)} first` } : {}
 
   const actions: WorkspaceAction[] = [
-    {
-      id: 'open-terminal',
-      label: 'Open Terminal',
-      short: 'Terminal',
-      group: 'open',
-      icon: Terminal,
-      run: () => run(PlatformService.OpenTerminal(repoPath), 'Could not open terminal'),
-    },
+    ...(onOpenTerminal
+      ? [
+          {
+            id: 'terminal-panel',
+            label: 'Terminal panel',
+            short: 'Terminal',
+            group: 'open' as const,
+            icon: SquareTerminal,
+            keywords: ['shell', 'console', 'command line'],
+            shortcut: 'ctrl+`',
+            run: onOpenTerminal,
+          },
+        ]
+      : []),
     {
       id: 'reveal-file-manager',
       label: revealInFileManagerLabel(),

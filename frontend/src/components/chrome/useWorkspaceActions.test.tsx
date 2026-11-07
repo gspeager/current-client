@@ -28,6 +28,7 @@ describe('useWorkspaceActions during a merge', () => {
         useWorkspaceActions({
           repoPath: '/repos/app',
           operation: 'rebase',
+          onOpenTerminal: vi.fn(),
           onBranchChanged: vi.fn(),
           onOpenCommit: vi.fn(),
           onFailure: vi.fn(),
@@ -39,6 +40,20 @@ describe('useWorkspaceActions during a merge', () => {
     expect(byId.undo.reason).toBe('Finish the rebase first')
     expect(byId.bisect.disabled).toBe(true)
     expect(byId.reflog.disabled).toBeUndefined()
-    expect(byId['open-terminal'].disabled).toBeUndefined()
+    expect(byId['terminal-panel'].disabled).toBeUndefined()
+  })
+
+  it('offers no terminal where the embedded one is turned off', () => {
+    const { result } = renderHook(
+      () =>
+        useWorkspaceActions({
+          repoPath: '/repos/app',
+          onBranchChanged: vi.fn(),
+          onOpenCommit: vi.fn(),
+          onFailure: vi.fn(),
+        }),
+      { wrapper },
+    )
+    expect(result.current.actions.some((a) => a.id === 'terminal-panel')).toBe(false)
   })
 })

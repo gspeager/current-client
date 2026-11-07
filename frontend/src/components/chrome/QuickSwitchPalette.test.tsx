@@ -52,6 +52,7 @@ function Shell({
 }: ShellSpies) {
   const [paletteOpen, setPaletteOpen] = useState(true)
   const workspace = useWorkspaceActions({
+    onOpenTerminal: vi.fn(),
     repoPath: REPO,
     onBranchChanged,
     onOpenCommit: vi.fn(),
@@ -164,7 +165,7 @@ describe('QuickSwitchPalette features', () => {
     const readiness = paletteAction('Release readiness')
     expect(groupOf(readiness)).toContain('Release')
     expect(groupOf(paletteAction('Pull'))).toContain('Sync')
-    expect(groupOf(paletteAction('Open Terminal'))).toContain('Tools')
+    expect(groupOf(paletteAction('Terminal panel'))).toContain('Tools')
 
     await userEvent.type(screen.getByRole('combobox'), 'rel')
     await userEvent.click(paletteAction('Release readiness'))
@@ -217,7 +218,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       .getAllByRole('option')
       .map((o) => o.getAttribute('aria-label'))
     expect(sidebar).toEqual([
-      'Open Terminal',
+      'Terminal panel',
       expect.stringMatching(/^(Reveal in|Open in File Manager)/),
       'Open in VS Code',
       'Undo last operation',

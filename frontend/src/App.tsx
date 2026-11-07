@@ -23,7 +23,6 @@ import {
   ListChecks,
   ListOrdered,
   Play,
-  SquareTerminal,
   StickyNote,
   Table,
 } from 'lucide-react'
@@ -350,6 +349,7 @@ function App({
     hostLinks,
     editorPath: settings.settings?.editorPath ?? '',
     operation: conflictState?.operation ?? null,
+    onOpenTerminal: terminalsOff ? undefined : toggleTerminal,
     onBranchChanged,
     onOpenCommit: (sha) => openCommit(sha),
     onFailure: () => setNavCollapsed(false),
@@ -805,14 +805,6 @@ function App({
               void tasks.run(task)
             },
           })),
-          {
-            id: 'terminal-panel',
-            label: 'Terminal panel',
-            section: 'Tools' as const,
-            icon: SquareTerminal,
-            keywords: ['shell', 'console', 'command line'],
-            run: toggleTerminal,
-          },
         ]),
     {
       id: 'restack',

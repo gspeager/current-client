@@ -32,8 +32,11 @@ interface ShellProps {
 }
 
 // The sidebar with its Workspace actions wired the way App wires them.
+const openTerminal = vi.fn()
+
 function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn() }: ShellProps) {
   const workspace = useWorkspaceActions({
+    onOpenTerminal: openTerminal,
     repoPath: REPO,
     onBranchChanged: vi.fn(),
     onOpenCommit: vi.fn(),
@@ -75,13 +78,12 @@ const openToolbox = () => userEvent.click(screen.getByRole('button', { name: 'To
 
 describe('NavPane collapsed rail', () => {
   it('runs workspace actions from the Toolbox menu', async () => {
-    vi.mocked(PlatformService.OpenTerminal).mockResolvedValue()
     const { onCollapsedChange } = renderNav(true)
 
     await userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Open Terminal' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Terminal panel' }))
 
-    expect(PlatformService.OpenTerminal).toHaveBeenCalledWith(REPO)
+    expect(openTerminal).toHaveBeenCalled()
     expect(onCollapsedChange).not.toHaveBeenCalled()
     expect(screen.queryByText('Branches')).not.toBeInTheDocument()
   })
