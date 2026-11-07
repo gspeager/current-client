@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 
 	"github.com/gspeager/current-client/core/hostapi"
-	"github.com/gspeager/current-client/core/hostapi/jira"
 	"github.com/gspeager/current-client/core/hostlink"
 	"github.com/gspeager/current-client/internal/policy"
 )
@@ -83,7 +82,7 @@ func (apiTokens) Forget(hostName string) {
 
 func trackerSiteByHost(hostName string) (hostlink.Tracker, bool) {
 	for _, t := range allTrackers() {
-		if jira.HostName(t) == hostName {
+		if hostlink.SiteHost(t.Site) == hostName {
 			return t, true
 		}
 	}

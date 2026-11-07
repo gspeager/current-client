@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
-	"github.com/gspeager/current-client/core/hostapi/jira"
 	"github.com/gspeager/current-client/core/hostcontent"
+	"github.com/gspeager/current-client/core/hostlink"
 )
 
 // IssueInfo is what a hover card shows for an issue reference. Title is
@@ -97,7 +97,7 @@ func issueSourceFor(repoPath, key string) (issueSource, error) {
 		if !ok {
 			return issueSource{}, errors.New("integration is off for this repository's issue tracker")
 		}
-		return issueSource{cacheHost: jira.HostName(site), webRoot: site.Site, tracker: provider}, nil
+		return issueSource{cacheHost: hostlink.SiteHost(site.Site), webRoot: site.Site, tracker: provider}, nil
 	}
 	_, info, err := requireHost(repoPath)
 	if err != nil {
@@ -186,12 +186,11 @@ func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]
 	inParallel(len(missing), func(i int) {
 		number := missing[i]
 		issue, err := tracker.IssueByKey(ctx, info.Project, strconv.Itoa(number))
-		var hostErr *hostapi.HostError
 		switch {
 		case err == nil:
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number),
 				IssueInfo{Number: number, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
-		case errors.As(err, &hostErr) && hostErr.Status == 404:
+		case hostapi.IsNotFound(err):
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number), IssueInfo{Number: number, Known: true})
 		}
 	})

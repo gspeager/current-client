@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"net/url"
 	"slices"
 
 	"github.com/gspeager/current-client/core/hostlink"
@@ -73,22 +72,13 @@ func (s *TrackerService) List() TrackerList {
 
 func withAccess(info TrackerInfo, cfg config.Config) TrackerInfo {
 	access := cfg.TrackerAccess[info.Site]
-	info.HostName = trackerHostName(info.Site)
+	info.HostName = hostlink.SiteHost(info.Site)
 	info.HasToken = access.HasToken
 	info.Enabled, info.Locked = access.Enabled, false
 	if forced, managed := policy.Host(info.HostName); managed {
 		info.Enabled, info.Locked = forced, true
 	}
 	return info
-}
-
-// trackerHostName is the site's host, with its port, as the client names it.
-func trackerHostName(site string) string {
-	u, err := url.Parse(site)
-	if err != nil {
-		return ""
-	}
-	return u.Host
 }
 
 func orEmpty(values []string) []string {
@@ -162,8 +152,8 @@ func (s *TrackerService) Links(repoPath string) *TrackerLinks {
 		KeyPattern:       tracker.KeyPattern().String(),
 		BranchKeyPattern: tracker.BranchKeyPattern().String(),
 		Managed:          managed,
-		HostName:         trackerHostName(tracker.Site),
-		Reading:          trackerReading(trackerHostName(tracker.Site)),
+		HostName:         hostlink.SiteHost(tracker.Site),
+		Reading:          trackerReading(hostlink.SiteHost(tracker.Site)),
 	}
 }
 

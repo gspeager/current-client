@@ -203,11 +203,9 @@ func (s *StackService) Preview(repoPath, root string) (RestackPreviewInfo, error
 	return RestackPreviewInfo{
 		Layers: mapSlice(preview.Layers, func(layer git.RestackPreviewLayer) RestackPreviewLayerInfo {
 			return RestackPreviewLayerInfo{
-				Branch: layer.Branch,
-				Onto:   layer.Onto,
-				Commits: mapSlice(layer.Commits, func(commit git.PreviewCommit) RebasePreviewCommitInfo {
-					return RebasePreviewCommitInfo{commit.SHA, commit.Subject, string(commit.Outcome), append([]string{}, commit.Files...)}
-				}),
+				Branch:        layer.Branch,
+				Onto:          layer.Onto,
+				Commits:       mapSlice(layer.Commits, previewCommitInfo),
 				DroppedMerges: layer.DroppedMerges,
 				Missing:       layer.Missing,
 				Merged:        layer.Merged,

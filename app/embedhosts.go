@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gspeager/current-client/core/hostapi"
+	"github.com/gspeager/current-client/core/hostlink"
 	"github.com/gspeager/current-client/internal/policy"
 )
 
@@ -40,7 +41,7 @@ func EnabledHosts() []string {
 		candidates[name] = true
 	}
 	for _, t := range allTrackers() {
-		candidates[trackerHostName(t.Site)] = true
+		candidates[hostlink.SiteHost(t.Site)] = true
 	}
 	var enabled []string
 	for name := range candidates {

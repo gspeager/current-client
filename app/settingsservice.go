@@ -142,7 +142,7 @@ func (s *SettingsService) PickEditorExecutable() (string, error) {
 
 func (s *SettingsService) SetAutoFetchIntervalMinutes(minutes int) error {
 	if _, managed := policy.AutoFetchMinutes(0); managed {
-		return errors.New("background fetch is managed by your organization")
+		return errors.New("background fetch is managed by organization policy")
 	}
 	return updateConfig(func(cfg *config.Config) { cfg.AutoFetchIntervalMinutes = minutes })
 }

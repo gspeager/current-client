@@ -8,7 +8,7 @@ import (
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
-	"github.com/gspeager/current-client/core/hostapi/jira"
+	"github.com/gspeager/current-client/core/hostlink"
 )
 
 // cacheProjectIssues is the project's open or closed issues, keyed "open"
@@ -52,7 +52,7 @@ func issueServices(repoPath string) []issueService {
 		}
 	}
 	if provider, site, ok := jiraFor(repoPath); ok {
-		services = append(services, issueService{jira.HostName(site), "", trackerAssignedID, provider})
+		services = append(services, issueService{hostlink.SiteHost(site.Site), "", trackerAssignedID, provider})
 	}
 	return services
 }

@@ -38,7 +38,7 @@ var terminals = terminal.NewManager()
 
 type TerminalService struct{}
 
-var errLocalCommandsOff = errors.New("your organization has turned this off")
+var errLocalCommandsOff = errors.New("turned off by organization policy")
 
 func emit(name string, data any) {
 	if running := application.Get(); running != nil {

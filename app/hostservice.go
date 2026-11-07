@@ -112,7 +112,7 @@ func (s *HostService) Status(hostname string) HostStatusInfo {
 // host off drops everything the client holds for it.
 func (s *HostService) SetEnabled(hostname string, enabled bool) error {
 	if _, managed := policy.Host(hostname); managed {
-		return fmt.Errorf("integration for %s is managed by your organization", hostname)
+		return fmt.Errorf("integration for %s is managed by organization policy", hostname)
 	}
 	if !enabled {
 		hostClient.Forget(hostname)

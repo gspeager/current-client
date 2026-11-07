@@ -224,7 +224,7 @@ describe('TerminalPanel', () => {
 
   it('says why a shell could not start', async () => {
     const user = userEvent.setup()
-    vi.mocked(TerminalService.Start).mockRejectedValue(new Error('your organization has turned this off'))
+    vi.mocked(TerminalService.Start).mockRejectedValue(new Error('turned off by organization policy'))
     function WithError() {
       const terminals = useTerminals('/repo')
       return (
@@ -242,6 +242,6 @@ describe('TerminalPanel', () => {
       </DialogProvider>,
     )
     await user.click(screen.getByRole('button', { name: 'open' }))
-    expect(await screen.findByText(/turned this off/)).toBeInTheDocument()
+    expect(await screen.findByText(/turned off by organization policy/)).toBeInTheDocument()
   })
 })
