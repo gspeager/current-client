@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **Pull request and issue state has an icon and a capital**, such as "Open" or "Merged", so it reads apart from labels.
 - **Editor keys work here too.** **Ctrl+P** and **Ctrl+Shift+P** open Go to anything, **Ctrl+K** now closes it as well, and **F7** and **Shift+F7** move between diff hunks.
 - **Dates are real dates after a week**, so an old commit reads "Mar 14" or "Mar 2024" instead of "400d ago".
 - **The status bar says what just happened**, such as "Pushed main to origin/main", in place of Ready, with **Undo** after a commit or pull.

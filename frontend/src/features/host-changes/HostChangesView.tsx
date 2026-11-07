@@ -57,6 +57,7 @@ import { useCancellableOperation } from '../../lib/cancellableOperation'
 import { useClockTick } from '../../lib/useClockTick'
 import './HostChangesView.scss'
 import { hostLogo } from '../../components/git/hostLogos'
+import ChangeStateLabel from './ChangeStateLabel'
 
 type Filter = 'open' | 'mine' | 'review' | 'closed'
 type DetailTab = 'overview' | 'checks' | 'threads' | 'files' | 'commits'
@@ -424,7 +425,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           {list.prefix}
           {change.number}
         </span>
-        <span className={`host-change-state host-change-state-${state}`}>{state}</span>
+        <ChangeStateLabel state={state} />
         <h3 className="host-change-detail-title">{change.title}</h3>
         <div className="host-change-actions">
           <button type="button" className="host-change-button" onClick={checkOut} disabled={checkout.running}>

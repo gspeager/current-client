@@ -16,6 +16,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import './IssuePanel.scss'
 import { hostLogo, issueProvider } from '../../components/git/hostLogos'
 import { useHostLinks } from '../../lib/useHostLinks'
+import ChangeStateLabel from './ChangeStateLabel'
 
 interface IssueDetailProps {
   repoPath: string
@@ -92,7 +93,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
     <article className="issue-detail" data-pane="issue-detail" aria-label={data?.reference ?? issueKey}>
       <header className="issue-detail-header">
         <span className="issue-detail-reference">{data?.reference ?? issueKey}</span>
-        {issue?.state && <span className={`host-change-state host-change-state-${issue.state}`}>{issue.state}</span>}
+        {issue?.state && <ChangeStateLabel state={issue.state} issue />}
         {issue && <h3 className="host-change-detail-title issue-detail-title">{issue.title}</h3>}
         {issue && (
           <div className="host-change-actions">

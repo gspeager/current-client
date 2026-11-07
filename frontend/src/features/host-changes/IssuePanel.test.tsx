@@ -37,7 +37,7 @@ describe('IssuePanel', () => {
 
     const dialog = await screen.findByRole('article', { name: '#4' })
     expect(within(dialog).getByRole('heading', { name: 'Login fails' })).toBeInTheDocument()
-    expect(dialog).toHaveTextContent('open')
+    expect(dialog).toHaveTextContent('Open')
     expect(dialog).toHaveTextContent('Ada')
     expect(dialog).toHaveTextContent('0.5.0')
     expect(within(dialog).getByText('bug')).toBeInTheDocument()
