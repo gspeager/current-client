@@ -205,12 +205,6 @@
   color: var(--on-surface-variant);
 }
 
-// A list of mostly passing commits shouldn't be a wall of green: passed is
-// quiet here, so a failure stands out. Detail views keep the full color.
-.commit-row-ci .ci-icon-success {
-  color: var(--outline);
-}
-
 .commit-row-author .identity-badge {
   filter: saturate(0.6);
 }
