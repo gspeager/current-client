@@ -19,6 +19,8 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
   const cloneOp = useCancellableOperation()
   const initStarted = useRef(false)
 
+  const reportError = (err: unknown) => setRepoError(errorMessage(err))
+
   const refreshRecentRepos = () => {
     RepositoryService.GetRecentRepositories()
       .then(setRecentRepos)
@@ -55,15 +57,17 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     })
   }
 
+  const opened = (path: string) => {
+    addTab(path)
+    refreshRecentRepos()
+  }
+
   const openPath = (open: Promise<string>) => {
     setRepoError(null)
-    return open
-      .then((path) => {
-        addTab(path)
-        refreshRecentRepos()
-      })
-      .catch((err: unknown) => setRepoError(errorMessage(err)))
+    return open.then(opened).catch(reportError)
   }
+
+  const focusTab = (path: string) => RepositoryService.OpenRepository(path).then(setRepoPathState).catch(reportError)
 
   // A request to open a repository from outside waits for this, so restoring
   // the saved tabs can't take the focus back from it.
@@ -76,8 +80,7 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     Promise.all([
       RepositoryService.GetRecentRepositories().catch(() => []),
       RepositoryService.GetOpenTabs().catch(() => null),
-    ]).then(([recentsResult, tabsResult]) => {
-      const recentList = recentsResult
+    ]).then(([recentList, tabsResult]) => {
       setRecentRepos(recentList)
       const savedTabs = tabsResult?.tabs ?? []
       if (initialRepoPath) {
@@ -89,13 +92,10 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
         const focused =
           tabsResult?.focused && savedTabs.includes(tabsResult.focused) ? tabsResult.focused : savedTabs[0]
         // The focused repository loads first; the other tabs' summaries wait for it.
-        RepositoryService.OpenRepository(focused)
-          .then((path) => setRepoPathState(path))
-          .catch((err: unknown) => setRepoError(errorMessage(err)))
-          .finally(() => {
-            refreshTabSummaries(savedTabs.filter((p) => p !== focused))
-            setRestored(true)
-          })
+        void focusTab(focused).finally(() => {
+          refreshTabSummaries(savedTabs.filter((p) => p !== focused))
+          setRestored(true)
+        })
       } else if (recentList.length > 0) {
         void openPath(RepositoryService.OpenRepository(recentList[0])).finally(() => setRestored(true))
       } else {
@@ -116,11 +116,9 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     setRepoError(null)
     RepositoryService.PickRepositoryFolder()
       .then((path) => {
-        if (path) {
-          openPath(run(path))
-        }
+        if (path) void openPath(run(path))
       })
-      .catch((err: unknown) => setRepoError(errorMessage(err)))
+      .catch(reportError)
   }
 
   const openRepository = () => pickAndOpen(RepositoryService.OpenRepository)
@@ -143,9 +141,7 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
         const candidate = next[idx] ?? next[idx - 1] ?? null
         nextFocused = candidate
         if (candidate) {
-          RepositoryService.OpenRepository(candidate)
-            .then((resolved) => setRepoPathState(resolved))
-            .catch((err: unknown) => setRepoError(errorMessage(err)))
+          void focusTab(candidate)
         } else {
           setRepoPathState(null)
         }
@@ -169,11 +165,9 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
   const chooseCloneDestination = () => {
     RepositoryService.PickDestinationFolder()
       .then((path) => {
-        if (path) {
-          setCloneDest(path)
-        }
+        if (path) setCloneDest(path)
       })
-      .catch((err: unknown) => setRepoError(errorMessage(err)))
+      .catch(reportError)
   }
 
   const cloneRepository = () => {
@@ -181,8 +175,7 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     cloneOp.run<string>(
       (auth) => RepositoryService.CloneRepository(cloneUrl, cloneDest, cloneFolder.trim(), auth),
       (path) => {
-        addTab(path)
-        refreshRecentRepos()
+        opened(path)
         setCloneFolder(null)
       },
     )
@@ -207,11 +200,7 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     tabs,
     tabSummaries,
     restored,
-    openFromOutside: (path: string) =>
-      RepositoryService.OpenRepository(path).then((opened) => {
-        addTab(opened)
-        refreshRecentRepos()
-      }),
+    openFromOutside: (path: string) => RepositoryService.OpenRepository(path).then(opened),
     closeTab,
     reorderTabs,
   }

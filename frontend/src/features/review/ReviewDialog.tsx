@@ -93,7 +93,7 @@ function ReviewDialog({ repoPath, number, prefix, onSubmitted, onClose }: Review
                 </span>
               </label>
             ))}
-            {capabilities && !capabilities.requestChanges && (
+            {!capabilities.requestChanges && (
               <p className="dialog-note">The host's API has no request-changes verdict; a comment says it instead.</p>
             )}
           </fieldset>

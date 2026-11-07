@@ -18,12 +18,14 @@ export function useRemoteSync(
   afterPush?: () => void,
   onResult?: (result: ActionResult) => void,
 ) {
-  const reportPushed = (result: PushResult) => onResult?.({ text: `Pushed ${result.branch} to ${result.upstream}` })
-  const pushed = (result: PushResult) => {
+  // then, when given, replaces onPushed so the caller can carry on (the
+  // sidebar opens the create form).
+  const pushed = (result: PushResult, then?: (result: PushResult) => void) => {
     onSynced()
-    onPushed?.(result)
+    if (!then) onPushed?.(result)
     afterPush?.()
-    reportPushed(result)
+    onResult?.({ text: `Pushed ${result.branch} to ${result.upstream}` })
+    then?.(result)
   }
   const pulled = () => {
     onSynced()
@@ -33,23 +35,11 @@ export function useRemoteSync(
   const pullOp = useCancellableOperation(repoPath ?? '')
   const pushOp = useCancellableOperation(repoPath ?? '')
 
-  const pull = () => {
+  const pullWith = (pullRepo: typeof RemoteService.Pull) => () => {
     if (!repoPath) return
-    pullOp.run((auth) => RemoteService.Pull(repoPath, auth), pulled)
+    pullOp.run((auth) => pullRepo(repoPath, auth), pulled)
   }
 
-  const pullMerge = () => {
-    if (!repoPath) return
-    pullOp.run((auth) => RemoteService.PullMerge(repoPath, auth), pulled)
-  }
-
-  const pullRebase = () => {
-    if (!repoPath) return
-    pullOp.run((auth) => RemoteService.PullRebase(repoPath, auth), pulled)
-  }
-
-  // then, when given, replaces the post-push report so the caller can carry on
-  // (the sidebar opens the create form).
   const pushSettingUpstream = async (path: string, then?: (result: PushResult) => void) => {
     try {
       const [status, remoteName] = await Promise.all([BranchService.CurrentBranchStatus(path), primaryRemoteName(path)])
@@ -62,13 +52,7 @@ export function useRemoteSync(
       if (!confirmed) return
       await pushOp.run(
         (auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth),
-        (result) => {
-          if (!then) return pushed(result)
-          onSynced()
-          afterPush?.()
-          reportPushed(result)
-          then(result)
-        },
+        (result) => pushed(result, then),
       )
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
@@ -150,9 +134,9 @@ export function useRemoteSync(
   }
 
   return {
-    pull,
-    pullMerge,
-    pullRebase,
+    pull: pullWith(RemoteService.Pull),
+    pullMerge: pullWith(RemoteService.PullMerge),
+    pullRebase: pullWith(RemoteService.PullRebase),
     push,
     forcePush,
     pushTags,

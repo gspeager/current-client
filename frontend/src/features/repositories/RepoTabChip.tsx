@@ -19,10 +19,12 @@ interface RepoTabChipProps {
 function tabLabel(path: string, summary?: RepoSummaryInfo): string {
   const parts = [baseName(path)]
   if (summary && !summary.available) parts.push('not found')
-  if (summary?.available && summary.currentBranch) parts.push(summary.currentBranch)
-  if (summary?.available && summary.behind > 0) parts.push(`${summary.behind} behind`)
-  if (summary?.available && summary.ahead > 0) parts.push(`${summary.ahead} ahead`)
-  if (summary?.available && summary.dirty > 0) parts.push('uncommitted changes')
+  if (summary?.available) {
+    if (summary.currentBranch) parts.push(summary.currentBranch)
+    if (summary.behind > 0) parts.push(`${summary.behind} behind`)
+    if (summary.ahead > 0) parts.push(`${summary.ahead} ahead`)
+    if (summary.dirty > 0) parts.push('uncommitted changes')
+  }
   return parts.join(', ')
 }
 

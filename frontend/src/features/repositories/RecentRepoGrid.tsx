@@ -1,8 +1,7 @@
 import { X } from 'lucide-react'
-import { RepositoryService } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
-import { useAsyncData } from '../../lib/useAsyncData'
 import type { useRepositoryLifecycle } from './useRepositoryLifecycle'
+import { useRecentSummaries } from './useRecentSummaries'
 import './RecentRepoGrid.scss'
 
 interface RecentRepoGridProps {
@@ -25,18 +24,11 @@ function Sparkline({ activity }: { activity: number[] }) {
 // The recent repositories as cards: name, state, path, branch, with the
 // ones already open badged.
 function RecentRepoGrid({ repo, query = '' }: RecentRepoGridProps) {
-  // keepData leaves the current cards up while the list refreshes, and the
-  // filter drops a removed card at once, so the grid never empties and redraws.
-  const { data: loadedSummaries } = useAsyncData(
-    () => RepositoryService.GetRepoSummaries(repo.recentRepos).catch(() => []),
-    [repo.recentRepos],
-    { keepData: true },
-  )
   const q = query.trim().toLowerCase()
   const summaries =
-    loadedSummaries
-      ?.filter((s) => repo.recentRepos.includes(s.path))
-      .filter((s) => !q || s.name.toLowerCase().includes(q) || s.path.toLowerCase().includes(q)) ?? null
+    useRecentSummaries(repo.recentRepos)?.filter(
+      (s) => !q || s.name.toLowerCase().includes(q) || s.path.toLowerCase().includes(q),
+    ) ?? null
 
   if (repo.recentRepos.length === 0) return <p className="repo-grid-hint">No recent repositories.</p>
   if (summaries === null) return <p className="repo-grid-hint">Loading…</p>

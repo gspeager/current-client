@@ -59,11 +59,12 @@ function TerminalPane({ id, visible, focusRequest, theme, onExit }: TerminalPane
     // belong to the shell, and everything else goes to the shell.
     term.attachCustomKeyEventHandler((event) => {
       if (isTerminalToggle(event)) return false
-      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
+      if (event.type !== 'keydown' || !event.ctrlKey || !event.shiftKey) return true
+      if (event.code === 'KeyC') {
         void navigator.clipboard?.writeText(term.getSelection())
         return false
       }
-      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') {
+      if (event.code === 'KeyV') {
         void navigator.clipboard?.readText().then((text) => term.paste(text))
         return false
       }

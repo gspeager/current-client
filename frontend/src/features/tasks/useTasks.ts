@@ -13,7 +13,7 @@ let nextRun = 0
 
 export type RunStatus = 'running' | 'passed' | 'failed' | 'stopped'
 
-export interface TaskRun {
+interface TaskRun {
   runId: string
   status: RunStatus
   output: string

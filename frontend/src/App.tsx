@@ -153,7 +153,6 @@ function App({
   const [hostNotices, setHostNotices] = useState<HostNotice[]>([])
   const [pushed, setPushed] = useState<PushResult | null>(null)
   const [actionResult, setActionResult] = useState<ActionResult | null>(null)
-  // The branch the in-app create form is open for.
   const [createChangeFor, setCreateChangeFor] = useState<string | null>(null)
   const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
   // false only in a build made with the nohost tag; until known, assume the full build.
@@ -187,9 +186,9 @@ function App({
     collectHostNotices()
   }
 
-  // A pull fetches too, so it moves "fetched … ago" as well as the branch.
   const terminalsOff = hideTerminal || (settings.settings?.localCommandsOff ?? false)
   const tasks = useTasks(terminalsOff ? null : repo.repoPath, repoVersion)
+  // A pull fetches too, so it moves "fetched … ago" as well as the branch.
   const { pull, pullMerge, pullRebase, push, forcePush, pushTags, pushSetUpstream, pullOp, pushOp } = useRemoteSync(
     repo.repoPath,
     onFetched,
@@ -203,6 +202,7 @@ function App({
   }, [pullOp.running, pushOp.running])
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
+  const operation = conflictState?.operation ?? null
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
   // With its repository, since a tab switch renders once before the old list is cleared.
   const { data: branchList } = useAsyncData(
@@ -214,6 +214,7 @@ function App({
     { refreshKey: repoVersion },
   )
   const localBranches = branchList?.repoPath === repo.repoPath ? branchList.branches : null
+  const currentBranch = localBranches?.find((b) => b.current)?.name
   const {
     activeTab: rememberedTab,
     setActiveTab,
@@ -221,11 +222,7 @@ function App({
     remember,
     memoryBranch,
     forgetBranchesExcept,
-  } = useTabMemory(
-    repo.repoPath,
-    localBranches ? (localBranches.find((b) => b.current)?.name ?? '') : null,
-    !!conflictState?.operation,
-  )
+  } = useTabMemory(repo.repoPath, localBranches ? (currentBranch ?? '') : null, !!operation)
   useEffect(() => {
     if (localBranches) forgetBranchesExcept(localBranches.map((b) => b.name))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -298,25 +295,17 @@ function App({
       return
     }
     if (!(e.metaKey || e.ctrlKey) || e.altKey) return
-    if (e.shiftKey && e.key.toLowerCase() !== 'z') return
-    if (e.key.toLowerCase() === 'z' && e.shiftKey) {
+    if (e.shiftKey) {
+      if (e.key.toLowerCase() !== 'z') return
       e.preventDefault()
-      workspace.actions.find((a) => a.id === 'undo')?.run()
+      undoAction?.run()
       return
     }
     if (e.key.toLowerCase() === 'b') {
       e.preventDefault()
       setNavCollapsed(!navCollapsed)
     }
-    const views: AppTab[] = [
-      'working-copy',
-      'history',
-      ...(changesLabel ? (['changes'] as const) : []),
-      ...(issuesOn ? (['issues'] as const) : []),
-      'activity',
-      'changelog',
-    ]
-    const view = views[Number(e.key) - 1]
+    const view = viewTabs[Number(e.key) - 1]
     if (view && repo.repoPath) {
       e.preventDefault()
       changeTab(view)
@@ -350,12 +339,15 @@ function App({
     setCommitFocus((prev) => ({ repoPath: repo.repoPath, position, ref, request: (prev?.request ?? 0) + 1 }))
   }
 
+  const openRevision = (repoPath: string, rev: string, ref: string | null) =>
+    HistoryService.ResolveCommit(repoPath, rev).then((sha) => openCommit(sha, null, ref))
+
   // A failed action expands the sidebar, so its message is visible.
   const workspace = useWorkspaceActions({
     repoPath: repo.repoPath,
     hostLinks,
     editorPath: settings.settings?.editorPath ?? '',
-    operation: conflictState?.operation ?? null,
+    operation,
     onOpenTerminal: terminalsOff ? undefined : toggleTerminal,
     onBranchChanged,
     onOpenCommit: (sha) => openCommit(sha),
@@ -370,8 +362,7 @@ function App({
       openCommit(sha, await HistoryService.GetCommitPosition(repo.repoPath, sha))
     },
     openBranch: async (name) => {
-      if (!repo.repoPath) return
-      openCommit(await HistoryService.ResolveCommit(repo.repoPath, name), null, name)
+      if (repo.repoPath) await openRevision(repo.repoPath, name, name)
     },
   }))
 
@@ -387,14 +378,16 @@ function App({
   const reportActiveRepo = useEventCallback((path: string | null) => onActiveRepoChange?.(path))
   useEffect(() => reportActiveRepo(repo.repoPath), [repo.repoPath, reportActiveRepo])
 
+  const [openIssueKey, setOpenIssueKey] = useState<string | null>(null)
+  const [newIssueDraft, setNewIssueDraft] = useState<IssueDraft | null>(null)
+  const [issueFocus, setIssueFocus] = useState<string | null>(null)
   useEffect(() => {
     setPushed(null)
     setActionResult(null)
+    setOpenIssueKey(null)
+    setNewIssueDraft(null)
+    setIssueFocus(null)
   }, [repo.repoPath])
-  const [openIssueKey, setOpenIssueKey] = useState<string | null>(null)
-  useEffect(() => setOpenIssueKey(null), [repo.repoPath])
-  const [newIssueDraft, setNewIssueDraft] = useState<IssueDraft | null>(null)
-  useEffect(() => setNewIssueDraft(null), [repo.repoPath])
   const hostOn = !!integration
   const { data: canWriteIssues } = useAsyncData(
     () => (hostOn && repo.repoPath ? HostService.CanWriteIssues(repo.repoPath) : null),
@@ -419,8 +412,15 @@ function App({
   // The Issues tab shows while the host or the tracker lists issues; its
   // count is the cache's, read again after each refresh.
   const issuesOn = hostIntegration && (hostOn || !!tracker?.reading)
-  const [issueFocus, setIssueFocus] = useState<string | null>(null)
-  useEffect(() => setIssueFocus(null), [repo.repoPath])
+  const viewTabs: AppTab[] = [
+    'working-copy',
+    'history',
+    ...(changesLabel ? (['changes'] as const) : []),
+    ...(issuesOn ? (['issues'] as const) : []),
+    'activity',
+    'changelog',
+  ]
+  const viewShortcut = (tab: AppTab) => `mod+${viewTabs.indexOf(tab) + 1}`
   const laneSlots = useMemo(() => assignLaneSlots((localBranches ?? []).map((b) => b.name)), [localBranches])
   const activeTab =
     (rememberedTab === 'changes' && !changesLabel) || (rememberedTab === 'issues' && !issuesOn)
@@ -455,9 +455,7 @@ function App({
         setActiveTab('working-copy')
         break
       case 'branch':
-        void HistoryService.ResolveCommit(repo.repoPath, target.branch).then((sha) =>
-          openCommit(sha, null, target.branch),
-        )
+        void openRevision(repo.repoPath, target.branch, target.branch)
         break
       case 'change':
         openChange(target.number)
@@ -488,12 +486,12 @@ function App({
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
   const [hostRefresh, setHostRefresh] = useState(0)
+  const bumpHostRefresh = () => setHostRefresh((n) => n + 1)
   // A host the remote points at with integration off, and not locked off,
   // shows its tabs dimmed; finding it reads the remote, nothing is asked.
-  const integrationOn = !!integration
   const { data: detectedHosts } = useAsyncData(
-    () => (hostIntegration && repo.repoPath && !integrationOn ? HostService.Detect(repo.repoPath) : null),
-    [hostIntegration, repo.repoPath, integrationOn],
+    () => (hostIntegration && repo.repoPath && !hostOn ? HostService.Detect(repo.repoPath) : null),
+    [hostIntegration, repo.repoPath, hostOn],
     { refreshKey: hostsVersion },
   )
   const offHostInfo = integration ? undefined : detectedHosts?.find((h) => !h.enabled && !h.managed)
@@ -541,9 +539,7 @@ function App({
       openCommit(note.target)
     } else {
       const ref = `refs/${note.kind === 'tag' ? 'tags' : 'heads'}/${note.target}`
-      void HistoryService.ResolveCommit(repo.repoPath, ref).then((sha) =>
-        openCommit(sha, null, note.kind === 'branch' ? note.target : undefined),
-      )
+      void openRevision(repo.repoPath, ref, note.kind === 'branch' ? note.target : null)
     }
   }
 
@@ -565,6 +561,18 @@ function App({
       {settings.resetNotice}
       <button onClick={settings.dismissResetNotice}>Dismiss</button>
     </p>
+  )
+
+  const settingsPanel = settingsOpen && (
+    <SettingsPanel
+      settings={settings}
+      repoPath={repo.repoPath}
+      hostIntegration={hostIntegration}
+      updateCheck={!hideUpdateCheck}
+      initialGroup={settingsGroup}
+      onClose={closeSettings}
+      onHostsChanged={bumpHostsVersion}
+    />
   )
 
   // Without a usable git nothing else works, so it takes over even with a repo open.
@@ -602,22 +610,12 @@ function App({
             onOpenSettings={() => openSettings()}
           />
         )}
-        {settingsOpen && (
-          <SettingsPanel
-            settings={settings}
-            repoPath={repo.repoPath}
-            hostIntegration={hostIntegration}
-            updateCheck={!hideUpdateCheck}
-            initialGroup={settingsGroup}
-            onClose={closeSettings}
-            onHostsChanged={bumpHostsVersion}
-          />
-        )}
+        {settingsPanel}
       </div>
     )
   }
 
-  const dirty = (workingTree.files?.length ?? 0) > 0
+  const changedCount = workingTree.files?.length ?? 0
   const focus = commitFocus?.repoPath === repo.repoPath ? commitFocus : null
   const repoPath = repo.repoPath
   const createIssue = issueActions.create
@@ -635,7 +633,7 @@ function App({
     {
       id: 'view-changes',
       label: 'Changes',
-      shortcut: 'mod+1',
+      shortcut: viewShortcut('working-copy'),
       section: 'Views',
       icon: FileDiff,
       keywords: ['working tree', 'staged', 'diff', 'commit', 'stage', 'discard', 'amend'],
@@ -644,7 +642,7 @@ function App({
     {
       id: 'view-history',
       label: 'History',
-      shortcut: 'mod+2',
+      shortcut: viewShortcut('history'),
       section: 'Views',
       icon: GitCommitVertical,
       keywords: ['log', 'graph', 'commits', 'cherry-pick', 'revert', 'reset', 'blame', 'rebase'],
@@ -654,7 +652,7 @@ function App({
       ? [
           {
             id: 'view-host-changes',
-            shortcut: 'mod+3',
+            shortcut: viewShortcut('changes'),
             label: changesLabel,
             section: 'Views' as const,
             icon: GitPullRequest,
@@ -667,7 +665,7 @@ function App({
       ? [
           {
             id: 'view-issues',
-            shortcut: changesLabel ? 'mod+4' : 'mod+3',
+            shortcut: viewShortcut('issues'),
             label: 'Issues',
             section: 'Views' as const,
             icon: CircleDot,
@@ -678,7 +676,7 @@ function App({
       : []),
     {
       id: 'view-activity',
-      shortcut: `mod+${3 + (changesLabel ? 1 : 0) + (issuesOn ? 1 : 0)}`,
+      shortcut: viewShortcut('activity'),
       label: 'Activity',
       section: 'Views',
       icon: ChartColumn,
@@ -687,7 +685,7 @@ function App({
     },
     {
       id: 'view-releases',
-      shortcut: `mod+${4 + (changesLabel ? 1 : 0) + (issuesOn ? 1 : 0)}`,
+      shortcut: viewShortcut('changelog'),
       label: 'Releases',
       section: 'Views',
       icon: Tag,
@@ -821,7 +819,7 @@ function App({
     {
       id: 'restack',
       label: 'Restack current stack',
-      section: 'Tools' as const,
+      section: 'Tools',
       icon: Layers,
       keywords: ['stacked branches', 'rebase'],
       run: () => requestSidebar('restack'),
@@ -887,7 +885,7 @@ function App({
                     lastFetchedAt={lastFetchedAt}
                     pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
                     repo={repo}
-                    dirty={dirty}
+                    dirty={changedCount > 0}
                     inboxOpen={inboxOpen}
                     inboxUnseen={inboxUnseen}
                     onToggleInbox={() => setInboxOpen((open) => !open)}
@@ -909,7 +907,7 @@ function App({
                     onCloseTab={closeRepoTab}
                     terminalsRunning={terminals.running}
                     syncing={pullOp.running || pushOp.running}
-                    operation={conflictState?.operation ?? null}
+                    operation={operation}
                     defaultRepoLocation={settings.settings?.defaultRepoLocation ?? ''}
                     accessory={headerAccessory}
                   />
@@ -921,7 +919,7 @@ function App({
                     issueCount={issuesOn ? (myIssues?.issues?.length ?? 0) : null}
                     offHost={offHost}
                     onOffHost={() => openSettings('Integrations')}
-                    changedCount={workingTree.files?.length ?? 0}
+                    changedCount={changedCount}
                     conflictCount={conflictState?.conflictedPaths.length ?? 0}
                   />
 
@@ -934,17 +932,7 @@ function App({
                     />
                   )}
 
-                  {settingsOpen && (
-                    <SettingsPanel
-                      settings={settings}
-                      repoPath={repo.repoPath}
-                      hostIntegration={hostIntegration}
-                      updateCheck={!hideUpdateCheck}
-                      initialGroup={settingsGroup}
-                      onClose={closeSettings}
-                      onHostsChanged={bumpHostsVersion}
-                    />
-                  )}
+                  {settingsPanel}
                   {workspace.modals}
                   {standupOpen && <StandupDialog paths={repo.tabs} onClose={() => setStandupOpen(false)} />}
                   {newIssueDraft && repo.repoPath && (
@@ -962,7 +950,7 @@ function App({
                     <CreateChangeDialog
                       repoPath={repo.repoPath}
                       branch={createChangeFor}
-                      kind={integration?.host.provider === 'gitlab' ? 'merge request' : 'pull request'}
+                      kind={changeKind}
                       onCreated={onChangeCreated}
                       onClose={() => setCreateChangeFor(null)}
                     />
@@ -1086,13 +1074,13 @@ function App({
                             onRefChange={(ref) => settings.setHistoryBranchFilter(savedFromRef(ref))}
                             firstParent={settings.settings?.historyFirstParent ?? false}
                             onFirstParentChange={settings.setHistoryFirstParent}
-                            changedFiles={workingTree.files?.length ?? 0}
+                            changedFiles={changedCount}
                             onOpenChanges={() => setActiveTab('working-copy')}
                             onBranchChanged={onBranchChanged}
                             previousTopSha={restored.historyTopSha}
                             onTopShaChange={(sha) => remember({ historyTopSha: sha })}
                             onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
-                            currentBranch={localBranches?.find((b) => b.current)?.name}
+                            currentBranch={currentBranch}
                           />
                         </KeepAlive>
                         {changesLabel && (
@@ -1104,14 +1092,14 @@ function App({
                               selectedNumber={changeFocus}
                               onRefreshed={() => {
                                 collectHostNotices()
-                                setHostRefresh((n) => n + 1)
+                                bumpHostRefresh()
                               }}
                               onBranchChanged={onBranchChanged}
                               onCreateChange={requestCreateChange}
                               onOpenSettings={() => openSettings()}
                               onMerged={(result) => {
                                 onBranchChanged()
-                                setHostRefresh((n) => n + 1)
+                                bumpHostRefresh()
                                 if (result.localBranch) requestSidebar('clean-up')
                               }}
                             />
@@ -1134,8 +1122,8 @@ function App({
                             key={repo.repoPath}
                             repoPath={repo.repoPath}
                             repoVersion={repoVersion}
-                            dirty={dirty}
-                            changedCount={workingTree.files?.length ?? 0}
+                            dirty={changedCount > 0}
+                            changedCount={changedCount}
                             hasConflict={conflictState !== null}
                             onStandup={() => setStandupOpen(true)}
                           />
@@ -1148,7 +1136,7 @@ function App({
                               selectedKey={issueFocus}
                               onOpenSettings={() => openSettings()}
                               refreshKey={hostRefresh}
-                              onRefreshed={() => setHostRefresh((n) => n + 1)}
+                              onRefreshed={bumpHostRefresh}
                               onBranchChanged={onBranchChanged}
                             />
                           </KeepAlive>
@@ -1180,14 +1168,14 @@ function App({
                         activePath={repo.repoPath}
                         refreshKey={`${repoVersion}:${hostRefresh}`}
                         onGo={goFromInbox}
-                        onRefreshed={() => setHostRefresh((n) => n + 1)}
+                        onRefreshed={bumpHostRefresh}
                         onClose={() => setInboxOpen(false)}
                       />
                     )}
                   </div>
 
                   <StatusBar
-                    operation={conflictState?.operation ?? null}
+                    operation={operation}
                     result={actionResult}
                     onUndo={undoAction?.disabled ? undefined : undoAction?.run}
                     onOpenShortcuts={() => setShortcutsOpen(true)}

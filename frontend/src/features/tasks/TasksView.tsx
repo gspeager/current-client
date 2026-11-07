@@ -26,7 +26,7 @@ interface TasksViewProps {
 function TasksView({ repoPath, tasks }: TasksViewProps) {
   const { prompt } = useDialogs()
   const [selected, setSelected] = useState<string | null>(null)
-  const [addError, setAddError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const list = tasks.list
   const shown: TaskInfo | undefined = list?.tasks.find((task) => task.id === selected)
   const shownRun = shown && tasks.runOf(shown.id)
@@ -36,19 +36,19 @@ function TasksView({ repoPath, tasks }: TasksViewProps) {
     if (!name) return
     const command = await prompt({ title: 'Add a command', label: `Command for ${name}`, confirmLabel: 'Add' })
     if (!command) return
-    setAddError(null)
+    setActionError(null)
     TaskService.AddCustom(repoPath, name, command)
       .then(tasks.reload)
-      .catch((err: unknown) => setAddError(errorMessage(err)))
+      .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
   const removeCommand = (task: TaskInfo) => {
     TaskService.RemoveCustom(repoPath, task.name)
       .then(tasks.reload)
-      .catch((err: unknown) => setAddError(errorMessage(err)))
+      .catch((err: unknown) => setActionError(errorMessage(err)))
   }
 
-  const error = tasks.error ?? addError
+  const error = tasks.error ?? actionError
   return (
     <div className="tasks-view">
       <div className="tasks-list-pane">

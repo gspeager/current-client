@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .tasks-view {
   display: flex;
   height: 100%;
@@ -155,9 +157,7 @@
 }
 
 .tasks-output-command {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
 }
 
 .tasks-output-result {

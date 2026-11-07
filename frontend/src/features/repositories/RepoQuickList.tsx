@@ -1,7 +1,6 @@
 import { FolderOpen } from 'lucide-react'
-import { RepositoryService } from '@current-client-bindings/app'
-import { useAsyncData } from '../../lib/useAsyncData'
 import type { useRepositoryLifecycle } from './useRepositoryLifecycle'
+import { useRecentSummaries } from './useRecentSummaries'
 import './RepoQuickList.scss'
 
 interface RepoQuickListProps {
@@ -12,17 +11,12 @@ interface RepoQuickListProps {
 
 // The breadcrumb's repository pane: a switcher, not a second Open dialog.
 function RepoQuickList({ repo, onOpenAnother }: RepoQuickListProps) {
-  const { data: summaries } = useAsyncData(
-    () => RepositoryService.GetRepoSummaries(repo.recentRepos).catch(() => []),
-    [repo.recentRepos],
-    { keepData: true },
-  )
-  const rows = summaries?.filter((s) => repo.recentRepos.includes(s.path)) ?? []
+  const rows = useRecentSummaries(repo.recentRepos)
 
   return (
     <div className="repo-quick-list">
       <span className="repo-quick-list-label">Recent</span>
-      {summaries === null ? (
+      {rows === null ? (
         <p className="repo-quick-list-hint">Loading…</p>
       ) : rows.length === 0 ? (
         <p className="repo-quick-list-hint">No recent repositories.</p>
