@@ -49,7 +49,7 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasC
   return (
     <div className="repo-health">
       <div className="repo-health-header">
-        <span className="repo-health-title">Repository state</span>
+        <h3 className="repo-health-title">Repository state</h3>
         {loaded && (issueCount > 0 || !dirty) && (
           <span className={`repo-health-badge repo-health-badge-${issueCount === 0 ? 'optimal' : 'attention'}`}>
             {issueCount > 0 ? `${issueCount} to check` : 'All clear'}

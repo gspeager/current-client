@@ -63,7 +63,7 @@ describe('HistoryView', () => {
     const onSelectedShaChange = vi.fn()
     renderHistory({ onSelectedShaChange })
 
-    await userEvent.click(await screen.findByRole('button', { name: /Initial commit/ }))
+    await userEvent.click(await screen.findByRole('row', { name: /Initial commit/ }))
 
     expect(onSelectedShaChange).toHaveBeenCalledWith(history[1].sha)
     expect(HistoryService.GetChangedFiles).toHaveBeenCalledWith(REPO, history[1].sha)
@@ -80,7 +80,7 @@ describe('HistoryView', () => {
       </DensityContext.Provider>,
     )
 
-    expect(await screen.findByRole('button', { name: /Initial commit/ })).toHaveStyle({ height: '28px' })
+    expect(await screen.findByRole('row', { name: /Initial commit/ })).toHaveStyle({ height: '28px' })
   })
 
   it('links issue references in the row and the inspector to the host', async () => {
@@ -98,7 +98,7 @@ describe('HistoryView', () => {
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://github.com/o/r/issues/12')
     expect(onSelectedShaChange).not.toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole('button', { name: /Fix login/ }))
+    await userEvent.click(screen.getByRole('row', { name: /Fix login/ }))
     expect(screen.getAllByRole('link', { name: '#12' })).toHaveLength(2)
   })
 
@@ -130,7 +130,7 @@ describe('HistoryView', () => {
     vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
     renderHistory({ initialSelectedSha: history[0].sha })
 
-    await screen.findByRole('button', { name: /Fix login redirect/ })
+    await screen.findByRole('row', { name: /Fix login redirect/ })
     expect(HistoryService.GetChangedFiles).toHaveBeenCalledWith(REPO, history[0].sha)
   })
 
@@ -139,7 +139,7 @@ describe('HistoryView', () => {
     renderHistory()
     const user = userEvent.setup()
 
-    ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
+    ;(await screen.findByRole('row', { name: /Initial commit/ })).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
 
     const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
@@ -173,7 +173,7 @@ describe('HistoryView', () => {
     const user = userEvent.setup()
     renderHistory({ changedFiles: 3, onOpenChanges })
 
-    const row = await screen.findByRole('button', { name: /3 uncommitted files/ })
+    const row = await screen.findByRole('row', { name: /3 uncommitted files/ })
     expect(row.querySelector('circle')).toHaveAttribute('stroke-dasharray')
     // The lane line starts at the node's rim, not its centre.
     expect(row.querySelector('line')).toHaveAttribute('y1', String(38 / 2 + 4))
@@ -189,13 +189,13 @@ describe('HistoryView', () => {
     await user.click(screen.getByText('Filters'))
     await user.type(screen.getByRole('textbox', { name: 'Author filter' }), 'Ada')
     await vi.waitFor(() =>
-      expect(screen.queryByRole('button', { name: /3 uncommitted files/ })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('row', { name: /3 uncommitted files/ })).not.toBeInTheDocument(),
     )
     expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].sha).toBe(history[0].sha)
 
     cleanup()
     renderHistory({ changedFiles: 0, onOpenChanges })
-    await screen.findByRole('button', { name: /Fix login redirect/ })
+    await screen.findByRole('row', { name: /Fix login redirect/ })
     expect(screen.queryByText(/uncommitted files/)).not.toBeInTheDocument()
   })
 
@@ -206,7 +206,7 @@ describe('HistoryView', () => {
     const onFirstParentChange = vi.fn()
     renderHistory({ onFirstParentChange })
 
-    await screen.findByRole('button', { name: /Merge feature/ })
+    await screen.findByRole('row', { name: /Merge feature/ })
     expect(vi.mocked(HistoryService.GetHistory).mock.lastCall?.[3]).toMatchObject({ firstParent: false })
     expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].parentShas).toHaveLength(2)
 
@@ -240,8 +240,8 @@ describe('HistoryView', () => {
     const user = userEvent.setup()
 
     const rows = {
-      grace: await screen.findByRole('button', { name: /Add tests/ }),
-      ada: await screen.findByRole('button', { name: /Fix login redirect/ }),
+      grace: await screen.findByRole('row', { name: /Add tests/ }),
+      ada: await screen.findByRole('row', { name: /Fix login redirect/ }),
     }
     const graph = () => [...document.querySelectorAll('.commit-row-graph svg')].map((s) => s.outerHTML)
     const before = graph()
@@ -269,7 +269,7 @@ describe('HistoryView', () => {
     vi.mocked(DiffService.GetRefDiff).mockResolvedValue(new FileDiff({ binary: true }))
     renderHistory()
 
-    await userEvent.click(await screen.findByRole('button', { name: /Fix login redirect/ }))
+    await userEvent.click(await screen.findByRole('row', { name: /Fix login redirect/ }))
     await userEvent.click(await screen.findByRole('button', { name: /src\/app\.ts/ }))
 
     expect(await screen.findByText('Binary file changed.')).toBeInTheDocument()
@@ -303,7 +303,7 @@ describe('HistoryView', () => {
     )
     renderHistory()
 
-    await userEvent.click(await screen.findByRole('button', { name: /Fix login redirect/ }))
+    await userEvent.click(await screen.findByRole('row', { name: /Fix login redirect/ }))
 
     expect(await screen.findByTitle('1 unresolved review thread')).toBeInTheDocument()
     expect(HostService.ReviewThreadsAt).toHaveBeenCalledWith(REPO, 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1')
@@ -313,7 +313,7 @@ describe('HistoryView', () => {
     vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
     renderHistory()
 
-    await userEvent.click(await screen.findByRole('button', { name: /Initial commit/ }))
+    await userEvent.click(await screen.findByRole('row', { name: /Initial commit/ }))
 
     const inspector = document.querySelector('.history-inspector')!
     expect(screen.getByRole('separator', { name: 'Resize commit detail' })).toBeInTheDocument()
@@ -332,7 +332,7 @@ describe('HistoryView', () => {
     renderHistory()
     const user = userEvent.setup()
 
-    ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
+    ;(await screen.findByRole('row', { name: /Initial commit/ })).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
     const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
     await user.click(within(menu).getByRole('menuitem', { name: 'Open on host' }))

@@ -54,8 +54,21 @@
   flex-shrink: 0;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-action);
+  height: var(--h-chip);
   @include patterns.secondary-button;
+}
+
+.next-release-step {
+  height: var(--h-action);
+
+  &:not(:disabled) {
+    border-color: var(--outline-control);
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+  }
 }
 
 .next-release-hint,

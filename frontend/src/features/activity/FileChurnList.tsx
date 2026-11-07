@@ -20,7 +20,7 @@ function FileChurnList({ repoPath, repoVersion }: FileChurnListProps) {
     <div className="file-churn">
       <div className="file-churn-header">
         <div className="file-churn-heading">
-          <span className="file-churn-title">Most-changed files</span>
+          <h3 className="file-churn-title">Most-changed files</h3>
           <span className="file-churn-subtitle">Last 90 days</span>
         </div>
       </div>

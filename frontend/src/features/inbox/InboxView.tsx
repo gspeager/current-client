@@ -232,10 +232,12 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
         <button type="button" className="inbox-repo-toggle" aria-expanded={open} onClick={onToggle}>
           {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
           {repo.name}
-          <span className="inbox-repo-count">{repo.rows.length}</span>
-          {fresh > 0 && <span className="inbox-repo-new">{fresh} new</span>}
+          <span className="inbox-repo-count">{plural(repo.rows.length, 'item')}</span>
+          {fresh > 0 && <span className="inbox-repo-new">· {fresh} new</span>}
         </button>
-        {repo.fetchedAt && <span className="inbox-repo-age">host {relativeTime(new Date(repo.fetchedAt))}</span>}
+        {repo.fetchedAt && (
+          <span className="inbox-repo-age">host checked {relativeTime(new Date(repo.fetchedAt))}</span>
+        )}
       </h3>
       {repo.error && <p className="inbox-error">{repo.error}</p>}
       {open && unrefreshed && (

@@ -29,7 +29,7 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className="status-badge"
       title={LABEL_BY_STATUS[letter]}
-      style={{ color, background: `color-mix(in srgb, ${color} 18%, transparent)` }}
+      style={{ color, background: `color-mix(in srgb, ${color} 10%, transparent)` }}
     >
       {letter}
     </span>

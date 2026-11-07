@@ -335,7 +335,15 @@ function ChangesView({
                   ]}
                 />
               ) : (
-                <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
+                <DiffViewModeToggle
+                  value={viewMode}
+                  onChange={(mode) => {
+                    setViewMode(mode)
+                    if (mode === 'split' && !expanded && window.innerWidth < WIDE_ENOUGH_FOR_SPLIT) {
+                      onDiffExpandedChange?.(true)
+                    }
+                  }}
+                />
               )}
               <DiffViewMenu ignoreWhitespace={ignoreWhitespace} onIgnoreWhitespaceChange={setIgnoreWhitespace} />
               <button
@@ -356,13 +364,6 @@ function ChangesView({
             </div>
             {openConflict && (
               <div className="changes-conflict-actions">
-                <button
-                  type="button"
-                  className={diff && conflictCount(diff.hunks) === 0 ? 'changes-conflict-primary' : undefined}
-                  onClick={() => void conflicts.markResolved(openConflict)}
-                >
-                  Mark resolved
-                </button>
                 <button type="button" onClick={() => void conflicts.keep(openConflict, 'ours')}>
                   {conflicts.keepLabel(openConflict, 'ours')}
                 </button>
@@ -371,6 +372,13 @@ function ChangesView({
                 </button>
                 <button type="button" onClick={() => conflicts.openInEditor(openConflict)}>
                   Open in editor
+                </button>
+                <button
+                  type="button"
+                  className={diff && conflictCount(diff.hunks) === 0 ? 'changes-conflict-primary' : undefined}
+                  onClick={() => void conflicts.markResolved(openConflict)}
+                >
+                  Mark resolved
                 </button>
               </div>
             )}

@@ -81,7 +81,7 @@ describe('CurrentChangeSection', () => {
     const section = await screen.findByRole('region', { name: 'Merge request for feature' })
     expect(within(section).getByText('Add the thing')).toBeInTheDocument()
     expect(within(section).getByText('draft')).toBeInTheDocument()
-    expect(within(section).getByText('→ main')).toBeInTheDocument()
+    expect(within(section).getByText('into main')).toBeInTheDocument()
     expect(within(section).getByText('failed: test, lint')).toBeInTheDocument()
     expect(within(section).getByText('2 unresolved')).toBeInTheDocument()
     await userEvent.click(within(section).getByRole('button', { name: 'Details' }))
@@ -91,7 +91,7 @@ describe('CurrentChangeSection', () => {
     expect(HostService.CurrentChange).toHaveBeenCalledWith('/repos/app')
   })
 
-  it('is one row, "No merge request · Create…", when the pushed branch has none', async () => {
+  it('offers "None open · Create…" when the pushed branch has none', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue(
       new CurrentChange({
         branch: 'feature',
@@ -107,9 +107,8 @@ describe('CurrentChangeSection', () => {
     vi.mocked(PlatformService.OpenWebPage).mockResolvedValue()
     render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} />)
 
-    const row = await screen.findByRole('button', { name: 'No merge request · Create…' })
+    const row = await screen.findByRole('button', { name: 'None open · Create…' })
     expect(row).toHaveClass('current-change-row')
-    expect(screen.queryByText('Merge request')).not.toBeInTheDocument()
     await userEvent.click(row)
     expect(RemoteService.CreateChangeLink).toHaveBeenCalledWith('/repos/app', 'feature')
     await waitFor(() =>
@@ -117,14 +116,14 @@ describe('CurrentChangeSection', () => {
     )
   })
 
-  it('is one row, "Push to create a pull request", when the branch has no upstream, and pushes from it', async () => {
+  it('is one row, "Push to create", when the branch has no upstream, and pushes from it', async () => {
     vi.mocked(HostService.CurrentChange).mockResolvedValue(
       new CurrentChange({ branch: 'topic', enabled: true, proposable: true, kind: 'pull request', change: null }),
     )
     const onPushToCreate = vi.fn()
     render(<CurrentChangeSection repoPath="/repos/app" refreshKey={0} onPushToCreate={onPushToCreate} />)
 
-    const row = await screen.findByRole('button', { name: 'Push to create a pull request' })
+    const row = await screen.findByRole('button', { name: 'Push to create' })
     expect(row).toHaveClass('current-change-row')
     await userEvent.click(row)
     expect(onPushToCreate).toHaveBeenCalled()

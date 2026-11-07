@@ -22,7 +22,7 @@ function WorkingChangesRow({ node, laneCount, rowHeight, changedFiles, user, sty
   return (
     <div
       className="commit-row commit-row-working"
-      role="button"
+      role="row"
       tabIndex={0}
       title="Open Changes"
       style={style}

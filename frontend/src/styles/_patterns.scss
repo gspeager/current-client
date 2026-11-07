@@ -77,13 +77,13 @@
 }
 
 // A 24px target around a smaller control, with no change to how it looks.
-@mixin hit-target {
+@mixin hit-target($reach: 2px) {
   position: relative;
 
   &::after {
     content: '';
     position: absolute;
-    inset: -2px;
+    inset: calc(-1 * $reach);
   }
 }
 

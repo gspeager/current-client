@@ -392,6 +392,7 @@ function HistoryView({
               copied={graphCopied}
             />
 
+            <h2 className="visually-hidden">History</h2>
             {overview && overview.days.length > 0 && (
               <OverviewStrip
                 days={overview.days}
@@ -402,7 +403,12 @@ function HistoryView({
             )}
 
             <div ref={parentRef} className="history-scroll">
-              <div ref={rovingRows} style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+              <div
+                ref={rovingRows}
+                role="grid"
+                aria-label="Commit history"
+                style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+              >
                 {virtualItems.map((row) => {
                   const rowStyle = {
                     position: 'absolute' as const,

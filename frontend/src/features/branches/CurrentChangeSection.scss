@@ -9,18 +9,24 @@
   border-radius: var(--radius);
 }
 
-.current-change-slot-hint {
+.current-change-slot-title {
   margin: 0;
-  padding: 0 var(--space-xs) 0 calc(var(--space-xs) + 14px + var(--space-sm));
+  padding: 0 var(--space-xs);
   color: var(--outline);
-  font: var(--ui-xs);
+  @include patterns.eyebrow;
+}
+
+.current-change-buttons {
+  display: flex;
+  gap: var(--space-xs);
+  margin-left: auto;
 }
 
 // As tall as a change's card, so finding one doesn't move the list below.
 .current-change,
 .current-change-slot {
   box-sizing: border-box;
-  min-height: 64px;
+  min-height: 52px;
 }
 
 .current-change-slot {

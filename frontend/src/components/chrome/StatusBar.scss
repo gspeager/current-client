@@ -129,6 +129,10 @@
   .status-bar-repo-path {
     display: none;
   }
+
+  .status-bar-host-name {
+    display: none;
+  }
 }
 
 .status-bar-branch {
@@ -143,4 +147,10 @@
 .status-bar-host {
   align-items: center;
   height: var(--h-micro);
+}
+
+.status-bar-api-label {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
 }

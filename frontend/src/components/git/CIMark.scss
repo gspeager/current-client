@@ -20,7 +20,7 @@
 }
 
 .ci-mark {
-  @include patterns.hit-target;
+  @include patterns.hit-target(5px);
 
   min-width: var(--h-micro);
   min-height: var(--h-micro);

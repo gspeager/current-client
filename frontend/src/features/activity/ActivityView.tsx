@@ -21,6 +21,7 @@ interface ActivityViewProps {
 function ActivityView({ repoPath, repoVersion, dirty, changedCount, hasConflict, onStandup }: ActivityViewProps) {
   return (
     <div className="activity-view">
+      <h2 className="visually-hidden">Activity</h2>
       <RepoStatStrip
         repoPath={repoPath}
         repoVersion={repoVersion}

@@ -156,7 +156,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
 
       <div className="branch-switcher-section">
         <div className="branch-switcher-section-header">
-          <span className="branch-switcher-label">Local</span>
+          <span className="branch-switcher-label">Local branches</span>
           <span className="branch-switcher-count">{filteredLocal.length}</span>
         </div>
         {filteredLocal.map((b) => (

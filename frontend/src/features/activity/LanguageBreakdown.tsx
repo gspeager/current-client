@@ -24,7 +24,7 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
   return (
     <div className="language-breakdown">
       <div className="language-breakdown-header">
-        <span className="language-breakdown-title">Languages</span>
+        <h3 className="language-breakdown-title">Languages</h3>
         {languages && <span className="language-breakdown-total">{plural(total, 'total file')}</span>}
       </div>
 

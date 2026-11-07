@@ -118,7 +118,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
         </button>
         <button type="button" className="next-release-button" onClick={reload}>
           <RefreshCw size={14} strokeWidth={1.75} />
-          Re-check
+          Refresh
         </button>
       </header>
       {editing && (
@@ -198,7 +198,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
 
 // One check: an icon, what it is, what it found. What it rests on is shown
 // when it needs attention, and in the tooltip otherwise.
-const EVIDENCE_SHOWN = 4
+const EVIDENCE_SHOWN = 2
 
 function CheckRow({ check }: { check: ReleaseCheck }) {
   const level = LEVELS[check.level] ?? LEVELS.unknown

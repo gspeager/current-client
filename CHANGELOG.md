@@ -6,6 +6,8 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **File rows keep their counts on hover**, and the actions appear beside them.
+- **Choosing Split on a narrow window gives the diff the file list's room.** The expand button brings the list back.
 - **Settings shows a live preview** of lane colors and density, and fits its content.
 - **Status letters are quieter.** `M` is neutral, so amber stands for things that need attention, and each letter names itself on hover.
 - **The commit pane keeps two actions in view**, with the rest under **More**.

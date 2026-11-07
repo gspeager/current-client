@@ -121,6 +121,10 @@
   font-weight: 600;
 }
 
+.changes-diff-stat-hunks {
+  margin-left: var(--space-sm);
+}
+
 .changes-diff-owners-names {
   @include patterns.truncate;
 }

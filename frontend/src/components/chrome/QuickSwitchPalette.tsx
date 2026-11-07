@@ -370,7 +370,7 @@ function QuickSwitchPalette({
         <Command.List className="quick-switch-results">
           {q && resultCount === 0 && <p className="quick-switch-empty">Nothing named “{query.trim()}”.</p>}
 
-          <Section heading={`Branches in ${baseName(repoPath)}`} icon={GitBranch} count={branchResults.length}>
+          <Section heading="Branches" icon={GitBranch} count={branchResults.length}>
             {branchResults.map((b) => (
               <Command.Item
                 key={`branch:${b.name}`}

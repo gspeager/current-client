@@ -4,7 +4,7 @@ import type { OverviewDayInfo, OverviewMarkerInfo } from '@current-client-bindin
 import { useLaneColors } from '../../lib/laneColor'
 import './OverviewStrip.scss'
 
-const HEIGHT = 40
+const HEIGHT = 28
 
 interface OverviewStripProps {
   days: OverviewDayInfo[]

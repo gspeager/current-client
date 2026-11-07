@@ -75,6 +75,7 @@ function StatusBar({
       <span className="status-bar-fetched">
         {lastFetchedAt ? `fetched ${relativeTime(lastFetchedAt)}` : 'not fetched yet'}
       </span>
+      {(integration || trackerHost) && <span className="status-bar-api-label">API on</span>}
       {integration && (
         <ServiceItem
           name={integration.apiHost}
@@ -129,7 +130,7 @@ function ServiceItem({
       title={`${about}\n${hostRequestLabel(status)}\nOpens Settings.`}
     >
       <span className="status-bar-host-dot" />
-      <span className="status-bar-host-name">{name} on</span>
+      <span className="status-bar-host-name">{name}</span>
     </button>
   )
 }

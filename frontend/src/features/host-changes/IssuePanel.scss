@@ -122,7 +122,7 @@
 .issue-panel-comments-title {
   margin: 0;
   color: var(--outline);
-  font: var(--ui-xs);
+  @include patterns.eyebrow;
 }
 
 .issue-panel-comment {

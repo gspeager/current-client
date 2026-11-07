@@ -188,6 +188,8 @@
 }
 
 .header-bar-sync {
+  @include patterns.hit-target(1px);
+
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;

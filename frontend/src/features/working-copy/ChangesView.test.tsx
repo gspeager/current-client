@@ -587,7 +587,7 @@ describe('ChangesView conflicts', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))
     const actions = document.querySelector('.changes-conflict-actions')!
-    expect(actions.querySelector('button')).toHaveTextContent('Mark resolved')
+    expect([...actions.querySelectorAll('button')].pop()).toHaveTextContent('Mark resolved')
   })
 
   it('offers Side by side and Result for a conflicted file, with the columns named by branch', async () => {

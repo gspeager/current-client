@@ -220,7 +220,7 @@
 }
 
 .branch-row-blocked {
-  opacity: 0.55;
+  opacity: 0.75;
   cursor: default;
 }
 
@@ -413,4 +413,15 @@
     color: inherit;
     cursor: pointer;
   }
+}
+
+.branch-row-mode-incoming {
+  border-color: var(--outline-variant);
+  color: var(--on-surface-variant);
+}
+
+// Passing CI stays quiet in a narrow list, so the names keep the room; a
+// failure still shows.
+.branch-row .ci-mark:has(.ci-icon-success) {
+  display: none;
 }

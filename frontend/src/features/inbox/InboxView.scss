@@ -313,3 +313,7 @@
 .inbox-rows li:focus-within > .inbox-row-done {
   opacity: 1;
 }
+
+.inbox-group:not(.inbox-group-quiet) > .inbox-group-label {
+  color: var(--on-surface);
+}

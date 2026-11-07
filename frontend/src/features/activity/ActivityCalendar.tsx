@@ -42,7 +42,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
   return (
     <div className="activity-calendar">
       <div className="activity-header">
-        <span className="activity-title">Commits by day</span>
+        <h3 className="activity-title">Commits by day</h3>
         {activity && <span className="activity-badge">{plural(totalCommits, 'commit')} in the last year</span>}
         <div className="activity-header-meta">
           <div className="activity-legend">

@@ -498,7 +498,7 @@ function BranchSidebar({
       />
       <NoteMark kind="branch" target={b.name} />
       {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
-      {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
+      {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode branch-row-mode-incoming">incoming</span>}
       {!b.current && <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />}
       {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
       {!(conflict && b.name === conflict.theirs) && <ConflictsBadge overlap={overlapFor.get(b.name)} />}
@@ -563,7 +563,7 @@ function BranchSidebar({
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
       <span className="branch-row-remote-name">{name}</span>
-      {conflict && name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
+      {conflict && name === conflict.theirs && <span className="branch-row-mode branch-row-mode-incoming">incoming</span>}
       <ConflictsBadge overlap={overlapFor.get(name)} />
       {!localNames.has(localNameFor(name, remoteNames)) && <span className="branch-row-meta">not local</span>}
     </li>

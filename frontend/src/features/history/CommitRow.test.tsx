@@ -28,7 +28,7 @@ function renderRow(props: Partial<Parameters<typeof CommitRow>[0]> = {}) {
       {...props}
     />,
   )
-  return screen.getByRole('button', { name: /Fix login redirect/ })
+  return screen.getByRole('row', { name: /Fix login redirect/ })
 }
 
 describe('CommitRow', () => {

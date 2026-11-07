@@ -107,9 +107,9 @@ function CommitRow({
       onClick={onSelect}
       onContextMenu={onContextMenu}
       style={{ ...style, opacity: dimmed ? 0.4 : 1 }}
-      role="button"
+      role="row"
+      aria-selected={selected}
       aria-label={`${commit.subject}, ${commit.sha.slice(0, 7)}, ${commit.authorName}`}
-      aria-current={selected ? 'true' : undefined}
       tabIndex={0}
       onKeyDown={(e) => {
         if (isMenuKey(e)) {
@@ -123,13 +123,13 @@ function CommitRow({
         }
       }}
     >
-      <div className="commit-row-graph">
+      <div className="commit-row-graph" role="gridcell">
         {graphNode && (
           <CommitGraph node={graphNode} laneCount={laneCount} rowHeight={rowHeight} colors={laneColors} head={isHead} />
         )}
       </div>
 
-      <div className="commit-row-commit">
+      <div className="commit-row-commit" role="gridcell">
         {isHead && <span className="commit-row-head">HEAD</span>}
         {pills.length > 0 && (
           <span className="commit-row-refs">
@@ -170,7 +170,7 @@ function CommitRow({
         {environments && environments.length > 0 && <EnvironmentMarker environments={environments} />}
       </div>
 
-      <div className="commit-row-author">
+      <div className="commit-row-author" role="gridcell">
         {identity && (
           <IdentityBadge
             identity={identity}
@@ -184,12 +184,12 @@ function CommitRow({
         <span className="commit-row-author-name">{highlightMatch(commit.authorName, searchQuery, 'search-match')}</span>
       </div>
 
-      <span className="commit-row-sha">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
-      <span className="commit-row-ci">
+      <span className="commit-row-sha" role="gridcell">{highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}</span>
+      <span className="commit-row-ci" role="gridcell">
         <CIMark repoPath={repoPath} mark={ci} onOpenJobs={onOpenChecks} />
       </span>
-      <span className="commit-row-time">{relativeTime(new Date(commit.date))}</span>
-      <span className="commit-row-actions">
+      <span className="commit-row-time" role="gridcell">{relativeTime(new Date(commit.date))}</span>
+      <span className="commit-row-actions" role="gridcell">
         <button
           type="button"
           onClick={onContextMenu}

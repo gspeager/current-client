@@ -26,7 +26,7 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
     <div className="commit-velocity">
       <div className="commit-velocity-header">
         <div className="commit-velocity-heading">
-          <span className="commit-velocity-title">Commits per week</span>
+          <h3 className="commit-velocity-title">Commits per week</h3>
           <span className="commit-velocity-subtitle">
             Last {WEEK_COUNT} weeks{average !== null && ` · average ${average.toFixed(1)}`}
             {busiest && ` · most on ${busiest.day}`}

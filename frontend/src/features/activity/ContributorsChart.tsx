@@ -38,7 +38,7 @@ function ContributorsChart({ repoPath, repoVersion }: ContributorsChartProps) {
   return (
     <div className="contributors-chart">
       <div className="contributors-header">
-        <span className="contributors-title">Contributors</span>
+        <h3 className="contributors-title">Contributors</h3>
         <select
           className="contributors-date-filter"
           value={sinceDays}

@@ -339,6 +339,6 @@
 
 .changelog-section-title {
   margin: 0;
-  color: var(--on-surface);
-  font: var(--title-md);
+  color: var(--outline);
+  @include patterns.eyebrow;
 }

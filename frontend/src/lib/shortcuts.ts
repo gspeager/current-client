@@ -62,6 +62,10 @@ export function shortcutLabel(keys: string): string {
     .join(mac ? '' : ' ')
 }
 
+export function ariaShortcut(keys: string): string {
+  return keys.replace('mod', System.IsMac() ? 'Meta' : 'Control')
+}
+
 export function withShortcut(text: string, keys: string): string {
   return `${text} (${shortcutLabel(keys)})`
 }

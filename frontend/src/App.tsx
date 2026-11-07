@@ -869,6 +869,7 @@ function App({
             <IssuePanelContext.Provider value={issueActions}>
               <NotesContext.Provider value={notesState.context}>
                 <div className="app-shell">
+                  <h1 className="visually-hidden">Current Client</h1>
                   <button type="button" className="app-skip-link" onClick={focusMain}>
                     Skip to content
                   </button>

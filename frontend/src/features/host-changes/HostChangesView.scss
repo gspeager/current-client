@@ -257,6 +257,8 @@
     margin: 0;
     min-width: 0;
     overflow-wrap: anywhere;
+    color: var(--on-surface);
+    font-weight: 500;
   }
 }
 
@@ -391,11 +393,6 @@
   border-radius: var(--radius-md);
 }
 
-.host-change-tile-warning,
-.host-change-tile-warn {
-  box-shadow: inset 2px 0 0 0 var(--warning);
-}
-
 .host-change-tile-blocker,
 .host-change-tile-error {
   box-shadow: inset 2px 0 0 0 var(--error);
@@ -457,7 +454,7 @@
     bottom: 0;
     left: 3px;
     width: 2px;
-    background: var(--surface-highest);
+    background: var(--lane, var(--surface-highest));
   }
 
   &::after {
@@ -468,7 +465,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--on-surface-variant);
+    background: var(--lane, var(--on-surface-variant));
     transform: translateY(-50%);
   }
 

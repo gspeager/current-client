@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { useLaneColors } from '../../lib/laneColor'
-import { useNameIdentities } from '../../lib/useNameIdentities'
+import { useNameIdentities, type HostIdentity } from '../../lib/useNameIdentities'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import {
@@ -374,6 +374,10 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
     .filter((f) => f.label !== 'Protection')
     .sort((a, b) => Number(b.level === 'warn') - Number(a.level === 'warn'))
   const reviews = reviewGroups(change.reviews, change.state === 'open')
+  const reviewerIdentities = useNameIdentities(
+    (change.reviews ?? []).map((r) => r.reviewer.name || r.reviewer.username),
+    repoPath,
+  )
   const threadCount = counts.threads ?? (change.unresolvedThreads > 0 ? change.unresolvedThreads : undefined)
   // The pane's one primary follows the state: your review when it is asked
   // for, Merge once nothing stands in the way, otherwise none.
@@ -500,7 +504,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
                     <Icon size={14} strokeWidth={1.75} aria-hidden="true" />
                   )}
                   <span>
-                    {f.value}
+                    {f.label === 'Reviews' ? withDisplayNames(f.value, reviewerIdentities) : f.value}
                     {f.label === 'Conflicts' && !change.hasConflicts && conflict && forecast && (
                       <>
                         ; would conflict with {forecast.branch} in{' '}
@@ -737,6 +741,14 @@ function FilesTab({ repoPath, number, onLoaded }: TabProps) {
 
 // The change's commits from what is already fetched, so opening it asks the host
 // for nothing more. Silent when the branch isn't here locally.
+// A readiness fact names reviewers as the host does; the pane uses commit names.
+function withDisplayNames(text: string, identities: Map<string, HostIdentity>): string {
+  return [...identities].reduce(
+    (out, [name, identity]) => out.replace(new RegExp(`\\b${name}\\b`, 'g'), identity.displayName),
+    text,
+  )
+}
+
 // Whether the change can merge, in one line.
 function MergeVerdict({ facts }: { facts: { level: string }[] }) {
   const blocking = facts.filter((f) => f.level === 'warn').length
@@ -789,9 +801,14 @@ function OverviewCommits({ repoPath, target, source }: { repoPath: string; targe
     () => HistoryService.RangeCommits(repoPath, `origin/${target}`, `origin/${source}`).catch(() => null),
     [repoPath, target, source],
   )
+  const { branchColor } = useLaneColors()
   if (!data || data.length === 0) return null
   return (
-    <section className="host-change-overview-commits" aria-label="Commits">
+    <section
+      className="host-change-overview-commits"
+      style={{ '--lane': branchColor(source, false) } as CSSProperties}
+      aria-label="Commits"
+    >
       <h4 className="host-change-overview-heading">{plural(data.length, 'commit')}</h4>
       <ul className="host-change-commits">
         {data.map((commit) => (
