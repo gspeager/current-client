@@ -50,7 +50,7 @@ describe('TagsPanel', () => {
       'Delete on remote…',
       'Delete…',
     ])
-    await userEvent.click(within(menu).getByRole('button', { name: 'Push tag' }))
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Push tag' }))
     await vi.waitFor(() => expect(TagService.PushTag).toHaveBeenCalledWith(REPO, 'origin', 'v1.0', null))
   })
 

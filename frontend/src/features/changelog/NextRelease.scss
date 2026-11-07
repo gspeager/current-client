@@ -54,7 +54,7 @@
   flex-shrink: 0;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-chip);
+  height: var(--h-action);
   @include patterns.secondary-button;
 }
 
@@ -200,7 +200,15 @@
   color: var(--outline);
   font: var(--ui-sm);
 
+  &[open] > summary svg {
+    transform: rotate(90deg);
+  }
+
   > summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    list-style: none;
     width: fit-content;
     min-height: var(--h-row-tree);
     line-height: var(--h-row-tree);

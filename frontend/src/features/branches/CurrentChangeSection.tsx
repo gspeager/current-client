@@ -110,7 +110,8 @@ function CurrentChangeSection({
             'Checking…'
           ) : (
             <>
-              <span className="current-change-row-action">Check for a {kindWord}</span>
+              {kind} not checked <span className="current-change-row-sep">·</span>{' '}
+              <span className="current-change-row-action">Check</span>
             </>
           )}
         </span>
@@ -132,7 +133,7 @@ function CurrentChangeSection({
     const hint = !data.proposable
       ? null
       : !data.checked && data.upstream
-        ? 'Not checked yet'
+        ? null
         : data.upstream
           ? `None open from ${data.branch}`
           : 'This branch has no upstream'

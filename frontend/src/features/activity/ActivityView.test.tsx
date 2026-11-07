@@ -29,7 +29,7 @@ describe('ActivityView', () => {
     render(
       <ActivityView repoPath="/repos/app" repoVersion={0} dirty={false} hasConflict={false} onStandup={onStandup} />,
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Standup summary…'}))
+    await userEvent.click(screen.getByRole('button', { name: 'Standup summary…' }))
     expect(onStandup).toHaveBeenCalled()
   })
 

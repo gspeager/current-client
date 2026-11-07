@@ -20,6 +20,8 @@
 }
 
 .ci-mark {
+  @include patterns.hit-target;
+
   min-width: var(--h-micro);
   min-height: var(--h-micro);
   justify-content: center;

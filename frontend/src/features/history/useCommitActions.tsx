@@ -38,7 +38,7 @@ export interface CommitAction {
 }
 
 // The number of actions the inspector shows as buttons; the rest go under More.
-export const PRIMARY_COMMIT_ACTIONS = 4
+export const PRIMARY_COMMIT_ACTIONS = 2
 
 // The one ordered list of things to do with a commit, for the inspector and the
 // row's menu alike. Refreshes on failure too, since a conflict leaves the repo

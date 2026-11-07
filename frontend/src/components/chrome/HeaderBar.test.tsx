@@ -120,11 +120,11 @@ describe('HeaderBar sync cluster', () => {
       'Fetch and prune',
       'Fetch all remotes',
     ])
-    await userEvent.click(screen.getByRole('button', { name: 'Fetch and prune' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Fetch and prune' }))
     await vi.waitFor(() => expect(RemoteService.FetchPrune).toHaveBeenCalledWith(REPO, 'origin', null))
 
     await userEvent.click(screen.getByRole('button', { name: 'Fetch options' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Fetch all remotes' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Fetch all remotes' }))
     await vi.waitFor(() => expect(RemoteService.FetchAll).toHaveBeenCalledWith(REPO, null))
   })
 
@@ -138,14 +138,14 @@ describe('HeaderBar sync cluster', () => {
       'Set upstream…',
       'Force-push (with lease)…',
     ])
-    expect(within(items).getByRole('button', { name: 'Force-push (with lease)…' })).toHaveClass(
+    expect(within(items).getByRole('menuitem', { name: 'Force-push (with lease)…' })).toHaveClass(
       'context-menu-item-destructive',
     )
-    await userEvent.click(within(items).getByRole('button', { name: 'Push tags' }))
+    await userEvent.click(within(items).getByRole('menuitem', { name: 'Push tags' }))
     expect(handlers.onPushTags).toHaveBeenCalled()
 
     await userEvent.click(screen.getByRole('button', { name: 'Push options' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Set upstream…' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Set upstream…' }))
     expect(handlers.onPushSetUpstream).toHaveBeenCalled()
   })
 
@@ -161,7 +161,7 @@ describe('HeaderBar sync cluster', () => {
     expect(handlers.onPullRebase).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'Pull options' }))
-    await user.click(await screen.findByRole('button', { name: 'Pull (merge)' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Pull (merge)' }))
     expect(handlers.onPullMerge).toHaveBeenCalled()
   })
 })

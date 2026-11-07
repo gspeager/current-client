@@ -143,7 +143,7 @@ describe('HistoryView', () => {
     await user.keyboard('{Shift>}{F10}{/Shift}')
 
     const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
-    expect(within(menu).getByRole('button', { name: 'Check out' })).toHaveFocus()
+    expect(within(menu).getByRole('menuitem', { name: 'Check out' })).toHaveFocus()
     expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
       'Check out',
       'Branch here',
@@ -320,8 +320,6 @@ describe('HistoryView', () => {
     expect([...inspector.querySelectorAll('.commit-detail-actions > button')].map((b) => b.textContent)).toEqual([
       'Check out',
       'Branch here',
-      'Cherry-pick',
-      'Revert',
     ])
     expect(inspector.querySelector('.commit-detail-more-toggle')).toHaveTextContent('More')
     expect(await screen.findByText('2 commits · stashes hidden')).toBeInTheDocument()
@@ -337,7 +335,7 @@ describe('HistoryView', () => {
     ;(await screen.findByRole('button', { name: /Initial commit/ })).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
     const menu = await vi.waitFor(() => document.querySelector<HTMLElement>('.context-menu')!)
-    await user.click(within(menu).getByRole('button', { name: 'Open on host' }))
+    await user.click(within(menu).getByRole('menuitem', { name: 'Open on host' }))
 
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith(
       expect.stringMatching(/^https:\/\/github.com\/o\/r\/commit\/[0-9a-f]+$/),

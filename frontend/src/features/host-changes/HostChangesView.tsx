@@ -457,7 +457,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
       <p className="host-change-subtitle">
         <span className="host-change-author">
           {authorIdentity && <IdentityBadge identity={authorIdentity} name={change.author.name} email="" size={20} />}
-          {change.author.name}
+          {authorIdentity?.displayName ?? change.author.name}
         </span>
         <span className="host-change-flow" aria-label={`${change.sourceBranch} into ${change.targetBranch}`}>
           <span
@@ -772,7 +772,7 @@ function ChangeReviewers({ repoPath, reviews }: { repoPath: string; reviews: Rev
           return (
             <li key={name}>
               {identity && <IdentityBadge identity={identity} name={name} email="" size={20} />}
-              <span className="host-change-reviewer-name">{name}</span>
+              <span className="host-change-reviewer-name">{identity?.displayName ?? name}</span>
               <span className={`host-change-reviewer-state host-change-reviewer-state-${review.state}`}>
                 {REVIEW_STATE_LABELS[review.state]}
               </span>

@@ -2,7 +2,7 @@
 
 .settings-panel {
   width: 920px;
-  height: 100%;
+  height: min(620px, 100%);
 }
 
 .settings-layout {
@@ -307,8 +307,7 @@
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: var(--surface);
-  border: var(--border-structure);
+  background: var(--surface-container);
   border-radius: var(--radius);
 }
 
@@ -421,4 +420,27 @@
 // A person's name is chrome, not data.
 .settings-field-text {
   font: var(--ui-sm);
+}
+
+.settings-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-container);
+  border-radius: var(--radius);
+}
+
+.settings-preview-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-row-table);
+  color: var(--on-surface);
+  font: var(--title-md);
+}
+
+[data-density='compact'] .settings-preview-row {
+  min-height: var(--h-row-tree);
 }

@@ -68,6 +68,11 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
         ) : (
           <div
             className="activity-grid"
+            role="img"
+            aria-label={`Commits by day: ${plural(
+              cells.reduce((sum, cell) => sum + cell.commits, 0),
+              'commit',
+            )} in the last year`}
             style={{ gridTemplateColumns: `auto repeat(${weekCount}, minmax(9px, 18px))` }}
           >
             {monthLabels(cells).map(({ weekIndex, label }) => (

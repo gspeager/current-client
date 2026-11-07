@@ -1,3 +1,4 @@
+import { plural } from '../../lib/plural'
 import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { Cloud, GitBranchPlus, RefreshCw, Search, X } from 'lucide-react'
 import { BranchService, RemoteService, StatusService } from '@current-client-bindings/app'
@@ -147,7 +148,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
             />
             <span className="branch-switcher-meta">
               {ahead > 0 && <span className="branch-switcher-ahead">↑{ahead}</span>}
-              {dirtyCount > 0 && <span className="branch-switcher-dirty">{dirtyCount} dirty</span>}
+              {dirtyCount > 0 && <span className="branch-switcher-dirty">{plural(dirtyCount, 'changed file')}</span>}
             </span>
           </div>
         </div>

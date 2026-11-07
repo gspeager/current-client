@@ -313,7 +313,7 @@ describe('ChangesView file menu', () => {
     const user = userEvent.setup()
 
     await user.click(screen.getByRole('button', { name: 'More actions for src/app.ts' }))
-    await user.click(await screen.findByRole('button', { name: 'Stage' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Stage' }))
 
     expect(StatusService.StageFile).toHaveBeenCalledWith(REPO, 'src/app.ts')
   })
@@ -355,7 +355,7 @@ describe('ChangesView multi-select', () => {
     await user.click(screen.getByRole('button', { name: 'src/c.ts' }))
     await user.keyboard('{/Shift}')
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/b.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stage 3 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stage 3 files' }))
 
     expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/b.ts', 'src/c.ts'])
   })
@@ -370,7 +370,7 @@ describe('ChangesView multi-select', () => {
     await user.click(screen.getByRole('button', { name: 'src/c.ts' }))
     await user.keyboard('{/Control}')
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stage 2 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stage 2 files' }))
 
     expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/c.ts'])
   })
@@ -385,10 +385,10 @@ describe('ChangesView multi-select', () => {
     fireEvent.mouseDown(c, { ctrlKey: true, button: 0 })
     fireEvent.contextMenu(c, { ctrlKey: true, button: 0 })
     fireEvent.click(c, { ctrlKey: true, button: 0 })
-    expect(screen.queryByRole('button', { name: 'Stage' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Stage' })).not.toBeInTheDocument()
 
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stage 2 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stage 2 files' }))
 
     expect(StatusService.StageFiles).toHaveBeenCalledWith(REPO, ['src/a.ts', 'src/c.ts'])
   })
@@ -422,7 +422,7 @@ describe('ChangesView stashing', () => {
 
     expect(screen.queryByRole('button', { name: /^(Stage|Unstage) 3 files$/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Discard' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Stash 3 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stash 3 files' }))
 
     expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
       message: '',
@@ -446,7 +446,7 @@ describe('ChangesView stashing', () => {
     await user.click(screen.getByRole('button', { name: 'notes.md' }))
     await user.keyboard('{/Control}')
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/a.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stash 2 files' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stash 2 files' }))
 
     expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
       message: '',
@@ -463,7 +463,7 @@ describe('ChangesView stashing', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: screen.getByRole('button', { name: 'src/b.ts' }) })
-    await user.click(screen.getByRole('button', { name: 'Stash' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Stash' }))
 
     expect(StashService.StashSave).toHaveBeenCalledWith(REPO, {
       message: '',

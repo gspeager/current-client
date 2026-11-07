@@ -556,7 +556,7 @@ describe('DiffViewer issue from a line', () => {
       </IssuePanelContext.Provider>,
     )
     fireEvent.contextMenu(screen.getByText(/drop the shim/))
-    await userEvent.click(screen.getByRole('button', { name: 'Create issue from line…' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Create issue from line…' }))
     expect(newIssue).toHaveBeenCalledWith({
       title: 'drop the shim',
       description: '`src/a.ts` line 7\n\n```\n// TODO: drop the shim\n```',
@@ -566,6 +566,6 @@ describe('DiffViewer issue from a line', () => {
   it('leaves the line menu alone without issue writes', () => {
     render(<DiffViewer diff={todo} path="src/a.ts" viewMode="unified" />)
     fireEvent.contextMenu(screen.getByText(/drop the shim/))
-    expect(screen.queryByRole('button', { name: 'Create issue from line…' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Create issue from line…' })).not.toBeInTheDocument()
   })
 })

@@ -497,12 +497,11 @@ function BranchSidebar({
         referenceCards={referenceCards}
       />
       <NoteMark kind="branch" target={b.name} />
-      {b.current && <span className="branch-row-head">HEAD</span>}
       {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
       {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
       {!b.current && <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />}
       {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
-      <ConflictsBadge overlap={overlapFor.get(b.name)} />
+      {!(conflict && b.name === conflict.theirs) && <ConflictsBadge overlap={overlapFor.get(b.name)} />}
       {!b.current && b.worktreePath && (
         <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>
           worktree

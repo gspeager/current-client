@@ -171,7 +171,10 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
                         size={20}
                       />
                     )}
-                    <span className="issue-panel-comment-author">{c.author.name || c.author.username}</span>
+                    <span className="issue-panel-comment-author">
+                      {identities.get(c.author.name || c.author.username)?.displayName ??
+                        (c.author.name || c.author.username)}
+                    </span>
                     <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
                   </p>
                   <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />

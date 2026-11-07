@@ -356,7 +356,11 @@ function ChangesView({
             </div>
             {openConflict && (
               <div className="changes-conflict-actions">
-                <button type="button" onClick={() => void conflicts.markResolved(openConflict)}>
+                <button
+                  type="button"
+                  className={diff && conflictCount(diff.hunks) === 0 ? 'changes-conflict-primary' : undefined}
+                  onClick={() => void conflicts.markResolved(openConflict)}
+                >
                   Mark resolved
                 </button>
                 <button type="button" onClick={() => void conflicts.keep(openConflict, 'ours')}>

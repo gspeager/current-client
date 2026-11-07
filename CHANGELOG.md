@@ -6,6 +6,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **Settings shows a live preview** of lane colors and density, and fits its content.
+- **Status letters are quieter.** `M` is neutral, so amber stands for things that need attention, and each letter names itself on hover.
+- **The commit pane keeps two actions in view**, with the rest under **More**.
 - **A person keeps one badge everywhere.** A host's username now matches the same person's commits where it can, so initials and color agree across views.
 - **The sidebar opens narrower and doesn't jump** when a pull request is found, leaving the diff more room.
 - **Pull requests show whether they can merge** in one line above the checks, and Overview lists reviewers with their state.

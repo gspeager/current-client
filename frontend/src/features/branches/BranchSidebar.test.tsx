@@ -61,7 +61,7 @@ describe('BranchSidebar groups', () => {
     renderSidebar()
 
     const checkedOut = (await screen.findByText('Checked out')).parentElement!
-    expect(within(checkedOut).getByRole('button', { name: /^main/ })).toHaveTextContent('HEAD')
+    expect(within(checkedOut).getByRole('button', { name: /^main/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Local branches, 2' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('button', { name: 'Remote branches, 2' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('origin/login')).not.toBeInTheDocument()
@@ -130,7 +130,7 @@ describe('BranchSidebar groups', () => {
     expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'New branch' })).toBeDisabled()
     await userEvent.click(screen.getByRole('button', { name: 'More actions for docs' }))
-    expect(await screen.findByRole('button', { name: 'Check out' })).toBeDisabled()
+    expect(await screen.findByRole('menuitem', { name: 'Check out' })).toBeDisabled()
   })
 
   it('badges a remote-tracking branch as incoming when that is what is merging', async () => {
@@ -180,7 +180,7 @@ describe('BranchSidebar', () => {
     renderSidebar()
 
     await userEvent.click(await screen.findByRole('button', { name: 'More actions for feature' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Create merge request…' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Create merge request…' }))
     expect(RemoteService.CreateChangeLink).toHaveBeenCalledWith(REPO, 'feature')
     await waitFor(() =>
       expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.com/g/r/-/merge_requests/new?x'),
@@ -208,11 +208,11 @@ describe('BranchSidebar', () => {
     renderSidebar()
 
     await userEvent.click(await screen.findByRole('button', { name: 'More actions for feature' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Open on host' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Open on host' }))
     expect(PlatformService.OpenWebPage).toHaveBeenLastCalledWith('https://gitlab.com/g/r/-/merge_requests/7')
 
     await userEvent.click(screen.getByRole('button', { name: 'More actions for other' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Open on host' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Open on host' }))
     expect(PlatformService.OpenWebPage).toHaveBeenLastCalledWith('https://gitlab.com/g/r/-/tree/other')
   })
 
@@ -432,7 +432,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
-    await user.click(await screen.findByRole('button', { name: 'Merge main into current' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Merge main into current' }))
 
     expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'main', '')
     await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
@@ -445,7 +445,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
-    await user.click(await screen.findByRole('button', { name: 'Merge into current (no fast-forward)' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Merge into current (no fast-forward)' }))
 
     expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'feature', 'no-ff')
     await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
@@ -459,7 +459,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
-    await user.click(await screen.findByRole('button', { name: 'Squash into current' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Squash into current' }))
 
     expect(BranchService.MergeBranch).toHaveBeenCalledWith(REPO, 'feature', 'squash')
     expect(await screen.findByRole('status')).toHaveTextContent(
@@ -475,7 +475,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
-    await user.click(await screen.findByRole('button', { name: 'Delete origin/feature/login on remote…' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete origin/feature/login on remote…' }))
     const dialog = await screen.findByRole('alertdialog', { name: 'Delete on remote' })
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
@@ -491,7 +491,7 @@ describe('BranchSidebar', () => {
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^spike/ }) })
 
-    expect(await screen.findByRole('button', { name: 'Rename…' })).toBeInTheDocument()
+    expect(await screen.findByRole('menuitem', { name: 'Rename…' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /on remote/ })).not.toBeInTheDocument()
   })
 
@@ -504,7 +504,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
-    await user.click(await screen.findByRole('button', { name: 'Set upstream…' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Set upstream…' }))
     const dialog = await screen.findByRole('dialog', { name: 'Set upstream' })
     const select = await within(dialog).findByRole('combobox', { name: 'Upstream' })
     await vi.waitFor(() => expect(select).toHaveValue('origin/feature'))
@@ -525,7 +525,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature/ }) })
-    await user.click(await screen.findByRole('button', { name: 'Unset upstream' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Unset upstream' }))
 
     expect(BranchService.UnsetUpstream).toHaveBeenCalledWith(REPO, 'feature')
     await vi.waitFor(() => expect(onBranchChanged).toHaveBeenCalled())
@@ -538,8 +538,8 @@ describe('BranchSidebar', () => {
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^spike/ }) })
 
-    expect(await screen.findByRole('button', { name: 'Set upstream…' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Unset upstream' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('menuitem', { name: 'Set upstream…' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Unset upstream' })).not.toBeInTheDocument()
   })
 
   it('does not offer to merge the default branch into itself', async () => {
@@ -551,8 +551,8 @@ describe('BranchSidebar', () => {
     await vi.waitFor(() => expect(BranchService.DefaultBranch).toHaveBeenCalled())
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^main/ }) })
 
-    expect(screen.getByRole('button', { name: 'Merge into current' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Merge main into current' })).not.toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Merge into current' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Merge main into current' })).not.toBeInTheDocument()
   })
 
   it('asks before merging a default branch that is behind its upstream', async () => {
@@ -564,7 +564,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
-    await user.click(await screen.findByRole('button', { name: 'Merge main into current' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Merge main into current' }))
     const dialog = await screen.findByRole('alertdialog', { name: 'Merge main' })
     expect(dialog).toHaveTextContent('main is 3 commits behind origin/main.')
     await user.click(within(dialog).getByRole('button', { name: 'Merge anyway' }))
@@ -580,7 +580,7 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.pointer({ keys: '[MouseRight]', target: await screen.findByRole('button', { name: /^feature\/login/ }) })
-    await user.click(await screen.findByRole('button', { name: 'Merge main into current' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Merge main into current' }))
     const dialog = await screen.findByRole('alertdialog', { name: 'Merge main' })
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 
@@ -593,13 +593,13 @@ describe('BranchSidebar', () => {
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'More actions for spike' }))
-    expect(await screen.findByRole('button', { name: 'Check out' })).toHaveFocus()
+    expect(await screen.findByRole('menuitem', { name: 'Check out' })).toHaveFocus()
     expect(BranchService.CheckoutBranch).not.toHaveBeenCalled()
     await user.keyboard('{Escape}')
 
     screen.getByRole('button', { name: /^main/ }).focus()
     await user.keyboard('{Shift>}{F10}{/Shift}')
-    expect(await screen.findByRole('button', { name: 'Set upstream…' })).toBeInTheDocument()
+    expect(await screen.findByRole('menuitem', { name: 'Set upstream…' })).toBeInTheDocument()
   })
 
   it('names the branch a new repository is on instead of saying it has none', async () => {

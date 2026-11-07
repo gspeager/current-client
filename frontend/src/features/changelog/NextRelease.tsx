@@ -11,6 +11,7 @@ import {
   Tag,
   TriangleAlert,
   type LucideIcon,
+  ChevronRight,
 } from 'lucide-react'
 import { ChangelogService, HostService, TagService, type ReleaseCheck } from '@current-client-bindings/app'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
@@ -142,7 +143,10 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
       </ul>
       {data.checks.some((check) => check.level !== 'warn') && (
         <details className="next-release-more" open={warnings === 0}>
-          <summary>{plural(data.checks.filter((check) => check.level !== 'warn').length, 'other check')}</summary>
+          <summary>
+            <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />
+            {plural(data.checks.filter((check) => check.level !== 'warn').length, 'other check')}
+          </summary>
           <ul className="next-release-checks">
             {data.checks
               .filter((check) => check.level !== 'warn')

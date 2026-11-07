@@ -22,6 +22,12 @@
 // Lines up with a pull request's title; the inspector keeps its top padding.
 .issues-pane .issue-detail-header {
   padding-top: 0;
+  padding-right: 0;
+}
+
+.issues-pane .issue-panel-body,
+.issues-pane .issue-detail-footer {
+  padding-right: 0;
 }
 
 // A tracker's own status, such as Jira's In Progress: a closed set, so a square.

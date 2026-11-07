@@ -43,11 +43,14 @@
 .split-button-secondary {
   .split-button-main,
   .split-button-toggle {
-    background: var(--surface-high);
-    color: var(--on-surface);
+    background: none;
+    border: var(--border-structure);
+    color: var(--on-surface-variant);
+    font-weight: 500;
 
     &:hover:not(:disabled) {
-      background: var(--surface-highest);
+      background: var(--surface-container);
+      color: var(--on-surface);
       box-shadow: none;
     }
   }

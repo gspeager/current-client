@@ -113,6 +113,7 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
           {item.separatorBefore && <div className="context-menu-separator" role="separator" />}
           <button
             type="button"
+            role="menuitem"
             className={item.destructive ? 'context-menu-item context-menu-item-destructive' : 'context-menu-item'}
             disabled={item.disabled}
             onClick={() => {

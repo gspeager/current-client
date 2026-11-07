@@ -1,6 +1,9 @@
 import { ContributorsService, IdentityService, type IdentityInfo } from '@current-client-bindings/app'
 import { useAsyncData } from './useAsyncData'
 
+// displayName is the name on their commits where one matched.
+export type HostIdentity = IdentityInfo & { displayName: string }
+
 interface Author {
   name: string
   email: string
@@ -21,16 +24,17 @@ export function matchAuthor(name: string, authors: Author[]): Author | null {
 
 // Initials and color for people known only by name, such as a host's authors.
 // Local, like every badge: nothing is fetched for them.
-export function useNameIdentities(names: string[], repoPath = ''): Map<string, IdentityInfo> {
+export function useNameIdentities(names: string[], repoPath = ''): Map<string, HostIdentity> {
   const key = [...new Set(names.filter(Boolean))].join('\n')
   const { data } = useAsyncData(async () => {
     const unique = key ? key.split('\n') : []
-    if (unique.length === 0) return new Map<string, IdentityInfo>()
+    if (unique.length === 0) return new Map<string, HostIdentity>()
     const authors = repoPath ? await ContributorsService.GetContributors(repoPath, '', '').catch(() => null) : null
-    const infos = await IdentityService.GetIdentities(
-      unique.map((name) => matchAuthor(name, authors ?? []) ?? { name, email: '' }),
+    const refs = unique.map((name) => matchAuthor(name, authors ?? []) ?? { name, email: '' })
+    const infos = await IdentityService.GetIdentities(refs)
+    return new Map(
+      unique.flatMap((name, i) => (infos?.[i] ? [[name, { ...infos[i], displayName: refs[i].name }] as const] : [])),
     )
-    return new Map(unique.flatMap((name, i) => (infos?.[i] ? [[name, infos[i]] as const] : [])))
   }, [key, repoPath])
-  return data ?? new Map<string, IdentityInfo>()
+  return data ?? new Map<string, HostIdentity>()
 }

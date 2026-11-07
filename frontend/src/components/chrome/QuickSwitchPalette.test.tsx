@@ -312,7 +312,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       'Add note…',
       'Copy SHA',
     ])
-    await userEvent.click(screen.getByRole('button', { name: 'Check out' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Check out' }))
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Check out' }))
     expect(BranchService.CheckoutCommit).toHaveBeenCalledWith(REPO, 'abc1234def')
   })

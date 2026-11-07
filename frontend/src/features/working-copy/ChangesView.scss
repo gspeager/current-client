@@ -114,6 +114,13 @@
   font: var(--data-sm);
 }
 
+.changes-conflict-actions .changes-conflict-primary {
+  background: var(--primary-container);
+  border-color: transparent;
+  color: var(--on-primary-container);
+  font-weight: 600;
+}
+
 .changes-diff-owners-names {
   @include patterns.truncate;
 }

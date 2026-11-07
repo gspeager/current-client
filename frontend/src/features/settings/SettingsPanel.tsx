@@ -1,3 +1,4 @@
+import BranchPill from '../../components/git/BranchPill'
 import { useRef, useState } from 'react'
 import { Monitor, Moon, Rows3, Rows4, Sun } from 'lucide-react'
 import { System } from '@wailsio/runtime'
@@ -58,6 +59,26 @@ export function settingsGroups(hostIntegration: boolean): string[] {
     'Identity colors',
     'Support',
   ]
+}
+
+const PREVIEW_ROWS = [
+  { branch: 'main', subject: 'Release the yearly plan' },
+  { branch: 'feature/search', subject: 'Search commits by author' },
+  { branch: 'fix/login', subject: 'Keep the session after sign-in' },
+]
+
+// The lane colors and density in effect, on rows like History's.
+function AppearancePreview({ colors }: { colors: readonly string[] }) {
+  return (
+    <div className="settings-preview" aria-hidden="true">
+      {PREVIEW_ROWS.map(({ branch, subject }, i) => (
+        <div key={branch} className="settings-preview-row">
+          <BranchPill name={branch} color={colors[i % colors.length]} />
+          <span>{subject}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function SettingsPanel({
@@ -126,6 +147,7 @@ function SettingsPanel({
               key={title}
               type="button"
               className={title === section ? 'settings-rail-item settings-rail-item-active' : 'settings-rail-item'}
+              aria-current={title === section ? 'true' : undefined}
               onClick={() => {
                 setSection(title)
                 if (body.current) body.current.scrollTop = 0
@@ -180,6 +202,7 @@ function SettingsPanel({
                   ))}
                 </div>
               </SettingsRow>
+              <AppearancePreview colors={LANE_THEMES[activeLaneTheme]} />
             </SettingsGroup>
 
             <SettingsGroup title="Git">

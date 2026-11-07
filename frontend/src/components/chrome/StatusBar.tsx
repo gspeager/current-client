@@ -129,7 +129,7 @@ function ServiceItem({
       title={`${about}\n${hostRequestLabel(status)}\nOpens Settings.`}
     >
       <span className="status-bar-host-dot" />
-      <span className="status-bar-host-name">{name}</span>
+      <span className="status-bar-host-name">{name} on</span>
     </button>
   )
 }

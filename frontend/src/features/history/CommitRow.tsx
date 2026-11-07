@@ -108,6 +108,8 @@ function CommitRow({
       onContextMenu={onContextMenu}
       style={{ ...style, opacity: dimmed ? 0.4 : 1 }}
       role="button"
+      aria-label={`${commit.subject}, ${commit.sha.slice(0, 7)}, ${commit.authorName}`}
+      aria-current={selected ? 'true' : undefined}
       tabIndex={0}
       onKeyDown={(e) => {
         if (isMenuKey(e)) {

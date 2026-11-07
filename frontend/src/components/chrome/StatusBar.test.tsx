@@ -31,7 +31,7 @@ describe('StatusBar', () => {
     )
 
     const indicator = await screen.findByRole('button', { name: 'api.github.com, integration on' })
-    expect(indicator).toHaveTextContent(/^api\.github\.com$/)
+    expect(indicator).toHaveTextContent(/^api\.github\.com on$/)
     expect(indicator.title).toContain('no requests yet')
     await userEvent.click(indicator)
     expect(onOpenSettings).toHaveBeenCalled()

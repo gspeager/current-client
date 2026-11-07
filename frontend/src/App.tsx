@@ -1137,6 +1137,7 @@ function App({
                               key={`${repo.repoPath}-${hostsVersion}`}
                               repoPath={repo.repoPath}
                               selectedKey={issueFocus}
+                              onOpenSettings={() => openSettings()}
                               refreshKey={hostRefresh}
                               onRefreshed={() => setHostRefresh((n) => n + 1)}
                               onBranchChanged={onBranchChanged}
@@ -1163,6 +1164,7 @@ function App({
                         onBranchChanged={onBranchChanged}
                       />
                     )}
+                    {inboxOpen && <div className="inbox-scrim" onClick={() => setInboxOpen(false)} />}
                     {inboxOpen && (
                       <InboxView
                         paths={repo.tabs}

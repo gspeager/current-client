@@ -40,18 +40,16 @@ function renderPanel() {
 }
 
 describe('CommitDetailPanel', () => {
-  it('shows the first four actions as buttons and the rest under More, in order', async () => {
+  it('shows the first two actions as buttons and the rest under More, in order', async () => {
     renderPanel()
 
     const footer = document.querySelector('.commit-detail-actions')!
     expect([...footer.querySelectorAll(':scope > button')].map((b) => b.textContent)).toEqual([
       'Check out',
       'Branch here',
-      'Cherry-pick',
-      'Revert',
     ])
-    await userEvent.click(screen.getByRole('button', { name: 'Cherry-pick' }))
-    expect(ACTIONS[2].run).toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Branch here' }))
+    expect(ACTIONS[1].run).toHaveBeenCalled()
 
     const more = footer.querySelector<HTMLDetailsElement>('.commit-detail-more')!
     expect(more.open).toBe(false)
@@ -59,6 +57,8 @@ describe('CommitDetailPanel', () => {
     expect(more.open).toBe(true)
     const menu = more.querySelector('.commit-detail-more-menu')!
     expect([...menu.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Cherry-pick',
+      'Revert',
       'Reset to here…',
       'Export patch…',
       'Copy SHA',

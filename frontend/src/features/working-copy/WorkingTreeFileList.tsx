@@ -406,7 +406,7 @@ function WorkingTreeFileList({
   return (
     <>
       <div className="changes-files-header">
-        <h2 className="changes-files-title">Changed files</h2>
+        <h2 className="changes-files-title">Files</h2>
         <div className="changes-files-header-spacer" />
         <SegmentedControl
           value={viewMode}

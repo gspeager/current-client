@@ -79,7 +79,7 @@ describe('NavPane collapsed rail', () => {
     const { onCollapsedChange } = renderNav(true)
 
     await userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Open Terminal' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Open Terminal' }))
 
     expect(PlatformService.OpenTerminal).toHaveBeenCalledWith(REPO)
     expect(onCollapsedChange).not.toHaveBeenCalled()
@@ -120,7 +120,7 @@ describe('NavPane collapsed rail', () => {
     const { onCollapsedChange, setCollapsed } = renderNav(true)
 
     await userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Open in VS Code' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Open in VS Code' }))
     await vi.waitFor(() => expect(onCollapsedChange).toHaveBeenCalledWith(false))
     setCollapsed(false)
 

@@ -29,6 +29,8 @@
     list-style: none;
 
     > input {
+      opacity: 0.7;
+      pointer-events: none;
       appearance: none;
       align-self: center;
       flex-shrink: 0;

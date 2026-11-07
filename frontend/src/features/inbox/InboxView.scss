@@ -3,6 +3,13 @@
 // A panel in the inspector's slot, over the right of the body: beside a
 // view's own detail pane it would leave a commit list no room for subjects.
 // A row opens its target in the panel's place.
+.inbox-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: color-mix(in srgb, var(--surface-lowest) 60%, transparent);
+}
+
 .inbox {
   position: absolute;
   top: 0;

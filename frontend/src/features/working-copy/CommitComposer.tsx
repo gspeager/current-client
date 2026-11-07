@@ -313,13 +313,12 @@ function CommitComposer({
           </div>
           <div className="commit-composer-meta" hidden={subject.length === 0}>
             <span className="commit-composer-counter">
-              Subject{' '}
+              Subject
               <span
                 className={`commit-composer-counter-value${subject.length > SUBJECT_TARGET ? ' commit-composer-counter-over' : ''}`}
               >
-                {subject.length}
+                {subject.length}/{SUBJECT_TARGET}
               </span>
-              /{SUBJECT_TARGET}
               <span className="commit-composer-counter-bar">
                 <span
                   className={`commit-composer-counter-fill${subject.length > SUBJECT_TARGET ? ' commit-composer-counter-fill-over' : ''}`}
@@ -374,14 +373,12 @@ function CommitComposer({
               <span className="commit-composer-menu-checkbox">
                 <Checkbox checked={amend} onChange={toggleAmend} label="Amend last commit" />
               </span>
-              <label className="commit-composer-menu-checkbox">
-                <input type="checkbox" checked={allowEmpty} onChange={(e) => setAllowEmpty(e.target.checked)} />
-                Allow empty commit
-              </label>
-              <label className="commit-composer-menu-checkbox">
-                <input type="checkbox" checked={sign} onChange={(e) => setSign(e.target.checked)} />
-                Sign this commit
-              </label>
+              <span className="commit-composer-menu-checkbox">
+                <Checkbox checked={allowEmpty} onChange={setAllowEmpty} label="Allow empty commit" />
+              </span>
+              <span className="commit-composer-menu-checkbox">
+                <Checkbox checked={sign} onChange={setSign} label="Sign this commit" />
+              </span>
               <div className="split-button-menu-divider" />
               <button
                 type="button"

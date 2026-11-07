@@ -16,6 +16,7 @@ import './IssuesView.scss'
 
 interface IssuesViewProps {
   repoPath: string
+  onOpenSettings?: () => void
   // An issue to show, such as one an Inbox row points at; it needn't be in the list.
   selectedKey?: string | null
   // Read again when it changes, as after a refresh elsewhere.
@@ -31,7 +32,14 @@ const keyOf = (listed: ListedIssue) => (/^\d+$/.test(listed.issue.key) ? `#${lis
 // The issues on the host and the tracker: assigned to you from the last
 // refresh, or the project's open or closed ones once asked for, with the
 // selected one as the pane beside the list.
-function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onBranchChanged }: IssuesViewProps) {
+function IssuesView({
+  repoPath,
+  selectedKey = null,
+  refreshKey,
+  onRefreshed,
+  onBranchChanged,
+  onOpenSettings,
+}: IssuesViewProps) {
   useClockTick()
   const { data: list, reload } = useAsyncData(() => HostService.MyIssues(repoPath), [repoPath], {
     refreshKey,
@@ -127,42 +135,51 @@ function IssuesView({ repoPath, selectedKey = null, refreshKey, onRefreshed, onB
       </header>
       {(refreshError || projectError) && <p className="host-changes-error">{refreshError ?? projectError}</p>}
       <div className="host-changes-body">
-        <ul ref={rovingRows} data-pane="issue-list" className="host-changes-list" aria-label="Issues list">
-          {issues.length === 0 && (
-            <li className="host-changes-empty">
-              {filter !== 'mine' && !projectList
-                ? 'Loading…'
-                : !fetched
-                  ? 'Refresh to load.'
-                  : { mine: 'None assigned.', all: 'None open.', closed: 'None closed.' }[filter]}
-            </li>
-          )}
-          {issues.map((listed) => {
-            const SourceLogo = hostLogo(issueProvider(listed.issue.key, hostLinks))
-            return (
-              <li key={`${listed.source}:${listed.issue.key}`}>
-                <button
-                  type="button"
-                  className={
-                    listed.issue.key === activeKey ? 'host-change-row host-change-row-selected' : 'host-change-row'
-                  }
-                  onClick={() => setSelected(listed.issue.key)}
-                >
-                  <span className="host-change-row-head">
-                    <span className="issues-row-key">{keyOf(listed)}</span>
-                    {listed.issue.status && <span className="issues-row-status">{listed.issue.status}</span>}
-                    <span className="host-change-row-time issues-row-source">
-                      <SourceLogo size={14} strokeWidth={1.75} aria-hidden="true" />
-                      {listed.source}
-                    </span>
-                  </span>
-                  <span className="host-change-row-title">{listed.issue.title}</span>
-                  {listed.branch && <span className="host-change-row-branches">{listed.branch}</span>}
-                </button>
+        <div className="host-changes-column">
+          <ul ref={rovingRows} data-pane="issue-list" className="host-changes-list" aria-label="Issues list">
+            {issues.length === 0 && (
+              <li className="host-changes-empty">
+                {filter !== 'mine' && !projectList
+                  ? 'Loading…'
+                  : !fetched
+                    ? 'Refresh to load.'
+                    : { mine: 'None assigned.', all: 'None open.', closed: 'None closed.' }[filter]}
               </li>
-            )
-          })}
-        </ul>
+            )}
+            {issues.map((listed) => {
+              const SourceLogo = hostLogo(issueProvider(listed.issue.key, hostLinks))
+              return (
+                <li key={`${listed.source}:${listed.issue.key}`}>
+                  <button
+                    type="button"
+                    className={
+                      listed.issue.key === activeKey ? 'host-change-row host-change-row-selected' : 'host-change-row'
+                    }
+                    onClick={() => setSelected(listed.issue.key)}
+                  >
+                    <span className="host-change-row-head">
+                      <span className="issues-row-key">{keyOf(listed)}</span>
+                      {listed.issue.status && <span className="issues-row-status">{listed.issue.status}</span>}
+                      <span className="host-change-row-time issues-row-source">
+                        <SourceLogo size={14} strokeWidth={1.75} aria-hidden="true" />
+                        {listed.source}
+                      </span>
+                    </span>
+                    <span className="host-change-row-title">{listed.issue.title}</span>
+                    {listed.branch && <span className="host-change-row-branches">{listed.branch}</span>}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          {onOpenSettings && (
+            <footer className="host-changes-privacy">
+              <button type="button" className="host-changes-privacy-link" onClick={onOpenSettings}>
+                Integration settings
+              </button>
+            </footer>
+          )}
+        </div>
         {activeKey && (
           <div className="issues-pane">
             <IssueDetail
