@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **Dates are real dates after a week**, so an old commit reads "Mar 14" or "Mar 2024" instead of "400d ago".
 - **The status bar says what just happened**, such as "Pushed main to origin/main", in place of Ready, with **Undo** after a commit or pull.
 - **The Vivid and Muted lane palettes have eight colors**, the same as the default, so branches spread evenly across them.
 - **History's overview strip is easier to read.** It's taller and draws commits as a green line, with short ticks underneath for branches in their lane colors, tags in violet and stashes in amber. `HEAD` and search matches stay full height, a violet band shows the part on screen, and the label is gone.
