@@ -36,3 +36,15 @@
   white-space: nowrap;
   pointer-events: none;
 }
+
+.overview-strip-label {
+  position: absolute;
+  top: 2px;
+  left: var(--space-xs);
+  padding: 0 var(--space-xs);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border-radius: var(--radius-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  pointer-events: none;
+}

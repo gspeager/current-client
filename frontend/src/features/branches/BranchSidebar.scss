@@ -425,3 +425,7 @@
 .branch-row .ci-mark:has(.ci-icon-success) {
   display: none;
 }
+
+.branch-row .ci-icon-success {
+  color: var(--outline);
+}

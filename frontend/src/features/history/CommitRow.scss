@@ -54,7 +54,15 @@
   // One ref, named, is more use than several cut to nothing. The subject comes
   // first here, and a link it cuts keeps its text rather than a lone logo.
   .commit-row-refs {
-    max-width: 28%;
+    max-width: 32%;
+
+    .change-marker {
+      display: none;
+    }
+
+    .ref-badge {
+      min-width: 88px;
+    }
 
     > :not(:first-child):not(.commit-row-refs-more) {
       display: none;
@@ -96,7 +104,7 @@
 
 .commit-row-selected {
   background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--outline);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }
 
 // Appears instantly, then fades out over --dur-base.
@@ -188,7 +196,7 @@
 .commit-row-time {
   grid-column: -2;
   text-align: right;
-  color: var(--outline);
+  color: var(--on-surface-variant);
   font: var(--ui-xs);
   white-space: nowrap;
 }

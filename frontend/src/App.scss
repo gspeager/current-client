@@ -161,3 +161,28 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+// Windows High Contrast drops backgrounds and box-shadows, which carry selection
+// and the lane and status dots here.
+@media (forced-colors: active) {
+  [class$='-selected'],
+  .settings-rail-item-active,
+  .tab-active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .branch-pill-dot,
+  .ref-badge-dot,
+  .branch-pill-dirty,
+  .header-bar-tab-dot,
+  .repo-stat-strip-dot,
+  .host-change-flow-dot,
+  .activity-cell,
+  .activity-legend-swatch,
+  .commit-velocity-bar,
+  .file-churn-bar,
+  .commit-row-graph svg {
+    forced-color-adjust: none;
+  }
+}

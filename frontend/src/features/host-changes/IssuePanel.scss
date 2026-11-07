@@ -190,3 +190,40 @@
   flex: 1 1 200px;
   min-width: 0;
 }
+
+.issue-panel-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: var(--space-xl);
+}
+
+.issue-panel-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.issue-panel-aside {
+  order: 1;
+}
+
+.issue-inspector .issue-panel-columns {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.issue-inspector .issue-panel-aside {
+  order: -1;
+}
+
+@media (max-width: 1100px) {
+  .issue-panel-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+
+  .issue-panel-aside {
+    order: -1;
+  }
+}

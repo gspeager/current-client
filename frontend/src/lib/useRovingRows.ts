@@ -12,7 +12,7 @@ interface RovingOptions {
 }
 
 function focusTarget(row: HTMLElement): HTMLElement | null {
-  if (row.matches(FOCUSABLE)) return row
+  if (row.matches(FOCUSABLE) || row.hasAttribute('tabindex')) return row
   return row.querySelector<HTMLElement>('.file-row-path') ?? row.querySelector<HTMLElement>(FOCUSABLE)
 }
 

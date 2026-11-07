@@ -192,9 +192,9 @@
 .changes-clean {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-md);
-  padding-top: 18vh;
+  padding: var(--space-lg) var(--space-md);
   color: var(--outline-variant);
 
   p {

@@ -23,6 +23,7 @@ function WorkingChangesRow({ node, laneCount, rowHeight, changedFiles, user, sty
     <div
       className="commit-row commit-row-working"
       role="row"
+      aria-label={plural(changedFiles, 'uncommitted file')}
       tabIndex={0}
       title="Open Changes"
       style={style}

@@ -7,6 +7,7 @@ import {
 } from '@current-client-bindings/app'
 import { weeklyBuckets } from './commitVelocity'
 import { formatAge } from './repoAge'
+import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './RepoStatStrip.scss'
 
@@ -14,6 +15,7 @@ interface RepoStatStripProps {
   repoPath: string
   repoVersion: number
   dirty: boolean
+  changedCount?: number
   action?: ReactNode
 }
 
@@ -65,7 +67,7 @@ function CommitSparkline({ repoPath, repoVersion }: { repoPath: string; repoVers
   )
 }
 
-function RepoStatStrip({ repoPath, repoVersion, dirty, action }: RepoStatStripProps) {
+function RepoStatStrip({ repoPath, repoVersion, dirty, changedCount = 0, action }: RepoStatStripProps) {
   const { data, error } = useAsyncData(
     () => Promise.all([DashboardService.GetRepoStats(repoPath), DashboardService.GetRepoDiskUsage(repoPath)]),
     [repoPath],
@@ -89,6 +91,9 @@ function RepoStatStrip({ repoPath, repoVersion, dirty, action }: RepoStatStripPr
                   className={`repo-stat-strip-dot${dirty ? ' repo-stat-strip-dot-dirty' : ' repo-stat-strip-dot-clean'}`}
                 />
               </span>
+              {changedCount > 0 && (
+                <span className="repo-stat-strip-note">{plural(changedCount, 'uncommitted file')}</span>
+              )}
             </div>
           </div>
           {statsFor(...data).map((stat) => (

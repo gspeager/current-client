@@ -140,6 +140,9 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
           />
         )}
       </svg>
+      <span className="overview-strip-label" aria-hidden="true">
+        Commits over time
+      </span>
       {hover && (
         <span className="overview-strip-tip" style={{ left: Math.min(hover.x, width - 220) }}>
           {hover.text}

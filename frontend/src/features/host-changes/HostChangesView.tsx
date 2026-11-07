@@ -173,6 +173,9 @@ function HostChangesView({
         <span className="host-changes-fetched">
           {list.host}
           {list.fetchedAt ? ` · fetched ${relativeTime(new Date(list.fetchedAt))}` : ' · not fetched yet'}
+          {currentHasChange && current?.change
+            ? ` · ${current.branch} already has ${current.change.prefix}${current.change.number}`
+            : ''}
         </span>
         <SegmentedControl value={filter} onChange={setFilter} options={filters} />
         <button
@@ -450,7 +453,7 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
           )}
           <button
             type="button"
-            className="host-change-button"
+            className="host-change-button host-change-button-quiet"
             onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
           >
             <HostIcon size={14} strokeWidth={1.75} />
@@ -490,9 +493,13 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
             {/^protected/i.test(protection.value) ? `${change.targetBranch} is protected` : protection.value}
           </span>
         )}
-        {change.labels?.map((label) => (
-          <LabelChip key={label} label={label} />
-        ))}
+        {(change.labels?.length ?? 0) > 0 && (
+          <span className="host-change-labels">
+            {change.labels?.map((label) => (
+              <LabelChip key={label} label={label} />
+            ))}
+          </span>
+        )}
       </p>
       {change.state === 'open' && !merged && tileFacts.length > 0 && <MergeVerdict facts={tileFacts} />}
       <dl className="host-change-facts">

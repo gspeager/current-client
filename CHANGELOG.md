@@ -6,7 +6,8 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
-- **File rows keep their counts and path steady on hover**, with actions over the end of the path.
+- **File rows keep their counts on hover**, and the path gives way from the left so the filename stays.
+- **Issues use the same two columns as pull requests**, and Windows High Contrast keeps selection, lanes and status visible.
 - **Activity's heatmap works from the keyboard:** focus it and use the arrow keys to read each day.
 - **The status bar says when a merge or rebase is in progress**, and pull request checks show as one readiness strip.
 - **Choosing Split on a narrow window gives the diff the file list's room.** The expand button brings the list back.
@@ -23,7 +24,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - **The sidebar's sub-groups read a step quieter** than the sections they sit in, and line up with each other.
 - **Pull request rows use one check mark.** It's for CI; review results are spelled out, such as "2 approved".
 - **Commits, pull requests and issues read the same way.** Facts share one list, actions sit at the top of the pane, and panes are divided by a simple line.
-- **Cyan is saved for what matters.** Selected rows now use a neutral marker, so `HEAD`, focus and the main action stand out.
+- **Cyan is saved for what matters.** Selected rows and the active tab are neutral, so `HEAD`, focus and the main action stand out.
 - **Tags in History start with a tag icon**, so they stand out from the branches and subject beside them.
 - **Issue and pull request links are colored**, and so is the host logo beside them, so they stand out from the text around them. Pull request and review state share the same brighter indigo.
 - **A cleaner, calmer interface.** A branch now has one color everywhere: its sidebar dot, its pill in History, and its nodes and line in the graph. Cyan marks only `HEAD`, keyboard focus and the one main action in a pane. Text is a size larger throughout. The Toolbox starts closed so branches stay in view. Stage hunk is more prominent than Discard, and buttons that can't run yet go neutral instead of staying bright.

@@ -114,7 +114,7 @@
 
 .quick-switch-row[data-selected='true'] {
   background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--outline);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }
 
 .quick-switch-row-icon {

@@ -23,6 +23,7 @@ function ActivityView({ repoPath, repoVersion, dirty, changedCount, hasConflict,
     <div className="activity-view">
       <h2 className="visually-hidden">Activity</h2>
       <RepoStatStrip
+        changedCount={changedCount}
         repoPath={repoPath}
         repoVersion={repoVersion}
         dirty={dirty}

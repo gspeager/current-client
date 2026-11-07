@@ -86,7 +86,7 @@
 
 .branch-switcher-row-current {
   background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--outline);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
   cursor: default;
 
   &:hover {

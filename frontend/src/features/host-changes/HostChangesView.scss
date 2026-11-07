@@ -105,7 +105,7 @@
   padding: 0;
   background: none;
   border: none;
-  color: var(--on-surface-variant);
+  color: var(--secondary);
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
@@ -136,7 +136,7 @@
 
   &.host-change-row-selected {
     background: var(--surface-container);
-    box-shadow: inset 2px 0 0 0 var(--outline);
+    box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
   }
 }
 
@@ -181,7 +181,7 @@
 
 .host-change-row-time {
   flex-shrink: 0;
-  color: var(--outline);
+  color: var(--on-surface-variant);
   font: var(--ui-xs);
 }
 
@@ -232,7 +232,7 @@
   color: var(--on-surface-variant);
   font: var(--ui-sm);
 
-  > * + *:not(.label-chip)::before {
+  > * + *::before {
     content: '·';
     margin-right: var(--space-sm);
     color: var(--outline);
@@ -570,4 +570,18 @@
 
 .host-changes-privacy-link {
   @include patterns.hit-target(4px);
+}
+
+.host-change-row .ci-icon-success {
+  color: var(--outline);
+}
+
+.host-change-button-quiet {
+  border-color: transparent;
+}
+
+.host-change-labels {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
 }

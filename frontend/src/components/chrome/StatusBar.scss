@@ -89,10 +89,10 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  border: 1px solid var(--secondary);
+  border: 1px solid var(--on-surface-variant);
 
   .status-bar-host-busy & {
-    background: var(--secondary);
+    background: var(--on-surface-variant);
   }
 }
 
@@ -132,8 +132,7 @@
     display: none;
   }
 
-  .status-bar-host-name,
-  .status-bar-api-label {
+  .status-bar-branch {
     display: none;
   }
 }

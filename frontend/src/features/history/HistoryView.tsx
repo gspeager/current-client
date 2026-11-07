@@ -409,6 +409,13 @@ function HistoryView({
                 aria-label="Commit history"
                 style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
               >
+                <div role="row" className="visually-hidden">
+                  {['Graph', 'Commit', 'Author', 'Hash', 'CI', 'Time', 'Actions'].map((name) => (
+                    <span key={name} role="columnheader">
+                      {name}
+                    </span>
+                  ))}
+                </div>
                 {virtualItems.map((row) => {
                   const rowStyle = {
                     position: 'absolute' as const,

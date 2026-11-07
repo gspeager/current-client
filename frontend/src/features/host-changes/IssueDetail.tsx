@@ -108,7 +108,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
             </button>
             <button
               type="button"
-              className="host-change-button"
+              className="host-change-button host-change-button-quiet"
               onClick={() => PlatformService.OpenWebPage(issue.webUrl).catch(ignoreDecorativeFailure)}
               disabled={!issue.webUrl}
             >
@@ -127,66 +127,70 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
         )}
         {!data && !error && <p className="issue-panel-hint">Loading…</p>}
         {data && issue && (
-          <>
-            <FactList>
-              <Fact label="Author">
-                {identities.get(issue.author.name || issue.author.username)?.displayName ??
-                  (issue.author.name || issue.author.username)}
-              </Fact>
-              <Fact label="Opened">{relativeTime(new Date(issue.createdAt))}</Fact>
-              {issue.milestone && <Fact label="Milestone">{issue.milestone}</Fact>}
-              {issue.labels.length > 0 && (
-                <Fact label="Labels" className="issue-panel-labels">
-                  {issue.labels.map((label) => (
-                    <LabelChip key={label} label={label} />
-                  ))}
-                </Fact>
+          <div className="issue-panel-columns">
+            <div className="issue-panel-main">
+              {data.descriptionHtml ? (
+                <HostMarkdown html={data.descriptionHtml} className="issue-panel-description" />
+              ) : (
+                <p className="issue-panel-hint">No description.</p>
               )}
-              {tasks && (
-                <Fact label="Tasks" className="issue-panel-tasks">
-                  <progress
-                    value={tasks.done}
-                    max={tasks.total}
-                    aria-label={`${tasks.done} of ${tasks.total} tasks done`}
-                  />
-                  {tasks.done} of {tasks.total}
+              <section className="issue-panel-comments" aria-label="Comments">
+                <h4 className="issue-panel-comments-title">{plural(data.comments.length, 'comment')}</h4>
+                {data.comments.map((c, i) => (
+                  <article key={i} className="issue-panel-comment">
+                    <p className="issue-panel-comment-head">
+                      {identities.get(c.author.name || c.author.username) && (
+                        <IdentityBadge
+                          identity={identities.get(c.author.name || c.author.username)!}
+                          name={c.author.name || c.author.username}
+                          email=""
+                          size={20}
+                        />
+                      )}
+                      <span className="issue-panel-comment-author">
+                        {identities.get(c.author.name || c.author.username)?.displayName ??
+                          (c.author.name || c.author.username)}
+                      </span>
+                      <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
+                    </p>
+                    <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
+                  </article>
+                ))}
+              </section>
+            </div>
+            <div className="issue-panel-aside">
+              <FactList>
+                <Fact label="Author">
+                  {identities.get(issue.author.name || issue.author.username)?.displayName ??
+                    (issue.author.name || issue.author.username)}
                 </Fact>
-              )}
-              {branch && (
-                <Fact label="Branch" className="fact-list-data">
-                  {branch}
-                </Fact>
-              )}
-            </FactList>
-            {data.descriptionHtml ? (
-              <HostMarkdown html={data.descriptionHtml} className="issue-panel-description" />
-            ) : (
-              <p className="issue-panel-hint">No description.</p>
-            )}
-            <section className="issue-panel-comments" aria-label="Comments">
-              <h4 className="issue-panel-comments-title">{plural(data.comments.length, 'comment')}</h4>
-              {data.comments.map((c, i) => (
-                <article key={i} className="issue-panel-comment">
-                  <p className="issue-panel-comment-head">
-                    {identities.get(c.author.name || c.author.username) && (
-                      <IdentityBadge
-                        identity={identities.get(c.author.name || c.author.username)!}
-                        name={c.author.name || c.author.username}
-                        email=""
-                        size={20}
-                      />
-                    )}
-                    <span className="issue-panel-comment-author">
-                      {identities.get(c.author.name || c.author.username)?.displayName ??
-                        (c.author.name || c.author.username)}
-                    </span>
-                    <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
-                  </p>
-                  <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
-                </article>
-              ))}
-            </section>
-          </>
+                <Fact label="Opened">{relativeTime(new Date(issue.createdAt))}</Fact>
+                {issue.milestone && <Fact label="Milestone">{issue.milestone}</Fact>}
+                {issue.labels.length > 0 && (
+                  <Fact label="Labels" className="issue-panel-labels">
+                    {issue.labels.map((label) => (
+                      <LabelChip key={label} label={label} />
+                    ))}
+                  </Fact>
+                )}
+                {tasks && (
+                  <Fact label="Tasks" className="issue-panel-tasks">
+                    <progress
+                      value={tasks.done}
+                      max={tasks.total}
+                      aria-label={`${tasks.done} of ${tasks.total} tasks done`}
+                    />
+                    {tasks.done} of {tasks.total}
+                  </Fact>
+                )}
+                {branch && (
+                  <Fact label="Branch" className="fact-list-data">
+                    {branch}
+                  </Fact>
+                )}
+              </FactList>
+            </div>
+          </div>
         )}
       </div>
       {actionError && (
