@@ -1,8 +1,15 @@
 # Current Client
 
+[![Latest release](https://img.shields.io/github/v/release/gspeager/current-client)](https://github.com/gspeager/current-client/releases/latest)
+[![CodeQL](https://github.com/gspeager/current-client/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/gspeager/current-client/actions/workflows/github-code-scanning/codeql)
+[![License](https://img.shields.io/github/license/gspeager/current-client)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-informational)
+
 A privacy-first Git client for developers, on Windows, macOS and Linux.
 
 Current Client runs entirely on your machine and connects only to the servers your repositories already use: no account, no telemetry, no automatic update checks. It works the same with GitHub, GitLab, Bitbucket, a self-hosted server or a plain SSH remote, including on air-gapped networks.
+
+![Current Client's History view, with the commit graph, branch lanes and commit details](https://gitcurrent.com/assets/client/graph-dark.webp)
 
 ## Features
 
