@@ -48,8 +48,8 @@ func TestStashSaveAndListRealRepo(t *testing.T) {
 	dir := initStashRepo(t)
 	gittest.WriteFile(t, dir, "file.txt", "v2\n")
 
-	if err := StashSave(context.Background(), dir, "my changes", false); err != nil {
-		t.Fatalf("StashSave: %v", err)
+	if err := StashPush(context.Background(), dir, StashOptions{Message: "my changes"}); err != nil {
+		t.Fatalf("StashPush: %v", err)
 	}
 
 	content, err := os.ReadFile(filepath.Join(dir, "file.txt"))
@@ -76,8 +76,8 @@ func TestStashSaveIncludesUntrackedWhenRequested(t *testing.T) {
 	dir := initStashRepo(t)
 	gittest.WriteFile(t, dir, "untracked.txt", "new\n")
 
-	if err := StashSave(context.Background(), dir, "", true); err != nil {
-		t.Fatalf("StashSave: %v", err)
+	if err := StashPush(context.Background(), dir, StashOptions{IncludeUntracked: true}); err != nil {
+		t.Fatalf("StashPush: %v", err)
 	}
 
 	if _, err := os.Stat(filepath.Join(dir, "untracked.txt")); !os.IsNotExist(err) {
@@ -163,8 +163,8 @@ func TestStashChangedFilesListsTrackedAndUntracked(t *testing.T) {
 	gittest.WriteFile(t, dir, "tracked.txt", "one\ntwo\n")
 	gittest.WriteFile(t, dir, "new.txt", "a\nb\nc\n")
 	ctx := context.Background()
-	if err := StashSave(ctx, dir, "wip", true); err != nil {
-		t.Fatalf("StashSave: %v", err)
+	if err := StashPush(ctx, dir, StashOptions{Message: "wip", IncludeUntracked: true}); err != nil {
+		t.Fatalf("StashPush: %v", err)
 	}
 
 	files, err := StashChangedFiles(ctx, dir, 0)
@@ -194,8 +194,8 @@ func TestStashChangedFilesWithoutUntracked(t *testing.T) {
 	gittest.CommitFile(t, dir, "tracked.txt", "one\n", "initial")
 	gittest.WriteFile(t, dir, "tracked.txt", "two\n")
 	ctx := context.Background()
-	if err := StashSave(ctx, dir, "", false); err != nil {
-		t.Fatalf("StashSave: %v", err)
+	if err := StashPush(ctx, dir, StashOptions{}); err != nil {
+		t.Fatalf("StashPush: %v", err)
 	}
 
 	ref, err := stashUntrackedRef(ctx, dir, 0)

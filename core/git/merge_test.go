@@ -20,8 +20,8 @@ func TestMergeBranchFastForward(t *testing.T) {
 	gittest.CommitFile(t, dir, "feature.txt", "v1", "feature commit")
 	gittest.Run(t, dir, "checkout", "-q", "main")
 
-	if err := MergeBranch(context.Background(), dir, "feature"); err != nil {
-		t.Fatalf("MergeBranch: %v", err)
+	if err := MergeBranchMode(context.Background(), dir, "feature", MergeFastForward); err != nil {
+		t.Fatalf("MergeBranchMode: %v", err)
 	}
 
 	head := gittest.Run(t, dir, "rev-parse", "HEAD")
@@ -42,8 +42,8 @@ func TestMergeBranchCleanMergeCommit(t *testing.T) {
 	gittest.Run(t, dir, "checkout", "-q", "main")
 	gittest.CommitFile(t, dir, "main.txt", "v1", "main commit")
 
-	if err := MergeBranch(context.Background(), dir, "feature"); err != nil {
-		t.Fatalf("MergeBranch: %v", err)
+	if err := MergeBranchMode(context.Background(), dir, "feature", MergeFastForward); err != nil {
+		t.Fatalf("MergeBranchMode: %v", err)
 	}
 
 	parents := gittest.Run(t, dir, "log", "-1", "--pretty=%P")
@@ -60,8 +60,8 @@ func TestMergeBranchCleanMergeCommit(t *testing.T) {
 func TestMergeBranchConflictLeavesConflictState(t *testing.T) {
 	dir := initConflictRepo(t)
 
-	if err := MergeBranch(context.Background(), dir, "theirs"); err != nil {
-		t.Fatalf("MergeBranch stopped on conflicts: %v, want no error", err)
+	if err := MergeBranchMode(context.Background(), dir, "theirs", MergeFastForward); err != nil {
+		t.Fatalf("MergeBranchMode stopped on conflicts: %v, want no error", err)
 	}
 
 	state, err := DetectConflictState(context.Background(), dir)

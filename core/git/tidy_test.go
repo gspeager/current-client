@@ -128,8 +128,8 @@ func TestTidyKeepsAuthorship(t *testing.T) {
 	}
 }
 
-// The review's finding: Continue answers the editor with GIT_EDITOR=true, so a
-// reword waiting behind a conflict must not depend on an editor.
+// Continue answers the editor with GIT_EDITOR=true, so a reword waiting behind
+// a conflict must not depend on an editor.
 func TestARewordAfterAConflictSurvivesContinue(t *testing.T) {
 	dir := gittest.InitRepo(t)
 	gittest.Run(t, dir, "branch", "-M", "main")

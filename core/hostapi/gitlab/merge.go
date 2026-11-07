@@ -2,7 +2,6 @@ package gitlab
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -47,20 +46,13 @@ func (p *Provider) Merge(ctx context.Context, project string, number int, how ho
 		body["sha"] = how.HeadSHA
 	}
 	err := p.client.RequestJSON(ctx, p.host, http.MethodPut, projectPath(project, "merge_requests", strconv.Itoa(number), "merge"), body, nil)
-	var hostErr *hostapi.HostError
-	if errors.As(err, &hostErr) {
-		switch hostErr.Status {
-		case http.StatusUnauthorized:
-			return &hostapi.MergeRefusedError{Host: p.host.Name, Status: hostErr.Status, Reason: "this token's user may not merge it"}
-		case http.StatusMethodNotAllowed:
-			return &hostapi.MergeRefusedError{Host: p.host.Name, Status: hostErr.Status, Reason: "it can't be merged yet, so a pipeline, approval, thread or rule is in the way, or it's a draft"}
-		case http.StatusNotAcceptable:
-			return &hostapi.MergeRefusedError{Host: p.host.Name, Status: hostErr.Status, Reason: "it conflicts with the target branch"}
-		case http.StatusConflict:
-			return &hostapi.MergeRefusedError{Host: p.host.Name, Status: hostErr.Status, Reason: "its head moved since the last refresh; refresh and look again"}
-		case http.StatusUnprocessableEntity:
-			return &hostapi.MergeRefusedError{Host: p.host.Name, Status: hostErr.Status, Reason: "the merge failed on the host"}
-		}
-	}
-	return hostapi.WithScope(err, writeScope)
+	return hostapi.WithScope(hostapi.RefusedMerge(err, p.host.Name, mergeRefusals), writeScope)
+}
+
+var mergeRefusals = map[int]string{
+	http.StatusUnauthorized:        "this token's user may not merge it",
+	http.StatusMethodNotAllowed:    "it can't be merged yet, so a pipeline, approval, thread or rule is in the way, or it's a draft",
+	http.StatusNotAcceptable:       "it conflicts with the target branch",
+	http.StatusConflict:            "its head moved since the last refresh; refresh and look again",
+	http.StatusUnprocessableEntity: "the merge failed on the host",
 }

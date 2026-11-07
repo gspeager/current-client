@@ -128,8 +128,7 @@ func FileHistory(ctx context.Context, repoPath, path string, limit, skip int) ([
 	return logHistory(ctx, repoPath, append(append([]string{"--follow"}, pageArgs(limit, skip)...), "--", path)...)
 }
 
-// logHistory runs git log with the history format; an empty repository has
-// no history rather than an error.
+// An empty repository has no history rather than an error.
 func logHistory(ctx context.Context, repoPath string, args ...string) ([]HistoryEntry, error) {
 	result, err := runResult(ctx, repoPath, append([]string{"log", "-z", "--pretty=format:" + historyFormat}, args...)...)
 	if err != nil {
@@ -152,16 +151,29 @@ func pageArgs(limit, skip int) []string {
 	return args
 }
 
-func parseHistory(output string) ([]HistoryEntry, error) {
-	var entries []HistoryEntry
+// splitRecords reads -z log output whose format separates n fields with \x1f.
+func splitRecords(output string, n int, what string) ([][]string, error) {
+	var records [][]string
 	for _, record := range strings.Split(output, "\x00") {
 		if record == "" {
 			continue
 		}
 		fields := strings.Split(record, "\x1f")
-		if len(fields) != 8 {
-			return nil, fmt.Errorf("malformed commit entry: got %d fields, want 8", len(fields))
+		if len(fields) != n {
+			return nil, fmt.Errorf("malformed %s entry: got %d fields, want %d", what, len(fields), n)
 		}
+		records = append(records, fields)
+	}
+	return records, nil
+}
+
+func parseHistory(output string) ([]HistoryEntry, error) {
+	records, err := splitRecords(output, 8, "commit")
+	if err != nil {
+		return nil, err
+	}
+	var entries []HistoryEntry
+	for _, fields := range records {
 		var parents []string
 		if fields[1] != "" {
 			parents = strings.Split(fields[1], " ")
@@ -280,8 +292,8 @@ func revRange(ctx context.Context, repoPath, from, to string) (string, error) {
 	return fromSHA + ".." + toSHA, nil
 }
 
-// ResolveCommit returns ref's commit SHA. The ^{commit} suffix also keeps a ref
-// that starts with "-" from reading as an option.
+// The ^{commit} suffix also keeps a ref that starts with "-" from reading as
+// an option.
 func ResolveCommit(ctx context.Context, repoPath, ref string) (string, error) {
 	result, err := runResult(ctx, repoPath, "rev-parse", "--verify", "--quiet", ref+"^{commit}")
 	if err != nil {

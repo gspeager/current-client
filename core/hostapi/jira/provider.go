@@ -27,20 +27,10 @@ var (
 	_ hostapi.IssueLister  = (*Provider)(nil)
 )
 
-// HostName is how the client names the site: its host, with a port if it
-// has one.
-func HostName(tracker hostlink.Tracker) string {
-	u, err := url.Parse(tracker.Site)
-	if err != nil {
-		return ""
-	}
-	return u.Host
-}
-
 // New reads version 2 of the REST API, which Cloud and Data Center both
 // serve with descriptions as text.
 func New(client *hostapi.Client, tracker hostlink.Tracker) *Provider {
-	return &Provider{client: client, host: hostapi.Host{Name: HostName(tracker), API: tracker.Site + "rest/api/2"}, tracker: tracker}
+	return &Provider{client: client, host: hostapi.Host{Name: hostlink.SiteHost(tracker.Site), API: tracker.Site + "rest/api/2"}, tracker: tracker}
 }
 
 type user struct {

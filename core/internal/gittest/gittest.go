@@ -21,6 +21,17 @@ func Run(t testing.TB, dir string, args ...string) string {
 	return strings.TrimSpace(string(out))
 }
 
+// RunFails fails the test if git succeeds, for a step such as a merge that
+// must stop on a conflict.
+func RunFails(t testing.TB, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err == nil {
+		t.Fatalf("git %v: expected failure, succeeded:\n%s", args, out)
+	}
+}
+
 // InitRepo creates a repository on main with a test identity and no line
 // ending conversion, so tests see the bytes they wrote.
 func InitRepo(t testing.TB) string {

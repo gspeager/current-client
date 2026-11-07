@@ -35,8 +35,6 @@ func CommandLineToolsMissing() bool {
 	return true
 }
 
-// InstallCommandLineTools opens Apple's installer for them, which downloads
-// them and takes a few minutes.
 func InstallCommandLineTools() error {
 	return exec.Command(xcodeSelect, "--install").Run()
 }

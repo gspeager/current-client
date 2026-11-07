@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gspeager/current-client/core/internal/gittest"
 )
 
 // gitServer serves a repository over smart HTTP, as git http-backend behind
@@ -30,16 +32,9 @@ func gitServer(t *testing.T) string {
 	}
 
 	root := t.TempDir()
-	work := filepath.Join(t.TempDir(), "work")
-	for _, args := range [][]string{
-		{"init", "-q", work},
-		{"-C", work, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first"},
-		{"clone", "-q", "--bare", work, filepath.Join(root, "repo.git")},
-	} {
-		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
+	work := gittest.InitRepo(t)
+	gittest.Run(t, work, "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, "", "clone", "-q", "--bare", work, filepath.Join(root, "repo.git"))
 
 	cgiHandler := &cgi.Handler{
 		Path: backend,

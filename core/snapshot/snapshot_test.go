@@ -14,7 +14,6 @@ import (
 func newRepo(t *testing.T) string {
 	t.Helper()
 	dir := gittest.InitRepo(t)
-	gittest.Run(t, dir, "branch", "-M", "main")
 	gittest.CommitFile(t, dir, "tracked.txt", "committed\n", "initial")
 	return dir
 }

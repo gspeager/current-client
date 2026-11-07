@@ -24,7 +24,7 @@ func TestForcePushRewritesRemoteHistory(t *testing.T) {
 	gittest.CommitFile(t, dir, "file.txt", "v3", "C (rewrites B)")
 	rewrittenSHA := gittest.Run(t, dir, "rev-parse", "HEAD")
 
-	if err := Push(context.Background(), dir); err == nil {
+	if _, err := PushOutput(context.Background(), dir); err == nil {
 		t.Fatal("expected a plain push to be rejected as non-fast-forward")
 	}
 

@@ -74,8 +74,8 @@ var knownErrorPatterns = []struct {
 	{stderrStream, []string{"cannot pull with rebase"}, "Commit or stash changes before pulling with rebase."},
 	{stderrStream, []string{"no tracking information"}, "This branch has no upstream to pull from."},
 	{stderrStream, []string{"has no upstream branch"}, "This branch has no upstream configured."},
-	{stderrStream, []string{"(stale info)"}, "Someone else pushed since your last fetch. Fetch and try again."},
-	{stderrStream, []string{"(non-fast-forward)", "(fetch first)"}, "The remote has changes you don't have locally. Pull first."},
+	{stderrStream, []string{"(stale info)"}, "Someone else pushed since the last fetch. Fetch and try again."},
+	{stderrStream, []string{"(non-fast-forward)", "(fetch first)"}, "The remote has changes that aren't here locally. Pull first."},
 }
 
 func WrapResult(result Result) *AppError {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -149,14 +148,9 @@ func TestParseUnifiedDiffMalformedHunkHeader(t *testing.T) {
 }
 
 func TestGetWorkingTreeDiffRealRepo(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	gittest.WriteFile(t, dir, "file.txt", "line one\nline two\nline three\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", "line one\nline two\nline three\n", "initial")
 
 	gittest.WriteFile(t, dir, "file.txt", "line one\nline TWO\nline three\n")
 
@@ -186,16 +180,13 @@ func TestGetWorkingTreeDiffRealRepo(t *testing.T) {
 }
 
 func TestGetWorkingTreeDiffBinaryFile(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	writeBytes(t, dir, "image.png", []byte{0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02})
+	gittest.WriteFile(t, dir, "image.png", "\x89PNG\x00\x01\x02")
 	gittest.Run(t, dir, "add", "image.png")
 	gittest.Run(t, dir, "commit", "-m", "initial")
 
-	writeBytes(t, dir, "image.png", []byte{0x89, 0x50, 0x4e, 0x47, 0xff, 0xfe, 0xfd})
+	gittest.WriteFile(t, dir, "image.png", "\x89PNG\xff\xfe\xfd")
 
 	got, err := GetWorkingTreeDiff(context.Background(), dir, "image.png", false, false)
 	if err != nil {
@@ -210,19 +201,14 @@ func TestGetWorkingTreeDiffBinaryFile(t *testing.T) {
 }
 
 func TestGetWorkingTreeDiffLargeFile(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
 	line := strings.Repeat("x", 79) + "\n"
 	var big strings.Builder
 	for big.Len() <= LargeFileThreshold {
 		big.WriteString(line)
 	}
-	gittest.WriteFile(t, dir, "big.txt", big.String())
-	gittest.Run(t, dir, "add", "big.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "big.txt", big.String(), "initial")
 
 	gittest.WriteFile(t, dir, "big.txt", big.String()+line)
 
@@ -253,14 +239,9 @@ func TestGetWorkingTreeDiffLargeFile(t *testing.T) {
 }
 
 func TestGetWorkingTreeDiffIgnoreWhitespace(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	gittest.WriteFile(t, dir, "file.txt", "line one\nline two\nline three\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", "line one\nline two\nline three\n", "initial")
 
 	gittest.WriteFile(t, dir, "file.txt", "line one\nline two   \nline three\n") // trailing whitespace only
 
@@ -282,14 +263,9 @@ func TestGetWorkingTreeDiffIgnoreWhitespace(t *testing.T) {
 }
 
 func TestGetWorkingTreeDiffNoChanges(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	gittest.WriteFile(t, dir, "file.txt", "unchanged\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", "unchanged\n", "initial")
 
 	got, err := GetWorkingTreeDiff(context.Background(), dir, "file.txt", false, false)
 	if err != nil {
@@ -301,18 +277,13 @@ func TestGetWorkingTreeDiffNoChanges(t *testing.T) {
 }
 
 func TestStageHunkStagesOnlyThatHunk(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
 	var initial strings.Builder
 	for i := 1; i <= 60; i++ {
 		fmt.Fprintf(&initial, "line %d\n", i)
 	}
-	gittest.WriteFile(t, dir, "file.txt", initial.String())
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", initial.String(), "initial")
 
 	lines := strings.Split(strings.TrimSuffix(initial.String(), "\n"), "\n")
 	lines[4] = "line 5 CHANGED"
@@ -331,7 +302,7 @@ func TestStageHunkStagesOnlyThatHunk(t *testing.T) {
 		t.Fatalf("StageHunk: %v", err)
 	}
 
-	staged := runGitOutput(t, dir, "diff", "--cached")
+	staged := gittest.Run(t, dir, "diff", "--cached")
 	if !strings.Contains(staged, "line 5 CHANGED") {
 		t.Fatalf("staged diff missing the staged hunk's change:\n%s", staged)
 	}
@@ -339,7 +310,7 @@ func TestStageHunkStagesOnlyThatHunk(t *testing.T) {
 		t.Fatalf("staged diff contains the other hunk's change, want only one staged:\n%s", staged)
 	}
 
-	unstaged := runGitOutput(t, dir, "diff")
+	unstaged := gittest.Run(t, dir, "diff")
 	if strings.Contains(unstaged, "line 5 CHANGED") {
 		t.Fatalf("working tree diff still shows the staged hunk's change:\n%s", unstaged)
 	}
@@ -350,24 +321,19 @@ func TestStageHunkStagesOnlyThatHunk(t *testing.T) {
 	if err := UnstageHunk(context.Background(), dir, "file.txt", fd.Hunks[0].Raw); err != nil {
 		t.Fatalf("UnstageHunk: %v", err)
 	}
-	if staged := runGitOutput(t, dir, "diff", "--cached"); strings.TrimSpace(staged) != "" {
+	if staged := gittest.Run(t, dir, "diff", "--cached"); strings.TrimSpace(staged) != "" {
 		t.Fatalf("expected nothing staged after UnstageHunk, got:\n%s", staged)
 	}
 }
 
 func TestDiscardHunkRevertsOnlyThatHunkInTheWorkingTree(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
 	var initial strings.Builder
 	for i := 1; i <= 60; i++ {
 		fmt.Fprintf(&initial, "line %d\n", i)
 	}
-	gittest.WriteFile(t, dir, "file.txt", initial.String())
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", initial.String(), "initial")
 
 	lines := strings.Split(strings.TrimSuffix(initial.String(), "\n"), "\n")
 	lines[4] = "line 5 CHANGED"
@@ -396,20 +362,15 @@ func TestDiscardHunkRevertsOnlyThatHunkInTheWorkingTree(t *testing.T) {
 	if !strings.Contains(string(content), "line 55 CHANGED") {
 		t.Fatalf("file lost the other hunk's change, want it untouched:\n%s", content)
 	}
-	if staged := runGitOutput(t, dir, "diff", "--cached"); strings.TrimSpace(staged) != "" {
+	if staged := gittest.Run(t, dir, "diff", "--cached"); strings.TrimSpace(staged) != "" {
 		t.Fatalf("DiscardHunk touched the index, want it left alone:\n%s", staged)
 	}
 }
 
 func TestGetIndexDiffShowsOnlyStagedChanges(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	gittest.WriteFile(t, dir, "file.txt", "line one\nline two\nline three\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", "line one\nline two\nline three\n", "initial")
 
 	gittest.WriteFile(t, dir, "file.txt", "line one\nline TWO STAGED\nline three\n")
 	gittest.Run(t, dir, "add", "file.txt")
@@ -442,14 +403,9 @@ func TestGetIndexDiffShowsOnlyStagedChanges(t *testing.T) {
 }
 
 func TestGetRefDiffWorkingVsHead(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	gittest.WriteFile(t, dir, "file.txt", "line one\nline two\nline three\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", "line one\nline two\nline three\n", "initial")
 
 	gittest.WriteFile(t, dir, "file.txt", "line one\nline TWO STAGED\nline three\n")
 	gittest.Run(t, dir, "add", "file.txt")
@@ -468,20 +424,13 @@ func TestGetRefDiffWorkingVsHead(t *testing.T) {
 }
 
 func TestGetRefDiffCommitToCommit(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	gittest.WriteFile(t, dir, "file.txt", "version one\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "first")
-	firstSHA := strings.TrimSpace(runGitOutput(t, dir, "rev-parse", "HEAD"))
+	gittest.CommitFile(t, dir, "file.txt", "version one\n", "first")
+	firstSHA := gittest.Run(t, dir, "rev-parse", "HEAD")
 
-	gittest.WriteFile(t, dir, "file.txt", "version two\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "second")
-	secondSHA := strings.TrimSpace(runGitOutput(t, dir, "rev-parse", "HEAD"))
+	gittest.CommitFile(t, dir, "file.txt", "version two\n", "second")
+	secondSHA := gittest.Run(t, dir, "rev-parse", "HEAD")
 
 	got, err := GetRefDiff(context.Background(), dir, "file.txt", firstSHA, secondSHA, false)
 	if err != nil {
@@ -493,19 +442,12 @@ func TestGetRefDiffCommitToCommit(t *testing.T) {
 }
 
 func TestGetRefDiffBranchToBranch(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init", "-b", "main") // explicit initial branch name; default varies by git config
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	gittest.WriteFile(t, dir, "file.txt", "main content\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", "main content\n", "initial")
 	gittest.Run(t, dir, "branch", "feature")
 	gittest.Run(t, dir, "checkout", "feature")
-	gittest.WriteFile(t, dir, "file.txt", "feature content\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "feature change")
+	gittest.CommitFile(t, dir, "file.txt", "feature content\n", "feature change")
 	gittest.Run(t, dir, "checkout", "main")
 
 	got, err := GetRefDiff(context.Background(), dir, "file.txt", "main", "feature", false)
@@ -518,19 +460,12 @@ func TestGetRefDiffBranchToBranch(t *testing.T) {
 }
 
 func TestGetRefDiffTagToTag(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 
-	gittest.WriteFile(t, dir, "file.txt", "v1 content\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "v1")
+	gittest.CommitFile(t, dir, "file.txt", "v1 content\n", "v1")
 	gittest.Run(t, dir, "tag", "v1")
 
-	gittest.WriteFile(t, dir, "file.txt", "v2 content\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "v2")
+	gittest.CommitFile(t, dir, "file.txt", "v2 content\n", "v2")
 	gittest.Run(t, dir, "tag", "v2")
 
 	got, err := GetRefDiff(context.Background(), dir, "file.txt", "v1", "v2", false)
@@ -564,24 +499,6 @@ func hasRemovedLine(fd FileDiff, content string) bool {
 	return false
 }
 
-func runGitOutput(t *testing.T, dir string, args ...string) string {
-	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("git %v: %v", args, err)
-	}
-	return string(out)
-}
-
-func writeBytes(t *testing.T, dir, name string, content []byte) {
-	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, name), content, 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-}
-
 func TestParseUnifiedDiffKeepsEachHunksRawTextSeparate(t *testing.T) {
 	first := "@@ -1,2 +1,2 @@\n-a\n+A\n b\n"
 	second := "@@ -10,1 +10,1 @@\n-y\n+Y\n\\ No newline at end of file\n"
@@ -599,17 +516,12 @@ func TestParseUnifiedDiffKeepsEachHunksRawTextSeparate(t *testing.T) {
 
 func stagedTwoHunkRepo(t *testing.T) (string, []string, FileDiff) {
 	t.Helper()
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 	var initial strings.Builder
 	for i := 1; i <= 60; i++ {
 		fmt.Fprintf(&initial, "line %d\n", i)
 	}
-	gittest.WriteFile(t, dir, "file.txt", initial.String())
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.txt", initial.String(), "initial")
 
 	lines := strings.Split(strings.TrimSuffix(initial.String(), "\n"), "\n")
 	lines[4] = "line 5 CHANGED"
@@ -632,7 +544,7 @@ func TestDiscardStagedHunkRevertsIndexAndWorkingTree(t *testing.T) {
 	}
 
 	content, _ := os.ReadFile(filepath.Join(dir, "file.txt"))
-	staged := runGitOutput(t, dir, "diff", "--cached")
+	staged := gittest.Run(t, dir, "diff", "--cached")
 	for name, text := range map[string]string{"working tree": string(content), "index diff": staged} {
 		if strings.Contains(text, "line 5 CHANGED") {
 			t.Errorf("%s still has the discarded hunk:\n%s", name, text)
@@ -652,7 +564,7 @@ func TestDiscardStagedHunkRefusesWhenLaterEditsOverlap(t *testing.T) {
 		t.Fatal("DiscardStagedHunk succeeded over an unstaged edit to the same lines")
 	}
 	content, _ := os.ReadFile(filepath.Join(dir, "file.txt"))
-	if !strings.Contains(string(content), "line 5 EDITED AGAIN") || !strings.Contains(runGitOutput(t, dir, "diff", "--cached"), "line 5 CHANGED") {
+	if !strings.Contains(string(content), "line 5 EDITED AGAIN") || !strings.Contains(gittest.Run(t, dir, "diff", "--cached"), "line 5 CHANGED") {
 		t.Error("a failed discard changed the working tree or the index")
 	}
 }

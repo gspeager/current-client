@@ -33,11 +33,8 @@ func ReviewBranches(ctx context.Context, repoPath string) (BranchReview, error) 
 		return BranchReview{}, err
 	}
 	review := BranchReview{Default: defaultBranch(list.branches, originHead(ctx, repoPath))}
-	review.Base = review.Default
+	review.Base = list.base(review.Default)
 	for _, b := range list.branches {
-		if b.Name == review.Default && b.Upstream != "" && !list.goneUpstream[b.Name] {
-			review.Base = b.Upstream
-		}
 		review.Rows = append(review.Rows, BranchReviewRow{Branch: b})
 	}
 	authors, err := branchAuthors(ctx, repoPath)

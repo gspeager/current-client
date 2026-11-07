@@ -24,8 +24,7 @@ type ConfigEntry struct {
 	Origin string
 }
 
-// ConfigFlag is a setting that commonly explains surprising behavior. Key is
-// the setting it's about.
+// ConfigFlag is a setting that commonly explains surprising behavior.
 type ConfigFlag struct {
 	Key     string
 	Message string

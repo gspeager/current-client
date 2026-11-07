@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -78,12 +79,12 @@ func parseNumstat(output string) ([]NumstatEntry, error) {
 		}
 		i++
 		if i >= len(fields) {
-			return nil, fmt.Errorf("malformed numstat rename entry: missing old path")
+			return nil, errors.New("malformed numstat rename entry: missing old path")
 		}
 		entry.OrigPath = fields[i]
 		i++
 		if i >= len(fields) {
-			return nil, fmt.Errorf("malformed numstat rename entry: missing new path")
+			return nil, errors.New("malformed numstat rename entry: missing new path")
 		}
 		entry.Path = fields[i]
 		entries = append(entries, entry)

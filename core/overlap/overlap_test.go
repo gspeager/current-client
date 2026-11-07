@@ -10,11 +10,7 @@ import (
 )
 
 func TestPredict(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init", "-b", "main")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
-	gittest.Run(t, dir, "config", "core.autocrlf", "false")
+	dir := gittest.InitRepo(t)
 	gittest.CommitFile(t, dir, "shared.txt", "base\n", "edit shared.txt")
 	gittest.CommitFile(t, dir, "other.txt", "base\n", "edit other.txt")
 
@@ -60,8 +56,7 @@ func TestPredict(t *testing.T) {
 }
 
 func TestPredictEmptyRepository(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init", "-b", "main")
+	dir := gittest.InitRepo(t)
 	if got, err := Predict(context.Background(), dir); err != nil || got != nil {
 		t.Errorf("Predict = %+v, %v; want nothing for a repository with no commits", got, err)
 	}
@@ -74,11 +69,7 @@ func TestPredictFallsBackToOneMergeAtATime(t *testing.T) {
 	}
 	t.Cleanup(func() { mergeMany = git.MergeConflictsMany })
 
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init", "-b", "main")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
-	gittest.Run(t, dir, "config", "core.autocrlf", "false")
+	dir := gittest.InitRepo(t)
 	gittest.CommitFile(t, dir, "shared.txt", "base\n", "base")
 	gittest.Run(t, dir, "switch", "-c", "conflicting")
 	gittest.CommitFile(t, dir, "shared.txt", "theirs\n", "theirs")
@@ -110,11 +101,7 @@ func TestPredictWithABranchOfUnrelatedHistory(t *testing.T) {
 			mergeMany = tt.mergeMany
 			t.Cleanup(func() { mergeMany = git.MergeConflictsMany })
 
-			dir := t.TempDir()
-			gittest.Run(t, dir, "init", "-b", "main")
-			gittest.Run(t, dir, "config", "user.email", "test@example.com")
-			gittest.Run(t, dir, "config", "user.name", "Test")
-			gittest.Run(t, dir, "config", "core.autocrlf", "false")
+			dir := gittest.InitRepo(t)
 			gittest.CommitFile(t, dir, "shared.txt", "base\n", "base")
 			gittest.Run(t, dir, "switch", "-c", "conflicting")
 			gittest.CommitFile(t, dir, "shared.txt", "theirs\n", "theirs")

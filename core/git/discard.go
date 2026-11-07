@@ -6,8 +6,6 @@ func DiscardFile(ctx context.Context, repoPath, path string) error {
 	return DiscardFiles(ctx, repoPath, []string{path})
 }
 
-// DiscardFiles deletes untracked paths with `git clean` and restores the
-// rest with `git restore`.
 func DiscardFiles(ctx context.Context, repoPath string, paths []string) error {
 	if len(paths) == 0 {
 		return nil

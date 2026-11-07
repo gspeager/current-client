@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,7 +27,6 @@ const (
 	KindTree = "tree"
 	KindTip  = "tip"
 
-	// DefaultLimit is how many are kept when no limit is set.
 	DefaultLimit = 50
 
 	// An untracked file this large is left out, so a build output or a data file
@@ -67,11 +67,8 @@ var identity = []string{
 }
 
 func currentBranch(ctx context.Context, repoPath string) string {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"symbolic-ref", "--short", "-q", "HEAD"}})
-	if err != nil || result.ExitCode != 0 {
-		return ""
-	}
-	return strings.TrimSpace(result.Stdout)
+	branch, _ := run(ctx, repoPath, nil, "symbolic-ref", "--short", "-q", "HEAD")
+	return branch
 }
 
 // Take saves the working tree before action, unless there's nothing to save or
@@ -186,15 +183,10 @@ func Prune(ctx context.Context, repoPath string, limit int) error {
 		limit = DefaultLimit
 	}
 	snapshots, err := List(ctx, repoPath)
-	if err != nil {
+	if err != nil || len(snapshots) <= limit {
 		return err
 	}
-	for i := limit; i < len(snapshots); i++ {
-		if err := Delete(ctx, repoPath, snapshots[i].ID); err != nil {
-			return err
-		}
-	}
-	return nil
+	return deleteEach(ctx, repoPath, snapshots[limit:])
 }
 
 func Delete(ctx context.Context, repoPath, id string) error {
@@ -207,6 +199,10 @@ func DeleteAll(ctx context.Context, repoPath string) error {
 	if err != nil {
 		return err
 	}
+	return deleteEach(ctx, repoPath, snapshots)
+}
+
+func deleteEach(ctx context.Context, repoPath string, snapshots []Snapshot) error {
 	for _, snapshot := range snapshots {
 		if err := Delete(ctx, repoPath, snapshot.ID); err != nil {
 			return err
@@ -275,7 +271,7 @@ func Restore(ctx context.Context, repoPath, id string, paths []string, limit int
 		return err
 	}
 	for _, file := range files {
-		if len(paths) > 0 && !contains(paths, file.Path) {
+		if len(paths) > 0 && !slices.Contains(paths, file.Path) {
 			continue
 		}
 		if file.OrigPath != "" {
@@ -297,15 +293,6 @@ func Restore(ctx context.Context, repoPath, id string, paths []string, limit int
 		}
 	}
 	return nil
-}
-
-func contains(paths []string, path string) bool {
-	for _, candidate := range paths {
-		if candidate == path {
-			return true
-		}
-	}
-	return false
 }
 
 func remove(repoPath, path string) error {

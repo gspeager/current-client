@@ -12,10 +12,7 @@ import (
 )
 
 func runResult(ctx context.Context, repoPath string, args ...string) (gitexec.Result, error) {
-	return gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
-		Dir:  repoPath,
-		Args: args,
-	})
+	return gitexec.RunIn(ctx, repoPath, args...)
 }
 
 // GitDir resolves the real .git directory, which isn't "<repoPath>/.git" for

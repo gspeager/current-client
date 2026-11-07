@@ -10,11 +10,9 @@ import (
 type ReplayOutcome string
 
 const (
-	// ReplayClean applies without a conflict.
 	ReplayClean ReplayOutcome = "clean"
 	// ReplayEmpty applies but changes nothing, so a rebase drops the commit.
-	ReplayEmpty ReplayOutcome = "empty"
-	// ReplayConflict stops the replay on this commit.
+	ReplayEmpty    ReplayOutcome = "empty"
 	ReplayConflict ReplayOutcome = "conflict"
 	// ReplayUnknown is a commit after a conflict: what happens depends on how
 	// the conflict is resolved.
@@ -52,7 +50,7 @@ func replayToTip(ctx context.Context, repoPath, onto string, commits []string) (
 	}
 	steps := make([]ReplayStep, 0, len(commits))
 	for i, sha := range commits {
-		merge, err := replayOne(ctx, repoPath, current, sha)
+		merge, err := mergeTree(ctx, repoPath, "--merge-base="+sha+"^", current, sha)
 		if err != nil {
 			return nil, "", err
 		}
@@ -75,27 +73,6 @@ func replayToTip(ctx context.Context, repoPath, onto string, commits []string) (
 		steps = append(steps, ReplayStep{SHA: sha, Outcome: ReplayClean})
 	}
 	return steps, current, nil
-}
-
-func replayOne(ctx context.Context, repoPath, onto, sha string) (MergeResult, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
-		Dir: repoPath,
-		Args: []string{
-			"merge-tree", "--write-tree", "--name-only", "--no-messages", "-z",
-			"--merge-base=" + sha + "^", onto, sha,
-		},
-	})
-	if err != nil {
-		return MergeResult{}, gitexec.WrapRunError(err)
-	}
-	fields := strings.Split(strings.TrimRight(result.Stdout, "\x00\n"), "\x00")
-	switch result.ExitCode {
-	case 0:
-		return MergeResult{Tree: fields[0], Clean: true}, nil
-	case 1:
-		return MergeResult{Tree: fields[0], Files: fields[1:]}, nil
-	}
-	return MergeResult{}, mergeTreeError(result)
 }
 
 func treeOf(ctx context.Context, repoPath, rev string) (string, error) {
@@ -130,8 +107,8 @@ type PreviewCommit struct {
 	Files   []string
 }
 
-// RebasePreview says what RebaseOnto would do. Predicted is false when Git is too
-// old to replay commits in memory, so a commit's Outcome says nothing.
+// Predicted is false when Git is too old to replay commits in memory, so a
+// commit's Outcome says nothing.
 type RebasePreview struct {
 	Current       string
 	Onto          string
@@ -153,25 +130,14 @@ func PreviewRebase(ctx context.Context, repoPath, onto string) (RebasePreview, e
 	if err != nil {
 		return preview, err
 	}
-	for _, b := range list.branches {
-		if b.Current {
-			preview.Current = b.Name
-			if !list.goneUpstream[b.Name] {
-				preview.Upstream = b.Upstream
-			}
-		}
+	if b, ok := list.current(); ok {
+		preview.Current, preview.Upstream = b.Name, list.upstream(b)
 	}
-	result, err := runResult(ctx, repoPath, "log", "--reverse", "--no-merges", "--cherry-pick", "--right-only", "--format=%H%x00%s", onto+"...HEAD")
+	shas, commits, err := previewCommits(ctx, repoPath, "--cherry-pick", "--right-only", onto+"...HEAD")
 	if err != nil {
 		return preview, err
 	}
-	var shas []string
-	for _, line := range strings.Split(result.Stdout, "\n") {
-		if sha, subject, ok := strings.Cut(line, "\x00"); ok {
-			shas = append(shas, sha)
-			preview.Commits = append(preview.Commits, PreviewCommit{SHA: sha, Subject: subject, Outcome: ReplayUnknown})
-		}
-	}
+	preview.Commits = commits
 	if merges, err := CountCommits(ctx, repoPath, "--merges", onto+"..HEAD"); err == nil {
 		preview.DroppedMerges = merges
 	}
@@ -202,6 +168,31 @@ func PreviewRebase(ctx context.Context, repoPath, onto string) (RebasePreview, e
 		return preview, err
 	}
 	return preview, nil
+}
+
+// previewCommits lists what a rebase of revs would pick, oldest first, with
+// their outcome not yet known.
+func previewCommits(ctx context.Context, repoPath string, revs ...string) ([]string, []PreviewCommit, error) {
+	result, err := runResult(ctx, repoPath, append([]string{"log", "--reverse", "--no-merges", "--format=%H%x00%s"}, revs...)...)
+	if err != nil {
+		return nil, nil, err
+	}
+	var shas []string
+	var commits []PreviewCommit
+	for _, line := range strings.Split(result.Stdout, "\n") {
+		if sha, subject, ok := strings.Cut(line, "\x00"); ok {
+			shas = append(shas, sha)
+			commits = append(commits, PreviewCommit{SHA: sha, Subject: subject, Outcome: ReplayUnknown})
+		}
+	}
+	return shas, commits, nil
+}
+
+func applyReplay(commits []PreviewCommit, steps []ReplayStep) {
+	for i, step := range steps {
+		commits[i].Outcome = step.Outcome
+		commits[i].Files = step.Files
+	}
 }
 
 func isAncestor(ctx context.Context, repoPath, ancestor, of string) bool {

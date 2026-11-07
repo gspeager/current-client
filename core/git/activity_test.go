@@ -2,8 +2,6 @@ package git
 
 import (
 	"context"
-	"os"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -14,15 +12,7 @@ func commitOnDate(t *testing.T, dir, file, date string) {
 	t.Helper()
 	gittest.WriteFile(t, dir, file, date)
 	gittest.Run(t, dir, "add", file)
-	cmd := exec.Command("git", "commit", "-m", "commit on "+date)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(),
-		"GIT_AUTHOR_DATE="+date+"T12:00:00",
-		"GIT_COMMITTER_DATE="+date+"T12:00:00",
-	)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git commit (backdated): %v\n%s", err, out)
-	}
+	commitAt(t, dir, "commit on "+date, date+"T12:00:00")
 }
 
 func TestCommitActivityCountsPerDayAndFillsGaps(t *testing.T) {

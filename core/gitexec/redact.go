@@ -2,7 +2,6 @@ package gitexec
 
 import "regexp"
 
-// RedactedSecret stands in for whatever RedactSecrets removed.
 const RedactedSecret = "<token>"
 
 var (

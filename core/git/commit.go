@@ -94,13 +94,6 @@ func IsLastCommitPushed(ctx context.Context, repoPath string) (bool, error) {
 		return false, nil
 	}
 
-	result, err := runResult(ctx, repoPath, "rev-list", "--count", "@{u}..HEAD")
-	if err != nil {
-		return false, err
-	}
-	ahead, err := strconv.Atoi(strings.TrimSpace(result.Stdout))
-	if err != nil {
-		return false, err
-	}
-	return ahead == 0, nil
+	ahead, err := CountCommits(ctx, repoPath, "@{u}..HEAD")
+	return err == nil && ahead == 0, err
 }
