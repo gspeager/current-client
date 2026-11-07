@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **The Vivid and Muted lane palettes have eight colors**, the same as the default, so branches spread evenly across them.
 - **History's overview strip is easier to read.** It's taller and draws commits as a green line, with short ticks underneath for branches in their lane colors, tags in violet and stashes in amber. `HEAD` and search matches stay full height, a violet band shows the part on screen, and the label is gone.
 - **The Toolbox's terminal opens the embedded terminal panel** (**Ctrl+\`**), and the separate system terminal action is gone. Where an organization turns off local commands, no terminal is offered.
 - **File rows keep their counts on hover**, and the path gives way from the left so the filename stays.

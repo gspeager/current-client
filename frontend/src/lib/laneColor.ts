@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from 'react'
 
-const numbered = (palette: string) => [1, 2, 3, 4, 5, 6].map((n) => `var(--lane-${palette}-${n})`)
+const numbered = (palette: string) => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `var(--lane-${palette}-${n})`)
 
 // Tokens, so each palette follows the dark or light theme.
 export const LANE_THEMES = {

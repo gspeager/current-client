@@ -72,6 +72,11 @@ describe('LANE_THEMES', () => {
   const themes = themeTokens()
   const laneTokens = Object.values(LANE_THEMES).flat().map(tokenOf)
 
+  // assignLaneSlots spreads branches across the default palette's slots.
+  it('gives every palette the same number of colors', () => {
+    for (const palette of Object.values(LANE_THEMES)) expect(palette).toHaveLength(LANE_THEMES.default.length)
+  })
+
   // Each lane color is a token, so each theme must define every one.
   it('uses tokens that both the dark and the light theme define', () => {
     for (const token of laneTokens) {
