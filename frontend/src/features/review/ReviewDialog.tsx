@@ -4,6 +4,7 @@ import Modal from '../../components/chrome/Modal'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
+import DialogError from '../../components/chrome/DialogError'
 import './ReviewDialog.scss'
 
 interface ReviewDialogProps {
@@ -70,11 +71,7 @@ function ReviewDialog({ repoPath, number, prefix, onSubmitted, onClose }: Review
   return (
     <Modal title={`Review ${prefix}${number}`} onClose={onClose} className="dialog-panel review-dialog-panel">
       <form className="dialog-body" onSubmit={submit}>
-        {capabilitiesError && (
-          <p className="dialog-error" role="alert">
-            {capabilitiesError}
-          </p>
-        )}
+        <DialogError>{capabilitiesError}</DialogError>
         {capabilities && (
           <fieldset className="review-dialog-verdicts">
             <legend className="dialog-message">Verdict</legend>
@@ -93,7 +90,7 @@ function ReviewDialog({ repoPath, number, prefix, onSubmitted, onClose }: Review
                 </span>
               </label>
             ))}
-            {capabilities && !capabilities.requestChanges && (
+            {!capabilities.requestChanges && (
               <p className="dialog-note">The host's API has no request-changes verdict; a comment says it instead.</p>
             )}
           </fieldset>
@@ -112,11 +109,7 @@ function ReviewDialog({ repoPath, number, prefix, onSubmitted, onClose }: Review
             ? 'No drafted comments. Comments drafted in the diff are sent with the review.'
             : `${draft.comments.length} drafted ${draft.comments.length === 1 ? 'comment is' : 'comments are'} sent with the review.`}
         </p>
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Cancel

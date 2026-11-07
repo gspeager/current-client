@@ -33,7 +33,6 @@ func (s *ConflictService) GetConflictState(repoPath string) (ConflictStateInfo, 
 	return info, nil
 }
 
-// ContinueWith finishes the operation with message as the commit's message.
 func (s *ConflictService) ContinueWith(repoPath, message string) error {
 	return onConflictOperation(repoPath, func(ctx context.Context, repoPath string, op git.ConflictOperation) error {
 		return git.ContinueWithMessage(ctx, repoPath, op, message)
@@ -48,7 +47,6 @@ func (s *ConflictService) Abort(repoPath string) error {
 	return onConflictOperation(repoPath, git.AbortConflictOperation)
 }
 
-// onConflictOperation applies finish to whichever operation is in progress.
 func onConflictOperation(repoPath string, finish func(context.Context, string, git.ConflictOperation) error) error {
 	ctx := context.Background()
 	state, err := git.DetectConflictState(ctx, repoPath)

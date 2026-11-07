@@ -1,14 +1,14 @@
 import { createContext, useContext } from 'react'
 import type { TrackerLinks } from '@current-client-bindings/app'
 
-export type OpenIssue = (key: string) => void
+type OpenIssue = (key: string) => void
 
 export interface IssueDraft {
   title: string
   description: string
 }
 
-export type NewIssue = (draft?: IssueDraft) => void
+type NewIssue = (draft?: IssueDraft) => void
 
 // The open repository's issues. open is set while the host is on: a
 // reference, a branch's issue card or a change's Closes list opens the issue

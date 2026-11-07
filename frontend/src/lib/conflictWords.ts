@@ -16,7 +16,6 @@ const BADGE: Record<string, string> = {
   am: 'applying',
 }
 
-// "merge", "rebase", "cherry-pick", "revert" or "patch".
 export function operationNoun(operation: string): string {
   return NOUN[operation] ?? operation
 }

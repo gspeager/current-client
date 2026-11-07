@@ -99,23 +99,9 @@
   gap: 2px;
 
   button {
-    width: 100%;
-    height: var(--h-row-tree);
-    padding: 0 var(--space-sm);
-    background: none;
-    border: none;
-    border-radius: var(--radius-xs);
-    color: var(--on-surface);
-    font: var(--ui-sm);
-    text-align: left;
+    @include patterns.menu-item;
+
     white-space: nowrap;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      background: var(--surface-container);
-    }
-
-    @include patterns.disabled;
 
     &.split-button-menu-destructive {
       color: var(--error);

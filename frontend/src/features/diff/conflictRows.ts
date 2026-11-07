@@ -3,7 +3,7 @@ import type { DisplayRow } from './diffRows'
 
 export type ConflictView = 'side-by-side' | 'result'
 
-export interface ConflictRows {
+interface ConflictRows {
   rows: DisplayRow[]
   // Row indexes where each conflict block starts, for walking them.
   blockStarts: number[]

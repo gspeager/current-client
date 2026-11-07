@@ -27,7 +27,7 @@ const NONE: ReviewDraftState = {
   wrote: () => undefined,
 }
 
-export const ReviewDraftContext = createContext<ReviewDraftState>(NONE)
+const ReviewDraftContext = createContext<ReviewDraftState>(NONE)
 
 export function reviewTarget(repoPath: string, number: number): string {
   return `${repoPath}#${number}`

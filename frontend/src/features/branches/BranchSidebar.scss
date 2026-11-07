@@ -29,7 +29,7 @@
     background: none;
     border: none;
     color: var(--on-surface);
-    font: var(--data-sm);
+    font: var(--ui-sm);
     outline: none;
   }
 }
@@ -85,24 +85,9 @@
   }
 
   button {
+    @include patterns.primary-button;
     flex-shrink: 0;
-    height: var(--h-field);
-    padding: 0 var(--space-sm);
-    background: var(--primary-container);
-
-    @include patterns.disabled-primary;
-
-    border: none;
-    border-radius: var(--radius);
-    color: var(--on-primary-container);
-    font: var(--ui-sm);
-    font-weight: 600;
     white-space: nowrap;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      box-shadow: var(--glow-action);
-    }
 
     @include patterns.disabled;
   }
@@ -127,15 +112,29 @@
 }
 
 .branch-sidebar-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .branch-sidebar-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+
+  > span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  button {
+    flex-shrink: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+  }
 }
 
 .branch-sidebar-deleted {
@@ -180,12 +179,7 @@
 }
 
 .branch-sidebar-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  @include patterns.panel-list;
 }
 
 [data-density='compact'] .branch-row {
@@ -293,15 +287,7 @@
   @include patterns.row-actions;
 }
 
-.branch-row-mode {
-  flex-shrink: 0;
-  padding: 0 var(--space-xs);
-  border: 1px solid var(--error);
-  border-radius: 3px;
-  color: var(--error);
-  font: var(--ui-xs);
-}
-
+.branch-row-mode,
 .branch-conflicts-badge {
   flex-shrink: 0;
   padding: 0 var(--space-xs);
@@ -334,23 +320,16 @@
 .stack-base {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  @include patterns.truncate;
   color: var(--outline);
   font: var(--data-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .stack-action {
+  @include patterns.micro-button;
+
   flex-shrink: 0;
-  height: var(--h-micro);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface-variant);
-  font: var(--ui-xs);
-  cursor: pointer;
 
   &:hover:not(:disabled) {
     color: var(--on-surface);
@@ -389,30 +368,6 @@
 
 .branch-row:hover .branch-pill:not(.branch-pill-current) {
   color: var(--on-surface);
-}
-
-.branch-sidebar-filter input {
-  font: var(--ui-sm);
-}
-
-.branch-sidebar-error {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-xs);
-
-  > span {
-    flex: 1;
-    min-width: 0;
-  }
-
-  button {
-    flex-shrink: 0;
-    padding: 0;
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-  }
 }
 
 .branch-row-mode-incoming {

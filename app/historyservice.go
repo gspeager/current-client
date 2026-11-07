@@ -32,13 +32,12 @@ type ChangedFile struct {
 }
 
 type HistoryFilterInfo struct {
-	Ref    string `json:"ref"`
-	Since  string `json:"since"`
-	Until  string `json:"until"`
-	Author string `json:"author"`
-	Type   string `json:"type"`
-	// FirstParent lists only each merge's first parent's line.
-	FirstParent bool `json:"firstParent"`
+	Ref         string `json:"ref"`
+	Since       string `json:"since"`
+	Until       string `json:"until"`
+	Author      string `json:"author"`
+	Type        string `json:"type"`
+	FirstParent bool   `json:"firstParent"`
 }
 
 func (s *HistoryService) GetHistory(repoPath string, limit, skip int, filter HistoryFilterInfo) ([]CommitInfo, error) {

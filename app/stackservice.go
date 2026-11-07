@@ -166,7 +166,6 @@ func (s *StackService) AddLayer(repoPath, branch, parent string) error {
 	return saveLinks(repoPath, append(links, git.StackLink{Branch: branch, Parent: parent, ParentTip: base}))
 }
 
-// NewLayer starts a branch on top of parent and checks it out.
 func (s *StackService) NewLayer(repoPath, name, parent string) error {
 	ctx := context.Background()
 	if err := git.CreateBranchAt(ctx, repoPath, name, parent); err != nil {
@@ -204,11 +203,9 @@ func (s *StackService) Preview(repoPath, root string) (RestackPreviewInfo, error
 	return RestackPreviewInfo{
 		Layers: mapSlice(preview.Layers, func(layer git.RestackPreviewLayer) RestackPreviewLayerInfo {
 			return RestackPreviewLayerInfo{
-				Branch: layer.Branch,
-				Onto:   layer.Onto,
-				Commits: mapSlice(layer.Commits, func(commit git.PreviewCommit) RebasePreviewCommitInfo {
-					return RebasePreviewCommitInfo{commit.SHA, commit.Subject, string(commit.Outcome), append([]string{}, commit.Files...)}
-				}),
+				Branch:        layer.Branch,
+				Onto:          layer.Onto,
+				Commits:       mapSlice(layer.Commits, previewCommitInfo),
 				DroppedMerges: layer.DroppedMerges,
 				Missing:       layer.Missing,
 				Merged:        layer.Merged,

@@ -50,8 +50,8 @@ func refreshDeployments(ctx context.Context, provider hostapi.Provider, info Hos
 }
 
 func cachedDeployments(repoPath string) ([]hostapi.Deployment, *time.Time, bool) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return nil, nil, false
 	}
 	cached, at, found := hostClient.Cache.Get(info.Hostname, repoPath, cacheDeployments, info.Project)
@@ -117,13 +117,7 @@ func undeployedRows(repoPath string, info HostInfo, list ChangeList) []InboxRow 
 	if len(production) == 0 || list.Me == "" {
 		return nil
 	}
-	closed := list
-	closed.Changes = nil
-	fillChangeList(&closed, info, repoPath, cacheClosed)
-	changes := closed.Changes
-	for _, value := range hostClient.Cache.Entries(info.Hostname, repoPath, cacheMergedChange) {
-		changes = append(changes, value.(hostapi.Change))
-	}
+	changes := finishedChanges(info, repoPath)
 	var commits []string
 	mine := map[string]hostapi.Change{}
 	for _, c := range changes {

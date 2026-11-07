@@ -2,10 +2,11 @@ package app
 
 import (
 	"os/exec"
+	"strings"
 	"testing"
 )
 
-// gitIn runs git in dir for a test, in every build.
+// gitIn and gitOut are untagged, so tests of every build can use them.
 func gitIn(t *testing.T, dir string, args ...string) {
 	t.Helper()
 	if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
@@ -13,12 +14,12 @@ func gitIn(t *testing.T, dir string, args ...string) {
 	}
 }
 
-// gitOut runs git in dir and returns what it printed.
+// gitOut is git's trimmed stdout.
 func gitOut(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput()
+	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output()
 	if err != nil {
-		t.Fatalf("git %v: %v\n%s", args, err, out)
+		t.Fatalf("git %v: %v", args, err)
 	}
-	return string(out)
+	return strings.TrimSpace(string(out))
 }

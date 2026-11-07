@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
-	"github.com/gspeager/current-client/core/hostapi/jira"
 	"github.com/gspeager/current-client/core/hostcontent"
+	"github.com/gspeager/current-client/core/hostlink"
 )
 
 // IssueInfo is what a hover card shows for an issue reference. Title is
@@ -97,21 +97,18 @@ func issueSourceFor(repoPath, key string) (issueSource, error) {
 		if !ok {
 			return issueSource{}, errors.New("integration is off for this repository's issue tracker")
 		}
-		return issueSource{cacheHost: jira.HostName(site), webRoot: site.Site, tracker: provider}, nil
+		return issueSource{cacheHost: hostlink.SiteHost(site.Site), webRoot: site.Site, tracker: provider}, nil
 	}
-	_, info, ok, err := primaryHost(repoPath)
+	_, info, err := requireHost(repoPath)
 	if err != nil {
 		return issueSource{}, err
-	}
-	if !ok || !info.Enabled {
-		return issueSource{}, errors.New("integration is off for this repository's host")
 	}
 	tracker := issueTrackerFor(info)
 	if tracker == nil {
 		return issueSource{}, errors.New("no issue tracker for this host yet")
 	}
 	_, writable := tracker.(hostapi.IssueWriter)
-	return issueSource{cacheHost: info.Hostname, project: info.Project, webRoot: "https://" + info.Hostname + "/", tracker: tracker, writable: writable}, nil
+	return issueSource{cacheHost: info.Hostname, project: info.Project, webRoot: webRoot(info), tracker: tracker, writable: writable}, nil
 }
 
 // cachedFrom is cachedOrFetched for any cache host, such as a tracker's.
@@ -119,7 +116,7 @@ func cachedFrom[T any](cacheHost, repoPath, kind, key string, fetch func(context
 	if cached, _, ok := hostClient.Cache.Get(cacheHost, repoPath, kind, key); ok {
 		return cached.(T), nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	value, err := fetch(ctx)
 	if err != nil {
@@ -151,8 +148,8 @@ func closedIssues(description string, tracker hostapi.IssueTracker) []string {
 // IssueTitles reads the cache only: what the last fetch learned about each
 // number, keyed by number.
 func (s *HostService) IssueTitles(repoPath string, numbers []int) (map[int]IssueInfo, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return map[int]IssueInfo{}, err
 	}
 	return cachedIssues(info, repoPath, numbers), nil
@@ -162,8 +159,8 @@ func (s *HostService) IssueTitles(repoPath string, numbers []int) (map[int]Issue
 // batch cap, four at a time, and remembers a missing issue as known with no
 // title so it isn't asked for again until a refresh.
 func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]IssueInfo, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return map[int]IssueInfo{}, err
 	}
 	tracker := issueTrackerFor(info)
@@ -184,17 +181,16 @@ func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]
 	if len(missing) > issueBatchCap {
 		missing = missing[:issueBatchCap]
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	inParallel(len(missing), func(i int) {
 		number := missing[i]
 		issue, err := tracker.IssueByKey(ctx, info.Project, strconv.Itoa(number))
-		var hostErr *hostapi.HostError
 		switch {
 		case err == nil:
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number),
 				IssueInfo{Number: number, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
-		case errors.As(err, &hostErr) && hostErr.Status == 404:
+		case hostapi.IsNotFound(err):
 			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number), IssueInfo{Number: number, Known: true})
 		}
 	})
@@ -208,8 +204,8 @@ func (s *HostService) AssignedIssues(repoPath string) ([]hostapi.Issue, error) {
 	if provider, site, ok := jiraFor(repoPath); ok {
 		return trackerAssigned(repoPath, provider, site)
 	}
-	remote, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	remote, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return nil, err
 	}
 	return cachedOrFetched(info, repoPath, cacheAssigned, info.Project, func(ctx context.Context, provider hostapi.Provider) ([]hostapi.Issue, error) {
@@ -251,8 +247,8 @@ func cachedIssues(info HostInfo, repoPath string, numbers []int) map[int]IssueIn
 // CachedPipelineJobs is a pipeline's jobs if a click already fetched them;
 // a hover card reads this and never fetches.
 func (s *HostService) CachedPipelineJobs(repoPath string, pipelineID int64) ([]hostapi.Job, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return nil, err
 	}
 	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheJobs, strconv.FormatInt(pipelineID, 10)); ok {

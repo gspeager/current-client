@@ -98,16 +98,10 @@ index 83db48f..bf269c4 100644
 }
 
 func TestGetWorkingTreeDiffMarksRelocatedFunctionAsMoved(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
-	gittest.Run(t, dir, "config", "core.autocrlf", "false")
+	dir := gittest.InitRepo(t)
 
 	original := "package main\n\nfunc Foo() int {\n\treturn 1\n}\n\nfunc Bar() int {\n\treturn 2\n}\n"
-	gittest.WriteFile(t, dir, "file.go", original)
-	gittest.Run(t, dir, "add", "file.go")
-	gittest.Run(t, dir, "commit", "-m", "initial")
+	gittest.CommitFile(t, dir, "file.go", original, "initial")
 
 	// Foo and Bar swap places, byte-for-byte, elsewhere unchanged.
 	moved := "package main\n\nfunc Bar() int {\n\treturn 2\n}\n\nfunc Foo() int {\n\treturn 1\n}\n"

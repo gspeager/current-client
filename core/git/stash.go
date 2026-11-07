@@ -60,10 +60,6 @@ func parseStashList(output string) ([]Stash, error) {
 	return stashes, nil
 }
 
-func StashSave(ctx context.Context, repoPath, message string, includeUntracked bool) error {
-	return StashPush(ctx, repoPath, StashOptions{Message: message, IncludeUntracked: includeUntracked})
-}
-
 type StashOptions struct {
 	Message          string
 	IncludeUntracked bool

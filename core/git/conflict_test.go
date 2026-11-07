@@ -3,7 +3,6 @@ package git
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -27,18 +26,9 @@ func initConflictRepo(t *testing.T) (dir string) {
 	return dir
 }
 
-func runGitExpectFailure(t *testing.T, dir string, args ...string) {
-	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err == nil {
-		t.Fatalf("git %v: expected failure, succeeded:\n%s", args, out)
-	}
-}
-
 func TestGetStatusReportsMergeConflict(t *testing.T) {
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.RunFails(t, dir, "merge", "theirs")
 
 	statuses, err := GetStatus(context.Background(), dir)
 	if err != nil {
@@ -79,7 +69,7 @@ func TestCheckoutBranchFailsCleanlyWhenWorkingTreeConflicts(t *testing.T) {
 	gittest.CommitFile(t, dir, "file.txt", "on feature\n", "feature change")
 	gittest.Run(t, dir, "checkout", "-q", "main")
 
-	// The target branch.s version would overwrite this uncommitted edit.
+	// The target branch's version would overwrite this uncommitted edit.
 	gittest.WriteFile(t, dir, "file.txt", "uncommitted, conflicting\n")
 
 	if err := CheckoutBranch(context.Background(), dir, "feature"); err == nil {
@@ -146,7 +136,7 @@ func TestDetectConflictStateNoOperationInProgress(t *testing.T) {
 
 func TestDetectConflictStateDuringMerge(t *testing.T) {
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.RunFails(t, dir, "merge", "theirs")
 
 	state, err := DetectConflictState(context.Background(), dir)
 	if err != nil {
@@ -163,7 +153,7 @@ func TestDetectConflictStateDuringMerge(t *testing.T) {
 func TestDetectConflictStateDuringCherryPick(t *testing.T) {
 	dir := initConflictRepo(t)
 	theirsSHA := gittest.Run(t, dir, "rev-parse", "theirs")
-	runGitExpectFailure(t, dir, "cherry-pick", theirsSHA)
+	gittest.RunFails(t, dir, "cherry-pick", theirsSHA)
 
 	state, err := DetectConflictState(context.Background(), dir)
 	if err != nil {
@@ -183,7 +173,7 @@ func TestDetectConflictStateDuringRevert(t *testing.T) {
 	// Reverting "v2" conflicts: HEAD (v3) no longer matches what the revert
 	// of v2 expects to find.
 	v2SHA := gittest.Run(t, dir, "rev-parse", "HEAD~1")
-	runGitExpectFailure(t, dir, "revert", "--no-edit", v2SHA)
+	gittest.RunFails(t, dir, "revert", "--no-edit", v2SHA)
 
 	state, err := DetectConflictState(context.Background(), dir)
 	if err != nil {
@@ -196,7 +186,7 @@ func TestDetectConflictStateDuringRevert(t *testing.T) {
 
 func TestDetectConflictStateDuringRebase(t *testing.T) {
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "rebase", "theirs")
+	gittest.RunFails(t, dir, "rebase", "theirs")
 
 	state, err := DetectConflictState(context.Background(), dir)
 	if err != nil {
@@ -209,7 +199,7 @@ func TestDetectConflictStateDuringRebase(t *testing.T) {
 
 func TestAbortConflictOperationMergeReturnsToPreConflictState(t *testing.T) {
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.RunFails(t, dir, "merge", "theirs")
 
 	if err := AbortConflictOperation(context.Background(), dir, ConflictMerge); err != nil {
 		t.Fatalf("AbortConflictOperation: %v", err)
@@ -233,7 +223,7 @@ func TestAbortConflictOperationMergeReturnsToPreConflictState(t *testing.T) {
 
 func TestContinueConflictOperationMergeCompletesAfterResolution(t *testing.T) {
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.RunFails(t, dir, "merge", "theirs")
 
 	gittest.WriteFile(t, dir, "file.txt", "resolved\n")
 	gittest.Run(t, dir, "add", "file.txt")
@@ -260,7 +250,7 @@ func TestContinueConflictOperationMergeCompletesAfterResolution(t *testing.T) {
 
 func TestContinueConflictOperationFailsWhileConflictsRemain(t *testing.T) {
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.RunFails(t, dir, "merge", "theirs")
 
 	if err := ContinueConflictOperation(context.Background(), dir, ConflictMerge); err == nil {
 		t.Fatal("expected an error continuing with unresolved conflicts still staged as UU")
@@ -277,7 +267,7 @@ func TestContinueConflictOperationStoppingOnTheNextCommitIsNoError(t *testing.T)
 	gittest.Run(t, dir, "checkout", "-q", "main")
 	gittest.CommitFile(t, dir, "a.txt", "ours\n", "ours a")
 	gittest.CommitFile(t, dir, "b.txt", "ours\n", "ours b")
-	runGitExpectFailure(t, dir, "rebase", "theirs")
+	gittest.RunFails(t, dir, "rebase", "theirs")
 	gittest.WriteFile(t, dir, "a.txt", "resolved\n")
 	gittest.Run(t, dir, "add", "a.txt")
 
@@ -308,7 +298,7 @@ func TestAbortConflictOperationNoOperationInProgress(t *testing.T) {
 }
 
 // initAmConflictRepo leaves an am-style rebase-apply state rather than a
-// rebase.s rebase-merge state.
+// rebase's rebase-merge state.
 func initAmConflictRepo(t *testing.T) (dir, patchPath string) {
 	t.Helper()
 	dir = gittest.InitRepo(t)
@@ -331,7 +321,7 @@ func initAmConflictRepo(t *testing.T) (dir, patchPath string) {
 
 func TestDetectConflictStateDuringAm(t *testing.T) {
 	dir, patchPath := initAmConflictRepo(t)
-	runGitExpectFailure(t, dir, "am", patchPath)
+	gittest.RunFails(t, dir, "am", patchPath)
 
 	state, err := DetectConflictState(context.Background(), dir)
 	if err != nil {
@@ -344,7 +334,7 @@ func TestDetectConflictStateDuringAm(t *testing.T) {
 
 func TestContinueConflictOperationAmCompletesAfterResolution(t *testing.T) {
 	dir, patchPath := initAmConflictRepo(t)
-	runGitExpectFailure(t, dir, "am", patchPath)
+	gittest.RunFails(t, dir, "am", patchPath)
 
 	gittest.WriteFile(t, dir, "file.txt", "resolved\n")
 	gittest.Run(t, dir, "add", "file.txt")
@@ -364,7 +354,7 @@ func TestContinueConflictOperationAmCompletesAfterResolution(t *testing.T) {
 
 func TestAbortConflictOperationAmReturnsToPreConflictState(t *testing.T) {
 	dir, patchPath := initAmConflictRepo(t)
-	runGitExpectFailure(t, dir, "am", patchPath)
+	gittest.RunFails(t, dir, "am", patchPath)
 
 	if err := AbortConflictOperation(context.Background(), dir, ConflictAm); err != nil {
 		t.Fatalf("AbortConflictOperation: %v", err)
@@ -389,7 +379,7 @@ func TestAbortConflictOperationAmReturnsToPreConflictState(t *testing.T) {
 func TestConflictSidesAreNamedByBranch(t *testing.T) {
 	ctx := context.Background()
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.RunFails(t, dir, "merge", "theirs")
 	if got, err := ConflictSides(ctx, dir); err != nil || got != (ConflictSideNames{Ours: "main", Theirs: "theirs"}) {
 		t.Fatalf("merge: sides = %+v, %v; want main and theirs", got, err)
 	}
@@ -397,7 +387,7 @@ func TestConflictSidesAreNamedByBranch(t *testing.T) {
 
 	// A rebase swaps them: ours is the branch being rebased onto.
 	gittest.Run(t, dir, "checkout", "-q", "theirs")
-	runGitExpectFailure(t, dir, "rebase", "main")
+	gittest.RunFails(t, dir, "rebase", "main")
 	if got, err := ConflictSides(ctx, dir); err != nil || got != (ConflictSideNames{Ours: "main", Theirs: "theirs"}) {
 		t.Fatalf("rebase: sides = %+v, %v; want main and theirs", got, err)
 	}
@@ -405,7 +395,7 @@ func TestConflictSidesAreNamedByBranch(t *testing.T) {
 
 	gittest.Run(t, dir, "checkout", "-q", "main")
 	short := gittest.Run(t, dir, "rev-parse", "--short", "theirs")
-	runGitExpectFailure(t, dir, "cherry-pick", "theirs")
+	gittest.RunFails(t, dir, "cherry-pick", "theirs")
 	if got, err := ConflictSides(ctx, dir); err != nil || got != (ConflictSideNames{Ours: "main", Theirs: short}) {
 		t.Fatalf("cherry-pick: sides = %+v, %v; want main and %s", got, err, short)
 	}
@@ -418,7 +408,7 @@ func TestKeepConflictSide(t *testing.T) {
 		want string
 	}{{Ours, "ours\n"}, {Theirs, "theirs\n"}} {
 		dir := initConflictRepo(t)
-		runGitExpectFailure(t, dir, "merge", "theirs")
+		gittest.RunFails(t, dir, "merge", "theirs")
 		if line, err := ConflictMarkerLine(dir, "file.txt"); err != nil || line != 1 {
 			t.Fatalf("marker line = %d, %v; want 1", line, err)
 		}
@@ -452,7 +442,7 @@ func TestKeepConflictSideThatDeletedTheFile(t *testing.T) {
 		gittest.Run(t, dir, "checkout", "-q", "main")
 		gittest.Run(t, dir, "rm", "-q", "file.txt")
 		gittest.Run(t, dir, "commit", "-q", "-m", "delete")
-		runGitExpectFailure(t, dir, "merge", "theirs")
+		gittest.RunFails(t, dir, "merge", "theirs")
 
 		if err := KeepConflictSide(ctx, dir, "file.txt", tt.side); err != nil {
 			t.Fatalf("KeepConflictSide %s: %v", tt.side, err)
@@ -481,7 +471,7 @@ func TestConflictMarkerLineAfterALongLine(t *testing.T) {
 
 func TestDetectConflictStateCarriesThePreparedMessage(t *testing.T) {
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.RunFails(t, dir, "merge", "theirs")
 
 	state, err := DetectConflictState(context.Background(), dir)
 	if err != nil {
@@ -497,7 +487,7 @@ func TestDetectConflictStateCarriesThePreparedMessage(t *testing.T) {
 
 func TestContinueWithMessageCommitsWithIt(t *testing.T) {
 	dir := initConflictRepo(t)
-	runGitExpectFailure(t, dir, "merge", "theirs")
+	gittest.RunFails(t, dir, "merge", "theirs")
 	gittest.WriteFile(t, dir, "file.txt", "resolved\n")
 	gittest.Run(t, dir, "add", "file.txt")
 

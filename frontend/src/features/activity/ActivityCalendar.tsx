@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react'
 import { ActivityService } from '@current-client-bindings/app'
-import { ACTIVITY_INTENSITY_STEPS, activityIntensity, layoutActivityCalendar } from './calendarLayout'
+import { ACTIVITY_INTENSITY_STEPS, activityIntensity, layoutActivityCalendar, localDay } from './calendarLayout'
 import { peakDayCommits } from './activityStats'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -23,12 +23,16 @@ function monthLabels(cells: { date: string; weekIndex: number }[]) {
   const labels: { weekIndex: number; label: string }[] = []
   let lastMonth = -1
   for (const cell of cells) {
-    const date = new Date(cell.date + 'T00:00:00')
+    const date = localDay(cell.date)
     if (date.getMonth() === lastMonth) continue
     lastMonth = date.getMonth()
     labels.push({ weekIndex: cell.weekIndex, label: date.toLocaleDateString(undefined, { month: 'short' }) })
   }
   return labels.filter((l, i) => (labels[i + 1]?.weekIndex ?? Infinity) - l.weekIndex >= 3)
+}
+
+function intensityColor(intensity: number) {
+  return `color-mix(in srgb, var(--tertiary) ${intensity}%, var(--surface-highest))`
 }
 
 function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
@@ -60,7 +64,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
               <span
                 key={intensity}
                 className="activity-legend-swatch"
-                style={{ background: `color-mix(in srgb, var(--tertiary) ${intensity}%, var(--surface-highest))` }}
+                style={{ background: intensityColor(intensity) }}
               />
             ))}
             <span className="activity-legend-label">More</span>
@@ -109,7 +113,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
                 style={{
                   gridColumn: cell.weekIndex + 2,
                   gridRow: cell.dayOfWeek + 2,
-                  background: `color-mix(in srgb, var(--tertiary) ${activityIntensity(cell.commits)}%, var(--surface-highest))`,
+                  background: intensityColor(activityIntensity(cell.commits)),
                 }}
                 title={`${cell.date}: ${plural(cell.commits, 'commit')}`}
               />

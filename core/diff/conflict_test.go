@@ -2,7 +2,6 @@ package diff
 
 import (
 	"context"
-	"os/exec"
 	"reflect"
 	"testing"
 
@@ -83,25 +82,15 @@ func TestParseCombinedDiffTreatsDiff3BaseAsMarkerSection(t *testing.T) {
 }
 
 func TestGetWorkingTreeDiffShowsAMergeConflict(t *testing.T) {
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init", "-b", "main")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
-	gittest.Run(t, dir, "config", "core.autocrlf", "false")
-	gittest.WriteFile(t, dir, "f.txt", "a\nb\nc\n")
-	gittest.Run(t, dir, "add", "f.txt")
-	gittest.Run(t, dir, "commit", "-m", "base")
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "f.txt", "a\nb\nc\n", "base")
 	gittest.Run(t, dir, "checkout", "-q", "-b", "theirs")
 	gittest.WriteFile(t, dir, "f.txt", "a\nTHEIRS\nc\n")
 	gittest.Run(t, dir, "commit", "-qam", "theirs")
 	gittest.Run(t, dir, "checkout", "-q", "main")
 	gittest.WriteFile(t, dir, "f.txt", "a\nOURS\nc\n")
 	gittest.Run(t, dir, "commit", "-qam", "ours")
-	merge := exec.Command("git", "merge", "theirs")
-	merge.Dir = dir
-	if err := merge.Run(); err == nil {
-		t.Fatal("expected the merge to conflict")
-	}
+	gittest.RunFails(t, dir, "merge", "theirs")
 
 	got, err := GetWorkingTreeDiff(context.Background(), dir, "f.txt", false, false)
 	if err != nil {

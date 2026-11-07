@@ -1,4 +1,5 @@
 import { ContributorsService, IdentityService, type IdentityInfo } from '@current-client-bindings/app'
+import type { User } from '@current-client-bindings/core/hostapi'
 import { useAsyncData } from './useAsyncData'
 
 // displayName is the name on their commits where one matched.
@@ -7,6 +8,10 @@ export type HostIdentity = IdentityInfo & { displayName: string }
 interface Author {
   name: string
   email: string
+}
+
+export function hostUserName(user: User): string {
+  return user.name || user.username
 }
 
 const normalized = (text: string) => text.trim().toLowerCase()

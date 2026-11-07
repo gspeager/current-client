@@ -56,12 +56,8 @@ func onlyWorktree(ctx context.Context, repoPath string) (Worktree, bool) {
 	if err != nil || list.head == "" {
 		return Worktree{}, false
 	}
-	for _, b := range list.branches {
-		if b.Current {
-			return Worktree{Path: repoPath, Branch: b.Name, Head: list.head, Main: true, Current: true}, true
-		}
-	}
-	return Worktree{}, false
+	b, ok := list.current()
+	return Worktree{Path: repoPath, Branch: b.Name, Head: list.head, Main: true, Current: true}, ok
 }
 
 // Blocks of "key value" lines separated by blank lines; the first is the main worktree.

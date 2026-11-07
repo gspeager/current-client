@@ -35,6 +35,8 @@ function TabBar({
   onOffHost,
 }: TabBarProps) {
   const rovingTabs = useRovingRows('.tab', { horizontal: true })
+  const hostTabs = (changesLabel ? 1 : 0) + (issueCount === null ? 0 : 1)
+  const offTitle = offHost ? `${offHost.hostname} is off · Integration settings` : undefined
   return (
     <nav ref={rovingTabs} className="tab-bar" aria-label="Views" data-pane="views">
       <Tab
@@ -69,21 +71,11 @@ function TabBar({
       )}
       {offHost && !changesLabel && onOffHost && (
         <>
-          <Tab
-            active={false}
-            onClick={onOffHost}
-            label={`${offHost.changesLabel} off`}
-            off={`${offHost.hostname} is off · Integration settings`}
-          >
+          <Tab active={false} onClick={onOffHost} label={`${offHost.changesLabel} off`} off={offTitle}>
             {offHost.changesLabel}
           </Tab>
           {issueCount === null && (
-            <Tab
-              active={false}
-              onClick={onOffHost}
-              label="Issues off"
-              off={`${offHost.hostname} is off · Integration settings`}
-            >
+            <Tab active={false} onClick={onOffHost} label="Issues off" off={offTitle}>
               Issues
             </Tab>
           )}
@@ -104,19 +96,11 @@ function TabBar({
         </Tab>
       )}
       <span className="tab-bar-divider" aria-hidden="true" />
-      <Tab
-        active={active === 'activity'}
-        onClick={() => onChange('activity')}
-        shortcut={`mod+${issueCount === null ? (changesLabel ? 4 : 3) : changesLabel ? 5 : 4}`}
-      >
+      <Tab active={active === 'activity'} onClick={() => onChange('activity')} shortcut={`mod+${3 + hostTabs}`}>
         <ChartColumn size={14} strokeWidth={1.75} aria-hidden="true" />
         Activity
       </Tab>
-      <Tab
-        active={active === 'changelog'}
-        onClick={() => onChange('changelog')}
-        shortcut={`mod+${issueCount === null ? (changesLabel ? 5 : 4) : changesLabel ? 6 : 5}`}
-      >
+      <Tab active={active === 'changelog'} onClick={() => onChange('changelog')} shortcut={`mod+${4 + hostTabs}`}>
         <Tag size={14} strokeWidth={1.75} aria-hidden="true" />
         Releases
       </Tab>

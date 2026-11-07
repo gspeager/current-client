@@ -46,8 +46,6 @@
 }
 
 .settings-body {
-  // Lets the last groups reach the top when picked from the rail.
-  padding-bottom: 50vh;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -226,12 +224,10 @@
   td {
     height: var(--h-row-table);
     padding-right: var(--space-sm);
-    overflow: hidden;
     border-top: var(--border-structure);
     color: var(--on-surface-variant);
     font: var(--data-sm);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    @include patterns.truncate;
 
     .path-text {
       display: block;
@@ -352,15 +348,6 @@
   }
 }
 
-.settings-host-credential {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-}
-
-// The version row: the number, the check, its outcome, and the releases
-// address to copy, which wraps onto its own line.
 .settings-update {
   flex-wrap: wrap;
 }

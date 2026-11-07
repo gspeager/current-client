@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -24,8 +23,7 @@ type release struct {
 func (p *Provider) PublishRelease(ctx context.Context, project string, r hostapi.NewRelease) (hostapi.PublishedRelease, error) {
 	var ref struct{}
 	err := p.client.GetJSON(ctx, p.host, repoPath(project, "git", "ref", "tags", strings.ReplaceAll(url.PathEscape(r.Tag), "%2F", "/")), nil, &ref)
-	var hostErr *hostapi.HostError
-	if errors.As(err, &hostErr) && hostErr.Status == http.StatusNotFound {
+	if hostapi.IsNotFound(err) {
 		return hostapi.PublishedRelease{}, fmt.Errorf("%s has no tag %s yet; push it first", p.host.Name, r.Tag)
 	}
 	if err != nil {
@@ -33,7 +31,7 @@ func (p *Provider) PublishRelease(ctx context.Context, project string, r hostapi
 	}
 	var created release
 	err = p.client.PostJSON(ctx, p.host, repoPath(project, "releases"), map[string]string{"tag_name": r.Tag, "name": r.Name, "body": r.Notes}, &created)
-	if errors.As(err, &hostErr) && hostErr.Status == http.StatusUnprocessableEntity {
+	if hostapi.StatusOf(err) == http.StatusUnprocessableEntity {
 		return hostapi.PublishedRelease{}, fmt.Errorf("%s refused the release: %s already has one", p.host.Name, r.Tag)
 	}
 	if err != nil {

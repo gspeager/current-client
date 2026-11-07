@@ -74,7 +74,7 @@ func (s *HostService) ClosedChanges(repoPath string) (ChangeList, error) {
 		return list, err
 	}
 	if _, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheClosed, info.Project); !ok {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := hostContext()
 		defer cancel()
 		changes, truncated, err := provider.ClosedChanges(ctx, info.Project)
 		if err != nil {
@@ -87,8 +87,8 @@ func (s *HostService) ClosedChanges(repoPath string) (ChangeList, error) {
 }
 
 func changeList(repoPath string) (ChangeList, HostInfo, hostapi.Provider, error) {
-	remote, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	remote, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return ChangeList{}, info, nil, err
 	}
 	provider := providerFor(info)
@@ -129,8 +129,8 @@ type ChangeDependencyInfo struct {
 	Summaries     map[string]DependencySummaryInfo `json:"summaries"`
 }
 
-// ChangeDependencySummaries compares a change's manifests and lockfiles from Git
-// alone. It never fetches, so it only knows a head that's already here.
+// ChangeDependencySummaries never fetches, so it only knows a head that's
+// already here.
 func (s *HostService) ChangeDependencySummaries(repoPath string, number int, files []hostapi.ChangeFile) (ChangeDependencyInfo, error) {
 	info := ChangeDependencyInfo{Summaries: map[string]DependencySummaryInfo{}}
 	info.HasManifests = slices.ContainsFunc(files, func(file hostapi.ChangeFile) bool { return deps.Recognized(file.Path) })
@@ -182,22 +182,12 @@ func (s *HostService) ChangeCommits(repoPath string, number int) ([]hostapi.Chan
 // cachedOrFetched reads one cached value, or asks the host for it once and
 // keeps the answer until a refresh clears its kind.
 func cachedOrFetched[T any](info HostInfo, repoPath, kind, key string, fetch func(context.Context, hostapi.Provider) (T, error)) (T, error) {
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, kind, key); ok {
-		return cached.(T), nil
-	}
-	var none T
 	provider := providerFor(info)
 	if provider == nil {
+		var none T
 		return none, nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	value, err := fetch(ctx, provider)
-	if err != nil {
-		return none, err
-	}
-	hostClient.Cache.Put(info.Hostname, repoPath, kind, key, value)
-	return value, nil
+	return cachedFrom(info.Hostname, repoPath, kind, key, func(ctx context.Context) (T, error) { return fetch(ctx, provider) })
 }
 
 func (s *HostService) ChangeDetails(repoPath string, number int) (ChangeDetails, error) {
@@ -205,8 +195,7 @@ func (s *HostService) ChangeDetails(repoPath string, number int) (ChangeDetails,
 	if err != nil {
 		return ChangeDetails{}, err
 	}
-	webRoot := "https://" + info.Hostname + "/"
-	details := ChangeDetails{Change: change, DescriptionHTML: hostcontent.RenderMarkdown(change.Description, webRoot)}
+	details := ChangeDetails{Change: change, DescriptionHTML: hostcontent.RenderMarkdown(change.Description, webRoot(info))}
 	if tracker := issueTrackerFor(info); tracker != nil {
 		details.Closes = closedIssues(change.Description, tracker)
 	}
@@ -269,7 +258,6 @@ func isGitLab(info HostInfo) bool {
 	return hostlink.Style(info.Provider) == hostlink.GitLab
 }
 
-// changeHeadRef is where the host publishes a change's head.
 func changeHeadRef(info HostInfo, number int) string {
 	if isGitLab(info) {
 		return fmt.Sprintf("refs/merge-requests/%d/head", number)
@@ -291,6 +279,12 @@ func changeKind(info HostInfo) string {
 	return "pull request"
 }
 
+var errHostOff = errors.New("integration is off for this repository's host")
+
+func hostContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), 30*time.Second)
+}
+
 func primaryHost(repoPath string) (git.Remote, HostInfo, bool, error) {
 	remotes, err := git.ListRemotes(context.Background(), repoPath)
 	if err != nil || len(remotes) == 0 {
@@ -301,13 +295,29 @@ func primaryHost(repoPath string) (git.Remote, HostInfo, bool, error) {
 	return remote, info, ok, nil
 }
 
-func cachedChange(repoPath string, number int) (git.Remote, HostInfo, hostapi.Change, error) {
+// enabledHost is primaryHost with ok false unless the host's integration is on.
+func enabledHost(repoPath string) (git.Remote, HostInfo, bool, error) {
 	remote, info, ok, err := primaryHost(repoPath)
+	return remote, info, ok && info.Enabled, err
+}
+
+// requireHost is enabledHost for a call that fails, with errHostOff, when the host is off.
+func requireHost(repoPath string) (git.Remote, HostInfo, error) {
+	remote, info, ok, err := enabledHost(repoPath)
+	if err == nil && !ok {
+		err = errHostOff
+	}
+	return remote, info, err
+}
+
+func webRoot(info HostInfo) string {
+	return "https://" + info.Hostname + "/"
+}
+
+func cachedChange(repoPath string, number int) (git.Remote, HostInfo, hostapi.Change, error) {
+	remote, info, err := requireHost(repoPath)
 	if err != nil {
 		return remote, info, hostapi.Change{}, err
-	}
-	if !ok || !info.Enabled {
-		return remote, info, hostapi.Change{}, errors.New("integration is off for this repository's host")
 	}
 	for _, kind := range []string{cacheChanges, cacheClosed} {
 		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, kind, info.Project); ok {
@@ -322,8 +332,7 @@ func cachedChange(repoPath string, number int) (git.Remote, HostInfo, hostapi.Ch
 }
 
 // deleteFetchedHeads removes refs/current-client/ heads for the host's
-// remotes in every repository the app knows, as the guide promises when a
-// host is turned off.
+// remotes in every repository the app knows.
 func deleteFetchedHeads(hostname string) {
 	cfg := configOrDefault()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

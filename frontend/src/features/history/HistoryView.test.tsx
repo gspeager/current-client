@@ -188,9 +188,7 @@ describe('HistoryView', () => {
 
     await user.click(screen.getByText('Filters'))
     await user.type(screen.getByRole('textbox', { name: 'Author filter' }), 'Ada')
-    await vi.waitFor(() =>
-      expect(screen.queryByRole('row', { name: /3 uncommitted files/ })).not.toBeInTheDocument(),
-    )
+    await vi.waitFor(() => expect(screen.queryByRole('row', { name: /3 uncommitted files/ })).not.toBeInTheDocument())
     expect(vi.mocked(HistoryService.ComputeGraphLayout).mock.lastCall?.[0][0].sha).toBe(history[0].sha)
 
     cleanup()

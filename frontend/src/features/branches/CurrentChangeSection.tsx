@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { PanelRight, TriangleAlert } from 'lucide-react'
-import { HostService, PlatformService } from '@current-client-bindings/app'
+import { HostService } from '@current-client-bindings/app'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import CIMark, { ciLabel } from '../../components/git/CIMark'
 import { createChangeFor } from '../../lib/createChange'
 import { ignoreDecorativeFailure } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useReviewThreads } from '../../lib/useReviewThreads'
+import { capitalize } from '../../lib/text'
 import './CurrentChangeSection.scss'
 
 interface CurrentChangeSectionProps {
@@ -48,8 +50,7 @@ function CurrentChangeSection({
 
   const change = data.change
   const conflicts = forecast?.enabled ? (forecast.conflicts ?? []) : []
-  const kindWord = data.kind || 'pull request'
-  const kind = kindWord[0].toUpperCase() + kindWord.slice(1)
+  const kind = capitalize(data.kind || 'pull request')
   const createChange = () => createChangeFor(repoPath, data.branch, onCreateChange)
 
   const forecastBlock = forecast?.enabled && conflicts.length > 0 && (
@@ -61,11 +62,7 @@ function CurrentChangeSection({
             <button
               type="button"
               className="current-change-conflict"
-              onClick={() =>
-                onOpenChange
-                  ? onOpenChange(c.number)
-                  : PlatformService.OpenWebPage(c.webUrl).catch(ignoreDecorativeFailure)
-              }
+              onClick={() => (onOpenChange ? onOpenChange(c.number) : openWebPage(c.webUrl))}
               title={c.title}
             >
               Conflicts with {c.prefix}
@@ -103,13 +100,7 @@ function CurrentChangeSection({
         }}
       >
         <span className="current-change-row-text">
-          {checking ? (
-            'Checking…'
-          ) : (
-            <>
-              <span className="current-change-row-action">Check status</span>
-            </>
-          )}
+          {checking ? 'Checking…' : <span className="current-change-row-action">Check status</span>}
         </span>
       </button>
     ) : data.upstream ? (

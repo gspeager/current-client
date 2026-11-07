@@ -8,6 +8,8 @@
 }
 
 .sidebar-section-toggle {
+  @include patterns.hit-target(2px);
+
   flex: 1;
   min-width: 0;
   display: flex;
@@ -45,8 +47,4 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-}
-
-.sidebar-section-toggle {
-  @include patterns.hit-target(2px);
 }

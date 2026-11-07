@@ -72,9 +72,8 @@ type Client struct {
 	status  map[string]*HostStatus
 }
 
-// HostStatus is what an indicator shows: when the host was last contacted,
-// whether a request is in flight now, and the request budget the host's
-// last answer reported (Limit is 0 when it reported none).
+// HostStatus's budget is what the host's last answer reported; Limit is 0
+// when it reported none.
 type HostStatus struct {
 	LastRequest time.Time
 	InFlight    int
@@ -181,8 +180,7 @@ func (c *Client) GetJSON(ctx context.Context, host Host, path string, query url.
 	return DecodeJSON(resp, out)
 }
 
-// PostJSON sends body as JSON and decodes the answer into out, which may be
-// nil.
+// PostJSON's out may be nil.
 func (c *Client) PostJSON(ctx context.Context, host Host, path string, body, out any) error {
 	return c.RequestJSON(ctx, host, http.MethodPost, path, body, out)
 }
@@ -239,6 +237,31 @@ func (c *Client) GetPages(ctx context.Context, host Host, path string, query url
 		}
 	}
 	return false, nil
+}
+
+// GetAll decodes every page GetPages follows into one list.
+func GetAll[T any](ctx context.Context, c *Client, host Host, path string, query url.Values) (items []T, truncated bool, err error) {
+	truncated, err = c.GetPages(ctx, host, path, query, func(resp *Response) error {
+		var page []T
+		if err := DecodeJSON(resp, &page); err != nil {
+			return err
+		}
+		items = append(items, page...)
+		return nil
+	})
+	return items, truncated, err
+}
+
+// GetPage decodes one page; more says the host has another after it.
+func GetPage[T any](ctx context.Context, c *Client, host Host, path string, query url.Values) (items []T, more bool, err error) {
+	resp, err := c.Get(ctx, host, path, query)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := DecodeJSON(resp, &items); err != nil {
+		return nil, false, err
+	}
+	return items, nextLink(resp.Header) != "", nil
 }
 
 // Do refuses, before any connection, a host the caller hasn't enabled and a
@@ -355,11 +378,6 @@ func (c *Client) noteBudget(hostName string, header http.Header) {
 		c.mu.Unlock()
 		return
 	}
-}
-
-// HasNextPage says the answer's Link header points at another page.
-func HasNextPage(resp *Response) bool {
-	return nextLink(resp.Header) != ""
 }
 
 // backOff reads Retry-After (seconds or an HTTP date), then GitHub's

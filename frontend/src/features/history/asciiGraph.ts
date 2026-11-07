@@ -1,3 +1,5 @@
+import { shortSha } from '../../lib/text'
+
 interface AsciiGraphRow {
   sha: string
   subject: string
@@ -14,7 +16,7 @@ export function buildAsciiGraph(rows: AsciiGraphRow[]): string {
       const columns = new Array(laneCount).fill(' ')
       for (const lane of r.passThrough) columns[lane] = '|'
       columns[r.lane] = '*'
-      return `${columns.join(' ')}  ${r.sha.slice(0, 7)} ${r.subject}`
+      return `${columns.join(' ')}  ${shortSha(r.sha)} ${r.subject}`
     })
     .join('\n')
 }

@@ -3,12 +3,12 @@ import { TerminalService } from '@current-client-bindings/app'
 import { useDialogs } from '../../lib/useDialogs'
 import { errorMessage } from '../../lib/errors'
 
-export interface Shell {
+interface Shell {
   id: string
   number: number
 }
 
-export type PanelView = 'shells' | 'tasks'
+type PanelView = 'shells' | 'tasks'
 
 interface RepoTerminals {
   shells: Shell[]
@@ -59,35 +59,31 @@ export function useTerminals(repoPath: string | null) {
     [update],
   )
 
+  // True when a process is still running and the user would rather keep it.
+  const keepRunning = async (
+    busy: Promise<boolean>,
+    dialog: { title: string; message: string; confirmLabel: string },
+  ) => (await busy.catch(() => false)) && !(await confirm({ ...dialog, destructive: true }))
+
   const closeShell = async (repo: string, id: string) => {
-    if (
-      (await TerminalService.Busy(id).catch(() => false)) &&
-      !(await confirm({
-        title: 'Close terminal',
-        message: 'A process is still running in this terminal. Closing ends it.',
-        confirmLabel: 'Close terminal',
-        destructive: true,
-      }))
-    ) {
-      return
-    }
+    const keep = await keepRunning(TerminalService.Busy(id), {
+      title: 'Close terminal',
+      message: 'A process is still running in this terminal. Closing ends it.',
+      confirmLabel: 'Close terminal',
+    })
+    if (keep) return
     await TerminalService.Close(id).catch(() => undefined)
     removeShell(repo, id)
   }
 
   // For closing a repository's tab: false when the user would rather keep it open.
   const confirmCloseRepo = async (repo: string): Promise<boolean> => {
-    if (
-      (await TerminalService.RepoBusy(repo).catch(() => false)) &&
-      !(await confirm({
-        title: 'Close repository tab',
-        message: 'A process is still running in one of its terminals. Closing the tab ends it.',
-        confirmLabel: 'Close tab',
-        destructive: true,
-      }))
-    ) {
-      return false
-    }
+    const keep = await keepRunning(TerminalService.RepoBusy(repo), {
+      title: 'Close repository tab',
+      message: 'A process is still running in one of its terminals. Closing the tab ends it.',
+      confirmLabel: 'Close tab',
+    })
+    if (keep) return false
     await TerminalService.CloseRepo(repo).catch(() => undefined)
     setByRepo((prev) => {
       const next = { ...prev }

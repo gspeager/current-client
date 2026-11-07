@@ -38,7 +38,7 @@ var terminals = terminal.NewManager()
 
 type TerminalService struct{}
 
-var errLocalCommandsOff = errors.New("your organization has turned this off")
+var errLocalCommandsOff = errors.New("turned off by organization policy")
 
 func emit(name string, data any) {
 	if running := application.Get(); running != nil {
@@ -46,7 +46,6 @@ func emit(name string, data any) {
 	}
 }
 
-// Start runs the user's shell in the repository and returns the session's ID.
 func (s *TerminalService) Start(repoPath string, cols, rows int) (string, error) {
 	if policy.LocalCommandsOff() {
 		return "", errLocalCommandsOff
@@ -101,7 +100,6 @@ func (s *TerminalService) Busy(id string) bool {
 	return terminals.Busy(id)
 }
 
-// RepoBusy says whether anything is running in a repository's shells.
 func (s *TerminalService) RepoBusy(repoPath string) bool {
 	return terminals.AnyBusy(repoPath)
 }

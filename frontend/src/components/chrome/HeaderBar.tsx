@@ -24,7 +24,7 @@ import type { ActionResult } from '../../lib/actionResult'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import BlameView from '../../features/history/BlameView'
 import { undoActionLabel } from '../../features/history/undoPreview'
-import { shortcutLabel } from '../../lib/shortcuts'
+import { shortcutLabel, withShortcut } from '../../lib/shortcuts'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
@@ -42,6 +42,7 @@ import RepoTabChip from '../../features/repositories/RepoTabChip'
 import SearchModal from '../../features/search/SearchModal'
 import './HeaderBar.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { capitalize } from '../../lib/text'
 
 interface HeaderBarProps {
   repoPath: string
@@ -196,7 +197,6 @@ function HeaderBar({
       ? `Fetched ${relativeTime(lastFetchedAt)}`
       : 'Not fetched yet'
 
-  // A sync button with a chevron beside it that drops the rest of its choices.
   // `due` colors it while there is something to pull or push.
   const syncButton = (
     id: 'fetch' | 'pull' | 'push',
@@ -208,7 +208,7 @@ function HeaderBar({
     disabled = false,
     due = false,
   ) => {
-    const name = id[0].toUpperCase() + id.slice(1)
+    const name = capitalize(id)
     const blocked = operation ? `Finish the ${operationNoun(operation)} first` : null
     const className = due ? 'header-bar-sync header-bar-sync-due' : 'header-bar-sync'
     return (
@@ -267,23 +267,23 @@ function HeaderBar({
   const shownTabs = repo.tabs.filter((path) => !overflowTabs.includes(path))
 
   useWindowKeydown((e) => {
-    const paletteKey = e.key.toLowerCase()
+    const key = e.key.toLowerCase()
+    const mod = e.metaKey || e.ctrlKey
     // Ctrl+P is the cursor-up key in a Mac text field, so only Command takes it there.
     const quickOpenMod = System.IsMac() ? e.metaKey : e.ctrlKey
     if (
-      ((e.metaKey || e.ctrlKey) && !e.shiftKey && paletteKey === 'k') ||
-      ((e.metaKey || e.ctrlKey) && e.shiftKey && paletteKey === 'p') ||
-      (quickOpenMod && !e.shiftKey && paletteKey === 'p')
+      (mod && !e.shiftKey && key === 'k') ||
+      (mod && e.shiftKey && key === 'p') ||
+      (quickOpenMod && !e.shiftKey && key === 'p')
     ) {
       e.preventDefault()
       setQuickSwitchOpen((open) => !open)
     }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+    if (mod && e.shiftKey && key === 'f') {
       e.preventDefault()
       setSearchOpen(true)
     }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && !operation && !syncing) {
-      const key = e.key.toLowerCase()
+    if (mod && e.shiftKey && !operation && !syncing) {
       if (key === 't') {
         e.preventDefault()
         void fetchAllOp.fetchPrimary()
@@ -419,7 +419,7 @@ function HeaderBar({
           RefreshCw,
           fetchAllOp.running
             ? 'Cancel fetch'
-            : `${fetchedLabel}. Fetch${pruneOnFetch ? ' and prune' : ''} (${shortcutLabel('mod+shift+T')})`,
+            : withShortcut(`${fetchedLabel}. Fetch${pruneOnFetch ? ' and prune' : ''}`, 'mod+shift+T'),
           fetchAllOp.running ? fetchAllOp.cancel : () => fetchAllOp.fetchPrimary(),
           [
             { label: 'Fetch and prune', onClick: fetchAllOp.fetchPrune },
@@ -431,7 +431,7 @@ function HeaderBar({
           'pull',
           branchStatus && branchStatus.behind > 0 ? `Pull ${branchStatus.behind}` : 'Pull',
           ArrowDown,
-          `Pull (${shortcutLabel('mod+shift+L')}), shift-click to rebase`,
+          `${withShortcut('Pull', 'mod+shift+L')}, shift-click to rebase`,
           (e?: React.MouseEvent) => (e?.shiftKey ? onPullRebase() : onPull()),
           [
             { label: 'Pull (merge)', onClick: onPullMerge },
@@ -444,7 +444,7 @@ function HeaderBar({
           'push',
           branchStatus && branchStatus.ahead > 0 ? `Push ${branchStatus.ahead}` : 'Push',
           ArrowUp,
-          `Push (${shortcutLabel('mod+shift+K')}), shift-click to force-push`,
+          `${withShortcut('Push', 'mod+shift+K')}, shift-click to force-push`,
           (e?: React.MouseEvent) => (e?.shiftKey ? onForcePush() : onPush()),
           [
             { label: 'Push tags', onClick: onPushTags },
@@ -462,7 +462,7 @@ function HeaderBar({
           type="button"
           className="header-bar-icon-button"
           aria-label={undoLabel}
-          title={`${undoLabel} (${shortcutLabel('mod+shift+Z')})`}
+          title={withShortcut(undoLabel, 'mod+shift+Z')}
           onPointerEnter={previewUndo}
           onFocus={previewUndo}
           onClick={onUndo}

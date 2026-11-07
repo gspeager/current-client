@@ -27,8 +27,7 @@ func HostChangeRef(remote string, number int) string {
 // FetchHostChangeHead fetches remoteRef (refs/merge-requests/N/head on GitLab,
 // refs/pull/N/head on GitHub) into HostChangeRef(remote, number).
 func FetchHostChangeHead(ctx context.Context, repoPath, remote, remoteRef string, number int) error {
-	_, err := runResult(ctx, repoPath, "fetch", "--no-tags", remote, "+"+remoteRef+":"+HostChangeRef(remote, number))
-	return err
+	return FetchHostChangeHeads(ctx, repoPath, remote, map[int]string{number: remoteRef})
 }
 
 // FetchHostChangeHeads fetches several changes in one go; refs maps each

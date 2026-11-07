@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"os"
 	"os/exec"
 	"runtime"
 	"sync"
@@ -14,7 +13,7 @@ import (
 	"github.com/gspeager/current-client/internal/terminal"
 )
 
-// Options says what to do as a run progresses. The callbacks run on its goroutines.
+// The callbacks run on the run's goroutines.
 type Options struct {
 	Env      []string
 	OnOutput func(data []byte)
@@ -48,10 +47,7 @@ func shellCommand(command string) *exec.Cmd {
 	}
 	// A login shell, as the terminal uses: an app opened from the desktop has a
 	// bare PATH, without Homebrew, nvm and the like.
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "/bin/sh"
-	}
+	shell, _ := terminal.Shell("", "")
 	return exec.Command(shell, "-lc", command)
 }
 

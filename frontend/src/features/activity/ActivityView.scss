@@ -8,13 +8,6 @@
   gap: var(--space-lg);
 }
 
-.activity-view-header {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: calc(var(--space-sm) - var(--space-lg));
-}
-
 .activity-view-standup {
   display: inline-flex;
   align-items: center;

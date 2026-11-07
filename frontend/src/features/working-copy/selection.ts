@@ -2,7 +2,7 @@ import type { WorkingTreeSection } from './useWorkingTree'
 
 export type SectionPaths = Record<WorkingTreeSection, string[]>
 
-export interface Selection {
+interface Selection {
   path: string
   section: WorkingTreeSection
 }

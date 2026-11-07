@@ -84,10 +84,7 @@ func Check(ctx context.Context, repoPath string, off []string) ([]Finding, error
 }
 
 func stagedPaths(ctx context.Context, repoPath string) ([]string, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
-		Dir:  repoPath,
-		Args: []string{"diff", "--cached", "--name-only", "-z", "--no-renames", "--diff-filter=d"},
-	})
+	result, err := gitexec.RunIn(ctx, repoPath, "diff", "--cached", "--name-only", "-z", "--no-renames", "--diff-filter=d")
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +112,6 @@ func siblings(staged []string) []string {
 	return names
 }
 
-// indexSizes returns the size of each path that's in the index.
 func indexSizes(ctx context.Context, repoPath string, paths []string) (map[string]int64, error) {
 	var input strings.Builder
 	var asked []string
@@ -163,7 +159,7 @@ func addedLines(ctx context.Context, repoPath string, skip []string) ([]addedLin
 	for _, file := range skip {
 		args = append(args, ":(exclude,literal)"+file)
 	}
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: repoPath, Args: args})
+	result, err := gitexec.RunIn(ctx, repoPath, args...)
 	if err != nil {
 		return nil, err
 	}

@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .recover-panel {
   width: min(680px, 90vw);
 }
@@ -30,11 +32,9 @@
 
 .recover-row-branch {
   min-width: 0;
-  overflow: hidden;
+  @include patterns.truncate;
   color: var(--on-surface-variant);
   font: var(--data-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .recover-row-time {

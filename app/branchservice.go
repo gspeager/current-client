@@ -121,17 +121,19 @@ type RebasePreviewInfo struct {
 	Command       string                    `json:"command"`
 }
 
+func previewCommitInfo(commit git.PreviewCommit) RebasePreviewCommitInfo {
+	return RebasePreviewCommitInfo{commit.SHA, commit.Subject, string(commit.Outcome), append([]string{}, commit.Files...)}
+}
+
 func (s *BranchService) PreviewRebase(repoPath, onto string) (RebasePreviewInfo, error) {
 	preview, err := git.PreviewRebase(context.Background(), repoPath, onto)
 	if err != nil {
 		return RebasePreviewInfo{}, err
 	}
 	return RebasePreviewInfo{
-		Current: preview.Current,
-		Onto:    preview.Onto,
-		Commits: mapSlice(preview.Commits, func(commit git.PreviewCommit) RebasePreviewCommitInfo {
-			return RebasePreviewCommitInfo{commit.SHA, commit.Subject, string(commit.Outcome), append([]string{}, commit.Files...)}
-		}),
+		Current:       preview.Current,
+		Onto:          preview.Onto,
+		Commits:       mapSlice(preview.Commits, previewCommitInfo),
 		Predicted:     preview.Predicted,
 		DroppedMerges: preview.DroppedMerges,
 		ForcePush:     preview.ForcePush,

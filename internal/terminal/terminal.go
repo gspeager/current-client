@@ -25,7 +25,7 @@ const (
 	mostUnacknowledged = 2 << 20
 )
 
-// Options starts a session. OnOutput and OnExit run on the session's goroutines.
+// OnOutput and OnExit run on the session's goroutines.
 type Options struct {
 	Dir  string
 	Name string
@@ -66,7 +66,6 @@ func NewManager() *Manager {
 	return &Manager{sessions: map[string]*session{}}
 }
 
-// Start runs the command on a new pseudo-terminal and returns the session's ID.
 func (m *Manager) Start(repo string, options Options) (string, error) {
 	console, err := pty.New()
 	if err != nil {
@@ -249,15 +248,7 @@ func (m *Manager) Busy(id string) bool {
 
 // AnyBusy says whether a session for repo is busy, or any at all when repo is "".
 func (m *Manager) AnyBusy(repo string) bool {
-	m.mu.Lock()
-	var ids []string
-	for id, s := range m.sessions {
-		if repo == "" || s.repo == repo {
-			ids = append(ids, id)
-		}
-	}
-	m.mu.Unlock()
-	for _, id := range ids {
+	for _, id := range m.idsWhere(func(s *session) bool { return repo == "" || s.repo == repo }) {
 		if m.Busy(id) {
 			return true
 		}
@@ -282,32 +273,30 @@ func (m *Manager) Close(id string) error {
 	return nil
 }
 
-// CloseRepo ends every session for a repository.
 func (m *Manager) CloseRepo(repo string) {
-	m.mu.Lock()
-	var ids []string
-	for id, s := range m.sessions {
-		if s.repo == repo {
-			ids = append(ids, id)
-		}
-	}
-	m.mu.Unlock()
-	for _, id := range ids {
+	m.closeWhere(func(s *session) bool { return s.repo == repo })
+}
+
+func (m *Manager) CloseAll() {
+	m.closeWhere(func(*session) bool { return true })
+}
+
+func (m *Manager) closeWhere(match func(*session) bool) {
+	for _, id := range m.idsWhere(match) {
 		_ = m.Close(id)
 	}
 }
 
-// CloseAll ends every session, for quitting the app.
-func (m *Manager) CloseAll() {
+func (m *Manager) idsWhere(match func(*session) bool) []string {
 	m.mu.Lock()
-	ids := make([]string, 0, len(m.sessions))
-	for id := range m.sessions {
-		ids = append(ids, id)
+	defer m.mu.Unlock()
+	var ids []string
+	for id, s := range m.sessions {
+		if match(s) {
+			ids = append(ids, id)
+		}
 	}
-	m.mu.Unlock()
-	for _, id := range ids {
-		_ = m.Close(id)
-	}
+	return ids
 }
 
 // Shell chooses what to run. choice is "" for the default, or on Windows
@@ -379,7 +368,6 @@ func Environment(base []string, gitBinary string) []string {
 	return append(env, "PATH="+path, "TERM=xterm-256color", "COLORTERM=truecolor")
 }
 
-// KillTree ends a process and everything it started.
 func KillTree(pid int) {
 	killTree(pid)
 }

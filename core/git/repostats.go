@@ -21,12 +21,10 @@ type RepoStats struct {
 
 func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	var stats RepoStats
-
-	commits, err := runResult(ctx, repoPath, append([]string{"rev-list", "--count"}, allRefs...)...)
-	if err != nil {
+	var err error
+	if stats.TotalCommits, err = CountCommits(ctx, repoPath, allRefs...); err != nil {
 		return stats, err
 	}
-	stats.TotalCommits, _ = strconv.Atoi(strings.TrimSpace(commits.Stdout))
 
 	contributors, err := Contributors(ctx, repoPath, "", "")
 	if err != nil {

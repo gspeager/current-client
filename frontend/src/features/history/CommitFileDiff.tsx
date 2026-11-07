@@ -8,6 +8,7 @@ import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggl
 import { diffBaseFor } from '../diff/diffMapping'
 import { useAsyncData } from '../../lib/useAsyncData'
 import type { ReviewThreadsView } from '../../lib/useReviewThreads'
+import { shortSha } from '../../lib/text'
 import './CommitFileDiff.scss'
 
 interface CommitFileDiffProps {
@@ -37,7 +38,7 @@ function CommitFileDiff({ repoPath, commit, path, reviewThreads, onBack }: Commi
           History
         </button>
         <PathText path={path} className="commit-file-diff-path" />
-        <span className="commit-file-diff-sha">{commit.sha.slice(0, 7)}</span>
+        <span className="commit-file-diff-sha">{shortSha(commit.sha)}</span>
         <span className="commit-file-diff-spacer" />
         <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
         <DiffViewMenu ignoreWhitespace={ignoreWhitespace} onIgnoreWhitespaceChange={setIgnoreWhitespace} />
@@ -50,8 +51,8 @@ function CommitFileDiff({ repoPath, commit, path, reviewThreads, onBack }: Commi
             diff={diff}
             path={path}
             viewMode={viewMode}
-            baseSide={{ label: 'Parent', sha: base.slice(0, 7) }}
-            targetSide={{ label: 'Commit', sha: commit.sha.slice(0, 7) }}
+            baseSide={{ label: 'Parent', sha: shortSha(base) }}
+            targetSide={{ label: 'Commit', sha: shortSha(commit.sha) }}
             threads={reviewThreads.byPath[path]}
             outdatedThreads={reviewThreads.outdatedByPath[path]}
             review={

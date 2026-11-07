@@ -1,16 +1,15 @@
-import { useState } from 'react'
 import { StashService, StatusService, type FileStatus } from '@current-client-bindings/app'
-import { errorMessage } from '../../lib/errors'
 import { useDialogs } from '../../lib/useDialogs'
+import { useActionError } from '../../lib/useActionError'
 
 // onStashed refreshes what a new stash changes beyond the working tree, such as the Stash panel.
 export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, onStashed?: () => void) {
   const { confirm } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
 
   const run = (action: Promise<unknown>) => {
     setActionError(null)
-    action.then(loadStatus).catch((err: unknown) => setActionError(errorMessage(err)))
+    action.then(loadStatus).catch(fail)
   }
 
   const discardFile = async (f: FileStatus) => {

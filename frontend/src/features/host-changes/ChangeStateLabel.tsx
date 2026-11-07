@@ -7,6 +7,7 @@ import {
   GitPullRequestDraft,
   type LucideIcon,
 } from 'lucide-react'
+import { capitalize } from '../../lib/text'
 
 const CHANGE_ICONS: Record<string, LucideIcon> = {
   open: GitPullRequest,
@@ -22,7 +23,7 @@ function ChangeStateLabel({ state, issue = false }: { state: string; issue?: boo
   return (
     <span className={`host-change-state host-change-state-${state}`}>
       {Icon && <Icon size={12} strokeWidth={1.75} aria-hidden="true" />}
-      {state.charAt(0).toUpperCase() + state.slice(1)}
+      {capitalize(state)}
     </span>
   )
 }

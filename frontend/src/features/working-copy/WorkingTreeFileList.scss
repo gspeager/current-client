@@ -2,7 +2,8 @@
 
 .changes-files-scroll {
   flex: 1;
-  min-height: 0;
+  // The list keeps a useful height however much sits below it.
+  min-height: 112px;
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
@@ -48,20 +49,7 @@
 }
 
 .changes-filter-input {
-  width: 100%;
-  height: var(--h-field);
-  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
-  background: var(--surface);
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface);
-  font: var(--ui-sm);
-
-  &:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: var(--focus-ring);
-  }
+  @include patterns.search-field;
 
   &::placeholder {
     color: var(--outline);
@@ -70,23 +58,9 @@
 
 .changes-refresh,
 .changes-export-patch {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @include patterns.icon-button;
   width: var(--h-chip);
   height: var(--h-chip);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--outline);
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-    color: var(--on-surface);
-  }
-
-  @include patterns.disabled;
 }
 
 .changes-section-header {
@@ -121,10 +95,7 @@
   color: var(--error);
 }
 
-.changes-section-label-staged {
-  color: var(--on-surface-variant);
-}
-
+.changes-section-label-staged,
 .changes-section-label-unstaged {
   color: var(--on-surface-variant);
 }
@@ -134,6 +105,7 @@
 }
 
 .changes-section-bulk {
+  @include patterns.hit-target(2px);
   height: var(--h-micro);
   background: none;
   border: none;
@@ -173,13 +145,4 @@
 
 .changes-folder-row-name {
   @include patterns.truncate;
-}
-
-// The list keeps a useful height however much sits below it.
-.changes-files-scroll {
-  min-height: 112px;
-}
-
-.changes-section-bulk {
-  @include patterns.hit-target(2px);
 }

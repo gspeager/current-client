@@ -104,6 +104,7 @@
   color: var(--outline);
   font: var(--data-sm);
   cursor: pointer;
+  @include patterns.hit-target(4px);
 
   &:hover {
     background: var(--surface-container);
@@ -140,6 +141,7 @@
   gap: var(--space-xs);
   cursor: pointer;
   list-style: none;
+  @include patterns.hit-target(4px);
 
   &::-webkit-details-marker {
     display: none;
@@ -342,12 +344,4 @@
   margin: 0;
   color: var(--outline);
   @include patterns.eyebrow;
-}
-
-.changelog-filter-toggle {
-  @include patterns.hit-target(4px);
-}
-
-.changelog-entry-sha {
-  @include patterns.hit-target(4px);
 }

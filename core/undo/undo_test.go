@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -13,7 +12,6 @@ import (
 	"github.com/gspeager/current-client/core/internal/gittest"
 )
 
-// commitFile returns the new commit.
 func commitFile(t *testing.T, dir, name, content, message string) string {
 	t.Helper()
 	gittest.CommitFile(t, dir, name, content, message)
@@ -34,7 +32,6 @@ func initRepo(t *testing.T) string {
 	return dir
 }
 
-// undoOnce previews and applies, checking the operation it found.
 func undoOnce(t *testing.T, dir, wantOp string) Plan {
 	t.Helper()
 	ctx := context.Background()
@@ -236,9 +233,7 @@ func TestPreviewRefusesDuringConflict(t *testing.T) {
 	commitFile(t, dir, "a.txt", "feature\n", "feature edit")
 	gittest.Run(t, dir, "switch", "main")
 	commitFile(t, dir, "a.txt", "main\n", "main edit")
-	cmd := exec.Command("git", "merge", "feature")
-	cmd.Dir = dir
-	_ = cmd.Run()
+	gittest.RunFails(t, dir, "merge", "feature")
 
 	_, err := Preview(context.Background(), dir)
 	if err == nil || !strings.Contains(err.Error(), "Finish or abort the merge") {

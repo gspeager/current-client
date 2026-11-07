@@ -1,6 +1,6 @@
 import { System } from '@wailsio/runtime'
 
-export interface Shortcut {
+interface Shortcut {
   keys: string
   label: string
 }

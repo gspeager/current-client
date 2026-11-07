@@ -11,6 +11,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useHostStatus, type HostIndicator } from '../../lib/useHostIndicator'
 import { useTracker } from '../../lib/issuePanel'
+import { capitalize } from '../../lib/text'
 import './StatusBar.scss'
 
 interface StatusBarProps {
@@ -60,12 +61,10 @@ function StatusBar({
     <footer className="status-bar">
       <span className="status-bar-ready" role="status">
         <WaveMark width={16} />
-        {operation
-          ? `${operationNoun(operation)[0].toUpperCase()}${operationNoun(operation).slice(1)} in progress`
-          : (result?.text ?? 'Ready')}
+        {operation ? `${capitalize(operationNoun(operation))} in progress` : (result?.text ?? 'Ready')}
       </span>
       {!operation && result?.undoable && onUndo && (
-        <button type="button" className="status-bar-terminal" onClick={onUndo}>
+        <button type="button" className="status-bar-button" onClick={onUndo}>
           <Undo2 size={12} strokeWidth={1.75} />
           Undo
         </button>
@@ -73,18 +72,13 @@ function StatusBar({
       {branchLabel && <span className="status-bar-branch">{branchLabel}</span>}
       <div className="status-bar-spacer" />
       {onToggleTerminal && (
-        <button
-          type="button"
-          className="status-bar-terminal"
-          title="Terminal panel (Ctrl+`)"
-          onClick={onToggleTerminal}
-        >
+        <button type="button" className="status-bar-button" title="Terminal panel (Ctrl+`)" onClick={onToggleTerminal}>
           <SquareTerminal size={12} strokeWidth={1.75} />
           Terminal
         </button>
       )}
       {onOpenShortcuts && (
-        <button type="button" className="status-bar-terminal" title="Keyboard shortcuts (?)" onClick={onOpenShortcuts}>
+        <button type="button" className="status-bar-button" title="Keyboard shortcuts (?)" onClick={onOpenShortcuts}>
           <Keyboard size={12} strokeWidth={1.75} />
           Shortcuts
         </button>
@@ -152,8 +146,6 @@ function ServiceItem({
   )
 }
 
-// The budget the host reported with its last answer, then when it was
-// last asked.
 function hostRequestLabel(status: HostStatusInfo | null): string {
   const parts: string[] = []
   if (status?.limit) {

@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -61,10 +62,8 @@ func PlanTidy(ctx context.Context, repoPath string) (TidyPlan, error) {
 	}
 	var candidates []string
 	def := defaultBranch(list.branches, originHead(ctx, repoPath))
-	for _, b := range list.branches {
-		if b.Current && b.Upstream != "" && !list.goneUpstream[b.Name] && b.Ahead > 0 {
-			candidates = append(candidates, b.Upstream)
-		}
+	if b, ok := list.current(); ok && b.Ahead > 0 && list.upstream(b) != "" {
+		candidates = append(candidates, b.Upstream)
 	}
 	if def != "" {
 		candidates = append(candidates, def)
@@ -82,7 +81,7 @@ func PlanTidy(ctx context.Context, repoPath string) (TidyPlan, error) {
 			return plan, err
 		}
 		if count > tidyFallbackCommits {
-			plan.Base = strings.TrimSpace(mustRev(ctx, repoPath, fmt.Sprintf("HEAD~%d", tidyFallbackCommits)))
+			plan.Base, _ = ResolveCommit(ctx, repoPath, fmt.Sprintf("HEAD~%d", tidyFallbackCommits))
 			plan.BaseName = plan.Base[:min(7, len(plan.Base))]
 		}
 	}
@@ -93,12 +92,12 @@ func PlanTidy(ctx context.Context, repoPath string) (TidyPlan, error) {
 	return plan, err
 }
 
-func mustRev(ctx context.Context, repoPath, rev string) string {
-	result, err := runResult(ctx, repoPath, "rev-parse", "--verify", rev)
-	if err != nil {
-		return ""
+func (plan TidyPlan) messages() map[string]string {
+	messages := make(map[string]string, len(plan.Commits))
+	for _, commit := range plan.Commits {
+		messages[commit.SHA] = commit.Message
 	}
-	return result.Stdout
+	return messages
 }
 
 func tidyRange(plan TidyPlan) string {
@@ -184,12 +183,12 @@ func validateTidy(plan TidyPlan, steps []TidyStep) error {
 		known[commit.SHA] = true
 	}
 	if len(steps) != len(known) {
-		return fmt.Errorf("the steps don't match the branch's commits")
+		return errors.New("the steps don't match the branch's commits")
 	}
 	seen, kept := map[string]bool{}, 0
 	for _, step := range steps {
 		if !known[step.SHA] || seen[step.SHA] {
-			return fmt.Errorf("the steps don't match the branch's commits")
+			return errors.New("the steps don't match the branch's commits")
 		}
 		seen[step.SHA] = true
 		switch step.Action {
@@ -197,18 +196,18 @@ func validateTidy(plan TidyPlan, steps []TidyStep) error {
 			kept++
 		case TidySquash, TidyFixup:
 			if kept == 0 {
-				return fmt.Errorf("the first commit kept has nothing to fold into")
+				return errors.New("the first commit kept has nothing to fold into")
 			}
 		case TidyDrop:
 		default:
 			return fmt.Errorf("unknown action: %s", step.Action)
 		}
 		if step.Action == TidyReword && strings.TrimSpace(step.Message) == "" {
-			return fmt.Errorf("a reworded commit needs a message")
+			return errors.New("a reworded commit needs a message")
 		}
 	}
 	if kept == 0 {
-		return fmt.Errorf("at least one commit has to stay")
+		return errors.New("at least one commit has to stay")
 	}
 	return nil
 }
@@ -237,10 +236,7 @@ func PreviewTidy(ctx context.Context, repoPath string, steps []TidyStep) (TidyPr
 		return TidyPreview{}, err
 	}
 	preview := TidyPreview{Predicted: true}
-	messages := map[string]string{}
-	for _, commit := range plan.Commits {
-		messages[commit.SHA] = commit.Message
-	}
+	messages := plan.messages()
 	var picked []string
 	for _, step := range steps {
 		if step.Action == TidyDrop {
@@ -271,24 +267,13 @@ func PreviewTidy(ctx context.Context, repoPath string, steps []TidyStep) (TidyPr
 	if err != nil {
 		return preview, err
 	}
-	for _, b := range list.branches {
-		if b.Current && b.Upstream != "" && !list.goneUpstream[b.Name] {
-			preview.Upstream = b.Upstream
-		}
+	if b, ok := list.current(); ok {
+		preview.Upstream = list.upstream(b)
 	}
-	if preview.Upstream != "" && tidyChanges(plan, steps) {
+	if preview.Upstream != "" {
 		preview.ForcePush = firstChangedOnUpstream(ctx, repoPath, plan, steps, preview.Upstream)
 	}
 	return preview, nil
-}
-
-func tidyChanges(plan TidyPlan, steps []TidyStep) bool {
-	for i, step := range steps {
-		if step.Action != TidyKeep || step.SHA != plan.Commits[i].SHA {
-			return true
-		}
-	}
-	return false
 }
 
 // A rewrite keeps commits before the first change, so only what follows it counts.
@@ -306,11 +291,8 @@ func firstChangedOnUpstream(ctx context.Context, repoPath string, plan TidyPlan,
 // conflict can come before them, and Continue, possibly after a restart, has no
 // editor to answer. Every commit's line is present, so rebase.missingCommitsCheck
 // has nothing to object to.
-func tidyTodo(plan TidyPlan, steps []TidyStep, messageDir string) (string, map[string]string, error) {
-	messages := map[string]string{}
-	for _, commit := range plan.Commits {
-		messages[commit.SHA] = commit.Message
-	}
+func tidyTodo(plan TidyPlan, steps []TidyStep, messageDir string) (string, map[string]string) {
+	messages := plan.messages()
 	var todo strings.Builder
 	files := map[string]string{}
 	flush := func(group []TidyStep) {
@@ -348,7 +330,7 @@ func tidyTodo(plan TidyPlan, steps []TidyStep, messageDir string) (string, map[s
 		}
 	}
 	flush(group)
-	return todo.String(), files, nil
+	return todo.String(), files
 }
 
 func shellQuote(text string) string {
@@ -369,13 +351,13 @@ func RunTidy(ctx context.Context, repoPath, expectedHead string, steps []TidySte
 		return err
 	}
 	if plan.Head != expectedHead {
-		return fmt.Errorf("the branch has moved since this was opened. Open it again")
+		return errors.New("the branch has moved since this was opened. Open it again")
 	}
 	if plan.HasMerges {
-		return fmt.Errorf("these commits include a merge, which a rewrite would flatten")
+		return errors.New("these commits include a merge, which a rewrite would flatten")
 	}
 	if plan.Dirty {
-		return fmt.Errorf("commit or stash the changes in the working tree first")
+		return errors.New("commit or stash the changes in the working tree first")
 	}
 	if err := validateTidy(plan, steps); err != nil {
 		return err
@@ -384,9 +366,6 @@ func RunTidy(ctx context.Context, repoPath, expectedHead string, steps []TidySte
 	if err != nil {
 		return err
 	}
-	if !filepath.IsAbs(gitDir) {
-		gitDir = filepath.Join(repoPath, gitDir)
-	}
 	messageDir := filepath.Join(gitDir, "current-client-tidy")
 	if err := os.RemoveAll(messageDir); err != nil {
 		return err
@@ -394,10 +373,7 @@ func RunTidy(ctx context.Context, repoPath, expectedHead string, steps []TidySte
 	if err := os.MkdirAll(messageDir, 0o755); err != nil {
 		return err
 	}
-	todo, files, err := tidyTodo(plan, steps, messageDir)
-	if err != nil {
-		return err
-	}
+	todo, files := tidyTodo(plan, steps, messageDir)
 	for name, content := range files {
 		if err := os.WriteFile(name, []byte(content), 0o644); err != nil {
 			return err

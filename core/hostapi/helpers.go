@@ -3,7 +3,21 @@ package hostapi
 import (
 	"bytes"
 	"errors"
+	"net/http"
 )
+
+// StatusOf is the status of a HostError, or 0 for any other error.
+func StatusOf(err error) int {
+	var hostErr *HostError
+	if errors.As(err, &hostErr) {
+		return hostErr.Status
+	}
+	return 0
+}
+
+func IsNotFound(err error) bool {
+	return StatusOf(err) == http.StatusNotFound
+}
 
 // WithScope names the token scope a refused request needed, so a 403 can
 // say which one to add.

@@ -19,7 +19,6 @@ import (
 
 const ReleasesURL = "https://github.com/gspeager/current-client/releases"
 
-// States of a check.
 const (
 	UpToDate  = "up-to-date"
 	Newer     = "newer"
@@ -28,7 +27,6 @@ const (
 	Unchecked = ""
 )
 
-// Result compares the running version with the newest published release.
 // ReleasedAt is the release's date when the feed gave it, else "".
 type Result struct {
 	State      string `json:"state"`

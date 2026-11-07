@@ -45,14 +45,14 @@ type MergeResult struct {
 // MergeConflicts merges two commits in memory, without touching the working
 // tree or index, and returns the files that would conflict.
 func MergeConflicts(ctx context.Context, repoPath, ours, theirs string) ([]string, error) {
-	merge, err := mergeTreePair(ctx, repoPath, ours, theirs)
+	merge, err := mergeTree(ctx, repoPath, ours, theirs)
 	return merge.Files, err
 }
 
-func mergeTreePair(ctx context.Context, repoPath, ours, theirs string) (MergeResult, error) {
+func mergeTree(ctx context.Context, repoPath string, args ...string) (MergeResult, error) {
 	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
 		Dir:  repoPath,
-		Args: []string{"merge-tree", "--write-tree", "--name-only", "--no-messages", "-z", ours, theirs},
+		Args: append([]string{"merge-tree", "--write-tree", "--name-only", "--no-messages", "-z"}, args...),
 	})
 	if err != nil {
 		return MergeResult{}, gitexec.WrapRunError(err)
@@ -117,7 +117,7 @@ func conflictsOf(merges []MergeResult) [][]string {
 func mergePairsEach(ctx context.Context, repoPath string, pairs [][2]string) ([]MergeResult, error) {
 	merges := make([]MergeResult, len(pairs))
 	for i, pair := range pairs {
-		merge, err := mergeTreePair(ctx, repoPath, pair[0], pair[1])
+		merge, err := mergeTree(ctx, repoPath, pair[0], pair[1])
 		if errors.Is(err, ErrUnrelatedHistories) {
 			merge = MergeResult{Unrelated: true}
 		} else if err != nil {
@@ -128,7 +128,6 @@ func mergePairsEach(ctx context.Context, repoPath string, pairs [][2]string) ([]
 	return merges, nil
 }
 
-// mergeTreeBatch merges every pair in one merge-tree process.
 func mergeTreeBatch(ctx context.Context, repoPath string, pairs [][2]string) ([]MergeResult, error) {
 	var input strings.Builder
 	for _, pair := range pairs {

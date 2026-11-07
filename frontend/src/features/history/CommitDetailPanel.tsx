@@ -15,7 +15,6 @@ import {
   type CommitInfo,
   HistoryService,
   type IdentityInfo,
-  PlatformService,
   HostService,
   type CIMark as CIMarkInfo,
 } from '@current-client-bindings/app'
@@ -33,9 +32,10 @@ import ChangedFileRow from './ChangedFileRow'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import ReferenceText from '../../components/git/ReferenceText'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
-import { filePage } from '../../lib/hostPages'
+import { filePage, openWebPage } from '../../lib/hostPages'
 import { EnvironmentReach } from '../../components/git/EnvironmentMarker'
 import { CIIcon, ciLabel, PipelineJobList } from '../../components/git/CIMark'
+import { shortSha } from '../../lib/text'
 import './CommitDetailPanel.scss'
 
 interface CommitDetailPanelProps {
@@ -55,7 +55,6 @@ interface CommitDetailPanelProps {
   onOpenFile?: (path: string) => void
   // Unresolved review threads per file.
   threadCounts?: Record<string, number | undefined>
-  // The commit's pipeline result, when the host reported one.
   ci?: CIMarkInfo
   // Opens the Checks section, as a job clicked in the CI mark's list does.
   checksOpen?: boolean
@@ -109,7 +108,7 @@ function CommitDetailPanel({
         ? [
             {
               label: 'Open on host',
-              onClick: () => void PlatformService.OpenWebPage(filePage(hostLinks, commit.sha, f.path)),
+              onClick: () => openWebPage(filePage(hostLinks, commit.sha, f.path)),
             },
           ]
         : []),
@@ -121,7 +120,7 @@ function CommitDetailPanel({
         <div className="commit-detail-header">
           <GitCommitVertical size={16} strokeWidth={1.75} className="commit-detail-title-icon" />
           <span className="commit-detail-title">Commit detail</span>
-          <span className="commit-detail-sha">{commit.sha.slice(0, 7)}</span>
+          <span className="commit-detail-sha">{shortSha(commit.sha)}</span>
           <button
             type="button"
             className="commit-detail-copy-sha"
@@ -215,9 +214,7 @@ function CommitDetailPanel({
         <FactList>
           <Fact label="Committed">{relativeTime(new Date(commit.date))}</Fact>
           <Fact label="Parent" className="fact-list-data">
-            {commit.parentShas.length > 0
-              ? commit.parentShas.map((p) => p.slice(0, 7)).join(', ')
-              : 'None (root commit)'}
+            {commit.parentShas.length > 0 ? commit.parentShas.map((p) => shortSha(p)).join(', ') : 'None (root commit)'}
           </Fact>
           <Fact label="On branches" className="fact-list-data">
             <span title={branches?.join(', ')}>
@@ -253,7 +250,7 @@ function CommitDetailPanel({
           {changedFiles && <span className="commit-detail-section-count">{plural(changedFiles.length, 'file')}</span>}
         </div>
         {commit.parentShas.length > 1 && (
-          <p className="commit-detail-hint">Compared with the first parent, {commit.parentShas[0].slice(0, 7)}.</p>
+          <p className="commit-detail-hint">Compared with the first parent, {shortSha(commit.parentShas[0])}.</p>
         )}
         {changedFilesError ? (
           <p className="commit-detail-error">Could not load changed files: {changedFilesError}</p>

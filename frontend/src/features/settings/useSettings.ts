@@ -34,8 +34,6 @@ export function useSettings() {
       .finally(() => SettingsService.TakeSettingsResetNotice().then(setResetNotice, () => undefined))
   }, [])
 
-  // Applies the theme to the Current Client root and the window's title bar, and follows
-  // OS changes live while "system" is selected.
   useEffect(() => {
     if (!root || theme === undefined) return
     const apply = () => applyTheme(root, theme, active)

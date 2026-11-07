@@ -145,6 +145,26 @@
   }
 }
 
+// A row in a context or split-button menu.
+@mixin menu-item {
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+
+  @include disabled;
+}
+
 // Callers set the height.
 @mixin secondary-button {
   padding: 0 var(--space-sm);
@@ -165,11 +185,12 @@
 }
 
 @mixin tab-close {
+  @include hit-target(4px);
+
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  position: relative;
   width: var(--h-micro);
   height: var(--h-micro);
   padding: 0;
@@ -177,14 +198,6 @@
   border: none;
   border-radius: var(--radius-xs);
   color: var(--outline);
-
-  // A bigger target than the mark it wraps.
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -4px;
-  }
-
   cursor: pointer;
 
   &:hover {
@@ -203,4 +216,55 @@
     background: var(--surface-low);
     box-shadow: inset 2px 0 0 0 var(--outline-variant);
   }
+}
+
+// The small outlined button in panel headers and rows. Callers set the color.
+@mixin micro-button($height: var(--h-micro)) {
+  height: $height;
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  cursor: pointer;
+}
+
+// Leaves room on the left for a 14px search icon, which the caller positions.
+@mixin search-field {
+  width: 100%;
+  height: var(--h-field);
+  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+// A sidebar panel's empty-state line, error line and row list.
+@mixin panel-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+@mixin panel-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+@mixin panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }

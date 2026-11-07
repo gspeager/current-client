@@ -11,8 +11,6 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// ErrFileTooLarge is returned instead of reading a file bigger than the
-// caller's limit.
 var ErrFileTooLarge = errors.New("file is too large to read")
 
 // ReadRevisionFile reads path as it is at rev (any commit-ish), or in the
@@ -25,7 +23,7 @@ func ReadRevisionFile(ctx context.Context, repoPath, rev, path string, maxBytes 
 	if size > maxBytes {
 		return nil, true, ErrFileTooLarge
 	}
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "blob", rev + ":" + path}})
+	result, err := gitexec.RunIn(ctx, repoPath, "cat-file", "blob", rev+":"+path)
 	if err != nil {
 		return nil, true, err
 	}
@@ -36,7 +34,7 @@ func ReadRevisionFile(ctx context.Context, repoPath, rev, path string, maxBytes 
 // when rev is "". found is false when path doesn't exist there; cat-file fails
 // the same way for a missing path and a missing rev.
 func RevisionFileSize(ctx context.Context, repoPath, rev, path string) (size int64, found bool) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "-s", rev + ":" + path}})
+	result, err := gitexec.RunIn(ctx, repoPath, "cat-file", "-s", rev+":"+path)
 	if err != nil {
 		return 0, false
 	}

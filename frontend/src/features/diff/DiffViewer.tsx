@@ -14,6 +14,7 @@ import SubmoduleDiff from './SubmoduleDiff'
 import { submoduleChange } from './submoduleChange'
 import { buildDisplayRows, diffStats } from './diffRows'
 import { conflictRows, type ConflictView } from './conflictRows'
+import { formatSize } from './fileSize'
 import DiffPane, { lineKey, lineRef, type HunkActions } from './DiffPane'
 import ReviewThreadBlock from './ReviewThreadBlock'
 import DiffMinimap from './DiffMinimap'
@@ -30,15 +31,33 @@ import { useRovingRows } from '../../lib/useRovingRows'
 import { NARROW_SPLIT_WIDTH, useWindowNarrowerThan } from '../../lib/useWindowNarrowerThan'
 import './DiffViewer.scss'
 
-function formatMegabytes(bytes: number): string {
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
 interface DiffSideLabel {
   label: string
   sha?: string
   // A branch's lane color, where the side is a branch.
   color?: string
+}
+
+// The base side counts its removed lines, the target its added ones.
+function SideHeader({ side, which, count }: { side: DiffSideLabel; which: 'base' | 'target'; count?: number }) {
+  const change = which === 'base' ? 'removed' : 'added'
+  return (
+    <div className="diff-side-header">
+      <span
+        className={`diff-side-header-dot diff-side-header-dot-${which}`}
+        style={side.color ? { background: side.color } : undefined}
+      />
+      <span className="diff-side-header-label">
+        {side.label}
+        {side.sha && <span className="diff-side-header-sha">{side.sha}</span>}
+      </span>
+      {count !== undefined && (
+        <span className={`diff-side-header-count diff-side-header-count-${change}`}>
+          {count} {change}
+        </span>
+      )}
+    </div>
+  )
 }
 
 interface DiffViewerProps extends HunkActions {
@@ -149,7 +168,8 @@ function DiffViewer({
     setComposer(null)
   }, [diff])
 
-  const goToBlock = (index: number) => {
+  const stepBlock = (step: number) => {
+    const index = Math.min(blocks.blockStarts.length - 1, Math.max(0, currentBlock + step))
     setCurrentBlock(index)
     paneRef.current?.querySelectorAll('.diff-conflict-block-start')[index]?.scrollIntoView({ block: 'center' })
   }
@@ -194,11 +214,7 @@ function DiffViewer({
     if (diff.conflicted) {
       if (blocks.blockStarts.length === 0) return
       e.preventDefault()
-      goToBlock(
-        forward
-          ? Math.min(blocks.blockStarts.length - 1, currentBlock + 1)
-          : Math.max(0, currentBlock - 1),
-      )
+      stepBlock(forward ? 1 : -1)
       return
     }
     const total = diff.hunks.length
@@ -271,7 +287,7 @@ function DiffViewer({
       <div>
         {summaryToggle}
         <p className="diff-empty-state">
-          This file is large ({formatMegabytes(diff.sizeBytes)}) — the diff wasn't loaded automatically.{' '}
+          This file is large ({formatSize(diff.sizeBytes)}) — the diff wasn't loaded automatically.{' '}
           {onForceLoad && (
             <button type="button" className="diff-empty-state-action" onClick={onForceLoad}>
               Load anyway
@@ -384,32 +400,8 @@ function DiffViewer({
       )}
       {mode === 'split' && baseSide && targetSide && (
         <div className="diff-side-headers">
-          <div className="diff-side-header">
-            <span
-              className="diff-side-header-dot diff-side-header-dot-base"
-              style={baseSide.color ? { background: baseSide.color } : undefined}
-            />
-            <span className="diff-side-header-label">
-              {baseSide.label}
-              {baseSide.sha && <span className="diff-side-header-sha">{baseSide.sha}</span>}
-            </span>
-            {!diff.conflicted && (
-              <span className="diff-side-header-count diff-side-header-count-removed">{stats.removed} removed</span>
-            )}
-          </div>
-          <div className="diff-side-header">
-            <span
-              className="diff-side-header-dot diff-side-header-dot-target"
-              style={targetSide.color ? { background: targetSide.color } : undefined}
-            />
-            <span className="diff-side-header-label">
-              {targetSide.label}
-              {targetSide.sha && <span className="diff-side-header-sha">{targetSide.sha}</span>}
-            </span>
-            {!diff.conflicted && (
-              <span className="diff-side-header-count diff-side-header-count-added">{stats.added} added</span>
-            )}
-          </div>
+          <SideHeader side={baseSide} which="base" count={diff.conflicted ? undefined : stats.removed} />
+          <SideHeader side={targetSide} which="target" count={diff.conflicted ? undefined : stats.added} />
         </div>
       )}
       <div
@@ -483,7 +475,7 @@ function DiffViewer({
           </span>
           <button
             type="button"
-            onClick={() => goToBlock(Math.max(0, currentBlock - 1))}
+            onClick={() => stepBlock(-1)}
             disabled={currentBlock === 0}
             aria-label="Previous block"
             title="Previous block"
@@ -492,7 +484,7 @@ function DiffViewer({
           </button>
           <button
             type="button"
-            onClick={() => goToBlock(Math.min(blocks.blockStarts.length - 1, currentBlock + 1))}
+            onClick={() => stepBlock(1)}
             disabled={currentBlock >= blocks.blockStarts.length - 1}
             aria-label="Next block"
             title="Next block"

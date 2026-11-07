@@ -1,14 +1,14 @@
 import IdentityBadge from '../../components/git/IdentityBadge'
-import { useNameIdentities } from '../../lib/useNameIdentities'
+import { hostUserName, useNameIdentities } from '../../lib/useNameIdentities'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { CircleCheck, CircleDot, GitBranch, GitBranchPlus } from 'lucide-react'
-import { BranchService, HostService, PlatformService } from '@current-client-bindings/app'
+import { BranchService, HostService } from '@current-client-bindings/app'
 import { Fact, FactList } from '../../components/chrome/FactList'
 import HostMarkdown from '../../components/git/HostMarkdown'
 import LabelChip from '../../components/git/LabelChip'
 import { taskProgress } from './taskProgress'
 import { issueBranchName } from '../../lib/branchName'
-import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import { useNewIssue } from '../../lib/issuePanel'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
@@ -17,6 +17,8 @@ import './IssuePanel.scss'
 import { hostLogo, issueProvider } from '../../components/git/hostLogos'
 import { useHostLinks } from '../../lib/useHostLinks'
 import ChangeStateLabel from './ChangeStateLabel'
+import DialogError from '../../components/chrome/DialogError'
+import { useActionError } from '../../lib/useActionError'
 
 interface IssueDetailProps {
   repoPath: string
@@ -43,7 +45,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
   const canWrite = !!useNewIssue()
   const [comment, setComment] = useState('')
   const [running, setRunning] = useState<'comment' | 'state' | 'branch' | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const issue = data?.issue
   const writable = canWrite && !!data?.writable
   const closed = issue?.state === 'closed'
@@ -54,7 +56,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
     setActionError(null)
     request()
       .then(after)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setRunning(null))
   }
   const submitComment = (e: FormEvent) => {
@@ -84,9 +86,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
   }
 
   const identities = useNameIdentities(
-    [data?.issue.author, ...(data?.comments ?? []).map((c) => c.author)].flatMap((a) =>
-      a ? [a.name || a.username] : [],
-    ),
+    [data?.issue.author, ...(data?.comments ?? []).map((c) => c.author)].flatMap((a) => (a ? [hostUserName(a)] : [])),
     repoPath,
   )
   return (
@@ -110,7 +110,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
             <button
               type="button"
               className="host-change-button host-change-button-quiet"
-              onClick={() => PlatformService.OpenWebPage(issue.webUrl).catch(ignoreDecorativeFailure)}
+              onClick={() => openWebPage(issue.webUrl)}
               disabled={!issue.webUrl}
             >
               <HostIcon size={14} strokeWidth={1.75} />
@@ -121,11 +121,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
         {headerAccessory}
       </header>
       <div className="issue-panel-body">
-        {error && (
-          <p className="dialog-error" role="alert">
-            Could not load the issue: {error}
-          </p>
-        )}
+        {error && <DialogError>Could not load the issue: {error}</DialogError>}
         {!data && !error && <p className="issue-panel-hint">Loading…</p>}
         {data && issue && (
           <div className="issue-panel-columns">
@@ -137,33 +133,26 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
               )}
               <section className="issue-panel-comments" aria-label="Comments">
                 <h4 className="issue-panel-comments-title">{plural(data.comments.length, 'comment')}</h4>
-                {data.comments.map((c, i) => (
-                  <article key={i} className="issue-panel-comment">
-                    <p className="issue-panel-comment-head">
-                      {identities.get(c.author.name || c.author.username) && (
-                        <IdentityBadge
-                          identity={identities.get(c.author.name || c.author.username)!}
-                          name={c.author.name || c.author.username}
-                          email=""
-                          size={20}
-                        />
-                      )}
-                      <span className="issue-panel-comment-author">
-                        {identities.get(c.author.name || c.author.username)?.displayName ??
-                          (c.author.name || c.author.username)}
-                      </span>
-                      <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
-                    </p>
-                    <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
-                  </article>
-                ))}
+                {data.comments.map((c, i) => {
+                  const name = hostUserName(c.author)
+                  const identity = identities.get(name)
+                  return (
+                    <article key={i} className="issue-panel-comment">
+                      <p className="issue-panel-comment-head">
+                        {identity && <IdentityBadge identity={identity} name={name} email="" size={20} />}
+                        <span className="issue-panel-comment-author">{identity?.displayName ?? name}</span>
+                        <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
+                      </p>
+                      <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
+                    </article>
+                  )
+                })}
               </section>
             </div>
             <div className="issue-panel-aside">
               <FactList>
                 <Fact label="Author">
-                  {identities.get(issue.author.name || issue.author.username)?.displayName ??
-                    (issue.author.name || issue.author.username)}
+                  {identities.get(hostUserName(issue.author))?.displayName ?? hostUserName(issue.author)}
                 </Fact>
                 <Fact label="Opened">{relativeTime(new Date(issue.createdAt))}</Fact>
                 {issue.milestone && <Fact label="Milestone">{issue.milestone}</Fact>}

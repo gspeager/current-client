@@ -113,9 +113,9 @@ function RepositoryHealth({ repoPath, repoVersion, dirty, changedCount = 0, hasC
               {!hasConflict && dirty && changedCount > 0 ? (
                 <span className="repo-health-value repo-health-value-warn">{changedCount}</span>
               ) : hasConflict ? (
-                <X className="repo-health-icon repo-health-icon-warn" size={16} strokeWidth={2} />
+                <X className="repo-health-icon-warn" size={16} strokeWidth={2} />
               ) : (
-                !dirty && <Check className="repo-health-icon repo-health-icon-ok" size={16} strokeWidth={2} />
+                !dirty && <Check className="repo-health-icon-ok" size={16} strokeWidth={2} />
               )}
             </div>
 

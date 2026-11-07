@@ -12,21 +12,16 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { noteMenuLabel, useNotes } from '../notes/notes'
-import {
-  BranchService,
-  type CommitInfo,
-  CommitService,
-  PatchService,
-  PlatformService,
-} from '@current-client-bindings/app'
+import { BranchService, type CommitInfo, CommitService, PatchService } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
-import { commitPage } from '../../lib/hostPages'
+import { commitPage, openWebPage } from '../../lib/hostPages'
 import { suggestedPatchFilename } from '../../lib/patchFilename'
 import { useDialogs } from '../../lib/useDialogs'
 import ResetDialog, { type ResetMode } from './ResetDialog'
 import { hostLogo } from '../../components/git/hostLogos'
+import { shortSha } from '../../lib/text'
 
 export interface CommitAction {
   id: string
@@ -62,7 +57,7 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
   const checkoutCommit = async (sha: string) => {
     const confirmed = await confirm({
       title: 'Check out commit',
-      message: `Check out ${sha.slice(0, 7)}? HEAD will be detached: new commits won't be on any branch unless one is created from them. Switch to a branch to leave.`,
+      message: `Check out ${shortSha(sha)}? HEAD will be detached: new commits won't be on any branch unless one is created from them. Switch to a branch to leave.`,
       confirmLabel: 'Check out',
     })
     if (confirmed) run(BranchService.CheckoutCommit(repoPath, sha), 'Could not check out')
@@ -71,7 +66,7 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
   const createBranchFrom = async (sha: string) => {
     const name = await prompt({
       title: 'New branch',
-      label: `Branch name (from ${sha.slice(0, 7)})`,
+      label: `Branch name (from ${shortSha(sha)})`,
       confirmLabel: 'Create',
       transform: toBranchName,
     })
@@ -139,7 +134,7 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
             id: 'open-on-host',
             label: 'Open on host',
             icon: hostLogo(hostLinks.style),
-            run: () => void PlatformService.OpenWebPage(commitPage(hostLinks, commit.sha)),
+            run: () => openWebPage(commitPage(hostLinks, commit.sha)),
           },
         ]
       : []),

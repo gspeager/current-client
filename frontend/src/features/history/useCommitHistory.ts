@@ -43,9 +43,9 @@ export function useCommitHistory(
       })
   }
 
-  const loadMore = (skip: number, isDone: boolean) => {
-    if (loading || isDone) return
-    fetchPage(skip, PAGE_SIZE)
+  const loadMore = () => {
+    if (loading || done) return
+    fetchPage(commits.length, PAGE_SIZE)
   }
 
   // Loads every commit down to a row a jump has asked for.

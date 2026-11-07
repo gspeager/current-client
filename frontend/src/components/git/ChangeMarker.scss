@@ -29,7 +29,7 @@
 .change-marker-square {
   width: 8px;
   height: 8px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   border: 1.5px solid var(--secondary);
 
   [data-state='open'] & {

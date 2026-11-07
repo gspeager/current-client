@@ -187,35 +187,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
-
-  > button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-    height: var(--h-field);
-    padding: 0 var(--space-sm);
-    background: none;
-    border: var(--border-structure);
-    border-radius: var(--radius);
-    color: var(--on-surface-variant);
-    font: var(--ui-sm);
-    cursor: pointer;
-
-    &:hover {
-      background: var(--surface-container);
-      color: var(--on-surface);
-    }
-  }
 }
 
-.commit-detail-more > summary {
-  list-style: none;
-
-  &::-webkit-details-marker {
-    display: none;
-  }
-}
-
+.commit-detail-actions > button,
 .commit-detail-more-toggle {
   display: inline-flex;
   align-items: center;
@@ -232,6 +206,14 @@
   &:hover {
     background: var(--surface-container);
     color: var(--on-surface);
+  }
+}
+
+.commit-detail-more > summary {
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
   }
 }
 

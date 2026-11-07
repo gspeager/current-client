@@ -1,6 +1,6 @@
 import { RemoteService, type PushWarning } from '@current-client-bindings/app'
 
-export type RemoteAction = 'push' | 'force-push' | 'delete'
+type RemoteAction = 'push' | 'force-push' | 'delete'
 
 // What the host forbids on the branch, for the confirmation before the
 // action; null when the rule doesn't touch this action. The host still

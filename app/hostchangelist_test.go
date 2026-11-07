@@ -92,7 +92,7 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	repo, hostname, _ := hostedRemote(t)
 	gitIn(t, repo, "switch", "-q", "-c", "feature")
 	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "on the merge request")
-	headSHA := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	headSHA := gitOut(t, repo, "rev-parse", "HEAD")
 	gitIn(t, repo, "push", "-q", "origin", "feature:refs/merge-requests/3/head")
 	gitIn(t, repo, "switch", "-q", "main")
 	gitIn(t, repo, "branch", "-q", "-D", "feature")
@@ -112,10 +112,10 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	if err != nil || result.Branch != "feature" || result.Existed {
 		t.Fatalf("CheckoutChange = %+v, %v", result, err)
 	}
-	if got := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "--abbrev-ref", "HEAD"))); got != "feature" {
+	if got := gitOut(t, repo, "rev-parse", "--abbrev-ref", "HEAD"); got != "feature" {
 		t.Fatalf("HEAD is %s", got)
 	}
-	if got := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "refs/current-client/hosts/origin/mr/3"))); got != headSHA {
+	if got := gitOut(t, repo, "rev-parse", "refs/current-client/hosts/origin/mr/3"); got != headSHA {
 		t.Fatalf("fetched head = %s, want %s", got, headSHA)
 	}
 	again, err := s.CheckoutChange(context.Background(), repo, 3, nil)
@@ -143,7 +143,7 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	if err := s.SetEnabled(hostname, false); err != nil {
 		t.Fatal(err)
 	}
-	if out := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "refs/current-client"))); out != "" {
+	if out := gitOut(t, repo, "for-each-ref", "refs/current-client"); out != "" {
 		t.Fatalf("turning the host off left fetched heads:\n%s", out)
 	}
 }
@@ -164,7 +164,7 @@ func TestChangeDependencySummariesReadsOnlyWhatIsHere(t *testing.T) {
 	gitIn(t, repo, "fetch", "-q", "origin")
 	gitIn(t, repo, "switch", "-q", "-c", "feature")
 	write(`{"dependencies":{"a":"1.1.0"}}`)
-	headSHA := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	headSHA := gitOut(t, repo, "rev-parse", "HEAD")
 	gitIn(t, repo, "switch", "-q", "main")
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{hostname: {Provider: "gitlab", Enabled: true}}
@@ -199,15 +199,6 @@ func TestChangeDependencySummariesReadsOnlyWhatIsHere(t *testing.T) {
 	if info, err = s.ChangeDependencySummaries(repo, 3, files); err != nil || info.HeadAvailable {
 		t.Fatalf("with a head that moved = %+v, %v", info, err)
 	}
-}
-
-func mustOutput(t *testing.T, dir string, args ...string) []byte {
-	t.Helper()
-	out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).Output()
-	if err != nil {
-		t.Fatalf("git %v: %v", args, err)
-	}
-	return out
 }
 
 func TestClosedChangesFilesCommitsAndThreadsAreAskedOnceUntilARefresh(t *testing.T) {

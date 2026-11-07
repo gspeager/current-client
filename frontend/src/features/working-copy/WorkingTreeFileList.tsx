@@ -77,7 +77,7 @@ function fileExtension(path: string): string | null {
   return dot > 0 ? name.slice(dot + 1) : null
 }
 
-// A partially staged file is in both sections, so a selected row is keyed by both.
+// A partially staged file is in both sections, so a row is keyed by both.
 function rowKey(section: WorkingTreeSection, path: string): string {
   return `${section}:${path}`
 }
@@ -124,7 +124,7 @@ function WorkingTreeFileList({
     mergeMode && section === 'staged' ? 'Resolved' : SECTION_LABEL[section]
 
   const toggleFolder = (section: WorkingTreeSection, path: string) =>
-    setCollapsedFolders((prev) => toggled(prev, `${section}:${path}`))
+    setCollapsedFolders((prev) => toggled(prev, rowKey(section, path)))
 
   const query = filter.trim().toLowerCase()
   const filtered = useMemo(() => {
@@ -142,7 +142,7 @@ function WorkingTreeFileList({
       if (viewMode === 'flat') {
         return sectionFiles.map((file): ListRow => ({ kind: 'file', section, file, depth: 0 }))
       }
-      return buildFileTreeRows(sectionFiles, (path) => collapsedFolders.has(`${section}:${path}`)).map(
+      return buildFileTreeRows(sectionFiles, (path) => collapsedFolders.has(rowKey(section, path))).map(
         (row): ListRow =>
           row.kind === 'folder'
             ? { kind: 'folder', section, path: row.path, name: row.name, depth: row.depth }
@@ -355,7 +355,7 @@ function WorkingTreeFileList({
     }
 
     if (row.kind === 'folder') {
-      const collapsed = collapsedFolders.has(`${row.section}:${row.path}`)
+      const collapsed = collapsedFolders.has(rowKey(row.section, row.path))
       return (
         <button
           key={`folder-${row.section}-${row.path}`}
@@ -375,8 +375,7 @@ function WorkingTreeFileList({
     return (
       <FileRow
         notePath={f.path}
-        // A partially staged file appears in both sections.
-        key={`${row.section}-${f.path}`}
+        key={rowKey(row.section, f.path)}
         style={style}
         indent={row.depth * TREE_INDENT_PX}
         status={isStaged ? f.indexStatus : f.worktreeStatus}

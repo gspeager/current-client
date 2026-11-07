@@ -119,16 +119,8 @@ func TestCloneWithCancelledContextReturnsFriendlyError(t *testing.T) {
 // newBareRepoWithCommit stands in for a remote without touching the network.
 func newBareRepoWithCommit(t *testing.T) string {
 	t.Helper()
-
-	source := t.TempDir()
-	gittest.Run(t, source, "init")
-	gittest.Run(t, source, "config", "user.email", "test@example.com")
-	gittest.Run(t, source, "config", "user.name", "Test")
-	if err := os.WriteFile(filepath.Join(source, "README.md"), []byte("hello"), 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	gittest.Run(t, source, "add", "README.md")
-	gittest.Run(t, source, "commit", "-m", "initial commit")
+	source := gittest.InitRepo(t)
+	gittest.CommitFile(t, source, "README.md", "hello", "initial commit")
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
 	gittest.Run(t, "", "clone", "--bare", source, bareDir)
@@ -207,11 +199,9 @@ func TestOpenPathWithSpacesAndNonASCII(t *testing.T) {
 }
 
 func TestOpenSubmoduleOpensTheSubmodule(t *testing.T) {
-	lib := t.TempDir()
-	gittest.Run(t, "", "init", "-b", "main", lib)
-	gittest.Run(t, lib, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "--allow-empty", "-m", "lib")
-	parent := t.TempDir()
-	gittest.Run(t, "", "init", "-b", "main", parent)
+	lib := gittest.InitRepo(t)
+	gittest.Run(t, lib, "commit", "--allow-empty", "-m", "lib")
+	parent := gittest.InitRepo(t)
 	// Local file:// submodules are blocked by default since Git 2.38.1.
 	gittest.Run(t, parent, "-c", "protocol.file.allow=always", "submodule", "add", "file://"+filepath.ToSlash(lib), "lib")
 

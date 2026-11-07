@@ -17,9 +17,7 @@ var pngBytes = []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0x00, 0xff, 0
 func TestReadRevisionFileAtCommitAndIndex(t *testing.T) {
 	ctx := context.Background()
 	dir := gittest.InitRepo(t)
-	gittest.WriteFile(t, dir, "logo.png", string(pngBytes))
-	gittest.Run(t, dir, "add", "logo.png")
-	gittest.Run(t, dir, "commit", "-m", "add logo")
+	gittest.CommitFile(t, dir, "logo.png", string(pngBytes), "add logo")
 	edited := append([]byte{}, pngBytes...)
 	edited[len(edited)-1] = 0x01
 	gittest.WriteFile(t, dir, "logo.png", string(edited))

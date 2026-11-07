@@ -64,7 +64,7 @@ const ICONS: Record<string, LucideIcon> = {
   undeployed: Rocket,
 }
 
-export function targetOf(path: string, row: InboxRow): InboxTarget {
+function targetOf(path: string, row: InboxRow): InboxTarget {
   switch (row.kind) {
     case 'dirty':
     case 'operation':
@@ -98,6 +98,7 @@ const groupOf = (kind: string) => GROUPS.find((g) => g.kinds.includes(kind)) ?? 
 
 // What the row says, and why it is here.
 function describe(row: InboxRow): { subject: string; reason: string } {
+  const change = `${row.prefix}${row.number} ${row.title}`
   switch (row.kind) {
     case 'dirty':
       return { subject: plural(row.count, 'changed file'), reason: 'uncommitted' }
@@ -115,13 +116,13 @@ function describe(row: InboxRow): { subject: string; reason: string } {
     case 'conflict':
       return { subject: row.branch, reason: `would conflict in ${row.detail}` }
     case 'review':
-      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: 'review requested' }
+      return { subject: change, reason: 'review requested' }
     case 'changes-requested':
-      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: `changes requested by ${row.detail}` }
+      return { subject: change, reason: `changes requested by ${row.detail}` }
     case 'ci-failed':
-      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: 'CI failed' }
+      return { subject: change, reason: 'CI failed' }
     case 'undeployed':
-      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: `merged, not on ${row.detail} yet` }
+      return { subject: change, reason: `merged, not on ${row.detail} yet` }
     case 'assigned':
       return {
         subject: `${/^\d+$/.test(row.key) ? '#' : ''}${row.key} ${row.title}`,
@@ -129,8 +130,7 @@ function describe(row: InboxRow): { subject: string; reason: string } {
       }
     case 'todo':
       return {
-        subject:
-          row.number > 0 ? `${row.prefix}${row.number} ${row.title}` : row.key ? `#${row.key} ${row.title}` : row.title,
+        subject: row.number > 0 ? change : row.key ? `#${row.key} ${row.title}` : row.title,
         reason: row.detail,
       }
     default:
@@ -259,16 +259,17 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
         GROUPS.map((group) => {
           const rows = repo.rows.filter((row) => groupOf(row.kind) === group)
           if (rows.length === 0) return null
+          const tidyUp = group.name === 'Tidy up'
           return (
             <section
               key={group.name}
-              className={group.name === 'Tidy up' ? 'inbox-group inbox-group-quiet' : 'inbox-group'}
+              className={tidyUp ? 'inbox-group inbox-group-quiet' : 'inbox-group'}
               aria-label={`${repo.name}: ${group.name}`}
             >
               <h4 className="inbox-group-label">
                 {group.name}
                 <span className="inbox-group-count">{rows.length}</span>
-                {group.name === 'Tidy up' && (
+                {tidyUp && (
                   <button
                     type="button"
                     className="inbox-group-action"

@@ -28,6 +28,16 @@ var (
 	projectKey     = regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`)
 )
 
+// SiteHost is how the client names a tracker site: its host, with a port if
+// it has one.
+func SiteHost(site string) string {
+	u, err := url.Parse(site)
+	if err != nil {
+		return ""
+	}
+	return u.Host
+}
+
 // TrackerSite is the site address as the app keeps it: scheme and host
 // lowercased, no query or fragment, one trailing slash, so a Data Center
 // site under a path ("https://example.com/jira/") keeps its path.

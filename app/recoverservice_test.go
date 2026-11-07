@@ -98,7 +98,7 @@ func TestDeletingAnUnmergedBranchKeepsItsCommits(t *testing.T) {
 	repo := recoverRepo(t)
 	gitIn(t, repo, "switch", "-q", "-c", "unmerged")
 	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "only here")
-	tip := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	tip := gitOut(t, repo, "rev-parse", "HEAD")
 	gitIn(t, repo, "switch", "-q", "main")
 	gitIn(t, repo, "branch", "merged")
 
@@ -147,7 +147,7 @@ func TestSnapshotLimitAndRemoval(t *testing.T) {
 	if err := new(RepositoryService).RemoveRecentRepository(repo); err != nil {
 		t.Fatal(err)
 	}
-	if out := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "refs/current-client"))); out != "" {
+	if out := gitOut(t, repo, "for-each-ref", "refs/current-client"); out != "" {
 		t.Fatalf("removal left refs: %s", out)
 	}
 }

@@ -3,11 +3,9 @@
 package app
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/gspeager/current-client/core/hostapi/jira"
 	"github.com/gspeager/current-client/core/hostlink"
@@ -22,9 +20,9 @@ func (s *TrackerService) SetEnabled(site string, enabled bool) error {
 	if err != nil {
 		return err
 	}
-	name := jira.HostName(tracker)
+	name := hostlink.SiteHost(tracker.Site)
 	if _, managed := policy.Host(name); managed {
-		return fmt.Errorf("integration for %s is managed by your organization", name)
+		return fmt.Errorf("integration for %s is managed by organization policy", name)
 	}
 	if !enabled {
 		hostClient.Forget(name)
@@ -52,9 +50,9 @@ func (s *TrackerService) SaveToken(site, email, token string) error {
 		}
 		secret = email + ":" + secret
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
-	if err := trackerCredentials.Save(ctx, jira.HostName(tracker), secret); err != nil {
+	if err := trackerCredentials.Save(ctx, hostlink.SiteHost(tracker.Site), secret); err != nil {
 		return err
 	}
 	return setTrackerAccess(site, func(a *config.TrackerAccess) { a.HasToken = true })
@@ -65,9 +63,9 @@ func (s *TrackerService) RemoveToken(site string) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
-	if err := trackerCredentials.Remove(ctx, jira.HostName(tracker)); err != nil {
+	if err := trackerCredentials.Remove(ctx, hostlink.SiteHost(tracker.Site)); err != nil {
 		return err
 	}
 	return setTrackerAccess(site, func(a *config.TrackerAccess) { a.HasToken = false })
@@ -80,13 +78,13 @@ func (s *TrackerService) TestConnection(site string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	me, err := jira.New(hostClient, tracker).CurrentUser(ctx)
 	if err != nil {
 		return "", err
 	}
-	return "Signed in to " + jira.HostName(tracker) + " as " + me.Name + ".", nil
+	return "Signed in to " + hostlink.SiteHost(tracker.Site) + " as " + me.Name + ".", nil
 }
 
 func knownTracker(site string) (hostlink.Tracker, error) {
@@ -112,10 +110,10 @@ func setTrackerAccess(site string, change func(*config.TrackerAccess)) error {
 // forgetTracker drops what the client and Git's helper hold for a tracker
 // being removed.
 func forgetTracker(site string, hasToken bool) {
-	name := trackerHostName(site)
+	name := hostlink.SiteHost(site)
 	hostClient.Forget(name)
 	if hasToken {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := hostContext()
 		defer cancel()
 		trackerCredentials.Remove(ctx, name)
 	}

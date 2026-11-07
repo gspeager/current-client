@@ -1,6 +1,9 @@
 package identity
 
-import "fmt"
+import (
+	"fmt"
+	"maps"
+)
 
 // Color overrides are a map of IdentityKey to hex color. The functions return
 // a new map rather than changing the caller's.
@@ -37,11 +40,7 @@ func RemoveColorOverride(overrides map[string]string, key string) map[string]str
 	if _, ok := overrides[key]; !ok {
 		return overrides
 	}
-	colors := make(map[string]string, len(overrides)-1)
-	for k, v := range overrides {
-		if k != key {
-			colors[k] = v
-		}
-	}
+	colors := maps.Clone(overrides)
+	delete(colors, key)
 	return colors
 }

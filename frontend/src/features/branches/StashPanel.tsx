@@ -4,7 +4,6 @@ import { ArrowDownToLine, Download, Eye, Package, PackagePlus, X } from 'lucide-
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { StashService, type StashInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
-import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -12,6 +11,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import StashModal from './StashModal'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
+import { useActionError } from '../../lib/useActionError'
 import './StashPanel.scss'
 
 interface StashPanelProps {
@@ -32,7 +32,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
     reload: loadStashes,
   } = useAsyncData(() => StashService.ListStash(repoPath), [repoPath], { refreshKey })
   const { confirm } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
   const [newMessage, setNewMessage] = useState('')
   const [includeUntracked, setIncludeUntracked] = useState(false)
@@ -56,7 +56,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
         loadStashes()
         onStashChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const applyStash = (index: number) => {
@@ -64,7 +64,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
     setBusyIndex(index)
     StashService.StashApply(repoPath, index)
       .then(() => onStashChanged?.())
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 
@@ -76,7 +76,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
         loadStashes()
         onStashChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 
@@ -92,7 +92,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
     setBusyIndex(index)
     StashService.StashDrop(repoPath, index)
       .then(() => loadStashes())
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 

@@ -1,5 +1,6 @@
 import type { UndoPlanInfo } from '@current-client-bindings/app'
 import type { ConfirmOptions } from '../../lib/useDialogs'
+import { shortSha } from '../../lib/text'
 
 const commits = (n: number, one: string, many: string) => `${n} commit${n === 1 ? ` ${one}` : `s ${many}`}`
 
@@ -7,7 +8,7 @@ const undoTitle = (plan: UndoPlanInfo) => `Undo ${plan.operation === 'switch' ? 
 
 // What Undo would do, for its button: the operation and the commit it leaves.
 export function undoActionLabel(plan: UndoPlanInfo): string {
-  return plan.operation === 'switch' ? undoTitle(plan) : `${undoTitle(plan)} ${plan.from.slice(0, 7)}`
+  return plan.operation === 'switch' ? undoTitle(plan) : `${undoTitle(plan)} ${shortSha(plan.from)}`
 }
 
 export function undoConfirmOptions(plan: UndoPlanInfo): ConfirmOptions {
@@ -19,8 +20,8 @@ export function undoConfirmOptions(plan: UndoPlanInfo): ConfirmOptions {
       confirmLabel: title,
     }
   }
-  const to = plan.to.slice(0, 7)
-  const sentences = [`${plan.branch || 'HEAD'} moves from ${plan.from.slice(0, 7)} to ${to}.`]
+  const to = shortSha(plan.to)
+  const sentences = [`${plan.branch || 'HEAD'} moves from ${shortSha(plan.from)} to ${to}.`]
   if (plan.removed > 0) sentences.push(`${commits(plan.removed, 'leaves', 'leave')} the branch.`)
   if (plan.restored > 0) sentences.push(`${commits(plan.restored, 'comes', 'come')} back.`)
   sentences.push(plan.mode === 'soft' ? 'Their changes stay staged.' : 'Untracked files are kept.')

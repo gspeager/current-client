@@ -24,8 +24,8 @@ var renderer = goldmark.New(
 	goldmark.WithParserOptions(parser.WithASTTransformers(util.Prioritized(linkTransformer{}, 100))),
 )
 
-// RenderMarkdown returns HTML for source. Relative links are resolved against
-// webRoot, the host's web origin for the project, when one is given.
+// RenderMarkdown resolves relative links against webRoot, the host's web
+// origin for the project, when one is given.
 func RenderMarkdown(source, webRoot string) string {
 	var b bytes.Buffer
 	ctx := parser.NewContext()

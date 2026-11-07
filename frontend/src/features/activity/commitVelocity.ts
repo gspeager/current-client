@@ -1,4 +1,5 @@
 import type { DayActivityInfo } from '@current-client-bindings/app'
+import { localDay } from './calendarLayout'
 
 export interface WeekBucket {
   weekStart: string
@@ -28,7 +29,7 @@ interface BusiestWeekday {
 export function busiestWeekday(activity: DayActivityInfo[]): BusiestWeekday | null {
   const totals = new Array(7).fill(0)
   for (const day of activity) {
-    totals[new Date(day.date + 'T00:00:00').getDay()] += day.commits
+    totals[localDay(day.date).getDay()] += day.commits
   }
   const max = Math.max(...totals)
   if (max === 0) return null

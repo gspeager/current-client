@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -170,15 +171,8 @@ func localInboxRows(ctx context.Context, repoPath string) ([]InboxRow, error) {
 
 func joinFiles(files []string) string {
 	const limit = 3
-	out := ""
-	for i, f := range files {
-		if i == limit {
-			return out + ", …"
-		}
-		if i > 0 {
-			out += ", "
-		}
-		out += f
+	if len(files) > limit {
+		return strings.Join(files[:limit], ", ") + ", …"
 	}
-	return out
+	return strings.Join(files, ", ")
 }

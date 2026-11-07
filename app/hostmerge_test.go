@@ -16,12 +16,12 @@ func mergeFixture(t *testing.T) (repo, head string) {
 	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "base")
 	gitIn(t, repo, "switch", "-q", "-c", "feature")
 	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "feature")
-	head = strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD"))
+	head = gitOut(t, repo, "rev-parse", "HEAD")
 	gitIn(t, repo, "update-ref", "refs/remotes/origin/feature", head)
 	gitIn(t, repo, "branch", "-q", "--set-upstream-to=origin/feature", "feature")
 	gitIn(t, repo, "switch", "-q", "main")
 	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "main moved on")
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/main", strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD")))
+	gitIn(t, repo, "update-ref", "refs/remotes/origin/main", gitOut(t, repo, "rev-parse", "HEAD"))
 	return repo, head
 }
 

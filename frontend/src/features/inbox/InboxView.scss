@@ -156,18 +156,13 @@
 }
 
 .inbox-row-done {
+  @include patterns.micro-button(var(--h-chip));
+
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-chip);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface);
-  font: var(--ui-xs);
   white-space: nowrap;
-  cursor: pointer;
   opacity: 0;
 
   .inbox-item:hover &,
@@ -244,20 +239,16 @@
 
 .inbox-row-subject {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
   font: var(--ui-sm);
 }
 
 .inbox-row-reason {
   min-width: 0;
   text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include patterns.truncate;
   color: var(--on-surface-variant);
   font: var(--ui-xs);
-  white-space: nowrap;
 }
 
 // A host row the Inbox hasn't shown before this refresh: a dot in the row's
@@ -279,17 +270,12 @@
 }
 
 .inbox-refresh {
+  @include patterns.micro-button(var(--h-chip));
+
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-chip);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface);
-  font: var(--ui-xs);
-  cursor: pointer;
 
   &:hover {
     background: var(--surface-container);

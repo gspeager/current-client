@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from 'react'
-import { HostService, PlatformService, TagService, type ReleaseDraft } from '@current-client-bindings/app'
+import { HostService, TagService, type ReleaseDraft } from '@current-client-bindings/app'
 import type { PublishedRelease } from '@current-client-bindings/core/hostapi'
 import Modal from '../../components/chrome/Modal'
-import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
+import { errorMessage } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
-import './CreateChangeDialog.scss'
 import { useHostLogo } from '../../components/git/hostLogos'
+import { DraftErrorModal } from './CreateChangeDialog'
+import DialogError from '../../components/chrome/DialogError'
+import './CreateChangeDialog.scss'
 
 interface PublishReleaseDialogProps {
   repoPath: string
@@ -15,22 +18,10 @@ interface PublishReleaseDialogProps {
   onClose: () => void
 }
 
-// A release on the host for a tag, its notes prefilled from the changelog at
-// the tag or its commits. The tag is pushed first; nothing reaches the host
-// before Publish.
+// The tag is pushed first; nothing reaches the host before Publish.
 function PublishReleaseDialog({ repoPath, tag, onClose }: PublishReleaseDialogProps) {
   const { data: draft, error } = useAsyncData(() => HostService.ReleaseDraft(repoPath, tag), [repoPath, tag])
-  if (error) {
-    return (
-      <Modal title="Publish release" onClose={onClose} className="dialog-panel">
-        <div className="dialog-body">
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        </div>
-      </Modal>
-    )
-  }
+  if (error) return <DraftErrorModal title="Publish release" error={error} onClose={onClose} />
   if (!draft) return null
   return <PublishReleaseForm repoPath={repoPath} draft={draft} onClose={onClose} />
 }
@@ -82,7 +73,7 @@ function PublishReleaseForm({
             <button
               type="button"
               className="dialog-button"
-              onClick={() => PlatformService.OpenWebPage(published.webUrl).catch(ignoreDecorativeFailure)}
+              onClick={() => openWebPage(published.webUrl)}
               disabled={!published.webUrl}
             >
               <HostIcon size={14} strokeWidth={1.75} />
@@ -116,11 +107,7 @@ function PublishReleaseForm({
             rows={12}
           />
         </label>
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Cancel

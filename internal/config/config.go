@@ -108,7 +108,7 @@ type Config struct {
 	// The terminal panel's shell on Windows: "", "git-bash" or "cmd". "" is PowerShell.
 	TerminalShell string `json:"terminalShell,omitempty"`
 
-	// Snapshots kept per repository; zero means the default.
+	// Zero means the default.
 	SnapshotLimit int `json:"snapshotLimit,omitempty"`
 
 	// Rules of the staged changes' risk report that are turned off.
@@ -116,18 +116,15 @@ type Config struct {
 
 	// Working Copy's diff takes the file list's space too.
 	DiffExpanded bool `json:"diffExpanded,omitempty"`
-	// Zero keeps long diff lines wrapping, as they always have.
-	DiffNoWrap bool `json:"diffNoWrap,omitempty"`
+	DiffNoWrap   bool `json:"diffNoWrap,omitempty"`
 	// "compact" tightens History, the file list and the sidebar; empty is comfortable.
 	Density string `json:"density,omitempty"`
 
 	// History's branch filter: "" is all branches, "HEAD" the current branch,
 	// anything else a branch name.
 	HistoryBranchFilter string `json:"historyBranchFilter,omitempty"`
-	// Whether History follows only each merge's first parent.
-	HistoryFirstParent bool `json:"historyFirstParent,omitempty"`
+	HistoryFirstParent  bool   `json:"historyFirstParent,omitempty"`
 
-	// Whether the header's fetch also deletes remote-tracking branches gone from the remote.
 	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`
 
 	// Zero keeps the Changelog tab and commit type picker on.
@@ -242,7 +239,6 @@ func Save(path string, cfg Config) error {
 
 const defaultDirName = "current-client"
 
-// dirName is only changed at startup, before anything reads settings.
 var dirName = defaultDirName
 
 // SetDirName lets an app that embeds Current Client keep its settings in its own folder

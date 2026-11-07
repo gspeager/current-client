@@ -13,8 +13,8 @@ import (
 func releaseHostChecks(repoPath, sha, target string) []ReleaseCheck {
 	ci := ReleaseCheck{Label: "CI on the candidate"}
 	protection := ReleaseCheck{Label: "Protection on " + target}
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		ci.Level, ci.Value = "unknown", "Host integration is off"
 		protection.Level, protection.Value = "unknown", "Host integration is off"
 		return []ReleaseCheck{ci, protection}

@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
 )
@@ -24,7 +23,6 @@ func (s *HostService) RetryJob(repoPath string, pipelineID, jobID int64) ([]host
 	})
 }
 
-// RetryPipeline runs every failed job of a pipeline again.
 func (s *HostService) RetryPipeline(repoPath string, pipelineID int64) ([]hostapi.Job, error) {
 	return retryCI(repoPath, pipelineID, func(ctx context.Context, retrier hostapi.CIRetrier, project string, jobs []hostapi.Job) error {
 		return retrier.RetryPipeline(ctx, project, pipelineID, jobs)
@@ -35,12 +33,9 @@ func (s *HostService) RetryPipeline(repoPath string, pipelineID int64) ([]hostap
 // pipeline's marks read running, so History's next read asks again once
 // ciRunningTTL passes, and the jobs are asked for again now.
 func retryCI(repoPath string, pipelineID int64, retry func(context.Context, hostapi.CIRetrier, string, []hostapi.Job) error) ([]hostapi.Job, error) {
-	_, info, ok, err := primaryHost(repoPath)
+	_, info, err := requireHost(repoPath)
 	if err != nil {
 		return nil, err
-	}
-	if !ok || !info.Enabled {
-		return nil, errors.New("integration is off for this repository's host")
 	}
 	retrier, ok := providerFor(info).(hostapi.CIRetrier)
 	if !ok {
@@ -51,7 +46,7 @@ func retryCI(repoPath string, pipelineID int64, retry func(context.Context, host
 	if !ok {
 		return nil, errors.New("open the pipeline's jobs first")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	if err := retry(ctx, retrier, info.Project, cached.([]hostapi.Job)); err != nil {
 		return nil, err

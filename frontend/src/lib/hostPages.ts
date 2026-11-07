@@ -1,4 +1,6 @@
+import { PlatformService } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
+import { ignoreDecorativeFailure } from './errors'
 
 // The host's pages for things in the app, built from the prefixes
 // core/hostlink derived from the remote. No request is made to build one.
@@ -33,13 +35,20 @@ export function remoteBranchName(upstream: string, remotes: string[]): string {
   return upstream
 }
 
-// "GitHub" or "GitLab" when the style is known, else the host's name.
 export function hostName(links: Links): string {
   if (links.style === 'github') return 'GitHub'
   if (links.style === 'gitlab') return 'GitLab'
+  return urlHost(links.root) ?? 'host'
+}
+
+export function urlHost(url: string): string | null {
   try {
-    return new URL(links.root).host
+    return new URL(url).host
   } catch {
-    return 'host'
+    return null
   }
+}
+
+export function openWebPage(url: string): void {
+  PlatformService.OpenWebPage(url).catch(ignoreDecorativeFailure)
 }

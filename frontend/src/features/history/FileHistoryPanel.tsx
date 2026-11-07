@@ -7,6 +7,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import Modal from '../../components/chrome/Modal'
 import DiffViewer from '../diff/DiffViewer'
 import PathText from '../../components/git/PathText'
+import { shortSha } from '../../lib/text'
 import './FileHistoryPanel.scss'
 
 interface FileHistoryPanelProps {
@@ -65,7 +66,7 @@ function FileHistoryPanel({ repoPath, path, onClose }: FileHistoryPanelProps) {
               >
                 <span className="file-history-row-subject">{c.subject}</span>
                 <span className="file-history-row-author">{c.authorName}</span>
-                <span className="file-history-row-sha">{c.sha.slice(0, 7)}</span>
+                <span className="file-history-row-sha">{shortSha(c.sha)}</span>
                 <span className="file-history-row-time">{relativeTime(new Date(c.date))}</span>
               </button>
             ))

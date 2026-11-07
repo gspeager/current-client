@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -18,8 +17,6 @@ type repository struct {
 	DeleteBranchAfter bool `json:"delete_branch_on_merge"`
 }
 
-// MergeOptions reads the repository's settings: which methods it allows,
-// merge commit first, and whether it deletes the head branch itself.
 func (p *Provider) MergeOptions(ctx context.Context, project string) (hostapi.MergeOptions, error) {
 	var repo repository
 	if err := p.client.GetJSON(ctx, p.host, repoPath(project), nil, &repo); err != nil {
@@ -45,16 +42,11 @@ func (p *Provider) Merge(ctx context.Context, project string, number int, how ho
 		body["sha"] = how.HeadSHA
 	}
 	err := p.client.RequestJSON(ctx, p.host, http.MethodPut, repoPath(project, "pulls", strconv.Itoa(number), "merge"), body, nil)
-	var hostErr *hostapi.HostError
-	if errors.As(err, &hostErr) {
-		switch hostErr.Status {
-		case http.StatusMethodNotAllowed:
-			return &hostapi.MergeRefusedError{Host: p.host.Name, Status: hostErr.Status, Reason: "it isn't mergeable yet, so a required check, review or rule is in the way, or it conflicts"}
-		case http.StatusConflict:
-			return &hostapi.MergeRefusedError{Host: p.host.Name, Status: hostErr.Status, Reason: "its head moved since the last refresh; refresh and look again"}
-		case http.StatusUnprocessableEntity:
-			return &hostapi.MergeRefusedError{Host: p.host.Name, Status: hostErr.Status, Reason: "that merge method isn't allowed here"}
-		}
-	}
-	return hostapi.WithScope(err, scope)
+	return hostapi.WithScope(hostapi.RefusedMerge(err, p.host.Name, mergeRefusals), scope)
+}
+
+var mergeRefusals = map[int]string{
+	http.StatusMethodNotAllowed:    "it isn't mergeable yet, so a required check, review or rule is in the way, or it conflicts",
+	http.StatusConflict:            "its head moved since the last refresh; refresh and look again",
+	http.StatusUnprocessableEntity: "that merge method isn't allowed here",
 }

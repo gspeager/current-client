@@ -11,7 +11,7 @@ export interface ThreadActions {
   resolve: (threadId: string, resolved: boolean) => Promise<void>
 }
 
-export interface ReviewActions {
+interface ReviewActions {
   capabilities: ReviewCapabilities
   threadActions?: ThreadActions
   // Comments on a line now, against the head the last refresh saw.
@@ -29,8 +29,8 @@ export function useReviewActions(repoPath: string | undefined, number: number | 
   )
   return useMemo(() => {
     if (!repoPath || !number || !capabilities) return undefined
-    const any = capabilities.reply || capabilities.resolve || capabilities.lineComments || capabilities.approve
-    if (!any) return undefined
+    if (!(capabilities.reply || capabilities.resolve || capabilities.lineComments || capabilities.approve))
+      return undefined
     const threadActions: ThreadActions | undefined =
       capabilities.reply || capabilities.resolve
         ? {

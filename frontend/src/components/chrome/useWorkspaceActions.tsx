@@ -74,7 +74,7 @@ interface WorkspaceActions {
   modals: ReactNode
 }
 
-export function editorName(editorPath: string): string {
+function editorName(editorPath: string): string {
   if (!editorPath) return 'VS Code'
   return baseName(editorPath).replace(/\.(exe|app|cmd)$/i, '')
 }

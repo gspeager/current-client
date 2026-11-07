@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .note-mark {
   flex-shrink: 0;
   display: inline-flex;
@@ -65,9 +67,7 @@
 }
 
 .notes-row-target {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
 }
 
 .notes-row-stale {

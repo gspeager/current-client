@@ -63,7 +63,6 @@ func (s *CommitService) Revert(repoPath, sha string) error {
 	return git.Revert(context.Background(), repoPath, sha)
 }
 
-// FixupInto commits what's staged as a fixup of sha, for Tidy up history to fold in.
 func (s *CommitService) FixupInto(repoPath, sha string) error {
 	return git.FixupInto(context.Background(), repoPath, sha)
 }

@@ -34,9 +34,6 @@ describe('layoutActivityCalendar', () => {
       '2024-01-08',
     ]
     const got = layoutActivityCalendar(dates.map((date) => ({ date, commits: 0 })))
-    // A leading pad cell stands in for the Sunday before Jan 1, so Jan 1
-    // (Monday) through Jan 6 (Saturday) share week 0; the next Sunday,
-    // Jan 7, starts week 1.
     expect(got[0]).toMatchObject({ date: '2024-01-01', dayOfWeek: 1, weekIndex: 0 })
     expect(got[5]).toMatchObject({ date: '2024-01-06', dayOfWeek: 6, weekIndex: 0 })
     expect(got[6]).toMatchObject({ date: '2024-01-07', dayOfWeek: 0, weekIndex: 1 })

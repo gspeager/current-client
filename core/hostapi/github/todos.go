@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -41,8 +40,7 @@ func (p *Provider) Todos(ctx context.Context) ([]hostapi.Todo, error) {
 	var page []notification
 	query := url.Values{"per_page": {"50"}}
 	if err := p.client.GetJSON(ctx, p.host, "/notifications", query, &page); err != nil {
-		var hostErr *hostapi.HostError
-		if errors.As(err, &hostErr) && hostErr.Status == http.StatusForbidden {
+		if hostapi.StatusOf(err) == http.StatusForbidden {
 			return nil, fmt.Errorf("%w: %s's notifications need a classic token with the notifications scope", hostapi.ErrTodosUnavailable, p.host.Name)
 		}
 		return nil, hostapi.WithScope(err, notificationsScope)

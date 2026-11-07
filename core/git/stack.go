@@ -186,17 +186,11 @@ func PreviewRestack(ctx context.Context, repoPath string, links []StackLink) (Re
 		layer := RestackPreviewLayer{Branch: step.link.Branch, Onto: step.onto, Missing: step.missing, Merged: step.merged, Moves: step.moves}
 		if step.moves {
 			revs := step.from + "..refs/heads/" + step.link.Branch
-			result, err := runResult(ctx, repoPath, "log", "--reverse", "--no-merges", "--format=%H%x00%s", revs)
+			shas, commits, err := previewCommits(ctx, repoPath, revs)
 			if err != nil {
 				return preview, err
 			}
-			var shas []string
-			for _, line := range strings.Split(result.Stdout, "\n") {
-				if sha, subject, ok := strings.Cut(line, "\x00"); ok {
-					shas = append(shas, sha)
-					layer.Commits = append(layer.Commits, PreviewCommit{SHA: sha, Subject: subject, Outcome: ReplayUnknown})
-				}
-			}
+			layer.Commits = commits
 			if merges, err := CountCommits(ctx, repoPath, "--merges", revs); err == nil {
 				layer.DroppedMerges = merges
 			}
@@ -212,10 +206,7 @@ func PreviewRestack(ctx context.Context, repoPath string, links []StackLink) (Re
 					preview.Predicted = false
 				} else {
 					tip = end
-					for i, replayed := range replay {
-						layer.Commits[i].Outcome = replayed.Outcome
-						layer.Commits[i].Files = replayed.Files
-					}
+					applyReplay(layer.Commits, replay)
 				}
 			}
 			predicted[step.link.Branch] = tip
@@ -227,29 +218,45 @@ func PreviewRestack(ctx context.Context, repoPath string, links []StackLink) (Re
 }
 
 func restackBlocked(ctx context.Context, repoPath string, steps []restackStep) (string, bool, error) {
-	state, err := DetectConflictState(ctx, repoPath)
-	if err != nil {
-		return "", false, err
-	}
-	if state.Operation != ConflictNone {
-		return "Finish or abort the " + string(state.Operation) + " first.", false, nil
+	if blocked, err := operationInProgress(ctx, repoPath); blocked != "" || err != nil {
+		return blocked, false, err
 	}
 	worktrees, err := ListWorktrees(ctx, repoPath)
 	if err != nil {
 		return "", false, err
 	}
 	for _, step := range steps {
-		if !step.moves {
-			continue
-		}
-		for _, worktree := range worktrees {
-			if worktree.Branch == step.link.Branch && !worktree.Current {
-				return step.link.Branch + " is checked out in the worktree at " + worktree.Path + ".", false, nil
-			}
+		if blocked := checkedOutElsewhere(worktrees, step.link.Branch); step.moves && blocked != "" {
+			return blocked, false, nil
 		}
 	}
 	dirty, err := rebaseBlockedByChanges(ctx, repoPath)
 	return "", dirty, err
+}
+
+func operationInProgress(ctx context.Context, repoPath string) (string, error) {
+	state, err := DetectConflictState(ctx, repoPath)
+	if err != nil || state.Operation == ConflictNone {
+		return "", err
+	}
+	return "Finish or abort the " + string(state.Operation) + " first.", nil
+}
+
+func checkedOutElsewhere(worktrees []Worktree, branch string) string {
+	for _, worktree := range worktrees {
+		if worktree.Branch == branch && !worktree.Current {
+			return branch + " is checked out in the worktree at " + worktree.Path + "."
+		}
+	}
+	return ""
+}
+
+func headBranch(ctx context.Context, repoPath string) (string, error) {
+	head, err := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "HEAD")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(head.Stdout), nil
 }
 
 type RestackResult struct {
@@ -294,11 +301,10 @@ func Restack(ctx context.Context, repoPath string, links []StackLink) (RestackRe
 	if dirty {
 		return result, &gitexec.AppError{Message: "Commit or stash the changes in the working tree first."}
 	}
-	head, err := runResult(ctx, repoPath, "symbolic-ref", "-q", "--short", "HEAD")
+	start, err := headBranch(ctx, repoPath)
 	if err != nil {
 		return result, &gitexec.AppError{Message: "Check out a branch to restack."}
 	}
-	start := strings.TrimSpace(head.Stdout)
 
 	index := map[string]int{}
 	for i, link := range result.Links {
@@ -351,17 +357,14 @@ func (e *StackMovedError) Error() string { return e.Message }
 // UndoRestack puts each moved branch back, refusing if one has moved since, so it
 // can't throw away later work.
 func UndoRestack(ctx context.Context, repoPath string, moves []StackMove) error {
-	state, err := DetectConflictState(ctx, repoPath)
+	blocked, err := operationInProgress(ctx, repoPath)
 	if err != nil {
 		return err
 	}
-	if state.Operation != ConflictNone {
-		return &gitexec.AppError{Message: "Finish or abort the " + string(state.Operation) + " first."}
+	if blocked != "" {
+		return &gitexec.AppError{Message: blocked}
 	}
-	current := ""
-	if head, err := runResult(ctx, repoPath, "symbolic-ref", "-q", "--short", "HEAD"); err == nil {
-		current = strings.TrimSpace(head.Stdout)
-	}
+	current, _ := headBranch(ctx, repoPath)
 	worktrees, err := ListWorktrees(ctx, repoPath)
 	if err != nil {
 		return err
@@ -376,10 +379,8 @@ func UndoRestack(ctx context.Context, repoPath string, moves []StackMove) error 
 			return &StackMovedError{move.Branch + " has changed since the restack, so it can't be undone."}
 		}
 		tips[move.Branch] = tip
-		for _, worktree := range worktrees {
-			if worktree.Branch == move.Branch && !worktree.Current {
-				return &gitexec.AppError{Message: move.Branch + " is checked out in the worktree at " + worktree.Path + "."}
-			}
+		if blocked := checkedOutElsewhere(worktrees, move.Branch); blocked != "" {
+			return &gitexec.AppError{Message: blocked}
 		}
 	}
 	for _, move := range moves {

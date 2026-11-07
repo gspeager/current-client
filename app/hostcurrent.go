@@ -32,7 +32,7 @@ type CurrentChange struct {
 
 // CurrentChange reads the cache only.
 func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
-	_, info, ok, err := primaryHost(repoPath)
+	_, info, ok, err := enabledHost(repoPath)
 	if err != nil {
 		return CurrentChange{}, err
 	}
@@ -40,7 +40,7 @@ func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 	if err != nil || !found {
 		return CurrentChange{}, err
 	}
-	result := CurrentChange{Branch: current.Name, Upstream: current.Upstream, Enabled: ok && info.Enabled && providerFor(info) != nil, Kind: changeKind(info)}
+	result := CurrentChange{Branch: current.Name, Upstream: current.Upstream, Enabled: ok && providerFor(info) != nil, Kind: changeKind(info)}
 	if !result.Enabled {
 		return result, nil
 	}

@@ -156,8 +156,6 @@ func Write(repoPath, markdown string, replace bool) error {
 	return os.WriteFile(Path(repoPath), []byte(out), 0o644)
 }
 
-// ExistingVersions lists the versions in markdown that the changelog already
-// has a section for.
 func ExistingVersions(repoPath, markdown string) ([]string, error) {
 	existing, err := readChangelog(repoPath)
 	if err != nil {

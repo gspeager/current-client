@@ -2,23 +2,17 @@ package git
 
 import (
 	"context"
-	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/gspeager/current-client/core/internal/gittest"
 )
 
 func TestCurrentUserReadsConfiguredIdentity(t *testing.T) {
 	dir := t.TempDir()
-	run := func(args ...string) {
-		cmd := exec.Command("git", args...)
-		cmd.Dir = dir
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
-	run("init", "-q", "-b", "main")
-	run("config", "user.name", "Test User")
-	run("config", "user.email", "test@example.com")
+	gittest.Run(t, dir, "init", "-q", "-b", "main")
+	gittest.Run(t, dir, "config", "user.name", "Test User")
+	gittest.Run(t, dir, "config", "user.email", "test@example.com")
 
 	got := CurrentUser(context.Background(), dir)
 	want := UserIdentity{Name: "Test User", Email: "test@example.com"}
@@ -29,11 +23,7 @@ func TestCurrentUserReadsConfiguredIdentity(t *testing.T) {
 
 func TestConfigValueHandlesUnsetKey(t *testing.T) {
 	dir := t.TempDir()
-	cmd := exec.Command("git", "init", "-q", "-b", "main")
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v\n%s", err, out)
-	}
+	gittest.Run(t, dir, "init", "-q", "-b", "main")
 
 	if got := configValue(context.Background(), dir, "definitely.not.a.real.key"); got != "" {
 		t.Fatalf("got %q, want empty string for an unset key", got)
@@ -66,11 +56,7 @@ func TestGlobalUserEmptyWhenUnset(t *testing.T) {
 func TestSetRepoUserOverridesGlobalInThatRepo(t *testing.T) {
 	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(t.TempDir(), "gitconfig"))
 	dir := t.TempDir()
-	cmd := exec.Command("git", "init", "-q", "-b", "main")
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v\n%s", err, out)
-	}
+	gittest.Run(t, dir, "init", "-q", "-b", "main")
 	if err := SetGlobalUser(context.Background(), "Global Name", "global@example.com"); err != nil {
 		t.Fatalf("SetGlobalUser: %v", err)
 	}

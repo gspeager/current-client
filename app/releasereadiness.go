@@ -238,7 +238,6 @@ func versionFileChecks(ctx context.Context, repoPath, sha, version, previous str
 	return checks
 }
 
-// changelogCheck reads the changelog as committed at the candidate.
 func changelogCheck(ctx context.Context, repoPath, sha, version string) ReleaseCheck {
 	file := filepath.Base(changelog.Path(repoPath))
 	check := ReleaseCheck{Label: "Changelog"}

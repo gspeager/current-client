@@ -12,7 +12,7 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-const LargeFileThreshold = 1 << 20 // 1 MiB
+const LargeFileThreshold = 1 << 20
 
 type LineKind int
 
@@ -76,10 +76,7 @@ func GetWorkingTreeDiff(ctx context.Context, repoPath, path string, force, ignor
 }
 
 func isUntracked(ctx context.Context, repoPath, path string) bool {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
-		Dir:  repoPath,
-		Args: []string{"ls-files", "--others", "--exclude-standard", "--", path},
-	})
+	result, err := gitexec.RunIn(ctx, repoPath, "ls-files", "--others", "--exclude-standard", "--", path)
 	return err == nil && strings.TrimSpace(result.Stdout) != ""
 }
 
@@ -129,10 +126,7 @@ func diffArgs(revArgs []string, ignoreWhitespace bool, path string) []string {
 }
 
 func runDiff(ctx context.Context, repoPath string, args []string) (FileDiff, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
-		Dir:  repoPath,
-		Args: args,
-	})
+	result, err := gitexec.RunIn(ctx, repoPath, args...)
 	if err != nil {
 		return FileDiff{}, err
 	}
@@ -225,8 +219,8 @@ func patchPaths(ctx context.Context, repoPath, path, hunkText string, opts apply
 }
 
 func objectExists(ctx context.Context, repoPath, spec string) bool {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"cat-file", "-e", spec}})
-	return err == nil && result.ExitCode == 0
+	_, err := gitexec.RunIn(ctx, repoPath, "cat-file", "-e", spec)
+	return err == nil
 }
 
 var hunkHeaderPattern = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
@@ -304,7 +298,6 @@ func (p *diffParser) finishHunk() {
 	}
 }
 
-// parseHeaderLine reports handled=false for hunk content lines.
 func (p *diffParser) parseHeaderLine(line string) (handled bool, err error) {
 	switch {
 	case strings.HasPrefix(line, "--- "):
@@ -385,8 +378,6 @@ func (p *diffParser) parseCombinedBodyLine(line string) error {
 	}
 	ours, theirs, content := line[0], line[1], line[2:]
 	p.appendRaw(line)
-	// A '-' column is a line that parent has and the result lacks; ' ' is a
-	// line the parent and the result share; '+' is the result's alone.
 	if ours == '-' || theirs == '-' {
 		l := Line{Kind: LineRemoved, Content: content, InOurs: ours == '-', InTheirs: theirs == '-'}
 		if ours == '-' {

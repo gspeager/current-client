@@ -36,8 +36,7 @@
 
 .next-release-meta {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include patterns.truncate;
 }
 
 .next-release-sha {

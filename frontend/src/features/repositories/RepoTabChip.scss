@@ -56,10 +56,6 @@
 
 .header-bar-tab-name {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
   @include patterns.truncate;
 }
 

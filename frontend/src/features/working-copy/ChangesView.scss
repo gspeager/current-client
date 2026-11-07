@@ -23,23 +23,9 @@
 .changes-diff-expand,
 .changes-diff-external-tool {
   @include patterns.hit-target;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @include patterns.icon-button;
   width: var(--h-chip);
   height: var(--h-chip);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--outline);
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-    color: var(--on-surface);
-  }
-
-  @include patterns.disabled;
 }
 
 .changes-error {
@@ -121,10 +107,6 @@
   font-weight: 600;
 }
 
-.changes-diff-stat-hunks {
-  margin-left: var(--space-sm);
-}
-
 .changes-diff-owners-names {
   @include patterns.truncate;
 }
@@ -150,7 +132,9 @@
 }
 
 .changes-diff-stat-hunks {
+  margin-left: var(--space-sm);
   color: var(--outline);
+  font: var(--ui-xs);
 }
 
 .changes-diff-staged-badge {
@@ -186,7 +170,6 @@
       background: var(--surface-container);
     }
   }
-
 }
 
 .changes-clean {
@@ -247,8 +230,4 @@
   .changes-diff-header .diff-stat {
     display: none;
   }
-}
-
-.changes-diff-stat-hunks {
-  font: var(--ui-xs);
 }

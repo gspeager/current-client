@@ -7,14 +7,12 @@ import (
 	"encoding/base64"
 
 	"github.com/gspeager/current-client/core/hostapi"
-	"github.com/gspeager/current-client/core/hostapi/jira"
 	"github.com/gspeager/current-client/core/hostlink"
 	"github.com/gspeager/current-client/internal/policy"
 )
 
 // hostClient is the app's one client for host APIs. It is handed what
-// Settings says is enabled, so core/ itself refuses every other host, and
-// gets tokens from Git's credential helpers through hostCredentials.
+// Settings says is enabled, so core/ itself refuses every other host.
 var hostClient = newHostClient(nil)
 
 var hostCredentials = &hostapi.GitCredentials{Saved: func(hostName string) bool {
@@ -45,8 +43,6 @@ func hostEnabled(hostName string) bool {
 	return enabled
 }
 
-// effectiveHostEnabled is the user's switch unless the managed policy fixes
-// it; managed says the policy did.
 func effectiveHostEnabled(hostName string, user bool) (enabled, managed bool) {
 	if forced, managed := policy.Host(hostName); managed {
 		return forced, true
@@ -84,11 +80,9 @@ func (apiTokens) Forget(hostName string) {
 	trackerCredentials.Forget(hostName)
 }
 
-// trackerSiteByHost is the configured tracker, the user's or the
-// organization's, whose site is on hostName.
 func trackerSiteByHost(hostName string) (hostlink.Tracker, bool) {
 	for _, t := range allTrackers() {
-		if jira.HostName(t) == hostName {
+		if hostlink.SiteHost(t.Site) == hostName {
 			return t, true
 		}
 	}

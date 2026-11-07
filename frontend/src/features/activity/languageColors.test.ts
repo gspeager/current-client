@@ -74,9 +74,7 @@ describe('groupTopLanguages', () => {
   })
 
   it('folds an unknown extension into other even if it would rank in the top N by count', () => {
-    // png (unknown) outranks yml (known) by count, but only known languages
-    // compete for the top-N slots — an unmapped extension never gets its
-    // own row, since it would render as the same gray as "other" anyway.
+    // An unmapped extension never gets its own row: it would render as the same gray as "other".
     const languages = [
       { extension: 'go', count: 10 },
       { extension: 'png', count: 8 },

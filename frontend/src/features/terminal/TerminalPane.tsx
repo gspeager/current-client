@@ -5,6 +5,7 @@ import { Terminal, type ITheme } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { TerminalService } from '@current-client-bindings/app'
 import { isTerminalToggle } from './terminalKeys'
+import { decodeBase64 } from '../../lib/base64'
 
 const OUTPUT_EVENT = 'terminal:output'
 const EXIT_EVENT = 'terminal:exit'
@@ -18,10 +19,6 @@ function themeFrom(element: HTMLElement): ITheme {
     cursor: token('--on-surface'),
     selectionBackground: token('--surface-container-high') ?? token('--surface-container'),
   }
-}
-
-function decode(data: string): Uint8Array {
-  return Uint8Array.from(atob(data), (char) => char.charCodeAt(0))
 }
 
 interface TerminalPaneProps {
@@ -59,11 +56,12 @@ function TerminalPane({ id, visible, focusRequest, theme, onExit }: TerminalPane
     // belong to the shell, and everything else goes to the shell.
     term.attachCustomKeyEventHandler((event) => {
       if (isTerminalToggle(event)) return false
-      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
+      if (event.type !== 'keydown' || !event.ctrlKey || !event.shiftKey) return true
+      if (event.code === 'KeyC') {
         void navigator.clipboard?.writeText(term.getSelection())
         return false
       }
-      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') {
+      if (event.code === 'KeyV') {
         void navigator.clipboard?.readText().then((text) => term.paste(text))
         return false
       }
@@ -78,7 +76,7 @@ function TerminalPane({ id, visible, focusRequest, theme, onExit }: TerminalPane
 
     const offOutput = Events.On(OUTPUT_EVENT, ({ data }: { data: { id: string; data: string } }) => {
       if (data.id !== id) return
-      const bytes = decode(data.data)
+      const bytes = decodeBase64(data.data)
       term.write(bytes, () => void TerminalService.Ack(id, bytes.length).catch(() => undefined))
     })
     const offExit = Events.On(EXIT_EVENT, ({ data }: { data: { id: string } }) => {

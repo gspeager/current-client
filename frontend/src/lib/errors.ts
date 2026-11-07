@@ -6,10 +6,15 @@ interface RecentError {
 const RECENT_ERROR_LIMIT = 20
 const recentErrors: RecentError[] = []
 
-// String(err) would prepend the class name. Every error the UI shows passes
-// through here, so it also keeps the short, local list Copy diagnostics reports.
+// String(err) would prepend the class name.
+export function messageOf(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+// Every error the UI shows passes through here, so it also keeps the short,
+// local list Copy diagnostics reports.
 export function errorMessage(err: unknown): string {
-  const message = err instanceof Error ? err.message : String(err)
+  const message = messageOf(err)
   recentErrors.push({ at: new Date().toISOString(), message })
   if (recentErrors.length > RECENT_ERROR_LIMIT) recentErrors.shift()
   return message

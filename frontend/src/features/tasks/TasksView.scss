@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .tasks-view {
   display: flex;
   height: 100%;
@@ -94,15 +96,10 @@
 }
 
 .tasks-add {
+  @include patterns.micro-button;
+
   align-self: flex-start;
-  height: var(--h-micro);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface-variant);
-  font: var(--ui-xs);
-  cursor: pointer;
 }
 
 .tasks-hint,
@@ -155,9 +152,7 @@
 }
 
 .tasks-output-command {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
 }
 
 .tasks-output-result {

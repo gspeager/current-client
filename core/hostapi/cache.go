@@ -1,6 +1,8 @@
 package hostapi
 
 import (
+	"maps"
+	"slices"
 	"sync"
 	"time"
 )
@@ -39,15 +41,7 @@ func (c *Cache) Get(host, repo, kind, id string) (value any, fetchedAt time.Time
 }
 
 func (c *Cache) Values(host, repo, kind string) []any {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	var values []any
-	for key, entry := range c.entries {
-		if key.host == host && key.repo == repo && key.kind == kind {
-			values = append(values, entry.value)
-		}
-	}
-	return values
+	return slices.Collect(maps.Values(c.Entries(host, repo, kind)))
 }
 
 // Entries is one kind's values for a host and repository, by id.

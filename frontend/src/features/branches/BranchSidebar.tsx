@@ -9,11 +9,10 @@ import {
   HostService,
   type OverlapInfo,
   OverlapService,
-  PlatformService,
   RemoteService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
-import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
+import ContextMenu, { menuAnchor, rowKeyDown, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { localNameFor } from './branches'
 import SidebarSection from '../../components/chrome/SidebarSection'
@@ -44,8 +43,9 @@ import { arrowIntoList } from '../../lib/useRovingRows'
 import CIMark, { ciLabel } from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
-import { branchPage, remoteBranchName } from '../../lib/hostPages'
+import { branchPage, openWebPage, remoteBranchName } from '../../lib/hostPages'
 import IssuePicker from './IssuePicker'
+import { useActionError } from '../../lib/useActionError'
 import './BranchSidebar.scss'
 
 interface BranchSidebarProps {
@@ -119,18 +119,19 @@ function BranchSidebar({
   const overlapFor = new Map(overlaps.map((o) => [o.branch, o]))
   const remoteConflicts = overlaps.filter((o) => o.remote).length
   const { confirm, prompt } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
+  const branchesChanged = () => {
+    loadBranches()
+    onBranchChanged?.()
+  }
   const [newBranchName, setNewBranchName] = useState('')
   const [newBranchKind, setNewBranchKind] = useState<NewBranchKind>('branch')
   const [showNewBranch, setShowNewBranch] = useState(false)
   const newBranch = toBranchName(newBranchName)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   // Refreshes the graph too, which still shows the deleted remote branch.
-  const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
-    loadBranches()
-    onBranchChanged?.()
-  })
+  const deleteRemote = useDeleteRemoteBranch(repoPath, branchesChanged)
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
   const notes = useNotes()
@@ -166,10 +167,7 @@ function BranchSidebar({
   const checkoutBranch = (name: string) => {
     setActionError(null)
     BranchService.CheckoutBranch(repoPath, name)
-      .then(() => {
-        loadBranches()
-        onBranchChanged?.()
-      })
+      .then(branchesChanged)
       .catch((err: unknown) => setActionError(`Could not check out ${name}: ${errorMessage(err)}`))
   }
 
@@ -184,16 +182,14 @@ function BranchSidebar({
         setNewBranchName('')
         setNewBranchKind('branch')
         setShowNewBranch(false)
-        loadBranches()
-        onBranchChanged?.()
+        branchesChanged()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const stacksChanged = () => {
     reloadStacks()
-    loadBranches()
-    onBranchChanged?.()
+    branchesChanged()
   }
 
   const newStackedBranch = async (parent: string) => {
@@ -205,23 +201,19 @@ function BranchSidebar({
     })
     if (!name) return
     setActionError(null)
-    StackService.NewLayer(repoPath, name, parent)
-      .then(stacksChanged)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    StackService.NewLayer(repoPath, name, parent).then(stacksChanged).catch(fail)
   }
 
   const stackCurrentOn = (parent: string) => {
     setActionError(null)
     StackService.AddLayer(repoPath, branchStatus?.current ?? '', parent)
       .then(reloadStacks)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const removeFromStack = (name: string) => {
     setActionError(null)
-    StackService.RemoveLayer(repoPath, name)
-      .then(reloadStacks)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    StackService.RemoveLayer(repoPath, name).then(reloadStacks).catch(fail)
   }
 
   const renameBranch = async (oldName: string) => {
@@ -234,9 +226,7 @@ function BranchSidebar({
     })
     if (!newName) return
     setActionError(null)
-    BranchService.RenameBranch(repoPath, oldName, newName)
-      .then(loadBranches)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    BranchService.RenameBranch(repoPath, oldName, newName).then(loadBranches).catch(fail)
   }
 
   // mode is '' (fast-forward when possible), 'no-ff' or 'squash'.
@@ -247,12 +237,9 @@ function BranchSidebar({
       .then(() => {
         if (mode === 'squash') setSquashed(name)
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
-      .finally(() => {
-        // A failed merge leaves conflicts the banner must pick up.
-        loadBranches()
-        onBranchChanged?.()
-      })
+      .catch(fail)
+      // A failed merge leaves conflicts the banner must pick up.
+      .finally(branchesChanged)
   }
 
   const mergeDefaultBranch = async (name: string) => {
@@ -271,12 +258,7 @@ function BranchSidebar({
   const rebaseOnto = (name: string) => {
     setRebasePreview(null)
     setActionError(null)
-    BranchService.RebaseOnto(repoPath, name)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
-      .finally(() => {
-        loadBranches()
-        onBranchChanged?.()
-      })
+    BranchService.RebaseOnto(repoPath, name).catch(fail).finally(branchesChanged)
   }
 
   const deleteBranch = (name: string, force: boolean) => {
@@ -298,20 +280,13 @@ function BranchSidebar({
           if (confirmed) deleteBranch(name, true)
           return
         }
-        setActionError(errorMessage(err))
+        fail(err)
       })
-  }
-
-  const upstreamChanged = () => {
-    loadBranches()
-    onBranchChanged?.()
   }
 
   const unsetUpstream = (name: string) => {
     setActionError(null)
-    BranchService.UnsetUpstream(repoPath, name)
-      .then(upstreamChanged)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    BranchService.UnsetUpstream(repoPath, name).then(branchesChanged).catch(fail)
   }
 
   const restoreDeleted = (branches: DeletedBranch[]) => {
@@ -324,19 +299,15 @@ function BranchSidebar({
         }),
       ),
     )
-      .catch((err: unknown) => setActionError(errorMessage(err)))
-      .finally(() => {
-        loadBranches()
-        onBranchChanged?.()
-      })
+      .catch(fail)
+      .finally(branchesChanged)
   }
 
   const cleanedUp = (branches: DeletedBranch[]) => {
     setCleanUp(false)
     setBranchReview(false)
     setDeleted(branches.length > 0 ? branches : null)
-    loadBranches()
-    onBranchChanged?.()
+    branchesChanged()
   }
 
   const createChange = (name: string) => createChangeFor(repoPath, name, onCreateChange)
@@ -381,9 +352,7 @@ function BranchSidebar({
           disabled: b.current || !branchStatus?.current || branchStatus.current === defaultBranch,
         },
         ...(stackWith(b.name) ? [{ label: 'Remove from stack', onClick: () => removeFromStack(b.name) }] : []),
-        ...(hostLinks?.tree
-          ? [{ label: 'Open on host', onClick: () => void PlatformService.OpenWebPage(branchHostPage(b)) }]
-          : []),
+        ...(hostLinks?.tree ? [{ label: 'Open on host', onClick: () => openWebPage(branchHostPage(b)) }] : []),
         ...(hostLinks?.tree && b.upstream && !changes[b.upstream]?.state
           ? [
               {
@@ -443,19 +412,6 @@ function BranchSidebar({
   const localNames = new Set((branches ?? []).map((b) => b.name))
   const remoteList = (remoteBranches ?? []).filter((name) => name.toLowerCase().includes(query))
 
-  // Enter and Space activate a row like a click; the menu key opens its menu.
-  const rowKeys = (activate: () => void, menu: (e: KeyboardEvent) => void) => (e: KeyboardEvent<HTMLLIElement>) => {
-    if (isMenuKey(e)) {
-      menu(e)
-      return
-    }
-    if (e.target !== e.currentTarget) return
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      activate()
-    }
-  }
-
   // What the row has no room for: where the tip is deployed, beside CI and age.
   const branchSummary = (b: BranchInfo) => {
     const ci = ciMarks?.[b.tip]?.status
@@ -486,7 +442,7 @@ function BranchSidebar({
             ? branchSummary(b)
             : `${branchSummary(b)}\nDouble-click to check out`
       }
-      onKeyDown={rowKeys(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
+      onKeyDown={rowKeyDown(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill
         name={b.name}
@@ -498,7 +454,9 @@ function BranchSidebar({
       />
       <NoteMark kind="branch" target={b.name} />
       {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
-      {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode branch-row-mode-incoming">incoming</span>}
+      {conflict && !b.current && b.name === conflict.theirs && (
+        <span className="branch-row-mode branch-row-mode-incoming">incoming</span>
+      )}
       {!b.current && <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />}
       {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
       {!(conflict && b.name === conflict.theirs) && <ConflictsBadge overlap={overlapFor.get(b.name)} />}
@@ -559,11 +517,13 @@ function BranchSidebar({
       tabIndex={0}
       aria-disabled={blocked ? true : undefined}
       title={blocked ?? 'Double-click to check out'}
-      onKeyDown={rowKeys(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
+      onKeyDown={rowKeyDown(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
       <span className="branch-row-remote-name">{name}</span>
-      {conflict && name === conflict.theirs && <span className="branch-row-mode branch-row-mode-incoming">incoming</span>}
+      {conflict && name === conflict.theirs && (
+        <span className="branch-row-mode branch-row-mode-incoming">incoming</span>
+      )}
       <ConflictsBadge overlap={overlapFor.get(name)} />
       {!localNames.has(localNameFor(name, remoteNames)) && <span className="branch-row-meta">not local</span>}
     </li>
@@ -779,8 +739,7 @@ function BranchSidebar({
           repoPath={repoPath}
           onDone={() => {
             setTidyUp(false)
-            loadBranches()
-            onBranchChanged?.()
+            branchesChanged()
           }}
           onClose={() => setTidyUp(false)}
         />
@@ -804,7 +763,7 @@ function BranchSidebar({
           onClose={() => setUpstreamFor(null)}
           onSet={() => {
             setUpstreamFor(null)
-            upstreamChanged()
+            branchesChanged()
           }}
         />
       )}
@@ -812,7 +771,7 @@ function BranchSidebar({
       {compareWith && (
         <CompareModal
           repoPath={repoPath}
-          initialFromRef={branches?.find((b) => b.current)?.name ?? compareWith}
+          initialFromRef={current?.name ?? compareWith}
           initialToRef={compareWith}
           onClose={() => setCompareWith(null)}
         />

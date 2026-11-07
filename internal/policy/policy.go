@@ -115,9 +115,6 @@ func Host(hostname string) (enabled, managed bool) {
 	return *sw.Enabled, true
 }
 
-// AutoFetchMinutes is the background fetch interval in force: the policy's
-// when it sets one, else the user's. Zero is off.
-// LocalCommandsOff says the organization has turned off running commands from the app.
 func LocalCommandsOff() bool {
 	mu.Lock()
 	defer mu.Unlock()
@@ -125,6 +122,8 @@ func LocalCommandsOff() bool {
 	return lock != nil && lock.Enabled != nil && !*lock.Enabled
 }
 
+// AutoFetchMinutes is the policy's interval when it sets one, else the
+// user's. Zero is off.
 func AutoFetchMinutes(user int) (minutes int, managed bool) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -141,7 +140,6 @@ func AutoFetchMinutes(user int) (minutes int, managed bool) {
 	return defaultIntervalMinutes, true
 }
 
-// DefaultTracker is the policy's tracker, or nil.
 func DefaultTracker() *Tracker {
 	mu.Lock()
 	defer mu.Unlock()

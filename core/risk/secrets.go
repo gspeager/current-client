@@ -109,16 +109,16 @@ var loadSecretRules = sync.OnceValue(func() secretRules {
 })
 
 func (r secretRules) pathIgnored(path string) bool {
-	if fixturePath.MatchString(path) {
-		return true
-	}
-	return slices.ContainsFunc(r.ignoredPath, func(regex *regexp.Regexp) bool { return regex.MatchString(path) })
+	return fixturePath.MatchString(path) || matchesAny(r.ignoredPath, path)
+}
+
+func matchesAny(regexes []*regexp.Regexp, text string) bool {
+	return slices.ContainsFunc(regexes, func(regex *regexp.Regexp) bool { return regex.MatchString(text) })
 }
 
 // Test data holds real-looking keys on purpose.
 var fixturePath = regexp.MustCompile(`(?i)(^|/)(testdata|fixtures?|__fixtures__|__snapshots__)/`)
 
-// scanLine returns each match on a line as its rule and masked value.
 func (r secretRules) scanLine(path, line string) []secretMatch {
 	lower := strings.ToLower(line)
 	var found []secretMatch
@@ -175,8 +175,8 @@ func (rule *secretRule) allowed(path, line, match, secret string) bool {
 		checks := []struct {
 			present, holds bool
 		}{
-			{len(list.paths) > 0, slices.ContainsFunc(list.paths, func(regex *regexp.Regexp) bool { return regex.MatchString(path) })},
-			{len(list.regexes) > 0, slices.ContainsFunc(list.regexes, func(regex *regexp.Regexp) bool { return regex.MatchString(target) })},
+			{len(list.paths) > 0, matchesAny(list.paths, path)},
+			{len(list.regexes) > 0, matchesAny(list.regexes, target)},
 			{len(list.stopwords) > 0, slices.ContainsFunc(list.stopwords, func(word string) bool { return strings.Contains(lower, word) })},
 		}
 		anyHolds, allHold := false, true

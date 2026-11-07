@@ -102,8 +102,6 @@ func (s *ChangelogService) RenderHTML(markdown string) (string, error) {
 	return changelog.HTML(markdown)
 }
 
-// The Save methods report false when the dialog is cancelled.
-
 func (s *ChangelogService) SaveMarkdown(markdown, filename string) (bool, error) {
 	return saveFile("Save Markdown", filename, "Markdown", "*.md", []byte(markdown))
 }
