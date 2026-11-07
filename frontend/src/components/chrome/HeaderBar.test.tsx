@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, RemoteService, RepositoryService } from '@current-client-bindings/app'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
@@ -50,6 +50,46 @@ const menu = () => vi.waitFor(() => document.querySelector<HTMLElement>('.contex
 
 beforeEach(() => {
   vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', ahead: 2, behind: 1 } as never)
+})
+
+describe('HeaderBar Go to anything keys', () => {
+  const palette = () => screen.queryByRole('dialog', { name: 'Go to anything' })
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
+    Element.prototype.scrollIntoView = vi.fn()
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('opens and closes with the same key, and also takes the editor keys', async () => {
+    renderHeader()
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    expect(await screen.findByRole('dialog', { name: 'Go to anything' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    await waitFor(() => expect(palette()).not.toBeInTheDocument())
+
+    fireEvent.keyDown(window, { key: 'P', ctrlKey: true, shiftKey: true })
+    expect(await screen.findByRole('dialog', { name: 'Go to anything' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    await waitFor(() => expect(palette()).not.toBeInTheDocument())
+  })
+
+  it('leaves Ctrl+Shift+K to Push', async () => {
+    const onPush = vi.fn()
+    renderHeader({ onPush })
+
+    fireEvent.keyDown(window, { key: 'K', ctrlKey: true, shiftKey: true })
+    await waitFor(() => expect(onPush).toHaveBeenCalled())
+    expect(palette()).not.toBeInTheDocument()
+  })
 })
 
 describe('HeaderBar sync cluster', () => {

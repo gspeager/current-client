@@ -11,6 +11,8 @@ export const SHORTCUT_GROUPS: { name: string; shortcuts: Shortcut[] }[] = [
     name: 'Go to',
     shortcuts: [
       { keys: 'mod+K', label: 'Go to anything' },
+      { keys: 'mod+P', label: 'Go to anything, editor quick open key' },
+      { keys: 'mod+shift+P', label: 'Go to anything, editor palette key' },
       { keys: 'mod+shift+F', label: 'Search in files' },
       { keys: 'mod+1…6', label: 'Switch view' },
       { keys: 'F6', label: 'Next pane' },
@@ -34,6 +36,8 @@ export const SHORTCUT_GROUPS: { name: string; shortcuts: Shortcut[] }[] = [
       { keys: 'mod+Enter', label: 'Commit staged files' },
       { keys: 'Space', label: 'Stage or unstage the selected file' },
       { keys: 'alt+↑ ↓', label: 'Previous or next hunk' },
+      { keys: 'F7', label: 'Next hunk' },
+      { keys: 'shift+F7', label: 'Previous hunk' },
       { keys: 'S', label: 'Stage the hunk, from the diff' },
       { keys: 'U', label: 'Unstage the hunk, from the diff' },
       { keys: 'D', label: 'Discard the hunk, from the diff' },

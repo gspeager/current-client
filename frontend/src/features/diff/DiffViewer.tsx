@@ -188,12 +188,14 @@ function DiffViewer({
       if (hunk && key === 'u') hunkActions.onUnstageHunk?.(hunk.raw)
       if (hunk && key === 'd') hunkActions.onDiscardHunk?.(hunk.raw)
     }
-    if (!e.altKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
+    const forward = e.key === 'F7' ? !e.shiftKey : e.altKey && e.key === 'ArrowDown'
+    const back = e.key === 'F7' ? e.shiftKey : e.altKey && e.key === 'ArrowUp'
+    if (!forward && !back) return
     if (diff.conflicted) {
       if (blocks.blockStarts.length === 0) return
       e.preventDefault()
       goToBlock(
-        e.key === 'ArrowDown'
+        forward
           ? Math.min(blocks.blockStarts.length - 1, currentBlock + 1)
           : Math.max(0, currentBlock - 1),
       )
@@ -203,7 +205,7 @@ function DiffViewer({
     if (total === 0) return
     e.preventDefault()
     setCurrentHunkIndex((i) => {
-      const next = e.key === 'ArrowDown' ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
+      const next = forward ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
       const headers = paneRef.current?.querySelectorAll('.diff-hunk-header')
       headers?.[next]?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
       return next

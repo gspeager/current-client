@@ -1,4 +1,5 @@
 import { UndoService, type NoteInfo } from '@current-client-bindings/app'
+import { System } from '@wailsio/runtime'
 import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import {
   ArrowDown,
@@ -266,9 +267,16 @@ function HeaderBar({
   const shownTabs = repo.tabs.filter((path) => !overflowTabs.includes(path))
 
   useWindowKeydown((e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    const paletteKey = e.key.toLowerCase()
+    // Ctrl+P is the cursor-up key in a Mac text field, so only Command takes it there.
+    const quickOpenMod = System.IsMac() ? e.metaKey : e.ctrlKey
+    if (
+      ((e.metaKey || e.ctrlKey) && !e.shiftKey && paletteKey === 'k') ||
+      ((e.metaKey || e.ctrlKey) && e.shiftKey && paletteKey === 'p') ||
+      (quickOpenMod && !e.shiftKey && paletteKey === 'p')
+    ) {
       e.preventDefault()
-      setQuickSwitchOpen(true)
+      setQuickSwitchOpen((open) => !open)
     }
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
       e.preventDefault()

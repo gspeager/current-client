@@ -162,6 +162,16 @@ describe('DiffViewer scroll reports', () => {
 })
 
 describe('DiffViewer hunk navigation', () => {
+  it('moves between hunks with F7 and Shift+F7, as editors do', () => {
+    render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" />)
+
+    fireEvent.keyDown(window, { key: 'F7' })
+    expect(currentHeader()).toContain('second')
+
+    fireEvent.keyDown(window, { key: 'F7', shiftKey: true })
+    expect(currentHeader()).toContain('first')
+  })
+
   it('starts on the first hunk and moves forward/backward with Alt+ArrowDown/Up', () => {
     render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" />)
 

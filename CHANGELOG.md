@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **Editor keys work here too.** **Ctrl+P** and **Ctrl+Shift+P** open Go to anything, **Ctrl+K** now closes it as well, and **F7** and **Shift+F7** move between diff hunks.
 - **Dates are real dates after a week**, so an old commit reads "Mar 14" or "Mar 2024" instead of "400d ago".
 - **The status bar says what just happened**, such as "Pushed main to origin/main", in place of Ready, with **Undo** after a commit or pull.
 - **The Vivid and Muted lane palettes have eight colors**, the same as the default, so branches spread evenly across them.
@@ -78,6 +79,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- **Ctrl+Shift+K** no longer opens Go to anything on top of pushing.
 - **History's activity strip shows the right date**, with its tooltip beside the strip.
 - **A conflicted file's Side by side view numbers each column by its own version of the file**, and its header counts conflicts instead of showing `+0 -0`.
 - **History stays readable when commit detail is open.** The subject gets more room, a row shows one branch plus a count, and a link it cuts keeps its text rather than a lone logo.
