@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Play, Square, X } from 'lucide-react'
 import { TaskService, type TaskInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
-import { errorMessage } from '../../lib/errors'
 import { useDialogs } from '../../lib/useDialogs'
 import type { RunStatus, useTasks } from './useTasks'
+import { useActionError } from '../../lib/useActionError'
 import './TasksView.scss'
 
 const STATUS_LABEL: Record<RunStatus, string> = {
@@ -26,7 +26,7 @@ interface TasksViewProps {
 function TasksView({ repoPath, tasks }: TasksViewProps) {
   const { prompt } = useDialogs()
   const [selected, setSelected] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const list = tasks.list
   const shown: TaskInfo | undefined = list?.tasks.find((task) => task.id === selected)
   const shownRun = shown && tasks.runOf(shown.id)
@@ -37,15 +37,11 @@ function TasksView({ repoPath, tasks }: TasksViewProps) {
     const command = await prompt({ title: 'Add a command', label: `Command for ${name}`, confirmLabel: 'Add' })
     if (!command) return
     setActionError(null)
-    TaskService.AddCustom(repoPath, name, command)
-      .then(tasks.reload)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    TaskService.AddCustom(repoPath, name, command).then(tasks.reload).catch(fail)
   }
 
   const removeCommand = (task: TaskInfo) => {
-    TaskService.RemoveCustom(repoPath, task.name)
-      .then(tasks.reload)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    TaskService.RemoveCustom(repoPath, task.name).then(tasks.reload).catch(fail)
   }
 
   const error = tasks.error ?? actionError

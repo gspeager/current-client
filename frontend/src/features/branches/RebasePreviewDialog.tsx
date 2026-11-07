@@ -2,6 +2,8 @@ import { BranchService, type RebasePreviewCommitInfo } from '@current-client-bin
 import Modal from '../../components/chrome/Modal'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
+import { shortSha } from '../../lib/text'
+import DialogError from '../../components/chrome/DialogError'
 import './RebasePreviewDialog.scss'
 
 const OUTCOME_LABEL: Record<string, string> = {
@@ -15,7 +17,7 @@ export function PreviewCommitRow({ commit }: { commit: RebasePreviewCommitInfo }
   return (
     <li className="rebase-preview-commit">
       <div className="rebase-preview-commit-line">
-        <span className="rebase-preview-sha">{commit.sha.slice(0, 7)}</span>
+        <span className="rebase-preview-sha">{shortSha(commit.sha)}</span>
         <span className="rebase-preview-subject" title={commit.subject}>
           {commit.subject}
         </span>
@@ -49,11 +51,7 @@ function RebasePreviewDialog({ repoPath, onto, onRebase, onClose }: RebasePrevie
       className="dialog-panel rebase-preview-panel"
     >
       <div className="dialog-body">
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         {!preview && !error && <p className="dialog-message">Working it out…</p>}
         {preview && nothingToDo && <p className="dialog-message">Nothing to move. Already on {onto}.</p>}
         {preview && !nothingToDo && (
@@ -85,11 +83,7 @@ function RebasePreviewDialog({ repoPath, onto, onRebase, onClose }: RebasePrevie
                 {preview.upstream} has these commits, so pushing afterwards needs a force push with --force-with-lease.
               </p>
             )}
-            {preview.dirty && (
-              <p className="dialog-error" role="alert">
-                Commit or stash the changes in the working tree first.
-              </p>
-            )}
+            {preview.dirty && <DialogError>Commit or stash the changes in the working tree first.</DialogError>}
             <p className="rebase-preview-command">{preview.command}</p>
           </>
         )}

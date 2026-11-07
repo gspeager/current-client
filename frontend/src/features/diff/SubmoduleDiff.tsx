@@ -1,6 +1,7 @@
 import { SubmoduleService } from '@current-client-bindings/app'
 import { useAsyncData } from '../../lib/useAsyncData'
 import type { SubmoduleChange } from './submoduleChange'
+import { shortSha } from '../../lib/text'
 
 interface SubmoduleDiffProps {
   change: SubmoduleChange
@@ -8,8 +9,6 @@ interface SubmoduleDiffProps {
   // Without it only the two commits are shown, not the ones between them.
   repoPath?: string
 }
-
-const short = (sha: string) => sha.slice(0, 7)
 
 function SubmoduleDiff({ change, path, repoPath }: SubmoduleDiffProps) {
   const { from, to, dirty } = change
@@ -25,16 +24,16 @@ function SubmoduleDiff({ change, path, repoPath }: SubmoduleDiffProps) {
         Submodule{' '}
         {from && to ? (
           <span className="submodule-diff-shas">
-            {short(from)} → {short(to)}
+            {shortSha(from)} → {shortSha(to)}
           </span>
         ) : to ? (
           <>
-            added at <span className="submodule-diff-shas">{short(to)}</span>
+            added at <span className="submodule-diff-shas">{shortSha(to)}</span>
           </>
         ) : (
           from && (
             <>
-              removed, was at <span className="submodule-diff-shas">{short(from)}</span>
+              removed, was at <span className="submodule-diff-shas">{shortSha(from)}</span>
             </>
           )
         )}

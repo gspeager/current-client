@@ -7,6 +7,7 @@ import { toggled } from '../../lib/sets'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import DialogError from '../../components/chrome/DialogError'
 import './CleanUpBranchesDialog.scss'
 
 export interface DeletedBranch {
@@ -71,11 +72,7 @@ function CleanUpBranchesDialog({ repoPath, onDeleted, onClose }: CleanUpBranches
   return (
     <Modal title="Clean up merged branches" onClose={onClose} className="dialog-panel clean-up-panel">
       <div className="dialog-body">
-        {loadError && (
-          <p className="dialog-error" role="alert">
-            {loadError}
-          </p>
-        )}
+        <DialogError>{loadError}</DialogError>
         {report && branches.length === 0 && <p className="dialog-message">No merged branches to clean up.</p>}
         {branches.length > 0 && (
           <ul className="clean-up-list">
@@ -98,11 +95,7 @@ function CleanUpBranchesDialog({ repoPath, onDeleted, onClose }: CleanUpBranches
             Switches to {report?.default} and pulls first, since {current.name} is checked out.
           </p>
         )}
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Cancel

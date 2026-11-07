@@ -1,6 +1,6 @@
 import { MessageSquare } from 'lucide-react'
 import { plural } from '../../lib/plural'
-import '../../features/diff/ReviewThreadBlock.scss'
+import './ThreadCount.scss'
 
 function ThreadCount({ count }: { count?: number }) {
   if (!count) return null

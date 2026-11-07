@@ -19,6 +19,7 @@ import Kbd from '../../components/controls/Kbd'
 import { shortcutLabel } from '../../lib/shortcuts'
 import SplitButton from '../../components/controls/SplitButton'
 import IdentityPrompt from './IdentityPrompt'
+import { capitalize } from '../../lib/text'
 import './CommitComposer.scss'
 
 interface CommitComposerProps {
@@ -226,9 +227,7 @@ function CommitComposer({
     <section className="commit-composer" data-pane="composer">
       <div className="commit-composer-header" hidden={nothingToCommit}>
         <span className="commit-composer-label">
-          {conflict
-            ? `${operationNoun(conflict.operation)[0].toUpperCase()}${operationNoun(conflict.operation).slice(1)} commit`
-            : 'Commit message'}
+          {conflict ? `${capitalize(operationNoun(conflict.operation))} commit` : 'Commit message'}
         </span>
         {showTypePicker && !conflict && (
           <div className="commit-composer-type">

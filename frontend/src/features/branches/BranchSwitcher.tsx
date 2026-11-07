@@ -3,7 +3,6 @@ import { Cloud, GitBranchPlus, RefreshCw, Search, X } from 'lucide-react'
 import { BranchService, RemoteService, StatusService } from '@current-client-bindings/app'
 import { localNameFor } from './branches'
 import { toBranchName } from '../../lib/branchName'
-import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
@@ -14,6 +13,7 @@ import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { useFetchAll } from '../remotes/useFetchAll'
 import BranchPill from '../../components/git/BranchPill'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
+import { useActionError } from '../../lib/useActionError'
 import './BranchSwitcher.scss'
 
 interface BranchSwitcherProps {
@@ -45,14 +45,13 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
   const [filter, setFilter] = useState('')
   const { data, error: loadError, reload: load } = useAsyncData(() => loadSwitcher(repoPath), [repoPath])
   const { prompt } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
   const localBranches = data?.local ?? []
   const remoteBranches = data?.remote ?? []
   const ahead = data?.ahead ?? 0
   const dirtyCount = data?.dirtyCount ?? 0
   const localName = (remoteBranch: string) => localNameFor(remoteBranch, data?.remoteNames ?? [])
-  const fail = (err: unknown) => setActionError(errorMessage(err))
   const branchChanged = () => {
     load()
     onBranchChanged?.()

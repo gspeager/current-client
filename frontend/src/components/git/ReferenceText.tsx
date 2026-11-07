@@ -1,6 +1,6 @@
 import { Fragment, type MouseEvent, type ReactNode } from 'react'
-import { PlatformService } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
+import { openWebPage } from '../../lib/hostPages'
 import { splitReferences, type HostReference } from '../../lib/hostReferences'
 import type { ReferenceCardInfo, ReferenceCards } from '../../lib/useReferenceCards'
 import HoverCard from '../chrome/HoverCard'
@@ -30,7 +30,7 @@ export function ReferenceLink({ reference, card, children, logo = true }: Refere
     e.preventDefault()
     e.stopPropagation()
     if (openIssue && issueKey) openIssue(issueKey)
-    else void PlatformService.OpenWebPage(reference.url)
+    else openWebPage(reference.url)
   }
   const Logo = logo && reference.provider ? hostLogo(reference.provider) : null
   const link = (

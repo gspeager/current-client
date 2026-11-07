@@ -8,6 +8,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { EMPTY_HISTORY_FILTER } from './useCommitHistory'
 import Modal from '../../components/chrome/Modal'
+import { shortSha } from '../../lib/text'
 import './BisectWizard.scss'
 
 interface BisectWizardProps {
@@ -36,7 +37,7 @@ function stageFromStatus(status: BisectStatusInfo): Stage {
 function Candidate({ sha, commit }: { sha: string; commit: CommitInfo | null }) {
   return (
     <div className="bisect-candidate">
-      <span className="bisect-candidate-sha">{sha.slice(0, 7)}</span>
+      <span className="bisect-candidate-sha">{shortSha(sha)}</span>
       {commit && (
         <>
           <span className="bisect-candidate-subject">{commit.subject}</span>

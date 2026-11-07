@@ -1,13 +1,15 @@
 import { useState, type FormEvent } from 'react'
-import { HostService, PlatformService, TagService, type ReleaseDraft } from '@current-client-bindings/app'
+import { HostService, TagService, type ReleaseDraft } from '@current-client-bindings/app'
 import type { PublishedRelease } from '@current-client-bindings/core/hostapi'
 import Modal from '../../components/chrome/Modal'
-import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
+import { errorMessage } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useHostLogo } from '../../components/git/hostLogos'
 import { DraftErrorModal } from './CreateChangeDialog'
+import DialogError from '../../components/chrome/DialogError'
 import './CreateChangeDialog.scss'
 
 interface PublishReleaseDialogProps {
@@ -71,7 +73,7 @@ function PublishReleaseForm({
             <button
               type="button"
               className="dialog-button"
-              onClick={() => PlatformService.OpenWebPage(published.webUrl).catch(ignoreDecorativeFailure)}
+              onClick={() => openWebPage(published.webUrl)}
               disabled={!published.webUrl}
             >
               <HostIcon size={14} strokeWidth={1.75} />
@@ -105,11 +107,7 @@ function PublishReleaseForm({
             rows={12}
           />
         </label>
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Cancel

@@ -5,6 +5,7 @@ import HoverCard from '../chrome/HoverCard'
 import { CIIcon, ciLabel } from './CIMark'
 import { openWebPage } from '../../lib/hostPages'
 import { relativeTime } from '../../lib/relativeTime'
+import { hostUserName } from '../../lib/useNameIdentities'
 import './EnvironmentMarker.scss'
 
 // The environments whose latest deployment is this commit: one rocket at the
@@ -18,7 +19,7 @@ export function EnvironmentMarker({ environments }: { environments: EnvironmentI
     if (url) openWebPage(url)
   }
   const card = environments.map((env) => {
-    const by = env.deployedBy.name || env.deployedBy.username
+    const by = hostUserName(env.deployedBy)
     return (
       <div key={env.environment}>
         <p className="hover-card-title">{env.environment}</p>

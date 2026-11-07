@@ -3,6 +3,7 @@ import Modal from '../../components/chrome/Modal'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { PreviewCommitRow } from './RebasePreviewDialog'
+import DialogError from '../../components/chrome/DialogError'
 import './RebasePreviewDialog.scss'
 
 interface RestackDialogProps {
@@ -22,11 +23,7 @@ function RestackDialog({ repoPath, root, onRestack, onClose }: RestackDialogProp
   return (
     <Modal title={`Restack ${root}`} onClose={onClose} className="dialog-panel rebase-preview-panel">
       <div className="dialog-body">
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         {!preview && !error && <p className="dialog-message">Working it out…</p>}
         {preview && !changes && <p className="dialog-message">Nothing to move. Every layer is on its parent.</p>}
         {preview &&
@@ -64,16 +61,8 @@ function RestackDialog({ repoPath, root, onRestack, onClose }: RestackDialogProp
         {preview && !preview.predicted && (
           <p className="dialog-note">Conflicts can't be predicted on this Git. Predicting needs Git 2.40 or newer.</p>
         )}
-        {preview?.blocked && (
-          <p className="dialog-error" role="alert">
-            {preview.blocked}
-          </p>
-        )}
-        {preview?.dirty && moves && (
-          <p className="dialog-error" role="alert">
-            Commit or stash the changes in the working tree first.
-          </p>
-        )}
+        <DialogError>{preview?.blocked}</DialogError>
+        {preview?.dirty && moves && <DialogError>Commit or stash the changes in the working tree first.</DialogError>}
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Cancel

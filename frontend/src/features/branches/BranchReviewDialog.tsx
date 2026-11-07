@@ -11,6 +11,7 @@ import { toggled } from '../../lib/sets'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import type { DeletedBranch } from './CleanUpBranchesDialog'
+import DialogError from '../../components/chrome/DialogError'
 import './BranchReviewDialog.scss'
 
 type Filter = 'all' | 'merged' | 'stale' | 'unpushed'
@@ -100,11 +101,7 @@ function BranchReviewDialog({ repoPath, onDeleted, onClose }: BranchReviewDialog
   return (
     <Modal title="Branch review" onClose={onClose} className="dialog-panel branch-review-panel">
       <div className="dialog-body">
-        {loadError && (
-          <p className="dialog-error" role="alert">
-            {loadError}
-          </p>
-        )}
+        <DialogError>{loadError}</DialogError>
         <div className="branch-review-filters">
           <SegmentedControl
             value={filter}
@@ -177,11 +174,7 @@ function BranchReviewDialog({ repoPath, onDeleted, onClose }: BranchReviewDialog
             </table>
           </div>
         )}
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Close

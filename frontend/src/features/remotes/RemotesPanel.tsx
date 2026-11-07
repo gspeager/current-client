@@ -4,12 +4,12 @@ import { Cloud, Pencil, Plus, RefreshCw, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { RemoteService, type RemoteInfo } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
-import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import PathText from '../../components/git/PathText'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
+import { useActionError } from '../../lib/useActionError'
 import './RemotesPanel.scss'
 
 interface RemotesPanelProps {
@@ -36,7 +36,7 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false, req
     reload: loadRemotes,
   } = useAsyncData(() => RemoteService.List(repoPath), [repoPath])
   const { confirm, prompt } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
   const [newName, setNewName] = useState('')
   const [newUrl, setNewUrl] = useState('')
@@ -50,7 +50,7 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false, req
 
   const change = (action: Promise<void>) => {
     setActionError(null)
-    return action.then(loadRemotes).catch((err: unknown) => setActionError(errorMessage(err)))
+    return action.then(loadRemotes).catch(fail)
   }
 
   const addRemote = () =>

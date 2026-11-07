@@ -9,11 +9,10 @@ import {
   HostService,
   type OverlapInfo,
   OverlapService,
-  PlatformService,
   RemoteService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
-import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
+import ContextMenu, { menuAnchor, rowKeyDown, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { localNameFor } from './branches'
 import SidebarSection from '../../components/chrome/SidebarSection'
@@ -44,8 +43,9 @@ import { arrowIntoList } from '../../lib/useRovingRows'
 import CIMark, { ciLabel } from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
-import { branchPage, remoteBranchName } from '../../lib/hostPages'
+import { branchPage, openWebPage, remoteBranchName } from '../../lib/hostPages'
 import IssuePicker from './IssuePicker'
+import { useActionError } from '../../lib/useActionError'
 import './BranchSidebar.scss'
 
 interface BranchSidebarProps {
@@ -119,9 +119,8 @@ function BranchSidebar({
   const overlapFor = new Map(overlaps.map((o) => [o.branch, o]))
   const remoteConflicts = overlaps.filter((o) => o.remote).length
   const { confirm, prompt } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
-  const fail = (err: unknown) => setActionError(errorMessage(err))
   const branchesChanged = () => {
     loadBranches()
     onBranchChanged?.()
@@ -353,9 +352,7 @@ function BranchSidebar({
           disabled: b.current || !branchStatus?.current || branchStatus.current === defaultBranch,
         },
         ...(stackWith(b.name) ? [{ label: 'Remove from stack', onClick: () => removeFromStack(b.name) }] : []),
-        ...(hostLinks?.tree
-          ? [{ label: 'Open on host', onClick: () => void PlatformService.OpenWebPage(branchHostPage(b)) }]
-          : []),
+        ...(hostLinks?.tree ? [{ label: 'Open on host', onClick: () => openWebPage(branchHostPage(b)) }] : []),
         ...(hostLinks?.tree && b.upstream && !changes[b.upstream]?.state
           ? [
               {
@@ -415,18 +412,6 @@ function BranchSidebar({
   const localNames = new Set((branches ?? []).map((b) => b.name))
   const remoteList = (remoteBranches ?? []).filter((name) => name.toLowerCase().includes(query))
 
-  const rowKeys = (activate: () => void, menu: (e: KeyboardEvent) => void) => (e: KeyboardEvent<HTMLLIElement>) => {
-    if (isMenuKey(e)) {
-      menu(e)
-      return
-    }
-    if (e.target !== e.currentTarget) return
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      activate()
-    }
-  }
-
   // What the row has no room for: where the tip is deployed, beside CI and age.
   const branchSummary = (b: BranchInfo) => {
     const ci = ciMarks?.[b.tip]?.status
@@ -457,7 +442,7 @@ function BranchSidebar({
             ? branchSummary(b)
             : `${branchSummary(b)}\nDouble-click to check out`
       }
-      onKeyDown={rowKeys(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
+      onKeyDown={rowKeyDown(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill
         name={b.name}
@@ -532,7 +517,7 @@ function BranchSidebar({
       tabIndex={0}
       aria-disabled={blocked ? true : undefined}
       title={blocked ?? 'Double-click to check out'}
-      onKeyDown={rowKeys(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
+      onKeyDown={rowKeyDown(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
       <span className="branch-row-remote-name">{name}</span>

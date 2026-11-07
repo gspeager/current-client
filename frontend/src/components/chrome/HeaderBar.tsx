@@ -42,6 +42,7 @@ import RepoTabChip from '../../features/repositories/RepoTabChip'
 import SearchModal from '../../features/search/SearchModal'
 import './HeaderBar.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { capitalize } from '../../lib/text'
 
 interface HeaderBarProps {
   repoPath: string
@@ -207,7 +208,7 @@ function HeaderBar({
     disabled = false,
     due = false,
   ) => {
-    const name = id[0].toUpperCase() + id.slice(1)
+    const name = capitalize(id)
     const blocked = operation ? `Finish the ${operationNoun(operation)} first` : null
     const className = due ? 'header-bar-sync header-bar-sync-due' : 'header-bar-sync'
     return (

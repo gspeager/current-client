@@ -23,6 +23,8 @@ import Modal from '../../components/chrome/Modal'
 import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
+import { shortSha } from '../../lib/text'
+import DialogError from '../../components/chrome/DialogError'
 import './TidyUpDialog.scss'
 
 interface Row {
@@ -73,7 +75,7 @@ function CommitRow({ row, index, count, canFold, outcome, onChange, onMove }: Co
     animateLayoutChanges: () => false,
     transition: reducedMotion() ? null : { duration: 140, easing: 'cubic-bezier(0.2, 0, 0.3, 1)' },
   })
-  const label = `${row.sha.slice(0, 7)} ${row.subject}`
+  const label = `${shortSha(row.sha)} ${row.subject}`
   return (
     <li
       ref={setNodeRef}
@@ -84,7 +86,7 @@ function CommitRow({ row, index, count, canFold, outcome, onChange, onMove }: Co
         <button type="button" className="tidy-handle" aria-label={`Move ${label}`} {...attributes} {...listeners}>
           <GripVertical size={14} strokeWidth={1.75} />
         </button>
-        <span className="tidy-sha">{row.sha.slice(0, 7)}</span>
+        <span className="tidy-sha">{shortSha(row.sha)}</span>
         <span
           className={row.action === 'drop' ? 'tidy-subject tidy-subject-dropped' : 'tidy-subject'}
           title={row.subject}
@@ -215,11 +217,7 @@ function TidyUpDialog({ repoPath, onDone, onClose }: TidyUpDialogProps) {
   return (
     <Modal title="Tidy up history" onClose={onClose} className="dialog-panel tidy-panel">
       <div className="dialog-body">
-        {planError && (
-          <p className="dialog-error" role="alert">
-            {planError}
-          </p>
-        )}
+        <DialogError>{planError}</DialogError>
         {plan && rows.length === 0 && <p className="dialog-message">No commits to tidy on this branch.</p>}
         {plan && rows.length > 0 && (
           <>
@@ -278,26 +276,10 @@ function TidyUpDialog({ repoPath, onDone, onClose }: TidyUpDialogProps) {
                 {preview.upstream} has these commits, so pushing afterwards needs a force push with --force-with-lease.
               </p>
             )}
-            {plan.hasMerges && (
-              <p className="dialog-error" role="alert">
-                These commits include a merge, which a rewrite would flatten.
-              </p>
-            )}
-            {plan.dirty && (
-              <p className="dialog-error" role="alert">
-                Commit or stash the changes in the working tree first.
-              </p>
-            )}
-            {invalid && (
-              <p className="dialog-error" role="alert">
-                {invalid}
-              </p>
-            )}
-            {runError && (
-              <p className="dialog-error" role="alert">
-                {runError}
-              </p>
-            )}
+            {plan.hasMerges && <DialogError>These commits include a merge, which a rewrite would flatten.</DialogError>}
+            {plan.dirty && <DialogError>Commit or stash the changes in the working tree first.</DialogError>}
+            <DialogError>{invalid}</DialogError>
+            <DialogError>{runError}</DialogError>
           </>
         )}
         <div className="dialog-actions">

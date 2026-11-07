@@ -47,6 +47,7 @@ import { shortcutLabel } from '../../lib/shortcuts'
 import { plural } from '../../lib/plural'
 import { PALETTE_SECTIONS, matchesAction, type PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
+import { shortSha } from '../../lib/text'
 import './QuickSwitchPalette.scss'
 
 interface QuickSwitchPaletteProps {
@@ -526,14 +527,14 @@ function QuickSwitchPalette({
               <Row
                 key={`commit:${c.sha}`}
                 value={`commit:${c.sha}`}
-                label={`Commit ${c.sha.slice(0, 7)}: ${c.subject}`}
+                label={`Commit ${shortSha(c.sha)}: ${c.subject}`}
                 icon={GitCommitVertical}
                 action
                 onSelect={() => openCommit(c.sha)}
               >
                 <span className="quick-switch-row-name">{highlight(c.subject)}</span>
                 <span className="quick-switch-row-meta">
-                  <span className="quick-switch-commit-sha">{c.sha.slice(0, 7)}</span>
+                  <span className="quick-switch-commit-sha">{shortSha(c.sha)}</span>
                   <span className="quick-switch-commit-date">{relativeTime(new Date(c.date))}</span>
                 </span>
               </Row>
@@ -572,7 +573,7 @@ function QuickSwitchPalette({
               >
                 <span className="quick-switch-row-name">{highlight(t.name)}</span>
                 <span className="quick-switch-row-meta">
-                  <span className="quick-switch-commit-sha">{t.sha.slice(0, 7)}</span>
+                  <span className="quick-switch-commit-sha">{shortSha(t.sha)}</span>
                   {t.date && <span className="quick-switch-commit-date">{relativeTime(new Date(t.date))}</span>}
                 </span>
               </Row>

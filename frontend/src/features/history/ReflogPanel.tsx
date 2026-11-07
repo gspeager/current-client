@@ -10,6 +10,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import Modal from '../../components/chrome/Modal'
+import { shortSha } from '../../lib/text'
 import './ReflogPanel.scss'
 
 interface ReflogPanelProps {
@@ -44,7 +45,7 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
   const recover = async (entry: ReflogEntryInfo) => {
     const name = await prompt({
       title: 'Recover commit',
-      label: `Branch name for ${entry.sha.slice(0, 7)} ("${entry.subject}")`,
+      label: `Branch name for ${shortSha(entry.sha)} ("${entry.subject}")`,
       confirmLabel: 'Create branch',
       transform: toBranchName,
     })
@@ -75,7 +76,7 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
             {entries.map((entry) => (
               <li key={entry.selector} className="reflog-row">
                 <span className="reflog-row-selector">{entry.selector}</span>
-                <span className="reflog-row-sha">{entry.sha.slice(0, 7)}</span>
+                <span className="reflog-row-sha">{shortSha(entry.sha)}</span>
                 <span className="reflog-row-action">{entry.action}</span>
                 <span className="reflog-row-subject">{entry.subject}</span>
                 <span className="reflog-row-time">{relativeTime(new Date(entry.date))}</span>
@@ -94,7 +95,7 @@ function ReflogPanel({ repoPath, onClose, onBranchChanged }: ReflogPanelProps) {
                   type="button"
                   className="reflog-row-more"
                   onClick={openMenu(entry)}
-                  aria-label={`More actions for ${entry.sha.slice(0, 7)}`}
+                  aria-label={`More actions for ${shortSha(entry.sha)}`}
                   title="More actions"
                 >
                   <Ellipsis size={14} strokeWidth={1.75} />

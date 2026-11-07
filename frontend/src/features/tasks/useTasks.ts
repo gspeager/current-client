@@ -4,6 +4,7 @@ import { TaskService, type TaskInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import { decodeBase64 } from '../../lib/base64'
 
 const OUTPUT_EVENT = 'task:output'
 const DONE_EVENT = 'task:done'
@@ -51,7 +52,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
         stream = { decoder: new TextDecoder(), partial: '' }
         streams.current.set(data.runId, stream)
       }
-      const bytes = Uint8Array.from(atob(data.data), (char) => char.charCodeAt(0))
+      const bytes = decodeBase64(data.data)
       const decoded = stream.partial + stream.decoder.decode(bytes, { stream: true })
       // An escape or line ending cut off by the read waits for the rest of it.
       const cut = decoded.match(UNFINISHED)?.[0] ?? ''

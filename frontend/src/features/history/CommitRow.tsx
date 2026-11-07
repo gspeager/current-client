@@ -1,7 +1,7 @@
 import { NoteMark } from '../notes/notes'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Ellipsis } from 'lucide-react'
-import { isMenuKey } from '../../components/controls/ContextMenu'
+import { rowKeyDown } from '../../components/controls/ContextMenu'
 import { parsePrefix } from '../../lib/conventionalCommit'
 import { highlightMatch } from '../../lib/highlightMatch'
 import { useLaneColors } from '../../lib/laneColor'
@@ -26,6 +26,7 @@ import CIMark from '../../components/git/CIMark'
 import RefBadge from './RefBadge'
 import { EnvironmentMarker } from '../../components/git/EnvironmentMarker'
 import { pairUpstreams } from './refPills'
+import { shortSha } from '../../lib/text'
 import './CommitRow.scss'
 
 interface CommitRowProps {
@@ -109,19 +110,9 @@ function CommitRow({
       style={{ ...style, opacity: dimmed ? 0.4 : 1 }}
       role="row"
       aria-selected={selected}
-      aria-label={`${commit.subject}, ${commit.sha.slice(0, 7)}, ${commit.authorName}`}
+      aria-label={`${commit.subject}, ${shortSha(commit.sha)}, ${commit.authorName}`}
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (isMenuKey(e)) {
-          onContextMenu(e)
-          return
-        }
-        if (e.target !== e.currentTarget) return
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onSelect()
-        }
-      }}
+      onKeyDown={rowKeyDown(onSelect, onContextMenu)}
     >
       <div className="commit-row-graph" role="gridcell">
         {graphNode && (
@@ -185,7 +176,7 @@ function CommitRow({
       </div>
 
       <span className="commit-row-sha" role="gridcell">
-        {highlightMatch(commit.sha.slice(0, 7), searchQuery, 'search-match')}
+        {highlightMatch(shortSha(commit.sha), searchQuery, 'search-match')}
       </span>
       <span className="commit-row-ci" role="gridcell">
         <CIMark repoPath={repoPath} mark={ci} onOpenJobs={onOpenChecks} />
@@ -197,7 +188,7 @@ function CommitRow({
         <button
           type="button"
           onClick={onContextMenu}
-          aria-label={`More actions for ${commit.sha.slice(0, 7)}`}
+          aria-label={`More actions for ${shortSha(commit.sha)}`}
           title="More actions"
         >
           <Ellipsis size={16} strokeWidth={1.75} />

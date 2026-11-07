@@ -217,3 +217,54 @@
     box-shadow: inset 2px 0 0 0 var(--outline-variant);
   }
 }
+
+// The small outlined button in panel headers and rows. Callers set the color.
+@mixin micro-button($height: var(--h-micro)) {
+  height: $height;
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  cursor: pointer;
+}
+
+// Leaves room on the left for a 14px search icon, which the caller positions.
+@mixin search-field {
+  width: 100%;
+  height: var(--h-field);
+  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+// A sidebar panel's empty-state line, error line and row list.
+@mixin panel-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+@mixin panel-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+@mixin panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

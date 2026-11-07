@@ -156,18 +156,13 @@
 }
 
 .inbox-row-done {
+  @include patterns.micro-button(var(--h-chip));
+
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-chip);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface);
-  font: var(--ui-xs);
   white-space: nowrap;
-  cursor: pointer;
   opacity: 0;
 
   .inbox-item:hover &,
@@ -275,17 +270,12 @@
 }
 
 .inbox-refresh {
+  @include patterns.micro-button(var(--h-chip));
+
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-chip);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface);
-  font: var(--ui-xs);
-  cursor: pointer;
 
   &:hover {
     background: var(--surface-container);

@@ -5,6 +5,7 @@ import Modal from '../../components/chrome/Modal'
 import Switch from '../../components/forms/Switch'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
+import DialogError from '../../components/chrome/DialogError'
 import './MergeChangeDialog.scss'
 
 interface MergeChangeDialogProps {
@@ -74,11 +75,7 @@ function MergeChangeDialog({ repoPath, change, prefix, host, facts, onMerged, on
             ))}
           </ul>
         )}
-        {optionsError && (
-          <p className="dialog-error" role="alert">
-            {optionsError}
-          </p>
-        )}
+        <DialogError>{optionsError}</DialogError>
         {!options && !optionsError && <p className="dialog-note">Asking {host} how it merges…</p>}
         {options && (
           <>
@@ -114,11 +111,7 @@ function MergeChangeDialog({ repoPath, change, prefix, host, facts, onMerged, on
             )}
           </>
         )}
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Cancel

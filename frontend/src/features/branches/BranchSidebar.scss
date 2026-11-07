@@ -112,18 +112,15 @@
 }
 
 .branch-sidebar-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .branch-sidebar-error {
+  @include patterns.panel-error;
+
   display: flex;
   align-items: flex-start;
   gap: var(--space-xs);
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
 
   > span {
     flex: 1;
@@ -182,12 +179,7 @@
 }
 
 .branch-sidebar-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  @include patterns.panel-list;
 }
 
 [data-density='compact'] .branch-row {
@@ -334,15 +326,10 @@
 }
 
 .stack-action {
+  @include patterns.micro-button;
+
   flex-shrink: 0;
-  height: var(--h-micro);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface-variant);
-  font: var(--ui-xs);
-  cursor: pointer;
 
   &:hover:not(:disabled) {
     color: var(--on-surface);

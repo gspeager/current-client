@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, Columns2, ExternalLink, PanelLeftClose, PanelLeftOpen, Rows2, Users } from 'lucide-react'
-import { type ConflictStateInfo, DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
+import { type ConflictStateInfo, DiffService, type LineSelection } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import WaveMark from '../../components/chrome/WaveMark'
 import CommitComposer from './CommitComposer'
@@ -24,10 +24,11 @@ import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useFileOwners } from '../../lib/useFileOwners'
-import { filePage } from '../../lib/hostPages'
+import { filePage, openWebPage } from '../../lib/hostPages'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
 import { useConflictResolution } from './useConflictResolution'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { shortSha } from '../../lib/text'
 import './ChangesView.scss'
 
 interface ChangesViewProps {
@@ -252,9 +253,7 @@ function ChangesView({
           onOpen={openFile}
           threadCounts={reviewThreads.counts}
           onOpenOnHost={
-            hostLinks?.blob && headCommit
-              ? (path) => void PlatformService.OpenWebPage(filePage(hostLinks, headCommit.sha, path))
-              : undefined
+            hostLinks?.blob && headCommit ? (path) => openWebPage(filePage(hostLinks, headCommit.sha, path)) : undefined
           }
           mergeMode={conflict !== null}
         />
@@ -400,7 +399,7 @@ function ChangesView({
                         color: branchColor(conflict?.ours ?? '', true),
                       }
                     : showsStaged
-                      ? { label: 'HEAD', sha: headCommit?.sha.slice(0, 7) }
+                      ? { label: 'HEAD', sha: headCommit ? shortSha(headCommit.sha) : undefined }
                       : { label: untracked ? 'Untracked' : 'Staged' }
                 }
                 targetSide={
@@ -436,7 +435,7 @@ function ChangesView({
             {headCommit && <p>Last commit</p>}
             {headCommit && (
               <p className="changes-clean-commit">
-                <span>{headCommit.sha.slice(0, 7)}</span> {headCommit.subject}
+                <span>{shortSha(headCommit.sha)}</span> {headCommit.subject}
               </p>
             )}
           </div>

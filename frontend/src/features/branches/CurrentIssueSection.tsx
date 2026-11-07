@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { PanelRight } from 'lucide-react'
-import { BranchService, PlatformService } from '@current-client-bindings/app'
-import { ignoreDecorativeFailure } from '../../lib/errors'
+import { BranchService } from '@current-client-bindings/app'
+import { openWebPage } from '../../lib/hostPages'
 import { branchIssue } from '../../lib/hostReferences'
 import { useOpenIssue } from '../../lib/issuePanel'
 import { useHostLinks } from '../../lib/useHostLinks'
@@ -50,11 +50,7 @@ function CurrentIssueSection({ repoPath, refreshKey }: CurrentIssueSectionProps)
             Details
           </button>
         )}
-        <button
-          type="button"
-          className="current-change-button"
-          onClick={() => PlatformService.OpenWebPage(issue.url).catch(ignoreDecorativeFailure)}
-        >
+        <button type="button" className="current-change-button" onClick={() => openWebPage(issue.url)}>
           <IssueHostIcon size={14} strokeWidth={1.75} />
           Open on host
         </button>

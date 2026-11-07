@@ -3,9 +3,11 @@ import { NotesService, type NoteInfo } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
 import { errorMessage } from '../../lib/errors'
 import type { NoteKind, NoteTarget, useNotesState } from './notes'
+import { shortSha } from '../../lib/text'
+import DialogError from '../../components/chrome/DialogError'
 
 export function noteLabel(note: { kind: string; target: string; subject?: string }): string {
-  return note.kind === 'commit' ? `${note.target.slice(0, 7)} ${note.subject ?? ''}`.trim() : note.target
+  return note.kind === 'commit' ? `${shortSha(note.target)} ${note.subject ?? ''}`.trim() : note.target
 }
 
 const KIND_LABEL: Record<NoteKind, string> = { commit: 'Commit', branch: 'Branch', tag: 'Tag', file: 'File' }
@@ -43,11 +45,7 @@ function NoteEditor({ repoPath, target, existing, onSaved, onClose }: NoteEditor
           onChange={(e) => setText(e.target.value)}
         />
         <p className="dialog-note">Plain text, kept on this computer. Never pushed or shared.</p>
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           {existing && (
             <button type="button" className="dialog-button dialog-button-destructive" onClick={() => save('')}>

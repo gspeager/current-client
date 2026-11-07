@@ -80,6 +80,7 @@ import { IssuePanelContext, type IssueDraft } from './lib/issuePanel'
 import { useHostPrompt } from './features/settings/useHostPrompt'
 import { useHostIndicator } from './lib/useHostIndicator'
 import { useHostLinks } from './lib/useHostLinks'
+import { openWebPage } from './lib/hostPages'
 import { useBranchChanges } from './lib/useBranchChanges'
 import { useSettings } from './features/settings/useSettings'
 import { useOpenRequests } from './features/repositories/useOpenRequests'
@@ -469,7 +470,7 @@ function App({
         }
         break
       case 'host':
-        void PlatformService.OpenWebPage(target.url)
+        openWebPage(target.url)
         break
       case 'clean-up':
         requestSidebar('clean-up')
@@ -991,9 +992,7 @@ function App({
                       <button
                         type="button"
                         onClick={() =>
-                          requestCreateChange
-                            ? requestCreateChange(pushed.branch)
-                            : void PlatformService.OpenWebPage(pushed.createLink)
+                          requestCreateChange ? requestCreateChange(pushed.branch) : openWebPage(pushed.createLink)
                         }
                       >
                         Create {pushed.kind}

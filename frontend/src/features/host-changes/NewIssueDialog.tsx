@@ -4,6 +4,7 @@ import type { Issue } from '@current-client-bindings/core/hostapi'
 import Modal from '../../components/chrome/Modal'
 import { errorMessage } from '../../lib/errors'
 import type { IssueDraft } from '../../lib/issuePanel'
+import DialogError from '../../components/chrome/DialogError'
 import './CreateChangeDialog.scss'
 
 interface NewIssueDialogProps {
@@ -66,11 +67,7 @@ function NewIssueDialog({ repoPath, draft, onCreated, onClose }: NewIssueDialogP
             spellCheck={false}
           />
         </label>
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Cancel

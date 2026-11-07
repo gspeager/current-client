@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { CommitInfo } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
 import { useBranchStatus } from '../../lib/useBranchStatus'
+import { shortSha } from '../../lib/text'
 import './ResetDialog.scss'
 
 export type ResetMode = 'soft' | 'mixed' | 'hard'
@@ -33,7 +34,7 @@ const MODES: { mode: ResetMode; label: string; effect: string }[] = [
 function ResetDialog({ repoPath, commit, onClose, onReset }: ResetDialogProps) {
   const [mode, setMode] = useState<ResetMode>('mixed')
   const status = useBranchStatus(repoPath, 0)
-  const sha = commit.sha.slice(0, 7)
+  const sha = shortSha(commit.sha)
 
   return (
     <Modal title={`Reset to ${sha}`} onClose={onClose} className="dialog-panel reset-dialog">

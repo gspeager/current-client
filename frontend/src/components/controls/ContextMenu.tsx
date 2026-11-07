@@ -24,6 +24,22 @@ export function isMenuKey(e: KeyboardEvent): boolean {
   return e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')
 }
 
+// A focusable row's keys: the menu key opens its menu; Enter or Space activates
+// it, unless they were pressed on a control inside the row.
+export function rowKeyDown(activate: () => void, menu: (e: KeyboardEvent) => void) {
+  return (e: KeyboardEvent) => {
+    if (isMenuKey(e)) {
+      menu(e)
+      return
+    }
+    if (e.target !== e.currentTarget) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      activate()
+    }
+  }
+}
+
 // Where a menu opens: at the pointer, or under the element when a key or a
 // keyboard-pressed button opened it, which leaves no pointer position.
 export function menuAnchor(e: MouseEvent | KeyboardEvent): { x: number; y: number } {

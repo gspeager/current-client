@@ -9,6 +9,8 @@ import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useClockTick } from '../../lib/useClockTick'
 import { useDialogs } from '../../lib/useDialogs'
+import { shortSha } from '../../lib/text'
+import DialogError from '../../components/chrome/DialogError'
 import './RecoverPanel.scss'
 
 const ACTION_LABEL: Record<string, string> = {
@@ -65,7 +67,7 @@ function RecoverPanel({ repoPath, onClose, onBranchChanged }: RecoverPanelProps)
   const makeBranch = async (snapshot: SnapshotInfo) => {
     const name = await prompt({
       title: 'Recover commits',
-      label: `Branch name for ${snapshot.tip.slice(0, 7)}, the tip of ${snapshot.branch}`,
+      label: `Branch name for ${shortSha(snapshot.tip)}, the tip of ${snapshot.branch}`,
       confirmLabel: 'Create branch',
       transform: toBranchName,
     })
@@ -79,11 +81,7 @@ function RecoverPanel({ repoPath, onClose, onBranchChanged }: RecoverPanelProps)
         <p className="dialog-note">
           Saved before actions that lose work. Kept on this computer, and never pushed. The number kept is in Settings.
         </p>
-        {shownError && (
-          <p className="dialog-error" role="alert">
-            {shownError}
-          </p>
-        )}
+        <DialogError>{shownError}</DialogError>
         {done && (
           <p className="dialog-message" role="status">
             {done}

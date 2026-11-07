@@ -1,5 +1,6 @@
 import { CircleDot } from 'lucide-react'
 import { type Review, ReviewState } from '@current-client-bindings/core/hostapi'
+import { hostUserName } from '../../lib/useNameIdentities'
 import './ReviewSummary.scss'
 
 const GROUP_LABELS: [ReviewState, string][] = [
@@ -15,7 +16,7 @@ export function reviewGroups(reviews: Review[] | null, open: boolean): { label: 
   return GROUP_LABELS.filter(([state]) => open || state !== ReviewState.ReviewRequested)
     .map(([state, label]) => ({
       label,
-      names: (reviews ?? []).filter((r) => r.state === state).map((r) => r.reviewer.name || r.reviewer.username),
+      names: (reviews ?? []).filter((r) => r.state === state).map((r) => hostUserName(r.reviewer)),
     }))
     .filter((group) => group.names.length > 0)
 }
@@ -62,7 +63,7 @@ function ReviewSummary({
   if (open && count(ReviewState.ReviewRequested) > 0) {
     const waitingOn = (reviews ?? [])
       .filter((r) => r.state === ReviewState.ReviewRequested)
-      .map((r) => displayName(r.reviewer.name || r.reviewer.username))
+      .map((r) => displayName(hostUserName(r.reviewer)))
     return (
       <span className="review-summary" title={title}>
         <CircleDot size={12} strokeWidth={1.75} />

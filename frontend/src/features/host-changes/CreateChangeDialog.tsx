@@ -6,6 +6,7 @@ import { errorMessage } from '../../lib/errors'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import DialogError from '../../components/chrome/DialogError'
 import './CreateChangeDialog.scss'
 
 interface CreateChangeDialogProps {
@@ -22,9 +23,7 @@ export function DraftErrorModal({ title, error, onClose }: { title: string; erro
   return (
     <Modal title={title} onClose={onClose} className="dialog-panel">
       <div className="dialog-body">
-        <p className="dialog-error" role="alert">
-          {error}
-        </p>
+        <DialogError>{error}</DialogError>
       </div>
     </Modal>
   )
@@ -123,11 +122,7 @@ function CreateChangeForm({ repoPath, draft, onCreated, onClose }: CreateChangeF
           />
         </label>
         <Switch checked={isDraft} onChange={setIsDraft} label="Draft" />
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         <div className="dialog-actions">
           <button type="button" className="dialog-button" onClick={onClose}>
             Cancel

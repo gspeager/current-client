@@ -1,14 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight, CloudOff, Copy, PackagePlus, Plus, StickyNote, Tag, Upload, X } from 'lucide-react'
 import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
-import {
-  HostService,
-  PlatformService,
-  type TagInfo,
-  type TagMessageInfo,
-  TagService,
-} from '@current-client-bindings/app'
-import { errorMessage } from '../../lib/errors'
+import { HostService, type TagInfo, type TagMessageInfo, TagService } from '@current-client-bindings/app'
 import { primaryRemoteName } from '../../lib/remotes'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
@@ -20,11 +13,12 @@ import { RowActionButtons, useRowMenu, type RowAction } from '../../components/c
 import './TagsPanel.scss'
 import { useHostLinks } from '../../lib/useHostLinks'
 import type { SidebarRequest } from '../../components/chrome/NavPane'
-import { tagPage } from '../../lib/hostPages'
+import { openWebPage, tagPage } from '../../lib/hostPages'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import { hostLogo } from '../../components/git/hostLogos'
+import { useActionError } from '../../lib/useActionError'
 
 interface TagsPanelProps {
   repoPath: string
@@ -44,9 +38,8 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
   const { confirm, signIn } = useDialogs()
   const { copy } = useCopyToClipboard()
   const rowMenu = useRowMenu()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
-  const fail = (err: unknown) => setActionError(errorMessage(err))
   const [newName, setNewName] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [showNewTag, setShowNewTag] = useState(false)
@@ -160,7 +153,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
             label: 'Open on host',
             ariaLabel: `Open tag ${name} on host`,
             icon: hostLogo(hostLinks.style),
-            run: () => void PlatformService.OpenWebPage(tagPage(hostLinks, name)),
+            run: () => openWebPage(tagPage(hostLinks, name)),
             menuOnly: true,
           },
         ]
