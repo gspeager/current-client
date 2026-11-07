@@ -1,10 +1,37 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ComponentProps } from 'react'
 import { BranchService, HostInfo, HostService, PlatformService, TrackerLinks } from '@current-client-bindings/app'
 import { IssuePanelContext } from '../../lib/issuePanel'
 import StatusBar from './StatusBar'
 
 describe('StatusBar', () => {
+  const bar = (props: Partial<ComponentProps<typeof StatusBar>>) => (
+    <StatusBar repoPath="/repos/app" repoVersion={0} gitVersion="2.47.0" {...props} />
+  )
+
+  it('says Ready until an action reports its result', () => {
+    const { rerender } = render(bar({}))
+    expect(screen.getByRole('status')).toHaveTextContent('Ready')
+
+    rerender(bar({ result: { text: 'Pushed main to origin/main' } }))
+    expect(screen.getByRole('status')).toHaveTextContent('Pushed main to origin/main')
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
+  })
+
+  it('offers Undo only for a result that can be undone', async () => {
+    const onUndo = vi.fn()
+    render(bar({ result: { text: 'Committed fix', undoable: true }, onUndo }))
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(onUndo).toHaveBeenCalledOnce()
+  })
+
+  it('puts an operation in progress ahead of the last result', () => {
+    render(bar({ operation: 'merge', result: { text: 'Pulled', undoable: true }, onUndo: vi.fn() }))
+    expect(screen.getByRole('status')).toHaveTextContent('in progress')
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
+  })
+
   it('shows which API host integration is on for, when it was last asked, and opens Settings', async () => {
     vi.mocked(PlatformService.AppVersion).mockResolvedValue('0.1.0')
     vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', upstream: '' } as never)

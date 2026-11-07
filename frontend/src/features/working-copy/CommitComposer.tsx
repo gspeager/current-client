@@ -26,7 +26,7 @@ interface CommitComposerProps {
   stagedCount: number
   // Everything changed in the working tree; undefined where it isn't known.
   changedCount?: number
-  onCommitted: () => void
+  onCommitted: (result?: string) => void
   onPushRequested?: () => void
   initialMessage?: string
   onMessageChange?: (message: string) => void
@@ -156,7 +156,7 @@ function CommitComposer({
         setAmend(false)
         setAllowEmpty(false)
         setCoAuthors([])
-        onCommitted()
+        onCommitted(`${amend ? 'Amended' : 'Committed'} ${subject}`)
         if (andPush) {
           onPushRequested?.()
         }
@@ -177,7 +177,7 @@ function CommitComposer({
             confirmLabel: 'Undo commit',
             destructive: true,
           }))
-        if (confirmed) return CommitService.UndoLastCommit(repoPath).then(onCommitted)
+        if (confirmed) return CommitService.UndoLastCommit(repoPath).then(() => onCommitted('Undid last commit'))
       })
       .catch((err: unknown) => setError(`Could not undo last commit: ${errorMessage(err)}`))
   }

@@ -18,7 +18,8 @@ import { hostName, repositoryPage } from '../../lib/hostPages'
 import BisectWizard from '../../features/history/BisectWizard'
 import RecoverPanel from '../../features/history/RecoverPanel'
 import ReflogPanel from '../../features/history/ReflogPanel'
-import { undoConfirmOptions } from '../../features/history/undoPreview'
+import { undoActionLabel, undoConfirmOptions } from '../../features/history/undoPreview'
+import type { ActionResult } from '../../lib/actionResult'
 import { errorMessage } from '../../lib/errors'
 import { fileManagerName, revealInFileManagerLabel } from '../../lib/fileManager'
 import { operationNoun } from '../../lib/conflictWords'
@@ -63,6 +64,7 @@ interface WorkspaceActionsOptions {
   onBranchChanged: () => void
   onOpenCommit: (sha: string) => void
   onFailure: () => void
+  onUndone?: (result: ActionResult) => void
 }
 
 interface WorkspaceActions {
@@ -88,6 +90,7 @@ export function useWorkspaceActions({
   editorPath = '',
   operation = null,
   onOpenTerminal,
+  onUndone,
 }: WorkspaceActionsOptions): WorkspaceActions {
   const { confirm } = useDialogs()
   const [feedback, setFeedback] = useState<(WorkspaceFeedback & { repoPath: string }) | null>(null)
@@ -111,6 +114,7 @@ export function useWorkspaceActions({
     if (!(await confirm(undoConfirmOptions(plan)))) return
     await UndoService.Apply(repoPath, plan)
     onBranchChanged()
+    onUndone?.({ text: undoActionLabel(plan).replace(/^Undo/, 'Undid') })
   }
 
   const importPatch = () =>

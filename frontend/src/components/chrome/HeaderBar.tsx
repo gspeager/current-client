@@ -19,6 +19,7 @@ import ContextMenu, { type ContextMenuItem, type ContextMenuState } from '../con
 import FileHistoryPanel from '../../features/history/FileHistoryPanel'
 import IdentityBadge from '../git/IdentityBadge'
 import Kbd from '../controls/Kbd'
+import type { ActionResult } from '../../lib/actionResult'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import BlameView from '../../features/history/BlameView'
 import { undoActionLabel } from '../../features/history/undoPreview'
@@ -46,6 +47,7 @@ interface HeaderBarProps {
   repoVersion: number
   lastFetchedAt: Date | null
   pruneOnFetch: boolean
+  onResult?: (result: ActionResult) => void
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
   // The Inbox, a view across every open repository, beside the tabs.
@@ -95,6 +97,7 @@ function HeaderBar({
   repoVersion,
   lastFetchedAt,
   pruneOnFetch,
+  onResult,
   repo,
   dirty,
   inboxOpen = false,
@@ -129,7 +132,14 @@ function HeaderBar({
   const { branchColor } = useLaneColors()
   const currentUser = useCurrentUser(repoPath)
   const branchStatus = useBranchStatus(repoPath, repoVersion)
-  const fetchAllOp = useFetchAll(repoPath, onFetched, pruneOnFetch)
+  const fetchAllOp = useFetchAll(
+    repoPath,
+    () => {
+      onFetched?.()
+      onResult?.({ text: 'Fetched' })
+    },
+    pruneOnFetch,
+  )
   const [branchSwitcherOpen, setBranchSwitcherOpen] = useState(false)
   const [panelView, setPanelView] = useState<PanelView>('branch')
   const [quickSwitchOpen, setQuickSwitchOpen] = useState(false)

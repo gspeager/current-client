@@ -1,8 +1,9 @@
 import { operationNoun } from '../../lib/conflictWords'
-import { Keyboard, SquareTerminal } from 'lucide-react'
+import { Keyboard, SquareTerminal, Undo2 } from 'lucide-react'
 import { System } from '@wailsio/runtime'
 import { PlatformService, type HostStatusInfo } from '@current-client-bindings/app'
 import WaveMark from './WaveMark'
+import type { ActionResult } from '../../lib/actionResult'
 import { baseName, tildePath } from '../../lib/paths'
 import { relativeTime } from '../../lib/relativeTime'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
@@ -14,6 +15,9 @@ import './StatusBar.scss'
 
 interface StatusBarProps {
   operation?: string | null
+  // The last action's outcome, until the next one or a repository switch.
+  result?: ActionResult | null
+  onUndo?: () => void
   repoPath: string
   repoVersion: number
   gitVersion: string | null
@@ -26,6 +30,8 @@ interface StatusBarProps {
 
 function StatusBar({
   operation = null,
+  result = null,
+  onUndo,
   onToggleTerminal,
   onOpenShortcuts,
   repoPath,
@@ -56,8 +62,14 @@ function StatusBar({
         <WaveMark width={16} />
         {operation
           ? `${operationNoun(operation)[0].toUpperCase()}${operationNoun(operation).slice(1)} in progress`
-          : 'Ready'}
+          : (result?.text ?? 'Ready')}
       </span>
+      {!operation && result?.undoable && onUndo && (
+        <button type="button" className="status-bar-terminal" onClick={onUndo}>
+          <Undo2 size={12} strokeWidth={1.75} />
+          Undo
+        </button>
+      )}
       {branchLabel && <span className="status-bar-branch">{branchLabel}</span>}
       <div className="status-bar-spacer" />
       {onToggleTerminal && (

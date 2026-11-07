@@ -14,13 +14,18 @@
   overflow: hidden;
 }
 
-.status-bar-ready {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+.status-bar > .status-bar-ready {
+  display: block;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 40cqi;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   .wave-mark {
+    margin-right: var(--space-xs);
     color: var(--on-surface-variant);
+    vertical-align: middle;
   }
 }
 

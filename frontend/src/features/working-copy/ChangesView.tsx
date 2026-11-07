@@ -37,7 +37,7 @@ interface ChangesViewProps {
   workingTree: ReturnType<typeof useWorkingTree>
   onPushRequested?: () => void
   onBranchChanged?: () => void
-  onCommitted?: () => void
+  onCommitted?: (result?: string) => void
   defaultIgnoreWhitespace?: boolean
   // The diff takes the file list's space too while a file is open.
   diffExpanded?: boolean
@@ -220,10 +220,10 @@ function ChangesView({
 
   // A staged diff disappears once committed. repoVersion must bump so the
   // header's ahead count sees the new commit.
-  const afterCommit = () => {
+  const afterCommit = (result?: string) => {
     loadStatus()
     onBranchChanged?.()
-    onCommitted?.()
+    onCommitted?.(result)
     if (showsStaged) {
       selectPath(null)
     }

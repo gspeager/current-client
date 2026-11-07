@@ -50,6 +50,7 @@ import SettingsPanel, { settingsGroups } from './features/settings/SettingsPanel
 import StatusBar from './components/chrome/StatusBar'
 import TabBar, { type AppTab } from './features/repositories/TabBar'
 import { useWorkspaceActions } from './components/chrome/useWorkspaceActions'
+import type { ActionResult } from './lib/actionResult'
 import { DensityContext } from './lib/density'
 import { LaneSlotsContext, LaneThemeContext, assignLaneSlots, toLaneThemeName } from './lib/laneColor'
 import { useAsyncData } from './lib/useAsyncData'
@@ -151,6 +152,7 @@ function App({
   const [changeFocus, setChangeFocus] = useState<number | null>(null)
   const [hostNotices, setHostNotices] = useState<HostNotice[]>([])
   const [pushed, setPushed] = useState<PushResult | null>(null)
+  const [actionResult, setActionResult] = useState<ActionResult | null>(null)
   // The branch the in-app create form is open for.
   const [createChangeFor, setCreateChangeFor] = useState<string | null>(null)
   const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
@@ -193,7 +195,12 @@ function App({
     onFetched,
     setPushed,
     () => void tasks.runChecklist('push'),
+    setActionResult,
   )
+  // Starting another sync retires the last outcome, which may no longer hold.
+  useEffect(() => {
+    if (pullOp.running || pushOp.running) setActionResult(null)
+  }, [pullOp.running, pushOp.running])
   const workingTree = useWorkingTree(repo.repoPath)
   const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
@@ -353,7 +360,9 @@ function App({
     onBranchChanged,
     onOpenCommit: (sha) => openCommit(sha),
     onFailure: () => setNavCollapsed(false),
+    onUndone: setActionResult,
   })
+  const undoAction = workspace.actions.find((a) => a.id === 'undo')
 
   useImperativeHandle(handle, () => ({
     openCommit: async (sha) => {
@@ -378,7 +387,10 @@ function App({
   const reportActiveRepo = useEventCallback((path: string | null) => onActiveRepoChange?.(path))
   useEffect(() => reportActiveRepo(repo.repoPath), [repo.repoPath, reportActiveRepo])
 
-  useEffect(() => setPushed(null), [repo.repoPath])
+  useEffect(() => {
+    setPushed(null)
+    setActionResult(null)
+  }, [repo.repoPath])
   const [openIssueKey, setOpenIssueKey] = useState<string | null>(null)
   useEffect(() => setOpenIssueKey(null), [repo.repoPath])
   const [newIssueDraft, setNewIssueDraft] = useState<IssueDraft | null>(null)
@@ -866,7 +878,8 @@ function App({
                     Skip to content
                   </button>
                   <HeaderBar
-                    onUndo={workspace.actions.find((a) => a.id === 'undo')?.run}
+                    onUndo={undoAction?.run}
+                    onResult={setActionResult}
                     onOpenChange={openChange}
                     onShowStashes={() => requestSidebar('show-stash')}
                     repoPath={repo.repoPath}
@@ -1043,7 +1056,10 @@ function App({
                             workingTree={workingTree}
                             onPushRequested={push}
                             onBranchChanged={onBranchChanged}
-                            onCommitted={() => void tasks.runChecklist('commit')}
+                            onCommitted={(result) => {
+                              void tasks.runChecklist('commit')
+                              if (result) setActionResult({ text: result, undoable: true })
+                            }}
                             defaultIgnoreWhitespace={settings.settings?.diffIgnoreWhitespaceDefault ?? false}
                             diffExpanded={settings.settings?.diffExpanded ?? false}
                             onDiffExpandedChange={settings.setDiffExpanded}
@@ -1172,6 +1188,8 @@ function App({
 
                   <StatusBar
                     operation={conflictState?.operation ?? null}
+                    result={actionResult}
+                    onUndo={undoAction?.disabled ? undefined : undoAction?.run}
                     onOpenShortcuts={() => setShortcutsOpen(true)}
                     onToggleTerminal={terminalsOff ? undefined : toggleTerminal}
                     repoPath={repo.repoPath}
