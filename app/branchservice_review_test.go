@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 )
@@ -58,7 +57,7 @@ func TestReviewBranchesFlagsAndUndo(t *testing.T) {
 	if err := s.CreateBranchAt(repo, "unpushed", tip); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "unpushed"))); got != tip {
+	if got := gitOut(t, repo, "rev-parse", "unpushed"); got != tip {
 		t.Fatalf("restored at %s, want %s", got, tip)
 	}
 }

@@ -38,8 +38,8 @@ var ciRunningTTL = 2 * time.Minute
 // CIStatus is the cached pipeline result for each SHA that has one; it
 // never contacts the host.
 func (s *HostService) CIStatus(repoPath string, shas []string) (map[string]CIMark, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return map[string]CIMark{}, err
 	}
 	return cachedCI(info, repoPath, shas), nil
@@ -49,15 +49,15 @@ func (s *HostService) CIStatus(repoPath string, shas []string) (map[string]CIMar
 // the batch cap, for the SHAs it has no answer for yet. A commit without a
 // pipeline is remembered too, so no SHA is asked for twice until a refresh.
 func (s *HostService) FetchCIStatus(repoPath string, shas []string) (map[string]CIMark, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return map[string]CIMark{}, err
 	}
 	provider := providerFor(info)
 	if provider == nil {
 		return map[string]CIMark{}, nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	fetchPipelines(ctx, provider, info, repoPath, unknownPipelines(info, repoPath, shas, ciBatchCap))
 	return cachedCI(info, repoPath, shas), nil
@@ -100,11 +100,9 @@ func refreshBranchTipCI(ctx context.Context, provider hostapi.Provider, info Hos
 	fetchPipelines(ctx, provider, info, repoPath, unknownPipelines(info, repoPath, tips, ciTipsCap))
 }
 
-// PipelineJobs lists a pipeline's jobs, asked for once per pipeline until a
-// refresh.
 func (s *HostService) PipelineJobs(repoPath string, pipelineID int64) ([]hostapi.Job, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return nil, err
 	}
 	return cachedOrFetched(info, repoPath, cacheJobs, strconv.FormatInt(pipelineID, 10), func(ctx context.Context, provider hostapi.Provider) ([]hostapi.Job, error) {
@@ -141,8 +139,6 @@ func fetchPipelines(ctx context.Context, provider hostapi.Provider, info HostInf
 	})
 }
 
-// inParallel runs request for 0..count-1, ciParallel at a time, and waits
-// for all of them.
 func inParallel(count int, request func(i int)) {
 	var wg sync.WaitGroup
 	slots := make(chan struct{}, ciParallel)

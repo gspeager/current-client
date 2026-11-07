@@ -5,7 +5,6 @@ package app
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/jira"
@@ -77,7 +76,7 @@ func (s *HostService) FetchTrackerIssueTitles(repoPath string, keys []string) ma
 	if len(missing) > issueBatchCap {
 		missing = missing[:issueBatchCap]
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	inParallel(len(missing), func(i int) {
 		key := missing[i]

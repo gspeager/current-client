@@ -10,10 +10,8 @@ import (
 	"github.com/gspeager/current-client/internal/policy"
 )
 
-// TrackerService keeps the issue trackers beside the hosts, such as a
-// team's Jira site, and the links they give a repository's references. The
-// links are built from the address the user entered; nothing is asked of
-// the tracker.
+// TrackerService's links are built from the address the user entered;
+// nothing is asked of the tracker to build them.
 type TrackerService struct{}
 
 // TrackerInfo is one tracker's row. Managed is the organization's default
@@ -51,9 +49,9 @@ type TrackerLinks struct {
 	KeyPattern       string `json:"keyPattern"`
 	BranchKeyPattern string `json:"branchKeyPattern"`
 	Managed          bool   `json:"managed"`
+	HostName         string `json:"hostName"`
 	// Reading is the tracker's integration on: its issues open in the app.
-	HostName string `json:"hostName"`
-	Reading  bool   `json:"reading"`
+	Reading bool `json:"reading"`
 }
 
 var errTrackerKind = errors.New("choose Jira Cloud or Jira Data Center")
@@ -138,7 +136,6 @@ func (s *TrackerService) SetRepos(site string, repos []string) error {
 	})
 }
 
-// Remove forgets the tracker, its switch and its token.
 func (s *TrackerService) Remove(site string) error {
 	hasToken := configOrDefault().TrackerAccess[site].HasToken
 	err := updateTracker(site, func(cfg *config.Config, i int) {
@@ -173,7 +170,7 @@ func (s *TrackerService) Links(repoPath string) *TrackerLinks {
 func trackerFor(repoPath string) (hostlink.Tracker, bool, bool) {
 	for _, t := range configOrDefault().Trackers {
 		if slices.Contains(t.Repos, repoPath) {
-			return hostlink.Tracker{Site: t.Site, Kind: hostlink.TrackerKind(t.Kind), Keys: t.Keys}, false, true
+			return trackerOf(t), false, true
 		}
 	}
 	if d, ok := defaultTracker(); ok {
@@ -199,12 +196,16 @@ func defaultTracker() (hostlink.Tracker, bool) {
 func allTrackers() []hostlink.Tracker {
 	var trackers []hostlink.Tracker
 	for _, t := range configOrDefault().Trackers {
-		trackers = append(trackers, hostlink.Tracker{Site: t.Site, Kind: hostlink.TrackerKind(t.Kind), Keys: t.Keys})
+		trackers = append(trackers, trackerOf(t))
 	}
 	if d, ok := defaultTracker(); ok {
 		trackers = append(trackers, d)
 	}
 	return trackers
+}
+
+func trackerOf(t config.TrackerConfig) hostlink.Tracker {
+	return hostlink.Tracker{Site: t.Site, Kind: hostlink.TrackerKind(t.Kind), Keys: t.Keys}
 }
 
 func validTrackerKind(kind string) bool {

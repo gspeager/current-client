@@ -5,6 +5,7 @@ package app
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
@@ -95,17 +96,13 @@ func hasReview(reviews []hostapi.Review, state hostapi.ReviewState) bool {
 }
 
 func reviewerNames(reviews []hostapi.Review, state hostapi.ReviewState) string {
-	names := ""
+	var names []string
 	for _, r := range reviews {
-		if r.State != state {
-			continue
+		if r.State == state {
+			names = append(names, r.Reviewer.Name)
 		}
-		if names != "" {
-			names += ", "
-		}
-		names += r.Reviewer.Name
 	}
-	return names
+	return strings.Join(names, ", ")
 }
 
 // refreshAssignedIssues keeps the Inbox's assigned issues current: one

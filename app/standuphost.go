@@ -25,13 +25,7 @@ func standupHost(repo *StandupRepo, since time.Time) {
 	if list.Me == "" {
 		return
 	}
-	closed := list
-	closed.Changes = nil
-	fillChangeList(&closed, info, repo.Path, cacheClosed)
-	changes := append(append([]hostapi.Change{}, list.Changes...), closed.Changes...)
-	for _, value := range hostClient.Cache.Entries(info.Hostname, repo.Path, cacheMergedChange) {
-		changes = append(changes, value.(hostapi.Change))
-	}
+	changes := append(append([]hostapi.Change{}, list.Changes...), finishedChanges(info, repo.Path)...)
 	seen := map[int]bool{}
 	for _, change := range changes {
 		if seen[change.Number] || change.UpdatedAt.Before(since) {

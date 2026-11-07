@@ -14,8 +14,8 @@ import (
 // ReviewCapabilities says which review writes the repository's host offers;
 // none with the host off or a provider that takes none.
 func (s *HostService) ReviewCapabilities(repoPath string) (hostapi.ReviewCapabilities, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return hostapi.ReviewCapabilities{}, err
 	}
 	if reviewer, ok := providerFor(info).(hostapi.Reviewer); ok {
@@ -81,12 +81,7 @@ func (s *HostService) reviewWrite(repoPath string, number int, verdict bool, wri
 		reviews, _ = provider.Reviews(ctx, info.Project, change)
 	}
 	updateOpenChange(info, repoPath, change.Number, func(c *hostapi.Change) {
-		c.UnresolvedThreads = 0
-		for _, thread := range threads {
-			if !thread.Resolved {
-				c.UnresolvedThreads++
-			}
-		}
+		c.UnresolvedThreads = unresolvedCount(threads)
 		if reviews != nil {
 			c.Reviews = reviews
 		}
@@ -94,7 +89,6 @@ func (s *HostService) reviewWrite(repoPath string, number int, verdict bool, wri
 	return renderThreads(info, change.Number, threads), nil
 }
 
-// updateOpenChange rewrites one change in the cached open list in place.
 func updateOpenChange(info HostInfo, repoPath string, number int, update func(*hostapi.Change)) {
 	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project)
 	if !ok {

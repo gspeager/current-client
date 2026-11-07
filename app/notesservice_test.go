@@ -42,7 +42,7 @@ func noteOn(t *testing.T, repo, kind, target string) *NoteInfo {
 
 func TestNotesAddEditAndRemoveOnEachKind(t *testing.T) {
 	repo := notesRepo(t)
-	head := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	head := gitOut(t, repo, "rev-parse", "HEAD")
 	var s NotesService
 	targets := map[string]string{"commit": head, "branch": "side", "tag": "v1", "file": "a.txt"}
 	for kind, target := range targets {
@@ -80,7 +80,7 @@ func TestNotesGoStaleRatherThanBeingLost(t *testing.T) {
 	}
 	gitIn(t, repo, "add", "b.txt")
 	gitIn(t, repo, "commit", "-q", "-m", "to rewrite")
-	rewritten := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	rewritten := gitOut(t, repo, "rev-parse", "HEAD")
 	for kind, target := range map[string]string{"commit": rewritten, "branch": "side", "tag": "v1", "file": "b.txt"} {
 		if err := s.Set(repo, kind, target, "to rewrite", "keep me"); err != nil {
 			t.Fatal(err)
@@ -109,7 +109,7 @@ func TestANoteOnADetachedCommitIsntStale(t *testing.T) {
 	repo := notesRepo(t)
 	gitIn(t, repo, "switch", "-q", "--detach")
 	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "detached")
-	head := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	head := gitOut(t, repo, "rev-parse", "HEAD")
 	if err := new(NotesService).Set(repo, "commit", head, "detached", "here"); err != nil {
 		t.Fatal(err)
 	}

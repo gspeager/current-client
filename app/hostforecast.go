@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"sort"
-	"strings"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
@@ -39,15 +38,14 @@ type ForecastReport struct {
 
 const (
 	cacheForecast = "forecast"
-	// forecastCap bounds the heads fetched and merged per refresh (decided
-	// 2026-10-22), newest first.
+	// forecastCap bounds the heads fetched and merged per refresh, newest first.
 	forecastCap = 20
 )
 
 // Forecast reads the cache only.
 func (s *HostService) Forecast(repoPath string) (ForecastReport, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return ForecastReport{}, err
 	}
 	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheForecast, "current"); ok {
@@ -66,7 +64,7 @@ func refreshForecast(ctx context.Context, info HostInfo, repoPath, remote string
 		return
 	}
 	report := ForecastReport{Enabled: true, Branch: current.Name, Conflicts: []ForecastConflict{}}
-	ownBranch, _ := strings.CutPrefix(current.Upstream, remote+"/")
+	ownBranch, _ := cutRemote(current.Upstream, remote)
 	for _, change := range changes {
 		if change.SourceProject == "" && change.SourceBranch == ownBranch && ownBranch != "" {
 			report.Base = change.TargetBranch

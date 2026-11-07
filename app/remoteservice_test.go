@@ -79,7 +79,7 @@ func TestListHidesASignInFromTheFrontend(t *testing.T) {
 	if strings.Contains(string(sent), "s3cret") {
 		t.Fatalf("the frontend would receive the password: %s", sent)
 	}
-	if got := strings.TrimSpace(gitOut(t, repo, "remote", "get-url", "origin")); got != signedInURL {
+	if got := gitOut(t, repo, "remote", "get-url", "origin"); got != signedInURL {
 		t.Fatalf("Git's URL = %q, want %q", got, signedInURL)
 	}
 }
@@ -93,7 +93,7 @@ func TestEditRemoteNeverGivesGitThePlaceholder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
-	gitURL := func() string { return strings.TrimSpace(gitOut(t, repo, "remote", "get-url", "origin")) }
+	gitURL := func() string { return gitOut(t, repo, "remote", "get-url", "origin") }
 
 	shown := remotes[0].FetchURL
 	for _, url := range []string{shown, strings.Replace(shown, "a.git", "b.git", 1)} {
@@ -178,7 +178,7 @@ func TestFetchAndPushSignInWithTheURLListHides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PushSetUpstream: %v", err)
 	}
-	if got, want := strings.TrimSpace(gitOut(t, bare, "rev-parse", "main")), strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD")); got != want {
+	if got, want := gitOut(t, bare, "rev-parse", "main"), gitOut(t, repo, "rev-parse", "HEAD"); got != want {
 		t.Fatalf("the remote's main = %s, want %s", got, want)
 	}
 	if !strings.Contains(pushed.CreateLink, "/group/app") || strings.Contains(pushed.CreateLink, "s3cret") {
@@ -193,7 +193,7 @@ func TestFetchAndPushSignInWithTheURLListHides(t *testing.T) {
 	if err := s.Fetch(ctx, repo, "origin", nil); err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
-	if got, want := strings.TrimSpace(gitOut(t, repo, "rev-parse", "origin/main")), strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD")); got != want {
+	if got, want := gitOut(t, repo, "rev-parse", "origin/main"), gitOut(t, repo, "rev-parse", "HEAD"); got != want {
 		t.Fatalf("origin/main after Fetch = %s, want %s", got, want)
 	}
 }

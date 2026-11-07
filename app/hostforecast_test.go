@@ -22,7 +22,7 @@ func writeAndCommit(t *testing.T, repo, name, content, message string) string {
 	}
 	gitIn(t, repo, "add", name)
 	gitIn(t, repo, "commit", "-q", "-m", message)
-	return strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "HEAD")))
+	return gitOut(t, repo, "rev-parse", "HEAD")
 }
 
 func TestForecastNamesTheConflictingChangeAndSkipsTheRest(t *testing.T) {
@@ -78,10 +78,10 @@ func TestForecastNamesTheConflictingChangeAndSkipsTheRest(t *testing.T) {
 	if c := report.Conflicts[0]; c.Number != 1 || c.Author != "Ada" || len(c.Files) != 1 || c.Files[0] != "shared.txt" || c.Prefix != "!" {
 		t.Fatalf("conflict = %+v", c)
 	}
-	if out := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "--format=%(refname)", "refs/current-client"))); !strings.Contains(out, "mr/1") || !strings.Contains(out, "mr/2") || strings.Contains(out, "mr/3") {
+	if out := gitOut(t, repo, "for-each-ref", "--format=%(refname)", "refs/current-client"); !strings.Contains(out, "mr/1") || !strings.Contains(out, "mr/2") || strings.Contains(out, "mr/3") {
 		t.Fatalf("fetched heads = %q", out)
 	}
-	if out := strings.TrimSpace(string(mustOutput(t, repo, "branch", "-a"))); strings.Contains(out, "mr/") {
+	if out := gitOut(t, repo, "branch", "-a"); strings.Contains(out, "mr/") {
 		t.Fatalf("fetched heads show as branches:\n%s", out)
 	}
 }

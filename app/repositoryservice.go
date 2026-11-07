@@ -71,7 +71,6 @@ func (s *RepositoryService) InitRepository(path string) (string, error) {
 	return opened(repository.Init(context.Background(), path))
 }
 
-// CloneRepository clones into a new folder named folderName inside parentDir.
 func (s *RepositoryService) CloneRepository(ctx context.Context, url, parentDir, folderName string, auth *gitexec.Credential) (string, error) {
 	if folderName == "" || folderName == "." || folderName == ".." || strings.ContainsAny(folderName, `/\`) {
 		return "", &gitexec.AppError{Message: "Folder name can't be empty or contain slashes.", Detail: folderName}

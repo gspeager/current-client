@@ -106,7 +106,7 @@ func currentUser(ctx context.Context, provider hostapi.Provider, info HostInfo, 
 // each host that is on. A failed host request is returned so the panel can
 // show it; the last answer stays in the cache.
 func (s *HostService) Refresh(repoPath string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	return refreshHostChanges(ctx, repoPath)
 }
@@ -134,15 +134,9 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		before := snapshotCurrentBranch(info, repoPath)
 		// Pipelines are asked for again after a refresh; the heads of open
 		// changes first, since the list endpoint carries no CI result.
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cachePipeline)
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheJobs)
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheIssue)
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheAssigned)
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheProjectIssues)
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheThreads)
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheClosed)
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheFiles)
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheCommits)
+		for _, kind := range []string{cachePipeline, cacheJobs, cacheIssue, cacheAssigned, cacheProjectIssues, cacheThreads, cacheClosed, cacheFiles, cacheCommits} {
+			hostClient.Cache.ClearKind(info.Hostname, repoPath, kind)
+		}
 		var lastOpen []hostapi.Change
 		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project); ok {
 			lastOpen = cached.(cachedChanges).changes

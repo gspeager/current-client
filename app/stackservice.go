@@ -166,7 +166,6 @@ func (s *StackService) AddLayer(repoPath, branch, parent string) error {
 	return saveLinks(repoPath, append(links, git.StackLink{Branch: branch, Parent: parent, ParentTip: base}))
 }
 
-// NewLayer starts a branch on top of parent and checks it out.
 func (s *StackService) NewLayer(repoPath, name, parent string) error {
 	ctx := context.Background()
 	if err := git.CreateBranchAt(ctx, repoPath, name, parent); err != nil {

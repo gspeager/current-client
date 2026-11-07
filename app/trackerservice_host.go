@@ -3,11 +3,9 @@
 package app
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/gspeager/current-client/core/hostapi/jira"
 	"github.com/gspeager/current-client/core/hostlink"
@@ -52,7 +50,7 @@ func (s *TrackerService) SaveToken(site, email, token string) error {
 		}
 		secret = email + ":" + secret
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	if err := trackerCredentials.Save(ctx, jira.HostName(tracker), secret); err != nil {
 		return err
@@ -65,7 +63,7 @@ func (s *TrackerService) RemoveToken(site string) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	if err := trackerCredentials.Remove(ctx, jira.HostName(tracker)); err != nil {
 		return err
@@ -80,7 +78,7 @@ func (s *TrackerService) TestConnection(site string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	me, err := jira.New(hostClient, tracker).CurrentUser(ctx)
 	if err != nil {
@@ -115,7 +113,7 @@ func forgetTracker(site string, hasToken bool) {
 	name := trackerHostName(site)
 	hostClient.Forget(name)
 	if hasToken {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := hostContext()
 		defer cancel()
 		trackerCredentials.Remove(ctx, name)
 	}

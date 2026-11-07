@@ -46,7 +46,7 @@ type issueService struct {
 
 func issueServices(repoPath string) []issueService {
 	var services []issueService
-	if _, info, ok, err := primaryHost(repoPath); err == nil && ok && info.Enabled {
+	if _, info, ok, err := enabledHost(repoPath); err == nil && ok {
 		if tracker := issueTrackerFor(info); tracker != nil {
 			services = append(services, issueService{info.Hostname, info.Project, info.Project, tracker})
 		}

@@ -57,7 +57,6 @@ func configOrDefault() config.Config {
 	return cfg
 }
 
-// updateConfig saves nothing when update returns an error.
 func updateConfig(update func(*config.Config)) error {
 	return updateConfigErr(func(cfg *config.Config) error {
 		update(cfg)
@@ -65,6 +64,7 @@ func updateConfig(update func(*config.Config)) error {
 	})
 }
 
+// updateConfigErr saves nothing when update returns an error.
 func updateConfigErr(update func(*config.Config) error) error {
 	configMu.Lock()
 	defer configMu.Unlock()

@@ -18,9 +18,6 @@ import (
 	"github.com/gspeager/current-client/internal/policy"
 )
 
-// HostService works out which Git host each remote belongs to, from the
-// remote URL and the user's settings alone, and holds the per-host switches.
-// Only TestConnection contacts a host, and only one that is enabled.
 type HostService struct{}
 
 // Provider and APIURL are what is in effect; the Detected and Default fields
@@ -112,8 +109,7 @@ func (s *HostService) Status(hostname string) HostStatusInfo {
 }
 
 // SetEnabled is the one switch that lets the app contact a host. Turning a
-// host off drops everything the client holds for it, as the integrations
-// guide promises.
+// host off drops everything the client holds for it.
 func (s *HostService) SetEnabled(hostname string, enabled bool) error {
 	if _, managed := policy.Host(hostname); managed {
 		return fmt.Errorf("integration for %s is managed by your organization", hostname)
@@ -151,7 +147,6 @@ func (s *HostService) Add(hostname, provider string) error {
 	return s.SetHost(hostname, provider, "")
 }
 
-// Remove forgets the host's settings and, when one was saved, its token.
 func (s *HostService) Remove(hostname string) error {
 	if configOrDefault().Hosts[hostname].HasToken {
 		if err := hostCredentials.Remove(context.Background(), hostname); err != nil {
@@ -167,8 +162,7 @@ func (s *HostService) Remove(hostname string) error {
 	return err
 }
 
-// SetHost records the provider type and API address for a host. Empty values
-// return to what the remote URL gives.
+// SetHost's empty values return to what the remote URL gives.
 func (s *HostService) SetHost(hostname, provider, apiURL string) error {
 	switch hostlink.Style(provider) {
 	case "", hostlink.GitHub, hostlink.GitLab:
@@ -202,9 +196,8 @@ func (s *HostService) RemoveToken(hostname string) error {
 	return setHostFlag(hostname, func(host *config.HostConfig) { host.HasToken = false })
 }
 
-// TestConnection asks the host who the token belongs to, through the same
-// client and rules as every other request: the provider where one exists,
-// else the host's user endpoint.
+// TestConnection goes through the same client and rules as every other
+// request: the provider where one exists, else the host's user endpoint.
 func (s *HostService) TestConnection(hostname string) (string, error) {
 	hosts := configOrDefault().Hosts
 	info := infoFor(hostByName(hostname), hosts)

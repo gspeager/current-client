@@ -33,8 +33,8 @@ func refreshBranchRules(ctx context.Context, provider hostapi.Provider, info Hos
 // protectionOf reads the cache only: the rule for a branch on the
 // repository's host, when the host is on and a refresh brought rules.
 func protectionOf(repoPath, remote, branch string) (*PushWarning, error) {
-	primary, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled || primary.Name != remote {
+	primary, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok || primary.Name != remote {
 		return nil, err
 	}
 	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRules, "all")

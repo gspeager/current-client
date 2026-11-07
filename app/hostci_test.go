@@ -157,7 +157,7 @@ func TestFetchCIStatusAsksAgainForAStaleRunningResult(t *testing.T) {
 func TestRefreshAsksForTheBranchTipsPipelines(t *testing.T) {
 	repo := enabledGitLab(t)
 	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	tip := strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD"))
+	tip := gitOut(t, repo, "rev-parse", "HEAD")
 	api := "/api/v4/projects/group%2Fapp"
 	pipelines := api + "/pipelines?per_page=1&sha=" + tip
 	transport := &routeTransport{routes: map[string]string{

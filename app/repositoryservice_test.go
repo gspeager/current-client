@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -28,7 +27,7 @@ func TestRemoveRecentRepositoryDeletesTheAppsRefs(t *testing.T) {
 	if err := s.RemoveRecentRepository(repo); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "--format=%(refname)", "refs/current-client"))); got != "" {
+	if got := gitOut(t, repo, "for-each-ref", "--format=%(refname)", "refs/current-client"); got != "" {
 		t.Fatalf("refs left = %q", got)
 	}
 	if err := s.RemoveRecentRepository(filepath.Join(repo, "gone")); err != nil {
@@ -62,7 +61,7 @@ func TestRemovingARepositoryOpenInATabKeepsItsHeads(t *testing.T) {
 	if err := s.RemoveRecentRepository(repo); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.TrimSpace(string(mustOutput(t, repo, "for-each-ref", "refs/current-client"))); got == "" {
+	if got := gitOut(t, repo, "for-each-ref", "refs/current-client"); got == "" {
 		t.Fatal("the open repository lost its fetched heads")
 	}
 }
@@ -79,7 +78,7 @@ func TestDroppingOffTheRecentListDeletesFetchedHeads(t *testing.T) {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(5 * time.Second)
-	for strings.TrimSpace(string(mustOutput(t, dropped, "for-each-ref", "refs/current-client"))) != "" {
+	for gitOut(t, dropped, "for-each-ref", "refs/current-client") != "" {
 		if time.Now().After(deadline) {
 			t.Fatal("the dropped repository kept its fetched heads")
 		}
