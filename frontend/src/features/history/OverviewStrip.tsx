@@ -74,10 +74,10 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
         return 'var(--primary)'
       case 'branch':
         return branchColor(marker.name, false)
-      case 'match':
-        return 'var(--warning)'
+      case 'tag':
+        return 'var(--secondary)'
       default:
-        return 'var(--on-surface-variant)'
+        return 'var(--warning)'
     }
   }
 
@@ -113,63 +113,58 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
   }, [markers, width, start, end])
 
   return (
-    <div className="overview-strip">
-      <span className="overview-strip-label" aria-hidden="true">
-        Commits over time
-      </span>
-      <div
-        ref={box}
-        className="overview-strip-plot"
-        role="img"
-        aria-label="Commit activity over time"
-        onClick={jump}
-        onMouseLeave={() => setHover(null)}
-        onMouseMove={(e) => {
-          const left = e.currentTarget.getBoundingClientRect().left
-          const day = dayAt(e.clientX, left)
-          const date = new Date(Date.parse(day.date)).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })
-          setHover({ x: e.clientX - left, text: `${date}: ${plural(day.commits, 'commit')}. Click to go there` })
-        }}
-      >
-        <svg width={width} height={HEIGHT} aria-hidden="true">
-          {visible && (
-            <rect
-              className="overview-strip-window"
-              data-testid="overview-window"
-              x={Math.min(windowLeft, width - windowWidth)}
-              y={0}
-              width={windowWidth}
-              height={HEIGHT}
-            />
-          )}
-          <path className="overview-strip-line" d={line} />
-          {ticks.map((marker, index) => {
-            const rowTop = MARKER_ROW_TOP[marker.kind]
-            return (
-              <rect
-                key={`${marker.kind}-${marker.name}-${index}`}
-                data-marker={marker.kind}
-                x={x(Date.parse(marker.date))}
-                y={rowTop ?? 0}
-                width={rowTop === undefined ? 1 : MARKER_ROW_TICK.width}
-                height={rowTop === undefined ? HEIGHT : MARKER_ROW_TICK.height}
-                fill={color(marker)}
-              >
-                <title>{marker.name}</title>
-              </rect>
-            )
-          })}
-        </svg>
-        {hover && (
-          <span className="overview-strip-tip" style={{ left: Math.min(hover.x, width - 220) }}>
-            {hover.text}
-          </span>
+    <div
+      ref={box}
+      className="overview-strip"
+      role="img"
+      aria-label="Commit activity over time"
+      onClick={jump}
+      onMouseLeave={() => setHover(null)}
+      onMouseMove={(e) => {
+        const left = e.currentTarget.getBoundingClientRect().left
+        const day = dayAt(e.clientX, left)
+        const date = new Date(Date.parse(day.date)).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        setHover({ x: e.clientX - left, text: `${date}: ${plural(day.commits, 'commit')}. Click to go there` })
+      }}
+    >
+      <svg width={width} height={HEIGHT} aria-hidden="true">
+        {visible && (
+          <rect
+            className="overview-strip-window"
+            data-testid="overview-window"
+            x={Math.min(windowLeft, width - windowWidth)}
+            y={0}
+            width={windowWidth}
+            height={HEIGHT}
+          />
         )}
-      </div>
+        <path className="overview-strip-line" d={line} />
+        {ticks.map((marker, index) => {
+          const rowTop = MARKER_ROW_TOP[marker.kind]
+          return (
+            <rect
+              key={`${marker.kind}-${marker.name}-${index}`}
+              data-marker={marker.kind}
+              x={x(Date.parse(marker.date))}
+              y={rowTop ?? 0}
+              width={rowTop === undefined ? 1 : MARKER_ROW_TICK.width}
+              height={rowTop === undefined ? HEIGHT : MARKER_ROW_TICK.height}
+              fill={color(marker)}
+            >
+              <title>{marker.name}</title>
+            </rect>
+          )
+        })}
+      </svg>
+      {hover && (
+        <span className="overview-strip-tip" style={{ left: Math.min(hover.x, width - 220) }}>
+          {hover.text}
+        </span>
+      )}
     </div>
   )
 }

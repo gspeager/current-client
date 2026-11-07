@@ -33,11 +33,12 @@ describe('OverviewStrip', () => {
     expect(onJump).toHaveBeenLastCalledWith(0)
   })
 
-  it('marks HEAD in cyan and leaves other refs in their own colors', () => {
+  it('colors each kind of marker, with HEAD alone in cyan', () => {
     const markers = [
       { kind: 'head', name: 'HEAD', date: iso('2026-01-20') },
       { kind: 'branch', name: 'main', date: iso('2026-01-20') },
       { kind: 'tag', name: 'v1', date: iso('2026-01-11') },
+      { kind: 'stash', name: 'stash', date: iso('2026-01-05') },
       { kind: 'match', name: 'found', date: iso('2026-01-11') },
       { kind: 'tag', name: 'older', date: iso('2020-01-01') },
     ]
@@ -47,9 +48,10 @@ describe('OverviewStrip', () => {
 
     expect(fills('head')).toEqual(['var(--primary)'])
     expect(fills('branch')[0]).not.toContain('--primary')
-    expect(fills('match')).toHaveLength(1)
+    expect(fills('stash')).toEqual(['var(--warning)'])
+    expect(fills('match')).toEqual(['var(--warning)'])
     // A marker outside the listed range isn't drawn.
-    expect(fills('tag')).toHaveLength(1)
+    expect(fills('tag')).toEqual(['var(--secondary)'])
   })
 
   it('draws activity as an open line, not a filled area', () => {
