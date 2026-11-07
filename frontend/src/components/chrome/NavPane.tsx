@@ -24,6 +24,7 @@ import StashPanel from '../../features/branches/StashPanel'
 import TagsPanel from '../../features/branches/TagsPanel'
 import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
 import SubmodulesPanel from '../../features/submodules/SubmodulesPanel'
+import ScrollCue from './ScrollCue'
 import SidebarSection from './SidebarSection'
 import { useSidebarSections } from '../../lib/useSidebarSections'
 import { useRovingRows } from '../../lib/useRovingRows'
@@ -318,6 +319,7 @@ function NavPane({
           onOpenRepository={onOpenRepository}
           onSubmodulesChanged={onBranchChanged}
         />
+        <ScrollCue />
       </div>
 
       <div className="nav-pane-footer">

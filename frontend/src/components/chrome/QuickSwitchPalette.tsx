@@ -117,6 +117,8 @@ const MAX_IDLE_BRANCHES = 4
 const MAX_COMMIT_RESULTS = 10
 const MAX_TAG_RESULTS = 10
 const COMMIT_SEARCH_DEBOUNCE_MS = 200
+const CUT_MARGIN = 4
+const ROW_CUT = 14
 
 function loadBranchResults(repoPath: string): Promise<BranchResult[]> {
   return Promise.all([
@@ -204,6 +206,20 @@ function QuickSwitchPalette({
 }: QuickSwitchPaletteProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
+  const resultsRef = useRef<HTMLDivElement>(null)
+  // A list ending exactly on a row boundary doesn't look like it continues.
+  useLayoutEffect(() => {
+    const list = resultsRef.current
+    if (!list || list.scrollTop > 0) return
+    list.style.maxHeight = ''
+    if (list.scrollHeight <= list.clientHeight) return
+    const edge = list.getBoundingClientRect().bottom
+    const rowCut = [...list.querySelectorAll('[cmdk-item], [cmdk-group-heading]')].some((row) => {
+      const { top, bottom } = row.getBoundingClientRect()
+      return top < edge - CUT_MARGIN && bottom > edge + CUT_MARGIN
+    })
+    if (!rowCut) list.style.maxHeight = `${list.clientHeight - ROW_CUT}px`
+  })
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const q = query.trim().toLowerCase()
@@ -367,7 +383,7 @@ function QuickSwitchPalette({
 
         {error && <p className="quick-switch-error">{error}</p>}
 
-        <Command.List className="quick-switch-results">
+        <Command.List ref={resultsRef} className="quick-switch-results">
           {q && resultCount === 0 && <p className="quick-switch-empty">Nothing named “{query.trim()}”.</p>}
 
           <Section heading="Branches" icon={GitBranch} count={branchResults.length}>

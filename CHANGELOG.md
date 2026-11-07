@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **The sidebar says when there's more below**, with a small cue you can click to scroll, and Go to anything always cuts off a row when the list continues.
 - **Pull request and issue state has an icon and a capital**, such as "Open" or "Merged", so it reads apart from labels.
 - **Editor keys work here too.** **Ctrl+P** and **Ctrl+Shift+P** open Go to anything, **Ctrl+K** now closes it as well, and **F7** and **Shift+F7** move between diff hunks.
 - **Dates are real dates after a week**, so an old commit reads "Mar 14" or "Mar 2024" instead of "400d ago".
