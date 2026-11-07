@@ -192,3 +192,15 @@
     color: var(--on-surface);
   }
 }
+
+// Quieter while focus is in another pane. Without a focused pane, as after a click on
+// empty space or with a dialog open, every selection stays as it is.
+@mixin selected-row {
+  background: var(--surface-container);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
+
+  html:has([data-pane]:focus-within) [data-pane]:not(:focus-within) & {
+    background: var(--surface-low);
+    box-shadow: inset 2px 0 0 0 var(--outline-variant);
+  }
+}

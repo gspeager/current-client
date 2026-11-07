@@ -6,6 +6,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
+- **A selected row goes quieter when focus moves to another pane**, so it's clear where the keyboard is.
 - **The sidebar says when there's more below**, with a small cue you can click to scroll, and Go to anything always cuts off a row when the list continues.
 - **Pull request and issue state has an icon and a capital**, such as "Open" or "Merged", so it reads apart from labels.
 - **Editor keys work here too.** **Ctrl+P** and **Ctrl+Shift+P** open Go to anything, **Ctrl+K** now closes it as well, and **F7** and **Shift+F7** move between diff hunks.
