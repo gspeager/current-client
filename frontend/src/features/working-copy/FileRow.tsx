@@ -93,7 +93,7 @@ function FileRow({
         )}
         {tag && <span className="file-row-tag">{tag}</span>}
         <ThreadCount count={threads} />
-        <DiffStat added={added} removed={removed} binary={binary} />
+        {!status.startsWith('U') && <DiffStat added={added} removed={removed} binary={binary} />}
       </span>
       <StatusBadge status={status} />
       {(onContextMenu || onDiscard) && (

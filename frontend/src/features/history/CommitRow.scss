@@ -40,7 +40,7 @@
   }
 }
 
-@container (max-width: 760px) {
+@container (max-width: 620px) {
   .commit-row {
     grid-template-columns: 108px minmax(0, 1fr) 20px 20px 60px;
   }
@@ -48,7 +48,9 @@
   .commit-row-sha {
     display: none;
   }
+}
 
+@container (max-width: 760px) {
   // One ref, named, is more use than several cut to nothing. The subject comes
   // first here, and a link it cuts keeps its text rather than a lone logo.
   .commit-row-refs {

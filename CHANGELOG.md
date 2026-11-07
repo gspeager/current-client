@@ -6,7 +6,9 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Changed
 
-- **File rows keep their counts on hover**, and the actions appear beside them.
+- **File rows keep their counts and path steady on hover**, with actions over the end of the path.
+- **Activity's heatmap works from the keyboard:** focus it and use the arrow keys to read each day.
+- **The status bar says when a merge or rebase is in progress**, and pull request checks show as one readiness strip.
 - **Choosing Split on a narrow window gives the diff the file list's room.** The expand button brings the list back.
 - **Settings shows a live preview** of lane colors and density, and fits its content.
 - **Status letters are quieter.** `M` is neutral, so amber stands for things that need attention, and each letter names itself on hover.

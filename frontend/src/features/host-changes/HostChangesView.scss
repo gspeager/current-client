@@ -242,7 +242,7 @@
 // What stands between the change and merging, as tiles to read at a glance.
 .host-change-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: var(--space-sm);
   margin: 0;
   font: var(--ui-sm);
@@ -391,11 +391,21 @@
   padding: var(--space-sm);
   background: var(--surface-low);
   border-radius: var(--radius-md);
+  box-shadow: inset 0 2px 0 0 var(--outline-variant);
+}
+
+.host-change-tile-ok {
+  box-shadow: inset 0 2px 0 0 var(--tertiary);
+}
+
+.host-change-tile-warn,
+.host-change-tile-warning {
+  box-shadow: inset 0 2px 0 0 var(--warning);
 }
 
 .host-change-tile-blocker,
 .host-change-tile-error {
-  box-shadow: inset 2px 0 0 0 var(--error);
+  box-shadow: inset 0 2px 0 0 var(--error);
 }
 
 .host-change-actions .host-change-button,
@@ -556,4 +566,8 @@
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-md);
   }
+}
+
+.host-changes-privacy-link {
+  @include patterns.hit-target(4px);
 }

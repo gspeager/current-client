@@ -31,7 +31,7 @@
 
 .commit-velocity-subtitle {
   color: var(--outline);
-  font: var(--ui-xs);
+  font: var(--ui-sm);
 }
 
 .commit-velocity-body {
@@ -80,7 +80,7 @@
   width: 100%;
   min-height: 4px;
   border-radius: 2px 2px 0 0;
-  background: color-mix(in srgb, var(--tertiary) 38%, var(--surface-low));
+  background: color-mix(in srgb, var(--tertiary) 60%, var(--surface-low));
 }
 
 .commit-velocity-bar-current {

@@ -24,7 +24,9 @@
   color: var(--outline);
 }
 
+// In the row's name and tooltip; at the sidebar's width the subject needs the room.
 .head-commit-panel-sha {
+  display: none;
   color: var(--on-surface-variant);
   font: var(--data-sm);
 }

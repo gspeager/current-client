@@ -370,6 +370,7 @@
 }
 
 .diff-collapsed {
+  font: var(--ui-xs);
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -381,7 +382,6 @@
   border: none;
   color: var(--outline);
   background: var(--surface-low);
-  font: inherit;
   text-align: left;
   cursor: pointer;
 
@@ -645,4 +645,8 @@
 .diff-hunk-key {
   color: var(--on-surface-variant);
   font: var(--data-sm);
+}
+
+.diff-hunk-actions button {
+  @include patterns.hit-target(2px);
 }

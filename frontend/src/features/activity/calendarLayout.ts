@@ -1,9 +1,9 @@
 import type { DayActivityInfo } from '@current-client-bindings/app'
 const COUNT_BANDS: { maxCount: number; intensity: number }[] = [
   { maxCount: 0, intensity: 0 },
-  { maxCount: 1, intensity: 32 },
-  { maxCount: 3, intensity: 55 },
-  { maxCount: 6, intensity: 78 },
+  { maxCount: 1, intensity: 45 },
+  { maxCount: 3, intensity: 62 },
+  { maxCount: 6, intensity: 80 },
   { maxCount: Infinity, intensity: 100 },
 ]
 

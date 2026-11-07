@@ -16,16 +16,11 @@
   @include patterns.eyebrow;
 }
 
-.current-change-buttons {
-  display: flex;
-  gap: var(--space-xs);
-  margin-left: auto;
-}
-
 // As tall as a change's card, so finding one doesn't move the list below.
 .current-change,
 .current-change-slot {
   box-sizing: border-box;
+  flex-shrink: 0;
   min-height: 52px;
 }
 
@@ -125,7 +120,6 @@
 
 .current-change-facts {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
   color: var(--on-surface-variant);
@@ -229,5 +223,27 @@
 }
 
 .current-change-row-action {
+  text-decoration: underline;
+  text-decoration-color: var(--outline);
+  text-underline-offset: 2px;
   font-weight: 500;
+}
+
+.current-change-ci {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.current-change-threads {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.current-change-title .current-change-button {
+  flex-shrink: 0;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  margin-left: auto;
 }

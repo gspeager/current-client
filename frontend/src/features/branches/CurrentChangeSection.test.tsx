@@ -81,13 +81,10 @@ describe('CurrentChangeSection', () => {
     const section = await screen.findByRole('region', { name: 'Merge request for feature' })
     expect(within(section).getByText('Add the thing')).toBeInTheDocument()
     expect(within(section).getByText('draft')).toBeInTheDocument()
-    expect(within(section).getByText('into main')).toBeInTheDocument()
     expect(within(section).getByText('failed: test, lint')).toBeInTheDocument()
     expect(within(section).getByText('2 unresolved')).toBeInTheDocument()
     await userEvent.click(within(section).getByRole('button', { name: 'Details' }))
     expect(onOpenChange).toHaveBeenCalledWith(138)
-    await userEvent.click(within(section).getByRole('button', { name: 'Open on host' }))
-    expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.example.com/g/r/-/merge_requests/138')
     expect(HostService.CurrentChange).toHaveBeenCalledWith('/repos/app')
   })
 

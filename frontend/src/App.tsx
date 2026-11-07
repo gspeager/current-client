@@ -1179,6 +1179,7 @@ function App({
                   </div>
 
                   <StatusBar
+                    operation={conflictState?.operation ?? null}
                     onOpenShortcuts={() => setShortcutsOpen(true)}
                     onToggleTerminal={terminalsOff ? undefined : toggleTerminal}
                     repoPath={repo.repoPath}

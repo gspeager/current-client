@@ -7,10 +7,10 @@ describe('activityIntensity', () => {
   })
 
   it('steps up through fixed bands rather than scaling continuously', () => {
-    expect(activityIntensity(1)).toBe(32)
-    expect(activityIntensity(2)).toBe(55)
-    expect(activityIntensity(3)).toBe(55)
-    expect(activityIntensity(4)).toBe(78)
+    expect(activityIntensity(1)).toBe(45)
+    expect(activityIntensity(2)).toBe(62)
+    expect(activityIntensity(3)).toBe(62)
+    expect(activityIntensity(4)).toBe(80)
     expect(activityIntensity(10)).toBe(100)
   })
 })

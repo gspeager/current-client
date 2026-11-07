@@ -1,3 +1,4 @@
+import { useState, type KeyboardEvent } from 'react'
 import { ActivityService } from '@current-client-bindings/app'
 import { ACTIVITY_INTENSITY_STEPS, activityIntensity, layoutActivityCalendar } from './calendarLayout'
 import { peakDayCommits } from './activityStats'
@@ -38,6 +39,14 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
   const cells = activity ? layoutActivityCalendar(activity) : []
   const weekCount = cells.length > 0 ? cells[cells.length - 1].weekIndex + 1 : 0
   const totalCommits = activity?.reduce((sum, d) => sum + d.commits, 0) ?? 0
+  const [activeDay, setActiveDay] = useState(-1)
+  // Up and down walk a week, left and right step across weeks.
+  const moveDay = (e: KeyboardEvent, count: number) => {
+    const step = { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 }[e.key]
+    if (!step) return
+    e.preventDefault()
+    setActiveDay((day) => Math.min(count - 1, Math.max(0, (day < 0 ? count - 1 : day) + step)))
+  }
 
   return (
     <div className="activity-calendar">
@@ -68,11 +77,11 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
         ) : (
           <div
             className="activity-grid"
-            role="img"
-            aria-label={`Commits by day: ${plural(
-              cells.reduce((sum, cell) => sum + cell.commits, 0),
-              'commit',
-            )} in the last year`}
+            role="listbox"
+            tabIndex={0}
+            aria-label="Commits by day. Use the arrow keys to read each day."
+            aria-activedescendant={activeDay >= 0 ? `activity-day-${activeDay}` : undefined}
+            onKeyDown={(e) => moveDay(e, cells.length)}
             style={{ gridTemplateColumns: `auto repeat(${weekCount}, minmax(9px, 18px))` }}
           >
             {monthLabels(cells).map(({ weekIndex, label }) => (
@@ -89,10 +98,14 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
                 {label}
               </span>
             ))}
-            {cells.map((cell) => (
+            {cells.map((cell, i) => (
               <span
                 key={cell.date}
-                className="activity-cell"
+                id={`activity-day-${i}`}
+                role="option"
+                aria-selected={i === activeDay}
+                aria-label={`${cell.date}: ${plural(cell.commits, 'commit')}`}
+                className={i === activeDay ? 'activity-cell activity-cell-active' : 'activity-cell'}
                 style={{
                   gridColumn: cell.weekIndex + 2,
                   gridRow: cell.dayOfWeek + 2,

@@ -48,7 +48,7 @@
 
 .activity-legend-label {
   color: var(--outline);
-  font: var(--ui-xs);
+  font: var(--ui-sm);
 }
 
 .activity-legend-swatch {
@@ -98,4 +98,13 @@
   font: var(--ui-xs);
   line-height: 1;
   align-self: center;
+}
+
+.activity-cell-active {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.activity-grid:focus-visible {
+  outline: none;
 }

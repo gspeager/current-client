@@ -8,7 +8,6 @@ import { ignoreDecorativeFailure } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import './CurrentChangeSection.scss'
-import { useHostLogo } from '../../components/git/hostLogos'
 
 interface CurrentChangeSectionProps {
   repoPath: string
@@ -39,7 +38,6 @@ function CurrentChangeSection({
     refreshKey: `${refreshKey}:${checks}`,
     keepData: true,
   })
-  const HostIcon = useHostLogo(repoPath)
   const { data: forecast } = useAsyncData(() => HostService.Forecast(repoPath), [repoPath], {
     refreshKey,
     keepData: true,
@@ -109,8 +107,7 @@ function CurrentChangeSection({
             'Checking…'
           ) : (
             <>
-              Not checked <span className="current-change-row-sep">·</span>{' '}
-              <span className="current-change-row-action">Check</span>
+              <span className="current-change-row-action">Check status</span>
             </>
           )}
         </span>
@@ -144,9 +141,19 @@ function CurrentChangeSection({
         <span className="current-change-title-text" title={change.title}>
           {change.title}
         </span>
+        {onOpenChange && (
+          <button
+            type="button"
+            className="current-change-button"
+            aria-label="Details"
+            title="Details"
+            onClick={() => onOpenChange(change.number)}
+          >
+            <PanelRight size={14} strokeWidth={1.75} />
+          </button>
+        )}
       </div>
       <div className="current-change-facts">
-        <span className="current-change-target">into {change.targetBranch}</span>
         {state && state !== 'open' && (
           <span className={`current-change-state current-change-state-${state}`}>{state}</span>
         )}
@@ -168,29 +175,6 @@ function CurrentChangeSection({
           ) : (
             <span className="current-change-threads">{change.unresolvedThreads} unresolved</span>
           ))}
-        <span className="current-change-buttons">
-          {onOpenChange && (
-            <button
-              type="button"
-              className="current-change-button"
-              aria-label="Details"
-              title="Details"
-              onClick={() => onOpenChange(change.number)}
-            >
-              <PanelRight size={14} strokeWidth={1.75} />
-            </button>
-          )}
-          <button
-            type="button"
-            className="current-change-button"
-            aria-label="Open on host"
-            title="Open on host"
-            onClick={() => PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)}
-            disabled={!change.webUrl}
-          >
-            <HostIcon size={14} strokeWidth={1.75} />
-          </button>
-        </span>
       </div>
       {forecastBlock}
     </section>

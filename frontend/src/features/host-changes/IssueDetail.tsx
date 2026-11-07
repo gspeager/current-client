@@ -83,7 +83,9 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
   }
 
   const identities = useNameIdentities(
-    (data?.comments ?? []).map((c) => c.author.name || c.author.username),
+    [data?.issue.author, ...(data?.comments ?? []).map((c) => c.author)].flatMap((a) =>
+      a ? [a.name || a.username] : [],
+    ),
     repoPath,
   )
   return (
@@ -127,7 +129,10 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
         {data && issue && (
           <>
             <FactList>
-              <Fact label="Author">{issue.author.name || issue.author.username}</Fact>
+              <Fact label="Author">
+                {identities.get(issue.author.name || issue.author.username)?.displayName ??
+                  (issue.author.name || issue.author.username)}
+              </Fact>
               <Fact label="Opened">{relativeTime(new Date(issue.createdAt))}</Fact>
               {issue.milestone && <Fact label="Milestone">{issue.milestone}</Fact>}
               {issue.labels.length > 0 && (

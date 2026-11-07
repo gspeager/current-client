@@ -45,7 +45,7 @@ function FileChurnList({ repoPath, repoVersion }: FileChurnListProps) {
                       className="file-churn-bar"
                       style={{
                         width: `${(c.changes / maxChanges) * 100}%`,
-                        background: `color-mix(in srgb, ${languageColor(extension)} 65%, var(--surface-low))`,
+                        background: `color-mix(in srgb, ${languageColor(extension)} 85%, var(--surface-low))`,
                       }}
                     />
                   </span>

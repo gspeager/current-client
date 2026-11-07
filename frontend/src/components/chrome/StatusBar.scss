@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .status-bar {
   container-type: inline-size;
   display: flex;
@@ -130,7 +132,8 @@
     display: none;
   }
 
-  .status-bar-host-name {
+  .status-bar-host-name,
+  .status-bar-api-label {
     display: none;
   }
 }
@@ -153,4 +156,8 @@
   flex-shrink: 0;
   color: var(--outline);
   font: var(--ui-xs);
+}
+
+.status-bar-host {
+  @include patterns.hit-target(2px);
 }

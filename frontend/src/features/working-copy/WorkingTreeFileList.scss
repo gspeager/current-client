@@ -15,8 +15,6 @@
   height: var(--h-row-table);
   margin-bottom: var(--space-sm);
   padding: 0 var(--space-sm);
-  background: var(--surface-lowest);
-  border-radius: var(--radius);
 }
 
 .changes-files-header-spacer {
@@ -180,4 +178,8 @@
 // The list keeps a useful height however much sits below it.
 .changes-files-scroll {
   min-height: 112px;
+}
+
+.changes-section-bulk {
+  @include patterns.hit-target(2px);
 }

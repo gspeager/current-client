@@ -1,3 +1,4 @@
+import { operationNoun } from '../../lib/conflictWords'
 import { Keyboard, SquareTerminal } from 'lucide-react'
 import { System } from '@wailsio/runtime'
 import { PlatformService, type HostStatusInfo } from '@current-client-bindings/app'
@@ -12,6 +13,7 @@ import { useTracker } from '../../lib/issuePanel'
 import './StatusBar.scss'
 
 interface StatusBarProps {
+  operation?: string | null
   repoPath: string
   repoVersion: number
   gitVersion: string | null
@@ -23,6 +25,7 @@ interface StatusBarProps {
 }
 
 function StatusBar({
+  operation = null,
   onToggleTerminal,
   onOpenShortcuts,
   repoPath,
@@ -51,7 +54,9 @@ function StatusBar({
     <footer className="status-bar">
       <span className="status-bar-ready" role="status">
         <WaveMark width={16} />
-        Ready
+        {operation
+          ? `${operationNoun(operation)[0].toUpperCase()}${operationNoun(operation).slice(1)} in progress`
+          : 'Ready'}
       </span>
       {branchLabel && <span className="status-bar-branch">{branchLabel}</span>}
       <div className="status-bar-spacer" />

@@ -636,7 +636,7 @@ describe('BranchSidebar overlap prediction', () => {
     renderSidebar(vi.fn(), sections)
 
     const badge = await screen.findByTitle('Would conflict with the current branch: src/app.ts, README.md')
-    expect(badge).toHaveTextContent('conflicts')
+    expect(badge).toHaveAttribute('title')
     expect(screen.getByRole('button', { name: /^spike/ })).toContainElement(badge)
     expect(screen.queryByRole('button', { name: /^docs/ })).not.toContainElement(
       screen.queryByText('conflicts', { selector: '.branch-row:nth-child(3) *' }),

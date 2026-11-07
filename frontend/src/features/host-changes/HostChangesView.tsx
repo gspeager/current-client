@@ -133,7 +133,10 @@ function HostChangesView({
 
   // Opening the panel is a refresh trigger, once: later opens read the cache.
   const identities = useNameIdentities(
-    (list?.changes ?? []).map((c) => c.author.name || c.author.username),
+    (list?.changes ?? []).flatMap((c) => [
+      c.author.name || c.author.username,
+      ...(c.reviews ?? []).map((r) => r.reviewer.name || r.reviewer.username),
+    ]),
     repoPath,
   )
   const neverFetched = list?.enabled === true && list.fetchedAt === null
@@ -227,6 +230,7 @@ function HostChangesView({
                   onSelect={() => setSelected(change.number)}
                   me={list.me}
                   identity={identities.get(change.author.name || change.author.username)}
+                  displayName={(name) => identities.get(name)?.displayName ?? name}
                 />
               </li>
             ))}
@@ -269,9 +273,10 @@ interface ChangeRowProps {
   onSelect: () => void
   // The signed-in username, so a request for review reads as yours or someone else's.
   me: string
+  displayName: (name: string) => string
 }
 
-function ChangeRow({ change, prefix, selected, onSelect, me, identity }: ChangeRowProps) {
+function ChangeRow({ change, prefix, selected, onSelect, me, identity, displayName }: ChangeRowProps) {
   const author = change.author.name || change.author.username
   return (
     <button
@@ -286,7 +291,7 @@ function ChangeRow({ change, prefix, selected, onSelect, me, identity }: ChangeR
           }
         />
         <span className="host-change-row-meta">
-          <ReviewSummary reviews={change.reviews} open={change.state === 'open'} me={me} />
+          <ReviewSummary reviews={change.reviews} open={change.state === 'open'} me={me} displayName={displayName} />
           <span className="host-change-row-time">{relativeTime(new Date(change.updatedAt))}</span>
         </span>
       </span>
@@ -633,7 +638,12 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
               ) : (
                 <p className="host-changes-empty">No description.</p>
               )}
-              <OverviewCommits repoPath={repoPath} target={change.targetBranch} source={change.sourceBranch} />
+              <OverviewCommits
+                repoPath={repoPath}
+                target={change.targetBranch}
+                source={change.sourceBranch}
+                current={change.sourceBranch === currentBranch}
+              />
             </div>
             <aside className="host-change-overview-aside" aria-label="People and timing">
               <ChangeReviewers repoPath={repoPath} reviews={change.reviews} />
@@ -796,7 +806,17 @@ function ChangeReviewers({ repoPath, reviews }: { repoPath: string; reviews: Rev
   )
 }
 
-function OverviewCommits({ repoPath, target, source }: { repoPath: string; target: string; source: string }) {
+function OverviewCommits({
+  repoPath,
+  target,
+  source,
+  current,
+}: {
+  repoPath: string
+  target: string
+  source: string
+  current: boolean
+}) {
   const { data } = useAsyncData(
     () => HistoryService.RangeCommits(repoPath, `origin/${target}`, `origin/${source}`).catch(() => null),
     [repoPath, target, source],
@@ -806,7 +826,7 @@ function OverviewCommits({ repoPath, target, source }: { repoPath: string; targe
   return (
     <section
       className="host-change-overview-commits"
-      style={{ '--lane': branchColor(source, false) } as CSSProperties}
+      style={{ '--lane': branchColor(source, current) } as CSSProperties}
       aria-label="Commits"
     >
       <h4 className="host-change-overview-heading">{plural(data.length, 'commit')}</h4>

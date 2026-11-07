@@ -1,3 +1,4 @@
+import Kbd from '../../components/controls/Kbd'
 import {
   Fragment,
   useLayoutEffect,
@@ -251,7 +252,7 @@ function HunkActionButtons({
         onClick={() => run(toggle)}
       >
         {onStageHunk ? `Stage ${what}` : `Unstage ${what}`}
-        <span className="diff-hunk-key">{onStageHunk ? 'S' : 'U'}</span>
+        <Kbd>{onStageHunk ? 'S' : 'U'}</Kbd>
       </button>
       {onDiscardHunk && (count === 0 || canDiscardLines) && (
         <button
@@ -261,7 +262,7 @@ function HunkActionButtons({
           onClick={() => run(onDiscardHunk)}
         >
           {count ? `Discard ${what}` : 'Discard'}
-          <span className="diff-hunk-key">D</span>
+          <Kbd>D</Kbd>
         </button>
       )}
     </span>

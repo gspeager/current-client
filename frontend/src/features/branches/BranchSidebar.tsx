@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
-import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X, Table } from 'lucide-react'
+import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, TriangleAlert, X, Table } from 'lucide-react'
 import {
   StackService,
   type BranchInfo,
@@ -828,7 +828,7 @@ function ConflictsBadge({ overlap }: { overlap?: OverlapInfo }) {
       className="branch-conflicts-badge"
       title={`Would conflict with the current branch: ${overlap.files.join(', ')}`}
     >
-      conflicts
+      <TriangleAlert size={12} strokeWidth={1.75} aria-label="Conflicts" />
     </span>
   )
 }

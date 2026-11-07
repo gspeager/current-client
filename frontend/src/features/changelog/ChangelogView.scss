@@ -20,8 +20,8 @@
 
 .changelog-label {
   margin: 0;
-  @include patterns.eyebrow;
-  color: var(--outline);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
 }
 
 .changelog-count,
@@ -115,6 +115,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  min-height: var(--h-action);
   gap: var(--space-xs) var(--space-md);
 }
 
@@ -341,4 +342,12 @@
   margin: 0;
   color: var(--outline);
   @include patterns.eyebrow;
+}
+
+.changelog-filter-toggle {
+  @include patterns.hit-target(4px);
+}
+
+.changelog-entry-sha {
+  @include patterns.hit-target(4px);
 }
