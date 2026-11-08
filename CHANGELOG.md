@@ -2,104 +2,86 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
-## [Unreleased]
+## [0.6.0] - 2026-11-08
 
-### Changed
-
-- **A selected row goes quieter when focus moves to another pane**, so it's clear where the keyboard is.
-- **The sidebar says when there's more below**, with a small cue you can click to scroll, and Go to anything always cuts off a row when the list continues.
-- **Pull request and issue state has an icon and a capital**, such as "Open" or "Merged", so it reads apart from labels.
-- **Editor keys work here too.** **Ctrl+P** and **Ctrl+Shift+P** open Go to anything, **Ctrl+K** now closes it as well, and **F7** and **Shift+F7** move between diff hunks.
-- **Dates are real dates after a week**, so an old commit reads "Mar 14" or "Mar 2024" instead of "400d ago".
-- **The status bar says what just happened**, such as "Pushed main to origin/main", in place of Ready, with **Undo** after a commit or pull.
-- **The Vivid and Muted lane palettes have eight colors**, the same as the default, so branches spread evenly across them.
-- **History's overview strip is easier to read.** It's taller and draws commits as a green line, with short ticks underneath for branches in their lane colors, tags in violet and stashes in amber. `HEAD` and search matches stay full height, a violet band shows the part on screen, and the label is gone.
-- **The Toolbox's terminal opens the embedded terminal panel** (**Ctrl+\`**), and the separate system terminal action is gone. Where an organization turns off local commands, no terminal is offered.
-- **File rows keep their counts on hover**, and the path gives way from the left so the filename stays.
-- **Issues use the same two columns as pull requests**, and Windows High Contrast keeps selection, lanes and status visible.
-- **Activity's heatmap works from the keyboard:** focus it and use the arrow keys to read each day.
-- **The status bar says when a merge or rebase is in progress**, and pull request checks show as one readiness strip.
-- **Choosing Split on a narrow window gives the diff the file list's room.** The expand button brings the list back.
-- **Settings shows a live preview** of lane colors and density, and fits its content.
-- **Status letters are quieter.** `M` is neutral, so amber stands for things that need attention, and each letter names itself on hover.
-- **The commit pane keeps two actions in view**, with the rest under **More**.
-- **A person keeps one badge everywhere.** A host's username now matches the same person's commits where it can, so initials and color agree across views.
-- **The sidebar opens narrower and doesn't jump** when a pull request is found, leaving the diff more room.
-- **Pull requests show whether they can merge** in one line above the checks, and Overview lists reviewers with their state.
-- **Issues show task progress**, labels are tinted by name, and comments read as a thread.
-- **Activity uses more color from its data:** weekly bars with the average marked, a trend beside the commit count, status icons in Repository state, and file bars in their language's color.
-- **Settings shows one section at a time**, and its toggles all sit on the right.
-- **Undo names what it will undo** in its tooltip, such as "Undo commit 2e37208".
-- **The sidebar's sub-groups read a step quieter** than the sections they sit in, and line up with each other.
-- **Pull request rows use one check mark.** It's for CI; review results are spelled out, such as "2 approved".
-- **Commits, pull requests and issues read the same way.** Facts share one list, actions sit at the top of the pane, and panes are divided by a simple line.
-- **Cyan is saved for what matters.** Selected rows and the active tab are neutral, so `HEAD`, focus and the main action stand out.
-- **Tags in History start with a tag icon**, so they stand out from the branches and subject beside them.
-- **Issue and pull request links are colored**, and so is the host logo beside them, so they stand out from the text around them. Pull request and review state share the same brighter indigo.
-- **A cleaner, calmer interface.** A branch now has one color everywhere: its sidebar dot, its pill in History, and its nodes and line in the graph. Cyan marks only `HEAD`, keyboard focus and the one main action in a pane. Text is a size larger throughout. The Toolbox starts closed so branches stay in view. Stage hunk is more prominent than Discard, and buttons that can't run yet go neutral instead of staying bright.
-- **Activity reads as facts.** Contributors, commits per week and repository state use plain charts and plain wording. The donut and the uppercase card titles are gone.
-- **New windows open at 1280×800**, with a minimum of 960×600. Saved window sizes still apply.
-- **The diff fills its pane**, with a strip beside it showing where a long file's changes fall. Click it to jump.
-- **More room for the work.** Pull requests, Issues, Activity and Releases show the sidebar as its icon rail, and the rail's first button opens it. Fetch, Pull and Push are quieter, with their menus on hover, and **Undo** joined them (**⌘⇧Z**).
-- **Pull request detail reads at a glance**, with checks, reviews, conflicts and protection as tiles. **Tag** is only the main action when nothing above it warns.
-- **Syntax colors for more languages:** TSX, JSX, CSS, SCSS, HTML, JSON, YAML, TOML, Markdown, shell, Python, Ruby, Rust, Java, Kotlin, Swift, C, C++, C#, PHP and SQL, all bundled with the app.
-- **Branch colors spread out.** A repository's branches now share the colors evenly, rather than several landing on one by chance. A new branch shifts few others.
-- **Home and End reach the ends of History**, and **F6** visits the file list, commit message and diff. A diff's line numbers are one Tab stop, moved through with the arrow keys.
-- **The icon rail is shorter.** It keeps the sections, and one Toolbox button opens a labeled menu of the rest. View tabs gain icons.
-- **Stage, unstage and discard a hunk from the keyboard:** **S**, **U** and **D** while focus is in the diff.
-- **The Inbox takes focus when it opens,** with arrow keys across its rows, and tidying up reads quieter than what waits for review.
-- **Repository tabs stay readable.** Those that don't fit move to a **+N** menu rather than shrinking.
-- **People get their initials badge** on pull request rows and detail, and on issue comments. Colors are local, as everywhere: nothing is fetched.
-- **A pull request's Overview shows its commits**, and **Releases** folds checks that didn't warn, with numbered Tag and Publish steps.
-- **Double-click a branch to check it out.** A single click no longer switches branches, so a misclick can't. **Enter** still does, and so does its menu.
-- **Commit detail closes and resizes.** **Esc**, its close button or clicking the commit again gives the list its width back, and the pane's edge drags.
-- **A closed Toolbox keeps Undo, Recover, Reflog and Bisect as icons** on its header.
-- **Larger text**, with file rows giving their width to the filename. Owners show on hover and in the diff header.
-- **Small windows adapt.** Below 1120 px wide the sidebar becomes its icon rail, and below 1040 px diffs read as unified. Status bar details and repository tab branches step aside before anything is cut off.
-- **Go to anything finds more.** A commit's hash, a pull request's number or title, a stash's message, **blame** plus a file name, and worktree, remote, cherry-pick and revert all lead somewhere, and the top row is always the one selected.
-- **The staged report folds to its count** when it has more than two findings, so the file list keeps its room.
-- **A clean repository says so.** Changes shows **Working tree clean** and **Nothing to commit** rather than asking for a commit message.
+This release brings more of the work into the app: stacked branches, a terminal and the project's own commands, tidying up history, a preview before a rebase, and snapshots that recover discarded work. The interface is calmer, with one color per branch and cyan kept for what matters, and nearly everything has a keyboard shortcut. The new features work from Git and files on this computer, and none adds a request to a host or issue tracker.
 
 ### Added
 
-- **Compact density.** Settings > Appearance > Density tightens History, the file list and the sidebar, so more fits on screen. Comfortable stays the default.
-- **A keyboard shortcut for nearly everything.** **?** lists them all. **⌘1**–**⌘6** (Ctrl on Windows and Linux) switch views, **F6** moves between panes, **⌘B** collapses the sidebar, and **⌘⇧T**, **⌘⇧L** and **⌘⇧K** fetch, pull and push. Lists are one Tab stop: the arrow keys move through commits, files, branches, pull requests and issues, and left and right reach a row's buttons. Tooltips also show on keyboard focus.
-
 - **Stacked branches.** Work as a chain of branches, each on the one below. **New stacked branch…** and **Stack current on this**, in a branch's menu, add a layer, and the **Stacks** section shows the chain with what's behind. **Restack** previews every layer and rebases the ones whose parent moved, with their own commits only, including after the bottom branch is amended or merged, by squash too. A conflict stops at its layer, with the usual banner, and restacking again carries on. **Undo restack** puts every branch back. **Push all** always uses `--force-with-lease`, and all or none where the server allows. ([#274](https://github.com/gspeager/current-client/issues/274))
+- **A terminal inside the app.** Ctrl+\` opens a shell docked under the current repository: your own shell, or PowerShell on Windows with a setting for Git Bash or Command Prompt, started in the repository with Git on the `PATH`. The Toolbox's terminal opens it too, in place of the separate system terminal action. Each repository tab has its own shells, which keep running in the background with a mark on the tab. Closing a tab or quitting with a process still running asks first, and nothing is left running afterwards. A branch or commit made there shows up in the app. Output stays in memory only and is never logged. An organization can turn it off with `localCommands` in `policy.json`, and then no terminal is offered. ([#379](https://github.com/gspeager/current-client/issues/379))
 - **Run the project's own commands.** **Tasks**, beside the terminal panel and in Go to anything, finds commands from a Taskfile, Makefile, npm scripts and `go test`, or a list you add to. A run shows its output, exit status and duration, with **Stop**. Nothing runs on its own: the command and folder are shown before its first run, and again if the file it comes from changes. A command can also run alongside each commit or push, in the app and with no Git hooks installed; a failure warns and never blocks. ([#380](https://github.com/gspeager/current-client/issues/380))
-- **A terminal inside the app.** Ctrl+\` opens a shell docked under the current repository: your own shell, or PowerShell on Windows with a setting for Git Bash or Command Prompt, started in the repository with Git on the `PATH`. Each repository tab has its own shells, which keep running in the background with a mark on the tab. Closing a tab or quitting with a process still running asks first, and nothing is left running afterwards. A branch or commit made there shows up in the app. Output stays in memory only and is never logged. An organization can turn it off with `localCommands` in `policy.json`. ([#379](https://github.com/gspeager/current-client/issues/379))
 - **Tidy up history.** From the current branch's menu or Go to anything: the branch's commits as a list to drag into a new order, by mouse or keyboard, and set to **Keep**, **Reword**, **Squash**, **Fixup** or **Drop**. A preview shows the commits it will make, any conflict the new order predicts, and whether a force push will be needed. Git never opens an editor, a conflict uses the usual banner with reworded messages kept, and **Undo** takes the whole thing back. **Fixup into this commit** in History commits what's staged for folding in here. Commits with a merge in the range are refused. ([#44](https://github.com/gspeager/current-client/issues/44))
 - **Recover discarded work.** Before a discard, checkout, stash, hard reset or undo the app runs, it saves the working tree's tracked and untracked changes as a snapshot. **Recover**, in the Toolbox, lists them with the time, branch and action, with **Restore** and **Restore one file**. Before a force-push or deleting an unmerged branch, it keeps the commits that would be lost, and Recover can make a branch from them. Snapshots stay on this computer, are never pushed or shown as branches, are limited to a number set in Settings → Git, and go when a repository is removed from the app. ([#271](https://github.com/gspeager/current-client/issues/271))
 - **See what a rebase will do before it runs.** **Rebase current onto…** now opens a preview: the commits that will move, oldest first, any commit predicted to conflict with its files, commits that will drop because they're already applied, merge commits that won't be kept, whether a force push will be needed, and the equivalent command. The prediction replays each commit, so it finds conflicts a merge wouldn't, and needs Git 2.40 or newer. ([#272](https://github.com/gspeager/current-client/issues/272))
-- **Open a repository from outside the app.** The app takes a repository path as an argument, and a second launch hands it to the running app, opening a tab or focusing the one that has it. `current-client://open?path=…` links do the same for a repository already in the app, and ask first with the full path for any other; a link never clones, runs anything or contacts anything, and a network path is refused. Windows Explorer gets **Open in Current Client** on a folder, Linux file managers can open a folder with it through Open With Other Application, and on macOS a folder can be dropped on the app's icon. ([#385](https://github.com/gspeager/current-client/issues/385))
-- **A graph overview strip.** A band above History's graph shows commits per day across all the commits listed, following its branch filter and first parent only, with ticks where `HEAD`, branches, tags, stashes and search matches fall. Click a point to jump to the nearest commit on that date, and a window shows the part on screen. ([#283](https://github.com/gspeager/current-client/issues/283))
-- **Private notes.** Add a plain-text note to a commit, branch, tag or changed file from its context menu. A small mark beside it shows the note on hover, Go to anything searches them, and **Notes** there lists them all. A note on something that's gone, such as a commit a rebase replaced or a deleted branch, stays and is marked **Gone**. Notes live in the app's own file on this computer, so they're never pushed or shared. ([#384](https://github.com/gspeager/current-client/issues/384))
+- **A report on what's staged, before it's committed.** Above the commit message, Changes lists objective findings: secret-looking strings (gitleaks's rules, checked on this computer, with the value masked), conflict markers left in, files over 10 MB, a lockfile changed without its manifest or the reverse, and sweeping changes to generated files. A finding opens its file, on its line where it has one. Findings warn and never block a commit, the report folds to its count when it has more than two, and each rule can be turned off in Settings → Git. ([#381](https://github.com/gspeager/current-client/issues/381))
 - **Branch review.** A grid of every local branch, from the Branches sidebar or Go to anything: ahead and behind against its upstream and against the default branch, whether it's merged (including squash merges), its last commit and author, and its pull request with a host on. Sort by any column, filter to merged, stale or unpushed, and delete in bulk with Undo. The current branch, the default branch and any branch in a worktree can't be selected, and an unmerged branch asks first. ([#284](https://github.com/gspeager/current-client/issues/284))
-- **A report on what's staged, before it's committed.** Above the commit message, Changes lists objective findings: secret-looking strings (gitleaks's rules, checked on this computer, with the value masked), conflict markers left in, files over 10 MB, a lockfile changed without its manifest or the reverse, and sweeping changes to generated files. A finding opens its file, on its line where it has one. Findings warn and never block a commit, and each rule can be turned off in Settings → Git. ([#381](https://github.com/gspeager/current-client/issues/381))
+- **A graph overview strip.** A band above History's graph draws commits per day as a line across all the commits listed, following its branch filter and first parent only. Short ticks underneath mark branches in their lane colors, tags in violet and stashes in amber, with `HEAD` and search matches full height. Click a point to jump to the nearest commit on that date, and a band shows the part on screen. ([#283](https://github.com/gspeager/current-client/issues/283))
 - **See what changed when a dependency moved.** A diff of `package.json`, `package-lock.json`, `npm-shrinkwrap.json`, `go.mod`, `go.sum`, `Cargo.toml`, `Cargo.lock`, `pyproject.toml` or a `requirements*.txt` file opens on a summary of packages bumped, added and removed, with versions, with **Raw diff** one click away. It works in Changes, History, comparisons and stashes, and in a pull request's Files tab once its head is on your computer. It compares the file's two versions from Git and looks nothing up, so it isn't a vulnerability check. ([#382](https://github.com/gspeager/current-client/issues/382))
+- **Private notes.** Add a plain-text note to a commit, branch, tag or changed file from its context menu. A small mark beside it shows the note on hover, Go to anything searches them, and **Notes** there lists them all. A note on something that's gone, such as a commit a rebase replaced or a deleted branch, stays and is marked **Gone**. Notes live in the app's own file on this computer, so they're never pushed or shared. ([#384](https://github.com/gspeager/current-client/issues/384))
+- **Open a repository from outside the app.** The app takes a repository path as an argument, and a second launch hands it to the running app, opening a tab or focusing the one that has it. `current-client://open?path=…` links do the same for a repository already in the app, and ask first with the full path for any other; a link never clones, runs anything or contacts anything, and a network path is refused. Windows Explorer gets **Open in Current Client** on a folder, Linux file managers can open a folder with it through Open With Other Application, and on macOS a folder can be dropped on the app's icon. ([#385](https://github.com/gspeager/current-client/issues/385))
 - **Switching back to a branch puts you where you were.** Each branch keeps its own selected file in Changes, how far its diff was scrolled, and its draft commit message, until the app closes or the branch is deleted. A branch you haven't been on yet starts with what you had, so a draft follows you to a new branch made to commit it on. ([#273](https://github.com/gspeager/current-client/issues/273))
 - **Which Git settings apply, and where they come from.** Settings → Git → **Settings in effect** lists the Git settings the open repository uses, with each one's scope and file, and flags the usual surprises: an author name or email that's missing or overridden (including by an `includeIf`), `core.autocrlf`, commit signing that's on with no program or key to be found, no credential helper, and a global ignore file. It changes nothing and signs nothing, and credentials are hidden. It needs Git 2.26 or newer. ([#383](https://github.com/gspeager/current-client/issues/383))
+- **A keyboard shortcut for nearly everything.** **?** lists them all. **⌘1**–**⌘6** (Ctrl on Windows and Linux) switch views, **F6** moves between the file list, commit message and diff, **⌘B** collapses the sidebar, and **⌘⇧T**, **⌘⇧L** and **⌘⇧K** fetch, pull and push. **Home** and **End** reach the ends of History, and **S**, **U** and **D** stage, unstage and discard a hunk while focus is in the diff. Lists are one Tab stop: the arrow keys move through commits, files, branches, pull requests and issues, and left and right reach a row's buttons. A diff's line numbers are one Tab stop too. Tooltips also show on keyboard focus.
+- **Compact density.** Settings > Appearance > Density tightens History, the file list and the sidebar, so more fits on screen. Comfortable stays the default.
+
+### Changed
+
+- **A cleaner, calmer interface.** A branch now has one color everywhere: its sidebar dot, its pill in History, and its nodes and line in the graph. Cyan marks only `HEAD`, keyboard focus and the one main action in a pane, so selected rows and the active tab are neutral. Text is a size larger throughout. Stage hunk is more prominent than Discard, and buttons that can't run yet go neutral instead of staying bright.
+- **Branch colors spread out.** A repository's branches now share the colors evenly, rather than several landing on one by chance, and a new branch shifts few others. The Vivid and Muted lane palettes have eight colors, the same as the default.
+- **Commits, pull requests and issues read the same way.** Facts share one list, actions sit at the top of the pane, and panes are divided by a simple line.
+- **More room for the work.** Pull requests, Issues, Activity and Releases show the sidebar as its icon rail, and the rail's first button opens it. Fetch, Pull and Push are quieter, with their menus on hover, and **Undo** joined them (**⌘⇧Z**).
+- **The icon rail is shorter.** It keeps the sections, and one Toolbox button opens a labeled menu of the rest. View tabs gain icons. The Toolbox starts closed so branches stay in view, and while closed keeps Undo, Recover, Reflog and Bisect as icons on its header.
+- **Small windows adapt.** New windows open at 1280×800, with a minimum of 960×600, and saved window sizes still apply. Below 1120 px wide the sidebar becomes its icon rail, and below 1040 px diffs read as unified; choosing Split there gives the diff the file list's room, and the expand button brings the list back. Status bar details and repository tab branches step aside before anything is cut off.
+- **Repository tabs stay readable.** Those that don't fit move to a **+N** menu rather than shrinking.
+- **The sidebar opens narrower and doesn't jump** when a pull request is found, leaving the diff more room. It says when there's more below, with a small cue you can click to scroll, and its sub-groups read a step quieter than the sections they sit in, lined up with each other.
+- **A selected row goes quieter when focus moves to another pane**, so it's clear where the keyboard is.
+- **File rows keep their counts on hover** and give their width to the filename, with the path giving way from the left. Owners show on hover and in the diff header.
+- **Status letters are quieter.** `M` is neutral, so amber stands for things that need attention, and each letter names itself on hover.
+- **The diff fills its pane**, with a strip beside it showing where a long file's changes fall. Click it to jump.
+- **Syntax colors for more languages:** TSX, JSX, CSS, SCSS, HTML, JSON, YAML, TOML, Markdown, shell, Python, Ruby, Rust, Java, Kotlin, Swift, C, C++, C#, PHP and SQL, all bundled with the app.
+- **A clean repository says so.** Changes shows **Working tree clean** and **Nothing to commit** rather than asking for a commit message.
+- **The commit pane keeps two actions in view**, with the rest under **More**.
+- **The status bar says what just happened**, such as "Pushed main to origin/main", in place of Ready, with **Undo** after a commit or pull. It also says when a merge or rebase is in progress.
+- **Undo names what it will undo** in its tooltip, such as "Undo commit 2e37208".
+- **Dates are real dates after a week**, so an old commit reads "Mar 14" or "Mar 2024" instead of "400d ago".
+- **Tags in History start with a tag icon**, so they stand out from the branches and subject beside them.
+- **Double-click a branch to check it out.** A single click no longer switches branches, so a misclick can't. **Enter** still does, and so does its menu.
+- **Commit detail closes and resizes.** **Esc**, its close button or clicking the commit again gives the list its width back, and the pane's edge drags.
+- **Editor keys work here too.** **Ctrl+P** and **Ctrl+Shift+P** open Go to anything, **Ctrl+K** now closes it as well, and **F7** and **Shift+F7** move between diff hunks.
+- **Go to anything finds more.** A commit's hash, a pull request's number or title, a stash's message, **blame** plus a file name, and worktree, remote, cherry-pick and revert all lead somewhere, and the top row is always the one selected. It always cuts off a row when the list continues.
+- **The Inbox takes focus when it opens,** with arrow keys across its rows, and tidying up reads quieter than what waits for review.
+- **Pull request detail reads at a glance.** One line above the checks says whether it can merge, with checks, reviews, conflicts and protection as tiles, and Overview lists reviewers with their state and the change's commits. Checks show as one readiness strip.
+- **Pull request rows use one check mark.** It's for CI; review results are spelled out, such as "2 approved".
+- **Pull request and issue state has an icon and a capital**, such as "Open" or "Merged", so it reads apart from labels.
+- **Issue and pull request links are colored**, and so is the host logo beside them, so they stand out from the text around them. Pull request and review state share the same brighter indigo.
+- **Issues use the same two columns as pull requests.** They show task progress, labels are tinted by name, and comments read as a thread.
+- **A person keeps one badge everywhere.** People get their initials badge on pull request rows and detail, and on issue comments, and a host's username matches the same person's commits where it can, so initials and color agree across views. Colors are local, as everywhere: nothing is fetched.
+- **Releases folds checks that didn't warn**, with numbered Tag and Publish steps. **Tag** is only the main action when nothing above it warns.
+- **Activity reads as facts.** Contributors, commits per week and repository state use plain charts and plain wording, with color from the data: weekly bars with the average marked, a trend beside the commit count, status icons in Repository state, and file bars in their language's color. The donut and the uppercase card titles are gone. Its heatmap works from the keyboard: focus it and use the arrow keys to read each day.
+- **Settings shows one section at a time**, fits its content, and has a live preview of lane colors and density. Its toggles all sit on the right.
+- **Windows High Contrast** keeps selection, lanes and status visible.
+
+### Removed
+
+- The Toolbox's separate system terminal action. The embedded terminal takes its place.
+- For Go code that embeds `core/`: `git.Push`, `git.PushSetUpstream`, `git.StashSave` and `git.MergeBranch` are gone, as nothing in the app used them; `git.PushOutput`, `git.PushSetUpstreamOutput`, `git.StashPush` and `git.MergeBranchMode` remain. `hostapi.NumberedKeys` is now a type a provider embeds for `KeyPattern`, `KeyInBranch` and `Reference`, replacing the `NumberedKeys` pattern, `NumberedBranchKey` and `NumberedReference`. `hostapi.HasNextPage` gave way to `hostapi.GetAll` and `hostapi.GetPage`, and `jira.HostName` to `hostlink.SiteHost`.
 
 ### Fixed
 
-- **Ctrl+Shift+K** no longer opens Go to anything on top of pushing.
-- **History's activity strip shows the right date**, with its tooltip beside the strip.
-- **A conflicted file's Side by side view numbers each column by its own version of the file**, and its header counts conflicts instead of showing `+0 -0`.
-- **History stays readable when commit detail is open.** The subject gets more room, a row shows one branch plus a count, and a link it cuts keeps its text rather than a lone logo.
-- **The diff header keeps the file path.** At narrower widths, code owners become a count with their names on hover.
+- **A password in a remote's URL no longer shows in the Remotes section.** A remote such as `https://deploy:secret@git.example.com/a.git` showed its password in the row, its tooltip and **Edit…**. The row now shows the host alone, and the tooltip and **Edit…** show `<token>` in its place. Git keeps using the URL as it was, so fetch, pull, push and host links are unaffected. To change such a URL, replace `<token>` with the sign-in or remove it. ([#399](https://github.com/gspeager/current-client/issues/399))
+- **Diagnostics now hide more credentials.** A password in a URL and an `Authorization` header are left out of the report, as tokens already were. ([#383](https://github.com/gspeager/current-client/issues/383))
+- **Fetched merge request / pull request heads no longer count as history.** With host integration on, commits only reachable from a fetched head could appear in History's All branches, Activity, repository stats, file churn and Standup. Removing a repository from the recent list now also deletes its fetched heads, as the integrations guide promised. ([#392](https://github.com/gspeager/current-client/issues/392))
 - **Space no longer stages a file while another control has focus.** It works the focused button, menu or dropdown instead. On a file row or with nothing focused, it still stages or unstages the selected file.
-- **The sidebar no longer says "No pull request" before checking.** Until the host has been read it says **Pull request not checked**, and **Check** reads it.
 - **Focus stays in the file list after staging**, and **Alt+↑**/**Alt+↓** move between hunks without also moving the list.
+- **A conflicted file's Side by side view numbers each column by its own version of the file**, and its header counts conflicts instead of showing `+0 -0`.
+- **The split diff no longer cuts off wrapped lines.** When a diff was taller than its pane, wrapped lines could be clipped or printed over each other. Rows now keep their full height and the pane scrolls.
+- **The diff header keeps the file path.** At narrower widths, code owners become a count with their names on hover.
+- **History stays readable when commit detail is open.** The subject gets more room, a row shows one branch plus a count, and a link it cuts keeps its text rather than a lone logo.
+- **The sidebar no longer says "No pull request" before checking.** Until the host has been read it says **Pull request not checked**, and **Check** reads it.
 - **The commit subject counter warns past 72 characters.**
 - **Jira headings in an issue's description now render.**
-- **The split diff no longer cuts off wrapped lines.** When a diff was taller than its pane, wrapped lines could be clipped or printed over each other. Rows now keep their full height and the pane scrolls.
 - **JetBrains Mono's Cyrillic and Vietnamese characters now load.** They were embedded in a way the app's own font policy refused, so they fell back to another font.
-
-- **A password in a remote's URL no longer shows in the Remotes section.** A remote such as `https://deploy:secret@git.example.com/a.git` showed its password in the row, its tooltip and **Edit…**. The row now shows the host alone, and the tooltip and **Edit…** show `<token>` in its place. Git keeps using the URL as it was, so fetch, pull, push and host links are unaffected. To change such a URL, replace `<token>` with the sign-in or remove it. ([#399](https://github.com/gspeager/current-client/issues/399))
-
-- **Diagnostics now hide more credentials.** A password in a URL and an `Authorization` header are left out of the report, as tokens already were. ([#383](https://github.com/gspeager/current-client/issues/383))
-
-- **Fetched merge request / pull request heads no longer count as history.** With host integration on, commits only reachable from a fetched head could appear in History's All branches, Activity, repository stats, file churn and Standup. Removing a repository from the recent list now also deletes its fetched heads, as the integrations guide promised. ([#392](https://github.com/gspeager/current-client/issues/392))
 
 ## [0.5.0] - 2026-10-30
 
@@ -332,6 +314,7 @@ First public version.
 - A Changelog tab that writes Conventional Commits into `CHANGELOG.md`, or saves them as Markdown, HTML or PDF.
 - The Git layer as a Go library under `core/`, and an example of embedding the app in another Wails app.
 
+[0.6.0]: https://github.com/gspeager/current-client/releases/tag/v0.6.0
 [0.5.0]: https://github.com/gspeager/current-client/releases/tag/v0.5.0
 [0.4.0]: https://github.com/gspeager/current-client/releases/tag/v0.4.0
 [0.3.0]: https://github.com/gspeager/current-client/releases/tag/v0.3.0
