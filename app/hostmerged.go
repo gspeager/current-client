@@ -61,10 +61,29 @@ func refreshMergedChanges(ctx context.Context, provider hostapi.Provider, info H
 	}
 }
 
+// openChangesByBranch reads the cache only: each branch's open change, such as "!12".
+func openChangesByBranch(repoPath string) map[string]string {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
+		return nil
+	}
+	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project)
+	if !ok {
+		return nil
+	}
+	open := map[string]string{}
+	for _, change := range cached.(cachedChanges).changes {
+		if change.SourceProject == "" {
+			open[change.SourceBranch] = changePrefix(info) + strconv.Itoa(change.Number)
+		}
+	}
+	return open
+}
+
 // mergedOnHost reads the cache only.
 func mergedOnHost(repoPath string) map[string]hostMergedChange {
-	remote, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	remote, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return nil
 	}
 	merged := map[string]hostMergedChange{}
@@ -76,6 +95,18 @@ func mergedOnHost(repoPath string) map[string]hostMergedChange {
 		merged[remote.Name+"/"+change.SourceBranch] = hostMergedChange{Number: change.Number, Prefix: changePrefix(info), HeadSHA: change.HeadSHA}
 	}
 	return merged
+}
+
+// finishedChanges is the cached Closed list, if it was opened, and the
+// changes merged from the app.
+func finishedChanges(info HostInfo, repoPath string) []hostapi.Change {
+	var closed ChangeList
+	fillChangeList(&closed, info, repoPath, cacheClosed)
+	changes := append([]hostapi.Change{}, closed.Changes...)
+	for _, value := range hostClient.Cache.Entries(info.Hostname, repoPath, cacheMergedChange) {
+		changes = append(changes, value.(hostapi.Change))
+	}
+	return changes
 }
 
 func cutRemote(upstream, remote string) (string, bool) {

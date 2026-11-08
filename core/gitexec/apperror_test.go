@@ -166,17 +166,17 @@ func TestWrapResultKnownFailures(t *testing.T) {
 		{
 			name:    "force push stale lease",
 			stderr:  "To remote.git\n ! [rejected]        main -> main (stale info)\nerror: failed to push some refs to 'remote.git'",
-			wantMsg: "Someone else pushed since your last fetch. Fetch and try again.",
+			wantMsg: "Someone else pushed since the last fetch. Fetch and try again.",
 		},
 		{
 			name:    "push rejected, remote has new work",
 			stderr:  "To remote.git\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs to 'remote.git'",
-			wantMsg: "The remote has changes you don't have locally. Pull first.",
+			wantMsg: "The remote has changes that aren't here locally. Pull first.",
 		},
 		{
 			name:    "push non-fast-forward",
 			stderr:  "To remote.git\n ! [rejected]        main -> main (non-fast-forward)\nerror: failed to push some refs to 'remote.git'",
-			wantMsg: "The remote has changes you don't have locally. Pull first.",
+			wantMsg: "The remote has changes that aren't here locally. Pull first.",
 		},
 	}
 	for _, tt := range tests {

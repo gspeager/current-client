@@ -7,7 +7,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
 )
@@ -107,18 +106,15 @@ func rowSaying(rows []InboxRow, todo hostapi.Todo) int {
 // markTodoDone tells the host, then drops the to-do from the cache so the
 // row goes without a refresh.
 func markTodoDone(repoPath, todoID string) error {
-	_, info, ok, err := primaryHost(repoPath)
+	_, info, err := requireHost(repoPath)
 	if err != nil {
 		return err
-	}
-	if !ok || !info.Enabled {
-		return errors.New("integration is off for this repository's host")
 	}
 	list, ok := providerFor(info).(hostapi.TodoList)
 	if !ok {
 		return errors.New("this host keeps no to-do list")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	if err := list.MarkTodoDone(ctx, todoID); err != nil {
 		return err

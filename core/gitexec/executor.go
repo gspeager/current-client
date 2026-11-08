@@ -122,3 +122,8 @@ func (e *Executor) RunChecked(ctx context.Context, cmd Command) (Result, error) 
 	}
 	return result, nil
 }
+
+// RunIn is RunChecked with the default binary.
+func RunIn(ctx context.Context, dir string, args ...string) (Result, error) {
+	return NewExecutor("").RunChecked(ctx, Command{Dir: dir, Args: args})
+}

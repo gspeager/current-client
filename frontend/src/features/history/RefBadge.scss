@@ -1,14 +1,35 @@
+// Tags and other refs are neutral 3px squares; branches are tinted pills with
+// the same lane dot the sidebar uses.
 .ref-badge {
   display: inline-block;
   padding: 1px var(--space-xs);
+  background: var(--surface-high);
   border-radius: var(--radius-sm);
-  color: var(--on-lane);
-  font: var(--data-md);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
   white-space: nowrap;
 }
 
 .ref-badge-pill {
+  padding: 1px var(--space-sm) 1px 6px;
+  background: color-mix(in srgb, var(--lane) 14%, transparent);
   border-radius: var(--radius-full);
+  color: var(--on-surface);
+}
+
+.ref-badge-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--lane);
+  vertical-align: 1px;
+}
+
+.ref-badge-tag-icon {
+  margin-right: 3px;
+  vertical-align: -1.5px;
 }
 
 .ref-badge-upstream {

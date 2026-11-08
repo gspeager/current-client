@@ -18,11 +18,6 @@ interface ContributorsChartProps {
 
 type Contributor = ContributorStatInfo & IdentityInfo
 
-const SIZE = 168
-const STROKE = 22
-const RADIUS = (SIZE - STROKE) / 2
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-
 async function loadContributors(repoPath: string, since: string): Promise<Contributor[]> {
   const stats = await ContributorsService.GetContributors(repoPath, since, '')
   const list = [...stats].sort((a, b) => b.commits - a.commits)
@@ -39,15 +34,11 @@ function ContributorsChart({ repoPath, repoVersion }: ContributorsChartProps) {
   )
 
   const total = contributors?.reduce((sum, c) => sum + c.commits, 0) ?? 0
-  const topContributor = contributors?.[0]
-  const topSharePercent = topContributor && total > 0 ? Math.round((topContributor.commits / total) * 100) : 0
-  let cumulative = 0
 
   return (
     <div className="contributors-chart">
       <div className="contributors-header">
-        <span className="contributors-header-dot" style={{ background: topContributor?.color ?? 'var(--outline)' }} />
-        <span className="contributors-title">Contributors</span>
+        <h3 className="contributors-title">Contributors</h3>
         <select
           className="contributors-date-filter"
           value={sinceDays}
@@ -69,57 +60,29 @@ function ContributorsChart({ repoPath, repoVersion }: ContributorsChartProps) {
         ) : contributors.length === 0 ? (
           <p className="contributors-hint">No commits in this range.</p>
         ) : (
-          <>
-            <div className="contributors-donut-wrap">
-              <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="contributors-donut">
-                <g transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}>
-                  {contributors.map((c) => {
-                    const fraction = total === 0 ? 0 : c.commits / total
-                    const dash = fraction * CIRCUMFERENCE
-                    const offset = cumulative
-                    cumulative += dash
-                    return (
-                      <circle
-                        key={c.email}
-                        cx={SIZE / 2}
-                        cy={SIZE / 2}
-                        r={RADIUS}
-                        fill="none"
-                        stroke={c.color}
-                        strokeWidth={STROKE}
-                        strokeDasharray={`${dash} ${CIRCUMFERENCE - dash}`}
-                        strokeDashoffset={-offset}
-                      />
-                    )
-                  })}
-                </g>
-              </svg>
-              <div className="contributors-donut-center">
-                <span className="contributors-donut-value">{topSharePercent}%</span>
-                <span className="contributors-donut-caption" style={{ color: topContributor?.color }}>
-                  {plural(contributors.length, 'AUTHOR')}
-                </span>
-              </div>
-            </div>
-
-            <ul className="contributors-list">
-              {contributors.map((c) => (
+          <ul className="contributors-list">
+            {contributors.map((c) => {
+              const share = total === 0 ? 0 : (c.commits / total) * 100
+              return (
                 <li key={c.email} className="contributors-row">
-                  <IdentityBadge identity={c} name={c.name} email={c.email} size={32} />
+                  <IdentityBadge identity={c} name={c.name} email={c.email} size={28} />
                   <div className="contributors-row-identity">
-                    <span className="contributors-row-name">{c.name}</span>
-                    <span className="contributors-row-email">{c.email}</span>
-                  </div>
-                  <div className="contributors-row-stats">
-                    <span className="contributors-row-commits">{plural(c.commits, 'commit')}</span>
-                    <span className="contributors-row-share" style={{ color: c.color }}>
-                      {total === 0 ? 0 : Math.round((c.commits / total) * 100)}% share
+                    <span className="contributors-row-line">
+                      <span className="contributors-row-name" title={c.email}>
+                        {c.name}
+                      </span>
+                      <span className="contributors-row-commits">
+                        {plural(c.commits, 'commit')} · {Math.round(share)}%
+                      </span>
+                    </span>
+                    <span className="contributors-row-bar" aria-hidden="true">
+                      <span style={{ width: `${share}%`, background: c.color }} />
                     </span>
                   </div>
                 </li>
-              ))}
-            </ul>
-          </>
+              )
+            })}
+          </ul>
         )}
       </div>
     </div>

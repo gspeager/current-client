@@ -19,12 +19,16 @@ type RemoteInfo struct {
 	PushURL  string `json:"pushUrl"`
 }
 
+// List's URLs are for showing, with any sign-in hidden. Whatever talks to a
+// remote or reads its host uses git.ListRemotes, or leaves the URL to Git.
 func (s *RemoteService) List(repoPath string) ([]RemoteInfo, error) {
 	remotes, err := git.ListRemotes(context.Background(), repoPath)
 	if err != nil {
 		return nil, err
 	}
-	return mapSlice(remotes, func(r git.Remote) RemoteInfo { return RemoteInfo(r) }), nil
+	return mapSlice(remotes, func(r git.Remote) RemoteInfo {
+		return RemoteInfo{Name: r.Name, FetchURL: gitexec.RedactSecrets(r.FetchURL), PushURL: gitexec.RedactSecrets(r.PushURL)}
+	}), nil
 }
 
 func (s *RemoteService) AddRemote(repoPath, name, url string) error {
@@ -35,16 +39,20 @@ func (s *RemoteService) RemoveRemote(repoPath, name string) error {
 	return git.RemoveRemote(context.Background(), repoPath, name)
 }
 
+// EditRemote refuses the placeholder rather than restoring the sign-in behind
+// it: the edit may have changed the host, and the sign-in shouldn't follow
+// unseen. The edit form starts from List's URL, so it can arrive here.
 func (s *RemoteService) EditRemote(repoPath, name, url string) error {
+	if strings.Contains(url, gitexec.RedactedSecret) {
+		return &gitexec.AppError{Message: "Replace " + gitexec.RedactedSecret + " with the sign-in, or remove it to use Git's credential helper."}
+	}
 	return git.EditRemote(context.Background(), repoPath, name, url)
 }
 
-// Network operations take Wails' per-call ctx so the frontend can cancel them,
-// and auth: nil, or what the user typed into the sign-in form after Git found
-// no credentials.
-
-// withAuth offers auth to Git for this one call; Git's own credential helpers
-// decide whether it's remembered.
+// Network operations take Wails' per-call ctx so the frontend can cancel
+// them. auth is nil, or what the user typed after Git found no credentials;
+// it is offered for this one call, and Git's credential helpers decide
+// whether it's remembered.
 func withAuth(ctx context.Context, auth *gitexec.Credential) (context.Context, error) {
 	if auth == nil {
 		return ctx, nil
@@ -55,8 +63,6 @@ func withAuth(ctx context.Context, auth *gitexec.Credential) (context.Context, e
 	return gitexec.WithCredential(ctx, *auth), nil
 }
 
-// syncWithRemote runs a fetch or pull with auth offered to Git, then refreshes
-// what the host side knows, since a fetch is one of the refresh triggers.
 func syncWithRemote(ctx context.Context, repoPath string, auth *gitexec.Credential, op func(context.Context) error) error {
 	ctx, err := withAuth(ctx, auth)
 	if err != nil {
@@ -127,7 +133,6 @@ func (s *RemoteService) PushSetUpstream(ctx context.Context, repoPath, remote, b
 	})
 }
 
-// push runs a push with auth offered to Git and reads what the remote printed.
 func (s *RemoteService) push(ctx context.Context, repoPath string, auth *gitexec.Credential, push func(context.Context) (string, error)) (PushResult, error) {
 	ctx, err := withAuth(ctx, auth)
 	if err != nil {
@@ -228,11 +233,16 @@ func (s *RemoteService) PushTags(ctx context.Context, repoPath, remote string, a
 	return git.PushTags(ctx, repoPath, remote)
 }
 
-// ForcePush force-pushes the current branch to its configured upstream.
 func (s *RemoteService) ForcePush(ctx context.Context, repoPath string, auth *gitexec.Credential) error {
 	ctx, err := withAuth(ctx, auth)
 	if err != nil {
 		return err
+	}
+	// What the push overwrites on the remote, as of the last fetch.
+	if status, err := git.CurrentBranchStatus(ctx, repoPath); err == nil && status.Upstream != "" {
+		if tip, err := git.ResolveCommit(ctx, repoPath, "refs/remotes/"+status.Upstream); err == nil {
+			snapshotTip(repoPath, "force-push", status.Current, tip)
+		}
 	}
 	return git.ForcePushUpstream(ctx, repoPath)
 }
@@ -302,9 +312,7 @@ func splitRemoteBranch(remotes []git.Remote, remoteBranch string) (remote, branc
 	return remote, branch, ok
 }
 
-// HostLinks are the web links for the repository's host, from origin's URL or
-// the first remote's, in the style the user chose for that host. nil when no
-// remote points at a hosted project.
+// HostLinks is nil when no remote points at a hosted project.
 func (s *RemoteService) HostLinks(repoPath string) (*hostlink.Links, error) {
 	remotes, err := git.ListRemotes(context.Background(), repoPath)
 	if err != nil {
@@ -339,7 +347,6 @@ func remoteURL(remote git.Remote) string {
 	return remote.PushURL
 }
 
-// primaryRemote is origin when there is one, else the first remote.
 func primaryRemote(remotes []git.Remote) git.Remote {
 	for _, r := range remotes {
 		if r.Name == "origin" {

@@ -102,15 +102,3 @@
   color: var(--outline);
   font: var(--ui-xs);
 }
-
-.thread-count {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0 var(--space-xs);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--secondary) 18%, transparent);
-  color: var(--secondary);
-  font: var(--data-sm);
-}

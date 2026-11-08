@@ -1,0 +1,70 @@
+.risk-report {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 140px;
+  padding: var(--space-sm) 0;
+  border-top: var(--border-structure);
+}
+
+.risk-report-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  color: var(--warning);
+  font: var(--ui-xs);
+  text-align: left;
+  cursor: pointer;
+
+  > span {
+    flex: 1;
+  }
+}
+
+.risk-report-list[hidden] {
+  display: none;
+}
+
+.risk-report-list {
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.risk-report-row {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.risk-report-message {
+  overflow-wrap: anywhere;
+  color: var(--on-surface);
+  font: var(--ui-xs);
+}
+
+.risk-report-where {
+  display: flex;
+  min-width: 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.risk-report-row-secret .risk-report-message {
+  color: var(--error);
+}

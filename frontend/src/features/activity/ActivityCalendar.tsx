@@ -1,5 +1,6 @@
+import { useState, type KeyboardEvent } from 'react'
 import { ActivityService } from '@current-client-bindings/app'
-import { ACTIVITY_INTENSITY_STEPS, activityIntensity, layoutActivityCalendar } from './calendarLayout'
+import { ACTIVITY_INTENSITY_STEPS, activityIntensity, layoutActivityCalendar, localDay } from './calendarLayout'
 import { peakDayCommits } from './activityStats'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -11,6 +12,28 @@ interface ActivityCalendarProps {
 }
 
 const DAYS = 371 // 53 full weeks, GitHub-contribution-graph shape
+const WEEKDAY_LABELS = [
+  { day: 1, label: 'Mon' },
+  { day: 3, label: 'Wed' },
+  { day: 5, label: 'Fri' },
+]
+
+// A label above the first week of each month, skipping a month too short to fit one.
+function monthLabels(cells: { date: string; weekIndex: number }[]) {
+  const labels: { weekIndex: number; label: string }[] = []
+  let lastMonth = -1
+  for (const cell of cells) {
+    const date = localDay(cell.date)
+    if (date.getMonth() === lastMonth) continue
+    lastMonth = date.getMonth()
+    labels.push({ weekIndex: cell.weekIndex, label: date.toLocaleDateString(undefined, { month: 'short' }) })
+  }
+  return labels.filter((l, i) => (labels[i + 1]?.weekIndex ?? Infinity) - l.weekIndex >= 3)
+}
+
+function intensityColor(intensity: number) {
+  return `color-mix(in srgb, var(--tertiary) ${intensity}%, var(--surface-highest))`
+}
 
 function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
   const { data: activity, error } = useAsyncData(() => ActivityService.GetCommitActivity(repoPath, DAYS), [repoPath], {
@@ -20,11 +43,19 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
   const cells = activity ? layoutActivityCalendar(activity) : []
   const weekCount = cells.length > 0 ? cells[cells.length - 1].weekIndex + 1 : 0
   const totalCommits = activity?.reduce((sum, d) => sum + d.commits, 0) ?? 0
+  const [activeDay, setActiveDay] = useState(-1)
+  // Up and down walk a week, left and right step across weeks.
+  const moveDay = (e: KeyboardEvent, count: number) => {
+    const step = { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 }[e.key]
+    if (!step) return
+    e.preventDefault()
+    setActiveDay((day) => Math.min(count - 1, Math.max(0, (day < 0 ? count - 1 : day) + step)))
+  }
 
   return (
     <div className="activity-calendar">
       <div className="activity-header">
-        <span className="activity-title">Activity</span>
+        <h3 className="activity-title">Commits by day</h3>
         {activity && <span className="activity-badge">{plural(totalCommits, 'commit')} in the last year</span>}
         <div className="activity-header-meta">
           <div className="activity-legend">
@@ -33,12 +64,12 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
               <span
                 key={intensity}
                 className="activity-legend-swatch"
-                style={{ background: `color-mix(in srgb, var(--tertiary) ${intensity}%, var(--surface-container))` }}
+                style={{ background: intensityColor(intensity) }}
               />
             ))}
             <span className="activity-legend-label">More</span>
           </div>
-          <span className="activity-range">Last 365 days</span>
+          {activity && <span className="activity-range">Peak day: {plural(peakDayCommits(activity), 'commit')}</span>}
         </div>
       </div>
 
@@ -48,15 +79,41 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
         ) : activity === null ? (
           <p className="activity-hint">Loading activity…</p>
         ) : (
-          <div className="activity-grid" style={{ gridTemplateColumns: `repeat(${weekCount}, 1fr)` }}>
-            {cells.map((cell) => (
+          <div
+            className="activity-grid"
+            role="listbox"
+            tabIndex={0}
+            aria-label="Commits by day. Use the arrow keys to read each day."
+            aria-activedescendant={activeDay >= 0 ? `activity-day-${activeDay}` : undefined}
+            onKeyDown={(e) => moveDay(e, cells.length)}
+            style={{ gridTemplateColumns: `auto repeat(${weekCount}, minmax(9px, 18px))` }}
+          >
+            {monthLabels(cells).map(({ weekIndex, label }) => (
+              <span
+                key={`${weekIndex}-${label}`}
+                className="activity-month"
+                style={{ gridColumn: `${weekIndex + 2} / span 4` }}
+              >
+                {label}
+              </span>
+            ))}
+            {WEEKDAY_LABELS.map(({ day, label }) => (
+              <span key={label} className="activity-weekday" style={{ gridRow: day + 2 }}>
+                {label}
+              </span>
+            ))}
+            {cells.map((cell, i) => (
               <span
                 key={cell.date}
-                className="activity-cell"
+                id={`activity-day-${i}`}
+                role="option"
+                aria-selected={i === activeDay}
+                aria-label={`${cell.date}: ${plural(cell.commits, 'commit')}`}
+                className={i === activeDay ? 'activity-cell activity-cell-active' : 'activity-cell'}
                 style={{
-                  gridColumn: cell.weekIndex + 1,
-                  gridRow: cell.dayOfWeek + 1,
-                  background: `color-mix(in srgb, var(--tertiary) ${activityIntensity(cell.commits)}%, var(--surface-container))`,
+                  gridColumn: cell.weekIndex + 2,
+                  gridRow: cell.dayOfWeek + 2,
+                  background: intensityColor(activityIntensity(cell.commits)),
                 }}
                 title={`${cell.date}: ${plural(cell.commits, 'commit')}`}
               />
@@ -64,18 +121,6 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
           </div>
         )}
       </div>
-
-      {activity && (
-        <div className="activity-footer">
-          <div className="activity-footer-stats">
-            <span className="activity-footer-stat">
-              <span className="activity-footer-dot activity-footer-dot-peak" />
-              Peak day: <strong>{plural(peakDayCommits(activity), 'commit')}</strong>
-            </span>
-          </div>
-          <span className="activity-footer-hint">Hover over any square for daily counts</span>
-        </div>
-      )}
     </div>
   )
 }

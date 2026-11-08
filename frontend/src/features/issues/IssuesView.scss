@@ -15,9 +15,19 @@
   display: flex;
   min-width: 0;
   min-height: 0;
-  border: var(--border-structure);
-  border-radius: var(--radius);
+  border-left: var(--border-structure);
   overflow: hidden;
+}
+
+// Lines up with a pull request's title; the inspector keeps its top padding.
+.issues-pane .issue-detail-header {
+  padding-top: 0;
+  padding-right: 0;
+}
+
+.issues-pane .issue-panel-body,
+.issues-pane .issue-detail-footer {
+  padding-right: 0;
 }
 
 // A tracker's own status, such as Jira's In Progress: a closed set, so a square.

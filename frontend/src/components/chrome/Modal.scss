@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -64,21 +66,10 @@
 }
 
 .modal-close {
+  @include patterns.icon-button;
+
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   margin-left: auto;
   width: var(--h-chip);
   height: var(--h-chip);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--outline);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--surface-container);
-    color: var(--on-surface);
-  }
 }

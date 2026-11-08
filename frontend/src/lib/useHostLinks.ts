@@ -4,6 +4,6 @@ import { useAsyncData } from './useAsyncData'
 
 // null until loaded, and when no remote points at a hosted project.
 export function useHostLinks(repoPath: string): Links | null {
-  const { data } = useAsyncData(() => RemoteService.HostLinks(repoPath), [repoPath])
+  const { data } = useAsyncData(() => (repoPath ? RemoteService.HostLinks(repoPath) : null), [repoPath])
   return data
 }

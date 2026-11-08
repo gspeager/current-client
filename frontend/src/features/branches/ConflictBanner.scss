@@ -29,14 +29,14 @@
   height: var(--h-chip);
   padding: 0 var(--space-sm);
   background: none;
-  border: 1px solid var(--error);
+  border: var(--border-structure);
   border-radius: var(--radius);
-  color: var(--error);
+  color: var(--on-surface);
   font: var(--data-sm);
   cursor: pointer;
 
   &:hover {
-    background: color-mix(in srgb, var(--error) 12%, transparent);
+    background: var(--surface-high);
   }
 }
 

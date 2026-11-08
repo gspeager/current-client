@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
   CircleCheck,
+  CircleDashed,
   CircleHelp,
   Info,
   PackagePlus,
@@ -10,14 +11,18 @@ import {
   Tag,
   TriangleAlert,
   type LucideIcon,
+  ChevronRight,
 } from 'lucide-react'
 import { ChangelogService, HostService, TagService, type ReleaseCheck } from '@current-client-bindings/app'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
 import { errorMessage } from '../../lib/errors'
+import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useClockTick } from '../../lib/useClockTick'
 import { useDialogs } from '../../lib/useDialogs'
+import { shortSha } from '../../lib/text'
+import { useActionError } from '../../lib/useActionError'
 import './NextRelease.scss'
 
 interface NextReleaseProps {
@@ -37,10 +42,8 @@ const LEVELS: Record<string, { icon: LucideIcon; label: string }> = {
 // A version file's label is its path; the rest are words.
 const isPath = (label: string) => !label.includes(' ') && /[./]/.test(label)
 
-// The release being finished: what it would be, what still stands in its
-// way, and the steps to make it, in order. Git answers all but CI and
-// protection, which come from the host's last refresh. Nothing is tagged or
-// published until a step's button is clicked.
+// Git answers every check but CI and protection, which come from the host's
+// last refresh. Nothing is tagged or published until a step's button is clicked.
 function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   useClockTick()
   const { confirm } = useDialogs()
@@ -58,7 +61,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   useEffect(() => setCheckedAt(data ? new Date() : null), [data])
   const [editing, setEditing] = useState(false)
   const [publishing, setPublishing] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
 
   if (!data) {
     return (
@@ -69,11 +72,14 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   }
 
   const tagged = data.taggedAs !== ''
+  const warningChecks = data.checks.filter((check) => check.level === 'warn')
+  const otherChecks = data.checks.filter((check) => check.level !== 'warn')
+  const warnings = warningChecks.length
   const tag = async () => {
     const message = `Release ${data.version}`
     const confirmed = await confirm({
       title: `Tag ${data.tag}`,
-      message: `Tag ${data.sha.slice(0, 7)} as ${data.tag}, annotated "${message}". The tag stays local until Publish release pushes it.`,
+      message: `Tag ${shortSha(data.sha)} as ${data.tag}, annotated "${message}".${warnings > 0 ? ` ${plural(warnings, 'warning')} still open.` : ''} The tag stays local until Publish release pushes it.`,
       confirmLabel: 'Tag',
     })
     if (!confirmed) return
@@ -83,7 +89,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
         reload()
         onTagged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
   const publishHint = !canPublish
     ? 'Needs the host integration on, with write scope'
@@ -97,8 +103,8 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
         <h2 className="next-release-title">Next release</h2>
         <span className="next-release-version">{data.tag || 'No version'}</span>
         <span className="next-release-meta">
-          {data.previous ? `from ${data.previous}` : 'first release'} · candidate {data.ref}{' '}
-          <span className="next-release-sha">{data.sha.slice(0, 7)}</span> · target {data.target}
+          {data.previous ? `from ${data.previous}` : 'first release'} · {data.ref}{' '}
+          <span className="next-release-sha">{shortSha(data.sha)}</span> · target {data.target}
           {tagged && ` · tagged ${data.taggedAs}`}
         </span>
         <span className="next-release-spacer" />
@@ -114,7 +120,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
         </button>
         <button type="button" className="next-release-button" onClick={reload}>
           <RefreshCw size={14} strokeWidth={1.75} />
-          Re-check
+          Refresh
         </button>
       </header>
       {editing && (
@@ -131,20 +137,36 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
       )}
       {error && <p className="next-release-error">{error}</p>}
       <ul className="next-release-checks" aria-label="Checks">
-        {data.checks.map((check) => (
+        {warningChecks.map((check) => (
           <CheckRow key={check.label} check={check} />
         ))}
       </ul>
+      {otherChecks.length > 0 && (
+        <details className="next-release-more" open={warnings === 0}>
+          <summary>
+            <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />
+            {plural(otherChecks.length, 'other check')}
+          </summary>
+          <ul className="next-release-checks">
+            {otherChecks.map((check) => (
+              <CheckRow key={check.label} check={check} />
+            ))}
+          </ul>
+        </details>
+      )}
       <footer className="next-release-steps">
         <button
           type="button"
-          className={tagged ? 'next-release-step' : 'next-release-step next-release-step-primary'}
+          className={tagged || warnings > 0 ? 'next-release-step' : 'next-release-step next-release-step-primary'}
           onClick={() => void tag()}
           disabled={!data.tag || tagged}
           title={tagged ? `Already tagged ${data.taggedAs}` : undefined}
         >
+          <span className="next-release-step-number" aria-hidden="true">
+            1
+          </span>
           <Tag size={14} strokeWidth={1.75} />
-          Tag {data.tag}…
+          {data.tag ? `Tag ${data.tag}…` : 'Tag…'}
         </button>
         <ArrowRight size={14} strokeWidth={1.75} className="next-release-arrow" aria-hidden="true" />
         <button
@@ -154,9 +176,15 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
           disabled={!tagged || !canPublish}
           title={publishHint}
         >
+          <span className="next-release-step-number" aria-hidden="true">
+            2
+          </span>
           <PackagePlus size={14} strokeWidth={1.75} />
           Publish release…
         </button>
+        {!tagged && warnings > 0 && (
+          <span className="next-release-note">Review {plural(warnings, 'warning')} above, then tag</span>
+        )}
         {actionError && <span className="next-release-error">{actionError}</span>}
       </footer>
       {publishing && (
@@ -166,11 +194,12 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   )
 }
 
-// One check: an icon, what it is, what it found. What it rests on is shown
-// when it needs attention, and in the tooltip otherwise.
+const EVIDENCE_SHOWN = 2
+
+// A check's evidence is listed when it needs attention, and in the tooltip otherwise.
 function CheckRow({ check }: { check: ReleaseCheck }) {
   const level = LEVELS[check.level] ?? LEVELS.unknown
-  const Icon = level.icon
+  const Icon = check.label.startsWith('CI') && /running/i.test(check.value) ? CircleDashed : level.icon
   const evidence = check.evidence ?? []
   return (
     <li
@@ -185,9 +214,12 @@ function CheckRow({ check }: { check: ReleaseCheck }) {
       {check.asOf && <span className="release-check-asof">{relativeTime(new Date(check.asOf))}</span>}
       {check.level === 'warn' && evidence.length > 0 && (
         <ul className="release-check-evidence">
-          {evidence.map((line, i) => (
+          {evidence.slice(0, EVIDENCE_SHOWN).map((line, i) => (
             <li key={i}>{line}</li>
           ))}
+          {evidence.length > EVIDENCE_SHOWN && (
+            <li title={evidence.slice(EVIDENCE_SHOWN).join('\n')}>and {evidence.length - EVIDENCE_SHOWN} more</li>
+          )}
         </ul>
       )}
     </li>

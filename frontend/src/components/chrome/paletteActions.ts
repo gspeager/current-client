@@ -3,7 +3,7 @@ import type { WorkspaceAction } from './useWorkspaceActions'
 // The palette's action groups, in the order they are listed.
 export const PALETTE_SECTIONS = ['Views', 'Create', 'Release', 'Sync', 'Tools', 'Settings'] as const
 
-export type PaletteSection = (typeof PALETTE_SECTIONS)[number]
+type PaletteSection = (typeof PALETTE_SECTIONS)[number]
 
 export interface PaletteAction extends WorkspaceAction {
   section: PaletteSection

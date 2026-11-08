@@ -48,14 +48,6 @@ func checkWebPageURL(pageURL string) error {
 	return nil
 }
 
-func (s *PlatformService) OpenTerminal(repoPath string) error {
-	gitPath := ""
-	if info, err := gitexec.Detect(context.Background(), configOrDefault().GitExecutablePath); err == nil {
-		gitPath = info.Path
-	}
-	return platform.OpenTerminal(repoPath, gitPath)
-}
-
 func (s *PlatformService) RevealInFileManager(repoPath string) error {
 	return platform.RevealInFileManager(repoPath)
 }

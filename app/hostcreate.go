@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
@@ -38,12 +37,12 @@ type NewChangeInput struct {
 }
 
 func (s *HostService) ChangeDraft(repoPath, branch string) (ChangeDraft, error) {
-	remote, info, ok, err := primaryHost(repoPath)
+	remote, info, err := requireHost(repoPath)
 	if err != nil {
 		return ChangeDraft{}, err
 	}
-	if !ok || !info.Enabled || providerFor(info) == nil {
-		return ChangeDraft{}, errors.New("integration is off for this repository's host")
+	if providerFor(info) == nil {
+		return ChangeDraft{}, errHostOff
 	}
 	ctx := context.Background()
 	draft := ChangeDraft{Branch: branch, Remote: remote.Name, Kind: changeKind(info)}
@@ -122,18 +121,15 @@ func changeTemplate(repoPath string, info HostInfo) string {
 // CreateChange is the one write to the host. The created change goes
 // straight into the cache so the branch shows it without a refresh.
 func (s *HostService) CreateChange(repoPath, branch string, input NewChangeInput) (hostapi.Change, error) {
-	_, info, ok, err := primaryHost(repoPath)
+	_, info, err := requireHost(repoPath)
 	if err != nil {
 		return hostapi.Change{}, err
-	}
-	if !ok || !info.Enabled {
-		return hostapi.Change{}, errors.New("integration is off for this repository's host")
 	}
 	provider := providerFor(info)
 	if provider == nil {
 		return hostapi.Change{}, errors.New("no provider for this host yet")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	change, err := provider.CreateChange(ctx, info.Project, hostapi.NewChange{
 		SourceBranch: remoteBranchOf(ctx, repoPath, branch),

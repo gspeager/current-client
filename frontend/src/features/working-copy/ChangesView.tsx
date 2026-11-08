@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, ExternalLink, PanelLeftClose, PanelLeftOpen, Users } from 'lucide-react'
-import { type ConflictStateInfo, DiffService, type LineSelection, PlatformService } from '@current-client-bindings/app'
+import { Check, Columns2, ExternalLink, PanelLeftClose, PanelLeftOpen, Rows2, Users } from 'lucide-react'
+import { type ConflictStateInfo, DiffService, type LineSelection } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
+import WaveMark from '../../components/chrome/WaveMark'
 import CommitComposer from './CommitComposer'
 import DiffViewer from '../diff/DiffViewer'
 import DiffViewMenu from '../diff/DiffViewMenu'
 import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
 import SegmentedControl from '../../components/controls/SegmentedControl'
-import { Columns2, Rows2 } from 'lucide-react'
-import type { ConflictView } from '../diff/conflictRows'
+import RiskReport from './RiskReport'
 import WorkingTreeFileList from './WorkingTreeFileList'
 import { diffStats } from '../diff/diffRows'
+import { conflictCount, type ConflictView } from '../diff/conflictRows'
+import { useLaneColors } from '../../lib/laneColor'
 import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -22,10 +24,11 @@ import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useFileOwners } from '../../lib/useFileOwners'
-import { filePage } from '../../lib/hostPages'
+import { filePage, openWebPage } from '../../lib/hostPages'
 import { useWorkingTreeActions } from './useWorkingTreeActions'
 import { useConflictResolution } from './useConflictResolution'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { shortSha } from '../../lib/text'
 import './ChangesView.scss'
 
 interface ChangesViewProps {
@@ -33,17 +36,22 @@ interface ChangesViewProps {
   workingTree: ReturnType<typeof useWorkingTree>
   onPushRequested?: () => void
   onBranchChanged?: () => void
+  onCommitted?: (result?: string) => void
   defaultIgnoreWhitespace?: boolean
   // The diff takes the file list's space too while a file is open.
   diffExpanded?: boolean
   onDiffExpandedChange?: (expanded: boolean) => void
   initialSelectedPath?: string | null
   onSelectedPathChange?: (path: string | null) => void
+  initialDiffScrollTop?: number
+  onDiffScrollChange?: (top: number) => void
   initialCommitDraft?: string
   onCommitDraftChange?: (message: string) => void
   showCommitTypePicker?: boolean
   // The merge, rebase, cherry-pick or revert in progress, if any.
   conflict?: ConflictStateInfo | null
+  // Rereads the risk report when its rules change.
+  riskRulesOff?: string[]
 }
 
 function splitDirFile(path: string): { dir: string; file: string } {
@@ -51,20 +59,28 @@ function splitDirFile(path: string): { dir: string; file: string } {
   return slash === -1 ? { dir: '', file: path } : { dir: path.slice(0, slash + 1), file: path.slice(slash + 1) }
 }
 
+// Below this, a split diff's columns wrap most lines, so unified is the default.
+const WIDE_ENOUGH_FOR_SPLIT = 1500
+const SPACE_HANDLING_CONTROLS = 'a, button, input, select, summary, textarea, [contenteditable], [role="button"]'
+
 function ChangesView({
   repoPath,
   workingTree,
   onPushRequested,
   onBranchChanged,
+  onCommitted,
   defaultIgnoreWhitespace = false,
   diffExpanded = false,
   onDiffExpandedChange,
   initialSelectedPath = null,
   onSelectedPathChange,
+  initialDiffScrollTop = 0,
+  onDiffScrollChange,
   initialCommitDraft = '',
   onCommitDraftChange,
   showCommitTypePicker = false,
   conflict = null,
+  riskRulesOff = [],
 }: ChangesViewProps) {
   const reviewThreads = useReviewThreads(repoPath)
   const hostLinks = useHostLinks(repoPath)
@@ -78,7 +94,9 @@ function ChangesView({
   const [openSection, setOpenSection] = useState<WorkingTreeSection>('unstaged')
   const [forcedPath, setForcedPath] = useState<string | null>(null)
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(defaultIgnoreWhitespace)
-  const [viewMode, setViewMode] = useState<DiffViewMode>('split')
+  const [viewMode, setViewMode] = useState<DiffViewMode>(() =>
+    window.innerWidth >= WIDE_ENOUGH_FOR_SPLIT ? 'split' : 'unified',
+  )
   const [conflictView, setConflictView] = useState<ConflictView>('side-by-side')
   const [externalToolError, setExternalToolError] = useState<string | null>(null)
   const [externalToolBusy, setExternalToolBusy] = useState(false)
@@ -88,14 +106,31 @@ function ChangesView({
   // A new file's diff is the whole file: it's staged or discarded as a file, not by hunk.
   const untracked = !showsStaged && unstaged.some((f) => f.path === selectedPath && f.worktreeStatus === '?')
 
+  // A ref, since a diff remounts when another file loads and has to open at the
+  // current value, which the parent doesn't re-render for.
+  const diffScrollTop = useRef(initialDiffScrollTop)
+  const setDiffScrollTop = (top: number) => {
+    diffScrollTop.current = top
+    onDiffScrollChange?.(top)
+  }
+
   const selectPath = (path: string | null) => {
+    if (path !== selectedPath) setDiffScrollTop(0)
     setSelectedPath(path)
     onSelectedPathChange?.(path)
   }
 
+  const [focusLine, setFocusLine] = useState<{ line: number } | null>(null)
+
   const openFile = (path: string, section: WorkingTreeSection) => {
+    setFocusLine(null)
     selectPath(path)
     setOpenSection(section)
+  }
+
+  const openFinding = (path: string, line: number) => {
+    openFile(path, 'staged')
+    setFocusLine(line ? { line } : null)
   }
 
   const previousLists = useRef<SectionPaths | null>(null)
@@ -154,10 +189,10 @@ function ChangesView({
     const confirmed = await confirm({
       title: count ? 'Discard lines' : 'Discard hunk',
       message: count
-        ? `Discard ${count === 1 ? 'this line' : `these ${count} lines`}? This cannot be undone.`
+        ? `Discard ${count === 1 ? 'this line' : `these ${count} lines`}? A snapshot goes to Recover first.`
         : showsStaged
-          ? 'Discard this staged hunk from the index and the working tree? This cannot be undone.'
-          : 'Discard this hunk? This cannot be undone.',
+          ? 'Discard this staged hunk from the index and the working tree? A snapshot goes to Recover first.'
+          : 'Discard this hunk? A snapshot goes to Recover first.',
       confirmLabel: 'Discard',
       destructive: true,
     })
@@ -175,8 +210,8 @@ function ChangesView({
 
   useWindowKeydown((e) => {
     if (e.code !== 'Space' || !selectedPath) return
-    const target = e.target as HTMLElement | null
-    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return
+    const control = e.target instanceof Element ? e.target.closest(SPACE_HANDLING_CONTROLS) : null
+    if (control && !control.matches('.file-row-path')) return
     e.preventDefault()
     const f = (showsStaged ? staged : unstaged).find((x) => x.path === selectedPath)
     if (f) (showsStaged ? actions.unstage : actions.stage)(f)
@@ -184,9 +219,10 @@ function ChangesView({
 
   // A staged diff disappears once committed. repoVersion must bump so the
   // header's ahead count sees the new commit.
-  const onCommitted = () => {
+  const afterCommit = (result?: string) => {
     loadStatus()
     onBranchChanged?.()
+    onCommitted?.(result)
     if (showsStaged) {
       selectPath(null)
     }
@@ -198,6 +234,7 @@ function ChangesView({
     staged.some((f) => f.path === selectedPath) &&
     !unstaged.some((f) => f.path === selectedPath)
   const stats = diff ? diffStats(diff) : null
+  const { branchColor } = useLaneColors()
   const { dir, file } = selectedPath ? splitDirFile(selectedPath) : { dir: '', file: '' }
 
   // With nothing open there'd be nothing to show, so the file list always comes back.
@@ -216,16 +253,16 @@ function ChangesView({
           onOpen={openFile}
           threadCounts={reviewThreads.counts}
           onOpenOnHost={
-            hostLinks?.blob && headCommit
-              ? (path) => void PlatformService.OpenWebPage(filePage(hostLinks, headCommit.sha, path))
-              : undefined
+            hostLinks?.blob && headCommit ? (path) => openWebPage(filePage(hostLinks, headCommit.sha, path)) : undefined
           }
           mergeMode={conflict !== null}
         />
+        <RiskReport repoPath={repoPath} staged={staged} rulesOff={riskRulesOff} onOpen={openFinding} />
         <CommitComposer
           repoPath={repoPath}
           stagedCount={staged.length}
-          onCommitted={onCommitted}
+          changedCount={files?.length ?? 0}
+          onCommitted={afterCommit}
           onPushRequested={onPushRequested}
           initialMessage={initialCommitDraft}
           onMessageChange={onCommitDraftChange}
@@ -236,7 +273,7 @@ function ChangesView({
 
       {!expanded && <ResizeHandle onDragStart={filesWidth.onDragStart} ariaLabel="Resize file list" />}
 
-      <div className="changes-diff">
+      <div className="changes-diff" data-pane="diff">
         {selectedPath ? (
           <>
             <div className="changes-diff-header">
@@ -257,20 +294,29 @@ function ChangesView({
                 </button>
               )}
               <span className="changes-diff-path">
-                {dir && <span className="changes-diff-path-dir">{dir}</span>}
+                {dir && (
+                  <span className="changes-diff-path-dir">
+                    <bdi>{dir}</bdi>
+                  </span>
+                )}
                 <span className="changes-diff-path-file">{file}</span>
               </span>
-              {stats && (
-                <span className="changes-diff-stats">
-                  <span className="changes-diff-stat-added">+{stats.added}</span>
-                  <span className="changes-diff-stat-removed">-{stats.removed}</span>
-                  <span className="changes-diff-stat-hunks">{plural(stats.hunks, 'hunk')}</span>
-                </span>
+              {diff?.conflicted ? (
+                <span className="changes-diff-stats">{plural(conflictCount(diff.hunks), 'conflict')}</span>
+              ) : (
+                stats && (
+                  <span className="changes-diff-stats">
+                    <span className="changes-diff-stat-added">+{stats.added}</span>
+                    <span className="changes-diff-stat-removed">-{stats.removed}</span>
+                    <span className="changes-diff-stat-hunks">{plural(stats.hunks, 'hunk')}</span>
+                  </span>
+                )
               )}
               {selectedOwners && selectedOwners.length > 0 && (
-                <span className="changes-diff-owners" title="Code owners">
+                <span className="changes-diff-owners" title={`Code owners: ${selectedOwners.join(' ')}`}>
                   <Users size={12} strokeWidth={1.75} aria-hidden="true" />
-                  {selectedOwners.join(' ')}
+                  <span className="changes-diff-owners-names">{selectedOwners.join(' ')}</span>
+                  <span className="changes-diff-owners-count">{plural(selectedOwners.length, 'owner')}</span>
                 </span>
               )}
 
@@ -286,7 +332,15 @@ function ChangesView({
                   ]}
                 />
               ) : (
-                <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
+                <DiffViewModeToggle
+                  value={viewMode}
+                  onChange={(mode) => {
+                    setViewMode(mode)
+                    if (mode === 'split' && !expanded && window.innerWidth < WIDE_ENOUGH_FOR_SPLIT) {
+                      onDiffExpandedChange?.(true)
+                    }
+                  }}
+                />
               )}
               <DiffViewMenu ignoreWhitespace={ignoreWhitespace} onIgnoreWhitespaceChange={setIgnoreWhitespace} />
               <button
@@ -307,13 +361,6 @@ function ChangesView({
             </div>
             {openConflict && (
               <div className="changes-conflict-actions">
-                <button
-                  type="button"
-                  className="changes-conflict-primary"
-                  onClick={() => void conflicts.markResolved(openConflict)}
-                >
-                  Mark resolved
-                </button>
                 <button type="button" onClick={() => void conflicts.keep(openConflict, 'ours')}>
                   {conflicts.keepLabel(openConflict, 'ours')}
                 </button>
@@ -322,6 +369,13 @@ function ChangesView({
                 </button>
                 <button type="button" onClick={() => conflicts.openInEditor(openConflict)}>
                   Open in editor
+                </button>
+                <button
+                  type="button"
+                  className={diff && conflictCount(diff.hunks) === 0 ? 'changes-conflict-primary' : undefined}
+                  onClick={() => void conflicts.markResolved(openConflict)}
+                >
+                  Mark resolved
                 </button>
               </div>
             )}
@@ -333,18 +387,27 @@ function ChangesView({
                 diff={diff}
                 path={selectedPath}
                 viewMode={viewMode}
+                initialScrollTop={diffScrollTop.current}
+                focusLine={focusLine}
+                onScrollTopChange={setDiffScrollTop}
                 threads={reviewThreads.byPath[selectedPath]}
                 outdatedThreads={reviewThreads.outdatedByPath[selectedPath]}
                 baseSide={
                   openConflict
-                    ? { label: `${conflict?.ours || 'HEAD'} (current branch)` }
+                    ? {
+                        label: `${conflict?.ours || 'HEAD'} (current branch)`,
+                        color: branchColor(conflict?.ours ?? '', true),
+                      }
                     : showsStaged
-                      ? { label: 'HEAD', sha: headCommit?.sha.slice(0, 7) }
+                      ? { label: 'HEAD', sha: headCommit ? shortSha(headCommit.sha) : undefined }
                       : { label: untracked ? 'Untracked' : 'Staged' }
                 }
                 targetSide={
                   openConflict
-                    ? { label: `${conflict?.theirs || 'incoming'} (incoming)` }
+                    ? {
+                        label: `${conflict?.theirs || 'incoming'} (incoming)`,
+                        color: branchColor(conflict?.theirs ?? '', false),
+                      }
                     : showsStaged
                       ? { label: 'Staged' }
                       : { label: 'Working tree' }
@@ -366,6 +429,16 @@ function ChangesView({
               <p className="changes-empty">Loading diff…</p>
             )}
           </>
+        ) : (files?.length ?? 0) === 0 ? (
+          <div className="changes-clean">
+            <WaveMark />
+            {headCommit && <p>Last commit</p>}
+            {headCommit && (
+              <p className="changes-clean-commit">
+                <span>{shortSha(headCommit.sha)}</span> {headCommit.subject}
+              </p>
+            )}
+          </div>
         ) : (
           <p className="changes-empty">Select a file to see its diff.</p>
         )}

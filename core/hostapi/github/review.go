@@ -31,7 +31,6 @@ func (p *Provider) CommentOnLine(ctx context.Context, project string, number int
 	return hostapi.WithScope(p.client.PostJSON(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number), "comments"), body, nil), scope)
 }
 
-// SubmitReview sends the verdict, summary and drafted comments as one review.
 func (p *Provider) SubmitReview(ctx context.Context, project string, number int, headSHA string, review hostapi.ReviewSubmission) error {
 	event := map[string]string{hostapi.ReviewApprove: "APPROVE", hostapi.ReviewRequestChanges: "REQUEST_CHANGES", hostapi.ReviewComment: "COMMENT"}[review.Verdict]
 	if event == "" {

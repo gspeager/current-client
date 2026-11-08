@@ -1,5 +1,6 @@
 import { BranchService, RemoteService, type PushResult } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
+import type { ActionResult } from '../../lib/actionResult'
 import { errorMessage } from '../../lib/errors'
 import { protectionFor } from '../../lib/protection'
 import { primaryRemoteName } from '../../lib/remotes'
@@ -9,32 +10,36 @@ const NO_UPSTREAM = 'This branch has no upstream configured.'
 // Matches core/gitexec's divergedMessage.
 export const DIVERGED = 'This branch and its upstream have diverged. Choose Pull (merge) or Pull (rebase).'
 
-export function useRemoteSync(repoPath: string | null, onSynced: () => void, onPushed?: (result: PushResult) => void) {
-  const pushed = (result: PushResult) => {
+export function useRemoteSync(
+  repoPath: string | null,
+  onSynced: () => void,
+  onPushed?: (result: PushResult) => void,
+  // After every kind of push, including a force-push, which has no report.
+  afterPush?: () => void,
+  onResult?: (result: ActionResult) => void,
+) {
+  // then, when given, replaces onPushed so the caller can carry on (the
+  // sidebar opens the create form).
+  const pushed = (result: PushResult, then?: (result: PushResult) => void) => {
     onSynced()
-    onPushed?.(result)
+    if (!then) onPushed?.(result)
+    afterPush?.()
+    onResult?.({ text: `Pushed ${result.branch} to ${result.upstream}` })
+    then?.(result)
+  }
+  const pulled = () => {
+    onSynced()
+    onResult?.({ text: 'Pulled', undoable: true })
   }
   const { confirm } = useDialogs()
   const pullOp = useCancellableOperation(repoPath ?? '')
   const pushOp = useCancellableOperation(repoPath ?? '')
 
-  const pull = () => {
+  const pullWith = (pullRepo: typeof RemoteService.Pull) => () => {
     if (!repoPath) return
-    pullOp.run((auth) => RemoteService.Pull(repoPath, auth), onSynced)
+    pullOp.run((auth) => pullRepo(repoPath, auth), pulled)
   }
 
-  const pullMerge = () => {
-    if (!repoPath) return
-    pullOp.run((auth) => RemoteService.PullMerge(repoPath, auth), onSynced)
-  }
-
-  const pullRebase = () => {
-    if (!repoPath) return
-    pullOp.run((auth) => RemoteService.PullRebase(repoPath, auth), onSynced)
-  }
-
-  // then, when given, replaces the post-push report so the caller can carry on
-  // (the sidebar opens the create form).
   const pushSettingUpstream = async (path: string, then?: (result: PushResult) => void) => {
     try {
       const [status, remoteName] = await Promise.all([BranchService.CurrentBranchStatus(path), primaryRemoteName(path)])
@@ -47,11 +52,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
       if (!confirmed) return
       await pushOp.run(
         (auth) => RemoteService.PushSetUpstream(path, remoteName, status.current, auth),
-        (result) => {
-          if (!then) return pushed(result)
-          onSynced()
-          then(result)
-        },
+        (result) => pushed(result, then),
       )
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
@@ -95,6 +96,7 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
         title: 'Force-push',
         message: [
           `Force-push ${status.current} to ${status.upstream}? This rewrites remote history and can discard commits other people have pushed.`,
+          'What it overwrites, as of the last fetch, stays in Recover.',
           protection,
         ]
           .filter(Boolean)
@@ -103,7 +105,14 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
         destructive: true,
       })
       if (!confirmed) return
-      void pushOp.run((auth) => RemoteService.ForcePush(repoPath, auth), onSynced)
+      void pushOp.run(
+        (auth) => RemoteService.ForcePush(repoPath, auth),
+        () => {
+          onSynced()
+          afterPush?.()
+          onResult?.({ text: `Force-pushed to ${status.upstream}` })
+        },
+      )
     } catch (err: unknown) {
       pushOp.setError(errorMessage(err))
     }
@@ -112,14 +121,22 @@ export function useRemoteSync(repoPath: string | null, onSynced: () => void, onP
   const pushTags = () => {
     if (!repoPath) return
     primaryRemoteName(repoPath)
-      .then((remote) => pushOp.run((auth) => RemoteService.PushTags(repoPath, remote, auth), onSynced))
+      .then((remote) =>
+        pushOp.run(
+          (auth) => RemoteService.PushTags(repoPath, remote, auth),
+          () => {
+            onSynced()
+            onResult?.({ text: `Pushed tags to ${remote}` })
+          },
+        ),
+      )
       .catch((err: unknown) => pushOp.setError(errorMessage(err)))
   }
 
   return {
-    pull,
-    pullMerge,
-    pullRebase,
+    pull: pullWith(RemoteService.Pull),
+    pullMerge: pullWith(RemoteService.PullMerge),
+    pullRebase: pullWith(RemoteService.PullRebase),
     push,
     forcePush,
     pushTags,

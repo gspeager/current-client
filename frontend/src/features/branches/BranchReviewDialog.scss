@@ -1,0 +1,84 @@
+@use '../../styles/patterns';
+
+.branch-review-panel {
+  width: min(900px, 90vw);
+}
+
+.branch-review-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.branch-review-base {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.branch-review-scroll {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.branch-review-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+
+  th {
+    position: sticky;
+    top: 0;
+    height: var(--h-row-table);
+    background: var(--surface);
+    text-align: left;
+
+    &:first-child {
+      width: 28px;
+    }
+
+    &:nth-child(2) {
+      width: 34%;
+    }
+
+    button {
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--outline);
+      font: var(--ui-xs);
+      cursor: pointer;
+
+      &:hover {
+        color: var(--on-surface);
+      }
+    }
+  }
+
+  td {
+    height: var(--h-row-table);
+    padding-right: var(--space-sm);
+    @include patterns.truncate;
+    border-top: var(--border-structure);
+  }
+}
+
+.branch-review-name {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.branch-review-change {
+  margin-left: var(--space-sm);
+  color: var(--on-surface-variant);
+}
+
+.branch-review-data {
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.branch-review-date {
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}

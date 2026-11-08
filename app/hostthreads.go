@@ -112,15 +112,25 @@ func (s *HostService) ChangeThreads(repoPath string, number int) (ReviewThreads,
 	return renderThreads(info, change.Number, threads), nil
 }
 
+func unresolvedCount(threads []hostapi.Thread) int {
+	count := 0
+	for _, thread := range threads {
+		if !thread.Resolved {
+			count++
+		}
+	}
+	return count
+}
+
 func renderThreads(info HostInfo, number int, threads []hostapi.Thread) ReviewThreads {
 	result := ReviewThreads{Enabled: true, Number: number, Prefix: changePrefix(info), Threads: []ReviewThread{}, Unresolved: map[string]int{}}
-	webRoot := "https://" + info.Hostname + "/"
+	root := webRoot(info)
 	for _, thread := range threads {
 		rendered := ReviewThread{ID: thread.ID, Path: thread.Path, Line: thread.Line, OldLine: thread.OldLine, Resolved: thread.Resolved, Outdated: thread.Outdated}
 		for _, note := range thread.Notes {
 			rendered.Notes = append(rendered.Notes, ReviewNote{
 				Author:    note.Author.Name,
-				BodyHTML:  hostcontent.RenderMarkdown(note.Body, webRoot),
+				BodyHTML:  hostcontent.RenderMarkdown(note.Body, root),
 				CreatedAt: note.CreatedAt.UTC().Format(time.RFC3339),
 			})
 		}
@@ -153,12 +163,7 @@ func fillCurrentBranchThreads(ctx context.Context, provider hostapi.Provider, in
 			return
 		}
 		hostClient.Cache.Put(info.Hostname, repoPath, cacheThreads, strconv.Itoa(change.Number), threads)
-		change.UnresolvedThreads = 0
-		for _, thread := range threads {
-			if !thread.Resolved {
-				change.UnresolvedThreads++
-			}
-		}
+		change.UnresolvedThreads = unresolvedCount(threads)
 		return
 	}
 }

@@ -6,6 +6,8 @@ export interface ConfirmOptions {
   message: string
   confirmLabel: string
   cancelLabel?: string
+  // Only something to acknowledge, with nothing to decline.
+  noCancel?: boolean
   destructive?: boolean
 }
 
@@ -25,7 +27,6 @@ export interface Dialogs {
   confirm: (options: ConfirmOptions) => Promise<boolean>
   // Resolves with the trimmed (and transformed) value, or null when cancelled.
   prompt: (options: PromptOptions) => Promise<string | null>
-  // Resolves with what the user entered, or null when cancelled.
   signIn: (options: SignInOptions) => Promise<SignIn | null>
 }
 

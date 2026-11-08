@@ -133,8 +133,8 @@ func TestNoRequestWhileTheSiteIsOff(t *testing.T) {
 	if _, err := p.IssueDetails(context.Background(), "", "PROJ-1"); !errors.Is(err, hostapi.ErrNotEnabled) {
 		t.Fatalf("err = %v", err)
 	}
-	if HostName(tracker) != "example.atlassian.net" {
-		t.Fatalf("HostName = %q", HostName(tracker))
+	if host := hostlink.SiteHost(tracker.Site); host != "example.atlassian.net" {
+		t.Fatalf("SiteHost = %q", host)
 	}
 }
 

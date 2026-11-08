@@ -2,7 +2,7 @@
 
 .settings-panel {
   width: 920px;
-  height: 100%;
+  height: min(620px, 100%);
 }
 
 .settings-layout {
@@ -42,7 +42,7 @@
 .settings-rail-item-active {
   background: var(--surface-container);
   color: var(--on-surface);
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }
 
 .settings-body {
@@ -53,6 +53,10 @@
   gap: var(--space-xl);
   overflow-y: auto;
   padding: var(--space-lg);
+}
+
+.settings-group[hidden] {
+  display: none;
 }
 
 .settings-group {
@@ -121,6 +125,7 @@
 
 .settings-hint {
   margin: 0;
+  max-width: 80ch;
   color: var(--outline);
   font: var(--ui-xs);
 }
@@ -172,6 +177,62 @@
   max-width: 100%;
   color: var(--on-surface-variant);
   font: var(--data-sm);
+}
+
+.settings-risk-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  // Toggles sit on the right, like every other row's control.
+  .switch {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
+}
+
+.settings-git-config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.settings-git-flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.settings-git-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+
+  th {
+    height: var(--h-row-table);
+    color: var(--outline);
+    font: var(--ui-xs);
+    text-align: left;
+  }
+
+  td {
+    height: var(--h-row-table);
+    padding-right: var(--space-sm);
+    border-top: var(--border-structure);
+    color: var(--on-surface-variant);
+    font: var(--data-sm);
+    @include patterns.truncate;
+
+    .path-text {
+      display: block;
+    }
+  }
 }
 
 .settings-path-unset {
@@ -243,8 +304,7 @@
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: var(--surface);
-  border: var(--border-structure);
+  background: var(--surface-container);
   border-radius: var(--radius);
 }
 
@@ -288,15 +348,6 @@
   }
 }
 
-.settings-host-credential {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-}
-
-// The version row: the number, the check, its outcome, and the releases
-// address to copy, which wraps onto its own line.
 .settings-update {
   flex-wrap: wrap;
 }
@@ -352,4 +403,32 @@
   gap: var(--space-xs);
   font: var(--data-sm);
   color: var(--on-surface);
+}
+
+// A person's name is chrome, not data.
+.settings-field-text {
+  font: var(--ui-sm);
+}
+
+.settings-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-container);
+  border-radius: var(--radius);
+}
+
+.settings-preview-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-row-table);
+  color: var(--on-surface);
+  font: var(--title-md);
+}
+
+[data-density='compact'] .settings-preview-row {
+  min-height: var(--h-row-tree);
 }

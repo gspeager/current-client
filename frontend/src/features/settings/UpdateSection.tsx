@@ -1,14 +1,14 @@
 import { useRef, useState, Fragment } from 'react'
 import { PlatformService, UpdateService } from '@current-client-bindings/app'
 import type { Result } from '@current-client-bindings/internal/update'
-import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
+import { errorMessage } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SettingsRow from './SettingsRow'
 
-// The app's version and the one request the app makes to a vendor: a check
-// of github.com for a newer release, on this button alone. Nothing runs at
-// start-up or in the background, nothing is downloaded, and the answer
-// isn't kept between launches.
+// The one request the app makes to a vendor: a check of github.com for a newer
+// release, on this button alone. Nothing runs at start-up or in the background,
+// nothing is downloaded, and the answer isn't kept between launches.
 function UpdateSection() {
   const { data: version } = useAsyncData(() => PlatformService.AppVersion(), [])
   const { data: releasesUrl } = useAsyncData(() => UpdateService.ReleasesURL(), [])
@@ -32,7 +32,6 @@ function UpdateSection() {
       })
   }
   const cancel = () => pending.current?.cancel()
-  const open = (url: string) => PlatformService.OpenWebPage(url).catch(ignoreDecorativeFailure)
 
   const outcome = result && describe(result)
 
@@ -62,7 +61,7 @@ function UpdateSection() {
           </span>
         )}
         {result?.state === 'newer' && (
-          <button type="button" className="settings-button" onClick={() => open(result.latestUrl)}>
+          <button type="button" className="settings-button" onClick={() => openWebPage(result.latestUrl)}>
             Open releases page
           </button>
         )}
@@ -77,7 +76,7 @@ function UpdateSection() {
                 </Fragment>
               ))}
             </code>
-            <button type="button" className="settings-button" onClick={() => open(releasesUrl)}>
+            <button type="button" className="settings-button" onClick={() => openWebPage(releasesUrl)}>
               Open
             </button>
           </span>
@@ -91,11 +90,11 @@ function describe(result: Result): string {
   const released = result.releasedAt ? `, released ${result.releasedAt}` : ''
   switch (result.state) {
     case 'up-to-date':
-      return `You’re up to date (${result.current}).`
+      return `Up to date (${result.current}).`
     case 'newer':
       return `Version ${result.latest} is available${released}.`
     case 'ahead':
-      return `You’re ahead of the latest release (${result.latest}).`
+      return `Ahead of the latest release (${result.latest}).`
     case 'dev':
       return `A development build can’t be compared with the releases; the latest is ${result.latest}${released}.`
     default:

@@ -1,3 +1,4 @@
+import { arrowIntoList } from '../../lib/useRovingRows'
 import { useState } from 'react'
 import { Check, Copy, Search, SlidersHorizontal } from 'lucide-react'
 import type { HistoryFilterInfo } from '@current-client-bindings/app'
@@ -5,6 +6,7 @@ import Checkbox from '../../components/forms/Checkbox'
 import { BREAKING_FILTER, COMMIT_TYPES } from '../../lib/conventionalCommit'
 import { sinceDaysAgo } from '../../lib/relativeTime'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
+import { ALL_BRANCHES } from './branchFilter'
 import './HistoryToolbar.scss'
 
 interface HistoryToolbarProps {
@@ -47,9 +49,11 @@ function HistoryToolbar({
         <input
           className="history-toolbar-search"
           type="search"
-          placeholder="Search commits, authors, hashes…"
+          placeholder="Search commits…"
+          title="Search by subject, author or hash"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={arrowIntoList}
         />
       </div>
       <select
@@ -59,7 +63,7 @@ function HistoryToolbar({
         aria-label="Branch filter"
       >
         <option value="">Current branch</option>
-        <option value="--all">All branches</option>
+        <option value={ALL_BRANCHES}>All branches</option>
         {branches.map((name) => (
           <option key={name} value={name}>
             {name}

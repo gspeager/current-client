@@ -1,9 +1,14 @@
+import IdentityBadge from '../../components/git/IdentityBadge'
+import { hostUserName, useNameIdentities } from '../../lib/useNameIdentities'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { CircleCheck, CircleDot, GitBranch, GitBranchPlus } from 'lucide-react'
-import { BranchService, HostService, PlatformService } from '@current-client-bindings/app'
+import { BranchService, HostService } from '@current-client-bindings/app'
+import { Fact, FactList } from '../../components/chrome/FactList'
 import HostMarkdown from '../../components/git/HostMarkdown'
+import LabelChip from '../../components/git/LabelChip'
+import { taskProgress } from './taskProgress'
 import { issueBranchName } from '../../lib/branchName'
-import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import { useNewIssue } from '../../lib/issuePanel'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
@@ -11,6 +16,9 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import './IssuePanel.scss'
 import { hostLogo, issueProvider } from '../../components/git/hostLogos'
 import { useHostLinks } from '../../lib/useHostLinks'
+import ChangeStateLabel from './ChangeStateLabel'
+import DialogError from '../../components/chrome/DialogError'
+import { useActionError } from '../../lib/useActionError'
 
 interface IssueDetailProps {
   repoPath: string
@@ -37,17 +45,18 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
   const canWrite = !!useNewIssue()
   const [comment, setComment] = useState('')
   const [running, setRunning] = useState<'comment' | 'state' | 'branch' | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const issue = data?.issue
   const writable = canWrite && !!data?.writable
   const closed = issue?.state === 'closed'
+  const tasks = data?.descriptionHtml ? taskProgress(data.descriptionHtml) : null
 
   const run = (kind: 'comment' | 'state' | 'branch', request: () => Promise<unknown>, after: () => void) => {
     setRunning(kind)
     setActionError(null)
     request()
       .then(after)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setRunning(null))
   }
   const submitComment = (e: FormEvent) => {
@@ -76,121 +85,126 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
     )
   }
 
+  const identities = useNameIdentities(
+    [data?.issue.author, ...(data?.comments ?? []).map((c) => c.author)].flatMap((a) => (a ? [hostUserName(a)] : [])),
+    repoPath,
+  )
   return (
-    <article className="issue-detail" aria-label={data?.reference ?? issueKey}>
+    <article className="issue-detail" data-pane="issue-detail" aria-label={data?.reference ?? issueKey}>
       <header className="issue-detail-header">
         <span className="issue-detail-reference">{data?.reference ?? issueKey}</span>
-        {issue?.state && <span className={`host-change-state host-change-state-${issue.state}`}>{issue.state}</span>}
-        <span className="issue-detail-spacer" />
-        {headerAccessory}
-      </header>
-      <div className="issue-panel-body">
-        {error && (
-          <p className="dialog-error" role="alert">
-            Could not load the issue: {error}
-          </p>
-        )}
-        {!data && !error && <p className="issue-panel-hint">Loading…</p>}
-        {data && issue && (
-          <>
-            <h3 className="issue-panel-title">{issue.title}</h3>
-            <dl className="issue-panel-facts">
-              <dt>Author</dt>
-              <dd>{issue.author.name || issue.author.username}</dd>
-              <dt>Opened</dt>
-              <dd>{relativeTime(new Date(issue.createdAt))}</dd>
-              {issue.milestone && (
-                <>
-                  <dt>Milestone</dt>
-                  <dd>{issue.milestone}</dd>
-                </>
-              )}
-              {issue.labels.length > 0 && (
-                <>
-                  <dt>Labels</dt>
-                  <dd className="issue-panel-labels">
-                    {issue.labels.map((label) => (
-                      <span key={label} className="issue-panel-label">
-                        {label}
-                      </span>
-                    ))}
-                  </dd>
-                </>
-              )}
-              {branch && (
-                <>
-                  <dt>Branch</dt>
-                  <dd className="issue-panel-branch">{branch}</dd>
-                </>
-              )}
-            </dl>
-            {data.descriptionHtml ? (
-              <HostMarkdown html={data.descriptionHtml} className="issue-panel-description" />
-            ) : (
-              <p className="issue-panel-hint">No description.</p>
-            )}
-            <section className="issue-panel-comments" aria-label="Comments">
-              <h4 className="issue-panel-comments-title">{plural(data.comments.length, 'comment')}</h4>
-              {data.comments.map((c, i) => (
-                <article key={i} className="issue-panel-comment">
-                  <p className="issue-panel-comment-head">
-                    <span className="issue-panel-comment-author">{c.author.name || c.author.username}</span>
-                    <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
-                  </p>
-                  <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
-                </article>
-              ))}
-            </section>
-          </>
-        )}
-      </div>
-      {data && issue && (
-        <form className="issue-detail-footer" onSubmit={submitComment}>
-          {writable && (
-            <textarea
-              className="dialog-input issue-panel-reply-input"
-              aria-label="Comment"
-              placeholder="Comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-            />
-          )}
-          <div className="issue-detail-actions">
+        {issue?.state && <ChangeStateLabel state={issue.state} issue />}
+        {issue && <h3 className="host-change-detail-title issue-detail-title">{issue.title}</h3>}
+        {issue && (
+          <div className="host-change-actions">
             {writable && (
-              <button type="button" className="dialog-button" disabled={running !== null} onClick={toggleState}>
+              <button type="button" className="host-change-button" disabled={running !== null} onClick={toggleState}>
                 {closed ? <CircleDot size={14} strokeWidth={1.75} /> : <CircleCheck size={14} strokeWidth={1.75} />}
                 {running === 'state' ? (closed ? 'Reopening…' : 'Closing…') : closed ? 'Reopen issue' : 'Close issue'}
               </button>
             )}
-            <button type="button" className="dialog-button" disabled={running !== null} onClick={switchToBranch}>
+            <button type="button" className="host-change-button" disabled={running !== null} onClick={switchToBranch}>
               {branch ? <GitBranch size={14} strokeWidth={1.75} /> : <GitBranchPlus size={14} strokeWidth={1.75} />}
               {branch ? `Check out ${branch}` : 'New branch from issue'}
             </button>
             <button
               type="button"
-              className="dialog-button"
-              onClick={() => PlatformService.OpenWebPage(issue.webUrl).catch(ignoreDecorativeFailure)}
+              className="host-change-button host-change-button-quiet"
+              onClick={() => openWebPage(issue.webUrl)}
               disabled={!issue.webUrl}
             >
               <HostIcon size={14} strokeWidth={1.75} />
               Open on host
             </button>
-            {writable && (
-              <button
-                type="submit"
-                className="dialog-button dialog-button-primary issue-detail-comment"
-                disabled={!comment.trim() || running !== null}
-              >
-                {running === 'comment' ? 'Commenting…' : 'Comment'}
-              </button>
-            )}
           </div>
-          {actionError && (
-            <p className="dialog-error" role="alert">
-              {actionError}
-            </p>
-          )}
+        )}
+        {headerAccessory}
+      </header>
+      <div className="issue-panel-body">
+        {error && <DialogError>Could not load the issue: {error}</DialogError>}
+        {!data && !error && <p className="issue-panel-hint">Loading…</p>}
+        {data && issue && (
+          <div className="issue-panel-columns">
+            <div className="issue-panel-main">
+              {data.descriptionHtml ? (
+                <HostMarkdown html={data.descriptionHtml} className="issue-panel-description" />
+              ) : (
+                <p className="issue-panel-hint">No description.</p>
+              )}
+              <section className="issue-panel-comments" aria-label="Comments">
+                <h4 className="issue-panel-comments-title">{plural(data.comments.length, 'comment')}</h4>
+                {data.comments.map((c, i) => {
+                  const name = hostUserName(c.author)
+                  const identity = identities.get(name)
+                  return (
+                    <article key={i} className="issue-panel-comment">
+                      <p className="issue-panel-comment-head">
+                        {identity && <IdentityBadge identity={identity} name={name} email="" size={20} />}
+                        <span className="issue-panel-comment-author">{identity?.displayName ?? name}</span>
+                        <span className="issue-panel-comment-time">{relativeTime(new Date(c.createdAt))}</span>
+                      </p>
+                      <HostMarkdown html={c.bodyHtml} className="issue-panel-comment-body" />
+                    </article>
+                  )
+                })}
+              </section>
+            </div>
+            <div className="issue-panel-aside">
+              <FactList>
+                <Fact label="Author">
+                  {identities.get(hostUserName(issue.author))?.displayName ?? hostUserName(issue.author)}
+                </Fact>
+                <Fact label="Opened">{relativeTime(new Date(issue.createdAt))}</Fact>
+                {issue.milestone && <Fact label="Milestone">{issue.milestone}</Fact>}
+                {issue.labels.length > 0 && (
+                  <Fact label="Labels" className="issue-panel-labels">
+                    {issue.labels.map((label) => (
+                      <LabelChip key={label} label={label} />
+                    ))}
+                  </Fact>
+                )}
+                {tasks && (
+                  <Fact label="Tasks" className="issue-panel-tasks">
+                    <progress
+                      value={tasks.done}
+                      max={tasks.total}
+                      aria-label={`${tasks.done} of ${tasks.total} tasks done`}
+                    />
+                    {tasks.done} of {tasks.total}
+                  </Fact>
+                )}
+                {branch && (
+                  <Fact label="Branch" className="fact-list-data">
+                    {branch}
+                  </Fact>
+                )}
+              </FactList>
+            </div>
+          </div>
+        )}
+      </div>
+      {actionError && (
+        <p className="dialog-error issue-detail-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {writable && (
+        <form className="issue-detail-footer" onSubmit={submitComment}>
+          <textarea
+            className="dialog-input issue-panel-reply-input"
+            aria-label="Comment"
+            placeholder="Comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={1}
+          />
+          <button
+            type="submit"
+            className="dialog-button dialog-button-primary issue-detail-comment"
+            disabled={!comment.trim() || running !== null}
+          >
+            {running === 'comment' ? 'Commenting…' : 'Comment'}
+          </button>
         </form>
       )}
     </article>

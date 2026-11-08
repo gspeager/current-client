@@ -12,25 +12,17 @@
 }
 
 .context-menu-item {
+  @include patterns.menu-item;
+
   display: block;
-  width: 100%;
-  height: var(--h-row-tree);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: none;
-  border-radius: var(--radius-xs);
-  color: var(--on-surface);
-  font: var(--ui-sm);
-  text-align: left;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-  }
-
-  @include patterns.disabled;
 }
 
 .context-menu-item-destructive {
   color: var(--error);
+}
+
+.context-menu-separator {
+  height: 1px;
+  margin: var(--space-xs) 0;
+  background: var(--surface-highest);
 }

@@ -1,5 +1,5 @@
-import type { MouseEvent } from 'react'
-import { Cloud } from 'lucide-react'
+import type { CSSProperties, MouseEvent } from 'react'
+import { Cloud, Tag } from 'lucide-react'
 import type { BranchChange, RefInfo } from '@current-client-bindings/app'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import './RefBadge.scss'
@@ -17,7 +17,8 @@ interface RefBadgeProps {
 // branch together, marked with a cloud and both named on hover.
 function RefBadge({ refInfo, color, onClick, active, change, upstream }: RefBadgeProps) {
   const classes = ['ref-badge']
-  if (refInfo.kind === 'branch' || refInfo.kind === 'remote') classes.push('ref-badge-pill')
+  const isBranch = refInfo.kind === 'branch' || refInfo.kind === 'remote'
+  if (isBranch) classes.push('ref-badge-pill')
   if (onClick) classes.push('ref-badge-clickable')
   if (active) classes.push('ref-badge-active')
   const handleClick = onClick
@@ -32,9 +33,11 @@ function RefBadge({ refInfo, color, onClick, active, change, upstream }: RefBadg
       className={classes.join(' ')}
       onClick={handleClick}
       title={onClick ? `${names}\nHighlight ${refInfo.name}'s history in the graph` : names}
-      style={{ background: color }}
+      style={{ '--lane': color } as CSSProperties}
     >
-      {refInfo.name}
+      {isBranch && <span className="ref-badge-dot" />}
+      {refInfo.kind === 'tag' && <Tag size={11} strokeWidth={2} className="ref-badge-tag-icon" aria-hidden="true" />}
+      <span className="ref-badge-name">{refInfo.name}</span>
       {upstream && <Cloud size={10} strokeWidth={2} className="ref-badge-upstream" aria-label={upstream.name} />}
     </span>
   )

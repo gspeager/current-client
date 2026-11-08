@@ -4,6 +4,7 @@
 .changelog-view {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -19,8 +20,8 @@
 
 .changelog-label {
   margin: 0;
-  @include patterns.eyebrow;
-  color: var(--outline);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
 }
 
 .changelog-count,
@@ -44,10 +45,10 @@
 }
 
 .changelog-editor {
-  flex: 1;
-  min-height: 0;
+  flex: 1 0 320px;
+  min-height: 320px;
   display: grid;
-  grid-template-columns: minmax(280px, 2fr) 3fr;
+  grid-template-columns: minmax(240px, 2fr) minmax(0, 3fr);
   gap: var(--space-lg);
 }
 
@@ -103,6 +104,7 @@
   color: var(--outline);
   font: var(--data-sm);
   cursor: pointer;
+  @include patterns.hit-target(4px);
 
   &:hover {
     background: var(--surface-container);
@@ -114,6 +116,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  min-height: var(--h-action);
   gap: var(--space-xs) var(--space-md);
 }
 
@@ -138,6 +141,7 @@
   gap: var(--space-xs);
   cursor: pointer;
   list-style: none;
+  @include patterns.hit-target(4px);
 
   &::-webkit-details-marker {
     display: none;
@@ -316,4 +320,28 @@
 .changelog-guide-body {
   padding: var(--space-lg);
   overflow-y: auto;
+}
+
+@media (max-width: 1120px) {
+  .changelog-editor {
+    grid-template-columns: minmax(0, 1fr);
+    flex-basis: auto;
+  }
+
+  .changelog-entries,
+  .changelog-output {
+    min-height: 240px;
+  }
+
+  .changelog-markdown {
+    flex: none;
+    min-height: 240px;
+    overflow: visible;
+  }
+}
+
+.changelog-section-title {
+  margin: 0;
+  color: var(--outline);
+  @include patterns.eyebrow;
 }

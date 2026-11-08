@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { HostService, type HostInfo, type HostStatusInfo } from '@current-client-bindings/app'
+import { urlHost } from './hostPages'
 import { useAsyncData } from './useAsyncData'
 import { useClockTick } from './useClockTick'
 
@@ -22,15 +23,7 @@ export function useHostIndicator(repoPath: string, hostsVersion: number, availab
   const status = useHostStatus(host?.hostname ?? null)
 
   if (!host) return null
-  return { host, apiHost: apiHostOf(host.apiUrl), status }
-}
-
-function apiHostOf(apiUrl: string): string {
-  try {
-    return new URL(apiUrl).host
-  } catch {
-    return apiUrl
-  }
+  return { host, apiHost: urlHost(host.apiUrl) ?? host.apiUrl, status }
 }
 
 // When a host or tracker the client knows by hostname was last asked, read

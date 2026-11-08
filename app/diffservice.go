@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/gspeager/current-client/core/deps"
 	"github.com/gspeager/current-client/core/diff"
 	"github.com/gspeager/current-client/core/gitexec"
 )
@@ -105,10 +106,12 @@ func (s *DiffService) UnstageHunk(repoPath, path, hunkText string) error {
 }
 
 func (s *DiffService) DiscardHunk(repoPath, path, hunkText string) error {
+	snapshotBefore(repoPath, "discard")
 	return diff.DiscardHunk(context.Background(), repoPath, path, hunkText)
 }
 
 func (s *DiffService) DiscardStagedHunk(repoPath, path, hunkText string) error {
+	snapshotBefore(repoPath, "discard")
 	return diff.DiscardStagedHunk(context.Background(), repoPath, path, hunkText)
 }
 
@@ -128,6 +131,7 @@ func (s *DiffService) UnstageLines(repoPath, path, hunkText string, sel LineSele
 }
 
 func (s *DiffService) DiscardLines(repoPath, path, hunkText string, sel LineSelection) error {
+	snapshotBefore(repoPath, "discard")
 	return diff.DiscardLines(context.Background(), repoPath, path, hunkText, diff.LineSelection(sel))
 }
 
@@ -178,6 +182,47 @@ func lineKindString(k diff.LineKind) string {
 	default:
 		return "context"
 	}
+}
+
+type DependencyChangeInfo struct {
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+// DependencySummaryInfo.Available is false when there's nothing to summarize:
+// the file isn't a manifest or lockfile, is too large, or doesn't parse. The
+// raw diff is still there for those.
+type DependencySummaryInfo struct {
+	Available bool                   `json:"available"`
+	Changes   []DependencyChangeInfo `json:"changes"`
+}
+
+func (s *DiffService) GetDependencySummary(repoPath, oldPath, path string, before, after FileSource) (DependencySummaryInfo, error) {
+	if !deps.Recognized(path) {
+		return DependencySummaryInfo{}, nil
+	}
+	old, err := s.GetFileContent(repoPath, oldPath, before)
+	if err != nil {
+		return DependencySummaryInfo{}, err
+	}
+	updated, err := s.GetFileContent(repoPath, path, after)
+	if err != nil {
+		return DependencySummaryInfo{}, err
+	}
+	if old.TooLarge || updated.TooLarge {
+		return DependencySummaryInfo{}, nil
+	}
+	changes, err := deps.Summarize(path, old.Data, updated.Data)
+	if err != nil {
+		return DependencySummaryInfo{}, nil
+	}
+	info := DependencySummaryInfo{Available: true, Changes: []DependencyChangeInfo{}}
+	for _, change := range changes {
+		info.Changes = append(info.Changes, DependencyChangeInfo{change.Name, string(change.Kind), change.From, change.To})
+	}
+	return info, nil
 }
 
 // FileSource says which version of a file to read: Kind is "commit" (at Rev),

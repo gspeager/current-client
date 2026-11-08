@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, RemoteService, RepositoryService } from '@current-client-bindings/app'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
@@ -52,6 +52,46 @@ beforeEach(() => {
   vi.mocked(BranchService.CurrentBranchStatus).mockResolvedValue({ current: 'main', ahead: 2, behind: 1 } as never)
 })
 
+describe('HeaderBar Go to anything keys', () => {
+  const palette = () => screen.queryByRole('dialog', { name: 'Go to anything' })
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
+    Element.prototype.scrollIntoView = vi.fn()
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('opens and closes with the same key, and also takes the editor keys', async () => {
+    renderHeader()
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    expect(await screen.findByRole('dialog', { name: 'Go to anything' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    await waitFor(() => expect(palette()).not.toBeInTheDocument())
+
+    fireEvent.keyDown(window, { key: 'P', ctrlKey: true, shiftKey: true })
+    expect(await screen.findByRole('dialog', { name: 'Go to anything' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true })
+    await waitFor(() => expect(palette()).not.toBeInTheDocument())
+  })
+
+  it('leaves Ctrl+Shift+K to Push', async () => {
+    const onPush = vi.fn()
+    renderHeader({ onPush })
+
+    fireEvent.keyDown(window, { key: 'K', ctrlKey: true, shiftKey: true })
+    await waitFor(() => expect(onPush).toHaveBeenCalled())
+    expect(palette()).not.toBeInTheDocument()
+  })
+})
+
 describe('HeaderBar sync cluster', () => {
   it('shows Fetch, Pull and Push with their counts, each with a menu, and no Prune checkbox', async () => {
     renderHeader()
@@ -59,7 +99,10 @@ describe('HeaderBar sync cluster', () => {
     const cluster = document.querySelector('.header-bar-sync-cluster')!
     await vi.waitFor(() => expect(cluster).toHaveTextContent('FetchPull 1Push 2'))
     expect(screen.queryByRole('checkbox', { name: 'Prune' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Fetch' })).toHaveAttribute('title', 'Fetched 26m ago. Fetch')
+    expect(screen.getByRole('button', { name: 'Fetch' })).toHaveAttribute(
+      'title',
+      'Fetched 26m ago. Fetch (Ctrl Shift T)',
+    )
     expect(screen.queryByText(/fetched 26m ago/)).not.toBeInTheDocument()
   })
 
@@ -117,11 +160,11 @@ describe('HeaderBar sync cluster', () => {
       'Fetch and prune',
       'Fetch all remotes',
     ])
-    await userEvent.click(screen.getByRole('button', { name: 'Fetch and prune' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Fetch and prune' }))
     await vi.waitFor(() => expect(RemoteService.FetchPrune).toHaveBeenCalledWith(REPO, 'origin', null))
 
     await userEvent.click(screen.getByRole('button', { name: 'Fetch options' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Fetch all remotes' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Fetch all remotes' }))
     await vi.waitFor(() => expect(RemoteService.FetchAll).toHaveBeenCalledWith(REPO, null))
   })
 
@@ -135,14 +178,14 @@ describe('HeaderBar sync cluster', () => {
       'Set upstream…',
       'Force-push (with lease)…',
     ])
-    expect(within(items).getByRole('button', { name: 'Force-push (with lease)…' })).toHaveClass(
+    expect(within(items).getByRole('menuitem', { name: 'Force-push (with lease)…' })).toHaveClass(
       'context-menu-item-destructive',
     )
-    await userEvent.click(within(items).getByRole('button', { name: 'Push tags' }))
+    await userEvent.click(within(items).getByRole('menuitem', { name: 'Push tags' }))
     expect(handlers.onPushTags).toHaveBeenCalled()
 
     await userEvent.click(screen.getByRole('button', { name: 'Push options' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Set upstream…' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Set upstream…' }))
     expect(handlers.onPushSetUpstream).toHaveBeenCalled()
   })
 
@@ -158,7 +201,7 @@ describe('HeaderBar sync cluster', () => {
     expect(handlers.onPullRebase).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'Pull options' }))
-    await user.click(await screen.findByRole('button', { name: 'Pull (merge)' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Pull (merge)' }))
     expect(handlers.onPullMerge).toHaveBeenCalled()
   })
 })

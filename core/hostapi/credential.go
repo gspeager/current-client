@@ -102,10 +102,7 @@ func (g *GitCredentials) remember(hostName, token string) {
 // fill returns the password Git's helpers hold for the key, or "" when they
 // hold none; with terminal prompts disabled Git fails instead of asking.
 func fill(ctx context.Context, key credential) string {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
-		Args:  []string{"credential", "fill"},
-		Stdin: strings.NewReader(key.input()),
-	})
+	result, err := credentialCommand(ctx, "fill", key)
 	if err != nil || result.ExitCode != 0 {
 		return ""
 	}
@@ -118,10 +115,7 @@ func fill(ctx context.Context, key credential) string {
 }
 
 func run(ctx context.Context, action string, key credential) error {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
-		Args:  []string{"credential", action},
-		Stdin: strings.NewReader(key.input()),
-	})
+	result, err := credentialCommand(ctx, action, key)
 	if err != nil {
 		return err
 	}
@@ -129,6 +123,13 @@ func run(ctx context.Context, action string, key credential) error {
 		return errors.New("Git's credential helper could not " + action + " the token")
 	}
 	return nil
+}
+
+func credentialCommand(ctx context.Context, action string, key credential) (gitexec.Result, error) {
+	return gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+		Args:  []string{"credential", action},
+		Stdin: strings.NewReader(key.input()),
+	})
 }
 
 // input is Git's credential protocol; the token reaches Git on stdin, never

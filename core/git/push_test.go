@@ -16,8 +16,8 @@ func TestPushSetUpstreamPublishesBranchAndSetsTracking(t *testing.T) {
 	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
 	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
 
-	if err := PushSetUpstream(context.Background(), dir, "origin", "main"); err != nil {
-		t.Fatalf("PushSetUpstream: %v", err)
+	if _, err := PushSetUpstreamOutput(context.Background(), dir, "origin", "main"); err != nil {
+		t.Fatalf("PushSetUpstreamOutput: %v", err)
 	}
 
 	remoteBranches := gittest.Run(t, "", "ls-remote", "--heads", remoteDir, "main")
@@ -39,7 +39,7 @@ func TestPushRejectsWhenNoUpstreamConfigured(t *testing.T) {
 	gittest.Run(t, dir, "remote", "add", "origin", remoteDir)
 	gittest.CommitFile(t, dir, "file.txt", "v1", "initial")
 
-	if err := Push(context.Background(), dir); err == nil {
+	if _, err := PushOutput(context.Background(), dir); err == nil {
 		t.Fatal("expected an error pushing with no upstream configured")
 	}
 }

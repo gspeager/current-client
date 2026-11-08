@@ -6,6 +6,7 @@ package hostcontent
 import (
 	"bytes"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -23,8 +24,8 @@ var renderer = goldmark.New(
 	goldmark.WithParserOptions(parser.WithASTTransformers(util.Prioritized(linkTransformer{}, 100))),
 )
 
-// RenderMarkdown returns HTML for source. Relative links are resolved against
-// webRoot, the host's web origin for the project, when one is given.
+// RenderMarkdown resolves relative links against webRoot, the host's web
+// origin for the project, when one is given.
 func RenderMarkdown(source, webRoot string) string {
 	var b bytes.Buffer
 	ctx := parser.NewContext()
@@ -133,4 +134,13 @@ func webLink(dest, webRoot string) string {
 		return ""
 	}
 	return u.String()
+}
+
+var wikiHeading = regexp.MustCompile(`(?m)^h([1-6])\.\s+`)
+
+// WikiHeadings turns Jira's "h3. Title" into Markdown's "### Title".
+func WikiHeadings(source string) string {
+	return wikiHeading.ReplaceAllStringFunc(source, func(match string) string {
+		return strings.Repeat("#", int(match[1]-'0')) + " "
+	})
 }

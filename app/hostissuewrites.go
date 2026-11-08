@@ -3,11 +3,9 @@
 package app
 
 import (
-	"context"
 	"errors"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
 )
@@ -36,7 +34,7 @@ func (s *HostService) CreateIssue(repoPath string, input NewIssueInput) (hostapi
 	if title == "" {
 		return hostapi.Issue{}, errors.New("an issue needs a title")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	issue, err := writer.CreateIssue(ctx, info.Project, hostapi.NewIssue{Title: title, Description: input.Description, Labels: input.Labels})
 	if err != nil {
@@ -56,7 +54,7 @@ func (s *HostService) CommentOnIssue(repoPath, key, body string) (IssueDetails, 
 	if strings.TrimSpace(body) == "" {
 		return IssueDetails{}, errors.New("a comment needs text")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	note, err := writer.CommentOnIssue(ctx, info.Project, key, body)
 	if err != nil {
@@ -76,7 +74,7 @@ func (s *HostService) SetIssueState(repoPath, key string, open bool) (IssueDetai
 	if err != nil {
 		return IssueDetails{}, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	issue, err := writer.SetIssueState(ctx, info.Project, key, open)
 	if err != nil {
@@ -99,12 +97,9 @@ func (s *HostService) SetIssueState(repoPath, key string, open bool) (IssueDetai
 }
 
 func issueWriter(repoPath string) (HostInfo, hostapi.IssueWriter, error) {
-	_, info, ok, err := primaryHost(repoPath)
+	_, info, err := requireHost(repoPath)
 	if err != nil {
 		return HostInfo{}, nil, err
-	}
-	if !ok || !info.Enabled {
-		return HostInfo{}, nil, errors.New("integration is off for this repository's host")
 	}
 	writer, ok := issueTrackerFor(info).(hostapi.IssueWriter)
 	if !ok {

@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react'
-import { PlatformService, type BranchChange } from '@current-client-bindings/app'
-import { ignoreDecorativeFailure } from '../../lib/errors'
+import type { BranchChange } from '@current-client-bindings/app'
+import { openWebPage } from '../../lib/hostPages'
 import { relativeTime } from '../../lib/relativeTime'
 import HoverCard from '../chrome/HoverCard'
 import { CIIcon, ciLabel } from './CIMark'
@@ -22,7 +22,7 @@ function ChangeMarker({ change }: ChangeMarkerProps) {
   const title = [number, change.title, state, change.ci && ciLabel(change.ci)].filter(Boolean).join(' · ')
   const open = (e: MouseEvent) => {
     e.stopPropagation()
-    if (change.webUrl) PlatformService.OpenWebPage(change.webUrl).catch(ignoreDecorativeFailure)
+    if (change.webUrl) openWebPage(change.webUrl)
   }
   return (
     <HoverCard card={<ChangeCard change={change} number={number} state={state} />}>

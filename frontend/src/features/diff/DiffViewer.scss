@@ -30,7 +30,7 @@
   height: var(--h-row-tree);
   padding: 0 var(--space-sm);
   background: var(--surface-low);
-  font: var(--data-sm);
+  font: var(--ui-xs);
 }
 
 .diff-side-header-dot {
@@ -62,6 +62,7 @@
 
 .diff-side-header-count {
   flex-shrink: 0;
+  font: var(--data-sm);
 }
 
 .diff-side-header-count-removed {
@@ -83,7 +84,9 @@
 
 .diff-pane-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  // A height-limited pane must scroll, never squeeze rows and clip wrapped lines.
+  grid-auto-rows: max-content;
   align-content: start;
 }
 
@@ -138,7 +141,7 @@
 }
 
 .diff-hunk-header-current {
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }
 
 .diff-conflict-block-start {
@@ -184,48 +187,56 @@
   gap: 4px;
 }
 
-.diff-stage-hunk {
+.diff-stage-hunk,
+.diff-discard-hunk {
   flex: 0 0 auto;
-  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-micro);
+  padding: 0 var(--space-sm);
   border: none;
-  border-radius: var(--radius-xs);
-  color: var(--outline);
-  background: var(--outline-variant);
-  font: inherit;
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  font-weight: 500;
   cursor: pointer;
+}
+
+.diff-stage-hunk {
+  color: var(--on-surface);
+  background: var(--surface-highest);
 
   &:hover {
-    color: var(--on-surface-variant);
+    background: var(--outline-variant);
   }
 }
 
 .diff-discard-hunk {
-  flex: 0 0 auto;
-  padding: 0 6px;
-  border: none;
-  border-radius: var(--radius-xs);
   color: var(--error);
-  background: color-mix(in srgb, var(--error) 18%, transparent);
-  font: inherit;
-  cursor: pointer;
+  background: none;
 
   &:hover {
-    background: color-mix(in srgb, var(--error) 28%, transparent);
+    background: color-mix(in srgb, var(--error) 18%, transparent);
+  }
+}
+
+// An opaque base under the translucent fill keeps the hatch from bleeding through.
+@mixin change-row($fill, $rule, $ink) {
+  background-color: var(--surface);
+  background-image: linear-gradient($fill, $fill);
+  box-shadow: inset 2px 0 0 0 $rule;
+
+  .diff-marker {
+    color: $rule;
+  }
+
+  .diff-content {
+    color: $ink;
   }
 }
 
 @mixin tinted-row($color) {
-  background-color: var(--surface);
-  background-image: linear-gradient(
-    color-mix(in srgb, $color 9%, transparent),
-    color-mix(in srgb, $color 9%, transparent)
-  );
-  box-shadow: inset 2px 0 0 0 $color;
-
-  .diff-marker,
-  .diff-content {
-    color: $color;
-  }
+  @include change-row(color-mix(in srgb, $color 9%, transparent), $color, $color);
 }
 
 .diff-row {
@@ -247,32 +258,11 @@
   }
 
   &-added {
-    // Opaque base under the translucent fill keeps the hatch from bleeding through.
-    background-color: var(--surface);
-    background-image: linear-gradient(var(--diff-add-fill), var(--diff-add-fill));
-    box-shadow: inset 2px 0 0 0 var(--diff-add-rule);
-
-    .diff-marker {
-      color: var(--diff-add-rule);
-    }
-
-    .diff-content {
-      color: var(--diff-add-ink);
-    }
+    @include change-row(var(--diff-add-fill), var(--diff-add-rule), var(--diff-add-ink));
   }
 
   &-removed {
-    background-color: var(--surface);
-    background-image: linear-gradient(var(--diff-del-fill), var(--diff-del-fill));
-    box-shadow: inset 2px 0 0 0 var(--diff-del-rule);
-
-    .diff-marker {
-      color: var(--diff-del-rule);
-    }
-
-    .diff-content {
-      color: var(--diff-del-ink);
-    }
+    @include change-row(var(--diff-del-fill), var(--diff-del-rule), var(--diff-del-ink));
   }
 
   // Reuses --secondary rather than adding a moved-line color.
@@ -310,6 +300,25 @@
   user-select: none;
 }
 
+// A changed line's number selects it for the hunk's actions. A wrapped row's
+// number stays beside its first line.
+.diff-line-select {
+  align-self: start;
+  height: var(--row-height);
+  padding: 0 6px 0 0;
+  background: none;
+  border: none;
+  color: var(--code-linenum);
+  font: inherit;
+  line-height: inherit;
+  text-align: right;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
 .diff-marker {
   text-align: center;
   user-select: none;
@@ -318,6 +327,9 @@
 
 .diff-content {
   padding-right: 8px;
+  // Wrapped lines hang under the first, so they don't read as unindented code.
+  padding-left: 2ch;
+  text-indent: -2ch;
   overflow-wrap: anywhere;
   color: var(--code-ink);
 }
@@ -349,7 +361,10 @@
 }
 
 .diff-collapsed {
-  display: block;
+  font: var(--ui-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   grid-column: 1 / -1;
   width: 100%;
   height: var(--row-height);
@@ -358,7 +373,6 @@
   border: none;
   color: var(--outline);
   background: var(--surface-low);
-  font: inherit;
   text-align: left;
   cursor: pointer;
 
@@ -373,35 +387,21 @@
   margin-bottom: var(--space-xs);
 }
 
-// A changed line's number selects it for the hunk's actions.
-.diff-line-select {
-  padding: 0 6px 0 0;
-  background: none;
-  border: none;
-  color: var(--code-linenum);
-  font: inherit;
-  line-height: inherit;
-  text-align: right;
-  cursor: pointer;
-
-  &:hover {
-    color: var(--on-surface);
-  }
-}
-
 .diff-row-selected .diff-line-select {
   background: var(--outline-variant);
   color: var(--on-surface);
 }
 
-.submodule-diff {
+.submodule-diff,
+.lfs-diff {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-md) 0;
 }
 
-.submodule-diff-summary {
+.submodule-diff-summary,
+.lfs-diff-summary {
   margin: 0;
   color: var(--on-surface);
   font: var(--ui-sm);
@@ -412,7 +412,8 @@
   font: var(--data-sm);
 }
 
-.submodule-diff-note {
+.submodule-diff-note,
+.lfs-diff-note {
   margin: 0;
   color: var(--outline);
   font: var(--ui-sm);
@@ -451,32 +452,11 @@
 
 .submodule-diff-subject {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.lfs-diff {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-md) 0;
-}
-
-.lfs-diff-summary {
-  margin: 0;
-  color: var(--on-surface);
-  font: var(--ui-sm);
+  @include patterns.truncate;
 }
 
 .lfs-diff-sizes {
   font: var(--data-sm);
-}
-
-.lfs-diff-note {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
 }
 
 // Wrap lines off: each line keeps one row and scrolls sideways. Split view's
@@ -586,9 +566,7 @@
 .diff-review-bar-note {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
 }
 
 .diff-review-bar-button {
@@ -605,4 +583,13 @@
   &:hover {
     background: var(--surface-container);
   }
+}
+
+// A removed line's strings shouldn't read as added.
+.diff-row-removed .diff-content :is(.token-string, .token-type, .token-keyword) {
+  color: inherit;
+}
+
+.diff-hunk-actions button {
+  @include patterns.hit-target(2px);
 }

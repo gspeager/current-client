@@ -3,7 +3,6 @@
 package app
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/gspeager/current-client/core/hostapi"
@@ -15,7 +14,7 @@ func TestReleaseReadinessHostRowsComeFromTheCache(t *testing.T) {
 	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "feat: first")
 	swapHostClient(t, hostapitest.Forbid(t))
 	_, info, _, _ := primaryHost(repo)
-	sha := strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD"))
+	sha := gitOut(t, repo, "rev-parse", "HEAD")
 	var s ChangelogService
 
 	r, err := s.ReleaseReadiness(repo, "", "0.1.0", "main")

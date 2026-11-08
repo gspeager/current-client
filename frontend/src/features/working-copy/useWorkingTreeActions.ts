@@ -1,16 +1,15 @@
-import { useState } from 'react'
 import { StashService, StatusService, type FileStatus } from '@current-client-bindings/app'
-import { errorMessage } from '../../lib/errors'
 import { useDialogs } from '../../lib/useDialogs'
+import { useActionError } from '../../lib/useActionError'
 
 // onStashed refreshes what a new stash changes beyond the working tree, such as the Stash panel.
 export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, onStashed?: () => void) {
   const { confirm } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
 
   const run = (action: Promise<unknown>) => {
     setActionError(null)
-    action.then(loadStatus).catch((err: unknown) => setActionError(errorMessage(err)))
+    action.then(loadStatus).catch(fail)
   }
 
   const discardFile = async (f: FileStatus) => {
@@ -19,8 +18,8 @@ export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, 
     const confirmed = await confirm({
       title: untracked ? (folder ? 'Delete folder' : 'Delete file') : 'Discard changes',
       message: untracked
-        ? `Delete ${f.path}${folder ? ' and everything in it' : ''}? This cannot be undone.`
-        : `Discard changes to ${f.path}? This cannot be undone.`,
+        ? `Delete ${f.path}${folder ? ' and everything in it' : ''}? A snapshot goes to Recover first.`
+        : `Discard changes to ${f.path}? A snapshot goes to Recover first.`,
       confirmLabel: untracked ? 'Delete' : 'Discard',
       destructive: true,
     })
@@ -30,7 +29,7 @@ export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, 
   const discardPaths = async (paths: string[]) => {
     const confirmed = await confirm({
       title: 'Discard changes',
-      message: `Discard changes to ${paths.length} files? This cannot be undone.`,
+      message: `Discard changes to ${paths.length} files? A snapshot goes to Recover first.`,
       confirmLabel: 'Discard',
       destructive: true,
     })

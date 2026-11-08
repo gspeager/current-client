@@ -2,8 +2,6 @@ package git
 
 import (
 	"context"
-	"os"
-	"os/exec"
 	"reflect"
 	"sort"
 	"strings"
@@ -226,12 +224,7 @@ func TestHistoryFilterBySinceUntil(t *testing.T) {
 	dir := gittest.InitRepo(t)
 	gittest.WriteFile(t, dir, "file.txt", "v1")
 	gittest.Run(t, dir, "add", "file.txt")
-	oldCommit := exec.Command("git", "commit", "-m", "old commit")
-	oldCommit.Dir = dir
-	oldCommit.Env = append(os.Environ(), "GIT_AUTHOR_DATE=2020-01-01T00:00:00", "GIT_COMMITTER_DATE=2020-01-01T00:00:00")
-	if out, err := oldCommit.CombinedOutput(); err != nil {
-		t.Fatalf("git commit (backdated): %v\n%s", err, out)
-	}
+	commitAt(t, dir, "old commit", "2020-01-01T00:00:00")
 	gittest.CommitFile(t, dir, "file.txt", "v2", "recent commit")
 
 	got, err := History(context.Background(), dir, 0, 0, HistoryFilter{Since: "2024-01-01"})
@@ -394,5 +387,23 @@ func TestHistoryAllLeavesOutStashes(t *testing.T) {
 	}
 	if len(all) != 1 || all[0].Subject != "first" {
 		t.Fatalf("--all history includes the stash: %+v", all)
+	}
+}
+
+func TestSearchHistoryFindsAnAbbreviatedHash(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "one", "first")
+	gittest.CommitFile(t, dir, "b.txt", "two", "second")
+	entries, err := logHistory(context.Background(), dir, pageArgs(2, 0)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	older := entries[1]
+	found, err := SearchHistory(context.Background(), dir, older.SHA[:7], 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(found) != 1 || found[0].SHA != older.SHA {
+		t.Errorf("found = %+v, want only %s", found, older.SHA)
 	}
 }

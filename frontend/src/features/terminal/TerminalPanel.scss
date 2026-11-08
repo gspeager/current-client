@@ -1,0 +1,103 @@
+.terminal-panel {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-lowest, var(--surface));
+  border-top: var(--border-structure);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.terminal-panel-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-row-table);
+  padding: 0 var(--space-sm);
+  border-bottom: var(--border-structure);
+}
+
+.terminal-panel-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.terminal-tab {
+  display: inline-flex;
+  align-items: center;
+  height: var(--h-micro);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 var(--space-xs);
+    background: none;
+    border: none;
+    color: inherit;
+    font: var(--ui-xs);
+    cursor: pointer;
+  }
+}
+
+.terminal-tab-active {
+  background: var(--surface-container);
+  color: var(--on-surface);
+}
+
+.terminal-panel-hide {
+  margin-left: auto;
+}
+
+.terminal-panel-action,
+.terminal-panel-hide {
+  display: inline-flex;
+  align-items: center;
+  height: var(--h-micro);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.terminal-panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-xs) 0 0 var(--space-sm);
+}
+
+.terminal-pane {
+  height: 100%;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.terminal-panel-tabs[hidden],
+.terminal-panel-body[hidden] {
+  display: none;
+}
+
+.terminal-panel-tasks {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-xs) var(--space-sm);
+}

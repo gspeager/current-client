@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { CodeownersService } from '@current-client-bindings/app'
 import { useAsyncData } from './useAsyncData'
 
-export type FileOwners = Record<string, string[]>
+type FileOwners = Record<string, string[]>
 
 // CODEOWNERS owners for paths, read from the working tree; empty when the
 // repository has no file or the read fails.

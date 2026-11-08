@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image } from 'lucide-react'
-import type { FileDiff, LineSelection, ReviewThread } from '@current-client-bindings/app'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image, List } from 'lucide-react'
+import { DiffService, type FileDiff, type LineSelection, type ReviewThread } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import SegmentedControl from '../../components/controls/SegmentedControl'
+import { useAsyncData } from '../../lib/useAsyncData'
+import DependencySummary from './DependencySummary'
 import ImageDiff, { type ImageSources } from './ImageDiff'
 import { imageMimeType } from './imageFiles'
 import { useDiffWrap } from './diffWrap'
@@ -12,8 +14,10 @@ import SubmoduleDiff from './SubmoduleDiff'
 import { submoduleChange } from './submoduleChange'
 import { buildDisplayRows, diffStats } from './diffRows'
 import { conflictRows, type ConflictView } from './conflictRows'
+import { formatSize } from './fileSize'
 import DiffPane, { lineKey, lineRef, type HunkActions } from './DiffPane'
 import ReviewThreadBlock from './ReviewThreadBlock'
+import DiffMinimap from './DiffMinimap'
 import PendingCommentBlock from '../review/PendingCommentBlock'
 import ReviewComposer from '../review/ReviewComposer'
 import ReviewDialog from '../review/ReviewDialog'
@@ -23,15 +27,37 @@ import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import { plural } from '../../lib/plural'
 import { toggled } from '../../lib/sets'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import { useRovingRows } from '../../lib/useRovingRows'
+import { NARROW_SPLIT_WIDTH, useWindowNarrowerThan } from '../../lib/useWindowNarrowerThan'
 import './DiffViewer.scss'
-
-function formatMegabytes(bytes: number): string {
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 interface DiffSideLabel {
   label: string
   sha?: string
+  // A branch's lane color, where the side is a branch.
+  color?: string
+}
+
+// The base side counts its removed lines, the target its added ones.
+function SideHeader({ side, which, count }: { side: DiffSideLabel; which: 'base' | 'target'; count?: number }) {
+  const change = which === 'base' ? 'removed' : 'added'
+  return (
+    <div className="diff-side-header">
+      <span
+        className={`diff-side-header-dot diff-side-header-dot-${which}`}
+        style={side.color ? { background: side.color } : undefined}
+      />
+      <span className="diff-side-header-label">
+        {side.label}
+        {side.sha && <span className="diff-side-header-sha">{side.sha}</span>}
+      </span>
+      {count !== undefined && (
+        <span className={`diff-side-header-count diff-side-header-count-${change}`}>
+          {count} {change}
+        </span>
+      )}
+    </div>
+  )
 }
 
 interface DiffViewerProps extends HunkActions {
@@ -53,12 +79,20 @@ interface DiffViewerProps extends HunkActions {
   // The change this diff belongs to, when the host is on: lines take review
   // comments, threads take replies, and a review can be submitted.
   review?: { repoPath: string; number: number; prefix: string }
+  // Where the first diff shown opens, and where the diff has since been scrolled.
+  initialScrollTop?: number
+  onScrollTopChange?: (top: number) => void
+  // A new-side line to bring into view; a new object asks again.
+  focusLine?: { line: number } | null
 }
 
 function DiffViewer({
   diff,
   path,
   viewMode,
+  initialScrollTop = 0,
+  onScrollTopChange,
+  focusLine = null,
   baseSide,
   targetSide,
   onForceLoad,
@@ -80,12 +114,50 @@ function DiffViewer({
   const newIssue = useNewIssue()
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
   const { wrap } = useDiffWrap()
+  const tooNarrowForSplit = useWindowNarrowerThan(NARROW_SPLIT_WIDTH)
   const paneRef = useRef<HTMLDivElement>(null)
+  const setLineStops = useRovingRows('.diff-line-select')
+  useEffect(() => setLineStops(paneRef.current))
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
   const [currentBlock, setCurrentBlock] = useState(0)
   const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set())
   const lastToggled = useRef<string | null>(null)
+  const initialScrollApplied = useRef(false)
+  const [showRawDiff, setShowRawDiff] = useState(false)
+  const fileVersions = JSON.stringify([images?.before, images?.after])
+  const { data: dependencies } = useAsyncData(
+    () =>
+      images
+        ? DiffService.GetDependencySummary(images.repoPath, diff.oldPath || path, path, images.before, images.after)
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [images?.repoPath, path, fileVersions],
+    { refreshKey: diff },
+  )
+
+  useEffect(() => setShowRawDiff(false), [path])
+
+  // Once per request: a reload of the diff shouldn't pull the view back.
+  const focused = useRef<{ line: number } | null>(null)
+  useEffect(() => {
+    if (!focusLine || focused.current === focusLine) return
+    const row = paneRef.current?.querySelector(`[data-line="${focusLine.line}"]`)
+    if (row) {
+      focused.current = focusLine
+      row.scrollIntoView({ block: 'center' })
+    }
+  }, [focusLine, diff])
+
+  // The pane only exists once the diff has lines to show.
+  useLayoutEffect(() => {
+    const pane = paneRef.current
+    if (!pane || initialScrollApplied.current) return
+    initialScrollApplied.current = true
+    if (!initialScrollTop) return
+    const sides = pane.querySelectorAll<HTMLElement>('.diff-side')
+    for (const scroller of sides.length > 0 ? sides : [pane]) scroller.scrollTop = initialScrollTop
+  })
 
   useEffect(() => {
     setExpandedGroups(new Set())
@@ -96,7 +168,8 @@ function DiffViewer({
     setComposer(null)
   }, [diff])
 
-  const goToBlock = (index: number) => {
+  const stepBlock = (step: number) => {
+    const index = Math.min(blocks.blockStarts.length - 1, Math.max(0, currentBlock + step))
     setCurrentBlock(index)
     paneRef.current?.querySelectorAll('.diff-conflict-block-start')[index]?.scrollIntoView({ block: 'center' })
   }
@@ -127,22 +200,28 @@ function DiffViewer({
   const canSelectLines = !diff.conflicted && Boolean(hunkActions.onStageHunk ?? hunkActions.onUnstageHunk)
 
   useWindowKeydown((e) => {
-    if (!e.altKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
+    // S, U and D act on the current hunk while focus is in the diff.
+    if (!e.metaKey && !e.ctrlKey && !e.altKey && paneRef.current?.contains(document.activeElement)) {
+      const hunk = diff.hunks[currentHunkIndex]
+      const key = e.key.toLowerCase()
+      if (hunk && key === 's') hunkActions.onStageHunk?.(hunk.raw)
+      if (hunk && key === 'u') hunkActions.onUnstageHunk?.(hunk.raw)
+      if (hunk && key === 'd') hunkActions.onDiscardHunk?.(hunk.raw)
+    }
+    const forward = e.key === 'F7' ? !e.shiftKey : e.altKey && e.key === 'ArrowDown'
+    const back = e.key === 'F7' ? e.shiftKey : e.altKey && e.key === 'ArrowUp'
+    if (!forward && !back) return
     if (diff.conflicted) {
       if (blocks.blockStarts.length === 0) return
       e.preventDefault()
-      goToBlock(
-        e.key === 'ArrowDown'
-          ? Math.min(blocks.blockStarts.length - 1, currentBlock + 1)
-          : Math.max(0, currentBlock - 1),
-      )
+      stepBlock(forward ? 1 : -1)
       return
     }
     const total = diff.hunks.length
     if (total === 0) return
     e.preventDefault()
     setCurrentHunkIndex((i) => {
-      const next = e.key === 'ArrowDown' ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
+      const next = forward ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
       const headers = paneRef.current?.querySelectorAll('.diff-hunk-header')
       headers?.[next]?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
       return next
@@ -156,6 +235,28 @@ function DiffViewer({
   if (submodule) return <SubmoduleDiff change={submodule} path={path} repoPath={repoPath} />
   const lfs = lfsPointerChange(diff)
   if (lfs) return <LfsDiff change={lfs} />
+
+  const summarized = dependencies?.available && dependencies.changes.length > 0 && !diff.conflicted && !focusLine
+  const summaryToggle = summarized && (
+    <div className="diff-image-toggle">
+      <SegmentedControl
+        value={showRawDiff ? 'raw' : 'summary'}
+        onChange={(value) => setShowRawDiff(value === 'raw')}
+        options={[
+          { value: 'summary', label: 'Summary', icon: List },
+          { value: 'raw', label: 'Raw diff', icon: FileCode },
+        ]}
+      />
+    </div>
+  )
+  if (summarized && !showRawDiff) {
+    return (
+      <div>
+        {summaryToggle}
+        <DependencySummary changes={dependencies.changes} />
+      </div>
+    )
+  }
 
   const image = images && imageMimeType(path) ? <ImageDiff {...images} path={path} refreshKey={diff} /> : null
   if (image && (diff.binary || diff.tooLarge)) return image
@@ -183,14 +284,17 @@ function DiffViewer({
 
   if (diff.tooLarge) {
     return (
-      <p className="diff-empty-state">
-        This file is large ({formatMegabytes(diff.sizeBytes)}) — the diff wasn't loaded automatically.{' '}
-        {onForceLoad && (
-          <button type="button" className="diff-empty-state-action" onClick={onForceLoad}>
-            Load anyway
-          </button>
-        )}
-      </p>
+      <div>
+        {summaryToggle}
+        <p className="diff-empty-state">
+          This file is large ({formatSize(diff.sizeBytes)}) — the diff wasn't loaded automatically.{' '}
+          {onForceLoad && (
+            <button type="button" className="diff-empty-state-action" onClick={onForceLoad}>
+              Load anyway
+            </button>
+          )}
+        </p>
+      </div>
     )
   }
 
@@ -205,7 +309,9 @@ function DiffViewer({
   const stats = diffStats(diff)
   // A conflicted file shows its two sides, or the working file with the markers
   // inline; either way there's no hunk to stage on its own.
-  const mode = diff.conflicted ? (conflictView === 'side-by-side' ? 'split' : 'unified') : viewMode
+  const displayRows = diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)
+  const chosenMode = diff.conflicted ? (conflictView === 'side-by-side' ? 'split' : 'unified') : viewMode
+  const mode = tooNarrowForSplit ? 'unified' : chosenMode
   // Threads pin to a new-side line the diff shows; the rest, and all of them
   // when each side scrolls on its own, are listed under the diff.
   const sidesApart = mode === 'split' && !wrap
@@ -251,6 +357,7 @@ function DiffViewer({
 
   return (
     <div>
+      {summaryToggle}
       {imageToggle}
       {review && actions && (
         <div className="diff-review-bar" role="toolbar" aria-label="Review">
@@ -293,26 +400,8 @@ function DiffViewer({
       )}
       {mode === 'split' && baseSide && targetSide && (
         <div className="diff-side-headers">
-          <div className="diff-side-header">
-            <span className="diff-side-header-dot diff-side-header-dot-base" />
-            <span className="diff-side-header-label">
-              {baseSide.label}
-              {baseSide.sha && <span className="diff-side-header-sha">{baseSide.sha}</span>}
-            </span>
-            {!diff.conflicted && (
-              <span className="diff-side-header-count diff-side-header-count-removed">{stats.removed} removed</span>
-            )}
-          </div>
-          <div className="diff-side-header">
-            <span className="diff-side-header-dot diff-side-header-dot-target" />
-            <span className="diff-side-header-label">
-              {targetSide.label}
-              {targetSide.sha && <span className="diff-side-header-sha">{targetSide.sha}</span>}
-            </span>
-            {!diff.conflicted && (
-              <span className="diff-side-header-count diff-side-header-count-added">{stats.added} added</span>
-            )}
-          </div>
+          <SideHeader side={baseSide} which="base" count={diff.conflicted ? undefined : stats.removed} />
+          <SideHeader side={targetSide} which="target" count={diff.conflicted ? undefined : stats.added} />
         </div>
       )}
       <div
@@ -320,7 +409,7 @@ function DiffViewer({
       >
         <DiffPane
           mode={mode}
-          rows={diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)}
+          rows={displayRows}
           blockStarts={diff.conflicted ? new Set(blocks.blockStarts) : undefined}
           resultView={diff.conflicted && conflictView === 'result'}
           path={path}
@@ -328,6 +417,7 @@ function DiffViewer({
           onToggleGroup={toggleGroup}
           currentHunkIndex={currentHunkIndex}
           scrollRef={paneRef}
+          onScrollTopChange={onScrollTopChange}
           lineSelect={
             canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
           }
@@ -349,6 +439,7 @@ function DiffViewer({
           }
           {...(diff.conflicted ? {} : hunkActions)}
         />
+        <DiffMinimap rows={displayRows} paneRef={paneRef} />
         {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
           <section className="review-threads-outdated" aria-label="Threads not shown at a line">
             {unplaced.length > 0 && (
@@ -384,7 +475,7 @@ function DiffViewer({
           </span>
           <button
             type="button"
-            onClick={() => goToBlock(Math.max(0, currentBlock - 1))}
+            onClick={() => stepBlock(-1)}
             disabled={currentBlock === 0}
             aria-label="Previous block"
             title="Previous block"
@@ -393,7 +484,7 @@ function DiffViewer({
           </button>
           <button
             type="button"
-            onClick={() => goToBlock(Math.min(blocks.blockStarts.length - 1, currentBlock + 1))}
+            onClick={() => stepBlock(1)}
             disabled={currentBlock >= blocks.blockStarts.length - 1}
             aria-label="Next block"
             title="Next block"

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRovingRows } from '../../lib/useRovingRows'
 import {
   Bell,
   Check,
@@ -63,7 +64,7 @@ const ICONS: Record<string, LucideIcon> = {
   undeployed: Rocket,
 }
 
-export function targetOf(path: string, row: InboxRow): InboxTarget {
+function targetOf(path: string, row: InboxRow): InboxTarget {
   switch (row.kind) {
     case 'dirty':
     case 'operation':
@@ -88,8 +89,8 @@ export function targetOf(path: string, row: InboxRow): InboxTarget {
 // Three questions, in the order they matter: what waits on you, what is
 // yours in flight, and what could be tidied.
 const GROUPS: { name: string; kinds: string[] }[] = [
-  { name: 'Needs you', kinds: ['review', 'changes-requested', 'ci-failed', 'todo'] },
-  { name: 'Your work', kinds: ['dirty', 'operation', 'conflict', 'unpushed', 'assigned', 'undeployed'] },
+  { name: 'Waiting', kinds: ['review', 'changes-requested', 'ci-failed', 'todo'] },
+  { name: 'In progress', kinds: ['dirty', 'operation', 'conflict', 'unpushed', 'assigned', 'undeployed'] },
   { name: 'Tidy up', kinds: ['merged', 'stale'] },
 ]
 
@@ -97,6 +98,7 @@ const groupOf = (kind: string) => GROUPS.find((g) => g.kinds.includes(kind)) ?? 
 
 // What the row says, and why it is here.
 function describe(row: InboxRow): { subject: string; reason: string } {
+  const change = `${row.prefix}${row.number} ${row.title}`
   switch (row.kind) {
     case 'dirty':
       return { subject: plural(row.count, 'changed file'), reason: 'uncommitted' }
@@ -114,22 +116,21 @@ function describe(row: InboxRow): { subject: string; reason: string } {
     case 'conflict':
       return { subject: row.branch, reason: `would conflict in ${row.detail}` }
     case 'review':
-      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: 'review requested' }
+      return { subject: change, reason: 'review requested' }
     case 'changes-requested':
-      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: `changes requested by ${row.detail}` }
+      return { subject: change, reason: `changes requested by ${row.detail}` }
     case 'ci-failed':
-      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: 'CI failed' }
+      return { subject: change, reason: 'CI failed' }
     case 'undeployed':
-      return { subject: `${row.prefix}${row.number} ${row.title}`, reason: `merged, not on ${row.detail} yet` }
+      return { subject: change, reason: `merged, not on ${row.detail} yet` }
     case 'assigned':
       return {
         subject: `${/^\d+$/.test(row.key) ? '#' : ''}${row.key} ${row.title}`,
-        reason: row.detail ? `assigned, ${row.detail}` : 'assigned to you',
+        reason: row.detail ? `assigned, ${row.detail}` : 'assigned',
       }
     case 'todo':
       return {
-        subject:
-          row.number > 0 ? `${row.prefix}${row.number} ${row.title}` : row.key ? `#${row.key} ${row.title}` : row.title,
+        subject: row.number > 0 ? change : row.key ? `#${row.key} ${row.title}` : row.title,
         reason: row.detail,
       }
     default:
@@ -140,6 +141,9 @@ function describe(row: InboxRow): { subject: string; reason: string } {
 // Everything waiting on you across the open repositories: local facts from
 // Git, host facts from the last refresh's cache, each row a jump to it.
 function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, onClose }: InboxViewProps) {
+  const setRows = useRovingRows('.inbox-row')
+  const [aside, setAside] = useState<HTMLElement | null>(null)
+  const focusedOnOpen = useRef(false)
   useClockTick()
   const key = paths.join('\n')
   // Showing the rows counts as seeing them: the header's badge clears.
@@ -153,13 +157,20 @@ function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, on
   const [folded, setFolded] = useState<Record<string, boolean>>({})
   const isOpen = (path: string) => folded[path] ?? path === activePath
 
+  useEffect(() => setRows(aside), [aside, setRows])
+  // Opening it moves there, so the arrows work straight away.
+  useEffect(() => {
+    if (focusedOnOpen.current || !repos || !aside) return
+    focusedOnOpen.current = true
+    requestAnimationFrame(() => aside.querySelector<HTMLElement>('.inbox-row')?.focus())
+  }, [repos, aside])
+
   return (
-    <aside className="inbox" aria-label="Inbox">
+    <aside ref={setAside} className="inbox" data-pane="inbox" aria-label="Inbox">
       <header className="inbox-header">
         <h2 className="inbox-title">Inbox</h2>
-        <span className="inbox-summary">
-          {repos ? (total === 0 ? 'Nothing waiting' : plural(total, 'item')) : 'Looking…'}
-        </span>
+        {(!repos || total === 0) && <span className="inbox-summary">{repos ? 'Nothing waiting' : 'Looking…'}</span>}
+        <span className="inbox-spacer" />
         {onClose && (
           <button type="button" className="inbox-close" onClick={onClose} aria-label="Close Inbox" title="Close Inbox">
             <X size={16} strokeWidth={1.75} />
@@ -221,10 +232,12 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
         <button type="button" className="inbox-repo-toggle" aria-expanded={open} onClick={onToggle}>
           {open ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
           {repo.name}
-          <span className="inbox-repo-count">{repo.rows.length}</span>
-          {fresh > 0 && <span className="inbox-repo-new">{fresh} new</span>}
+          <span className="inbox-repo-count">{plural(repo.rows.length, 'item')}</span>
+          {fresh > 0 && <span className="inbox-repo-new">· {fresh} new</span>}
         </button>
-        {repo.fetchedAt && <span className="inbox-repo-age">host {relativeTime(new Date(repo.fetchedAt))}</span>}
+        {repo.fetchedAt && (
+          <span className="inbox-repo-age">host checked {relativeTime(new Date(repo.fetchedAt))}</span>
+        )}
       </h3>
       {repo.error && <p className="inbox-error">{repo.error}</p>}
       {open && unrefreshed && (
@@ -246,12 +259,17 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
         GROUPS.map((group) => {
           const rows = repo.rows.filter((row) => groupOf(row.kind) === group)
           if (rows.length === 0) return null
+          const tidyUp = group.name === 'Tidy up'
           return (
-            <section key={group.name} className="inbox-group" aria-label={`${repo.name}: ${group.name}`}>
+            <section
+              key={group.name}
+              className={tidyUp ? 'inbox-group inbox-group-quiet' : 'inbox-group'}
+              aria-label={`${repo.name}: ${group.name}`}
+            >
               <h4 className="inbox-group-label">
                 {group.name}
                 <span className="inbox-group-count">{rows.length}</span>
-                {group.name === 'Tidy up' && (
+                {tidyUp && (
                   <button
                     type="button"
                     className="inbox-group-action"
@@ -277,7 +295,9 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
                         <Icon size={14} strokeWidth={1.75} className="inbox-row-icon" />
                         <span className="inbox-row-text">
                           <span className="inbox-row-subject">{subject}</span>
-                          <span className="inbox-row-reason">{reason}</span>
+                          <span className="inbox-row-reason" title={reason}>
+                            {reason}
+                          </span>
                         </span>
                       </button>
                       {row.todoId && (

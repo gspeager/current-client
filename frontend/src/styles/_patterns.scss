@@ -13,9 +13,30 @@
   text-transform: uppercase;
 }
 
+// HEAD's badge, the accent's clearest use.
+@mixin head-badge {
+  padding: 1px var(--space-xs);
+  background: var(--primary);
+  border-radius: var(--radius-xs);
+  color: var(--on-primary);
+  font: var(--eyebrow);
+  letter-spacing: var(--eyebrow-tracking);
+}
+
 @mixin disabled {
   &:disabled {
-    opacity: 0.45;
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+// A primary with nothing to do steps back to a neutral fill, so the accent only
+// ever marks an action that is available.
+@mixin disabled-primary {
+  &:disabled {
+    background: var(--surface-high);
+    color: var(--outline);
+    box-shadow: none;
     cursor: default;
   }
 }
@@ -45,7 +66,25 @@
     box-shadow: var(--glow-action);
   }
 
-  @include disabled;
+  @include disabled-primary;
+}
+
+@mixin subgroup-label {
+  font: var(--ui-xs);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+// A 24px target around a smaller control, with no change to how it looks.
+@mixin hit-target($reach: 2px) {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * $reach);
+  }
 }
 
 @mixin icon-button {
@@ -106,6 +145,26 @@
   }
 }
 
+// A row in a context or split-button menu.
+@mixin menu-item {
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+
+  @include disabled;
+}
+
 // Callers set the height.
 @mixin secondary-button {
   padding: 0 var(--space-sm);
@@ -126,12 +185,14 @@
 }
 
 @mixin tab-close {
+  @include hit-target(4px);
+
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  width: var(--h-micro);
+  height: var(--h-micro);
   padding: 0;
   background: none;
   border: none;
@@ -143,4 +204,67 @@
     background: var(--surface-high);
     color: var(--on-surface);
   }
+}
+
+// Quieter while focus is in another pane. Without a focused pane, as after a click on
+// empty space or with a dialog open, every selection stays as it is.
+@mixin selected-row {
+  background: var(--surface-container);
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
+
+  html:has([data-pane]:focus-within) [data-pane]:not(:focus-within) & {
+    background: var(--surface-low);
+    box-shadow: inset 2px 0 0 0 var(--outline-variant);
+  }
+}
+
+// The small outlined button in panel headers and rows. Callers set the color.
+@mixin micro-button($height: var(--h-micro)) {
+  height: $height;
+  padding: 0 var(--space-xs);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  cursor: pointer;
+}
+
+// Leaves room on the left for a 14px search icon, which the caller positions.
+@mixin search-field {
+  width: 100%;
+  height: var(--h-field);
+  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+// A sidebar panel's empty-state line, error line and row list.
+@mixin panel-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+@mixin panel-error {
+  margin: 0;
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+@mixin panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }

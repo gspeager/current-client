@@ -30,22 +30,17 @@ func MergedBranches(ctx context.Context, repoPath string) (MergedReport, error) 
 	if def == "" {
 		return MergedReport{}, nil
 	}
-	report := MergedReport{Base: def}
+	report := MergedReport{Base: list.base(def)}
+	pastUpstream := func(b Branch) bool { return b.Ahead > 0 && list.upstream(b) != "" }
 	var candidates []Branch
 	var tips []string
 	for _, b := range list.branches {
-		if b.Name == def {
-			if b.Upstream != "" && !list.goneUpstream[b.Name] {
-				report.Base = b.Upstream
-			}
-			continue
-		}
-		if b.Upstream == "" || (b.WorktreePath != "" && !b.Current) {
+		if b.Name == def || b.Upstream == "" || (b.WorktreePath != "" && !b.Current) {
 			continue
 		}
 		candidates = append(candidates, b)
 		tips = append(tips, b.Tip)
-		if b.Ahead > 0 && !list.goneUpstream[b.Name] {
+		if pastUpstream(b) {
 			tips = append(tips, b.Upstream)
 		}
 	}
@@ -58,7 +53,7 @@ func MergedBranches(ctx context.Context, repoPath string) (MergedReport, error) 
 		local := merged[i]
 		i++
 		upstream := false
-		if b.Ahead > 0 && !list.goneUpstream[b.Name] {
+		if pastUpstream(b) {
 			upstream = merged[i]
 			i++
 		}

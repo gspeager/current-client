@@ -155,7 +155,6 @@ func mergeSharingHistory(ctx context.Context, repoPath, head string, tips []stri
 	return merged, nil
 }
 
-// mergeEach merges one branch per process, for Git without merge-tree --stdin.
 func mergeEach(ctx context.Context, repoPath, head string, tips []string) ([][]string, error) {
 	files := make([][]string, len(tips))
 	errs := make([]error, len(tips))

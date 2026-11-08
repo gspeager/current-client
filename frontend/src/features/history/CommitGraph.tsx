@@ -1,5 +1,6 @@
 import type { GraphNode } from '@current-client-bindings/app'
 import { useLaneColors } from '../../lib/laneColor'
+import type { RowLaneColors } from './laneOwners'
 
 interface CommitGraphProps {
   node: GraphNode
@@ -8,6 +9,10 @@ interface CommitGraphProps {
   laneWidth?: number
   // The working tree's node: outlined and dashed, not a commit.
   dashed?: boolean
+  // Who owns each lane at this row; without it, lanes color by position.
+  colors?: RowLaneColors
+  // HEAD's node: ringed, the graph's one cyan mark.
+  head?: boolean
 }
 
 function laneX(lane: number, laneWidth: number): number {
@@ -16,8 +21,19 @@ function laneX(lane: number, laneWidth: number): number {
 
 const NODE_RADIUS = 4
 
-function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = false }: CommitGraphProps) {
+function CommitGraph({
+  node,
+  laneCount,
+  rowHeight,
+  laneWidth = 18,
+  dashed = false,
+  colors,
+  head = false,
+}: CommitGraphProps) {
   const { laneColor } = useLaneColors()
+  const above = (lane: number) => colors?.before.get(lane) ?? laneColor(lane)
+  const beneath = (lane: number) => colors?.after.get(lane) ?? laneColor(lane)
+  const nodeColor = colors?.node ?? laneColor(node.lane)
   const mid = rowHeight / 2
   const ownX = laneX(node.lane, laneWidth)
   // An outlined node has no fill to hide the line, so it starts at the rim.
@@ -34,7 +50,7 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
             y1={0}
             x2={x}
             y2={rowHeight}
-            style={{ stroke: laneColor(lane) }}
+            style={{ stroke: above(lane) }}
             strokeWidth={1.5}
           />
         )
@@ -47,14 +63,14 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
             key={`conv-${lane}`}
             d={`M ${x} 0 C ${x} ${mid}, ${ownX} ${mid}, ${ownX} ${mid}`}
             fill="none"
-            style={{ stroke: laneColor(lane) }}
+            style={{ stroke: above(lane) }}
             strokeWidth={1.5}
           />
         )
       })}
 
       {node.hasChild && (
-        <line x1={ownX} y1={0} x2={ownX} y2={mid} style={{ stroke: laneColor(node.lane) }} strokeWidth={1.5} />
+        <line x1={ownX} y1={0} x2={ownX} y2={mid} style={{ stroke: above(node.lane) }} strokeWidth={1.5} />
       )}
 
       {node.parentLanes.map((lane, i) => {
@@ -66,7 +82,7 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
               y1={below}
               x2={ownX}
               y2={rowHeight}
-              style={{ stroke: laneColor(lane) }}
+              style={{ stroke: nodeColor }}
               strokeWidth={1.5}
             />
           )
@@ -77,7 +93,7 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
             key={`pl-${i}`}
             d={`M ${ownX} ${below} C ${ownX} ${mid}, ${x} ${mid}, ${x} ${rowHeight}`}
             fill="none"
-            style={{ stroke: laneColor(lane) }}
+            style={{ stroke: beneath(lane) }}
             strokeWidth={1.5}
           />
         )
@@ -91,10 +107,22 @@ function CommitGraph({ node, laneCount, rowHeight, laneWidth = 18, dashed = fals
           fill="none"
           strokeWidth={1.5}
           strokeDasharray="2 2"
-          style={{ stroke: laneColor(node.lane) }}
+          style={{ stroke: nodeColor }}
         />
       ) : (
-        <circle cx={ownX} cy={mid} r={NODE_RADIUS} style={{ fill: laneColor(node.lane) }} />
+        <>
+          {head && (
+            <circle
+              cx={ownX}
+              cy={mid}
+              r={NODE_RADIUS + 3}
+              fill="none"
+              strokeWidth={1.5}
+              style={{ stroke: 'var(--primary)' }}
+            />
+          )}
+          <circle cx={ownX} cy={mid} r={NODE_RADIUS} style={{ fill: nodeColor }} />
+        </>
       )}
     </svg>
   )

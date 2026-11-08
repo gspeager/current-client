@@ -3,16 +3,9 @@
 .activity-view {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: var(--space-lg);
-}
-
-.activity-view-header {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: calc(var(--space-sm) - var(--space-lg));
 }
 
 .activity-view-standup {
@@ -32,6 +25,10 @@
 }
 
 .activity-view-pair > * {
-  flex: 1 1 360px;
+  flex: 1 1 280px;
   min-width: 0;
+}
+
+.activity-view h3 {
+  margin: 0;
 }

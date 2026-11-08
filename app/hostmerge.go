@@ -84,7 +84,7 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 	} else if behind > 1 {
 		add("Behind "+change.TargetBranch, strconv.Itoa(behind)+" commits, as of the last fetch", "warn")
 	} else {
-		add("Behind "+change.TargetBranch, "up to date, as of the last fetch", "ok")
+		add("Base branch", "up to date with "+change.TargetBranch, "ok")
 	}
 	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRules, "all"); ok {
 		if rule, ok := hostapi.MatchRule(cached.([]hostapi.BranchRule), change.TargetBranch); ok {
@@ -147,7 +147,7 @@ func (s *HostService) MergeOptions(repoPath string, number int) (hostapi.MergeOp
 	if !ok {
 		return hostapi.MergeOptions{}, errors.New("this host can't merge from the app")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	return merger.MergeOptions(ctx, info.Project)
 }
@@ -164,7 +164,7 @@ func (s *HostService) MergeChange(repoPath string, number int, method string, de
 	if !ok {
 		return MergeResult{}, errors.New("this host can't merge from the app")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	if err := merger.Merge(ctx, info.Project, number, hostapi.MergeRequest{Method: method, DeleteBranch: deleteBranch, HeadSHA: change.HeadSHA}); err != nil {
 		return MergeResult{}, err

@@ -6,10 +6,11 @@
   gap: var(--space-sm);
   width: 100%;
   min-width: 0;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--surface-low);
-  border: var(--border-structure);
-  border-radius: var(--radius-md);
+  height: var(--h-row-table);
+  padding: 0 var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
   text-align: left;
   cursor: pointer;
 
@@ -23,26 +24,10 @@
   color: var(--outline);
 }
 
-.head-commit-panel-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.head-commit-panel-line {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-xs);
-}
-
-.head-commit-panel-label {
-  @include patterns.eyebrow;
-  color: var(--outline);
-}
-
+// In the row's name and tooltip; at the sidebar's width the subject needs the room.
 .head-commit-panel-sha {
-  color: var(--primary);
+  display: none;
+  color: var(--on-surface-variant);
   font: var(--data-sm);
 }
 

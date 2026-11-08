@@ -3,7 +3,11 @@ import { IdentityService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import SettingsRow from './SettingsRow'
 
-function IdentitySettings() {
+interface IdentitySettingsProps {
+  onSaved?: () => void
+}
+
+function IdentitySettings({ onSaved }: IdentitySettingsProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [saved, setSaved] = useState({ name: '', email: '' })
@@ -30,6 +34,7 @@ function IdentitySettings() {
       .then(() => {
         setSaved({ name, email })
         setJustSaved(true)
+        onSaved?.()
       })
       .catch((err: unknown) => setError(errorMessage(err)))
   }
@@ -48,7 +53,7 @@ function IdentitySettings() {
     >
       <div className="settings-identity-fields">
         <input
-          className="settings-field"
+          className="settings-field settings-field-text"
           aria-label="Name"
           placeholder="Name"
           value={name}

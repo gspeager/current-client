@@ -47,10 +47,7 @@ func Open(ctx context.Context, path string) (*Repository, error) {
 
 // revParse returns one trimmed line per query, including empty ones.
 func revParse(ctx context.Context, dir string, queries ...string) ([]string, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
-		Dir:  dir,
-		Args: append([]string{"rev-parse"}, queries...),
-	})
+	result, err := gitexec.RunIn(ctx, dir, append([]string{"rev-parse"}, queries...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -65,20 +62,14 @@ func revParse(ctx context.Context, dir string, queries ...string) ([]string, err
 }
 
 func Init(ctx context.Context, path string) (*Repository, error) {
-	_, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
-		Args: []string{"init", path},
-	})
-	if err != nil {
+	if _, err := gitexec.RunIn(ctx, "", "init", path); err != nil {
 		return nil, err
 	}
 	return &Repository{Path: path}, nil
 }
 
 func Clone(ctx context.Context, url, dest string) (*Repository, error) {
-	_, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
-		Args: []string{"clone", url, dest},
-	})
-	if err != nil {
+	if _, err := gitexec.RunIn(ctx, "", "clone", "--", url, dest); err != nil {
 		return nil, err
 	}
 	return &Repository{Path: dest}, nil

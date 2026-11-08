@@ -1,9 +1,15 @@
-import { useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { TrackerService, type TrackerInfo } from '@current-client-bindings/app'
-import Switch from '../../components/forms/Switch'
-import { errorMessage } from '../../lib/errors'
+import Checkbox from '../../components/forms/Checkbox'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import {
+  blurOnEnter,
+  ConnectionActions,
+  IntegrationHead,
+  useIntegrationAction,
+  type IntegrationAction,
+} from './IntegrationControls'
 
 const KIND_LABELS: Record<string, string> = { 'jira-cloud': 'Jira Cloud', 'jira-data-center': 'Jira Data Center' }
 
@@ -18,23 +24,13 @@ function repoName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path
 }
 
-// Issue trackers beside the hosts, such as a team's Jira site. Keys in
-// branch names, commit messages and titles link to the site; the app builds
-// the address and contacts nothing.
+// Keys in branch names, commit messages and titles link to the tracker's site;
+// the app builds the address and contacts nothing.
 // repoPath, the open repository, is ticked for a tracker as it is added.
 function TrackersSection({ repoPath = null, onChanged }: { repoPath?: string | null; onChanged?: () => void }) {
   const { data: list, error, reload } = useAsyncData(() => TrackerService.List(), [], { keepData: true })
   const [adding, setAdding] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
-
-  const run = (action: Promise<unknown>) =>
-    action
-      .then(() => {
-        setActionError(null)
-        reload()
-        onChanged?.()
-      })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+  const { run, actionError } = useIntegrationAction(reload, onChanged)
 
   return (
     <section className="settings-trackers" aria-label="Issue trackers">
@@ -134,7 +130,7 @@ function AddTracker({
 interface TrackerRowProps {
   tracker: TrackerInfo
   openRepos: string[]
-  run: (action: Promise<unknown>) => Promise<void>
+  run: IntegrationAction
 }
 
 function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
@@ -144,9 +140,6 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
 
   const saveKeys = () => {
     if (keys !== tracker.keys.join(', ')) void run(TrackerService.SetKeys(tracker.site, splitKeys(keys)))
-  }
-  const onKeysKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') e.currentTarget.blur()
   }
   const toggleRepo = (path: string, on: boolean) =>
     run(TrackerService.SetRepos(tracker.site, on ? [...tracker.repos, path] : tracker.repos.filter((r) => r !== path)))
@@ -159,32 +152,52 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
         destructive: true,
       })
       .then((ok) => (ok ? run(TrackerService.Remove(tracker.site)) : undefined))
+  const cloud = tracker.kind === 'jira-cloud'
+  const setToken = async () => {
+    const email = cloud
+      ? await dialogs.prompt({
+          title: `Account for ${tracker.hostName}`,
+          label: 'The Atlassian account’s email',
+          confirmLabel: 'Next',
+        })
+      : ''
+    if (cloud && !email) return
+    const token = await dialogs.prompt({
+      title: `Token for ${tracker.hostName}`,
+      label: cloud
+        ? 'An API token for that account, from id.atlassian.com. Reading issues is all it is used for.'
+        : 'A personal access token from a Jira profile. Reading issues is all it is used for.',
+      confirmLabel: 'Save',
+      secret: true,
+    })
+    if (token) await run(TrackerService.SaveToken(tracker.site, email ?? '', token))
+  }
 
   return (
     <div className="settings-host" aria-label={tracker.site}>
-      <div className="settings-host-head">
-        <div className="settings-row-text">
-          <span className="settings-host-name">{tracker.site}</span>
-          <span className="settings-hint">
-            {KIND_LABELS[tracker.kind] ?? tracker.kind}
-            {tracker.managed ? ' · Set by your organization' : ''}
-          </span>
-          {!tracker.managed && tracker.repos.length === 0 && (
-            <span className="settings-warning">Not used by any repository</span>
-          )}
-        </div>
-        <div className="settings-host-switch">
-          {tracker.locked && <span className="settings-hint">Managed by your organization</span>}
-          <Switch
-            checked={tracker.enabled}
-            onChange={(on) => void run(TrackerService.SetEnabled(tracker.site, on))}
-            ariaLabel={`Integration for ${tracker.site}`}
-            label={tracker.enabled ? 'On' : 'Off'}
-            disabled={tracker.locked}
-          />
-        </div>
-      </div>
-      <TrackerAccess tracker={tracker} run={run} onRemove={tracker.managed ? undefined : () => void remove()} />
+      <IntegrationHead
+        name={tracker.site}
+        enabled={tracker.enabled}
+        locked={tracker.locked}
+        onToggle={(on) => void run(TrackerService.SetEnabled(tracker.site, on))}
+      >
+        <span className="settings-hint">
+          {KIND_LABELS[tracker.kind] ?? tracker.kind}
+          {tracker.managed ? ' · Set by organization policy' : ''}
+        </span>
+        {!tracker.managed && tracker.repos.length === 0 && (
+          <span className="settings-warning">Not used by any repository</span>
+        )}
+      </IntegrationHead>
+      <ConnectionActions
+        enabled={tracker.enabled}
+        hasToken={tracker.hasToken}
+        noTokenHint="No token saved."
+        onSetToken={() => void setToken()}
+        onRemoveToken={() => void run(TrackerService.RemoveToken(tracker.site))}
+        testConnection={() => TrackerService.TestConnection(tracker.site)}
+        onRemove={tracker.managed ? undefined : () => void remove()}
+      />
       {tracker.managed ? (
         <p className="settings-hint">
           Used by every repository without a tracker of its own
@@ -199,7 +212,7 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
               value={keys}
               onChange={(e) => setKeys(e.target.value)}
               onBlur={saveKeys}
-              onKeyDown={onKeysKeyDown}
+              onKeyDown={blurOnEnter}
               spellCheck={false}
               aria-label={`Project keys for ${tracker.site}`}
             />
@@ -208,103 +221,18 @@ function TrackerRow({ tracker, openRepos, run }: TrackerRowProps) {
             <legend className="settings-hint">Repositories</legend>
             {repos.length === 0 && <span className="settings-hint">Open a repository to give it this tracker.</span>}
             {repos.map((path) => (
-              <label key={path} className="settings-tracker-repo" title={path}>
-                <input
-                  type="checkbox"
+              <span key={path} className="settings-tracker-repo" title={path}>
+                <Checkbox
                   checked={tracker.repos.includes(path)}
-                  onChange={(e) => void toggleRepo(path, e.target.checked)}
+                  onChange={(on) => void toggleRepo(path, on)}
+                  label={repoName(path)}
                 />
-                {repoName(path)}
-              </label>
+              </span>
             ))}
           </fieldset>
         </>
       )}
     </div>
-  )
-}
-
-// The token through Git's credential helper and Test connection, as a host
-// row has them.
-function TrackerAccess({
-  tracker,
-  run,
-  onRemove,
-}: Pick<TrackerRowProps, 'tracker' | 'run'> & { onRemove?: () => void }) {
-  const dialogs = useDialogs()
-  const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null)
-  const cloud = tracker.kind === 'jira-cloud'
-
-  const setToken = async () => {
-    const email = cloud
-      ? await dialogs.prompt({
-          title: `Account for ${tracker.hostName}`,
-          label: 'The Atlassian account’s email',
-          confirmLabel: 'Next',
-        })
-      : ''
-    if (cloud && !email) return
-    const token = await dialogs.prompt({
-      title: `Token for ${tracker.hostName}`,
-      label: cloud
-        ? 'An API token for that account, from id.atlassian.com. Reading issues is all it is used for.'
-        : 'A personal access token from your Jira profile. Reading issues is all it is used for.',
-      confirmLabel: 'Save',
-      secret: true,
-    })
-    if (token) await run(TrackerService.SaveToken(tracker.site, email ?? '', token))
-  }
-
-  const testConnection = () => {
-    setTesting(true)
-    setTestResult(null)
-    TrackerService.TestConnection(tracker.site)
-      .then((text) => setTestResult({ ok: true, text }))
-      .catch((err: unknown) => setTestResult({ ok: false, text: errorMessage(err) }))
-      .finally(() => setTesting(false))
-  }
-
-  return (
-    <>
-      <div className="settings-actions">
-        <span className="settings-hint">
-          {tracker.hasToken ? 'Token saved with Git’s credential helper.' : 'No token saved.'}
-        </span>
-        {tracker.hasToken ? (
-          <button
-            type="button"
-            className="settings-button settings-button-small"
-            onClick={() => void run(TrackerService.RemoveToken(tracker.site))}
-          >
-            Remove token
-          </button>
-        ) : (
-          <button type="button" className="settings-button settings-button-small" onClick={() => void setToken()}>
-            Set token…
-          </button>
-        )}
-        <button
-          type="button"
-          className="settings-button settings-button-small"
-          onClick={testConnection}
-          disabled={!tracker.enabled || testing}
-          title={tracker.enabled ? undefined : 'Turn the integration on first.'}
-        >
-          {testing ? 'Testing…' : 'Test connection'}
-        </button>
-        {onRemove && (
-          <button type="button" className="settings-button settings-button-small" onClick={onRemove}>
-            Remove
-          </button>
-        )}
-        {testResult && (
-          <span className={testResult.ok ? 'settings-hint' : 'settings-error'} role="status">
-            {testResult.text}
-          </span>
-        )}
-      </div>
-    </>
   )
 }
 

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import { Ellipsis, type LucideIcon } from 'lucide-react'
 import ContextMenu, { menuAnchor, type ContextMenuState } from './ContextMenu'
 
 export interface RowAction {
@@ -17,9 +17,23 @@ export interface RowAction {
 
 // A sidebar row's actions as hover buttons, from the same list its context
 // menu uses, so nothing is reachable only by hovering.
-export function RowActionButtons({ actions, className }: { actions: RowAction[]; className: string }) {
+export function RowActionButtons({
+  actions,
+  className,
+  onMore,
+}: {
+  actions: RowAction[]
+  className: string
+  // Opens the row's full menu, for rows with more actions than room.
+  onMore?: (e: MouseEvent) => void
+}) {
   return (
     <span className={className}>
+      {onMore && (
+        <button type="button" onClick={onMore} aria-label="More actions" title="More actions">
+          <Ellipsis size={16} strokeWidth={1.75} />
+        </button>
+      )}
       {actions
         .filter((a) => !a.menuOnly)
         .map(({ label, ariaLabel, icon: Icon, run, disabled }) => (

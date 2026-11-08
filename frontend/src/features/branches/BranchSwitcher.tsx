@@ -3,8 +3,8 @@ import { Cloud, GitBranchPlus, RefreshCw, Search, X } from 'lucide-react'
 import { BranchService, RemoteService, StatusService } from '@current-client-bindings/app'
 import { localNameFor } from './branches'
 import { toBranchName } from '../../lib/branchName'
-import { errorMessage } from '../../lib/errors'
 import { useLaneColors } from '../../lib/laneColor'
+import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -13,6 +13,7 @@ import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { useFetchAll } from '../remotes/useFetchAll'
 import BranchPill from '../../components/git/BranchPill'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
+import { useActionError } from '../../lib/useActionError'
 import './BranchSwitcher.scss'
 
 interface BranchSwitcherProps {
@@ -44,22 +45,21 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
   const [filter, setFilter] = useState('')
   const { data, error: loadError, reload: load } = useAsyncData(() => loadSwitcher(repoPath), [repoPath])
   const { prompt } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
   const localBranches = data?.local ?? []
   const remoteBranches = data?.remote ?? []
   const ahead = data?.ahead ?? 0
   const dirtyCount = data?.dirtyCount ?? 0
   const localName = (remoteBranch: string) => localNameFor(remoteBranch, data?.remoteNames ?? [])
+  const branchChanged = () => {
+    load()
+    onBranchChanged?.()
+  }
 
   const checkoutBranch = (name: string) => {
     setActionError(null)
-    BranchService.CheckoutBranch(repoPath, name)
-      .then(() => {
-        load()
-        onBranchChanged?.()
-      })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    BranchService.CheckoutBranch(repoPath, name).then(branchChanged).catch(fail)
   }
 
   const newBranchFromHead = async () => {
@@ -73,11 +73,8 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
     setActionError(null)
     BranchService.CreateBranch(repoPath, name)
       .then(() => BranchService.CheckoutBranch(repoPath, name))
-      .then(() => {
-        load()
-        onBranchChanged?.()
-      })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .then(branchChanged)
+      .catch(fail)
   }
 
   const fetchAllOp = useFetchAll(
@@ -90,10 +87,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
   )
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
-  const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
-    onBranchChanged?.()
-    load()
-  })
+  const deleteRemote = useDeleteRemoteBranch(repoPath, branchChanged)
 
   const remoteMenu = (name: string) => (e: MouseEvent | KeyboardEvent) => {
     e.preventDefault()
@@ -147,7 +141,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
             />
             <span className="branch-switcher-meta">
               {ahead > 0 && <span className="branch-switcher-ahead">↑{ahead}</span>}
-              {dirtyCount > 0 && <span className="branch-switcher-dirty">{dirtyCount} dirty</span>}
+              {dirtyCount > 0 && <span className="branch-switcher-dirty">{plural(dirtyCount, 'changed file')}</span>}
             </span>
           </div>
         </div>
@@ -155,7 +149,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
 
       <div className="branch-switcher-section">
         <div className="branch-switcher-section-header">
-          <span className="branch-switcher-label">Local</span>
+          <span className="branch-switcher-label">Local branches</span>
           <span className="branch-switcher-count">{filteredLocal.length}</span>
         </div>
         {filteredLocal.map((b) => (

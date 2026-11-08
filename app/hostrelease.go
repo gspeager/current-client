@@ -7,7 +7,6 @@ import (
 	"errors"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/gspeager/current-client/core/changelog"
 	"github.com/gspeager/current-client/core/git"
@@ -81,18 +80,15 @@ func (s *HostService) PublishRelease(repoPath string, input NewReleaseInput) (ho
 	if name == "" {
 		name = input.Tag
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	return publisher.PublishRelease(ctx, info.Project, hostapi.NewRelease{Tag: input.Tag, Name: name, Notes: input.Notes})
 }
 
 func releasePublisher(repoPath string) (git.Remote, HostInfo, hostapi.ReleasePublisher, error) {
-	remote, info, ok, err := primaryHost(repoPath)
+	remote, info, err := requireHost(repoPath)
 	if err != nil {
 		return git.Remote{}, HostInfo{}, nil, err
-	}
-	if !ok || !info.Enabled {
-		return git.Remote{}, HostInfo{}, nil, errors.New("integration is off for this repository's host")
 	}
 	publisher, ok := providerFor(info).(hostapi.ReleasePublisher)
 	if !ok {

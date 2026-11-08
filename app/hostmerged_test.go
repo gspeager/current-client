@@ -4,7 +4,6 @@ package app
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/gspeager/current-client/core/git"
@@ -23,7 +22,7 @@ func TestMergedBranchesNamesTheHostChangeAndFlagsNewerCommits(t *testing.T) {
 		gitIn(t, repo, "branch", "-q", "-u", "origin/"+name, name)
 	}
 	gitIn(t, repo, "switch", "-q", "main")
-	featureTip := strings.TrimSpace(string(mustOutput(t, repo, "rev-parse", "feature")))
+	featureTip := gitOut(t, repo, "rev-parse", "feature")
 	api := "/api/v4/projects/group%2Fapp"
 	transport := &routeTransport{routes: map[string]string{
 		api + "/merge_requests/7": `{"iid": 7, "state": "merged", "source_branch": "feature", "target_branch": "main", "sha": "` + featureTip + `", "web_url": "https://gitlab.example.com/group/app/-/merge_requests/7"}`,

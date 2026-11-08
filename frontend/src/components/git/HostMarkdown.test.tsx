@@ -29,4 +29,9 @@ describe('HostMarkdown', () => {
     expect(screen.getByText('text')).toBeInTheDocument()
     expect(ran).not.toHaveBeenCalled()
   })
+
+  it('names a task checkbox after its item', () => {
+    render(<HostMarkdown html='<ul><li><input type="checkbox" disabled> Ship it</li></ul>' />)
+    expect(screen.getByRole('checkbox', { name: 'Ship it' })).toBeInTheDocument()
+  })
 })

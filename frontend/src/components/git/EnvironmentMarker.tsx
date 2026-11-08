@@ -1,10 +1,11 @@
 import type { MouseEvent } from 'react'
 import { Rocket } from 'lucide-react'
-import { PlatformService, type EnvironmentInfo, type Reach } from '@current-client-bindings/app'
+import type { EnvironmentInfo, Reach } from '@current-client-bindings/app'
 import HoverCard from '../chrome/HoverCard'
 import { CIIcon, ciLabel } from './CIMark'
-import { ignoreDecorativeFailure } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import { relativeTime } from '../../lib/relativeTime'
+import { hostUserName } from '../../lib/useNameIdentities'
 import './EnvironmentMarker.scss'
 
 // The environments whose latest deployment is this commit: one rocket at the
@@ -15,10 +16,10 @@ export function EnvironmentMarker({ environments }: { environments: EnvironmentI
   const open = (e: MouseEvent) => {
     e.stopPropagation()
     const url = environments.find((env) => env.webUrl)?.webUrl
-    if (url) PlatformService.OpenWebPage(url).catch(ignoreDecorativeFailure)
+    if (url) openWebPage(url)
   }
   const card = environments.map((env) => {
-    const by = env.deployedBy.name || env.deployedBy.username
+    const by = hostUserName(env.deployedBy)
     return (
       <div key={env.environment}>
         <p className="hover-card-title">{env.environment}</p>

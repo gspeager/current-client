@@ -69,10 +69,41 @@ func History(ctx context.Context, repoPath string, limit, skip int, filter Histo
 	return logHistory(ctx, repoPath, args...)
 }
 
+var abbreviatedHash = regexp.MustCompile(`^[0-9a-fA-F]{4,40}$`)
+
 // SearchHistory is limited to HEAD's ancestry so every match has a
 // well-defined CommitPosition.
 func SearchHistory(ctx context.Context, repoPath, query string, limit int) ([]HistoryEntry, error) {
-	return logHistory(ctx, repoPath, append([]string{"-i", "--grep=" + query}, pageArgs(limit, 0)...)...)
+	matches, err := logHistory(ctx, repoPath, append([]string{"-i", "--grep=" + query}, pageArgs(limit, 0)...)...)
+	if err != nil {
+		return nil, err
+	}
+	if byAuthor, err := logHistory(ctx, repoPath, append([]string{"-i", "--author=" + query}, pageArgs(limit, 0)...)...); err == nil {
+		matches = mergeEntries(matches, byAuthor, limit)
+	}
+	if abbreviatedHash.MatchString(query) {
+		if byHash, err := logHistory(ctx, repoPath, append(pageArgs(1, 0), query, "--")...); err == nil {
+			matches = mergeEntries(byHash, matches, limit)
+		}
+	}
+	return matches, nil
+}
+
+// mergeEntries keeps first's order, then adds what second has that first doesn't.
+func mergeEntries(first, second []HistoryEntry, limit int) []HistoryEntry {
+	seen := make(map[string]bool, len(first))
+	for _, entry := range first {
+		seen[entry.SHA] = true
+	}
+	for _, entry := range second {
+		if !seen[entry.SHA] {
+			first = append(first, entry)
+		}
+	}
+	if limit > 0 && len(first) > limit {
+		return first[:limit]
+	}
+	return first
 }
 
 // CommitPosition returns how many commits on HEAD's ancestry are newer than sha.
@@ -97,8 +128,7 @@ func FileHistory(ctx context.Context, repoPath, path string, limit, skip int) ([
 	return logHistory(ctx, repoPath, append(append([]string{"--follow"}, pageArgs(limit, skip)...), "--", path)...)
 }
 
-// logHistory runs git log with the history format; an empty repository has
-// no history rather than an error.
+// An empty repository has no history rather than an error.
 func logHistory(ctx context.Context, repoPath string, args ...string) ([]HistoryEntry, error) {
 	result, err := runResult(ctx, repoPath, append([]string{"log", "-z", "--pretty=format:" + historyFormat}, args...)...)
 	if err != nil {
@@ -121,16 +151,29 @@ func pageArgs(limit, skip int) []string {
 	return args
 }
 
-func parseHistory(output string) ([]HistoryEntry, error) {
-	var entries []HistoryEntry
+// splitRecords reads -z log output whose format separates n fields with \x1f.
+func splitRecords(output string, n int, what string) ([][]string, error) {
+	var records [][]string
 	for _, record := range strings.Split(output, "\x00") {
 		if record == "" {
 			continue
 		}
 		fields := strings.Split(record, "\x1f")
-		if len(fields) != 8 {
-			return nil, fmt.Errorf("malformed commit entry: got %d fields, want 8", len(fields))
+		if len(fields) != n {
+			return nil, fmt.Errorf("malformed %s entry: got %d fields, want %d", what, len(fields), n)
 		}
+		records = append(records, fields)
+	}
+	return records, nil
+}
+
+func parseHistory(output string) ([]HistoryEntry, error) {
+	records, err := splitRecords(output, 8, "commit")
+	if err != nil {
+		return nil, err
+	}
+	var entries []HistoryEntry
+	for _, fields := range records {
 		var parents []string
 		if fields[1] != "" {
 			parents = strings.Split(fields[1], " ")
@@ -170,8 +213,7 @@ func filterArgs(filter HistoryFilter) []string {
 		args = append(args, "--first-parent")
 	}
 	if filter.Ref == "--all" {
-		// Stash entries are commits under refs/stash; they aren't history.
-		args = append(args, "--exclude=refs/stash", "--all")
+		args = append(args, allRefs...)
 	} else if filter.Ref != "" {
 		args = append(args, filter.Ref)
 	}
@@ -250,8 +292,8 @@ func revRange(ctx context.Context, repoPath, from, to string) (string, error) {
 	return fromSHA + ".." + toSHA, nil
 }
 
-// ResolveCommit returns ref's commit SHA. The ^{commit} suffix also keeps a ref
-// that starts with "-" from reading as an option.
+// The ^{commit} suffix also keeps a ref that starts with "-" from reading as
+// an option.
 func ResolveCommit(ctx context.Context, repoPath, ref string) (string, error) {
 	result, err := runResult(ctx, repoPath, "rev-parse", "--verify", "--quiet", ref+"^{commit}")
 	if err != nil {

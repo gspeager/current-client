@@ -1,5 +1,5 @@
 import { DashboardService } from '@current-client-bindings/app'
-import { groupTopLanguages, languageColor } from './languageColors'
+import { groupByLanguage, groupTopLanguages, languageColor, languageName } from './languageColors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './LanguageBreakdown.scss'
@@ -11,10 +11,6 @@ interface LanguageBreakdownProps {
 
 const DISPLAY_LIMIT = 5
 
-function extensionLabel(extension: string): string {
-  return extension === 'other' ? 'other' : `.${extension}`
-}
-
 function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
   const { data: rawLanguages, error } = useAsyncData(
     () => DashboardService.GetLanguageBreakdown(repoPath),
@@ -22,18 +18,13 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
     { refreshKey: repoVersion },
   )
 
-  const languages = rawLanguages ? groupTopLanguages(rawLanguages, DISPLAY_LIMIT) : null
+  const languages = rawLanguages ? groupTopLanguages(groupByLanguage(rawLanguages), DISPLAY_LIMIT) : null
   const total = rawLanguages?.reduce((sum, l) => sum + l.count, 0) ?? 0
-  const topTwo = languages
-    ?.filter((l) => l.extension !== 'other')
-    .slice(0, 2)
-    .map((l) => extensionLabel(l.extension))
-    .join(' + ')
 
   return (
     <div className="language-breakdown">
       <div className="language-breakdown-header">
-        <span className="language-breakdown-title">Languages &amp; assets</span>
+        <h3 className="language-breakdown-title">Languages</h3>
         {languages && <span className="language-breakdown-total">{plural(total, 'total file')}</span>}
       </div>
 
@@ -55,25 +46,20 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
                     width: `${total === 0 ? 0 : (l.count / total) * 100}%`,
                     background: languageColor(l.extension),
                   }}
-                  title={`${extensionLabel(l.extension)}: ${l.count} files`}
+                  title={`${languageName(l.extension)}: ${l.count} files`}
                 />
               ))}
             </div>
 
             <ul className="language-breakdown-list">
-              {languages.map((l, i) => {
+              {languages.map((l) => {
                 const percent = total === 0 ? 0 : (l.count / total) * 100
                 return (
                   <li key={l.extension} className="language-breakdown-row">
                     <span className="language-breakdown-dot" style={{ background: languageColor(l.extension) }} />
-                    <span className="language-breakdown-extension">{extensionLabel(l.extension)}</span>
+                    <span className="language-breakdown-extension">{languageName(l.extension)}</span>
                     <span className="language-breakdown-count">{plural(l.count, 'file')}</span>
-                    <span
-                      className="language-breakdown-percent"
-                      style={i === 0 ? { color: languageColor(l.extension) } : undefined}
-                    >
-                      {percent.toFixed(1)}%
-                    </span>
+                    <span className="language-breakdown-percent">{percent.toFixed(1)}%</span>
                   </li>
                 )
               })}
@@ -81,14 +67,6 @@ function LanguageBreakdown({ repoPath, repoVersion }: LanguageBreakdownProps) {
           </>
         )}
       </div>
-
-      {topTwo && (
-        <div className="language-breakdown-footer">
-          <span>
-            Primary: <strong>{topTwo}</strong>
-          </span>
-        </div>
-      )}
     </div>
   )
 }

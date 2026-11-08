@@ -1,0 +1,73 @@
+@use '../../styles/patterns';
+
+.recover-panel {
+  width: min(680px, 90vw);
+}
+
+.recover-list {
+  max-height: 55vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.recover-row {
+  padding: var(--space-sm) 0;
+  border-top: var(--border-structure);
+}
+
+.recover-row-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.recover-row-action {
+  flex-shrink: 0;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.recover-row-branch {
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.recover-row-time {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.recover-row-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--space-xs);
+  margin-left: auto;
+}
+
+.recover-row-note {
+  margin: var(--space-xs) 0 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.recover-files {
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recover-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: var(--h-row-table);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}

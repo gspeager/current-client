@@ -14,8 +14,16 @@
   display: flex;
 }
 
+.app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .app-main {
   flex: 1;
+  min-height: 0;
   min-width: 0;
   overflow-y: auto;
   padding: var(--space-md);
@@ -46,7 +54,8 @@
     margin-left: var(--space-xs);
     background: none;
     border: none;
-    color: var(--primary);
+    color: var(--on-surface);
+    text-decoration: underline;
     cursor: pointer;
     font: inherit;
   }
@@ -60,7 +69,8 @@
   gap: var(--space-lg);
   height: 100vh;
   height: 100dvh;
-  padding-top: 15vh;
+  justify-content: center;
+  padding-bottom: 12vh;
   color: var(--on-surface);
 
   h1 {
@@ -68,6 +78,12 @@
     letter-spacing: var(--headline-lg-tracking);
     margin: 0;
   }
+}
+
+.app-welcome-mark {
+  display: flex;
+  color: var(--on-surface-variant);
+  margin-bottom: calc(var(--space-sm) * -1);
 }
 
 .app-welcome-corner {
@@ -96,4 +112,77 @@
 .app-welcome-git-actions {
   display: flex;
   gap: var(--space-sm);
+}
+
+.app-terminal-error {
+  margin: 0;
+  padding: var(--space-xs) var(--space-md);
+  color: var(--error);
+  font: var(--ui-xs);
+}
+
+// Off screen until the keyboard reaches it.
+.app-skip-link {
+  position: absolute;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  z-index: 100;
+  height: var(--h-field);
+  padding: 0 var(--space-md);
+  background: var(--surface-high);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-md);
+  transform: translateY(-200%);
+
+  &:focus-visible {
+    transform: none;
+  }
+}
+
+// The form sits on the same centre line as the name above it.
+.app-welcome .repo-switcher {
+  align-items: center;
+  width: min(420px, 100%);
+  padding: 0 var(--space-lg);
+  text-align: center;
+}
+
+.app-welcome .repo-switcher-open-row {
+  justify-content: center;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// Windows High Contrast drops backgrounds and box-shadows, which carry selection
+// and the lane and status dots here.
+@media (forced-colors: active) {
+  [class$='-selected'],
+  .settings-rail-item-active,
+  .tab-active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .branch-pill-dot,
+  .ref-badge-dot,
+  .branch-pill-dirty,
+  .header-bar-tab-dot,
+  .repo-stat-strip-dot,
+  .host-change-flow-dot,
+  .activity-cell,
+  .activity-legend-swatch,
+  .commit-velocity-bar,
+  .file-churn-bar,
+  .commit-row-graph svg {
+    forced-color-adjust: none;
+  }
 }

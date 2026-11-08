@@ -3,7 +3,6 @@ package git
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -85,11 +84,7 @@ func TestDiffPatchCapturesStagedAndUnstagedAndApplies(t *testing.T) {
 	if err := os.WriteFile(patchPath, []byte(patch), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	applyCmd := exec.Command("git", "apply", patchPath)
-	applyCmd.Dir = clone
-	if out, err := applyCmd.CombinedOutput(); err != nil {
-		t.Fatalf("git apply: %v\n%s", err, out)
-	}
+	gittest.Run(t, clone, "apply", patchPath)
 
 	staged, err := os.ReadFile(filepath.Join(clone, "staged.txt"))
 	if err != nil {

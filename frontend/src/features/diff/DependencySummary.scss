@@ -1,0 +1,45 @@
+@use '../../styles/patterns';
+
+.dependency-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.dependency-summary-counts {
+  margin: 0;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.dependency-summary-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dependency-summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) 72px minmax(0, 2fr);
+  gap: var(--space-sm);
+  align-items: center;
+  height: var(--h-row-table);
+  border-top: var(--border-structure);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+
+  > span {
+    @include patterns.truncate;
+  }
+}
+
+.dependency-summary-name {
+  color: var(--on-surface);
+}
+
+.dependency-summary-note {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

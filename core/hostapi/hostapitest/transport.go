@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-// Forbid is a transport that fails the test on any request.
 func Forbid(t testing.TB) http.RoundTripper {
 	return forbid{t}
 }
@@ -33,5 +32,4 @@ func IsolateGitConfig(t testing.TB) (home string) {
 	return home
 }
 
-// AllowAll enables every host, for tests of what a provider sends.
 func AllowAll(string) bool { return true }

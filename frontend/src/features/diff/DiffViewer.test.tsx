@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { FileDiff } from '@current-client-bindings/app'
+import { DiffService, type FileDiff } from '@current-client-bindings/app'
 import { IssuePanelContext } from '../../lib/issuePanel'
 import DiffViewer from './DiffViewer'
 
@@ -45,7 +45,133 @@ function currentHeader() {
     ?.textContent
 }
 
+describe('DiffViewer scroll position', () => {
+  it('opens where it was left and reports where it moves, in either layout', () => {
+    for (const viewMode of ['unified', 'split'] as const) {
+      const onScrollTopChange = vi.fn()
+      const { container, unmount } = render(
+        <DiffViewer
+          diff={diff}
+          path="a.ts"
+          viewMode={viewMode}
+          initialScrollTop={120}
+          onScrollTopChange={onScrollTopChange}
+        />,
+      )
+      const pane = container.querySelector<HTMLElement>('.diff-pane')!
+      const sides = pane.querySelectorAll<HTMLElement>('.diff-side')
+      const scroller = sides.length > 0 ? sides[0] : pane
+
+      expect(scroller.scrollTop).toBe(120)
+
+      fireEvent.scroll(scroller, { target: { scrollTop: 40 } })
+      expect(onScrollTopChange).toHaveBeenLastCalledWith(40)
+      unmount()
+    }
+  })
+})
+
+describe('DiffViewer dependency summary', () => {
+  const images = {
+    repoPath: '/repo',
+    before: { kind: 'commit', rev: 'HEAD' },
+    after: { kind: 'worktree', rev: '' },
+  }
+
+  it('shows the summary for a manifest and switches to the raw diff', async () => {
+    const user = userEvent.setup()
+    vi.mocked(DiffService.GetDependencySummary).mockResolvedValue({
+      available: true,
+      changes: [
+        { name: 'left-pad', kind: 'bumped', from: '1.0.0', to: '1.1.0' },
+        { name: 'chalk', kind: 'added', from: '', to: '5.0.0' },
+      ],
+    })
+    render(<DiffViewer diff={diff} path="package.json" viewMode="unified" images={images} />)
+
+    expect(await screen.findByText('left-pad')).toBeInTheDocument()
+    expect(screen.getByText('1.0.0 → 1.1.0')).toBeInTheDocument()
+    expect(screen.getByText('1 bumped, 1 added')).toBeInTheDocument()
+    expect(screen.getByText(/Not a vulnerability check/)).toBeInTheDocument()
+    expect(DiffService.GetDependencySummary).toHaveBeenCalledWith(
+      '/repo',
+      'a.ts',
+      'package.json',
+      images.before,
+      images.after,
+    )
+    expect(screen.queryByText(/first$/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Raw diff' }))
+
+    expect(screen.queryByText('left-pad')).not.toBeInTheDocument()
+    expect(screen.getAllByText(/first$/).length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: 'Summary' }))
+    expect(screen.getByText('left-pad')).toBeInTheDocument()
+  })
+
+  it('shows the raw diff when no package changed, since it may not have read every section', async () => {
+    vi.mocked(DiffService.GetDependencySummary).mockResolvedValue({ available: true, changes: [] })
+    render(<DiffViewer diff={diff} path="package.json" viewMode="unified" images={images} />)
+
+    await vi.waitFor(() => expect(DiffService.GetDependencySummary).toHaveBeenCalled())
+    expect(screen.getAllByText(/first$/).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Summary' })).not.toBeInTheDocument()
+  })
+
+  it('shows the raw diff when there is nothing to summarize', async () => {
+    vi.mocked(DiffService.GetDependencySummary).mockResolvedValue({ available: false, changes: [] })
+    render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" images={images} />)
+
+    await vi.waitFor(() => expect(DiffService.GetDependencySummary).toHaveBeenCalled())
+    expect(screen.getAllByText(/first$/).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Summary' })).not.toBeInTheDocument()
+  })
+})
+
+describe('DiffViewer focus line', () => {
+  it('scrolls to the line once per request, not on a reload', () => {
+    const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
+    scrollIntoView.mockClear()
+    const focusLine = { line: 10 }
+    const { rerender } = render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" focusLine={focusLine} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+
+    rerender(<DiffViewer diff={{ ...diff }} path="a.ts" viewMode="unified" focusLine={focusLine} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+
+    rerender(<DiffViewer diff={diff} path="a.ts" viewMode="unified" focusLine={{ line: 10 }} />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('DiffViewer scroll reports', () => {
+  it('ignores something else scrolling inside the pane', () => {
+    const onScrollTopChange = vi.fn()
+    const { container } = render(
+      <DiffViewer diff={diff} path="a.ts" viewMode="unified" onScrollTopChange={onScrollTopChange} />,
+    )
+    const pane = container.querySelector<HTMLElement>('.diff-pane')!
+    const inner = pane.firstElementChild as HTMLElement
+
+    fireEvent.scroll(inner, { target: { scrollTop: 5 } })
+
+    expect(onScrollTopChange).not.toHaveBeenCalled()
+  })
+})
+
 describe('DiffViewer hunk navigation', () => {
+  it('moves between hunks with F7 and Shift+F7, as editors do', () => {
+    render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" />)
+
+    fireEvent.keyDown(window, { key: 'F7' })
+    expect(currentHeader()).toContain('second')
+
+    fireEvent.keyDown(window, { key: 'F7', shiftKey: true })
+    expect(currentHeader()).toContain('first')
+  })
+
   it('starts on the first hunk and moves forward/backward with Alt+ArrowDown/Up', () => {
     render(<DiffViewer diff={diff} path="a.ts" viewMode="unified" />)
 
@@ -440,7 +566,7 @@ describe('DiffViewer issue from a line', () => {
       </IssuePanelContext.Provider>,
     )
     fireEvent.contextMenu(screen.getByText(/drop the shim/))
-    await userEvent.click(screen.getByRole('button', { name: 'Create issue from line…' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Create issue from line…' }))
     expect(newIssue).toHaveBeenCalledWith({
       title: 'drop the shim',
       description: '`src/a.ts` line 7\n\n```\n// TODO: drop the shim\n```',
@@ -450,6 +576,6 @@ describe('DiffViewer issue from a line', () => {
   it('leaves the line menu alone without issue writes', () => {
     render(<DiffViewer diff={todo} path="src/a.ts" viewMode="unified" />)
     fireEvent.contextMenu(screen.getByText(/drop the shim/))
-    expect(screen.queryByRole('button', { name: 'Create issue from line…' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Create issue from line…' })).not.toBeInTheDocument()
   })
 })

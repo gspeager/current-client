@@ -58,16 +58,21 @@ func DetectConflictState(ctx context.Context, repoPath string) (ConflictState, e
 	return ConflictState{Operation: op, ConflictedPaths: paths, Message: preparedMessage(dir, op)}, nil
 }
 
-// preparedMessage is what git would open in the editor on continue: MERGE_MSG
-// for a merge, cherry-pick or revert, the rebase's own file for a rebase.
-func preparedMessage(dir string, op ConflictOperation) string {
-	var path string
+// messagePath is the file git opens in the editor on continue: MERGE_MSG for
+// a merge, cherry-pick or revert, the rebase's own file for a rebase.
+func messagePath(dir string, op ConflictOperation) string {
 	switch op {
 	case ConflictMerge, ConflictCherryPick, ConflictRevert:
-		path = filepath.Join(dir, "MERGE_MSG")
+		return filepath.Join(dir, "MERGE_MSG")
 	case ConflictRebase:
-		path = filepath.Join(dir, "rebase-merge", "message")
-	default:
+		return filepath.Join(dir, "rebase-merge", "message")
+	}
+	return ""
+}
+
+func preparedMessage(dir string, op ConflictOperation) string {
+	path := messagePath(dir, op)
+	if path == "" {
 		return ""
 	}
 	data, err := os.ReadFile(path)
@@ -95,14 +100,7 @@ func ContinueWithMessage(ctx context.Context, repoPath string, op ConflictOperat
 		if err != nil {
 			return err
 		}
-		var path string
-		switch op {
-		case ConflictMerge, ConflictCherryPick, ConflictRevert:
-			path = filepath.Join(dir, "MERGE_MSG")
-		case ConflictRebase:
-			path = filepath.Join(dir, "rebase-merge", "message")
-		}
-		if path != "" {
+		if path := messagePath(dir, op); path != "" {
 			if err := os.WriteFile(path, []byte(message+"\n"), 0o644); err != nil {
 				return err
 			}
@@ -326,19 +324,10 @@ func AbortConflictOperation(ctx context.Context, repoPath string, op ConflictOpe
 
 func conflictOpArgs(op ConflictOperation, flag string) ([]string, error) {
 	switch op {
-	case ConflictMerge:
-		return []string{"merge", flag}, nil
-	case ConflictCherryPick:
-		return []string{"cherry-pick", flag}, nil
-	case ConflictRevert:
-		return []string{"revert", flag}, nil
-	case ConflictRebase:
-		return []string{"rebase", flag}, nil
-	case ConflictAm:
-		return []string{"am", flag}, nil
-	default:
-		return nil, fmt.Errorf("no conflict operation in progress")
+	case ConflictMerge, ConflictCherryPick, ConflictRevert, ConflictRebase, ConflictAm:
+		return []string{string(op), flag}, nil
 	}
+	return nil, errors.New("no conflict operation in progress")
 }
 
 func fileExists(path string) bool {

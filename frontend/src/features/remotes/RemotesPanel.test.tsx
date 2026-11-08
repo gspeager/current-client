@@ -43,4 +43,54 @@ describe('RemotesPanel', () => {
     expect(RemoteService.FetchAllPrune).toHaveBeenCalledWith(REPO, null)
     expect(RemoteService.FetchAll).not.toHaveBeenCalled()
   })
+
+  describe('with a sign-in in the URL', () => {
+    const shownUrl = 'https://<token>@git.example.com/a.git'
+
+    function renderWithUrl(fetchUrl: string) {
+      vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin', fetchUrl, pushUrl: fetchUrl }])
+      render(
+        <DialogProvider>
+          <RemotesPanel sections={defaultSections()} repoPath={REPO} />
+        </DialogProvider>,
+      )
+    }
+
+    it.each([
+      [shownUrl, 'git.example.com'],
+      ['ssh://git:<token>@git.example.com/a.git', 'git.example.com'],
+      ['ssh://git@git.example.com:2222/a.git', 'git.example.com:2222'],
+      ['https://www.example.com/a.git', 'example.com'],
+      ['git@git.example.com:a.git', 'git.example.com'],
+    ])('labels %s as %s', async (fetchUrl, host) => {
+      renderWithUrl(fetchUrl)
+
+      const label = await screen.findByText(host)
+      expect(label).toHaveClass('remote-row-host')
+      expect(label.closest('li')).toHaveAttribute('title', fetchUrl)
+    })
+
+    it('has nothing to save until the URL changes', async () => {
+      renderWithUrl(shownUrl)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Edit origin' }))
+
+      expect(screen.getByRole('textbox')).toHaveValue(shownUrl)
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+      expect(RemoteService.EditRemote).not.toHaveBeenCalled()
+    })
+
+    it('shows why an edit that keeps the placeholder was refused', async () => {
+      const refusal = new Error("Replace <token> with the sign-in, or remove it to use Git's credential helper.")
+      vi.mocked(RemoteService.EditRemote).mockRejectedValue(refusal)
+      renderWithUrl(shownUrl)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Edit origin' }))
+      await userEvent.type(screen.getByRole('textbox'), '2')
+      await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+      expect(RemoteService.EditRemote).toHaveBeenCalledWith(REPO, 'origin', `${shownUrl}2`)
+      expect(await screen.findByText(refusal.message)).toBeInTheDocument()
+    })
+  })
 })

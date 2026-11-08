@@ -40,15 +40,12 @@ func Reflog(ctx context.Context, repoPath string, limit int) ([]ReflogEntry, err
 }
 
 func parseReflog(output string) ([]ReflogEntry, error) {
+	records, err := splitRecords(output, 4, "reflog")
+	if err != nil {
+		return nil, err
+	}
 	var entries []ReflogEntry
-	for _, record := range strings.Split(output, "\x00") {
-		if record == "" {
-			continue
-		}
-		fields := strings.Split(record, "\x1f")
-		if len(fields) != 4 {
-			return nil, fmt.Errorf("malformed reflog entry: got %d fields, want 4", len(fields))
-		}
+	for _, fields := range records {
 		dated := fields[1]
 		open, end := strings.LastIndex(dated, "@{"), strings.LastIndex(dated, "}")
 		if open < 0 || end < open {

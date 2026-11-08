@@ -4,8 +4,6 @@ package app
 
 import (
 	"context"
-	"errors"
-	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/jira"
@@ -19,7 +17,7 @@ const trackerAssignedID = "tracker"
 // jiraFor is the repository's Jira site while its integration is on.
 func jiraFor(repoPath string) (*jira.Provider, hostlink.Tracker, bool) {
 	tracker, _, ok := trackerFor(repoPath)
-	if !ok || !hostEnabled(jira.HostName(tracker)) {
+	if !ok || !hostEnabled(hostlink.SiteHost(tracker.Site)) {
 		return nil, hostlink.Tracker{}, false
 	}
 	return jira.New(hostClient, tracker), tracker, true
@@ -28,7 +26,7 @@ func jiraFor(repoPath string) (*jira.Provider, hostlink.Tracker, bool) {
 // trackerAssigned is the picker's list from the tracker, asked the first
 // time and kept until a refresh, each issue kept for hover cards too.
 func trackerAssigned(repoPath string, provider *jira.Provider, site hostlink.Tracker) ([]hostapi.Issue, error) {
-	name := jira.HostName(site)
+	name := hostlink.SiteHost(site.Site)
 	return cachedFrom(name, repoPath, cacheAssigned, trackerAssignedID, func(ctx context.Context) ([]hostapi.Issue, error) {
 		issues, err := provider.AssignedIssues(ctx, "", "")
 		if err == nil {
@@ -51,7 +49,7 @@ func (s *HostService) TrackerIssueTitles(repoPath string, keys []string) map[str
 	if !ok {
 		return map[string]IssueInfo{}
 	}
-	return cachedTrackerIssues(jira.HostName(site), repoPath, keys)
+	return cachedTrackerIssues(hostlink.SiteHost(site.Site), repoPath, keys)
 }
 
 // FetchTrackerIssueTitles asks the tracker for the keys not yet known, up to
@@ -62,7 +60,7 @@ func (s *HostService) FetchTrackerIssueTitles(repoPath string, keys []string) ma
 	if !ok {
 		return map[string]IssueInfo{}
 	}
-	name := jira.HostName(site)
+	name := hostlink.SiteHost(site.Site)
 	var missing []string
 	seen := map[string]bool{}
 	for _, key := range keys {
@@ -77,16 +75,15 @@ func (s *HostService) FetchTrackerIssueTitles(repoPath string, keys []string) ma
 	if len(missing) > issueBatchCap {
 		missing = missing[:issueBatchCap]
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	inParallel(len(missing), func(i int) {
 		key := missing[i]
 		issue, err := provider.IssueByKey(ctx, "", key)
-		var hostErr *hostapi.HostError
 		switch {
 		case err == nil:
 			rememberTrackerIssues(name, repoPath, []hostapi.Issue{issue})
-		case errors.As(err, &hostErr) && hostErr.Status == 404:
+		case hostapi.IsNotFound(err):
 			hostClient.Cache.Put(name, repoPath, cacheIssue, key, IssueInfo{Key: key, Known: true})
 		}
 	})
@@ -110,7 +107,7 @@ func refreshTracker(ctx context.Context, repoPath string) {
 	if !ok {
 		return
 	}
-	name := jira.HostName(site)
+	name := hostlink.SiteHost(site.Site)
 	for _, kind := range []string{cacheIssue, cacheIssueDetails, cacheIssueComments, cacheAssigned, cacheProjectIssues} {
 		hostClient.Cache.ClearKind(name, repoPath, kind)
 	}
@@ -127,7 +124,7 @@ func trackerInboxRows(repoPath string) []InboxRow {
 	if !ok {
 		return nil
 	}
-	cached, at, ok := hostClient.Cache.Get(jira.HostName(site), repoPath, cacheAssigned, trackerAssignedID)
+	cached, at, ok := hostClient.Cache.Get(hostlink.SiteHost(site.Site), repoPath, cacheAssigned, trackerAssignedID)
 	if !ok {
 		return nil
 	}

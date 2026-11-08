@@ -1,14 +1,17 @@
+@use '../../styles/patterns';
+
 .history-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) var(--space-md);
   border-bottom: var(--border-structure);
 }
 
 .history-toolbar-search-wrap {
   position: relative;
-  flex: 1;
+  flex: 1 1 120px;
   min-width: 120px;
 }
 
@@ -22,20 +25,7 @@
 }
 
 .history-toolbar-search {
-  width: 100%;
-  height: var(--h-field);
-  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
-  background: var(--surface);
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface);
-  font: var(--ui-sm);
-
-  &:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: var(--focus-ring);
-  }
+  @include patterns.search-field;
 }
 
 .history-toolbar-filter {
@@ -50,15 +40,19 @@
   color: var(--on-surface);
   font: var(--ui-sm);
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
+  @include patterns.disabled;
 }
 
 .history-toolbar-first-parent {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
+  height: var(--h-field);
   white-space: nowrap;
+
+  .checkbox-label {
+    line-height: 16px;
+  }
 }
 
 .history-toolbar-filters {

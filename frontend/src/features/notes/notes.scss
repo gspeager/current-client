@@ -1,0 +1,94 @@
+@use '../../styles/patterns';
+
+.note-mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-micro);
+  height: var(--h-micro);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+.note-editor {
+  width: 100%;
+  min-height: 120px;
+  padding: var(--space-sm);
+  resize: vertical;
+  background: var(--surface-container);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.notes-panel {
+  width: min(640px, 90vw);
+}
+
+.notes-list {
+  max-height: 55vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.notes-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-top: var(--border-structure);
+}
+
+.notes-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.notes-row-where {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.notes-row-target {
+  @include patterns.truncate;
+}
+
+.notes-row-stale {
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--warning);
+  font: var(--ui-xs);
+}
+
+.notes-row-text {
+  margin: var(--space-xs) 0 0;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.notes-row-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--space-xs);
+}

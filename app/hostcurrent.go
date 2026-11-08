@@ -20,6 +20,9 @@ type CurrentChange struct {
 	// Proposable is false on the default branch and on a branch with no
 	// commits beyond it, where there is nothing to open a change for.
 	Proposable bool `json:"proposable"`
+	// Checked is false until the host's list has been read, when "no change"
+	// isn't known yet.
+	Checked bool `json:"checked"`
 	// Kind is the host's word, "pull request" or "merge request".
 	Kind       string        `json:"kind"`
 	Change     *BranchChange `json:"change"`
@@ -29,7 +32,7 @@ type CurrentChange struct {
 
 // CurrentChange reads the cache only.
 func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
-	_, info, ok, err := primaryHost(repoPath)
+	_, info, ok, err := enabledHost(repoPath)
 	if err != nil {
 		return CurrentChange{}, err
 	}
@@ -37,10 +40,11 @@ func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 	if err != nil || !found {
 		return CurrentChange{}, err
 	}
-	result := CurrentChange{Branch: current.Name, Upstream: current.Upstream, Enabled: ok && info.Enabled && providerFor(info) != nil, Kind: changeKind(info)}
+	result := CurrentChange{Branch: current.Name, Upstream: current.Upstream, Enabled: ok && providerFor(info) != nil, Kind: changeKind(info)}
 	if !result.Enabled {
 		return result, nil
 	}
+	_, _, result.Checked = hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project)
 	var change BranchChange
 	if current.Upstream != "" {
 		changes, err := s.BranchChanges(repoPath)

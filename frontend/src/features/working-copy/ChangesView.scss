@@ -22,23 +22,10 @@
 
 .changes-diff-expand,
 .changes-diff-external-tool {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @include patterns.hit-target;
+  @include patterns.icon-button;
   width: var(--h-chip);
   height: var(--h-chip);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--outline);
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-    color: var(--on-surface);
-  }
-
-  @include patterns.disabled;
 }
 
 .changes-error {
@@ -66,6 +53,7 @@
 }
 
 .changes-diff-header {
+  container-type: inline-size;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -77,21 +65,32 @@
 }
 
 .changes-diff-path {
-  min-width: 0;
-  @include patterns.truncate;
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 96px;
+  overflow: hidden;
   font: var(--data-md);
 }
 
+// The folder gives way, from its start, so the filename stays whole.
 .changes-diff-path-dir {
+  flex: 0 1000 auto;
+  min-width: 0;
+  direction: rtl;
+  @include patterns.truncate;
   color: var(--outline);
 }
 
 .changes-diff-path-file {
+  flex: 0 1 auto;
+  min-width: 0;
+  @include patterns.truncate;
   color: var(--on-surface);
   font-weight: 600;
 }
 
 .changes-diff-owners {
+  flex: 0 1000 auto;
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -99,6 +98,21 @@
   @include patterns.truncate;
   color: var(--outline);
   font: var(--data-sm);
+}
+
+.changes-conflict-actions .changes-conflict-primary {
+  background: var(--primary-container);
+  border-color: transparent;
+  color: var(--on-primary-container);
+  font-weight: 600;
+}
+
+.changes-diff-owners-names {
+  @include patterns.truncate;
+}
+
+.changes-diff-owners-count {
+  display: none;
 }
 
 .changes-diff-stats {
@@ -118,7 +132,9 @@
 }
 
 .changes-diff-stat-hunks {
+  margin-left: var(--space-sm);
   color: var(--outline);
+  font: var(--ui-xs);
 }
 
 .changes-diff-staged-badge {
@@ -154,16 +170,64 @@
       background: var(--surface-container);
     }
   }
+}
 
-  .changes-conflict-primary {
-    background: var(--primary-container);
-    border-color: transparent;
-    color: var(--on-primary-container);
-    font-weight: 600;
+.changes-clean {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 18vh var(--space-md) var(--space-lg);
+  color: var(--outline-variant);
+  text-align: center;
 
-    &:hover {
-      background: var(--primary-container);
-      box-shadow: var(--glow-action);
-    }
+  p {
+    margin: 0;
+    color: var(--outline);
+    font: var(--ui-md);
+  }
+}
+
+// In Changes the diff takes all the height its pane has.
+.changes-diff .diff-viewer {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
+.changes-clean .changes-clean-commit {
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+
+  span {
+    font: var(--data-sm);
+  }
+}
+
+// Facts give way before the filename does.
+@container (max-width: 760px) {
+  .changes-diff-owners {
+    flex-shrink: 0;
+  }
+
+  .changes-diff-owners-names {
+    display: none;
+  }
+
+  .changes-diff-owners-count {
+    display: inline;
+  }
+}
+
+@container (max-width: 520px) {
+  .changes-diff-owners,
+  .changes-diff-stat-hunks {
+    display: none;
+  }
+}
+
+@container (max-width: 400px) {
+  .changes-diff-header .diff-stat {
+    display: none;
   }
 }

@@ -29,8 +29,8 @@ const (
 // jobLogTailLines by default, or up to jobLogFullBytes with full. Each is
 // fetched once per job until a refresh.
 func (s *HostService) JobLog(repoPath string, jobID int64, full bool) (JobLog, error) {
-	_, info, ok, err := primaryHost(repoPath)
-	if err != nil || !ok || !info.Enabled {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
 		return JobLog{}, err
 	}
 	provider := providerFor(info)

@@ -28,20 +28,15 @@
 
 .issue-detail-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
-  height: var(--h-action);
-  padding: 0 var(--space-sm) 0 var(--space-md);
-  border-bottom: var(--border-structure);
+  padding: var(--space-md) var(--space-md) 0;
 }
 
 .issue-detail-reference {
   color: var(--on-surface-variant);
   font: var(--data-md);
-}
-
-.issue-detail-spacer {
-  flex: 1;
 }
 
 .issue-panel-body {
@@ -54,8 +49,9 @@
   overflow-y: auto;
 }
 
-.issue-panel-branch {
-  font: var(--data-sm);
+.issue-detail-error {
+  margin: 0;
+  padding: 0 var(--space-md) var(--space-sm);
 }
 
 .issue-detail-footer {
@@ -66,28 +62,8 @@
   border-top: var(--border-structure);
 }
 
-// Secondaries on the left, the pane's one primary, Comment, on the right.
-.issue-detail-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-sm);
-
-  .dialog-button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-  }
-}
-
 .issue-detail-comment {
-  margin-left: auto;
-}
-
-.issue-panel-title {
-  margin: 0;
-  font: var(--title-md);
-  color: var(--on-surface);
+  align-self: flex-end;
 }
 
 .issue-panel-hint {
@@ -96,34 +72,39 @@
   font: var(--ui-sm);
 }
 
-.issue-panel-facts {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: var(--space-xs) var(--space-md);
-  margin: 0;
-  font: var(--ui-sm);
-
-  dt {
-    color: var(--outline);
-  }
-
-  dd {
-    margin: 0;
-    color: var(--on-surface);
-  }
-}
-
 .issue-panel-labels {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
 }
 
-.issue-panel-label {
-  padding: 0 var(--space-xs);
-  border: 1px solid var(--outline-variant);
-  border-radius: 3px;
-  font: var(--ui-xs);
+.issue-panel-tasks {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font: var(--data-sm);
+
+  progress {
+    width: 96px;
+    height: 6px;
+    overflow: hidden;
+    appearance: none;
+    border: none;
+    border-radius: 3px;
+    background: var(--surface-highest);
+  }
+
+  progress::-webkit-progress-bar {
+    background: var(--surface-highest);
+  }
+
+  progress::-webkit-progress-value {
+    background: var(--tertiary);
+  }
+
+  progress::-moz-progress-bar {
+    background: var(--tertiary);
+  }
 }
 
 .issue-panel-comments {
@@ -137,13 +118,32 @@
 .issue-panel-comments-title {
   margin: 0;
   color: var(--outline);
-  font: var(--ui-xs);
+  @include patterns.eyebrow;
 }
 
 .issue-panel-comment {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+  padding-left: 28px;
+
+  // The thread's rail, from each author's badge down to the next.
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    bottom: calc(-1 * var(--space-sm));
+    left: 9.5px;
+    width: 1px;
+    background: var(--outline-variant);
+  }
+
+  .identity-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
 }
 
 .issue-panel-comment-head {
@@ -162,8 +162,64 @@
   color: var(--outline);
 }
 
-.issue-panel-reply-input {
-  min-height: 64px;
+.dialog-input.issue-panel-reply-input {
+  height: auto;
+  min-height: var(--h-field);
+
+  &:focus,
+  &:not(:placeholder-shown) {
+    min-height: 64px;
+  }
+
   resize: vertical;
-  font: var(--ui-sm);
+  font: var(--prose);
+}
+
+@media (max-height: 700px) {
+  .issue-detail-footer {
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+  }
+}
+
+.issue-detail-title {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.issue-panel-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: var(--space-xl);
+}
+
+.issue-panel-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.issue-panel-aside {
+  order: 1;
+}
+
+.issue-inspector .issue-panel-columns {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.issue-inspector .issue-panel-aside {
+  order: -1;
+}
+
+@media (max-width: 1100px) {
+  .issue-panel-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+
+  .issue-panel-aside {
+    order: -1;
+  }
 }

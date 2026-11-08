@@ -35,6 +35,38 @@ type HostConfig struct {
 	Dismissed bool `json:"dismissed,omitempty"`
 }
 
+type CustomTask struct {
+	Name    string `json:"name"`
+	Command string `json:"command"`
+}
+
+// StackLink is one layer of a stack. Git stores no branch's base, and amending the
+// layer below breaks the ancestry, so ParentTip remembers what it was built on.
+type StackLink struct {
+	Branch    string `json:"branch"`
+	Parent    string `json:"parent"`
+	ParentTip string `json:"parentTip"`
+}
+
+type StackMove struct {
+	Branch string `json:"branch"`
+	Before string `json:"before"`
+	After  string `json:"after"`
+}
+
+// StackUndo takes back the last restack, which moves several branches.
+type StackUndo struct {
+	Links   []StackLink `json:"links"`
+	Moves   []StackMove `json:"moves"`
+	Stopped bool        `json:"stopped,omitempty"`
+}
+
+// TaskChecklist runs alongside a commit or push. Failures warn and never block.
+type TaskChecklist struct {
+	BeforeCommit []string `json:"beforeCommit,omitempty"`
+	BeforePush   []string `json:"beforePush,omitempty"`
+}
+
 type Config struct {
 	Version            int               `json:"version"`
 	RecentRepositories []string          `json:"recentRepositories,omitempty"`
@@ -66,18 +98,33 @@ type Config struct {
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
 
+	// Commands, by repository path. TaskApprovals holds what each approval saw.
+	CustomTasks   map[string][]CustomTask      `json:"customTasks,omitempty"`
+	TaskApprovals map[string]map[string]string `json:"taskApprovals,omitempty"`
+	TaskChecklist map[string]TaskChecklist     `json:"taskChecklist,omitempty"`
+	Stacks        map[string][]StackLink       `json:"stacks,omitempty"`
+	StackUndo     map[string]StackUndo         `json:"stackUndo,omitempty"`
+
+	// The terminal panel's shell on Windows: "", "git-bash" or "cmd". "" is PowerShell.
+	TerminalShell string `json:"terminalShell,omitempty"`
+
+	// Zero means the default.
+	SnapshotLimit int `json:"snapshotLimit,omitempty"`
+
+	// Rules of the staged changes' risk report that are turned off.
+	RiskRulesOff []string `json:"riskRulesOff,omitempty"`
+
 	// Working Copy's diff takes the file list's space too.
 	DiffExpanded bool `json:"diffExpanded,omitempty"`
-	// Zero keeps long diff lines wrapping, as they always have.
-	DiffNoWrap bool `json:"diffNoWrap,omitempty"`
+	DiffNoWrap   bool `json:"diffNoWrap,omitempty"`
+	// "compact" tightens History, the file list and the sidebar; empty is comfortable.
+	Density string `json:"density,omitempty"`
 
 	// History's branch filter: "" is all branches, "HEAD" the current branch,
 	// anything else a branch name.
 	HistoryBranchFilter string `json:"historyBranchFilter,omitempty"`
-	// Whether History follows only each merge's first parent.
-	HistoryFirstParent bool `json:"historyFirstParent,omitempty"`
+	HistoryFirstParent  bool   `json:"historyFirstParent,omitempty"`
 
-	// Whether the header's fetch also deletes remote-tracking branches gone from the remote.
 	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`
 
 	// Zero keeps the Changelog tab and commit type picker on.
@@ -192,7 +239,6 @@ func Save(path string, cfg Config) error {
 
 const defaultDirName = "current-client"
 
-// dirName is only changed at startup, before anything reads settings.
 var dirName = defaultDirName
 
 // SetDirName lets an app that embeds Current Client keep its settings in its own folder

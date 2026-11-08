@@ -7,7 +7,7 @@
 // focused.
 .commit-row {
   display: grid;
-  grid-template-columns: 108px minmax(0, 1fr) 150px 64px 20px 72px;
+  grid-template-columns: 108px minmax(0, 1fr) 124px 64px 20px 60px;
   align-items: center;
   gap: var(--space-sm);
   padding: 0 var(--space-md);
@@ -30,9 +30,9 @@
 
 // Narrow lists keep the subject: the author column drops to the badge,
 // then the hash drops. CI and time never do.
-@container (max-width: 720px) {
+@container (max-width: 880px) {
   .commit-row {
-    grid-template-columns: 108px minmax(0, 1fr) 18px 64px 20px 72px;
+    grid-template-columns: 108px minmax(0, 1fr) 20px 64px 20px 60px;
   }
 
   .commit-row-author-name {
@@ -40,12 +40,40 @@
   }
 }
 
-@container (max-width: 560px) {
+@container (max-width: 620px) {
   .commit-row {
-    grid-template-columns: 108px minmax(0, 1fr) 18px 20px 72px;
+    grid-template-columns: 108px minmax(0, 1fr) 20px 20px 60px;
   }
 
   .commit-row-sha {
+    display: none;
+  }
+}
+
+@container (max-width: 760px) {
+  // One ref, named, is more use than several cut to nothing. The subject comes
+  // first here, and a link it cuts keeps its text rather than a lone logo.
+  .commit-row-refs {
+    max-width: 32%;
+
+    .change-marker {
+      display: none;
+    }
+
+    .ref-badge {
+      min-width: 88px;
+    }
+
+    > :not(:first-child):not(.commit-row-refs-more) {
+      display: none;
+    }
+  }
+
+  .commit-row-refs-more {
+    display: inline;
+  }
+
+  .commit-row-subject .reference-logo {
     display: none;
   }
 }
@@ -75,8 +103,7 @@
 }
 
 .commit-row-selected {
-  background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--primary);
+  @include patterns.selected-row;
 }
 
 // Appears instantly, then fades out over --dur-base.
@@ -104,7 +131,8 @@
 // A pill with a PR marker shortens its name and keeps the marker whole.
 .commit-row-refs {
   display: flex;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  max-width: 36%;
   gap: var(--space-xs);
   min-width: 0;
   overflow: hidden;
@@ -121,9 +149,16 @@
   }
 }
 
+.commit-row-refs-more {
+  display: none;
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
 .commit-row-subject {
-  flex: 1 1 auto;
-  min-width: 50%;
+  flex: 1 1 0;
+  min-width: 0;
   @include patterns.truncate;
   font: var(--title-md);
 }
@@ -138,12 +173,17 @@
 .commit-row-author-name {
   @include patterns.truncate;
   color: var(--on-surface-variant);
-  font: var(--data-sm);
+  font: var(--ui-sm);
 }
 
 .commit-row-sha {
-  color: var(--primary);
+  color: var(--on-surface-variant);
   font: var(--data-sm);
+}
+
+.commit-row-head {
+  flex-shrink: 0;
+  @include patterns.head-badge;
 }
 
 // Always rendered, so the icons line up down the list.
@@ -155,11 +195,15 @@
 .commit-row-time {
   grid-column: -2;
   text-align: right;
-  color: var(--outline);
+  color: var(--on-surface-variant);
   font: var(--ui-xs);
   white-space: nowrap;
 }
 
 .commit-row-type {
   color: var(--on-surface-variant);
+}
+
+.commit-row-author .identity-badge {
+  filter: saturate(0.6);
 }

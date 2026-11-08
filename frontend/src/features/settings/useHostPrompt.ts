@@ -18,7 +18,7 @@ export function useHostPrompt(repoPath: string | null, onChanged: () => void) {
         const provider = providerLabel(host.provider)
         const enable = await dialogs.confirm({
           title: `Turn on ${provider} integration?`,
-          message: `Turns on ${provider} integration for ${host.hostname}. Current Client calls its API when you open merge requests or refresh, and at no other time. Nothing is sent until then.`,
+          message: `Turns on ${provider} integration for ${host.hostname}. Current Client calls its API only when merge requests are opened or refreshed. Nothing is sent until then.`,
           confirmLabel: 'Enable',
           cancelLabel: 'Not now',
         })

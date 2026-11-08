@@ -1,6 +1,7 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
-import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, X } from 'lucide-react'
+import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, TriangleAlert, X, Table } from 'lucide-react'
 import {
+  StackService,
   type BranchInfo,
   BranchService,
   type ConflictStateInfo,
@@ -8,16 +9,20 @@ import {
   HostService,
   type OverlapInfo,
   OverlapService,
-  PlatformService,
   RemoteService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
-import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
+import ContextMenu, { menuAnchor, rowKeyDown, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { localNameFor } from './branches'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import SetUpstreamDialog from './SetUpstreamDialog'
+import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
+import BranchReviewDialog from './BranchReviewDialog'
+import RebasePreviewDialog from './RebasePreviewDialog'
+import StackSection from './StackSection'
+import TidyUpDialog from './TidyUpDialog'
 import CleanUpBranchesDialog, { type DeletedBranch } from './CleanUpBranchesDialog'
 import { toBranchName } from '../../lib/branchName'
 import { operationBadge, operationNoun } from '../../lib/conflictWords'
@@ -34,11 +39,13 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLinks } from '../../lib/useHostLinks'
 import BranchPill from '../../components/git/BranchPill'
 import ChangeMarker from '../../components/git/ChangeMarker'
+import { arrowIntoList } from '../../lib/useRovingRows'
 import CIMark, { ciLabel } from '../../components/git/CIMark'
 import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
-import { branchPage, remoteBranchName } from '../../lib/hostPages'
+import { branchPage, openWebPage, remoteBranchName } from '../../lib/hostPages'
 import IssuePicker from './IssuePicker'
+import { useActionError } from '../../lib/useActionError'
 import './BranchSidebar.scss'
 
 interface BranchSidebarProps {
@@ -112,24 +119,47 @@ function BranchSidebar({
   const overlapFor = new Map(overlaps.map((o) => [o.branch, o]))
   const remoteConflicts = overlaps.filter((o) => o.remote).length
   const { confirm, prompt } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
+  const branchesChanged = () => {
+    loadBranches()
+    onBranchChanged?.()
+  }
   const [newBranchName, setNewBranchName] = useState('')
   const [newBranchKind, setNewBranchKind] = useState<NewBranchKind>('branch')
   const [showNewBranch, setShowNewBranch] = useState(false)
   const newBranch = toBranchName(newBranchName)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   // Refreshes the graph too, which still shows the deleted remote branch.
-  const deleteRemote = useDeleteRemoteBranch(repoPath, () => {
-    loadBranches()
-    onBranchChanged?.()
-  })
+  const deleteRemote = useDeleteRemoteBranch(repoPath, branchesChanged)
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
+  const notes = useNotes()
   const [cleanUp, setCleanUp] = useState(false)
+  const [branchReview, setBranchReview] = useState(false)
+  const [rebasePreview, setRebasePreview] = useState<string | null>(null)
+  const [tidyUp, setTidyUp] = useState(false)
+  const { data: stackList, reload: reloadStacks } = useAsyncData(() => StackService.List(repoPath), [repoPath], {
+    refreshKey,
+  })
+  const [restack, setRestack] = useState<string | null>(null)
+  const stackWith = (name: string) => stackList?.stacks.find((stack) => stack.layers.some((l) => l.branch === name))
   useEffect(() => {
     if (request?.action === 'clean-up') setCleanUp(true)
+    if (request?.action === 'branch-review') setBranchReview(true)
+    if (request?.action === 'tidy-up') setTidyUp(true)
+    if (request?.action === 'restack') {
+      const stack = stackWith(branchStatus?.current ?? '')
+      if (stack) {
+        if (!sections.isOpen('branches', true)) sections.toggle('branches', true)
+        if (!sections.isOpen('branches-stacks', true)) sections.toggle('branches-stacks', true)
+        setRestack(stack.root)
+      } else {
+        setActionError("The current branch isn't in a stack.")
+      }
+    }
     if (request?.action === 'new-branch') setShowNewBranch(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request])
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
@@ -137,11 +167,8 @@ function BranchSidebar({
   const checkoutBranch = (name: string) => {
     setActionError(null)
     BranchService.CheckoutBranch(repoPath, name)
-      .then(() => {
-        loadBranches()
-        onBranchChanged?.()
-      })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .then(branchesChanged)
+      .catch((err: unknown) => setActionError(`Could not check out ${name}: ${errorMessage(err)}`))
   }
 
   const createBranch = () => {
@@ -155,10 +182,38 @@ function BranchSidebar({
         setNewBranchName('')
         setNewBranchKind('branch')
         setShowNewBranch(false)
-        loadBranches()
-        onBranchChanged?.()
+        branchesChanged()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
+  }
+
+  const stacksChanged = () => {
+    reloadStacks()
+    branchesChanged()
+  }
+
+  const newStackedBranch = async (parent: string) => {
+    const name = await prompt({
+      title: `New branch on ${parent}`,
+      label: 'New branch name',
+      confirmLabel: 'Create',
+      transform: toBranchName,
+    })
+    if (!name) return
+    setActionError(null)
+    StackService.NewLayer(repoPath, name, parent).then(stacksChanged).catch(fail)
+  }
+
+  const stackCurrentOn = (parent: string) => {
+    setActionError(null)
+    StackService.AddLayer(repoPath, branchStatus?.current ?? '', parent)
+      .then(reloadStacks)
+      .catch(fail)
+  }
+
+  const removeFromStack = (name: string) => {
+    setActionError(null)
+    StackService.RemoveLayer(repoPath, name).then(reloadStacks).catch(fail)
   }
 
   const renameBranch = async (oldName: string) => {
@@ -171,9 +226,7 @@ function BranchSidebar({
     })
     if (!newName) return
     setActionError(null)
-    BranchService.RenameBranch(repoPath, oldName, newName)
-      .then(loadBranches)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    BranchService.RenameBranch(repoPath, oldName, newName).then(loadBranches).catch(fail)
   }
 
   // mode is '' (fast-forward when possible), 'no-ff' or 'squash'.
@@ -184,12 +237,9 @@ function BranchSidebar({
       .then(() => {
         if (mode === 'squash') setSquashed(name)
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
-      .finally(() => {
-        // A failed merge leaves conflicts the banner must pick up.
-        loadBranches()
-        onBranchChanged?.()
-      })
+      .catch(fail)
+      // A failed merge leaves conflicts the banner must pick up.
+      .finally(branchesChanged)
   }
 
   const mergeDefaultBranch = async (name: string) => {
@@ -206,13 +256,9 @@ function BranchSidebar({
   }
 
   const rebaseOnto = (name: string) => {
+    setRebasePreview(null)
     setActionError(null)
-    BranchService.RebaseOnto(repoPath, name)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
-      .finally(() => {
-        loadBranches()
-        onBranchChanged?.()
-      })
+    BranchService.RebaseOnto(repoPath, name).catch(fail).finally(branchesChanged)
   }
 
   const deleteBranch = (name: string, force: boolean) => {
@@ -227,27 +273,20 @@ function BranchSidebar({
         if (!force && errorMessage(err) === 'This branch has unmerged changes.') {
           const confirmed = await confirm({
             title: 'Delete branch',
-            message: `"${name}" has unmerged changes. Delete anyway?`,
+            message: `"${name}" has unmerged changes. Delete anyway? Its commits stay in Recover.`,
             confirmLabel: 'Delete',
             destructive: true,
           })
           if (confirmed) deleteBranch(name, true)
           return
         }
-        setActionError(errorMessage(err))
+        fail(err)
       })
-  }
-
-  const upstreamChanged = () => {
-    loadBranches()
-    onBranchChanged?.()
   }
 
   const unsetUpstream = (name: string) => {
     setActionError(null)
-    BranchService.UnsetUpstream(repoPath, name)
-      .then(upstreamChanged)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    BranchService.UnsetUpstream(repoPath, name).then(branchesChanged).catch(fail)
   }
 
   const restoreDeleted = (branches: DeletedBranch[]) => {
@@ -260,18 +299,15 @@ function BranchSidebar({
         }),
       ),
     )
-      .catch((err: unknown) => setActionError(errorMessage(err)))
-      .finally(() => {
-        loadBranches()
-        onBranchChanged?.()
-      })
+      .catch(fail)
+      .finally(branchesChanged)
   }
 
   const cleanedUp = (branches: DeletedBranch[]) => {
     setCleanUp(false)
+    setBranchReview(false)
     setDeleted(branches.length > 0 ? branches : null)
-    loadBranches()
-    onBranchChanged?.()
+    branchesChanged()
   }
 
   const createChange = (name: string) => createChangeFor(repoPath, name, onCreateChange)
@@ -291,7 +327,7 @@ function BranchSidebar({
       ...menuAnchor(e),
       items: [
         { label: 'Check out', onClick: () => checkoutBranch(b.name), disabled: b.current || !!blocked },
-        { label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
+        { separatorBefore: true, label: 'Merge into current', onClick: () => mergeBranch(b.name), disabled: b.current },
         {
           label: 'Merge into current (no fast-forward)',
           onClick: () => mergeBranch(b.name, 'no-ff'),
@@ -301,11 +337,22 @@ function BranchSidebar({
         ...(b.current && defaultBranch && defaultBranch !== b.name
           ? [{ label: `Merge ${defaultBranch} into current`, onClick: () => mergeDefaultBranch(defaultBranch) }]
           : []),
-        { label: 'Rebase current onto', onClick: () => rebaseOnto(b.name), disabled: b.current },
-        { label: 'Compare with current', onClick: () => setCompareWith(b.name), disabled: b.current },
-        ...(hostLinks?.tree
-          ? [{ label: 'Open on host', onClick: () => void PlatformService.OpenWebPage(branchHostPage(b)) }]
-          : []),
+        ...(b.current ? [{ label: 'Tidy up history…', onClick: () => setTidyUp(true) }] : []),
+        { label: 'Rebase current onto…', onClick: () => setRebasePreview(b.name), disabled: b.current },
+        {
+          separatorBefore: true,
+          label: 'Compare with current',
+          onClick: () => setCompareWith(b.name),
+          disabled: b.current,
+        },
+        { label: 'New stacked branch…', onClick: () => void newStackedBranch(b.name) },
+        {
+          label: 'Stack current on this',
+          onClick: () => stackCurrentOn(b.name),
+          disabled: b.current || !branchStatus?.current || branchStatus.current === defaultBranch,
+        },
+        ...(stackWith(b.name) ? [{ label: 'Remove from stack', onClick: () => removeFromStack(b.name) }] : []),
+        ...(hostLinks?.tree ? [{ label: 'Open on host', onClick: () => openWebPage(branchHostPage(b)) }] : []),
         ...(hostLinks?.tree && b.upstream && !changes[b.upstream]?.state
           ? [
               {
@@ -314,10 +361,20 @@ function BranchSidebar({
               },
             ]
           : []),
-        { label: 'Rename…', onClick: () => renameBranch(b.name) },
+        {
+          label: noteMenuLabel(notes, 'branch', b.name),
+          onClick: () => notes.edit({ kind: 'branch', target: b.name }),
+        },
+        { separatorBefore: true, label: 'Rename…', onClick: () => renameBranch(b.name) },
         { label: 'Set upstream…', onClick: () => setUpstreamFor(b) },
         ...(b.upstream ? [{ label: 'Unset upstream', onClick: () => unsetUpstream(b.name) }] : []),
-        { label: 'Delete', onClick: () => deleteBranch(b.name, false), destructive: true, disabled: b.current },
+        {
+          separatorBefore: true,
+          label: 'Delete',
+          onClick: () => deleteBranch(b.name, false),
+          destructive: true,
+          disabled: b.current,
+        },
         ...(b.upstream
           ? [
               {
@@ -355,19 +412,6 @@ function BranchSidebar({
   const localNames = new Set((branches ?? []).map((b) => b.name))
   const remoteList = (remoteBranches ?? []).filter((name) => name.toLowerCase().includes(query))
 
-  // Enter and Space activate a row like a click; the menu key opens its menu.
-  const rowKeys = (activate: () => void, menu: (e: KeyboardEvent) => void) => (e: KeyboardEvent<HTMLLIElement>) => {
-    if (isMenuKey(e)) {
-      menu(e)
-      return
-    }
-    if (e.target !== e.currentTarget) return
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      activate()
-    }
-  }
-
   // What the row has no room for: where the tip is deployed, beside CI and age.
   const branchSummary = (b: BranchInfo) => {
     const ci = ciMarks?.[b.tip]?.status
@@ -386,13 +430,19 @@ function BranchSidebar({
     <li
       key={b.name}
       className={`branch-row${b.current ? ' branch-row-current' : ''}${blocked && !b.current ? ' branch-row-blocked' : ''}`}
-      onClick={() => !b.current && !blocked && checkoutBranch(b.name)}
+      onDoubleClick={() => !b.current && !blocked && checkoutBranch(b.name)}
       onContextMenu={branchContextMenu(b)}
       role="button"
       tabIndex={0}
       aria-disabled={blocked && !b.current ? true : undefined}
-      title={blocked && !b.current ? blocked : branchSummary(b)}
-      onKeyDown={rowKeys(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
+      title={
+        blocked && !b.current
+          ? blocked
+          : b.current
+            ? branchSummary(b)
+            : `${branchSummary(b)}\nDouble-click to check out`
+      }
+      onKeyDown={rowKeyDown(() => !b.current && !blocked && checkoutBranch(b.name), branchContextMenu(b))}
     >
       <BranchPill
         name={b.name}
@@ -402,12 +452,14 @@ function BranchSidebar({
         hostLinks={hostLinks}
         referenceCards={referenceCards}
       />
-      {b.current && <span className="branch-row-head">HEAD</span>}
+      <NoteMark kind="branch" target={b.name} />
       {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
-      {conflict && !b.current && b.name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
-      <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />
+      {conflict && !b.current && b.name === conflict.theirs && (
+        <span className="branch-row-mode branch-row-mode-incoming">incoming</span>
+      )}
+      {!b.current && <ChangeMarker change={b.upstream ? changes[b.upstream] : undefined} />}
       {!(b.upstream && changes[b.upstream]) && <CIMark repoPath={repoPath} mark={ciMarks?.[b.tip]} />}
-      <ConflictsBadge overlap={overlapFor.get(b.name)} />
+      {!(conflict && b.name === conflict.theirs) && <ConflictsBadge overlap={overlapFor.get(b.name)} />}
       {!b.current && b.worktreePath && (
         <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>
           worktree
@@ -459,17 +511,19 @@ function BranchSidebar({
     <li
       key={name}
       className={blocked ? 'branch-row branch-row-remote branch-row-blocked' : 'branch-row branch-row-remote'}
-      onClick={() => !blocked && checkoutBranch(localNameFor(name, remoteNames))}
+      onDoubleClick={() => !blocked && checkoutBranch(localNameFor(name, remoteNames))}
       onContextMenu={remoteMenu(name)}
       role="button"
       tabIndex={0}
       aria-disabled={blocked ? true : undefined}
-      title={blocked ?? undefined}
-      onKeyDown={rowKeys(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
+      title={blocked ?? 'Double-click to check out'}
+      onKeyDown={rowKeyDown(() => !blocked && checkoutBranch(localNameFor(name, remoteNames)), remoteMenu(name))}
     >
       <Cloud size={14} strokeWidth={1.5} className="branch-row-remote-icon" />
       <span className="branch-row-remote-name">{name}</span>
-      {conflict && name === conflict.theirs && <span className="branch-row-mode">incoming</span>}
+      {conflict && name === conflict.theirs && (
+        <span className="branch-row-mode branch-row-mode-incoming">incoming</span>
+      )}
       <ConflictsBadge overlap={overlapFor.get(name)} />
       {!localNames.has(localNameFor(name, remoteNames)) && <span className="branch-row-meta">not local</span>}
     </li>
@@ -511,8 +565,18 @@ function BranchSidebar({
             >
               <BrushCleaning size={18} strokeWidth={1.75} />
             </button>
+            <button
+              type="button"
+              className="branch-sidebar-add"
+              onClick={() => setBranchReview(true)}
+              aria-label="Branch review"
+              title="Branch review"
+            >
+              <Table size={18} strokeWidth={1.75} />
+            </button>
           </>
         }
+        onPinnedEscape={() => setShowNewBranch(false)}
         pinned={
           showNewBranch && (
             <div className="branch-sidebar-new">
@@ -554,7 +618,16 @@ function BranchSidebar({
           )
         }
       >
-        {error && <p className="branch-sidebar-error">{error}</p>}
+        {error && (
+          <p className="branch-sidebar-error" role="alert">
+            <span>{error}</span>
+            {actionError && (
+              <button type="button" aria-label="Dismiss" title="Dismiss" onClick={() => setActionError(null)}>
+                <X size={14} strokeWidth={1.75} />
+              </button>
+            )}
+          </p>
+        )}
         {deleteRemote.error && <p className="branch-sidebar-error">Could not delete on remote: {deleteRemote.error}</p>}
         {deleted && (
           <p className="branch-sidebar-deleted" role="status">
@@ -588,6 +661,7 @@ function BranchSidebar({
               <Search size={14} strokeWidth={1.5} />
               <input
                 aria-label="Filter branches"
+                onKeyDown={(e) => arrowIntoList(e, '.branch-row')}
                 placeholder="Filter branches…"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
@@ -599,9 +673,34 @@ function BranchSidebar({
                 <ul className="branch-sidebar-list">{renderLocalRow(current)}</ul>
               </div>
             )}
+            {stackList && stackList.stacks.length > 0 && (
+              <div className="branch-sidebar-group">
+                <SidebarSection
+                  label="Stacks"
+                  count={stackList.stacks.length}
+                  open={sections.isOpen('branches-stacks', true)}
+                  onToggle={() => sections.toggle('branches-stacks', true)}
+                >
+                  <StackSection
+                    repoPath={repoPath}
+                    list={stackList}
+                    current={branchStatus?.current ?? null}
+                    inOperation={!!conflict}
+                    restack={restack}
+                    onRestackChange={setRestack}
+                    onCheckout={(name) => !blocked && checkoutBranch(name)}
+                    onRowMenu={(name) => {
+                      const branch = branches.find((b) => b.name === name)
+                      return branch && branchContextMenu(branch)
+                    }}
+                    onChanged={stacksChanged}
+                  />
+                </SidebarSection>
+              </div>
+            )}
             <div className="branch-sidebar-group">
               <SidebarSection
-                label="Local"
+                label="Local branches"
                 count={localBranches.length}
                 open={localOpen}
                 onToggle={() => sections.toggle('branches-local', true)}
@@ -611,7 +710,7 @@ function BranchSidebar({
             </div>
             <div className="branch-sidebar-group">
               <SidebarSection
-                label="Remote"
+                label="Remote branches"
                 count={remoteBranches === null ? undefined : remoteList.length}
                 open={remoteOpen}
                 onToggle={() => sections.toggle('branches-remote', false)}
@@ -619,7 +718,7 @@ function BranchSidebar({
                   remoteConflicts > 0 && (
                     <span
                       className="branch-conflicts-badge"
-                      title={`${plural(remoteConflicts, 'remote branch')} would conflict with the current branch`}
+                      title={`${plural(remoteConflicts, 'remote branch', 'remote branches')} would conflict with the current branch`}
                     >
                       {remoteConflicts} conflicts
                     </span>
@@ -635,6 +734,27 @@ function BranchSidebar({
       </SidebarSection>
 
       {cleanUp && <CleanUpBranchesDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setCleanUp(false)} />}
+      {tidyUp && (
+        <TidyUpDialog
+          repoPath={repoPath}
+          onDone={() => {
+            setTidyUp(false)
+            branchesChanged()
+          }}
+          onClose={() => setTidyUp(false)}
+        />
+      )}
+      {rebasePreview && (
+        <RebasePreviewDialog
+          repoPath={repoPath}
+          onto={rebasePreview}
+          onRebase={() => rebaseOnto(rebasePreview)}
+          onClose={() => setRebasePreview(null)}
+        />
+      )}
+      {branchReview && (
+        <BranchReviewDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setBranchReview(false)} />
+      )}
       {upstreamFor && (
         <SetUpstreamDialog
           repoPath={repoPath}
@@ -643,7 +763,7 @@ function BranchSidebar({
           onClose={() => setUpstreamFor(null)}
           onSet={() => {
             setUpstreamFor(null)
-            upstreamChanged()
+            branchesChanged()
           }}
         />
       )}
@@ -651,7 +771,7 @@ function BranchSidebar({
       {compareWith && (
         <CompareModal
           repoPath={repoPath}
-          initialFromRef={branches?.find((b) => b.current)?.name ?? compareWith}
+          initialFromRef={current?.name ?? compareWith}
           initialToRef={compareWith}
           onClose={() => setCompareWith(null)}
         />
@@ -667,7 +787,7 @@ function ConflictsBadge({ overlap }: { overlap?: OverlapInfo }) {
       className="branch-conflicts-badge"
       title={`Would conflict with the current branch: ${overlap.files.join(', ')}`}
     >
-      conflicts
+      <TriangleAlert size={12} strokeWidth={1.75} aria-label="Conflicts" />
     </span>
   )
 }

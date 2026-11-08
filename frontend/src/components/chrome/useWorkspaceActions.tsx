@@ -7,16 +7,19 @@ import {
   ShieldCheck,
   Sparkles,
   Split,
-  Terminal,
+  SquareTerminal,
   Undo2,
   type LucideIcon,
+  LifeBuoy,
 } from 'lucide-react'
 import { DashboardService, PatchService, PlatformService, UndoService } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { hostName, repositoryPage } from '../../lib/hostPages'
 import BisectWizard from '../../features/history/BisectWizard'
+import RecoverPanel from '../../features/history/RecoverPanel'
 import ReflogPanel from '../../features/history/ReflogPanel'
-import { undoConfirmOptions } from '../../features/history/undoPreview'
+import { undoActionLabel, undoConfirmOptions } from '../../features/history/undoPreview'
+import type { ActionResult } from '../../lib/actionResult'
 import { errorMessage } from '../../lib/errors'
 import { fileManagerName, revealInFileManagerLabel } from '../../lib/fileManager'
 import { operationNoun } from '../../lib/conflictWords'
@@ -36,6 +39,7 @@ export interface WorkspaceAction {
   icon: LucideIcon
   // Other words the palette finds it by.
   keywords?: string[]
+  shortcut?: string
   run: () => void
   // Set while the action can't run, with the reason for its tooltip.
   disabled?: boolean
@@ -55,9 +59,12 @@ interface WorkspaceActionsOptions {
   editorPath?: string
   // The merge, rebase, cherry-pick or revert in progress; undo and bisect wait for it.
   operation?: string | null
+  // Opens the embedded terminal; absent where it's turned off.
+  onOpenTerminal?: () => void
   onBranchChanged: () => void
   onOpenCommit: (sha: string) => void
   onFailure: () => void
+  onUndone?: (result: ActionResult) => void
 }
 
 interface WorkspaceActions {
@@ -67,7 +74,7 @@ interface WorkspaceActions {
   modals: ReactNode
 }
 
-export function editorName(editorPath: string): string {
+function editorName(editorPath: string): string {
   if (!editorPath) return 'VS Code'
   return baseName(editorPath).replace(/\.(exe|app|cmd)$/i, '')
 }
@@ -82,10 +89,12 @@ export function useWorkspaceActions({
   hostLinks = null,
   editorPath = '',
   operation = null,
+  onOpenTerminal,
+  onUndone,
 }: WorkspaceActionsOptions): WorkspaceActions {
   const { confirm } = useDialogs()
   const [feedback, setFeedback] = useState<(WorkspaceFeedback & { repoPath: string }) | null>(null)
-  const [open, setOpen] = useState<'reflog' | 'bisect' | null>(null)
+  const [open, setOpen] = useState<'reflog' | 'recover' | 'bisect' | null>(null)
   const dismissFeedback = () => setFeedback(null)
 
   if (!repoPath) return { actions: [], feedback: null, dismissFeedback, modals: null }
@@ -105,6 +114,7 @@ export function useWorkspaceActions({
     if (!(await confirm(undoConfirmOptions(plan)))) return
     await UndoService.Apply(repoPath, plan)
     onBranchChanged()
+    onUndone?.({ text: undoActionLabel(plan).replace(/^Undo/, 'Undid') })
   }
 
   const importPatch = () =>
@@ -126,14 +136,20 @@ export function useWorkspaceActions({
   const blocked = operation ? { disabled: true, reason: `Finish the ${operationNoun(operation)} first` } : {}
 
   const actions: WorkspaceAction[] = [
-    {
-      id: 'open-terminal',
-      label: 'Open Terminal',
-      short: 'Terminal',
-      group: 'open',
-      icon: Terminal,
-      run: () => run(PlatformService.OpenTerminal(repoPath), 'Could not open terminal'),
-    },
+    ...(onOpenTerminal
+      ? [
+          {
+            id: 'terminal-panel',
+            label: 'Terminal panel',
+            short: 'Terminal',
+            group: 'open' as const,
+            icon: SquareTerminal,
+            keywords: ['shell', 'console', 'command line'],
+            shortcut: 'ctrl+`',
+            run: onOpenTerminal,
+          },
+        ]
+      : []),
     {
       id: 'reveal-file-manager',
       label: revealInFileManagerLabel(),
@@ -170,6 +186,14 @@ export function useWorkspaceActions({
       icon: Undo2,
       run: () => run(undoLast(), 'Could not undo'),
       ...blocked,
+    },
+    {
+      id: 'recover',
+      label: 'Recover discarded work',
+      short: 'Recover',
+      group: 'tools',
+      icon: LifeBuoy,
+      run: () => setOpen('recover'),
     },
     { id: 'reflog', label: 'Reflog', short: 'Reflog', group: 'tools', icon: History, run: () => setOpen('reflog') },
     {
@@ -209,6 +233,9 @@ export function useWorkspaceActions({
 
   const modals = (
     <>
+      {open === 'recover' && (
+        <RecoverPanel repoPath={repoPath} onClose={() => setOpen(null)} onBranchChanged={onBranchChanged} />
+      )}
       {open === 'reflog' && (
         <ReflogPanel repoPath={repoPath} onClose={() => setOpen(null)} onBranchChanged={onBranchChanged} />
       )}

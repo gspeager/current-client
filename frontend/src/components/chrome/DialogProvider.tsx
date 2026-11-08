@@ -1,4 +1,5 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useRef, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { restoreFocus } from '../../lib/panes'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
 import { DialogContext, type ConfirmOptions, type Dialogs, type PromptOptions } from '../../lib/useDialogs'
@@ -14,18 +15,27 @@ type Request =
 
 function ConfirmDialog({ options, onSettle }: { options: ConfirmOptions; onSettle: (confirmed: boolean) => void }) {
   const { element } = useCurrentClientRoot()
+  const opener = useRef(document.activeElement)
   return (
     <AlertDialog.Root open onOpenChange={(open) => !open && onSettle(false)}>
       <AlertDialog.Portal container={element}>
         <AlertDialog.Overlay className="modal-overlay modal-overlay-center">
-          <AlertDialog.Content className="modal-panel dialog-panel">
+          <AlertDialog.Content
+            className="modal-panel dialog-panel"
+            onCloseAutoFocus={(e) => {
+              e.preventDefault()
+              restoreFocus(opener.current)
+            }}
+          >
             <div className="modal-header">
               <AlertDialog.Title className="modal-title">{options.title}</AlertDialog.Title>
             </div>
             <div className="dialog-body">
               <AlertDialog.Description className="dialog-message">{options.message}</AlertDialog.Description>
               <div className="dialog-actions">
-                <AlertDialog.Cancel className="dialog-button">{options.cancelLabel ?? 'Cancel'}</AlertDialog.Cancel>
+                {!options.noCancel && (
+                  <AlertDialog.Cancel className="dialog-button">{options.cancelLabel ?? 'Cancel'}</AlertDialog.Cancel>
+                )}
                 <AlertDialog.Action
                   className={`dialog-button ${options.destructive ? 'dialog-button-destructive' : 'dialog-button-primary'}`}
                   onClick={() => onSettle(true)}
@@ -95,36 +105,19 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const settle =
+    <T,>(resolve: (value: T) => void) =>
+    (value: T) => {
+      resolve(value)
+      setRequest(null)
+    }
+
   return (
     <DialogContext.Provider value={dialogs}>
       {children}
-      {request?.kind === 'confirm' && (
-        <ConfirmDialog
-          options={request.options}
-          onSettle={(confirmed) => {
-            request.resolve(confirmed)
-            setRequest(null)
-          }}
-        />
-      )}
-      {request?.kind === 'prompt' && (
-        <PromptDialog
-          options={request.options}
-          onSettle={(value) => {
-            request.resolve(value)
-            setRequest(null)
-          }}
-        />
-      )}
-      {request?.kind === 'signIn' && (
-        <SignInDialog
-          options={request.options}
-          onSettle={(value) => {
-            request.resolve(value)
-            setRequest(null)
-          }}
-        />
-      )}
+      {request?.kind === 'confirm' && <ConfirmDialog options={request.options} onSettle={settle(request.resolve)} />}
+      {request?.kind === 'prompt' && <PromptDialog options={request.options} onSettle={settle(request.resolve)} />}
+      {request?.kind === 'signIn' && <SignInDialog options={request.options} onSettle={settle(request.resolve)} />}
     </DialogContext.Provider>
   )
 }

@@ -16,9 +16,8 @@ type Branch struct {
 	Ahead          int
 	Behind         int
 	LastCommitDate string
-	// WorktreePath is the worktree the branch is checked out in, if any.
-	WorktreePath string
-	Tip          string
+	WorktreePath   string
+	Tip            string
 }
 
 func ListBranches(ctx context.Context, repoPath string) ([]Branch, error) {
@@ -27,8 +26,7 @@ func ListBranches(ctx context.Context, repoPath string) ([]Branch, error) {
 }
 
 type branchList struct {
-	branches []Branch
-	// goneUpstream holds the branches whose upstream no longer exists.
+	branches     []Branch
 	goneUpstream map[string]bool
 	// head is the current branch's commit, "" when HEAD isn't on a branch.
 	head string
@@ -43,6 +41,33 @@ func listBranches(ctx context.Context, repoPath string) (branchList, error) {
 		}
 		return parseLocalBranches(result.Stdout), nil
 	})
+}
+
+func (list branchList) current() (Branch, bool) {
+	for _, b := range list.branches {
+		if b.Current {
+			return b, true
+		}
+	}
+	return Branch{}, false
+}
+
+// upstream is "" when b's upstream no longer exists.
+func (list branchList) upstream(b Branch) string {
+	if list.goneUpstream[b.Name] {
+		return ""
+	}
+	return b.Upstream
+}
+
+// base is the default branch's upstream when it has one, else def itself.
+func (list branchList) base(def string) string {
+	for _, b := range list.branches {
+		if b.Name == def && list.upstream(b) != "" {
+			return b.Upstream
+		}
+	}
+	return def
 }
 
 func parseLocalBranches(output string) branchList {
@@ -105,7 +130,6 @@ func CreateBranchAt(ctx context.Context, repoPath, name, startPoint string) erro
 	return err
 }
 
-// CheckoutCommit detaches HEAD at sha, for looking at an old version.
 func CheckoutCommit(ctx context.Context, repoPath, sha string) error {
 	_, err := runResult(ctx, repoPath, "switch", "--detach", sha)
 	return err
@@ -159,10 +183,7 @@ func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, er
 	if err != nil {
 		return BranchStatus{}, err
 	}
-	for _, b := range list.branches {
-		if !b.Current {
-			continue
-		}
+	if b, ok := list.current(); ok {
 		// git branch lists a detached HEAD, or one mid-rebase, as "(HEAD detached at …)".
 		if strings.HasPrefix(b.Name, "(") {
 			sha, err := runResult(ctx, repoPath, "rev-parse", "--short", "HEAD")
@@ -177,11 +198,11 @@ func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, er
 		return BranchStatus{Current: b.Name, Upstream: b.Upstream, Ahead: b.Ahead, Behind: b.Behind}, nil
 	}
 	// An unborn branch has no row yet.
-	unborn, err := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "HEAD")
+	unborn, err := headBranch(ctx, repoPath)
 	if err != nil {
 		return BranchStatus{}, err
 	}
-	return BranchStatus{Current: strings.TrimSpace(unborn.Stdout)}, nil
+	return BranchStatus{Current: unborn}, nil
 }
 
 func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
@@ -195,7 +216,6 @@ func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
 	return slices.Clone(branches), err
 }
 
-// BranchesContaining lists the local branches whose history includes sha.
 // for-each-ref, not branch, so a detached HEAD isn't listed as "(HEAD detached at …)".
 func BranchesContaining(ctx context.Context, repoPath, sha string) ([]string, error) {
 	result, err := runResult(ctx, repoPath, "for-each-ref", "refs/heads", "--contains", sha, "--format=%(refname:short)")
@@ -250,4 +270,32 @@ func defaultBranch(branches []Branch, remoteHead string) string {
 		}
 	}
 	return ""
+}
+
+// CommitReachable says whether any ref still leads to sha. A commit a rebase
+// replaced is unreachable, though the object lingers until Git collects it.
+func CommitReachable(ctx context.Context, repoPath, sha string) bool {
+	result, err := runResult(ctx, repoPath, "for-each-ref", "--count=1", "--contains="+sha, "refs/heads", "refs/remotes", "refs/tags")
+	if err != nil {
+		return false
+	}
+	if strings.TrimSpace(result.Stdout) != "" {
+		return true
+	}
+	return isAncestor(ctx, repoPath, sha, "HEAD")
+}
+
+// CommitOnAnotherRef says whether any branch, remote branch or tag besides except
+// leads to sha.
+func CommitOnAnotherRef(ctx context.Context, repoPath, sha, except string) bool {
+	result, err := runResult(ctx, repoPath, "for-each-ref", "--format=%(refname)", "--contains="+sha, "refs/heads", "refs/remotes", "refs/tags")
+	if err != nil {
+		return false
+	}
+	for _, ref := range strings.Fields(result.Stdout) {
+		if ref != except {
+			return true
+		}
+	}
+	return false
 }

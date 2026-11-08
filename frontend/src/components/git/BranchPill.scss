@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .branch-pill {
   display: inline-flex;
   align-items: center;
@@ -8,9 +10,7 @@
   background: var(--surface-container);
   color: var(--on-surface);
   font: var(--data-md);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include patterns.truncate;
 }
 
 // One run of text, so a linked issue key sits in the name with no gap.
@@ -20,7 +20,8 @@
   text-overflow: ellipsis;
 }
 
-.branch-pill-dot {
+.branch-pill-dot,
+.branch-pill-dirty {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -38,9 +39,5 @@
 }
 
 .branch-pill-dirty {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
   background: var(--warning);
 }

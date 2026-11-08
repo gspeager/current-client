@@ -1,0 +1,85 @@
+@use '../../styles/patterns';
+
+.rebase-preview-panel {
+  width: min(640px, 90vw);
+}
+
+.rebase-preview-commits {
+  max-height: 40vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.rebase-preview-commit {
+  padding: var(--space-xs) 0;
+  border-top: var(--border-structure);
+}
+
+.rebase-preview-commit-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.rebase-preview-sha {
+  flex-shrink: 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.rebase-preview-subject {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.rebase-preview-outcome {
+  flex-shrink: 0;
+  font: var(--ui-xs);
+}
+
+.rebase-preview-outcome-conflict {
+  color: var(--error);
+}
+
+.rebase-preview-outcome-empty {
+  color: var(--outline);
+}
+
+.rebase-preview-files {
+  margin: var(--space-xs) 0 0;
+  overflow-wrap: anywhere;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.rebase-preview-command {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.restack-layer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.restack-layer-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.restack-layer-branch {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}

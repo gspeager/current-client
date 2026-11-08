@@ -3,6 +3,16 @@ import { relativeTime, sinceDaysAgo } from './relativeTime'
 const now = new Date('2026-01-10T12:00:00Z')
 
 describe('relativeTime', () => {
+  it('switches to a date after a week', () => {
+    expect(relativeTime(new Date('2026-01-04T12:00:00Z'), now)).toBe('6d ago')
+    expect(relativeTime(new Date('2026-01-03T12:00:00Z'), now)).toBe('Jan 3')
+    expect(relativeTime(new Date('2025-03-14T12:00:00Z'), now)).toBe('Mar 14')
+  })
+
+  it('names the year rather than the day past a year', () => {
+    expect(relativeTime(new Date('2024-03-14T12:00:00Z'), now)).toBe('Mar 2024')
+  })
+
   it('uses the largest whole unit', () => {
     expect(relativeTime(new Date('2026-01-10T11:59:55Z'), now)).toBe('just now')
     expect(relativeTime(new Date('2026-01-10T11:59:30Z'), now)).toBe('30s ago')

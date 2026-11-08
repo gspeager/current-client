@@ -4,10 +4,24 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  padding: var(--space-sm);
-  background: var(--surface);
-  border: var(--border-structure);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-container);
   border-radius: var(--radius);
+}
+
+.current-change-slot-title {
+  margin: 0;
+  padding: 0 var(--space-xs);
+  color: var(--outline);
+  @include patterns.eyebrow;
+}
+
+// As tall as a change's card, so finding one doesn't move the list below.
+.current-change,
+.current-change-slot {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  min-height: 56px;
 }
 
 .current-change-slot {
@@ -45,11 +59,6 @@
   @include patterns.disabled;
 }
 
-.current-change-row-icon {
-  flex-shrink: 0;
-  color: var(--outline);
-}
-
 .current-change-row-text {
   min-width: 0;
   @include patterns.truncate;
@@ -57,11 +66,6 @@
 
 .current-change-row-sep {
   color: var(--outline);
-}
-
-.current-change-row-action {
-  color: var(--on-surface);
-  font-weight: 600;
 }
 
 .current-change-head {
@@ -97,16 +101,13 @@
 }
 
 .current-change-title-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include patterns.truncate;
   color: var(--on-surface);
   font: var(--ui-sm);
 }
 
 .current-change-facts {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
   color: var(--on-surface-variant);
@@ -121,6 +122,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
+  min-width: 0;
+  @include patterns.truncate;
 }
 
 .current-change-actions {
@@ -187,8 +190,7 @@
   font: var(--data-sm);
 }
 
-.current-change-forecast-cap,
-.current-change-forecast-clean {
+.current-change-forecast-cap {
   color: var(--outline);
 }
 
@@ -196,11 +198,37 @@
   padding: 0;
   background: none;
   border: none;
-  color: var(--secondary);
+  color: var(--warning);
   font: var(--ui-xs);
   cursor: pointer;
 
   &:hover {
     text-decoration: underline;
   }
+}
+
+.current-change .change-marker-square {
+  display: none;
+}
+
+.current-change-row-action {
+  color: var(--secondary);
+  text-decoration: underline;
+  text-decoration-color: var(--outline);
+  text-underline-offset: 2px;
+  font-weight: 500;
+}
+
+.current-change-threads {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.current-change-title .current-change-button {
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  margin-left: auto;
 }

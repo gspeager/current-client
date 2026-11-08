@@ -3,6 +3,13 @@
 // A panel in the inspector's slot, over the right of the body: beside a
 // view's own detail pane it would leave a commit list no room for subjects.
 // A row opens its target in the panel's place.
+.inbox-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: color-mix(in srgb, var(--surface-lowest) 60%, transparent);
+}
+
 .inbox {
   position: absolute;
   top: 0;
@@ -149,18 +156,13 @@
 }
 
 .inbox-row-done {
+  @include patterns.micro-button(var(--h-chip));
+
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-chip);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface);
-  font: var(--ui-xs);
   white-space: nowrap;
-  cursor: pointer;
   opacity: 0;
 
   .inbox-item:hover &,
@@ -219,28 +221,34 @@
 
 // What, then why, on one line; the subject shortens first.
 .inbox-row-text {
-  display: flex;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
   align-items: baseline;
   gap: var(--space-sm);
   min-width: 0;
 }
 
+.inbox-spacer {
+  flex: 1;
+}
+
+.inbox-group-quiet .inbox-row-subject {
+  color: var(--on-surface-variant);
+}
+
 .inbox-row-subject {
-  flex: 0 1 auto;
-  min-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  @include patterns.truncate;
   font: var(--ui-sm);
 }
 
 .inbox-row-reason {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: right;
+  @include patterns.truncate;
   color: var(--on-surface-variant);
   font: var(--ui-xs);
-  white-space: nowrap;
 }
 
 // A host row the Inbox hasn't shown before this refresh: a dot in the row's
@@ -262,19 +270,36 @@
 }
 
 .inbox-refresh {
+  @include patterns.micro-button(var(--h-chip));
+
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  height: var(--h-chip);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
   color: var(--on-surface);
-  font: var(--ui-xs);
-  cursor: pointer;
 
   &:hover {
     background: var(--surface-container);
   }
+}
+
+// Done appears over the row's end, so every row's reason lines up.
+.inbox-rows li {
+  position: relative;
+}
+
+.inbox-rows li > .inbox-row-done {
+  position: absolute;
+  top: 3px;
+  right: var(--space-xs);
+  background: var(--surface-high);
+  opacity: 0;
+}
+
+.inbox-rows li:hover > .inbox-row-done,
+.inbox-rows li:focus-within > .inbox-row-done {
+  opacity: 1;
+}
+
+.inbox-group:not(.inbox-group-quiet) > .inbox-group-label {
+  color: var(--on-surface);
 }

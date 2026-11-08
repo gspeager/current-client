@@ -28,7 +28,7 @@ function renderRow(props: Partial<Parameters<typeof CommitRow>[0]> = {}) {
       {...props}
     />,
   )
-  return screen.getByRole('button', { name: /Fix login redirect/ })
+  return screen.getByRole('row', { name: /Fix login redirect/ })
 }
 
 describe('CommitRow', () => {
@@ -74,6 +74,14 @@ describe('CommitRow', () => {
     expect(pills[0]).toHaveAttribute('title', 'feature · origin/feature')
     expect(within(pills[0] as HTMLElement).getByLabelText('origin/feature')).toBeInTheDocument()
     expect(within(row).getByRole('button', { name: '#7 · open' })).toBeInTheDocument()
+  })
+
+  it('counts the other pills beside the first, naming them on hover', () => {
+    const refs = ['main', 'develop', 'next'].map((name) => new RefInfo({ name, kind: 'branch', sha: 'abc' }))
+    const row = renderRow({ refs })
+    const more = row.querySelector('.commit-row-refs-more')
+    expect(more).toHaveTextContent('+2')
+    expect(more).toHaveAttribute('title', 'develop, next')
   })
 
   it('keeps two pills when the branch and its upstream are not the same commit', () => {

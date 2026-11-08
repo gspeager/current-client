@@ -1,39 +1,19 @@
 @use '../../styles/patterns';
+@use './card';
 
 .contributors-chart {
-  width: 100%;
+  @include card.card;
   max-height: 640px;
-  display: flex;
-  flex-direction: column;
-  padding-top: var(--space-md);
-  background: var(--surface-low);
-  border: var(--border-structure);
-  border-radius: var(--radius-lg);
-  color: var(--on-surface);
 }
 
 .contributors-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  height: var(--h-action);
-  padding: 0 var(--space-md);
-}
-
-.contributors-header-dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  @include card.card-header;
+  min-height: 44px;
 }
 
 .contributors-title {
   flex: 1;
-  font: var(--title-sm);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--on-surface);
+  @include card.card-title;
 }
 
 .contributors-date-filter {
@@ -44,7 +24,7 @@
   border: var(--border-structure);
   border-radius: var(--radius);
   color: var(--on-surface);
-  font: var(--data-sm);
+  font: var(--ui-sm);
 }
 
 .contributors-body {
@@ -53,38 +33,8 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-lg);
-}
-
-.contributors-donut-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.contributors-donut {
-  display: block;
-}
-
-.contributors-donut-center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  pointer-events: none;
-}
-
-.contributors-donut-value {
-  font: var(--headline-sm);
-  color: var(--on-surface);
-}
-
-.contributors-donut-caption {
-  @include patterns.eyebrow;
+  gap: var(--space-md);
+  padding: var(--space-md);
 }
 
 .contributors-list {
@@ -101,9 +51,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm);
-  background: var(--surface-container);
-  border-radius: var(--radius-md);
 }
 
 .contributors-row-identity {
@@ -111,40 +58,37 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-xs);
+}
+
+.contributors-row-line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
 }
 
 .contributors-row-name {
   @include patterns.truncate;
-  font: var(--data-md);
   color: var(--on-surface);
-}
-
-.contributors-row-email {
-  @include patterns.truncate;
-  color: var(--outline);
-  font: var(--ui-xs);
-}
-
-.contributors-row-stats {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
+  font: var(--ui-sm);
+  font-weight: 500;
 }
 
 .contributors-row-commits {
-  color: var(--on-surface);
+  flex-shrink: 0;
+  color: var(--on-surface-variant);
   font: var(--data-sm);
 }
 
-.contributors-row-share {
-  font: var(--ui-xs);
-}
+.contributors-row-bar {
+  display: block;
+  height: 4px;
+  background: var(--surface-high);
+  border-radius: 2px;
+  overflow: hidden;
 
-.contributors-hint {
-  margin: var(--space-md);
-  color: var(--outline);
-  font: var(--ui-sm);
+  > span {
+    display: block;
+    height: 100%;
+  }
 }

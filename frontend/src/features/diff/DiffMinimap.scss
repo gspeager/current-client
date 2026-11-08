@@ -1,0 +1,32 @@
+.diff-minimap {
+  position: relative;
+  flex: 0 0 10px;
+  margin-left: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-low);
+  cursor: pointer;
+}
+
+.diff-minimap-mark {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 1px;
+}
+
+.diff-minimap-added {
+  background: var(--tertiary);
+}
+
+.diff-minimap-removed {
+  background: var(--error);
+}
+
+.diff-minimap-view {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--on-surface) 14%, transparent);
+  pointer-events: none;
+}

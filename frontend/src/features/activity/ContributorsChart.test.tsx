@@ -3,16 +3,13 @@ import { ContributorsService, IdentityService } from '@current-client-bindings/a
 import ContributorsChart from './ContributorsChart'
 
 describe('ContributorsChart', () => {
-  it('draws the donut for a single author, as for many', async () => {
+  it('shows a lone author at 100%', async () => {
     vi.mocked(ContributorsService.GetContributors).mockResolvedValue([
       { name: 'Ada', email: 'ada@example.com', commits: 138 },
     ] as never)
     vi.mocked(IdentityService.GetIdentities).mockResolvedValue([{ initials: 'A', color: '#d46ca4' }] as never)
     render(<ContributorsChart repoPath="/repos/app" repoVersion={0} />)
 
-    expect(await screen.findByText('100%')).toBeInTheDocument()
-    expect(screen.getByText('1 AUTHOR')).toBeInTheDocument()
-    expect(document.querySelectorAll('.contributors-donut circle')).toHaveLength(1)
-    expect(screen.getByText('138 commits')).toBeInTheDocument()
+    expect(await screen.findByText(/138 commits · 100%/)).toBeInTheDocument()
   })
 })

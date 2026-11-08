@@ -25,6 +25,7 @@ export function useSettings() {
   const [resetNotice, setResetNotice] = useState('')
   const { element: root, active } = useCurrentClientRoot()
   const theme = settings?.theme
+  const density = settings?.density
 
   useEffect(() => {
     SettingsService.GetSettings()
@@ -33,8 +34,6 @@ export function useSettings() {
       .finally(() => SettingsService.TakeSettingsResetNotice().then(setResetNotice, () => undefined))
   }, [])
 
-  // Applies the theme to the Current Client root and the window's title bar, and follows
-  // OS changes live while "system" is selected.
   useEffect(() => {
     if (!root || theme === undefined) return
     const apply = () => applyTheme(root, theme, active)
@@ -44,6 +43,10 @@ export function useSettings() {
     media.addEventListener('change', apply)
     return () => media.removeEventListener('change', apply)
   }, [root, theme, active])
+
+  useEffect(() => {
+    if (root && density) root.setAttribute('data-density', density)
+  }, [root, density])
 
   const patch = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setSettings((prev) => (prev ? { ...prev, [key]: value } : prev))
@@ -77,7 +80,11 @@ export function useSettings() {
     setNavCollapsed: setter('navCollapsed', SettingsService.SetNavCollapsed),
     setDiffExpanded: setter('diffExpanded', SettingsService.SetDiffExpanded),
     setDiffNoWrap: setter('diffNoWrap', SettingsService.SetDiffNoWrap),
+    setDensity: setter('density', SettingsService.SetDensity),
     setPruneOnFetch: setter('pruneOnFetch', SettingsService.SetPruneOnFetch),
+    setRiskRulesOff: setter('riskRulesOff', SettingsService.SetRiskRulesOff),
+    setSnapshotLimit: setter('snapshotLimit', SettingsService.SetSnapshotLimit),
+    setTerminalShell: setter('terminalShell', SettingsService.SetTerminalShell),
     setHistoryBranchFilter: setter('historyBranchFilter', SettingsService.SetHistoryBranchFilter),
     setHistoryFirstParent: setter('historyFirstParent', SettingsService.SetHistoryFirstParent),
     setDisableConventionalCommits: setter('disableConventionalCommits', SettingsService.SetDisableConventionalCommits),

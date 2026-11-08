@@ -18,6 +18,8 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useDialogs } from '../../lib/useDialogs'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
+import { shortSha } from '../../lib/text'
+import { localDate } from '../../lib/relativeTime'
 
 // A commit's kind is what the type filter toggles: breaking changes of any type
 // together, then each type, then commits that don't follow the format.
@@ -55,11 +57,6 @@ type ListRow =
 // Starting heights for the virtualizer; rows are measured once rendered.
 const ROW_ESTIMATES: Record<ListRow['kind'], number> = { release: 44, section: 32, entry: 28 }
 
-function today(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 interface ReleaseEditorProps {
   repoPath: string
   releases: ChangelogReleaseSection[]
@@ -90,7 +87,7 @@ function ReleaseEditor({
   // releases are named and dated by their tag.
   const untagged = releases.find((r) => !r.tag)
   const [version, setVersion] = useState(untagged?.suggestedVersion || UNRELEASED)
-  const [date] = useState(today)
+  const [date] = useState(localDate)
   const [draft, setDraft] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -254,7 +251,7 @@ function ReleaseEditor({
         onClick={() => onOpenCommit(entry.sha)}
         title="Open in History"
       >
-        {entry.sha.slice(0, 7)}
+        {shortSha(entry.sha)}
       </button>
     </div>
   )
@@ -372,6 +369,8 @@ function ReleaseEditor({
             {copied ? <Check size={14} strokeWidth={1.75} /> : <Copy size={14} strokeWidth={1.5} />}
           </button>
           <SplitButton
+            secondary
+            compact
             onClick={() => void write()}
             disabled={blocked || (untagged !== undefined && !version.trim())}
             menuLabel="More save options"

@@ -1,6 +1,7 @@
 @use '../../styles/patterns';
 
 .header-bar {
+  container-type: inline-size;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -11,15 +12,10 @@
   font: var(--ui-md);
   color: var(--on-surface);
 
-  // Clears the macOS window buttons, which CurrentClientApp's data-platform flags and
-  // the hidden inset title bar in main.go places over the left of this row.
-  // 80px sits flush against the green button with no breathing room; add
-  // --space-md past that edge.
-  //
-  // padding-top nudges the row's vertical centering down to match the
-  // buttons: they're centered in the OS's 50px InvisibleTitleBarHeight
-  // (main.go), taller than this row's own 44px, so plain center alignment
-  // sits ~4px above them.
+  // Clears the macOS window buttons main.go's inset title bar places over this
+  // row: 80px reaches the green button, plus --space-md. They're centered in
+  // the OS's 50px InvisibleTitleBarHeight, so padding-top centers this 44px row
+  // on them.
   .current-client[data-platform='mac'] & {
     padding-left: 92px;
     padding-top: 8px;
@@ -29,6 +25,7 @@
 // The count sits on the icon's top-right corner, in the review-state
 // color, reaching past the button so two digits leave the icon readable.
 .header-bar-inbox {
+  position: relative;
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -53,7 +50,11 @@
   color: var(--on-surface);
 }
 
+// On the button's corner, so it arriving moves nothing.
 .header-bar-inbox-count {
+  position: absolute;
+  top: -6px;
+  right: -8px;
   min-width: 14px;
   height: 14px;
   padding: 0 3px;
@@ -65,11 +66,6 @@
   text-align: center;
 }
 
-.header-bar-icon-button-active {
-  background: var(--surface-container);
-  color: var(--on-surface);
-}
-
 .header-bar-tabs {
   display: flex;
   align-items: center;
@@ -79,11 +75,13 @@
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: none;
 }
 
 .header-bar-switcher {
   position: relative;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  max-width: 330px;
 
   > summary {
     list-style: none;
@@ -100,7 +98,7 @@
   gap: var(--space-xs);
   height: var(--h-chip);
   min-width: 0;
-  max-width: 320px;
+  max-width: 330px;
   padding: 0 var(--space-sm);
   background: var(--surface);
   border: var(--border-structure);
@@ -111,9 +109,14 @@
 
 .header-bar-repo-close {
   @include patterns.tab-close;
+  @include patterns.hit-target;
 }
 
 // Each half opens a different view, so only the hovered half highlights.
+.header-bar-branch-target {
+  min-width: 72px;
+}
+
 .header-bar-repo-name,
 .header-bar-branch-target {
   display: inline-flex;
@@ -130,6 +133,9 @@
 }
 
 .header-bar-repo-name {
+  flex: 0 0 auto;
+  min-width: 56px;
+  max-width: 45%;
   @include patterns.truncate;
   font: var(--data-md);
   font-weight: 600;
@@ -138,6 +144,7 @@
 
 .header-bar-repo-sep {
   flex-shrink: 0;
+  margin: 0 2px;
   font: var(--data-md);
   color: var(--outline);
 }
@@ -150,7 +157,7 @@
   flex-shrink: 0;
   padding: 0 var(--space-xs);
   border: 1px solid var(--error);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--error);
   font: var(--ui-xs);
 }
@@ -161,17 +168,20 @@
 }
 
 .header-bar-sync {
+  @include patterns.hit-target(1px);
+
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   gap: var(--space-xs);
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
+  padding: 0 var(--space-xs);
   background: none;
-  border: var(--border-structure);
+  border: none;
   border-radius: var(--radius);
   color: var(--on-surface-variant);
-  font: var(--data-sm);
+  font: var(--ui-xs);
+  font-weight: 500;
   cursor: pointer;
 
   @include patterns.disabled;
@@ -195,6 +205,19 @@
 
   .header-bar-sync:hover:not(:disabled) {
     background: var(--surface-container);
+    color: var(--on-surface);
+  }
+
+  // The menu chevron shows when it can be reached, so three actions read as three.
+  .header-bar-sync-more {
+    @include patterns.hit-target;
+
+    opacity: 0.55;
+  }
+
+  &:hover .header-bar-sync-more,
+  &:focus-within .header-bar-sync-more {
+    opacity: 1;
   }
 }
 
@@ -217,12 +240,9 @@
 }
 
 .header-bar-sync-more {
-  padding: 0 var(--space-xs);
-  border-left: none;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-
-  @include patterns.disabled;
+  width: 20px;
+  justify-content: center;
+  padding: 0;
 }
 
 .header-bar-fetch-error {
@@ -234,7 +254,9 @@
 .header-bar-quick-switch {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  flex: 0 1 216px;
+  min-width: 0;
+  justify-content: space-between;
   gap: var(--space-xs);
   height: var(--h-chip);
   padding: 0 var(--space-sm);
@@ -252,23 +274,56 @@
 }
 
 .header-bar-icon-button {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: var(--h-row-tree);
-  height: var(--h-row-tree);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--outline);
-  cursor: pointer;
+  @include patterns.icon-button;
 
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-    color: var(--on-surface);
+  position: relative;
+  flex-shrink: 0;
+}
+
+// Words make way before repository names do; icons and keycaps stay.
+@container (max-width: 1560px) {
+  .header-bar-tab-sep,
+  .header-bar-tab-branch {
+    display: none;
+  }
+}
+
+@container (max-width: 1240px) {
+  .header-bar-tab-meta {
+    display: none;
+  }
+}
+
+@container (max-width: 1060px) {
+  .header-bar-quick-switch-label,
+  .header-bar-inbox-label {
+    display: none;
   }
 
-  @include patterns.disabled;
+  .header-bar-quick-switch {
+    flex: 0 0 auto;
+  }
+}
+
+.header-bar-tabs-more {
+  flex-shrink: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: var(--surface-container);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+.header-bar-quick-switch-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
 }

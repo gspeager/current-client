@@ -9,17 +9,12 @@ import (
 
 func initExternalToolRepo(t *testing.T) string {
 	t.Helper()
-	dir := t.TempDir()
-	gittest.Run(t, dir, "init", "-b", "main")
-	gittest.Run(t, dir, "config", "user.email", "test@example.com")
-	gittest.Run(t, dir, "config", "user.name", "Test")
-	gittest.WriteFile(t, dir, "file.txt", "v1\n")
-	gittest.Run(t, dir, "add", "file.txt")
-	gittest.Run(t, dir, "commit", "-m", "v1")
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "file.txt", "v1\n", "v1")
 	return dir
 }
 
-// The no-tool case isn.t run against real difftool, which can hang probing PATH.
+// The no-tool case isn't run against real difftool, which can hang probing PATH.
 func TestOpenInExternalToolFailsWithoutAConfiguredTool(t *testing.T) {
 	dir := initExternalToolRepo(t)
 	gittest.WriteFile(t, dir, "file.txt", "v2\n")

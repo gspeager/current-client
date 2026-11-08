@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { ConflictStateInfo } from '@current-client-bindings/app'
+import ContextMenu, { menuAnchor, type ContextMenuState } from '../controls/ContextMenu'
 import BranchSidebar from '../../features/branches/BranchSidebar'
 import CurrentChangeSection from '../../features/branches/CurrentChangeSection'
 import CurrentIssueSection from '../../features/branches/CurrentIssueSection'
@@ -23,8 +24,10 @@ import StashPanel from '../../features/branches/StashPanel'
 import TagsPanel from '../../features/branches/TagsPanel'
 import WorktreesPanel from '../../features/worktrees/WorktreesPanel'
 import SubmodulesPanel from '../../features/submodules/SubmodulesPanel'
+import ScrollCue from './ScrollCue'
 import SidebarSection from './SidebarSection'
 import { useSidebarSections } from '../../lib/useSidebarSections'
+import { useRovingRows } from '../../lib/useRovingRows'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import type { WorkspaceAction, WorkspaceFeedback, WorkspaceGroup } from './useWorkspaceActions'
 import './NavPane.scss'
@@ -34,7 +37,18 @@ type SectionId = 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 // Something elsewhere in the app, such as the palette, asking a sidebar
 // section to open one of its forms or dialogs; n makes each ask distinct.
 export interface SidebarRequest {
-  action: 'new-branch' | 'clean-up' | 'new-tag' | 'publish-release'
+  action:
+    | 'new-branch'
+    | 'clean-up'
+    | 'branch-review'
+    | 'tidy-up'
+    | 'restack'
+    | 'new-tag'
+    | 'publish-release'
+    | 'new-stash'
+    | 'show-stash'
+    | 'new-worktree'
+    | 'new-remote'
   n: number
 }
 
@@ -83,7 +97,7 @@ function RailButton({
 }: {
   label: string
   icon: LucideIcon
-  onClick: () => void
+  onClick: (e: MouseEvent) => void
   disabled?: boolean
   reason?: string
 }) {
@@ -125,6 +139,9 @@ function ToolGroup({ label, actions, children }: { label: string; actions: Works
   )
 }
 
+const SIDEBAR_ROWS =
+  '.sidebar-section-header, .branch-row, .tag-row, .stash-row, .remote-row, .worktree-row, .submodule-row'
+
 function NavPane({
   repoPath,
   repoVersion,
@@ -150,6 +167,8 @@ function NavPane({
 }: NavPaneProps) {
   const sections = useSidebarSections(repoPath)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
+  const rovingRows = useRovingRows(SIDEBAR_ROWS)
+  const [toolboxMenu, setToolboxMenu] = useState<ContextMenuState | null>(null)
   const sectionRefs = useRef<Partial<Record<SectionId, HTMLElement | null>>>({})
   const pendingSection = useRef<SectionId | null>(null)
   const dirty = (workingTree.files?.length ?? 0) > 0
@@ -170,9 +189,33 @@ function NavPane({
 
   useEffect(() => {
     if (!request) return
-    showSection(request.action === 'new-branch' || request.action === 'clean-up' ? 'branches' : 'tags')
+    const owner: Partial<Record<SidebarRequest['action'], SectionId>> = {
+      'new-branch': 'branches',
+      'clean-up': 'branches',
+      'new-stash': 'stash',
+      'show-stash': 'stash',
+      'new-worktree': 'worktrees',
+      'new-remote': 'remotes',
+    }
+    showSection(owner[request.action] ?? 'tags')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request])
+
+  const openToolboxMenu = (e: MouseEvent) => {
+    const groups = (['open', 'tools', 'maintenance'] as const).map(group)
+    setToolboxMenu({
+      ...menuAnchor(e),
+      x: e.currentTarget.getBoundingClientRect().right + 4,
+      items: groups.flatMap((actions, g) =>
+        actions.map((a, i) => ({
+          label: a.label,
+          onClick: a.run,
+          disabled: a.disabled,
+          separatorBefore: g > 0 && i === 0,
+        })),
+      ),
+    })
+  }
 
   const sectionRef = (id: SectionId) => (el: HTMLElement | null) => {
     sectionRefs.current[id] = el
@@ -187,21 +230,16 @@ function NavPane({
           <RailButton key={id} label={`Show ${label}`} icon={icon} onClick={() => showSection(id)} />
         ))}
         <div className="nav-pane-rail-toolbox">
-          {(['open', 'tools', 'maintenance'] as const).map((name) => (
-            <div key={name} className="nav-pane-rail-group">
-              <div className="nav-pane-rail-divider" />
-              {group(name).map(({ id, label, icon, run, disabled, reason }) => (
-                <RailButton key={id} label={label} icon={icon} onClick={run} disabled={disabled} reason={reason} />
-              ))}
-            </div>
-          ))}
+          <div className="nav-pane-rail-divider" />
+          <RailButton label="Toolbox" icon={Wrench} onClick={openToolboxMenu} />
         </div>
+        {toolboxMenu && <ContextMenu state={toolboxMenu} onClose={() => setToolboxMenu(null)} />}
       </nav>
     )
   }
 
   return (
-    <nav className="nav-pane" style={{ width, minWidth: width }} aria-label="Repository">
+    <nav className="nav-pane" data-pane="sidebar" style={{ width, minWidth: width }} aria-label="Repository">
       <div className="nav-pane-head">
         <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />
         <button
@@ -215,7 +253,7 @@ function NavPane({
         </button>
       </div>
 
-      <div className="nav-pane-scroll">
+      <div className="nav-pane-scroll" ref={rovingRows}>
         <CurrentChangeSection
           repoPath={repoPath}
           refreshKey={`${repoVersion}:${hostVersion}`}
@@ -246,6 +284,7 @@ function NavPane({
             refreshKey={repoVersion}
             sections={sections}
             onStashChanged={onBranchChanged}
+            request={request}
           />
         </section>
 
@@ -254,7 +293,13 @@ function NavPane({
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('remotes')}>
-          <RemotesPanel repoPath={repoPath} sections={sections} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
+          <RemotesPanel
+            repoPath={repoPath}
+            sections={sections}
+            onFetched={onFetched}
+            pruneOnFetch={pruneOnFetch}
+            request={request}
+          />
         </section>
 
         <section className="nav-pane-section" ref={sectionRef('worktrees')}>
@@ -264,6 +309,7 @@ function NavPane({
             sections={sections}
             onOpenRepository={onOpenRepository}
             onWorktreesChanged={onBranchChanged}
+            request={request}
           />
         </section>
         <SubmodulesPanel
@@ -273,6 +319,7 @@ function NavPane({
           onOpenRepository={onOpenRepository}
           onSubmodulesChanged={onBranchChanged}
         />
+        <ScrollCue />
       </div>
 
       <div className="nav-pane-footer">
@@ -286,8 +333,20 @@ function NavPane({
         )}
         <SidebarSection
           label="Toolbox"
-          open={sections.isOpen('toolbox', true)}
-          onToggle={() => sections.toggle('toolbox', true)}
+          title="Undo, recover, reflog, bisect and repository upkeep"
+          open={sections.isOpen('toolbox', false)}
+          onToggle={() => sections.toggle('toolbox', false)}
+          actions={
+            !sections.isOpen('toolbox', false) && (
+              <span className="nav-pane-toolbox-quick">
+                {group('tools')
+                  .slice(0, 4)
+                  .map(({ id, label, icon, run, disabled, reason }) => (
+                    <RailButton key={id} label={label} icon={icon} onClick={run} disabled={disabled} reason={reason} />
+                  ))}
+              </span>
+            )
+          }
         >
           <ToolGroup label="Open in" actions={group('open')} />
           <ToolGroup label="Tools" actions={group('tools')}>

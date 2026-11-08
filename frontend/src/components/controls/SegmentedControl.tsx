@@ -27,6 +27,7 @@ function SegmentedControl<T extends string>({ value, onChange, options }: Segmen
                 ? 'segmented-control-option segmented-control-option-active'
                 : 'segmented-control-option'
             }
+            aria-pressed={value === option.value}
             onClick={() => onChange(option.value)}
           >
             {Icon && <Icon size={14} strokeWidth={1.75} />}

@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -74,7 +75,7 @@ func parseChangedFiles(output string) ([]ChangedFile, error) {
 		if status[0] == 'R' || status[0] == 'C' {
 			i++
 			if i >= len(fields) {
-				return nil, fmt.Errorf("malformed diff-tree rename entry: missing new path")
+				return nil, errors.New("malformed diff-tree rename entry: missing new path")
 			}
 			cf.OrigPath = path
 			cf.Path = fields[i]

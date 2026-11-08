@@ -81,7 +81,7 @@ All Git commands go through `core/gitexec`. Arguments are always passed as a lis
 - Geist for interface text; JetBrains Mono for data (paths, hashes, diffs, counts, branch names).
 - The cyan accent means only three things: keyboard focus, `HEAD`, and the one primary action in a pane.
 - Controls use the existing height tokens; don't add new sizes.
-- Nothing animates longer than 140 ms, and nothing slides, scales, bounces or fades in on load.
+- Nothing animates longer than 140 ms, and nothing slides, scales, bounces or fades in on load. One exception: a row being dragged follows the pointer, and rows it passes move out of its way within 140 ms. Nothing else moves, a drop has no settle animation, and `prefers-reduced-motion` turns the reflow off.
 - No illustrations, gradients or avatars. File paths truncate from the left so the file name stays visible.
 - Labels are short and factual ("Unstage hunk", "Discard"), sentence case, no exclamation marks.
 

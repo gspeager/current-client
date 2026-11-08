@@ -2,7 +2,8 @@
 
 .changes-files-scroll {
   flex: 1;
-  min-height: 0;
+  // The list keeps a useful height however much sits below it.
+  min-height: 112px;
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
@@ -15,8 +16,6 @@
   height: var(--h-row-table);
   margin-bottom: var(--space-sm);
   padding: 0 var(--space-sm);
-  background: var(--surface-lowest);
-  border-radius: var(--radius);
 }
 
 .changes-files-header-spacer {
@@ -24,8 +23,14 @@
 }
 
 .changes-files-title {
-  font: var(--title-sm);
+  margin: 0;
+  font: var(--title-md);
   color: var(--on-surface);
+  white-space: nowrap;
+}
+
+.changes-filter-wrap[hidden] {
+  display: none;
 }
 
 .changes-filter-wrap {
@@ -44,20 +49,7 @@
 }
 
 .changes-filter-input {
-  width: 100%;
-  height: var(--h-field);
-  padding: 0 var(--space-sm) 0 calc(var(--space-sm) * 2 + 14px);
-  background: var(--surface);
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface);
-  font: var(--ui-sm);
-
-  &:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: var(--focus-ring);
-  }
+  @include patterns.search-field;
 
   &::placeholder {
     color: var(--outline);
@@ -66,23 +58,9 @@
 
 .changes-refresh,
 .changes-export-patch {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--h-field);
-  height: var(--h-field);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  color: var(--outline);
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-    color: var(--on-surface);
-  }
-
-  @include patterns.disabled;
+  @include patterns.icon-button;
+  width: var(--h-chip);
+  height: var(--h-chip);
 }
 
 .changes-section-header {
@@ -117,12 +95,9 @@
   color: var(--error);
 }
 
-.changes-section-label-staged {
-  color: var(--tertiary);
-}
-
+.changes-section-label-staged,
 .changes-section-label-unstaged {
-  color: var(--warning);
+  color: var(--on-surface-variant);
 }
 
 .changes-section-count {
@@ -130,6 +105,8 @@
 }
 
 .changes-section-bulk {
+  @include patterns.hit-target(2px);
+  height: var(--h-micro);
   background: none;
   border: none;
   color: var(--outline);

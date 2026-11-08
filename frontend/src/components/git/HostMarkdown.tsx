@@ -1,6 +1,5 @@
-import type { MouseEvent } from 'react'
-import { PlatformService } from '@current-client-bindings/app'
-import { ignoreDecorativeFailure } from '../../lib/errors'
+import { useLayoutEffect, useRef, type MouseEvent } from 'react'
+import { openWebPage } from '../../lib/hostPages'
 import './HostMarkdown.scss'
 
 interface HostMarkdownProps {
@@ -19,11 +18,20 @@ function HostMarkdown({ html, className }: HostMarkdownProps) {
     if (!link) return
     e.preventDefault()
     const href = link.getAttribute('href') ?? ''
-    if (/^https?:\/\//i.test(href)) PlatformService.OpenWebPage(href).catch(ignoreDecorativeFailure)
+    if (/^https?:\/\//i.test(href)) openWebPage(href)
   }
+
+  const root = useRef<HTMLDivElement>(null)
+  // The renderer leaves a task's checkbox unlabelled; its item names it.
+  useLayoutEffect(() => {
+    root.current?.querySelectorAll<HTMLInputElement>('li > input[type="checkbox"]').forEach((box) => {
+      box.setAttribute('aria-label', box.parentElement?.textContent?.trim() ?? 'Task')
+    })
+  }, [html])
 
   return (
     <div
+      ref={root}
       className={className ? `host-markdown ${className}` : 'host-markdown'}
       onClick={onClick}
       dangerouslySetInnerHTML={{ __html: html }}

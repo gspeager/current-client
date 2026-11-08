@@ -14,8 +14,6 @@ func hostServices() []application.Service {
 	return []application.Service{application.NewService(&HostService{})}
 }
 
-// afterFetch refreshes the change numbers and, for hosts that are on, the
-// open changes, since a fetch is one of the refresh triggers.
 func afterFetch(ctx context.Context, repoPath string) {
 	refreshHostChanges(ctx, repoPath)
 }

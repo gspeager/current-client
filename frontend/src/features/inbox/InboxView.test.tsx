@@ -57,16 +57,13 @@ describe('InboxView', () => {
     render(<InboxView paths={['/repos/app', '/repos/lib']} activePath="/repos/app" refreshKey={0} onGo={onGo} />)
 
     const app = await screen.findByRole('region', { name: 'app' })
-    expect(screen.getByText('5 items')).toBeInTheDocument()
     // Grouped by what each asks of you, in that order.
     expect(
       within(app)
         .getAllByRole('heading', { level: 4 })
         .map((h) => h.textContent),
-    ).toEqual(['Needs you1', 'Your work3', 'Tidy up1Clean up…'])
-    expect(
-      within(screen.getByRole('region', { name: 'app: Needs you' })).getByText(/Add the thing/),
-    ).toBeInTheDocument()
+    ).toEqual(['Waiting1', 'In progress3', 'Tidy up1Clean up…'])
+    expect(within(screen.getByRole('region', { name: 'app: Waiting' })).getByText(/Add the thing/)).toBeInTheDocument()
     expect(within(app).getByText(/^host /)).toBeInTheDocument()
     expect(InboxService.Rows).toHaveBeenCalledWith(['/repos/app', '/repos/lib'], true)
     // Only the open repository starts expanded; the rest fold to a header.

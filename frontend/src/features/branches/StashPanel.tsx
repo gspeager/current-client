@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { ArrowDownToLine, Download, Eye, Package, PackagePlus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { StashService, type StashInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
-import { errorMessage } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -11,9 +11,11 @@ import { useDialogs } from '../../lib/useDialogs'
 import StashModal from './StashModal'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
+import { useActionError } from '../../lib/useActionError'
 import './StashPanel.scss'
 
 interface StashPanelProps {
+  request?: SidebarRequest | null
   repoPath: string
   dirty: boolean
   // Reloads the list when it changes, such as after a stash made from Changes.
@@ -22,7 +24,7 @@ interface StashPanelProps {
   onStashChanged?: () => void
 }
 
-function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: StashPanelProps) {
+function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, request = null }: StashPanelProps) {
   useClockTick()
   const {
     data: stashes,
@@ -30,12 +32,15 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
     reload: loadStashes,
   } = useAsyncData(() => StashService.ListStash(repoPath), [repoPath], { refreshKey })
   const { confirm } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
   const [newMessage, setNewMessage] = useState('')
   const [includeUntracked, setIncludeUntracked] = useState(false)
   const [keepIndex, setKeepIndex] = useState(false)
   const [showNewStash, setShowNewStash] = useState(false)
+  useEffect(() => {
+    if (request?.action === 'new-stash') setShowNewStash(true)
+  }, [request])
   const [busyIndex, setBusyIndex] = useState<number | null>(null)
   const [shownStash, setShownStash] = useState<StashInfo | null>(null)
   const rowMenu = useRowMenu()
@@ -51,7 +56,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
         loadStashes()
         onStashChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const applyStash = (index: number) => {
@@ -59,7 +64,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
     setBusyIndex(index)
     StashService.StashApply(repoPath, index)
       .then(() => onStashChanged?.())
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 
@@ -71,7 +76,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
         loadStashes()
         onStashChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 
@@ -87,7 +92,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
     setBusyIndex(index)
     StashService.StashDrop(repoPath, index)
       .then(() => loadStashes())
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyIndex(null))
   }
 
@@ -106,6 +111,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
         ariaLabel: `Show changes in stash: ${s.message}`,
         icon: Eye,
         run: () => setShownStash(s),
+        menuOnly: true,
       },
       {
         label: 'Apply (keep in list)',
@@ -120,6 +126,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
         icon: ArrowDownToLine,
         run: () => popStash(s.index),
         disabled: busy,
+        menuOnly: true,
       },
       {
         label: 'Drop…',
@@ -151,6 +158,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
             <PackagePlus size={18} strokeWidth={1.75} />
           </button>
         }
+        onPinnedEscape={() => setShowNewStash(false)}
         pinned={
           showNewStash && (
             <div className="stash-panel-new">
@@ -180,9 +188,13 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: S
             {stashes.map((s) => (
               <li key={s.index} className="stash-row" title={s.message} onContextMenu={rowMenu.open(stashActions(s))}>
                 <Package size={14} strokeWidth={1.5} className="stash-row-icon" />
-                <span className="stash-row-message">{s.message}</span>
+                <span className="stash-row-message">{s.message.replace(/^(On|WIP on) [^:]+: /, '')}</span>
                 <span className="stash-row-time">{relativeTime(new Date(s.date))}</span>
-                <RowActionButtons actions={stashActions(s)} className="stash-row-actions" />
+                <RowActionButtons
+                  actions={stashActions(s)}
+                  className="stash-row-actions"
+                  onMore={rowMenu.open(stashActions(s))}
+                />
               </li>
             ))}
           </ul>

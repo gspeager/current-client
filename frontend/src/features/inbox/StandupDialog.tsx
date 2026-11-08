@@ -6,6 +6,7 @@ import SegmentedControl from '../../components/controls/SegmentedControl'
 import { standupGroups, standupSince, standupText, type StandupFormat, type StandupPeriod } from '../../lib/standup'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
+import DialogError from '../../components/chrome/DialogError'
 import '../../components/git/HostMarkdown.scss'
 import './StandupDialog.scss'
 
@@ -53,11 +54,7 @@ function StandupDialog({ paths, onClose }: StandupDialogProps) {
             ]}
           />
         </div>
-        {error && (
-          <p className="dialog-error" role="alert">
-            {error}
-          </p>
-        )}
+        <DialogError>{error}</DialogError>
         {repos &&
           (view === 'rendered' && text ? (
             <div ref={rendered} className="host-markdown standup-text standup-rendered" aria-label="Standup text">

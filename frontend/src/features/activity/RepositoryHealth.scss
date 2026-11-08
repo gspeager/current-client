@@ -1,28 +1,17 @@
+@use './card';
+
 .repo-health {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding-top: var(--space-md);
-  background: var(--surface-low);
-  border: var(--border-structure);
-  border-radius: var(--radius-lg);
-  color: var(--on-surface);
+  @include card.card;
 }
 
 .repo-health-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  height: var(--h-action);
-  padding: 0 var(--space-md);
+  @include card.card-header;
+  min-height: 44px;
 }
 
 .repo-health-title {
   flex: 1;
-  font: var(--title-sm);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font: var(--title-md);
   color: var(--on-surface);
 }
 
@@ -35,9 +24,8 @@
 }
 
 .repo-health-badge-optimal {
-  background: color-mix(in srgb, var(--tertiary) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tertiary) 40%, transparent);
-  color: var(--tertiary);
+  background: var(--surface-high);
+  color: var(--on-surface-variant);
 }
 
 .repo-health-badge-attention {
@@ -50,8 +38,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-md);
+  padding: 0 var(--space-md) var(--space-md);
 }
 
 .repo-health-hint {
@@ -65,42 +52,22 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--surface-container);
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--radius-md);
+  padding: var(--space-sm) 0;
+
+  & + & {
+    border-top: var(--border-structure);
+  }
 }
 
 .repo-health-row-text {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
-.repo-health-row-title {
-  font: var(--data-md);
-  color: var(--on-surface);
-}
-
-.repo-health-row-subtitle {
-  color: var(--outline);
-  font: var(--ui-xs);
-}
-
-.repo-health-value {
-  flex-shrink: 0;
-  font: var(--body-lg);
-}
-
-.repo-health-value-ok {
-  color: var(--tertiary);
-}
-
-.repo-health-value-warn {
-  color: var(--warning);
-}
-
-.repo-health-icon {
+.repo-health-row svg {
   flex-shrink: 0;
 }
 
@@ -109,6 +76,30 @@
 }
 
 .repo-health-icon-warn {
+  color: var(--warning);
+}
+
+.repo-health-row-title {
+  font: var(--ui-sm);
+  font-weight: 500;
+  color: var(--on-surface);
+}
+
+.repo-health-row-subtitle {
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.repo-health-value {
+  flex-shrink: 0;
+  font: var(--body-lg);
+}
+
+.repo-health-value-ok {
+  color: var(--on-surface-variant);
+}
+
+.repo-health-value-warn {
   color: var(--warning);
 }
 

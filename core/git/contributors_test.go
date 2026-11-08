@@ -2,8 +2,6 @@ package git
 
 import (
 	"context"
-	"os"
-	"os/exec"
 	"reflect"
 	"testing"
 
@@ -56,13 +54,7 @@ func TestContributorsMatchesShortlogRealRepo(t *testing.T) {
 		t.Fatalf("Contributors: %v", err)
 	}
 
-	cmd := exec.Command("git", "shortlog", "-sn", "-e", "HEAD")
-	cmd.Dir = dir
-	rawOut, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("git shortlog: %v", err)
-	}
-	want, err := parseShortlog(string(rawOut))
+	want, err := parseShortlog(gittest.Run(t, dir, "shortlog", "-sn", "-e", "HEAD"))
 	if err != nil {
 		t.Fatalf("parseShortlog(real shortlog output): %v", err)
 	}
@@ -78,12 +70,7 @@ func TestContributorsRespectsSinceUntil(t *testing.T) {
 	dir := gittest.InitRepo(t)
 	gittest.WriteFile(t, dir, "file.txt", "v1")
 	gittest.Run(t, dir, "add", "file.txt")
-	oldCommit := exec.Command("git", "commit", "-m", "old commit")
-	oldCommit.Dir = dir
-	oldCommit.Env = append(os.Environ(), "GIT_AUTHOR_DATE=2020-01-01T00:00:00", "GIT_COMMITTER_DATE=2020-01-01T00:00:00")
-	if out, err := oldCommit.CombinedOutput(); err != nil {
-		t.Fatalf("git commit (backdated): %v\n%s", err, out)
-	}
+	commitAt(t, dir, "old commit", "2020-01-01T00:00:00")
 	gittest.CommitFile(t, dir, "file.txt", "v2", "recent commit")
 
 	got, err := Contributors(context.Background(), dir, "2024-01-01", "")

@@ -94,12 +94,14 @@ describe('CurrentClientApp embedding', () => {
     await userEvent.click(historyTab)
     await waitFor(() => expect(HistoryService.GetHistory).toHaveBeenCalled())
     await new Promise((resolve) => setTimeout(resolve, 50))
-    const loads = vi.mocked(HistoryService.GetHistory).mock.calls.length
+    // The sidebar's HEAD row reads one commit whenever it reappears; the list reads pages.
+    const listLoads = () => vi.mocked(HistoryService.GetHistory).mock.calls.filter(([, limit]) => limit !== 1).length
+    const loads = listLoads()
 
     await userEvent.click(screen.getByRole('button', { name: 'Activity' }))
     await userEvent.click(historyTab)
     await new Promise((resolve) => setTimeout(resolve, 50))
 
-    expect(HistoryService.GetHistory).toHaveBeenCalledTimes(loads)
+    expect(listLoads()).toBe(loads)
   })
 })

@@ -1,4 +1,8 @@
+@use '../../styles/patterns';
+
 .checkbox {
+  @include patterns.hit-target(4px);
+
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
@@ -19,9 +23,9 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  border: 1.5px solid var(--outline-variant);
+  border: 1.5px solid var(--outline);
   border-radius: var(--radius-xs);
-  color: var(--on-primary);
+  color: var(--surface);
   background: none;
   transition:
     background var(--dur-fast) var(--ease),
@@ -29,12 +33,17 @@
 }
 
 .checkbox input:checked + .checkbox-box {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--on-surface-variant);
+  border-color: var(--on-surface-variant);
 }
 
 .checkbox-label {
   color: var(--on-surface-variant);
   font: var(--ui-sm);
   white-space: nowrap;
+}
+
+.checkbox:has(input:disabled) {
+  opacity: 0.45;
+  cursor: default;
 }

@@ -6,24 +6,22 @@ import {
   GitBranchPlus,
   GitCommitVertical,
   RotateCcw,
+  StickyNote,
   Undo2,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react'
-import {
-  BranchService,
-  type CommitInfo,
-  CommitService,
-  PatchService,
-  PlatformService,
-} from '@current-client-bindings/app'
+import { noteMenuLabel, useNotes } from '../notes/notes'
+import { BranchService, type CommitInfo, CommitService, PatchService } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { toBranchName } from '../../lib/branchName'
 import { errorMessage } from '../../lib/errors'
-import { commitPage } from '../../lib/hostPages'
+import { commitPage, openWebPage } from '../../lib/hostPages'
 import { suggestedPatchFilename } from '../../lib/patchFilename'
 import { useDialogs } from '../../lib/useDialogs'
 import ResetDialog, { type ResetMode } from './ResetDialog'
 import { hostLogo } from '../../components/git/hostLogos'
+import { shortSha } from '../../lib/text'
 
 export interface CommitAction {
   id: string
@@ -31,16 +29,18 @@ export interface CommitAction {
   icon: LucideIcon
   run: () => void
   destructive?: boolean
+  separatorBefore?: boolean
 }
 
 // The number of actions the inspector shows as buttons; the rest go under More.
-export const PRIMARY_COMMIT_ACTIONS = 4
+export const PRIMARY_COMMIT_ACTIONS = 2
 
 // The one ordered list of things to do with a commit, for the inspector and the
 // row's menu alike. Refreshes on failure too, since a conflict leaves the repo
 // mid-operation.
 export function useCommitActions(repoPath: string, onChanged?: () => void, hostLinks: Links | null = null) {
   const { confirm, prompt } = useDialogs()
+  const notes = useNotes()
   const [error, setError] = useState<string | null>(null)
   const [resetTarget, setResetTarget] = useState<CommitInfo | null>(null)
 
@@ -57,7 +57,7 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
   const checkoutCommit = async (sha: string) => {
     const confirmed = await confirm({
       title: 'Check out commit',
-      message: `Check out ${sha.slice(0, 7)}? HEAD will be detached: new commits won't be on any branch unless one is created from them. Switch to a branch to leave.`,
+      message: `Check out ${shortSha(sha)}? HEAD will be detached: new commits won't be on any branch unless one is created from them. Switch to a branch to leave.`,
       confirmLabel: 'Check out',
     })
     if (confirmed) run(BranchService.CheckoutCommit(repoPath, sha), 'Could not check out')
@@ -66,7 +66,7 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
   const createBranchFrom = async (sha: string) => {
     const name = await prompt({
       title: 'New branch',
-      label: `Branch name (from ${sha.slice(0, 7)})`,
+      label: `Branch name (from ${shortSha(sha)})`,
       confirmLabel: 'Create',
       transform: toBranchName,
     })
@@ -100,8 +100,33 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
       icon: RotateCcw,
       run: () => run(CommitService.Revert(repoPath, commit.sha), 'Could not revert', true),
     },
-    { id: 'reset', label: 'Reset to here…', icon: Undo2, run: () => setResetTarget(commit) },
-    { id: 'export-patch', label: 'Export patch…', icon: FileDown, run: () => exportPatch(commit) },
+    {
+      id: 'fixup',
+      label: 'Fixup into this commit',
+      icon: Wrench,
+      run: () => run(CommitService.FixupInto(repoPath, commit.sha), 'Could not commit the fixup'),
+    },
+    {
+      id: 'reset',
+      label: 'Reset to here…',
+      destructive: true,
+      separatorBefore: true,
+      icon: Undo2,
+      run: () => setResetTarget(commit),
+    },
+    {
+      id: 'export-patch',
+      label: 'Export patch…',
+      separatorBefore: true,
+      icon: FileDown,
+      run: () => exportPatch(commit),
+    },
+    {
+      id: 'note',
+      label: noteMenuLabel(notes, 'commit', commit.sha),
+      icon: StickyNote,
+      run: () => notes.edit({ kind: 'commit', target: commit.sha, subject: commit.subject }),
+    },
     { id: 'copy-sha', label: 'Copy SHA', icon: Copy, run: () => void navigator.clipboard.writeText(commit.sha) },
     ...(hostLinks?.commit
       ? [
@@ -109,7 +134,7 @@ export function useCommitActions(repoPath: string, onChanged?: () => void, hostL
             id: 'open-on-host',
             label: 'Open on host',
             icon: hostLogo(hostLinks.style),
-            run: () => void PlatformService.OpenWebPage(commitPage(hostLinks, commit.sha)),
+            run: () => openWebPage(commitPage(hostLinks, commit.sha)),
           },
         ]
       : []),

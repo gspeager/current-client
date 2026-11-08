@@ -2,11 +2,9 @@ package git
 
 import (
 	"context"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/gspeager/current-client/core/internal/gittest"
@@ -24,13 +22,7 @@ func TestCommitCreatesCommitWithMessage(t *testing.T) {
 		t.Fatalf("Commit: %v", err)
 	}
 
-	cmd := exec.Command("git", "log", "-1", "--pretty=%s")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("git log: %v", err)
-	}
-	if got := strings.TrimSpace(string(out)); got != "add new.txt" {
+	if got := gittest.Run(t, dir, "log", "-1", "--pretty=%s"); got != "add new.txt" {
 		t.Fatalf("last commit message = %q, want %q", got, "add new.txt")
 	}
 }
@@ -85,13 +77,7 @@ func TestCommitAmendReplacesLastCommitWithoutAddingOne(t *testing.T) {
 		t.Fatalf("commit count = %d, want unchanged at %d", got, countBefore)
 	}
 
-	cmd := exec.Command("git", "log", "-1", "--pretty=%s")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("git log: %v", err)
-	}
-	if got := strings.TrimSpace(string(out)); got != "amended message" {
+	if got := gittest.Run(t, dir, "log", "-1", "--pretty=%s"); got != "amended message" {
 		t.Fatalf("last commit message = %q, want %q", got, "amended message")
 	}
 }
@@ -287,13 +273,7 @@ func TestGPGSignDefaultReflectsLocalConfig(t *testing.T) {
 
 func commitCount(t *testing.T, dir string) int {
 	t.Helper()
-	cmd := exec.Command("git", "rev-list", "--count", "HEAD")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("git rev-list: %v", err)
-	}
-	n, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	n, err := strconv.Atoi(gittest.Run(t, dir, "rev-list", "--count", "HEAD"))
 	if err != nil {
 		t.Fatalf("parse commit count: %v", err)
 	}

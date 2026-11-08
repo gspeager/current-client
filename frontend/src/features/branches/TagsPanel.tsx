@@ -1,13 +1,7 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronRight, CloudOff, Copy, PackagePlus, Plus, Tag, Upload, X } from 'lucide-react'
-import {
-  HostService,
-  PlatformService,
-  type TagInfo,
-  type TagMessageInfo,
-  TagService,
-} from '@current-client-bindings/app'
-import { errorMessage } from '../../lib/errors'
+import { ChevronDown, ChevronRight, CloudOff, Copy, PackagePlus, Plus, StickyNote, Tag, Upload, X } from 'lucide-react'
+import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
+import { HostService, type TagInfo, type TagMessageInfo, TagService } from '@current-client-bindings/app'
 import { primaryRemoteName } from '../../lib/remotes'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
@@ -19,11 +13,12 @@ import { RowActionButtons, useRowMenu, type RowAction } from '../../components/c
 import './TagsPanel.scss'
 import { useHostLinks } from '../../lib/useHostLinks'
 import type { SidebarRequest } from '../../components/chrome/NavPane'
-import { tagPage } from '../../lib/hostPages'
+import { openWebPage, tagPage } from '../../lib/hostPages'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import { hostLogo } from '../../components/git/hostLogos'
+import { useActionError } from '../../lib/useActionError'
 
 interface TagsPanelProps {
   repoPath: string
@@ -43,7 +38,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
   const { confirm, signIn } = useDialogs()
   const { copy } = useCopyToClipboard()
   const rowMenu = useRowMenu()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
   const [newName, setNewName] = useState('')
   const [newMessage, setNewMessage] = useState('')
@@ -80,7 +75,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
         loadTags()
         onTagChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const deleteTag = async (name: string) => {
@@ -98,7 +93,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
         loadTags()
         onTagChanged?.()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyName(null))
   }
 
@@ -107,7 +102,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     setBusyName(name)
     primaryRemoteName(repoPath)
       .then((remote) => withSignIn((auth) => TagService.PushTag(repoPath, remote, name, auth), signIn))
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyName(null))
   }
 
@@ -117,7 +112,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     try {
       remote = await primaryRemoteName(repoPath)
     } catch (err) {
-      setActionError(errorMessage(err))
+      fail(err)
       return
     }
     const confirmed = await confirm({
@@ -129,7 +124,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     if (!confirmed) return
     setBusyName(name)
     withSignIn((auth) => TagService.DeleteRemoteTag(repoPath, remote, name, auth), signIn)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
       .finally(() => setBusyName(null))
   }
 
@@ -142,13 +137,12 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
     setExpandedName(t.name)
     if (!messages.has(t.name)) {
       TagService.GetTagMessage(repoPath, t.name)
-        .then((result) =>
-          setMessages((prev) => new Map(prev).set(t.name, { subject: result.subject, body: result.body })),
-        )
-        .catch((err: unknown) => setActionError(errorMessage(err)))
+        .then((message) => setMessages((prev) => new Map(prev).set(t.name, message)))
+        .catch(fail)
     }
   }
 
+  const notes = useNotes()
   const hasTags = (tags?.length ?? 0) > 0
 
   const busy = busyName !== null
@@ -159,7 +153,8 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
             label: 'Open on host',
             ariaLabel: `Open tag ${name} on host`,
             icon: hostLogo(hostLinks.style),
-            run: () => void PlatformService.OpenWebPage(tagPage(hostLinks, name)),
+            run: () => openWebPage(tagPage(hostLinks, name)),
+            menuOnly: true,
           },
         ]
       : []),
@@ -171,9 +166,17 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
             icon: PackagePlus,
             run: () => setReleaseTag(name),
             disabled: busy,
+            menuOnly: true,
           },
         ]
       : []),
+    {
+      label: noteMenuLabel(notes, 'tag', name),
+      ariaLabel: `${noteMenuLabel(notes, 'tag', name)} on tag ${name}`,
+      icon: StickyNote,
+      run: () => notes.edit({ kind: 'tag', target: name }),
+      menuOnly: true,
+    },
     { label: 'Push tag', ariaLabel: `Push tag ${name}`, icon: Upload, run: () => pushTag(name), disabled: busy },
     { label: 'Copy name', ariaLabel: `Copy ${name}`, icon: Copy, run: () => copy(name), menuOnly: true },
     {
@@ -183,6 +186,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
       run: () => void deleteRemoteTag(name),
       disabled: busy,
       destructive: true,
+      menuOnly: true,
     },
     {
       label: 'Delete…',
@@ -207,18 +211,11 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
         open={sections.isOpen('tags', hasTags)}
         onToggle={() => sections.toggle('tags', hasTags)}
         actions={
-          <>
-            <button
-              type="button"
-              className="tags-panel-add"
-              onClick={toggleNewTag}
-              aria-label="New tag"
-              title="New tag"
-            >
-              <Plus size={18} strokeWidth={1.75} />
-            </button>
-          </>
+          <button type="button" className="tags-panel-add" onClick={toggleNewTag} aria-label="New tag" title="New tag">
+            <Plus size={18} strokeWidth={1.75} />
+          </button>
         }
+        onPinnedEscape={() => setShowNewTag(false)}
         pinned={
           showNewTag && (
             <div className="tags-panel-new">
@@ -267,23 +264,15 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
                     <Tag size={14} strokeWidth={1.5} className="tag-row-icon" />
                   )}
                   <span className="tag-row-name">{t.name}</span>
+                  <NoteMark kind="tag" target={t.name} />
                   <span className="tag-row-time">{relativeTime(new Date(t.date))}</span>
-                  <RowActionButtons actions={tagActions(t.name)} className="tag-row-actions" />
+                  <RowActionButtons
+                    actions={tagActions(t.name)}
+                    className="tag-row-actions"
+                    onMore={rowMenu.open(tagActions(t.name))}
+                  />
                 </div>
-                {t.annotated && expandedName === t.name && (
-                  <div className="tag-row-message">
-                    {messages.has(t.name) ? (
-                      <>
-                        <p className="tag-row-message-subject">{messages.get(t.name)!.subject}</p>
-                        {messages.get(t.name)!.body && (
-                          <p className="tag-row-message-body">{messages.get(t.name)!.body}</p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="tag-row-message-subject">Loading…</p>
-                    )}
-                  </div>
-                )}
+                {t.annotated && expandedName === t.name && <TagMessage message={messages.get(t.name)} />}
               </li>
             ))}
           </ul>
@@ -291,6 +280,15 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
       </SidebarSection>
       {rowMenu.menu}
       {releaseTag && <PublishReleaseDialog repoPath={repoPath} tag={releaseTag} onClose={() => setReleaseTag(null)} />}
+    </div>
+  )
+}
+
+function TagMessage({ message }: { message?: TagMessageInfo }) {
+  return (
+    <div className="tag-row-message">
+      <p className="tag-row-message-subject">{message ? message.subject : 'Loading…'}</p>
+      {message?.body && <p className="tag-row-message-body">{message.body}</p>}
     </div>
   )
 }

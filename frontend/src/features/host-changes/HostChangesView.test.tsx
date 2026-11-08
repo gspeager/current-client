@@ -204,10 +204,10 @@ describe('HostChangesView', () => {
 
     const detail = await screen.findByRole('article', { name: '!138' })
     expect(await within(detail).findByText('#4')).toBeInTheDocument()
-    expect(within(detail).getByText('feature → main')).toBeInTheDocument()
+    expect(within(detail).getByLabelText('feature into main')).toBeInTheDocument()
     expect(within(detail).getByText(/Would conflict with main in/)).toBeInTheDocument()
     expect(within(detail).getByText('CI passed')).toBeInTheDocument()
-    await userEvent.click(within(detail).getByRole('button', { name: 'Open on gitlab.example.com' }))
+    await userEvent.click(within(detail).getByRole('button', { name: 'Open on host' }))
     expect(PlatformService.OpenWebPage).toHaveBeenCalledWith('https://gitlab.example.com/g/r/-/merge_requests/138')
     expect(HostService.ChangeDetails).toHaveBeenCalledWith(REPO, 138)
   })
@@ -276,6 +276,46 @@ describe('HostChangesView', () => {
     expect(within(detail).getByRole('group', { name: /app\/x\.go:12/ })).toBeInTheDocument()
     expect(HostService.ChangeThreads).toHaveBeenCalledWith(REPO, 138)
     expect(HostService.ChangeFiles).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    {
+      name: 'lists package changes when the head is here',
+      dependencies: {
+        hasManifests: true,
+        headAvailable: true,
+        summaries: {
+          'package.json': {
+            available: true,
+            changes: [{ name: 'left-pad', kind: 'bumped', from: '1.0.0', to: '1.1.0' }],
+          },
+        },
+      },
+      shows: 'left-pad',
+    },
+    {
+      name: "says so when a manifest's head isn't here",
+      dependencies: { hasManifests: true, headAvailable: false, summaries: {} },
+      shows: /Package changes show once/,
+    },
+  ])('in the Files tab, $name', async ({ dependencies, shows }) => {
+    vi.mocked(HostService.Changes).mockResolvedValue(list())
+    vi.mocked(HostService.ChangeDetails).mockResolvedValue({
+      change: change({}),
+      descriptionHtml: '',
+      closes: [],
+      environments: [],
+    })
+    const files = [{ path: 'package.json', oldPath: '', status: 'modified', additions: 1, deletions: 1 }]
+    vi.mocked(HostService.ChangeFiles).mockResolvedValue(files)
+    vi.mocked(HostService.ChangeDependencySummaries).mockResolvedValue(dependencies)
+    renderView()
+
+    const detail = await screen.findByRole('article', { name: '!138' })
+    await userEvent.click(within(detail).getByRole('button', { name: 'Files' }))
+
+    expect(await within(detail).findByText(shows)).toBeInTheDocument()
+    expect(HostService.ChangeDependencySummaries).toHaveBeenCalledWith(REPO, 138, files)
   })
 
   it('starts a new change from the checked-out branch, unless it already has one', async () => {

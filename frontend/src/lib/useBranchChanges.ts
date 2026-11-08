@@ -9,6 +9,9 @@ const NONE: BranchChanges = {}
 // from the cache the last fetch or refresh filled: drawing never asks the
 // host. Empty in a build without host integration.
 export function useBranchChanges(repoPath: string, refreshKey?: unknown): BranchChanges {
-  const { data } = useAsyncData(() => HostService.BranchChanges(repoPath), [repoPath], { refreshKey, keepData: true })
+  const { data } = useAsyncData(() => (repoPath ? HostService.BranchChanges(repoPath) : null), [repoPath], {
+    refreshKey,
+    keepData: true,
+  })
   return data ?? NONE
 }

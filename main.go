@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
 
 	"github.com/gspeager/current-client/app"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -13,8 +14,10 @@ import (
 var assets embed.FS
 
 const (
-	defaultWindowWidth  = 1000
-	defaultWindowHeight = 618
+	defaultWindowWidth  = 1280
+	defaultWindowHeight = 800
+	minWindowWidth      = 960
+	minWindowHeight     = 600
 )
 
 func main() {
@@ -23,10 +26,16 @@ func main() {
 		windowWidth, windowHeight = defaultWindowWidth, defaultWindowHeight
 	}
 
+	workingDir, _ := os.Getwd()
+	app.QueueOpenArgs(os.Args[1:], workingDir)
+
 	currentClient := application.New(application.Options{
-		Name:        "current-client",
-		Description: "A privacy-first, cross-platform desktop Git client.",
-		Services:    app.Services(),
+		Name:           "current-client",
+		SingleInstance: app.SingleInstance(),
+		OnShutdown:     app.Shutdown,
+		ShouldQuit:     app.ShouldQuit,
+		Description:    "A privacy-first, cross-platform desktop Git client.",
+		Services:       app.Services(),
 		Assets: application.AssetOptions{
 			Handler:    application.AssetFileServerFS(assets),
 			Middleware: app.CSPMiddleware(),
@@ -37,9 +46,11 @@ func main() {
 	})
 
 	win := currentClient.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:  "Current Client",
-		Width:  windowWidth,
-		Height: windowHeight,
+		Title:     "Current Client",
+		Width:     windowWidth,
+		Height:    windowHeight,
+		MinWidth:  minWindowWidth,
+		MinHeight: minWindowHeight,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
 			Backdrop:                application.MacBackdropTranslucent,
@@ -49,6 +60,9 @@ func main() {
 		Windows:          application.WindowsWindow{Theme: app.TitleBarTheme()},
 		URL:              "/",
 	})
+
+	app.ListenForOpenRequests(currentClient, win)
+	app.GuardWindowClose(currentClient, win)
 
 	win.OnWindowEvent(events.Common.WindowClosing, func(*application.WindowEvent) {
 		width, height := win.Size()

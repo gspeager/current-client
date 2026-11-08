@@ -15,44 +15,51 @@
   --outline-variant: #3d494c;
 
   // §3.3 Accents
+  --outline-control: #6b7a80;
   --primary: #4cd7f6;
   --primary-hover: #acedff;
-  --primary-container: #06b6d4;
+  --primary-container: #4cd7f6;
   --inverse-primary: #00687a;
-  --secondary: #c0c1ff;
+  --secondary: #8c8cff;
   --tertiary: #4edea3;
   --error: #ffb4ab;
   --warning: #f2b45e;
 
   // On-color ink for text/icons placed on top of a filled accent surface
   --on-primary: #003640;
-  --on-primary-container: #00424f;
-  --on-secondary: #1000a9;
+  --on-primary-container: #003640;
+  --on-secondary: #0a0e16;
   --on-tertiary: #003824;
   --on-error: #690005;
   --on-warning: #3d2600;
 
   // §3.4 Branch topology lanes
-  --branch-main: #4cd7f6;
-  --branch-feature: #c0c1ff;
+  --branch-main: #c3ccd8;
+  --branch-feature: #b69cff;
   --branch-release: #4edea3;
-  --branch-hotfix: #ffb4ab;
+  --branch-hotfix: #ffb38a;
   --branch-experimental: #e3a6f0;
-  --branch-integration: #8fd0ff;
+  --branch-integration: #6ea8ff;
+  --branch-spare: #c6d96f;
+  --branch-sand: #d9c08c;
 
-  // Other lane palettes offered in Settings; the default one is the six above.
+  // Other lane palettes offered in Settings; the default one is the eight above.
   --lane-vivid-1: #00e5ff;
   --lane-vivid-2: #855aff;
   --lane-vivid-3: #00e676;
   --lane-vivid-4: #ff1744;
   --lane-vivid-5: #ff4081;
   --lane-vivid-6: #2979ff;
+  --lane-vivid-7: #ff9100;
+  --lane-vivid-8: #ffea00;
   --lane-muted-1: #7fa8b3;
   --lane-muted-2: #9d95b8;
   --lane-muted-3: #7fb894;
   --lane-muted-4: #c98f8f;
   --lane-muted-5: #b596b5;
   --lane-muted-6: #84a3c2;
+  --lane-muted-7: #c9a67f;
+  --lane-muted-8: #b0b87f;
 
   // Text on a lane color, such as a ref badge.
   --on-lane: #0a0e16;
@@ -65,7 +72,7 @@
   --lang-scss: #cf649a;
   --lang-css: #9e6ecf;
   --lang-html: #e4522d;
-  --lang-md: #4787c6;
+  --lang-md: #b4a7e0;
   --lang-py: #4388c3;
   --lang-rb: #da5b55;
   --lang-java: #b7761a;
@@ -102,6 +109,6 @@
   --code-keyword: #c0c1ff;
   --code-string: #4edea3;
   --code-type: #4cd7f6;
-  --code-comment: #6f7d84;
-  --code-linenum: #3d494c;
+  --code-comment: #808e95;
+  --code-linenum: #76848a;
 }

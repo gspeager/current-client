@@ -6,6 +6,7 @@ import { joinPath } from '../../lib/paths'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
+import { shortSha } from '../../lib/text'
 import './SubmodulesPanel.scss'
 
 interface SubmodulesPanelProps {
@@ -95,7 +96,7 @@ function SubmodulesPanel({
             >
               <Package2 size={14} strokeWidth={1.5} className="submodule-row-icon" />
               <span className="submodule-row-path">{sm.path}</span>
-              <span className="submodule-row-commit">{sm.commit.slice(0, 7)}</span>
+              <span className="submodule-row-commit">{shortSha(sm.commit)}</span>
               {state(sm) && <span className="submodule-row-state">{state(sm)}</span>}
               <RowActionButtons actions={submoduleActions(sm)} className="submodule-row-actions" />
             </li>

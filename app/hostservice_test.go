@@ -3,6 +3,8 @@
 package app
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/gspeager/current-client/core/git"
@@ -59,6 +61,18 @@ func TestSetHostRejectsUnknownProviderAndBadAddress(t *testing.T) {
 	}
 	if hosts := configOrDefault().Hosts; len(hosts) != 0 {
 		t.Fatalf("a rejected choice was saved: %+v", hosts)
+	}
+}
+
+func TestHostInfoReadsASignedInURLWithoutTheSignIn(t *testing.T) {
+	useTempSettings(t)
+	remote := git.Remote{Name: "origin", FetchURL: "https://deploy:s3cret@gitlab.example.com/group/repo.git"}
+	info, ok := hostInfoFor(remote, nil)
+	if !ok || info.Hostname != "gitlab.example.com" || info.Project != "group/repo" {
+		t.Fatalf("hostInfoFor = %+v, %v", info, ok)
+	}
+	if strings.Contains(fmt.Sprintf("%+v", info), "s3cret") {
+		t.Fatalf("host info shows the password: %+v", info)
 	}
 }
 

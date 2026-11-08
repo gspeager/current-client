@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { BranchService, RepositoryService, WorktreeService, type WorktreeInfo } from '@current-client-bindings/app'
@@ -10,11 +11,14 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
+import { shortSha } from '../../lib/text'
+import { useActionError } from '../../lib/useActionError'
 import './WorktreesPanel.scss'
 
 const NEW_BRANCH = ''
 
 interface WorktreesPanelProps {
+  request?: SidebarRequest | null
   repoPath: string
   refreshKey?: unknown
   sections: SidebarSections
@@ -26,7 +30,14 @@ function parentFolder(path: string): string {
   return path.replace(/[\\/]+[^\\/]+[\\/]*$/, '')
 }
 
-function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWorktreesChanged }: WorktreesPanelProps) {
+function WorktreesPanel({
+  repoPath,
+  refreshKey,
+  sections,
+  onOpenRepository,
+  onWorktreesChanged,
+  request = null,
+}: WorktreesPanelProps) {
   const {
     data: worktrees,
     error: loadError,
@@ -34,8 +45,11 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
   } = useAsyncData(() => WorktreeService.List(repoPath), [repoPath], { refreshKey })
   const { data: branches } = useAsyncData(() => BranchService.ListLocal(repoPath), [repoPath], { refreshKey })
   const { confirm } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const [showNew, setShowNew] = useState(false)
+  useEffect(() => {
+    if (request?.action === 'new-worktree') setShowNew(true)
+  }, [request])
   const [existingBranch, setExistingBranch] = useState(NEW_BRANCH)
   const [newBranchName, setNewBranchName] = useState('')
   const [parent, setParent] = useState<string | null>(null)
@@ -60,7 +74,7 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
   const chooseParent = () => {
     RepositoryService.PickDestinationFolder()
       .then((picked) => picked && setParent(picked))
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const add = () => {
@@ -74,7 +88,7 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
         setParent(null)
         changed()
       })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+      .catch(fail)
   }
 
   const remove = async (w: WorktreeInfo, force = false) => {
@@ -103,7 +117,7 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
           if (confirmed) void remove(w, true)
           return
         }
-        setActionError(errorMessage(err))
+        fail(err)
       })
   }
 
@@ -153,6 +167,7 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
             <Plus size={18} strokeWidth={1.75} />
           </button>
         }
+        onPinnedEscape={() => setShowNew(false)}
         pinned={
           showNew && (
             <div className="worktrees-panel-new">
@@ -211,7 +226,7 @@ function WorktreesPanel({ repoPath, refreshKey, sections, onOpenRepository, onWo
               <li key={w.path} className="worktree-row" title={w.path} onContextMenu={rowMenu.open(worktreeActions(w))}>
                 <FolderGit2 size={14} strokeWidth={1.5} className="worktree-row-icon" />
                 <span className="worktree-row-name">{baseName(w.path)}</span>
-                <span className="worktree-row-branch">{w.branch || `detached ${w.head.slice(0, 7)}`}</span>
+                <span className="worktree-row-branch">{w.branch || `detached ${shortSha(w.head)}`}</span>
                 {w.current && <span className="worktree-row-badge">current</span>}
                 {w.locked && <span className="worktree-row-badge">locked</span>}
                 {w.missing && <span className="worktree-row-badge worktree-row-badge-missing">missing</span>}

@@ -1,9 +1,14 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState } from 'react'
 import { HostService, type HostInfo } from '@current-client-bindings/app'
-import Switch from '../../components/forms/Switch'
-import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import {
+  blurOnEnter,
+  ConnectionActions,
+  IntegrationHead,
+  useIntegrationAction,
+  type IntegrationAction,
+} from './IntegrationControls'
 
 const PROVIDER_LABELS: Record<string, string> = { github: 'GitHub', gitlab: 'GitLab' }
 
@@ -25,16 +30,7 @@ function IntegrationsSection({ repoPath, onChanged }: IntegrationsSectionProps) 
   } = useAsyncData(() => HostService.List(repoPath ? [repoPath] : []), [repoPath], {
     keepData: true,
   })
-  const [actionError, setActionError] = useState<string | null>(null)
-
-  const run = (action: Promise<unknown>) =>
-    action
-      .then(() => {
-        setActionError(null)
-        reload()
-        onChanged?.()
-      })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+  const { run, actionError } = useIntegrationAction(reload, onChanged)
 
   const addHost = () =>
     dialogs
@@ -67,23 +63,17 @@ function IntegrationsSection({ repoPath, onChanged }: IntegrationsSectionProps) 
 
 interface HostRowProps {
   host: HostInfo
-  run: (action: Promise<unknown>) => Promise<void>
+  run: IntegrationAction
 }
 
 function HostRow({ host, run }: HostRowProps) {
   const dialogs = useDialogs()
   const [apiUrl, setApiUrl] = useState(host.apiUrl)
-  const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null)
 
   const saveApiUrl = () => {
     const value = apiUrl.trim()
     if (value === host.apiUrl) return
     void run(HostService.SetHost(host.hostname, host.provider, value === host.defaultApiUrl ? '' : value))
-  }
-
-  const onApiUrlKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') e.currentTarget.blur()
   }
 
   const setProvider = (provider: string) =>
@@ -100,15 +90,6 @@ function HostRow({ host, run }: HostRowProps) {
       })
       .then((token) => (token ? run(HostService.SaveToken(host.hostname, token)) : undefined))
 
-  const testConnection = () => {
-    setTesting(true)
-    setTestResult(null)
-    HostService.TestConnection(host.hostname)
-      .then((text) => setTestResult({ ok: true, text }))
-      .catch((err: unknown) => setTestResult({ ok: false, text: errorMessage(err) }))
-      .finally(() => setTesting(false))
-  }
-
   const remove = () =>
     dialogs
       .confirm({
@@ -123,30 +104,22 @@ function HostRow({ host, run }: HostRowProps) {
 
   return (
     <div className="settings-host" aria-label={host.hostname}>
-      <div className="settings-host-head">
-        <div className="settings-row-text">
-          <span className="settings-host-name">{host.hostname}</span>
-          <span className="settings-hint">
-            {host.remote ? (
-              <>
-                {host.remote} · <span className="settings-host-project">{host.project}</span>
-              </>
-            ) : (
-              'Added by hand'
-            )}
-          </span>
-        </div>
-        <div className="settings-host-switch">
-          {host.managed && <span className="settings-hint">Managed by your organization</span>}
-          <Switch
-            checked={host.enabled}
-            onChange={(on) => void run(HostService.SetEnabled(host.hostname, on))}
-            ariaLabel={`Integration for ${host.hostname}`}
-            label={host.enabled ? 'On' : 'Off'}
-            disabled={host.managed}
-          />
-        </div>
-      </div>
+      <IntegrationHead
+        name={host.hostname}
+        enabled={host.enabled}
+        locked={host.managed}
+        onToggle={(on) => void run(HostService.SetEnabled(host.hostname, on))}
+      >
+        <span className="settings-hint">
+          {host.remote ? (
+            <>
+              {host.remote} · <span className="settings-host-project">{host.project}</span>
+            </>
+          ) : (
+            'Added by hand'
+          )}
+        </span>
+      </IntegrationHead>
 
       <div className="settings-host-fields">
         <label className="settings-host-field">
@@ -168,7 +141,7 @@ function HostRow({ host, run }: HostRowProps) {
             value={apiUrl}
             onChange={(e) => setApiUrl(e.target.value)}
             onBlur={saveApiUrl}
-            onKeyDown={onApiUrlKeyDown}
+            onKeyDown={blurOnEnter}
             spellCheck={false}
             aria-label={`API address for ${host.hostname}`}
           />
@@ -182,41 +155,15 @@ function HostRow({ host, run }: HostRowProps) {
         </p>
       )}
 
-      <div className="settings-actions">
-        <span className="settings-hint">
-          {host.hasToken ? 'Token saved with Git’s credential helper.' : 'Uses Git’s own credential for the host.'}
-        </span>
-        {host.hasToken ? (
-          <button
-            type="button"
-            className="settings-button settings-button-small"
-            onClick={() => void run(HostService.RemoveToken(host.hostname))}
-          >
-            Remove token
-          </button>
-        ) : (
-          <button type="button" className="settings-button settings-button-small" onClick={() => void setToken()}>
-            Set token…
-          </button>
-        )}
-        <button
-          type="button"
-          className="settings-button settings-button-small"
-          onClick={testConnection}
-          disabled={!host.enabled || testing}
-          title={host.enabled ? undefined : 'Turn the integration on first.'}
-        >
-          {testing ? 'Testing…' : 'Test connection'}
-        </button>
-        <button type="button" className="settings-button settings-button-small" onClick={() => void remove()}>
-          Remove
-        </button>
-        {testResult && (
-          <span className={testResult.ok ? 'settings-hint' : 'settings-error'} role="status">
-            {testResult.text}
-          </span>
-        )}
-      </div>
+      <ConnectionActions
+        enabled={host.enabled}
+        hasToken={host.hasToken}
+        noTokenHint="Uses Git’s own credential for the host."
+        onSetToken={() => void setToken()}
+        onRemoveToken={() => void run(HostService.RemoveToken(host.hostname))}
+        testConnection={() => HostService.TestConnection(host.hostname)}
+        onRemove={() => void remove()}
+      />
     </div>
   )
 }

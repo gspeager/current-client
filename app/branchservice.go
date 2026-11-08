@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"strconv"
+	"time"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
@@ -45,10 +47,12 @@ func (s *BranchService) CreateBranch(repoPath, name string) error {
 }
 
 func (s *BranchService) CheckoutCommit(repoPath, sha string) error {
+	snapshotBefore(repoPath, "checkout")
 	return git.CheckoutCommit(context.Background(), repoPath, sha)
 }
 
 func (s *BranchService) CheckoutBranch(repoPath, name string) error {
+	snapshotBefore(repoPath, "checkout")
 	return git.CheckoutBranch(context.Background(), repoPath, name)
 }
 
@@ -65,7 +69,10 @@ func (s *BranchService) UnsetUpstream(repoPath, branch string) error {
 }
 
 func (s *BranchService) RenameBranch(repoPath, oldName, newName string) error {
-	return git.RenameBranch(context.Background(), repoPath, oldName, newName)
+	if err := git.RenameBranch(context.Background(), repoPath, oldName, newName); err != nil {
+		return err
+	}
+	return renameInStacks(repoPath, oldName, newName)
 }
 
 // DeleteBranch returns the deleted branch's tip, so it can be recreated.
@@ -74,6 +81,10 @@ func (s *BranchService) DeleteBranch(repoPath, name string, force bool) (string,
 	tip, err := git.ResolveCommit(ctx, repoPath, "refs/heads/"+name)
 	if err != nil {
 		return "", err
+	}
+	// Only when deleting it would leave its commits unreachable.
+	if force && !git.CommitOnAnotherRef(ctx, repoPath, tip, "refs/heads/"+name) {
+		snapshotTip(repoPath, "branch delete", name, tip)
 	}
 	return tip, git.DeleteBranch(ctx, repoPath, name, force)
 }
@@ -89,6 +100,47 @@ func (s *BranchService) MergeBranch(repoPath, branch, mode string) error {
 
 func (s *BranchService) DefaultBranch(repoPath string) (string, error) {
 	return git.DefaultBranch(context.Background(), repoPath)
+}
+
+type RebasePreviewCommitInfo struct {
+	SHA     string   `json:"sha"`
+	Subject string   `json:"subject"`
+	Outcome string   `json:"outcome"`
+	Files   []string `json:"files"`
+}
+
+type RebasePreviewInfo struct {
+	Current       string                    `json:"current"`
+	Onto          string                    `json:"onto"`
+	Commits       []RebasePreviewCommitInfo `json:"commits"`
+	Predicted     bool                      `json:"predicted"`
+	DroppedMerges int                       `json:"droppedMerges"`
+	ForcePush     bool                      `json:"forcePush"`
+	Upstream      string                    `json:"upstream"`
+	Dirty         bool                      `json:"dirty"`
+	Command       string                    `json:"command"`
+}
+
+func previewCommitInfo(commit git.PreviewCommit) RebasePreviewCommitInfo {
+	return RebasePreviewCommitInfo{commit.SHA, commit.Subject, string(commit.Outcome), append([]string{}, commit.Files...)}
+}
+
+func (s *BranchService) PreviewRebase(repoPath, onto string) (RebasePreviewInfo, error) {
+	preview, err := git.PreviewRebase(context.Background(), repoPath, onto)
+	if err != nil {
+		return RebasePreviewInfo{}, err
+	}
+	return RebasePreviewInfo{
+		Current:       preview.Current,
+		Onto:          preview.Onto,
+		Commits:       mapSlice(preview.Commits, previewCommitInfo),
+		Predicted:     preview.Predicted,
+		DroppedMerges: preview.DroppedMerges,
+		ForcePush:     preview.ForcePush,
+		Upstream:      preview.Upstream,
+		Dirty:         preview.Dirty,
+		Command:       preview.Command,
+	}, nil
 }
 
 func (s *BranchService) RebaseOnto(repoPath, onto string) error {
@@ -161,6 +213,75 @@ func (s *BranchService) MergedBranches(repoPath string) (MergedBranches, error) 
 		})
 	}
 	return result, nil
+}
+
+// BranchReviewRowInfo.Deletable is false for the current branch, the default
+// branch and a branch checked out in a worktree.
+type BranchReviewRowInfo struct {
+	Name           string       `json:"name"`
+	Current        bool         `json:"current"`
+	Upstream       string       `json:"upstream"`
+	Ahead          int          `json:"ahead"`
+	Behind         int          `json:"behind"`
+	AheadBase      int          `json:"aheadBase"`
+	BehindBase     int          `json:"behindBase"`
+	Merged         bool         `json:"merged"`
+	MergedChange   string       `json:"mergedChange"`
+	OpenChange     string       `json:"openChange"`
+	Stale          bool         `json:"stale"`
+	Unpushed       bool         `json:"unpushed"`
+	LastCommitDate string       `json:"lastCommitDate"`
+	AuthorName     string       `json:"authorName"`
+	AuthorEmail    string       `json:"authorEmail"`
+	Author         IdentityInfo `json:"author"`
+	Deletable      bool         `json:"deletable"`
+}
+
+type BranchReviewInfo struct {
+	Base string                `json:"base"`
+	Rows []BranchReviewRowInfo `json:"rows"`
+}
+
+// ReviewBranches makes no request: the host's part comes from the cache.
+func (s *BranchService) ReviewBranches(repoPath string) (BranchReviewInfo, error) {
+	review, err := git.ReviewBranches(context.Background(), repoPath)
+	if err != nil {
+		return BranchReviewInfo{}, err
+	}
+	info := BranchReviewInfo{Base: review.Base, Rows: []BranchReviewRowInfo{}}
+	merged, open := mergedOnHost(repoPath), openChangesByBranch(repoPath)
+	cfgIdentities := (&IdentityService{}).GetIdentities(mapSlice(review.Rows, func(row git.BranchReviewRow) IdentityRef {
+		return IdentityRef{Name: row.AuthorName, Email: row.AuthorEmail}
+	}))
+	now := time.Now()
+	for i, row := range review.Rows {
+		last, err := time.Parse(time.RFC3339, row.LastCommitDate)
+		mergedChange := ""
+		// Commits added since it merged aren't merged, so they aren't called so.
+		if change, ok := merged[row.Upstream]; ok && row.Tip == change.HeadSHA {
+			mergedChange = change.Prefix + strconv.Itoa(change.Number)
+		}
+		info.Rows = append(info.Rows, BranchReviewRowInfo{
+			Name:           row.Name,
+			Current:        row.Current,
+			Upstream:       row.Upstream,
+			Ahead:          row.Ahead,
+			Behind:         row.Behind,
+			AheadBase:      row.AheadBase,
+			BehindBase:     row.BehindBase,
+			Merged:         row.Name != review.Default && (row.Merged || mergedChange != ""),
+			MergedChange:   mergedChange,
+			OpenChange:     open[row.Name],
+			Stale:          err == nil && !row.Current && now.Sub(last) > staleAfter,
+			Unpushed:       row.Upstream == "" || row.Ahead > 0,
+			LastCommitDate: row.LastCommitDate,
+			AuthorName:     row.AuthorName,
+			AuthorEmail:    row.AuthorEmail,
+			Author:         cfgIdentities[i],
+			Deletable:      !row.Current && row.Name != review.Default && row.WorktreePath == "",
+		})
+	}
+	return info, nil
 }
 
 // hostMergedChange is what the cache knows of a merged change, by its

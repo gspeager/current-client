@@ -19,6 +19,8 @@ type Policy struct {
 	Hosts     map[string]Switch `json:"hosts"`
 	AutoFetch *AutoFetch        `json:"autoFetch"`
 	Tracker   *Tracker          `json:"tracker"`
+	// LocalCommands off removes the terminal panel and task runner.
+	LocalCommands *Switch `json:"localCommands"`
 }
 
 // Tracker is the organization's issue tracker, the default for every
@@ -113,8 +115,15 @@ func Host(hostname string) (enabled, managed bool) {
 	return *sw.Enabled, true
 }
 
-// AutoFetchMinutes is the background fetch interval in force: the policy's
-// when it sets one, else the user's. Zero is off.
+func LocalCommandsOff() bool {
+	mu.Lock()
+	defer mu.Unlock()
+	lock := current.LocalCommands
+	return lock != nil && lock.Enabled != nil && !*lock.Enabled
+}
+
+// AutoFetchMinutes is the policy's interval when it sets one, else the
+// user's. Zero is off.
 func AutoFetchMinutes(user int) (minutes int, managed bool) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -131,7 +140,6 @@ func AutoFetchMinutes(user int) (minutes int, managed bool) {
 	return defaultIntervalMinutes, true
 }
 
-// DefaultTracker is the policy's tracker, or nil.
 func DefaultTracker() *Tracker {
 	mu.Lock()
 	defer mu.Unlock()

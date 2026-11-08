@@ -15,7 +15,6 @@ const (
 	GitLab Style = "gitlab"
 )
 
-// Host is where a repository's web pages live.
 type Host struct {
 	// Root is the host's web origin with a trailing slash, such as "https://gitlab.example.com/".
 	Root    string

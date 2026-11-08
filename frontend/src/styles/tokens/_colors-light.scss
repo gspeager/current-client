@@ -13,12 +13,13 @@
   --outline: #5b6672;
   --outline-variant: #c3ccd6;
 
+  --outline-control: #8a96a3;
   --primary: #00687a;
   --primary-hover: #005263;
-  --secondary: #3f3fd0;
+  --secondary: #3a3aef;
   --tertiary: #096a4a;
   --error: #b3261e;
-  --warning: #7a5000;
+  --warning: #945f00;
 
   // App additions outside §4.2, derived the same way.
   --primary-container: #00687a;
@@ -31,12 +32,14 @@
   --on-warning: #ffffff;
 
   // §4.3 Light lanes
-  --branch-main: #00687a;
-  --branch-feature: #3f3fd0;
-  --branch-release: #096a4a;
-  --branch-hotfix: #b3261e;
+  --branch-main: #46525f;
+  --branch-feature: #6a3fd0;
+  --branch-release: #2f7d1e;
+  --branch-hotfix: #b5541a;
   --branch-experimental: #8b3fa8;
   --branch-integration: #1e6fb8;
+  --branch-spare: #5f7300;
+  --branch-sand: #7d6a2a;
 
   // Same hue and saturation as dark, darkened to the light lanes' contrast
   // (at least 4.2:1 on --surface-high).
@@ -46,12 +49,16 @@
   --lane-vivid-4: #d9002a;
   --lane-vivid-5: #d60049;
   --lane-vivid-6: #005dfa;
+  --lane-vivid-7: #a05b00;
+  --lane-vivid-8: #766d00;
   --lane-muted-1: #49717b;
   --lane-muted-2: #6f6495;
   --lane-muted-3: #417655;
   --lane-muted-4: #a85151;
   --lane-muted-5: #855e85;
   --lane-muted-6: #496f94;
+  --lane-muted-7: #8a643a;
+  --lane-muted-8: #69703e;
 
   // White reaches 5.2:1 or more on every light lane; dark ink stays under 4:1.
   --on-lane: #ffffff;
@@ -63,7 +70,7 @@
   --lang-scss: #c33d81;
   --lang-css: #663399;
   --lang-html: #cd3e1a;
-  --lang-md: #3774b0;
+  --lang-md: #6b5f9e;
   --lang-py: #3572a5;
   --lang-rb: #cc342d;
   --lang-java: #9c6516;
@@ -100,7 +107,7 @@
   --code-string: #096a4a;
   --code-type: #00687a;
   --code-comment: #6b7680;
-  --code-linenum: #a9b4c0;
+  --code-linenum: #66717c;
 
   // §4.4 Behavioural differences
   --focus-ring: 0 0 0 2px var(--primary);

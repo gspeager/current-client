@@ -9,11 +9,12 @@ import {
   RotateCw,
   type LucideIcon,
 } from 'lucide-react'
-import { HostService, PlatformService, type CIMark as CIMarkInfo } from '@current-client-bindings/app'
+import { HostService, type CIMark as CIMarkInfo } from '@current-client-bindings/app'
 import type { Job } from '@current-client-bindings/core/hostapi'
 import HoverCard from '../chrome/HoverCard'
 import Modal from '../chrome/Modal'
-import { errorMessage, ignoreDecorativeFailure } from '../../lib/errors'
+import { errorMessage } from '../../lib/errors'
+import { openWebPage } from '../../lib/hostPages'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './CIMark.scss'
 import { useHostLogo } from './hostLogos'
@@ -182,11 +183,7 @@ export function PipelineJobList({
             </button>
           )}
           {webUrl && (
-            <button
-              type="button"
-              className="ci-jobs-button"
-              onClick={() => PlatformService.OpenWebPage(webUrl).catch(ignoreDecorativeFailure)}
-            >
+            <button type="button" className="ci-jobs-button" onClick={() => openWebPage(webUrl)}>
               <HostIcon size={14} strokeWidth={1.75} />
               Open on host
             </button>
@@ -213,8 +210,7 @@ function PipelineJobs({
   onClose: () => void
   onOpenJobs?: () => void
 }) {
-  const openJob = (job: Job) =>
-    onOpenJobs ? onOpenJobs() : PlatformService.OpenWebPage(job.webUrl).catch(ignoreDecorativeFailure)
+  const openJob = (job: Job) => (onOpenJobs ? onOpenJobs() : openWebPage(job.webUrl))
   return (
     <Modal title={ciLabel(mark.status)} onClose={onClose} className="ci-jobs-panel">
       <div className="ci-jobs">
@@ -230,17 +226,22 @@ function PipelineJobs({
   )
 }
 
-// A job at a glance: what it is and how it went. A failed one opens, where
-// its log has room.
-function GlanceJobRow({ job, onOpen }: { job: Job; onOpen?: (job: Job) => void }) {
-  const row = (
+function JobCells({ job, withStatus = false }: { job: Job; withStatus?: boolean }) {
+  return (
     <>
       <CIIcon status={job.status} />
       <span className="ci-job-name">{job.name}</span>
       <span className="ci-job-stage">{job.stage}</span>
+      {withStatus && <span className="ci-job-status">{job.status}</span>}
       <span className="ci-job-duration">{formatDuration(job.duration)}</span>
     </>
   )
+}
+
+// A job at a glance: what it is and how it went. A failed one opens, where
+// its log has room.
+function GlanceJobRow({ job, onOpen }: { job: Job; onOpen?: (job: Job) => void }) {
+  const row = <JobCells job={job} />
   if (job.status !== 'failed' || !onOpen) return <li className="ci-job ci-job-glance">{row}</li>
   return (
     <li className="ci-job ci-job-glance ci-job-failed">
@@ -274,15 +275,7 @@ function JobRow({
     [open, full, repoPath, job.id],
     { keepData: true },
   )
-  const row = (
-    <>
-      <CIIcon status={job.status} />
-      <span className="ci-job-name">{job.name}</span>
-      <span className="ci-job-stage">{job.stage}</span>
-      <span className="ci-job-status">{job.status}</span>
-      <span className="ci-job-duration">{formatDuration(job.duration)}</span>
-    </>
-  )
+  const row = <JobCells job={job} withStatus />
   if (!failed) return <li className="ci-job">{row}</li>
   return (
     <li className="ci-job ci-job-failed">
@@ -305,7 +298,7 @@ function JobRow({
         <button
           type="button"
           className="ci-job-action"
-          onClick={() => PlatformService.OpenWebPage(job.webUrl).catch(ignoreDecorativeFailure)}
+          onClick={() => openWebPage(job.webUrl)}
           disabled={!job.webUrl}
           aria-label={`Open ${job.name} on host`}
           title="Open on host"

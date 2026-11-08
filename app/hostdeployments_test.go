@@ -3,7 +3,6 @@
 package app
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ func TestReachFollowsTheDeployedCommit(t *testing.T) {
 	repo := enabledGitLab(t)
 	commit := func(message string) string {
 		gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", message)
-		return strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD"))
+		return gitOut(t, repo, "rev-parse", "HEAD")
 	}
 	first := commit("first")
 	second := commit("second")
@@ -76,7 +75,7 @@ func TestMergedWorkNotOnProductionYet(t *testing.T) {
 	repo := enabledGitLab(t)
 	commit := func(message string) string {
 		gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", message)
-		return strings.TrimSpace(gitOut(t, repo, "rev-parse", "HEAD"))
+		return gitOut(t, repo, "rev-parse", "HEAD")
 	}
 	deployed := commit("deployed")
 	waiting := commit("merged after")

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/identity"
+	"github.com/gspeager/current-client/core/snapshot"
 	"github.com/gspeager/current-client/internal/config"
 	"github.com/gspeager/current-client/internal/policy"
 )
@@ -24,11 +25,23 @@ type Settings struct {
 	NavCollapsed                bool                  `json:"navCollapsed"`
 	DiffExpanded                bool                  `json:"diffExpanded"`
 	DiffNoWrap                  bool                  `json:"diffNoWrap"`
+	Density                     string                `json:"density"`
 	PruneOnFetch                bool                  `json:"pruneOnFetch"`
 	HistoryBranchFilter         string                `json:"historyBranchFilter"`
 	HistoryFirstParent          bool                  `json:"historyFirstParent"`
 	DisableConventionalCommits  bool                  `json:"disableConventionalCommits"`
+	RiskRulesOff                []string              `json:"riskRulesOff"`
+	SnapshotLimit               int                   `json:"snapshotLimit"`
+	TerminalShell               string                `json:"terminalShell"`
+	LocalCommandsOff            bool                  `json:"localCommandsOff"`
 	Changelog                   config.ChangelogPrefs `json:"changelog"`
+}
+
+func normalizeDensity(density string) string {
+	if density == "compact" {
+		return density
+	}
+	return "comfortable"
 }
 
 func normalizeTheme(theme string) string {
@@ -58,10 +71,15 @@ func (s *SettingsService) GetSettings() (Settings, error) {
 		NavCollapsed:                cfg.NavCollapsed,
 		DiffExpanded:                cfg.DiffExpanded,
 		DiffNoWrap:                  cfg.DiffNoWrap,
+		Density:                     normalizeDensity(cfg.Density),
 		PruneOnFetch:                cfg.PruneOnFetch,
 		HistoryBranchFilter:         cfg.HistoryBranchFilter,
 		HistoryFirstParent:          cfg.HistoryFirstParent,
 		DisableConventionalCommits:  cfg.DisableConventionalCommits,
+		RiskRulesOff:                append([]string{}, cfg.RiskRulesOff...),
+		SnapshotLimit:               snapshotLimitOrDefault(cfg.SnapshotLimit),
+		TerminalShell:               cfg.TerminalShell,
+		LocalCommandsOff:            policy.LocalCommandsOff(),
 		Changelog:                   changelogPrefs(cfg),
 	}, nil
 }
@@ -124,7 +142,7 @@ func (s *SettingsService) PickEditorExecutable() (string, error) {
 
 func (s *SettingsService) SetAutoFetchIntervalMinutes(minutes int) error {
 	if _, managed := policy.AutoFetchMinutes(0); managed {
-		return errors.New("background fetch is managed by your organization")
+		return errors.New("background fetch is managed by organization policy")
 	}
 	return updateConfig(func(cfg *config.Config) { cfg.AutoFetchIntervalMinutes = minutes })
 }
@@ -153,12 +171,35 @@ func (s *SettingsService) SetDiffExpanded(expanded bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.DiffExpanded = expanded })
 }
 
+func (s *SettingsService) SetDensity(density string) error {
+	return updateConfig(func(cfg *config.Config) { cfg.Density = normalizeDensity(density) })
+}
+
 func (s *SettingsService) SetDiffNoWrap(noWrap bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.DiffNoWrap = noWrap })
 }
 
 func (s *SettingsService) SetDisableConventionalCommits(disable bool) error {
 	return updateConfig(func(cfg *config.Config) { cfg.DisableConventionalCommits = disable })
+}
+
+func snapshotLimitOrDefault(limit int) int {
+	if limit <= 0 {
+		return snapshot.DefaultLimit
+	}
+	return limit
+}
+
+func (s *SettingsService) SetTerminalShell(shell string) error {
+	return updateConfig(func(cfg *config.Config) { cfg.TerminalShell = shell })
+}
+
+func (s *SettingsService) SetSnapshotLimit(limit int) error {
+	return updateConfig(func(cfg *config.Config) { cfg.SnapshotLimit = limit })
+}
+
+func (s *SettingsService) SetRiskRulesOff(rules []string) error {
+	return updateConfig(func(cfg *config.Config) { cfg.RiskRulesOff = rules })
 }
 
 func (s *SettingsService) SetChangelogPrefs(prefs config.ChangelogPrefs) error {

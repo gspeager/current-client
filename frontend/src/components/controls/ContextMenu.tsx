@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import './ContextMenu.scss'
 
 export interface ContextMenuItem {
@@ -6,6 +6,8 @@ export interface ContextMenuItem {
   onClick: () => void
   destructive?: boolean
   disabled?: boolean
+  // Starts a new group, with a line above it.
+  separatorBefore?: boolean
 }
 
 export interface ContextMenuState {
@@ -20,6 +22,22 @@ export interface ContextMenuState {
 // Shift+F10 and the context-menu key open a row's menu from the keyboard.
 export function isMenuKey(e: KeyboardEvent): boolean {
   return e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')
+}
+
+// A focusable row's keys: the menu key opens its menu; Enter or Space activates
+// it, unless they were pressed on a control inside the row.
+export function rowKeyDown(activate: () => void, menu: (e: KeyboardEvent) => void) {
+  return (e: KeyboardEvent) => {
+    if (isMenuKey(e)) {
+      menu(e)
+      return
+    }
+    if (e.target !== e.currentTarget) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      activate()
+    }
+  }
 }
 
 // Where a menu opens: at the pointer, or under the element when a key or a
@@ -96,22 +114,32 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
     <div
       ref={ref}
       className="context-menu"
+      role="menu"
       onKeyDown={moveFocus}
-      style={{ left: position.left, top: position.top, visibility: position.visible ? 'visible' : 'hidden' }}
+      style={{
+        left: position.left,
+        top: position.top,
+        maxHeight: 'calc(100vh - 16px)',
+        overflowY: 'auto',
+        visibility: position.visible ? 'visible' : 'hidden',
+      }}
     >
       {items.map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          className={item.destructive ? 'context-menu-item context-menu-item-destructive' : 'context-menu-item'}
-          disabled={item.disabled}
-          onClick={() => {
-            onClose()
-            item.onClick()
-          }}
-        >
-          {item.label}
-        </button>
+        <Fragment key={item.label}>
+          {item.separatorBefore && <div className="context-menu-separator" role="separator" />}
+          <button
+            type="button"
+            role="menuitem"
+            className={item.destructive ? 'context-menu-item context-menu-item-destructive' : 'context-menu-item'}
+            disabled={item.disabled}
+            onClick={() => {
+              onClose()
+              item.onClick()
+            }}
+          >
+            {item.label}
+          </button>
+        </Fragment>
       ))}
     </div>
   )

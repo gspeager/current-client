@@ -12,28 +12,41 @@ interface ActivityViewProps {
   repoPath: string
   repoVersion: number
   dirty: boolean
+  changedCount?: number
   hasConflict: boolean
   // What you did across the open repositories, to paste into a standup.
   onStandup?: () => void
 }
 
-function ActivityView({ repoPath, repoVersion, dirty, hasConflict, onStandup }: ActivityViewProps) {
+function ActivityView({ repoPath, repoVersion, dirty, changedCount, hasConflict, onStandup }: ActivityViewProps) {
   return (
     <div className="activity-view">
-      {onStandup && (
-        <header className="activity-view-header">
-          <button type="button" className="activity-view-standup" onClick={onStandup}>
-            <ClipboardList size={14} strokeWidth={1.75} />
-            Standup…
-          </button>
-        </header>
-      )}
-      <RepoStatStrip repoPath={repoPath} repoVersion={repoVersion} dirty={dirty} />
+      <h2 className="visually-hidden">Activity</h2>
+      <RepoStatStrip
+        changedCount={changedCount}
+        repoPath={repoPath}
+        repoVersion={repoVersion}
+        dirty={dirty}
+        action={
+          onStandup && (
+            <button type="button" className="activity-view-standup" onClick={onStandup}>
+              <ClipboardList size={14} strokeWidth={1.75} />
+              Standup summary…
+            </button>
+          )
+        }
+      />
       <ActivityCalendar repoPath={repoPath} repoVersion={repoVersion} />
       <div className="activity-view-pair">
         <ContributorsChart repoPath={repoPath} repoVersion={repoVersion} />
         <CommitVelocityChart repoPath={repoPath} repoVersion={repoVersion} />
-        <RepositoryHealth repoPath={repoPath} repoVersion={repoVersion} dirty={dirty} hasConflict={hasConflict} />
+        <RepositoryHealth
+          repoPath={repoPath}
+          repoVersion={repoVersion}
+          dirty={dirty}
+          changedCount={changedCount}
+          hasConflict={hasConflict}
+        />
       </div>
       <div className="activity-view-pair">
         <FileChurnList repoPath={repoPath} repoVersion={repoVersion} />

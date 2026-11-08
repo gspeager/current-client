@@ -1,17 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { SidebarRequest } from '../../components/chrome/NavPane'
 import { Cloud, Pencil, Plus, RefreshCw, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { RemoteService, type RemoteInfo } from '@current-client-bindings/app'
 import { useCancellableOperation } from '../../lib/cancellableOperation'
-import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import PathText from '../../components/git/PathText'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
+import { useActionError } from '../../lib/useActionError'
 import './RemotesPanel.scss'
 
 interface RemotesPanelProps {
+  request?: SidebarRequest | null
   repoPath: string
   sections: SidebarSections
   onFetched?: () => void
@@ -20,40 +22,45 @@ interface RemotesPanelProps {
 
 // The host for a URL; null for a filesystem remote, whose path is shown instead.
 function hostLabel(url: string): string | null {
-  const httpMatch = url.match(/^\w+:\/\/([^/]+)/)
+  const httpMatch = url.match(/^\w+:\/\/(?:[^/]*@)?([^/]+)/)
   if (httpMatch) return httpMatch[1].replace(/^www\./, '')
   const sshMatch = url.match(/^[\w.-]+@([^:/]+)/)
   if (sshMatch) return sshMatch[1]
   return null
 }
 
-function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: RemotesPanelProps) {
+function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false, request = null }: RemotesPanelProps) {
   const {
     data: remotes,
     error: loadError,
     reload: loadRemotes,
   } = useAsyncData(() => RemoteService.List(repoPath), [repoPath])
   const { confirm, prompt } = useDialogs()
-  const [actionError, setActionError] = useState<string | null>(null)
+  const { error: actionError, setError: setActionError, fail } = useActionError()
   const error = loadError ?? actionError
   const [newName, setNewName] = useState('')
   const [newUrl, setNewUrl] = useState('')
   const [showAddRemote, setShowAddRemote] = useState(false)
+  useEffect(() => {
+    if (request?.action === 'new-remote') setShowAddRemote(true)
+  }, [request])
   const [fetchingRemote, setFetchingRemote] = useState<string | null>(null)
   const fetchOp = useCancellableOperation()
   const rowMenu = useRowMenu()
 
-  const addRemote = () => {
+  const change = (action: Promise<void>) => {
     setActionError(null)
-    RemoteService.AddRemote(repoPath, newName, newUrl)
-      .then(() => {
+    return action.then(loadRemotes).catch(fail)
+  }
+
+  const addRemote = () =>
+    void change(
+      RemoteService.AddRemote(repoPath, newName, newUrl).then(() => {
         setNewName('')
         setNewUrl('')
         setShowAddRemote(false)
-        loadRemotes()
-      })
-      .catch((err: unknown) => setActionError(errorMessage(err)))
-  }
+      }),
+    )
 
   const removeRemote = async (name: string) => {
     const confirmed = await confirm({
@@ -62,11 +69,7 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
       confirmLabel: 'Remove',
       destructive: true,
     })
-    if (!confirmed) return
-    setActionError(null)
-    RemoteService.RemoveRemote(repoPath, name)
-      .then(loadRemotes)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    if (confirmed) void change(RemoteService.RemoveRemote(repoPath, name))
   }
 
   const editRemote = async (remote: RemoteInfo) => {
@@ -76,22 +79,20 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
       initialValue: remote.fetchUrl,
       confirmLabel: 'Save',
     })
-    if (!url) return
-    setActionError(null)
-    RemoteService.EditRemote(repoPath, remote.name, url)
-      .then(loadRemotes)
-      .catch((err: unknown) => setActionError(errorMessage(err)))
+    if (url) void change(RemoteService.EditRemote(repoPath, remote.name, url))
   }
 
-  const fetchRemote = (name: string) => {
-    setFetchingRemote(name)
-    fetchOp.run((auth) => RemoteService.Fetch(repoPath, name, auth), onFetched).finally(() => setFetchingRemote(null))
+  // remote is '*' while fetching all of them.
+  const fetchWith = (remote: string, start: Parameters<typeof fetchOp.run>[0]) => {
+    setFetchingRemote(remote)
+    void fetchOp.run(start, onFetched).finally(() => setFetchingRemote(null))
   }
+
+  const fetchRemote = (name: string) => fetchWith(name, (auth) => RemoteService.Fetch(repoPath, name, auth))
 
   const fetchAll = () => {
-    setFetchingRemote('*')
     const fetch = pruneOnFetch ? RemoteService.FetchAllPrune : RemoteService.FetchAll
-    fetchOp.run((auth) => fetch(repoPath, auth), onFetched).finally(() => setFetchingRemote(null))
+    fetchWith('*', (auth) => fetch(repoPath, auth))
   }
 
   const hasRemotes = (remotes?.length ?? 0) > 0
@@ -134,6 +135,7 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false }: R
             <Plus size={18} strokeWidth={1.75} />
           </button>
         }
+        onPinnedEscape={() => setShowAddRemote(false)}
         pinned={
           showAddRemote && (
             <div className="remotes-panel-new">

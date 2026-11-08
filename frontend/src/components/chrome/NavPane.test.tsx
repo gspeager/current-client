@@ -32,8 +32,11 @@ interface ShellProps {
 }
 
 // The sidebar with its Workspace actions wired the way App wires them.
+const openTerminal = vi.fn()
+
 function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn() }: ShellProps) {
   const workspace = useWorkspaceActions({
+    onOpenTerminal: openTerminal,
     repoPath: REPO,
     onBranchChanged: vi.fn(),
     onOpenCommit: vi.fn(),
@@ -71,23 +74,24 @@ function renderNav(collapsed: boolean, onCollapsedChange = vi.fn(), onOpenHeadCo
   return { onCollapsedChange, setCollapsed: (next: boolean) => rerender(ui(next)) }
 }
 
+const openToolbox = () => userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
+
 describe('NavPane collapsed rail', () => {
-  it('runs workspace actions straight from their icons', async () => {
-    vi.mocked(PlatformService.OpenTerminal).mockResolvedValue()
+  it('runs workspace actions from the Toolbox menu', async () => {
     const { onCollapsedChange } = renderNav(true)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Open Terminal' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Terminal panel' }))
 
-    expect(PlatformService.OpenTerminal).toHaveBeenCalledWith(REPO)
+    expect(openTerminal).toHaveBeenCalled()
     expect(onCollapsedChange).not.toHaveBeenCalled()
     expect(screen.queryByText('Branches')).not.toBeInTheDocument()
   })
 
-  it('follows the sidebar: sections, then the Toolbox groups, each set off by a rule', () => {
+  it('follows the sidebar: sections, then one Toolbox button', () => {
     renderNav(true)
 
     const rail = screen.getByRole('navigation', { name: 'Repository' })
-    expect(rail.querySelectorAll('.nav-pane-rail-divider')).toHaveLength(4)
     expect(
       within(rail)
         .getAllByRole('button')
@@ -99,15 +103,7 @@ describe('NavPane collapsed rail', () => {
       'Show Tags',
       'Show Remotes',
       'Show Worktrees',
-      'Open Terminal',
-      expect.stringMatching(/^(Reveal in|Open in File Manager)/),
-      'Open in VS Code',
-      'Undo last operation',
-      'Reflog',
-      'Bisect',
-      'Apply patch…',
-      'Check integrity',
-      'Run cleanup',
+      'Toolbox',
     ])
   })
 
@@ -125,7 +121,8 @@ describe('NavPane collapsed rail', () => {
     vi.mocked(PlatformService.OpenInEditor).mockRejectedValue(new Error('Editor not found.'))
     const { onCollapsedChange, setCollapsed } = renderNav(true)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Open in VS Code' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Open in VS Code' }))
     await vi.waitFor(() => expect(onCollapsedChange).toHaveBeenCalledWith(false))
     setCollapsed(false)
 
@@ -151,7 +148,6 @@ describe('NavPane expanded', () => {
 
     const head = await screen.findByRole('button', { name: 'HEAD abc1234 Add the thing' })
     expect(head.parentElement).toHaveClass('nav-pane-head')
-    expect(head.querySelector('.head-commit-panel-label')).toHaveTextContent('HEAD')
     expect(head.querySelector('.head-commit-panel-sha')).toHaveTextContent('abc1234')
     expect(head.querySelector('.head-commit-panel-subject')).toHaveTextContent('Add the thing')
     expect(head.querySelector('svg')).not.toBeNull()
@@ -164,11 +160,12 @@ describe('NavPane expanded', () => {
     vi.mocked(PlatformService.OpenInEditor).mockResolvedValue()
     vi.mocked(DashboardService.RunFsckCheck).mockResolvedValue([])
     renderNav(false)
+    await openToolbox()
 
     const groups = [...document.querySelectorAll('.nav-pane-footer .nav-pane-tool-group')]
     expect(groups.map((row) => row.textContent)).toEqual([
       expect.stringMatching(/^Open inTerminal(Finder|File Explorer|File Manager)VS Code$/),
-      'ToolsUndoReflogBisectApply patchMaintenance',
+      'ToolsUndoRecoverReflogBisectApply patchMaintenance',
     ])
     for (const button of groups.flatMap((g) => [...g.querySelectorAll('button')])) {
       expect(button).toHaveClass('nav-pane-tool')
@@ -184,22 +181,24 @@ describe('NavPane expanded', () => {
     expect(await screen.findByText('Repository is healthy.')).toBeInTheDocument()
   })
 
-  it('puts the groups in a Toolbox that starts open and is remembered closed', async () => {
+  it('puts the groups in a Toolbox that starts closed and is remembered open', async () => {
     vi.mocked(SettingsService.SetSidebarSection).mockResolvedValue()
     renderNav(false)
 
     const toolbox = screen.getByRole('button', { name: 'Toolbox' })
-    expect(toolbox).toHaveAttribute('aria-expanded', 'true')
-    await userEvent.click(toolbox)
-
     expect(toolbox).toHaveAttribute('aria-expanded', 'false')
     expect(document.querySelector('.nav-pane-footer .nav-pane-tool-group')).toBeNull()
-    expect(SettingsService.SetSidebarSection).toHaveBeenCalledWith(REPO, 'toolbox', false)
+    await userEvent.click(toolbox)
+
+    expect(toolbox).toHaveAttribute('aria-expanded', 'true')
+    expect(document.querySelector('.nav-pane-footer .nav-pane-tool-group')).not.toBeNull()
+    expect(SettingsService.SetSidebarSection).toHaveBeenCalledWith(REPO, 'toolbox', true)
   })
 
   it('lets a message be dismissed', async () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
     const message = await screen.findByText('Patch applied to the working tree.')
@@ -227,6 +226,7 @@ describe('NavPane undo', () => {
     vi.mocked(UndoService.Preview).mockResolvedValue(plan)
     vi.mocked(UndoService.Apply).mockResolvedValue()
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
     const dialog = await screen.findByRole('alertdialog', { name: 'Undo merge' })
@@ -239,6 +239,7 @@ describe('NavPane undo', () => {
   it('does nothing when cancelled', async () => {
     vi.mocked(UndoService.Preview).mockResolvedValue(plan)
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Cancel' }))
@@ -249,6 +250,7 @@ describe('NavPane undo', () => {
   it('says why there is nothing to undo', async () => {
     vi.mocked(UndoService.Preview).mockRejectedValue(new Error('Nothing to undo.'))
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
 
@@ -260,6 +262,7 @@ describe('NavPane import patch', () => {
   it('says how the patch was applied', async () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('Patch applied to the working tree.')
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
 
@@ -269,6 +272,7 @@ describe('NavPane import patch', () => {
   it('says nothing when the file dialog is cancelled', async () => {
     vi.mocked(PatchService.ImportPatch).mockResolvedValue('')
     renderNav(false)
+    await openToolbox()
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply patch' }))
 

@@ -1,6 +1,6 @@
 import type { UndoPlanInfo } from '@current-client-bindings/app'
 import { ResetMode } from '@current-client-bindings/core/git'
-import { undoConfirmOptions } from './undoPreview'
+import { undoActionLabel, undoConfirmOptions } from './undoPreview'
 
 function plan(overrides: Partial<UndoPlanInfo>): UndoPlanInfo {
   return {
@@ -17,6 +17,16 @@ function plan(overrides: Partial<UndoPlanInfo>): UndoPlanInfo {
     ...overrides,
   }
 }
+
+describe('undoActionLabel', () => {
+  it('names the operation and the commit', () => {
+    expect(undoActionLabel(plan({}))).toBe('Undo commit b2c3d4e')
+  })
+
+  it('names a branch switch without a commit', () => {
+    expect(undoActionLabel(plan({ operation: 'switch' }))).toBe('Undo branch switch')
+  })
+})
 
 describe('undoConfirmOptions', () => {
   it('describes undoing a commit', () => {

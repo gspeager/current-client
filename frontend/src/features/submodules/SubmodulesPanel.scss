@@ -7,29 +7,17 @@
 }
 
 .submodules-panel-update-all {
-  height: var(--h-micro);
-  padding: 0 var(--space-xs);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
+  @include patterns.micro-button;
+
   color: var(--on-surface-variant);
-  font: var(--ui-xs);
-  cursor: pointer;
 }
 
 .submodules-panel-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }
 
 .submodules-panel-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  @include patterns.panel-list;
 }
 
 .submodule-row {

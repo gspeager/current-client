@@ -4,7 +4,13 @@ export function relativeTime(from: Date, now: Date = new Date()): string {
   if (elapsedSeconds < 60) return `${elapsedSeconds}s ago`
   if (elapsedSeconds < 3600) return `${Math.floor(elapsedSeconds / 60)}m ago`
   if (elapsedSeconds < 86400) return `${Math.floor(elapsedSeconds / 3600)}h ago`
-  return `${Math.floor(elapsedSeconds / 86400)}d ago`
+  const elapsedDays = Math.floor(elapsedSeconds / 86400)
+  if (elapsedDays < 7) return `${elapsedDays}d ago`
+  // Past a year, the day stops helping and "Mar 14" alone would read as this year's.
+  return from.toLocaleDateString(
+    undefined,
+    elapsedDays < 365 ? { month: 'short', day: 'numeric' } : { month: 'short', year: 'numeric' },
+  )
 }
 
 // 0 means no lower bound, which git's --since takes as an empty string.
@@ -13,4 +19,10 @@ export function sinceDaysAgo(days: number, now: Date = new Date()): string {
   const since = new Date(now)
   since.setDate(since.getDate() - days)
   return since.toISOString()
+}
+
+// YYYY-MM-DD in local time; toISOString would give the UTC day.
+export function localDate(d: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
