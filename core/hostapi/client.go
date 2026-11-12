@@ -281,13 +281,14 @@ func (c *Client) Do(ctx context.Context, host Host, req *http.Request) (*Respons
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	ctx, cancel := context.WithTimeout(ctx, c.opts.Timeout)
-	defer cancel()
-
+	// Built before the deadline: reading Git's HTTP configuration is setup,
+	// not the host's answer, and must not use up the request's time.
 	httpClient, err := c.httpClient(ctx, host)
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithTimeout(ctx, c.opts.Timeout)
+	defer cancel()
 	c.track(host.Name, 1)
 	defer c.track(host.Name, -1)
 	raw, err := httpClient.Do(req.WithContext(ctx))
