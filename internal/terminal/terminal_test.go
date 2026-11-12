@@ -38,10 +38,11 @@ func (r *recorder) waitFor(t *testing.T, text string) {
 
 func start(t *testing.T, manager *Manager, dir string) (string, *recorder) {
 	t.Helper()
-	name, args := Shell("", "")
-	if runtime.GOOS != "windows" {
-		// A plain shell, so a developer's own profile can't slow or change this.
-		name, args = "/bin/sh", nil
+	// Bare names, so the shell must come from the PATH and not the repository.
+	// A plain sh, so a developer's own profile can't slow or change this.
+	name, args := "sh", []string(nil)
+	if runtime.GOOS == "windows" {
+		name, args = "powershell.exe", []string{"-NoLogo"}
 	}
 	r := &recorder{code: make(chan int, 1)}
 	id, err := manager.Start(dir, Options{

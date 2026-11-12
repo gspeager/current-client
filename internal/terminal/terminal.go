@@ -67,6 +67,11 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) Start(repo string, options Options) (string, error) {
+	// go-pty on Windows looks for a bare name in Dir, not on the PATH.
+	name, err := lookPath(options.Name)
+	if err != nil {
+		return "", err
+	}
 	console, err := pty.New()
 	if err != nil {
 		return "", err
@@ -77,7 +82,7 @@ func (m *Manager) Start(repo string, options Options) (string, error) {
 			return "", err
 		}
 	}
-	cmd := console.Command(options.Name, options.Args...)
+	cmd := console.Command(name, options.Args...)
 	cmd.Dir = options.Dir
 	cmd.Env = options.Env
 	if err := cmd.Start(); err != nil {
