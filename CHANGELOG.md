@@ -2,6 +2,13 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [0.6.1] - 2026-11-15
+
+### Fixed
+
+- **The terminal opens on Windows without PowerShell 7.** With only the Windows PowerShell that Windows ships with, or with Command Prompt chosen, the terminal looked for the shell in the repository's folder instead of on the `PATH`, and didn't open. It also means a `powershell.exe` or `cmd.exe` inside a repository is never run in place of the real one. ([#432](https://github.com/gspeager/current-client/pull/432))
+- **A host that doesn't answer in time says so.** On a slow computer, a request to a host could fail with "context deadline exceeded" instead of "no answer in time", because reading Git's HTTP settings for the host counted against the request's time. It no longer does. ([#433](https://github.com/gspeager/current-client/pull/433))
+
 ## [0.6.0] - 2026-11-08
 
 This release brings more of the work into the app: stacked branches, a terminal and the project's own commands, tidying up history, a preview before a rebase, and snapshots that recover discarded work. The interface is calmer, with one color per branch and cyan kept for what matters, and nearly everything has a keyboard shortcut. The new features work from Git and files on this computer, and none adds a request to a host or issue tracker.
@@ -314,6 +321,7 @@ First public version.
 - A Changelog tab that writes Conventional Commits into `CHANGELOG.md`, or saves them as Markdown, HTML or PDF.
 - The Git layer as a Go library under `core/`, and an example of embedding the app in another Wails app.
 
+[0.6.1]: https://github.com/gspeager/current-client/releases/tag/v0.6.1
 [0.6.0]: https://github.com/gspeager/current-client/releases/tag/v0.6.0
 [0.5.0]: https://github.com/gspeager/current-client/releases/tag/v0.5.0
 [0.4.0]: https://github.com/gspeager/current-client/releases/tag/v0.4.0
