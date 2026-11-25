@@ -41,8 +41,8 @@ function RiskReport({ repoPath, staged, rulesOff, onOpen }: RiskReportProps) {
       <ul className="risk-report-list" hidden={!open}>
         {[...findings]
           .sort((a, b) => Number(b.rule === 'secret') - Number(a.rule === 'secret'))
-          .map((finding) => (
-            <li key={`${finding.rule}-${finding.path}-${finding.line}-${finding.message}`}>
+          .map((finding, i) => (
+            <li key={i}>
               <button
                 type="button"
                 className={finding.rule === 'secret' ? 'risk-report-row risk-report-row-secret' : 'risk-report-row'}

@@ -93,12 +93,14 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     { refreshKey: info, keepData: true },
   )
   const versions = useMemo(() => info?.files.map((f) => f.newBlob + f.oldBlob).join(), [info])
+  // The overview lists them, so they're only read again for it.
+  const findingsOf = useRef('')
+  if (path === null) findingsOf.current = `${info?.head}:${versions}`
   const { data: report, error: reportError } = useAsyncData(
     () => (range && range.base ? ReadThroughService.Findings(range) : null),
-    // Read again only when what it reads has changed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [info?.key, info?.base],
-    { refreshKey: `${info?.head}:${versions}`, keepData: true },
+    { refreshKey: findingsOf.current, keepData: true },
   )
   const noted = () => {
     reloadNotes()

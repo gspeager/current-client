@@ -34,7 +34,7 @@ func exportFindings(ctx context.Context, c change, files []git.ChangedFile, size
 		return nil, err
 	}
 	for _, file := range files {
-		if sizes[file.Path] >= largeFileBytes || !(isGoPackageFile(file.Path) || entries[file.Path]) {
+		if strings.Contains(file.Path, "\n") || sizes[file.Path] >= largeFileBytes || !(isGoPackageFile(file.Path) || entries[file.Path]) {
 			continue
 		}
 		read = append(read, file.Path)
@@ -70,13 +70,17 @@ func exportFindings(ctx context.Context, c change, files []git.ChangedFile, size
 	packages := slices.Sorted(maps.Keys(mergedKeys(before, after)))
 	var findings []Finding
 	for _, pkg := range packages {
+		name := pkg
+		if pkg == "." {
+			name = "The top folder"
+		}
 		if gone := missingFrom(before[pkg], after[pkg]); len(gone) > 0 {
 			at := before[pkg][gone[0]]
-			findings = append(findings, Finding{Rule: RuleExports, Path: at.path, OldLine: at.line, Message: fmt.Sprintf("%s no longer exports %s.", pkg, list(gone))})
+			findings = append(findings, Finding{Rule: RuleExports, Path: at.path, OldLine: at.line, Message: fmt.Sprintf("%s no longer exports %s.", name, list(gone))})
 		}
 		if added := missingFrom(after[pkg], before[pkg]); len(added) > 0 {
 			at := after[pkg][added[0]]
-			findings = append(findings, Finding{Rule: RuleExports, Path: at.path, Line: at.line, Message: fmt.Sprintf("%s now exports %s.", pkg, list(added))})
+			findings = append(findings, Finding{Rule: RuleExports, Path: at.path, Line: at.line, Message: fmt.Sprintf("%s now exports %s.", name, list(added))})
 		}
 	}
 	return findings, nil

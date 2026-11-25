@@ -24,7 +24,7 @@ var (
 		skipped:  regexp.MustCompile(`\b[tbf]\.(Skip|Skipf|SkipNow)\(`),
 	}
 	scriptTests = &testSyntax{
-		declared: regexp.MustCompile(`^\s*(it|test)(\.\w+)*(\(|\x60)`),
+		declared: regexp.MustCompile(`^\s*[xf]?(it|test)(\.(each|only|skip|todo|concurrent|sequential|failing|fails|skipIf|runIf|for))*(\(|\x60)`),
 		skipped:  regexp.MustCompile(`\b(it|test|describe|suite)\.(skip|todo|only|skipIf|failing)\b|^\s*(xit|xtest|xdescribe|fit|fdescribe)\(`),
 	}
 	pythonTests = &testSyntax{
@@ -50,7 +50,7 @@ var (
 	}
 	swiftTests = &testSyntax{
 		declared: regexp.MustCompile(`^\s*func test\w*\(|^\s*@Test\b`),
-		skipped:  regexp.MustCompile(`\bXCTSkip|\.disabled\(`),
+		skipped:  regexp.MustCompile(`\bXCTSkip|@Test\(.*\.disabled\(`),
 	}
 	phpTests = &testSyntax{
 		declared: regexp.MustCompile(`\bfunction test\w*\(|#\[Test\]`),
@@ -116,9 +116,11 @@ func fewerTests(lines changedLines) []Finding {
 	}
 	var findings []Finding
 	for _, file := range order {
-		if lost[file] > 0 {
+		// Another file may have gained some of what this one lost.
+		if fewer := min(lost[file], total); fewer > 0 {
+			total -= fewer
 			findings = append(findings, Finding{
-				Rule: RuleFewerTests, Path: file, OldLine: first[file], Message: fmt.Sprintf("%s fewer.", tests(lost[file])),
+				Rule: RuleFewerTests, Path: file, OldLine: first[file], Message: fmt.Sprintf("%s fewer.", tests(fewer)),
 			})
 		}
 	}

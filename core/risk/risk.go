@@ -148,15 +148,13 @@ func inspect(ctx context.Context, c change, off []string) (found, error) {
 
 	var findings []Finding
 	secrets := map[string]bool{}
-	var tooLarge []string
 	for _, file := range present {
 		if sizes[file] >= largeFileBytes {
-			tooLarge = append(tooLarge, file)
 			findings = append(findings, Finding{Rule: RuleLargeFile, Path: file, Message: fmt.Sprintf("Large file: %d MB.", sizes[file]>>20)})
 		}
 	}
 	if on(RuleSecret, RuleConflictMarker, RuleFewerTests, RuleSkippedTests, RuleSilencedChecker) {
-		lines, err := c.lines(ctx, tooLarge)
+		lines, err := c.lines(ctx)
 		if err != nil {
 			return found{}, err
 		}

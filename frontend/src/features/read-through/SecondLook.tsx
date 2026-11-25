@@ -33,8 +33,8 @@ function SecondLook({ report, error, listed, onOpen }: SecondLookProps) {
               <span className="second-look-reason">{reason}</span>
             </h4>
             <ul className="read-through-note-list">
-              {findings.map((finding) => (
-                <li key={`${finding.path}-${finding.line}-${finding.oldLine}-${finding.message}`}>
+              {findings.map((finding, i) => (
+                <li key={i}>
                   <button
                     type="button"
                     className="second-look-finding"

@@ -40,16 +40,18 @@ func (l changedLines) newlyAdded() []addedLine {
 	return added
 }
 
-var diffOptions = []string{
-	"-U0", "--no-color", "--no-ext-diff", "--no-textconv", "--no-renames", "--no-relative",
-	"--src-prefix=a/", "--dst-prefix=b/",
+// Git writes a file over the limit as binary, so one is never held in memory. The
+// rest pin down what a setting would change.
+func diffArgs(command string, args ...string) []string {
+	return append([]string{
+		"-c", "core.quotepath=off", "-c", fmt.Sprintf("core.bigFileThreshold=%d", largeFileBytes-1), command,
+		"-U0", "-M", "--no-color", "--no-ext-diff", "--no-textconv", "--no-relative", "--submodule=short",
+		"--inter-hunk-context=0", "--src-prefix=a/", "--dst-prefix=b/",
+	}, args...)
 }
 
-// lines reads the change's diff, leaving out skip, which is too large to hold.
-func (c change) lines(ctx context.Context, skip []string) (changedLines, error) {
-	args := append([]string{"-c", "core.quotepath=off", "diff"}, diffOptions...)
-	args = append(args, c.diff...)
-	output, err := c.run(ctx, "", append(args, pathspecs(skip)...)...)
+func (c change) lines(ctx context.Context) (changedLines, error) {
+	output, err := c.run(ctx, "", diffArgs("diff", c.diff...)...)
 	if err != nil {
 		return changedLines{}, err
 	}
@@ -64,18 +66,11 @@ func (c change) lines(ctx context.Context, skip []string) (changedLines, error) 
 	return lines, nil
 }
 
-func pathspecs(skip []string) []string {
-	specs := []string{"--", "."}
-	for _, file := range skip {
-		specs = append(specs, ":(exclude,literal)"+file)
-	}
-	return specs
-}
-
 var hunkHeader = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
 
-// parseLines calls each with every line of a -U0 diff. other is given the lines
-// between diffs, which git log writes.
+// parseLines calls each with every line of a -U0 diff, under its file's new name
+// unless it's deleted. other is given the lines between diffs, which git log
+// writes.
 func parseLines(output string, each func(line addedLine, added bool), other func(line string)) {
 	count := func(text string) int {
 		if text == "" {
@@ -86,12 +81,17 @@ func parseLines(output string, each func(line addedLine, added bool), other func
 	}
 	// Counting a hunk's lines keeps an added "++ x", which the diff shows as
 	// "+++ x", or a removed "-- x", from reading as a file header.
+	const none = "/dev/null"
 	oldPath, newPath := "", ""
 	oldLine, oldLeft, newLine, newLeft := 0, 0, 0, 0
 	for line := range strings.SplitSeq(output, "\n") {
 		switch {
 		case oldLeft > 0 && strings.HasPrefix(line, "-"):
-			each(addedLine{oldPath, oldLine, strings.TrimSuffix(line[1:], "\r")}, false)
+			file := newPath
+			if file == none {
+				file = oldPath
+			}
+			each(addedLine{file, oldLine, strings.TrimSuffix(line[1:], "\r")}, false)
 			oldLine++
 			oldLeft--
 		case newLeft > 0 && strings.HasPrefix(line, "+"):
@@ -188,20 +188,25 @@ func removedSecrets(ctx context.Context, c change, head string, left map[string]
 	if n, _ := strconv.Atoi(strings.TrimSpace(count)); n < 2 && c.to == head || n > mostCommits {
 		return nil, n > mostCommits, nil
 	}
-	// A file over the threshold is written as binary.
-	args := append([]string{"-c", "core.quotepath=off", "-c", fmt.Sprintf("core.bigFileThreshold=%d", largeFileBytes), "log", "-p", "--format=%x01%h"}, diffOptions...)
-	output, err := c.run(ctx, "", append(args, commits)...)
+	output, err := c.run(ctx, "", diffArgs("log", "-p", "--format=%x01%h", commits)...)
 	if err != nil {
 		return nil, false, err
 	}
 	var lines []addedLine
 	var commitOf []string
 	commit := ""
+	// What each commit removed, to tell a secret that was there before.
+	removed := map[string]*strings.Builder{}
 	parseLines(output, func(line addedLine, added bool) {
 		if added {
 			lines = append(lines, line)
 			commitOf = append(commitOf, commit)
+			return
 		}
+		if removed[commit] == nil {
+			removed[commit] = &strings.Builder{}
+		}
+		removed[commit].WriteString(line.text + "\n")
 	}, func(line string) {
 		if sha, ok := strings.CutPrefix(line, "\x01"); ok {
 			commit = sha
@@ -212,6 +217,9 @@ func removedSecrets(ctx context.Context, c change, head string, left map[string]
 		for _, match := range matches {
 			key := lines[i].path + "\x00" + match.secret
 			if left[match.secret] || seen[key] {
+				continue
+			}
+			if text := removed[commitOf[i]]; text != nil && strings.Contains(text.String(), match.secret) {
 				continue
 			}
 			seen[key] = true

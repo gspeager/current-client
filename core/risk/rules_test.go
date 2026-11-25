@@ -84,12 +84,26 @@ func TestFewerTests(t *testing.T) {
 		{"a test renamed", map[string]string{"a_test.go": two}, map[string]string{"a_test.go": strings.Replace(two, "TestTwo", "TestThree", 1)}, nil},
 		{"a test moved", map[string]string{"a_test.go": two}, map[string]string{"a_test.go": one, "b_test.go": "package a\n\nfunc TestTwo(t *testing.T) {}\n"}, nil},
 		{"a test file moved", map[string]string{"a_test.go": two}, map[string]string{"a_test.go": "", "b/a_test.go": two}, nil},
+		{"a file renamed, without one of its tests", map[string]string{"a_test.go": longTest(10)}, map[string]string{"a_test.go": "", "b_test.go": longTest(9)},
+			[]Finding{{Path: "b_test.go", OldLine: 30, Message: "1 test fewer."}}},
+		{"one lost and another gained", map[string]string{"a_test.go": two, "b_test.go": one}, map[string]string{"a_test.go": "package a\n", "b_test.go": strings.Replace(two, "TestTwo", "TestNew", 1)},
+			[]Finding{{Path: "a_test.go", OldLine: 3, Message: "1 test fewer."}}},
+		{"a hook removed", map[string]string{"a.spec.ts": "test.beforeEach(f)\ntest('a', f)\n"}, map[string]string{"a.spec.ts": "test('a', f)\n"}, nil},
+		{"one skipped", map[string]string{"a.test.ts": "it('a', f)\n"}, map[string]string{"a.test.ts": "xit('a', f)\n"}, nil},
 		{"not a test file", map[string]string{"a.go": two}, map[string]string{"a.go": one}, nil},
 		{"TypeScript", map[string]string{"a.test.ts": "test('a', () => {})\nit.each([1])('b', () => {})\n"}, map[string]string{"a.test.ts": "test('a', () => {})\n"},
 			[]Finding{{Path: "a.test.ts", OldLine: 2, Message: "1 test fewer."}}},
 		{"Rust, beside its code", map[string]string{"src/lib.rs": "#[test]\nfn a() {}\n#[tokio::test]\nasync fn b() {}\n"}, map[string]string{"src/lib.rs": "#[test]\nfn a() {}\n"},
 			[]Finding{{Path: "src/lib.rs", OldLine: 3, Message: "1 test fewer."}}},
 	})
+}
+
+func longTest(count int) string {
+	text := "package a\n\n"
+	for i := range count {
+		text += fmt.Sprintf("func TestN%d(t *testing.T) {\n\twant := \"the value of test %d\"\n}\n", i, i)
+	}
+	return text
 }
 
 func TestSkippedTests(t *testing.T) {
@@ -153,6 +167,8 @@ func TestPathRules(t *testing.T) {
 			{"a test of one", nil, one("app/migrations/tests/test_one.py", "a\n"), nil},
 			{"its notes", nil, one("app/migrations/README.md", "a\n"), nil},
 			{"a like name", nil, one("src/migrations.ts", "a\n"), nil},
+			{"code in a folder of that name", nil, one("src/migration/importer.ts", "a\n"), nil},
+			{"Alembic", nil, one("migrations/versions/3f2a_users.py", "a\n"), []Finding{{Path: "migrations/versions/3f2a_users.py", Message: "Database migration added."}}},
 		})
 	})
 }
@@ -208,6 +224,38 @@ func TestARangeIsItsTotalChangeAndEachCommitsSecrets(t *testing.T) {
 	}
 	if off := checkRange(t, dir, base, "HEAD", RuleSecret); len(off.Findings) != 0 {
 		t.Errorf("turned off = %+v", off.Findings)
+	}
+}
+
+func TestASecretFromBeforeTheRangeIsNotCalledRemoved(t *testing.T) {
+	dir := newRepo(t)
+	gittest.CommitFile(t, dir, "old.txt", "key "+fakeGitHubToken+"\n", "an old secret")
+	base := gittest.Run(t, dir, "rev-parse", "HEAD")
+	gittest.CommitFile(t, dir, "old.txt", "key: "+fakeGitHubToken+"\n", "edit its line")
+	gittest.CommitFile(t, dir, "old.txt", "key "+fakeGitHubToken+"\n", "and back")
+	if findings := checkRange(t, dir, base, "HEAD").Findings; len(findings) != 0 {
+		t.Errorf("findings = %+v", findings)
+	}
+}
+
+func TestADeletedLargeFileIsNotRead(t *testing.T) {
+	dir := newRepo(t)
+	gittest.CommitFile(t, dir, "a.spec.ts", strings.Repeat("test('a', f)\n", largeFileBytes/12), "a large test")
+	gittest.Run(t, dir, "rm", "-q", "a.spec.ts")
+	if findings := check(t, dir); len(findings) != 0 {
+		t.Errorf("findings = %+v", findings)
+	}
+}
+
+func TestSettingsDoNotShiftLines(t *testing.T) {
+	dir := newRepo(t)
+	gittest.Run(t, dir, "config", "diff.interHunkContext", "10")
+	gittest.Run(t, dir, "config", "diff.mnemonicPrefix", "true")
+	stage(t, dir, "a.ts", "one\ntwo\nthree\nfour\n")
+	gittest.Run(t, dir, "commit", "-q", "-m", "a")
+	stage(t, dir, "a.ts", "ONE\ntwo\nthree\nfour // @ts-ignore\n")
+	if findings := check(t, dir); len(findings) != 1 || findings[0].Path != "a.ts" || findings[0].Line != 4 {
+		t.Errorf("findings = %+v", findings)
 	}
 }
 

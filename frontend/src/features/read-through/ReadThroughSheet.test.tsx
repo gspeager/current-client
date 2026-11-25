@@ -203,6 +203,13 @@ describe('worth a second look', () => {
     vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('src/a.ts', { newBlob: 'n2' })] }))
     rerender(open(2))
     await waitFor(() => expect(ReadThroughService.Findings).toHaveBeenCalledTimes(2))
+    await userEvent.click(screen.getByRole('button', { name: /^a\.ts/ }))
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('src/a.ts', { newBlob: 'n3' })] }))
+    rerender(open(3))
+    await waitFor(() => expect(ReadThroughService.Open).toHaveBeenCalledTimes(4))
+    expect(ReadThroughService.Findings).toHaveBeenCalledTimes(2)
+    await userEvent.click(screen.getByRole('button', { name: 'Overview' }))
+    await waitFor(() => expect(ReadThroughService.Findings).toHaveBeenCalledTimes(3))
   })
 })
 
