@@ -141,7 +141,7 @@ func (r secretRules) scanLine(path, line string) []secretMatch {
 		if rule.allowed(path, line, groups[0], secret) {
 			continue
 		}
-		found = append(found, secretMatch{rule.id, mask(secret)})
+		found = append(found, secretMatch{rule.id, mask(secret), secret})
 	}
 	return found
 }
@@ -149,6 +149,7 @@ func (r secretRules) scanLine(path, line string) []secretMatch {
 type secretMatch struct {
 	rule   string
 	masked string
+	secret string
 }
 
 // With no group named, a rule's secret is its first group, as in gitleaks.

@@ -14,19 +14,27 @@ type RiskFindingInfo struct {
 	Path    string `json:"path"`
 	Line    int    `json:"line"`
 	Message string `json:"message"`
+	OldLine int    `json:"oldLine"`
+}
+
+type RiskReportInfo struct {
+	Findings []RiskFindingInfo `json:"findings"`
+	// How many of a rule's findings aren't listed.
+	LeftOut        map[string]int `json:"leftOut"`
+	CommitsNotRead bool           `json:"commitsNotRead"`
+}
+
+func riskReportInfo(report risk.Report, err error) (RiskReportInfo, error) {
+	return RiskReportInfo{
+		Findings:       mapSlice(report.Findings, func(finding risk.Finding) RiskFindingInfo { return RiskFindingInfo(finding) }),
+		LeftOut:        report.LeftOut,
+		CommitsNotRead: report.CommitsNotRead,
+	}, err
 }
 
 // GetRiskReport warns about what's staged. Nothing it finds blocks a commit.
-func (s *CommitService) GetRiskReport(repoPath string) ([]RiskFindingInfo, error) {
-	findings, err := risk.Check(context.Background(), repoPath, configOrDefault().RiskRulesOff)
-	if err != nil {
-		return nil, err
-	}
-	report := []RiskFindingInfo{}
-	for _, finding := range findings {
-		report = append(report, RiskFindingInfo(finding))
-	}
-	return report, nil
+func (s *CommitService) GetRiskReport(repoPath string) (RiskReportInfo, error) {
+	return riskReportInfo(risk.CheckStaged(context.Background(), repoPath, configOrDefault().RiskRulesOff))
 }
 
 func (s *CommitService) Commit(repoPath, message string, amend, allowEmpty, sign bool) error {

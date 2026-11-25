@@ -9,6 +9,7 @@ import {
   ReadThroughInfo,
   ReadThroughNote,
   ReadThroughService,
+  RiskReportInfo,
   TagService,
 } from '@current-client-bindings/app'
 import ReadThroughSheet from './ReadThroughSheet'
@@ -45,6 +46,9 @@ const diff = new FileDiff({
   ],
 })
 
+const report = (over: Partial<RiskReportInfo> = {}) =>
+  new RiskReportInfo({ findings: [], leftOut: {}, commitsNotRead: false, ...over })
+
 const notesChanged = vi.fn()
 const closed = vi.fn()
 
@@ -65,6 +69,7 @@ beforeEach(() => {
   vi.mocked(ReadThroughService.Open).mockResolvedValue(info())
   vi.mocked(ReadThroughService.FileDiff).mockResolvedValue(diff)
   vi.mocked(ReadThroughService.Notes).mockResolvedValue([])
+  vi.mocked(ReadThroughService.Findings).mockResolvedValue(report())
   vi.mocked(ReadThroughService.AddNote).mockResolvedValue(undefined)
   vi.mocked(NotesService.EditReview).mockResolvedValue(undefined)
   vi.mocked(ReadThroughService.SetRead).mockResolvedValue(undefined)
@@ -135,6 +140,76 @@ describe('the overview', () => {
     vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ target: '', files: [] }))
     render(open())
     expect(await screen.findByText('This repository has no default branch to compare with.')).toBeInTheDocument()
+  })
+})
+
+describe('worth a second look', () => {
+  const finding = (over: object) => ({
+    rule: 'ci',
+    path: 'src/a.ts',
+    line: 0,
+    oldLine: 0,
+    message: 'CI file changed.',
+    ...over,
+  })
+
+  it('lists facts by rule, with why, and opens one at its line', async () => {
+    vi.mocked(ReadThroughService.Findings).mockResolvedValue(
+      report({
+        findings: [
+          finding({ rule: 'exports', message: 'src now exports a.', line: 1 }),
+          finding({ rule: 'fewer-tests', message: '1 test fewer.', oldLine: 1 }),
+          finding({
+            rule: 'secret',
+            path: 'gone.txt',
+            message: 'Looks like a key, added in abc1234 and removed since.',
+          }),
+        ],
+        leftOut: { exports: 3 },
+        commitsNotRead: true,
+      }),
+    )
+    await opened()
+    const section = within(screen.getByRole('region', { name: 'Worth a second look' }))
+    await section.findByText('src now exports a.')
+    expect(section.getAllByRole('heading', { level: 4 }).map((h) => h.textContent)).toEqual([
+      'Secret-looking strings 1Anyone who can read the repository can read it.',
+      'Fewer tests 1What they covered may no longer be checked.',
+      'What a package exports 4Code that uses the package may need to change.',
+    ])
+    expect(section.getByText('3 more not listed')).toBeInTheDocument()
+    expect(section.getByText(/Only the total change was read for secrets/)).toBeInTheDocument()
+    expect(section.getByRole('button', { name: /added in abc1234/ })).toBeDisabled()
+    expect(section.getByText('src/a.ts:1 (old version)')).toBeInTheDocument()
+    await userEvent.click(section.getByRole('button', { name: /1 test fewer/ }))
+    expect(await screen.findByText('old')).toBeInTheDocument()
+  })
+
+  it('says when there are none, and what went wrong', async () => {
+    const { unmount } = await opened()
+    expect(await screen.findByText('None found.')).toBeInTheDocument()
+    unmount()
+    vi.mocked(ReadThroughService.Findings).mockRejectedValue(new Error('No.'))
+    await opened()
+    expect(await screen.findByText('No.')).toBeInTheDocument()
+  })
+
+  it('looks again only when the change does', async () => {
+    const { rerender } = await opened()
+    await screen.findByText('None found.')
+    rerender(open(1))
+    await waitFor(() => expect(ReadThroughService.Open).toHaveBeenCalledTimes(2))
+    expect(ReadThroughService.Findings).toHaveBeenCalledTimes(1)
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('src/a.ts', { newBlob: 'n2' })] }))
+    rerender(open(2))
+    await waitFor(() => expect(ReadThroughService.Findings).toHaveBeenCalledTimes(2))
+    await userEvent.click(screen.getByRole('button', { name: /^a\.ts/ }))
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('src/a.ts', { newBlob: 'n3' })] }))
+    rerender(open(3))
+    await waitFor(() => expect(ReadThroughService.Open).toHaveBeenCalledTimes(4))
+    expect(ReadThroughService.Findings).toHaveBeenCalledTimes(2)
+    await userEvent.click(screen.getByRole('button', { name: 'Overview' }))
+    await waitFor(() => expect(ReadThroughService.Findings).toHaveBeenCalledTimes(3))
   })
 })
 

@@ -334,7 +334,7 @@ function SyncedSides({
 // Brings rows into view, whether or not they're drawn.
 export interface DiffPaneHandle {
   // False when the diff doesn't show the line.
-  revealLine: (line: number) => boolean
+  revealLine: (line: number, oldLine?: number) => boolean
   revealHunk: (hunk: number) => void
   revealBlock: (block: number) => void
   revealEdge: (edge: 'first' | 'last') => void
@@ -447,10 +447,14 @@ function DiffPane(props: DiffPaneProps) {
     return index >= 0
   }
   useImperativeHandle(handle, () => ({
-    revealLine: (line) =>
+    revealLine: (line, oldLine = 0) =>
       revealRow(
         paneRows.findIndex(
-          (row) => row.kind === 'pair' && (row.pair.left?.newLine === line || row.pair.right?.newLine === line),
+          (row) =>
+            row.kind === 'pair' &&
+            (line
+              ? row.pair.left?.newLine === line || row.pair.right?.newLine === line
+              : row.pair.left?.oldLine === oldLine),
         ),
         'center',
       ),

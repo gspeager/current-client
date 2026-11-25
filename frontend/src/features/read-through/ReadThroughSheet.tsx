@@ -8,6 +8,7 @@ import {
   ReadThroughService,
   type ReadThroughFile,
 } from '@current-client-bindings/app'
+import type { DiffFocus } from '../diff/DiffViewer'
 import DiffSheet from '../../components/chrome/DiffSheet'
 import { Fact, FactList } from '../../components/chrome/FactList'
 import Checkbox from '../../components/forms/Checkbox'
@@ -22,6 +23,7 @@ import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useActionError } from '../../lib/useActionError'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useRovingRows } from '../../lib/useRovingRows'
+import SecondLook from './SecondLook'
 import { groupFiles, totalsByKind, totalsByStatus, totalsByType, type Total } from './groupFiles'
 import { notesText } from './notesText'
 import type { ReadThroughOpening } from './readThrough'
@@ -57,7 +59,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   const { error: actionError, setError: setActionError, fail } = useActionError()
   // Null is the overview.
   const [path, setPath] = useState<string | null>(opening.at?.path ?? null)
-  const [focusLine, setFocusLine] = useState(opening.at?.line ? { line: opening.at.line } : null)
+  const [focusLine, setFocusLine] = useState<DiffFocus | null>(opening.at?.line ? { line: opening.at.line } : null)
   const [noting, setNoting] = useState(false)
   // Ticks shown before they're saved.
   const [ticking, setTicking] = useState<ReadonlyMap<string, boolean>>(new Map())
@@ -90,6 +92,16 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     [info?.key],
     { refreshKey: info, keepData: true },
   )
+  const versions = useMemo(() => info?.files.map((f) => f.newBlob + f.oldBlob).join(), [info])
+  // The overview lists them, so they're only read again for it.
+  const findingsOf = useRef('')
+  if (path === null) findingsOf.current = `${info?.head}:${versions}`
+  const { data: report, error: reportError } = useAsyncData(
+    () => (range && range.base ? ReadThroughService.Findings(range) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [info?.key, info?.base],
+    { refreshKey: findingsOf.current, keepData: true },
+  )
   const noted = () => {
     reloadNotes()
     onNotesChanged()
@@ -100,9 +112,9 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
       new ReadThroughNote({ path: file.path, oldPath: file.origPath, line, oldLine, text }),
     ).then(noted)
   const editNote = (id: string, text: string) => NotesService.EditReview(repoPath, id, text).then(noted)
-  const openFile = (next: string | null, line = 0) => {
+  const openFile = (next: string | null, line = 0, oldLine = 0) => {
     setPath(next)
-    setFocusLine(line ? { line } : null)
+    setFocusLine(line || oldLine ? { line, oldLine } : null)
     setNoting(false)
   }
   const fileNotes = (notes ?? []).filter((note) => note.path === path)
@@ -257,7 +269,18 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
             files.length > 0 && (
               <>
                 <Overview info={info} files={files} />
-                <NoteList notes={notes ?? []} onOpen={(note) => openFile(note.path, note.outdated ? 0 : note.line)} />
+                <SecondLook
+                  report={report}
+                  error={reportError}
+                  listed={(file) => files.some((f) => f.path === file)}
+                  onOpen={(finding) => openFile(finding.path, finding.line, finding.oldLine)}
+                />
+                <NoteList
+                  notes={notes ?? []}
+                  onOpen={(note) =>
+                    note.outdated ? openFile(note.path) : openFile(note.path, note.line, note.oldLine)
+                  }
+                />
               </>
             )
           )}

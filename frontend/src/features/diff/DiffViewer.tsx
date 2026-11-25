@@ -38,6 +38,12 @@ import { useRovingRows } from '../../lib/useRovingRows'
 import { NARROW_SPLIT_WIDTH, useWindowNarrowerThan } from '../../lib/useWindowNarrowerThan'
 import './DiffViewer.scss'
 
+// A line of the new version, or with no line, of the old one.
+export interface DiffFocus {
+  line: number
+  oldLine?: number
+}
+
 interface DiffSideLabel {
   label: string
   sha?: string
@@ -93,8 +99,8 @@ interface DiffViewerProps extends HunkActions {
   // Where the first diff shown opens, and where the diff has since been scrolled.
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
-  // A new-side line to bring into view; a new object asks again.
-  focusLine?: { line: number } | null
+  // A line to bring into view; a new object asks again.
+  focusLine?: DiffFocus | null
 }
 
 function DiffViewer({
@@ -174,10 +180,10 @@ function DiffViewer({
   useEffect(() => setShowRawDiff(false), [path])
 
   // Once per request: a reload of the diff shouldn't pull the view back.
-  const focused = useRef<{ line: number } | null>(null)
+  const focused = useRef<DiffFocus | null>(null)
   useEffect(() => {
     if (!focusLine || focused.current === focusLine) return
-    if (handle.current?.revealLine(focusLine.line)) focused.current = focusLine
+    if (handle.current?.revealLine(focusLine.line, focusLine.oldLine)) focused.current = focusLine
   }, [focusLine, diff])
 
   // The pane only exists once the diff has lines to show.

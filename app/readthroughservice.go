@@ -218,6 +218,11 @@ func (s *ReadThroughService) FileDiff(info ReadThroughInfo, origPath, path strin
 	return toFileDiff(fd), nil
 }
 
+// Findings is what the risk report's rules find over the range.
+func (s *ReadThroughService) Findings(info ReadThroughInfo) (RiskReportInfo, error) {
+	return riskReportInfo(readthrough.Findings(context.Background(), info.Path, info.changes(), configOrDefault().RiskRulesOff))
+}
+
 // SetRead marks the files as read, or as not. They're as Open listed them.
 func (s *ReadThroughService) SetRead(info ReadThroughInfo, files []ReadThroughFile, read bool) error {
 	listed := mapSlice(files, func(f ReadThroughFile) readthrough.File {

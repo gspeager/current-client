@@ -1,13 +1,6 @@
 import Switch from '../../components/forms/Switch'
+import { RISK_RULES } from '../../lib/riskRules'
 import SettingsRow from './SettingsRow'
-
-const RULES = [
-  { id: 'secret', label: 'Secret-looking strings' },
-  { id: 'conflict-marker', label: 'Conflict markers' },
-  { id: 'large-file', label: 'Files over 10 MB' },
-  { id: 'lockfile', label: 'Lockfile out of step with its manifest' },
-  { id: 'generated', label: 'Sweeping changes to generated files' },
-]
 
 interface RiskRuleSettingsProps {
   off: string[]
@@ -17,12 +10,12 @@ interface RiskRuleSettingsProps {
 function RiskRuleSettings({ off, onChange }: RiskRuleSettingsProps) {
   return (
     <SettingsRow
-      label="Staged changes report"
-      hint="Listed above the commit message. Findings warn and never block a commit. Everything is checked on this computer, and a matched value is never shown in full."
+      label="Worth a second look"
+      hint="Listed above the commit message for what's staged, and in Read through for a whole branch. Nothing is blocked. Everything is checked on this computer, and a matched secret is never shown in full."
       stacked
     >
       <div className="settings-risk-rules">
-        {RULES.map((rule) => (
+        {RISK_RULES.map((rule) => (
           <Switch
             key={rule.id}
             label={rule.label}

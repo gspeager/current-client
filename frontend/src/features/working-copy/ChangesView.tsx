@@ -4,7 +4,7 @@ import { type ConflictStateInfo, DiffService, type LineSelection } from '@curren
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import WaveMark from '../../components/chrome/WaveMark'
 import CommitComposer from './CommitComposer'
-import DiffViewer from '../diff/DiffViewer'
+import DiffViewer, { type DiffFocus } from '../diff/DiffViewer'
 import DiffViewMenu from '../diff/DiffViewMenu'
 import DiffViewModeToggle, { type DiffViewMode } from '../diff/DiffViewModeToggle'
 import SegmentedControl from '../../components/controls/SegmentedControl'
@@ -120,7 +120,7 @@ function ChangesView({
     onSelectedPathChange?.(path)
   }
 
-  const [focusLine, setFocusLine] = useState<{ line: number } | null>(null)
+  const [focusLine, setFocusLine] = useState<DiffFocus | null>(null)
 
   const openFile = (path: string, section: WorkingTreeSection) => {
     setFocusLine(null)
@@ -128,9 +128,9 @@ function ChangesView({
     setOpenSection(section)
   }
 
-  const openFinding = (path: string, line: number) => {
+  const openFinding = (path: string, line: number, oldLine: number) => {
     openFile(path, 'staged')
-    setFocusLine(line ? { line } : null)
+    setFocusLine(line || oldLine ? { line, oldLine } : null)
   }
 
   const previousLists = useRef<SectionPaths | null>(null)
