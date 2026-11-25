@@ -97,10 +97,15 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     [info, ticking],
   )
   const since = mode === 'since' && !!info?.marked
-  // One ticked here stays listed, so the list doesn't move under the pointer.
+  // One ticked in this mode stays listed, so the list doesn't move under the pointer.
+  const [tickedSince, setTickedSince] = useState<ReadonlySet<string>>(new Set())
+  const showMode = (next: 'whole' | 'since') => {
+    setMode(next)
+    setTickedSince(new Set())
+  }
   const files = useMemo(
-    () => all.filter((f) => (since ? !f.read || ticking.has(versionOf(f)) : !f.gone)),
-    [all, since, ticking],
+    () => all.filter((f) => (since ? !f.read || tickedSince.has(versionOf(f)) : !f.gone)),
+    [all, since, tickedSince],
   )
   const groups = useMemo(() => groupFiles(files), [files])
   const ordered = useMemo(() => groups.flatMap((group) => group.files), [groups])
@@ -151,6 +156,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     const tick = (value: boolean) =>
       setTicking((prev) => new Map([...prev, ...changed.map((file) => [versionOf(file), value] as const)]))
     tick(read)
+    if (since) setTickedSince((prev) => new Set([...prev, ...changed.map(versionOf)]))
     ReadThroughService.SetRead(range, changed, read)
       .catch((err: unknown) => {
         tick(!read)
@@ -192,31 +198,9 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
             label="Compare with"
             extraOptions={info?.target ? [] : [{ value: '', label: 'Choose a branch' }]}
           />
-          {!!info?.marked && (
-            <SegmentedControl
-              value={mode}
-              onChange={setMode}
-              options={[
-                { value: 'whole', label: 'Whole change' },
-                { value: 'since', label: 'Since last read' },
-              ]}
-            />
-          )}
           {(info?.checkedOut || error) && (
             <Checkbox checked={uncommitted} onChange={setUncommitted} label="Uncommitted changes" />
           )}
-          <span className="read-through-progress" role="status">
-            {whole.length > 0 && progress}
-            {againCount > 0 && ` · ${againCount} changed again`}
-          </span>
-          <button
-            type="button"
-            className="read-through-button"
-            disabled={unread.length === 0}
-            onClick={() => setRead(unread, true)}
-          >
-            Mark all as read
-          </button>
           <button type="button" className="read-through-refresh" onClick={reload} aria-label="Refresh" title="Refresh">
             <RefreshCw size={14} strokeWidth={1.75} />
           </button>
@@ -225,6 +209,30 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     >
       <div className="changed-files-browser">
         <div className="changed-files-browser-files read-through-files">
+          <div className="read-through-toolbar">
+            {!!info?.marked && (
+              <SegmentedControl
+                value={mode}
+                onChange={showMode}
+                options={[
+                  { value: 'whole', label: 'Whole change' },
+                  { value: 'since', label: 'Since last read' },
+                ]}
+              />
+            )}
+            <span className="read-through-progress" role="status">
+              {whole.length > 0 && progress}
+              {againCount > 0 && ` · ${againCount} changed again`}
+            </span>
+            <button
+              type="button"
+              className="read-through-button"
+              disabled={unread.length === 0}
+              onClick={() => setRead(unread, true)}
+            >
+              Mark all as read
+            </button>
+          </div>
           {error ? (
             <p className="changed-files-browser-error">{error}</p>
           ) : info === null ? (
@@ -299,7 +307,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
                     <button
                       type="button"
                       className="read-through-button"
-                      onClick={() => setMode(since ? 'whole' : 'since')}
+                      onClick={() => showMode(since ? 'whole' : 'since')}
                     >
                       {since ? 'Show the whole change' : 'Show what changed since'}
                     </button>

@@ -254,6 +254,14 @@ describe('since last read', () => {
     expect(screen.getByRole('button', { name: 'Mark all as read' })).toBeDisabled()
   })
 
+  it('leaves out what was ticked before choosing it', async () => {
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(mixed())
+    render(open())
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Read src/c.ts' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Since last read' }))
+    expect(listedFiles()).toEqual(['Read old.txt', 'Read src/a.ts'])
+  })
+
   it('says when there is nothing new', async () => {
     vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ marked: 1, files: [file('src/b.ts', { read: true })] }))
     render(open())

@@ -19,15 +19,24 @@
   font: var(--ui-xs);
 }
 
+.read-through-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
 .read-through-progress {
-  flex-shrink: 0;
-  margin-left: auto;
+  flex: 1;
   color: var(--on-surface-variant);
   font: var(--data-sm);
+  white-space: nowrap;
 }
 
 .read-through-refresh {
   display: inline-flex;
+  margin-left: auto;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
