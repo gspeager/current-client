@@ -176,10 +176,32 @@ func scratchBeside(objects string) (env []string, discard func()) {
 		func() { _ = os.RemoveAll(dir) }
 }
 
-// Git marks each pack a partial clone fetched with a .promisor file.
+// Git marks each pack a partial clone fetched with a .promisor file. One made with
+// --reference can have all of its packs in another's folder.
 func hasPromisorPack(objects string) bool {
+	return promisorPackWithin(objects, 5)
+}
+
+// As many alternates of alternates as Git follows.
+func promisorPackWithin(objects string, depth int) bool {
 	packs, _ := os.ReadDir(filepath.Join(objects, "pack"))
-	return slices.ContainsFunc(packs, func(pack os.DirEntry) bool { return strings.HasSuffix(pack.Name(), ".promisor") })
+	if slices.ContainsFunc(packs, func(pack os.DirEntry) bool { return strings.HasSuffix(pack.Name(), ".promisor") }) {
+		return true
+	}
+	alternates, _ := os.ReadFile(filepath.Join(objects, "info", "alternates"))
+	for line := range strings.Lines(string(alternates)) {
+		alternate := strings.TrimSpace(line)
+		if alternate == "" || strings.HasPrefix(alternate, "#") || depth == 0 {
+			continue
+		}
+		if !filepath.IsAbs(alternate) {
+			alternate = filepath.Join(objects, alternate)
+		}
+		if promisorPackWithin(alternate, depth-1) {
+			return true
+		}
+	}
+	return false
 }
 
 // PartialClone says whether reading a file may fetch it.
