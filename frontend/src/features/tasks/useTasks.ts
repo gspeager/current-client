@@ -36,6 +36,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
   } = useAsyncData(() => (repoPath ? TaskService.List(repoPath) : null), [repoPath], { refreshKey })
   const [runs, setRuns] = useState<Record<string, TaskRun>>({})
   const [error, setError] = useState<string | null>(null)
+  const [ended, setEnded] = useState(0)
   const [warning, setWarning] = useState<{ repo: string; text: string } | null>(null)
   const taskOfRun = useRef(new Map<string, string>())
   // Read when starting one, as a closure kept from before a push can be behind `runs`.
@@ -76,6 +77,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
         streams.current.delete(data.runId)
         taskOfRun.current.delete(data.runId)
         running.current.delete(taskKey)
+        setEnded((n) => n + 1)
         const status: RunStatus = data.stopped ? 'stopped' : data.exitCode === 0 ? 'passed' : 'failed'
         setRuns((prev) => {
           const run = prev[taskKey]
@@ -208,6 +210,8 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
     run,
     stop,
     runOf,
+    // How many runs have, in any worktree.
+    ended,
     runChecklist,
     setChecklist,
     setOnBoard,

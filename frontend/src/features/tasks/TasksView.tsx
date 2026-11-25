@@ -27,9 +27,19 @@ interface TasksViewProps {
   refreshKey?: unknown
 }
 
+type Run = ReturnType<ReturnType<typeof useTasks>['runOf']>
+
+// The result, unless it's of an earlier run than the one shown.
+function latest(run: Run, result: TaskResultInfo | undefined) {
+  if (!run) return result
+  return result && run.status === (result.passed ? 'passed' : 'failed') && run.durationMs === result.durationMs
+    ? result
+    : undefined
+}
+
 // A result says more than the run's own end, once it's read.
-function TaskStatus({ status, result }: { status?: RunStatus; result?: TaskResultInfo }) {
-  if (result && status !== 'running' && status !== 'stopped') {
+function TaskStatus({ run, result }: { run: Run; result?: TaskResultInfo }) {
+  if (result) {
     return (
       <span
         className={result.passed ? 'tasks-status tasks-status-passed' : 'tasks-status tasks-status-failed'}
@@ -40,7 +50,7 @@ function TaskStatus({ status, result }: { status?: RunStatus; result?: TaskResul
       </span>
     )
   }
-  return status ? <span className={`tasks-status tasks-status-${status}`}>{STATUS_LABEL[status]}</span> : null
+  return run ? <span className={`tasks-status tasks-status-${run.status}`}>{STATUS_LABEL[run.status]}</span> : null
 }
 
 function TasksView({ repoPath, tasks, refreshKey }: TasksViewProps) {
@@ -53,7 +63,7 @@ function TasksView({ repoPath, tasks, refreshKey }: TasksViewProps) {
   const ended = list?.tasks.map((task) => tasks.runOf(task.id)?.status).join()
   const version = useMemo(() => ({ ended, refreshKey }), [ended, refreshKey])
   const { data: results } = useAsyncData(() => TaskService.Results(repoPath), [repoPath], { refreshKey: version })
-  const shownResult = shown && results?.[shown.id]
+  const shownResult = shown && latest(shownRun, results?.[shown.id])
 
   const addCommand = async () => {
     const name = await prompt({ title: 'Add a command', label: 'Name', confirmLabel: 'Next' })
@@ -121,7 +131,7 @@ function TasksView({ repoPath, tasks, refreshKey }: TasksViewProps) {
                   <span>{task.name}</span>
                   <span className="tasks-source">{task.source}</span>
                 </button>
-                <TaskStatus status={run?.status} result={results?.[task.id]} />
+                <TaskStatus run={run} result={latest(run, results?.[task.id])} />
                 <Checkbox
                   label="Board"
                   checked={list.onBoard.includes(task.id)}
@@ -171,7 +181,7 @@ function TasksView({ repoPath, tasks, refreshKey }: TasksViewProps) {
                 </span>
               )}
             </p>
-            {shownResult && shownRun?.status !== 'running' && (
+            {shownResult && (
               <p className="tasks-result" title={explainResult(shownResult)}>
                 {describeResult(shownResult)}
               </p>

@@ -236,6 +236,17 @@ func TestAResultWithAChangeDuringTheRun(t *testing.T) {
 	}
 }
 
+func TestASlowWorktreeDoesntHoldUpARun(t *testing.T) {
+	repo := taskRepo(t)
+	most := mostReadingCode
+	mostReadingCode = 0
+	t.Cleanup(func() { mostReadingCode = most })
+	runTask(t, repo, "custom:pass")
+	if got := resultOf(t, repo, "custom:pass"); !got.Passed || got.State != tasks.StateUnknown {
+		t.Errorf("result = %+v, want it passed and unknown", got)
+	}
+}
+
 func TestAStoppedRunLeavesTheLastResult(t *testing.T) {
 	repo := taskRepo(t)
 	runTask(t, repo, "custom:pass")

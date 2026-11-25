@@ -234,8 +234,13 @@ type code struct {
 	discard  func()
 }
 
+// A command isn't held up for long by a worktree that's slow to read. Its result's
+// state is unknown then.
+var mostReadingCode = 5 * time.Second
+
 func readCode(repoPath string) code {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), mostReadingCode)
+	defer cancel()
 	c := code{repoPath: repoPath}
 	c.env, c.discard = git.ScratchWrites(ctx, repoPath)
 	c.tree, _ = board.Tree(ctx, repoPath, c.env)

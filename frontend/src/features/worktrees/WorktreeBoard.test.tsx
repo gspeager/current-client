@@ -56,7 +56,7 @@ const open = async (info: BoardInfo, terminal = true) => {
         repoPath="/work/main"
         onOpenRepository={onOpenRepository}
         onOpenTerminal={terminal ? onOpenTerminal : undefined}
-        tasks={terminal ? { run, stop, error: null } : undefined}
+        tasks={terminal ? { run, stop, error: null, ended: 0 } : undefined}
         onNewWorktree={onNewWorktree}
         onClose={() => {}}
       />
@@ -289,6 +289,24 @@ it('runs and stops a task in its own worktree, and reads the board again', async
   expect(WorktreeService.Board).toHaveBeenCalledTimes(2)
   fireEvent.click(screen.getByRole('button', { name: 'Stop test in busy' }))
   expect(stop).toHaveBeenCalledWith('make:test', '/work/busy')
+})
+
+it('reads the board again when a run ends', async () => {
+  vi.mocked(WorktreeService.Board).mockResolvedValue(withTasks)
+  const view = (ended: number) => (
+    <WorktreeBoard
+      repoPath="/work/main"
+      onOpenRepository={onOpenRepository}
+      tasks={{ run, stop, error: null, ended }}
+      onNewWorktree={onNewWorktree}
+      onClose={() => {}}
+    />
+  )
+  const { rerender } = render(view(0))
+  await after(0)
+  rerender(view(1))
+  await after(0)
+  expect(WorktreeService.Board).toHaveBeenCalledTimes(2)
 })
 
 it('shows results that exist where nothing can be run', async () => {

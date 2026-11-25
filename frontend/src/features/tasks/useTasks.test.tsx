@@ -204,7 +204,7 @@ describe('tasks', () => {
     const user = userEvent.setup()
     renderTasks()
     await user.click(await screen.findByRole('button', { name: 'Run test' }))
-    const result = { passed: true, at: new Date().toISOString(), durationMs: 900, changed: [] }
+    const result = { passed: true, at: new Date().toISOString(), durationMs: 1500, changed: [] }
     vi.mocked(TaskService.Results).mockResolvedValue({ 'make:test': { ...result, state: 'current' } })
     await finish(0)
     expect(await screen.findByText('Passed just now, on this code')).toBeInTheDocument()
@@ -214,6 +214,23 @@ describe('tasks', () => {
     expect(screen.queryByText(/on this code/)).toBeNull()
     await finish(0)
     expect(await screen.findByText('Passed, out of date')).toBeInTheDocument()
+  })
+
+  it('never shows an earlier result for a run that has ended since', async () => {
+    const user = userEvent.setup()
+    renderTasks()
+    await user.click(await screen.findByRole('button', { name: 'Run test' }))
+    vi.mocked(TaskService.Results).mockResolvedValue({
+      'make:test': { passed: true, at: new Date().toISOString(), durationMs: 1500, changed: [], state: 'current' },
+    })
+    await finish(0)
+    expect(await screen.findByText('Passed just now, on this code')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Run test' }))
+    vi.mocked(TaskService.Results).mockReturnValue(new Promise(() => {}) as never)
+    await finish(1)
+    expect(screen.getByText('Failed')).toBeInTheDocument()
+    expect(screen.queryByText(/Passed/)).toBeNull()
   })
 
   it('chooses what the worktree board shows', async () => {

@@ -29,7 +29,7 @@ interface WorktreeBoardProps {
   // Not given when there's no terminal.
   onOpenTerminal?: (path: string) => void
   // Not given when nothing can be run. Results that exist are shown all the same.
-  tasks?: Pick<ReturnType<typeof useTasks>, 'run' | 'stop' | 'error'>
+  tasks?: Pick<ReturnType<typeof useTasks>, 'run' | 'stop' | 'error' | 'ended'>
   onNewWorktree: () => void
   onClose: () => void
 }
@@ -62,7 +62,7 @@ function WorktreeBoard({
   onNewWorktree,
   onClose,
 }: WorktreeBoardProps) {
-  const { board, error, refresh } = useBoard(repoPath)
+  const { board, error, refresh } = useBoard(repoPath, tasks?.ended)
   const names = useMemo(() => namesOf(board?.columns ?? []), [board])
   const colliding = useMemo(() => (board ? collidingFiles(board, names) : []), [board, names])
 
