@@ -15,7 +15,7 @@ import (
 	"github.com/gspeager/current-client/core/git"
 )
 
-const debounceDelay = 400 * time.Millisecond
+const debounceDelay = 200 * time.Millisecond
 
 // Watcher watches one repository at a time. The zero value is ready to use.
 type Watcher struct {

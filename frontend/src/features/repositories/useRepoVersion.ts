@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 
-// The watcher reports an action's own ref changes about 400 ms after the
-// action refreshed everything, so one this soon after needs no second refresh.
+// The watcher reports an action's own ref changes shortly after the action
+// refreshed everything, so one this soon after needs no second refresh.
 const SETTLE_MS = 1000
 
 export function useRepoVersion() {
