@@ -53,6 +53,7 @@ function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn() }: She
         onDismissFeedback={workspace.dismissFeedback}
         onBranchChanged={vi.fn()}
         onFetched={vi.fn()}
+        onOpenWorktreeBoard={() => {}}
         onOpenRepository={vi.fn()}
         onOpenHeadCommit={onOpenHeadCommit}
         width={240}

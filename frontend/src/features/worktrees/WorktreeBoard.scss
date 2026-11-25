@@ -1,0 +1,125 @@
+@use '../../styles/patterns';
+
+.worktree-board-panel {
+  width: 1400px;
+  height: 100%;
+}
+
+.worktree-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-height: 0;
+  padding: var(--space-md);
+  overflow: auto;
+}
+
+.worktree-board-new {
+  @include patterns.micro-button;
+}
+
+.worktree-board-columns {
+  display: grid;
+  flex-shrink: 0;
+  grid-auto-columns: minmax(260px, 1fr);
+  grid-auto-flow: column;
+  gap: var(--space-sm);
+  overflow-x: auto;
+}
+
+.worktree-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+}
+
+.worktree-column-name {
+  @include patterns.truncate;
+  margin: 0;
+  color: var(--on-surface);
+  font: var(--ui-md);
+  font-weight: 600;
+}
+
+.worktree-column-branch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.worktree-column-detached {
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.worktree-column-running {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.worktree-column-facts {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.worktree-column-counts {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.worktree-column-files {
+  flex: 1;
+  max-height: 34vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: var(--h-row-tree);
+  }
+}
+
+.worktree-column-colliding {
+  color: var(--error);
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.worktree-column-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+
+  button {
+    @include patterns.micro-button;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+}
+
+.worktree-board-collisions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}

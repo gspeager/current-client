@@ -96,7 +96,7 @@ export function useTerminals(repoPath: string | null) {
   // Opens the panel, starting a shell if there isn't one.
   const show = (repo: string) => {
     update(repo, (prev) => ({ ...prev, open: true, view: 'shells' }))
-    if (current.shells.length === 0) newShell(repo)
+    if (!byRepo[repo]?.shells.length) newShell(repo)
   }
   const showTasks = (repo: string) => update(repo, (prev) => ({ ...prev, open: true, view: 'tasks' }))
   const setView = (repo: string, view: PanelView) => update(repo, (prev) => ({ ...prev, view }))

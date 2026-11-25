@@ -33,6 +33,7 @@ function renderPanel(worktrees: WorktreeInfo[]) {
   ])
   const onOpenRepository = vi.fn()
   const onWorktreesChanged = vi.fn()
+  const onOpenBoard = vi.fn()
   render(
     <DialogProvider>
       <WorktreesPanel
@@ -40,10 +41,11 @@ function renderPanel(worktrees: WorktreeInfo[]) {
         repoPath={REPO}
         onOpenRepository={onOpenRepository}
         onWorktreesChanged={onWorktreesChanged}
+        onOpenBoard={onOpenBoard}
       />
     </DialogProvider>,
   )
-  return { onOpenRepository, onWorktreesChanged }
+  return { onOpenRepository, onWorktreesChanged, onOpenBoard }
 }
 
 const listed = [
@@ -123,5 +125,11 @@ describe('WorktreesPanel', () => {
     expect(header).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('No other worktrees.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add worktree' })).toBeInTheDocument()
+  })
+
+  it('opens the board', async () => {
+    const { onOpenBoard } = renderPanel(listed)
+    await userEvent.click(screen.getByRole('button', { name: 'Worktree board' }))
+    expect(onOpenBoard).toHaveBeenCalled()
   })
 })

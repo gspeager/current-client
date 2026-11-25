@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   Cloud,
+  Columns3,
   FileDiff,
   FolderGit2,
   Keyboard,
@@ -89,6 +90,7 @@ import { useSettings } from './features/settings/useSettings'
 import { useOpenRequests } from './features/repositories/useOpenRequests'
 import TasksView from './features/tasks/TasksView'
 import { useTasks } from './features/tasks/useTasks'
+import WorktreeBoard from './features/worktrees/WorktreeBoard'
 import TerminalPanel from './features/terminal/TerminalPanel'
 import { isTerminalToggle } from './features/terminal/terminalKeys'
 import { useTerminals } from './features/terminal/useTerminals'
@@ -282,6 +284,13 @@ function App({
     terminals.show(repo.repoPath)
     setTerminalFocus((n) => n + 1)
   }
+  const openTerminalIn = async (path: string) => {
+    setBoardOpen(false)
+    const opened = await repo.openRecent(path)
+    if (!opened) return
+    terminals.show(opened)
+    setTerminalFocus((n) => n + 1)
+  }
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   useWindowKeydown((e) => {
     if (e.key === 'Escape' && inboxOpen && !document.querySelector('.modal-panel, .context-menu')) {
@@ -395,6 +404,7 @@ function App({
     [repoVersion, workingTree.files],
   )
   const [readThrough, setReadThrough] = useState<ReadThroughOpening | null>(null)
+  const [boardOpen, setBoardOpen] = useState(false)
   const [issueFocus, setIssueFocus] = useState<string | null>(null)
   useEffect(() => {
     setPushed(null)
@@ -402,6 +412,7 @@ function App({
     setOpenIssueKey(null)
     setNewIssueDraft(null)
     setReadThrough(null)
+    setBoardOpen(false)
     setIssueFocus(null)
   }, [repo.repoPath])
   const hostOn = !!integration
@@ -895,6 +906,14 @@ function App({
       run: () => requestSidebar('branch-review'),
     },
     {
+      id: 'worktree-board',
+      label: 'Worktree board',
+      section: 'Tools',
+      icon: Columns3,
+      keywords: ['worktrees', 'parallel', 'agents', 'collide', 'conflict'],
+      run: () => setBoardOpen(true),
+    },
+    {
       id: 'conflict-grid',
       label: 'Conflict grid',
       section: 'Tools',
@@ -1002,6 +1021,19 @@ function App({
                         onClose={() => setNewIssueDraft(null)}
                       />
                     )}
+                    {boardOpen && repo.repoPath && (
+                      <WorktreeBoard
+                        repoPath={repo.repoPath}
+                        onOpenRepository={(path) => void repo.openRecent(path)}
+                        onOpenTerminal={terminalsOff ? undefined : (path) => void openTerminalIn(path)}
+                        onNewWorktree={() => {
+                          setBoardOpen(false)
+                          // Once closing has put the focus back, so the form can take it.
+                          requestAnimationFrame(() => requestSidebar('new-worktree'))
+                        }}
+                        onClose={() => setBoardOpen(false)}
+                      />
+                    )}
                     {readThrough && repo.repoPath && (
                       <ReadThroughSheet
                         repoPath={repo.repoPath}
@@ -1092,6 +1124,7 @@ function App({
                         onOpenFile={openWorkingFile}
                         onCreateChange={requestCreateChange}
                         onOpenRepository={repo.openRecent}
+                        onOpenWorktreeBoard={() => setBoardOpen(true)}
                         width={navWidth.width}
                         collapsed={navCollapsed}
                         onCollapsedChange={setNavCollapsed}

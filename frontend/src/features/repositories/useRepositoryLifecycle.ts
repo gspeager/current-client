@@ -60,11 +60,12 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
   const opened = (path: string) => {
     addTab(path)
     refreshRecentRepos()
+    return path
   }
 
   const openPath = (open: Promise<string>) => {
     setRepoError(null)
-    return open.then(opened).catch(reportError)
+    return open.then<string | void>(opened).catch(reportError)
   }
 
   const focusTab = (path: string) => RepositoryService.OpenRepository(path).then(setRepoPathState).catch(reportError)
