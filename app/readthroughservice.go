@@ -442,9 +442,13 @@ type ChangeReason struct {
 
 func (s *ReadThroughService) Structure(info ReadThroughInfo) (ChangeStructureInfo, error) {
 	ctx := context.Background()
-	changes := mapSlice(info.Files, func(f ReadThroughFile) structure.Changed {
-		return structure.Changed{Path: f.Path, OrigPath: f.OrigPath, Status: f.Status[:1], Added: f.Added, Removed: f.Removed}
-	})
+	var changes []structure.Changed
+	for _, f := range info.Files {
+		// Listed only to say it changed since it was read.
+		if !f.Gone {
+			changes = append(changes, structure.Changed{Path: f.Path, OrigPath: f.OrigPath, Status: f.Status, Added: f.Added, Removed: f.Removed})
+		}
+	}
 	result := ChangeStructureInfo{Partial: git.PartialClone(ctx, info.Path)}
 	var now, then *structure.Graph
 	if !result.Partial {

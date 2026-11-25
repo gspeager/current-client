@@ -542,4 +542,21 @@ describe('the structure', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Show all' }))
     expect(screen.getByText('go.sum')).toBeInTheDocument()
   })
+
+  it('lists everything again when the folder has nothing left listed, or what is read changes', async () => {
+    vi.mocked(ReadThroughService.Structure).mockResolvedValue(
+      new ChangeStructureInfo({
+        read: true,
+        areas: [{ path: 'src', state: '', files: ['src/a.ts'], added: 1, removed: 0 }],
+      }),
+    )
+    const { rerender } = render(open())
+    const structure = within(await screen.findByRole('region', { name: 'Structure' }))
+    await userEvent.click(structure.getByRole('button', { name: 'src/' }))
+    expect(screen.getByText('Only src')).toBeInTheDocument()
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('docs/x.md')] }))
+    rerender(open(1))
+    expect(await screen.findByText('x.md')).toBeInTheDocument()
+    expect(screen.queryByText('Only src')).toBeNull()
+  })
 })

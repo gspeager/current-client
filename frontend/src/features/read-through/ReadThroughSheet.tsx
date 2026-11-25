@@ -108,12 +108,19 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   }
   // A folder the structure opened, whose files are all that's listed.
   const [area, setArea] = useState<string | null>(null)
-  const inArea = (f: ReadThroughFile) => area === null || [f.path, f.origPath].some((p) => p && dirOf(p) === area)
-  const files = useMemo(
-    () => all.filter((f) => (since ? !f.read || tickedSince.has(versionOf(f)) : !f.gone) && inArea(f)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [all, since, tickedSince, area],
+  const [areaOf, setAreaOf] = useState(info?.key)
+  if (areaOf !== info?.key) {
+    setAreaOf(info?.key)
+    setArea(null)
+  }
+  const listed = useMemo(
+    () => all.filter((f) => (since ? !f.read || tickedSince.has(versionOf(f)) : !f.gone)),
+    [all, since, tickedSince],
   )
+  const inArea = listed.filter((f) => [f.path, f.origPath].some((p) => p && dirOf(p) === area))
+  // A folder with nothing left listed lists everything again.
+  const files = area !== null && inArea.length > 0 ? inArea : listed
+  const showingArea = area !== null && inArea.length > 0
   const groups = useMemo(() => groupFiles(files), [files])
   const ordered = useMemo(() => groups.flatMap((group) => group.files), [groups])
   const selected = all.find((f) => f.path === path) ?? null
@@ -261,7 +268,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
             </p>
           ) : (
             <div ref={rows}>
-              {area !== null && (
+              {showingArea && (
                 <p className="read-through-area">
                   Only {area || 'the top folder'}
                   <button type="button" className="read-through-button" onClick={() => setArea(null)}>

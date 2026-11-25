@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"path"
 	"slices"
+	"strings"
 
 	"github.com/gspeager/current-client/core/filekind"
 )
@@ -12,7 +13,7 @@ import (
 type Changed struct {
 	Path     string
 	OrigPath string
-	// A, M, D, R or T.
+	// A, M, D, R or T, with a rename's similarity.
 	Status  string
 	Added   int
 	Removed int
@@ -170,7 +171,7 @@ func readFirst(now *Graph, areas map[string]*Area, changes []Changed) []Reason {
 		folders = append(folders, Reason{Path: used, Folder: true, Why: "used", Count: len(by)})
 	}
 	for _, c := range changes {
-		if n := len(byFile[c.Path]); n >= widelyUsed && c.Status != "D" {
+		if n := len(byFile[c.Path]); n >= widelyUsed && !strings.HasPrefix(c.Status, "D") {
 			files = append(files, Reason{Path: c.Path, Why: "used", Count: n})
 		}
 	}
@@ -187,7 +188,7 @@ func skim(areas []Area, changes []Changed) []Reason {
 		switch kind := filekind.Of(c.Path); {
 		case kind == filekind.Lockfile || kind == filekind.Generated:
 			reasons = append(reasons, Reason{Path: c.Path, Why: string(kind)})
-		case c.Status == "R" && c.Added+c.Removed == 0:
+		case strings.HasPrefix(c.Status, "R") && c.Added+c.Removed == 0:
 			reasons = append(reasons, Reason{Path: c.Path, Why: "renamed"})
 		}
 	}

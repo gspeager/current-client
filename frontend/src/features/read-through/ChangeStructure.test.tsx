@@ -83,6 +83,13 @@ it('lists a large restructure instead of drawing it', async () => {
   expect(onArea).toHaveBeenCalledWith('to0')
 })
 
+it('lists a change whose links go to too many folders to draw', () => {
+  const areas = Array.from({ length: 10 }, (_, i) => area(`a${i}`))
+  show({ areas, links: Array.from({ length: 10 }, (_, i) => link(`a${i}`, `elsewhere${i}`)) })
+  expect(document.querySelector('.structure-graph')).toBeNull()
+  expect(screen.getByRole('list', { name: 'Links added or removed' })).toBeInTheDocument()
+})
+
 it('lists the folders when no link changes, and says when links are not read', () => {
   const { unmount } = show({ areas: [area(''), area('docs', { state: 'added' })] })
   expect(screen.getByText('2 folders · 1 new · no link between folders added or removed')).toBeInTheDocument()

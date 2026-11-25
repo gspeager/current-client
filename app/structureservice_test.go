@@ -185,7 +185,10 @@ func TestAChangesStructure(t *testing.T) {
 	writeIn(t, repo, "app/run.go", "package app\n\nimport \"a/text\"\n\nfunc Run() { text.Cut() }\n")
 	gitIn(t, repo, "add", "-A")
 	gitIn(t, repo, "commit", "-q", "-m", "text")
-	shape := shapeOf(t, openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/feat"}))
+	info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/feat"})
+	// One listed only as gone, with no status of its own.
+	info.Files = append(info.Files, ReadThroughFile{Path: "gone/g.go", Gone: true})
+	shape := shapeOf(t, info)
 	areas := mapSlice(shape.Areas, func(a ChangeArea) string { return a.Path + " " + a.State })
 	links := mapSlice(shape.Links, func(l ChangeLink) string { return l.From + ">" + l.To + " " + l.State })
 	if !slices.Equal(areas, []string{"app ", "text added"}) || !slices.Equal(links, []string{"app>core removed", "app>text added"}) || !shape.Read {

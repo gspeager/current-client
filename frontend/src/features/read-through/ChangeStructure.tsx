@@ -9,7 +9,7 @@ import type {
 import StructureGraph from '../explore/StructureGraph'
 import { counted } from '../explore/structureWords'
 
-// More than this many links between folders, or areas, and a change is a
+// More than this many links between folders, or folders to draw, and a change is a
 // restructure, listed rather than drawn.
 const MOST_DRAWN = { links: 20, areas: 14 }
 const MOST_LISTED = 30
@@ -45,7 +45,7 @@ function ChangeStructure({ shape, error, onArea, onFile }: ChangeStructureProps)
   const drawn = useMemo(() => (shape ? drawing(shape) : null), [shape])
   if (error) return <p className="changed-files-browser-error">{error}</p>
   if (!shape) return <p className="changed-files-browser-hint">Reading what uses what…</p>
-  const large = shape.links.length > MOST_DRAWN.links || shape.areas.length > MOST_DRAWN.areas
+  const large = shape.links.length > MOST_DRAWN.links || (drawn?.nodes.length ?? 0) > MOST_DRAWN.areas
   const added = shape.areas.filter((a) => a.state === 'added').length
   const removed = shape.areas.filter((a) => a.state === 'removed').length
   const open = (reason: ChangeReason) => (reason.folder ? onArea(reason.path) : onFile(reason.path))
