@@ -136,7 +136,10 @@ function DiffViewer({
   const setLineStops = useRovingRows('.diff-line-select', {
     compareRows: (a, b) => paneRowOf(a) - paneRowOf(b),
     scrollToEdge: long ? (edge) => handle.current?.revealEdge(edge) : undefined,
-    scrollPast: long ? (row, forward) => handle.current?.revealChange(paneRowOf(row), forward) : undefined,
+    scrollPast: long
+      ? (row, forward, next) =>
+          (!next || paneRowOf(next) !== paneRowOf(row)) && !!handle.current?.revealChange(paneRowOf(row), forward)
+      : undefined,
   })
   useEffect(() => setLineStops(paneRef.current))
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())

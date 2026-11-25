@@ -162,11 +162,15 @@ export function isLongDiff(rows: DisplayRow[]): boolean {
 
 const TAB_SIZE = 8
 
+// Chinese, Japanese, Korean and emoji, which take the room of two characters.
+const WIDE =
+  /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe6f\uff00-\uff60\uffe0-\uffe6\u{1f300}-\u{1faff}\u{20000}-\u{3fffd}]/u
+
 // How many characters wide a line is, with its tabs filled out.
 export function columnsOf(text: string): number {
-  if (!text.includes('\t')) return text.length
+  if (/^[ -~]*$/.test(text)) return text.length
   let columns = 0
-  for (const char of text) columns += char === '\t' ? TAB_SIZE - (columns % TAB_SIZE) : 1
+  for (const char of text) columns += char === '\t' ? TAB_SIZE - (columns % TAB_SIZE) : WIDE.test(char) ? 2 : 1
   return columns
 }
 

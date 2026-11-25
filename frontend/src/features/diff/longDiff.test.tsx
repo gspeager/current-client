@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { FileDiff, ReviewThread, type DiffLine } from '@current-client-bindings/app'
 import { giveElementsLayout } from '../../test/bindings'
 import DiffViewer from './DiffViewer'
@@ -89,6 +89,14 @@ describe('a 50,000-line diff', () => {
     expect(screen.getByRole('button', { name: 'Select added line 3' })).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('moves from the focused line to the one after it, wherever it is scrolled', async () => {
+    const { scroller } = renderDiff()
+    screen.getByRole('button', { name: 'Select added line 3' }).focus()
+    scrollTo(scroller, 600_000)
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Select added line 4' })).toHaveFocus())
+  })
+
   it('keeps every review thread, so a fold or a reply survives scrolling', () => {
     const thread = new ReviewThread({
       id: 't1',
@@ -125,6 +133,39 @@ describe('a 50,000-line diff', () => {
     const lines = (setData.mock.calls[0][1] as string).split('\n')
     expect(lines).toHaveLength(29_999)
     expect([lines[0], lines[29_998]]).toEqual(['line 2', 'line 30000'])
+  })
+})
+
+describe('a long diff in a hidden view', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('keeps its rows and their heights', () => {
+    const observers: { callback: ResizeObserverCallback; targets: Set<Element> }[] = []
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        targets = new Set<Element>()
+        constructor(public callback: ResizeObserverCallback) {
+          observers.push(this)
+        }
+        observe = (el: Element) => this.targets.add(el)
+        unobserve = (el: Element) => this.targets.delete(el)
+        disconnect = () => this.targets.clear()
+      },
+    )
+    const { pane } = renderDiff({}, { wrap: true })
+    const rows = () => [...pane.children].map((el) => el.getAttribute('data-index') ?? (el as HTMLElement).style.height)
+    const before = rows()
+    const nothing = [{ inlineSize: 0, blockSize: 0 }]
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(0)
+    act(() => {
+      for (const { callback, targets } of observers) {
+        const entries = [...targets].map((target) => ({ target, borderBoxSize: nothing }) as never)
+        callback(entries, undefined as never)
+      }
+    })
+    expect(observers.some(({ targets }) => [...targets].some((el) => el.classList.contains('diff-item')))).toBe(true)
+    expect(rows()).toEqual(before)
   })
 })
 

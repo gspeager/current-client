@@ -58,7 +58,11 @@ function Windowed({ reversed = false }: { reversed?: boolean }) {
   const [first, setFirst] = useState(0)
   const at = (el: HTMLElement) => Number(el.dataset.at)
   const ref = useRovingRows('.row', {
-    scrollPast: (row, forward) => setFirst(at(row) + (forward ? 0 : -2)),
+    scrollPast: (row, forward, next) => {
+      if (next) return false
+      setFirst(at(row) + (forward ? 0 : -2))
+      return true
+    },
     compareRows: (a, b) => at(a) - at(b),
   })
   const drawn = [first, first + 1, first + 2]

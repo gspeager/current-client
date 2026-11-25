@@ -9,8 +9,9 @@ interface RovingOptions {
   horizontal?: boolean
   // A virtualized list scrolls here, so Home and End reach rows not yet drawn.
   scrollToEdge?: (edge: 'first' | 'last') => void
-  // Scrolls to the row after or before this one, where it isn't drawn yet.
-  scrollPast?: (row: HTMLElement, forward: boolean) => void
+  // Scrolls to the row after or before this one where it isn't drawn yet, and
+  // answers whether it did. Next is the nearest one that is drawn.
+  scrollPast?: (row: HTMLElement, forward: boolean, next?: HTMLElement) => boolean
   // For rows whose order on screen isn't their order in the page.
   compareRows?: (a: HTMLElement, b: HTMLElement) => number
 }
@@ -117,15 +118,15 @@ export function useRovingRows(
                 ? rows[0]
                 : rows[rows.length - 1]
         e.preventDefault()
-        if (next) {
-          moveTo(next)
-        } else if (past.current && (e.key === forward || e.key === back)) {
-          past.current(row, e.key === forward)
+        if ((e.key === forward || e.key === back) && past.current?.(row, e.key === forward, next)) {
           onceDrawn(() => {
             const drawn = rowsOf()
-            const beyond = drawn[drawn.indexOf(row) + (e.key === forward ? 1 : -1)]
-            if (beyond) moveTo(beyond)
+            const at = drawn.indexOf(row)
+            const beyond = drawn[at + (e.key === forward ? 1 : -1)]
+            if (at >= 0 && beyond) moveTo(beyond)
           })
+        } else if (next) {
+          moveTo(next)
         }
         return
       }

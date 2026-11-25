@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
+import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { defaultRangeExtractor, measureElement, observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
 
 const OVERSCAN = 30
 
@@ -18,7 +18,8 @@ interface DiffWindowOptions {
   // False draws every row, which a short diff does.
   windowed: boolean
   count: number
-  // Heights are remembered by key, so it names the layout too.
+  // Heights are remembered by key, so it names the layout too. A new function
+  // works every position out again.
   keyOf: (index: number) => string
   layout: string
   // An estimate, until the row is drawn and measured. Width is the pane's, or 0 before it's known.
@@ -60,14 +61,22 @@ export function useDiffWindow({
   paneRef,
 }: DiffWindowOptions): DiffWindow {
   const [width, setWidth] = useState(0)
-  const virtualizer = useVirtualizer({
+  const getItemKey = useCallback((index: number) => `${layout}:${keyOf(index)}`, [layout, keyOf])
+  const virtualizer = useVirtualizer<HTMLElement, HTMLElement>({
     enabled: windowed,
     count,
     getScrollElement: scroller,
-    getItemKey: (index) => `${layout}:${keyOf(index)}`,
+    getItemKey,
     estimateSize: (index) => heightOf(index, width),
     overscan: OVERSCAN,
     initialRect: { width: 0, height: 1000 },
+    // A hidden view has no size: it keeps its rows and their heights.
+    observeElementRect: (instance, onRect) =>
+      observeElementRect(instance, (rect) => {
+        if (rect.height > 0) onRect(rect)
+      }),
+    measureElement: (row, entry, instance) =>
+      measureElement(row, entry, instance) || instance.measurementsCache[instance.indexFromElement(row)].size,
     rangeExtractor: (range) => {
       const pane = paneRef.current
       const focused = pane?.contains(document.activeElement) ? rowIndex(document.activeElement) : null
@@ -86,6 +95,7 @@ export function useDiffWindow({
     setWidth(el.clientWidth)
     if (typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(() => {
+      if (el.clientWidth === 0) return
       const paneTop = el.getBoundingClientRect().top
       const rows = [...el.querySelectorAll<HTMLElement>('[data-index]')]
       topRow.current = rowIndex(rows.find((row) => row.getBoundingClientRect().bottom > paneTop) ?? null)

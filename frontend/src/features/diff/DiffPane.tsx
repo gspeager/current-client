@@ -1,6 +1,7 @@
 import Kbd from '../../components/controls/Kbd'
 import {
   Fragment,
+  useCallback,
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
@@ -323,8 +324,9 @@ export interface DiffPaneHandle {
   revealHunk: (hunk: number) => void
   revealBlock: (block: number) => void
   revealEdge: (edge: 'first' | 'last') => void
-  // The nearest row with a changed line, after or before this one.
-  revealChange: (from: number, forward: boolean) => void
+  // The nearest row with a changed line, after or before this one. False when
+  // it's already drawn, or there is none.
+  revealChange: (from: number, forward: boolean) => boolean
 }
 
 interface DiffPaneProps extends HunkActions {
@@ -414,7 +416,7 @@ function DiffPane(props: DiffPaneProps) {
   const drawn = useDiffWindow({
     windowed,
     count: paneRows.length,
-    keyOf: (index) => paneRows[index].key,
+    keyOf: useCallback((index) => paneRows[index].key, [paneRows]),
     layout: `${mode}-${wrap}`,
     heightOf: (index, width) => estimate(paneRows[index], width),
     measured: (index) => wrap || paneRows[index]?.kind === 'blocks',
@@ -450,10 +452,10 @@ function DiffPane(props: DiffPaneProps) {
       for (let i = from + step; i >= 0 && i < paneRows.length; i += step) {
         const row = paneRows[i]
         if (row.kind === 'pair' && (lineKey(row.pair.left) || lineKey(row.pair.right))) {
-          revealRow(i, 'nearest')
-          return
+          return !drawn.indexes.includes(i) && revealRow(i, 'nearest')
         }
       }
+      return false
     },
   }))
 

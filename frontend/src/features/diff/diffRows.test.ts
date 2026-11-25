@@ -135,6 +135,7 @@ describe('a long diff', () => {
   it('measures its longest line with tabs filled out', () => {
     expect(columnsOf('\tab')).toBe(10)
     expect(columnsOf('abc\td')).toBe(9)
+    expect(columnsOf('é 日本語 😀')).toBe(11)
     const rows = buildDisplayRows([
       { header: '', raw: '', lines: [line('removed', 'short'), line('added', '\t\tlonger')] },
     ])
