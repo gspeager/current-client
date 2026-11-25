@@ -371,7 +371,7 @@ function DiffViewer({
       place(ref, <ReviewNoteBlock key={note.id} note={note} onEdit={notes!.edit} />)
     }
   }
-  if (!sidesApart && notes && composer) {
+  if (!sidesApart && notes && composer && (composer.line > 0 || !notes.newOnly)) {
     place(
       lineRef(composer.line, composer.oldLine),
       <ReviewComposer

@@ -225,6 +225,9 @@ describe('since last read', () => {
     expect(listedFiles()).toEqual(['Read src/a.ts', 'Read src/c.ts'])
     expect(screen.getByText('added since')).toBeInTheDocument()
     expect(ReadThroughService.FileDiff).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Ignore whitespace', hidden: true }))
+    expect(await screen.findByText('new')).toBeInTheDocument()
+    expect(ReadThroughService.SinceDiff).toHaveBeenCalledTimes(1)
   })
 
   it('takes notes on new lines only, as the old side is not the base', async () => {
@@ -239,6 +242,12 @@ describe('since last read', () => {
     expect(await screen.findByRole('button', { name: 'Add note on line 1' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add note on old line 1' })).toBeNull()
     expect(screen.queryByText('on the base')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Show the whole change' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add note on old line 1' }))
+    expect(screen.getByRole('textbox', { name: 'Note on old line 1' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Show what changed since' }))
+    await waitFor(() => expect(ReadThroughService.SinceDiff).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('textbox', { name: 'Note on old line 1' })).toBeNull()
   })
 
   it('marks every file as read', async () => {

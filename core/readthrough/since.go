@@ -67,7 +67,15 @@ func read(ctx context.Context, repoPath string, env []string, key string, r Rang
 	listed := map[string]bool{}
 	for _, file := range files {
 		listed[file.Path] = true
+	}
+	for _, file := range files {
 		mark, marked := marks[file.Path]
+		// Renamed since it was read.
+		if before, there := marks[file.OrigPath]; !marked && there && !listed[file.OrigPath] {
+			mark, marked = before, true
+			marks[file.Path] = before
+			delete(marks, file.OrigPath)
+		}
 		reading.Files = append(reading.Files, ReadFile{
 			File: file, Read: marked && mark.Read == file.New, Again: marked && mark.Read != file.New,
 		})
@@ -94,7 +102,8 @@ func read(ctx context.Context, repoPath string, env []string, key string, r Rang
 		file.Path, file.Old, file.New = path, version, version
 		reading.Files = append(reading.Files, file)
 	}
-	return reading, reading.compare(ctx, repoPath, env, marks, len(r.Head))
+	err = reading.compare(ctx, repoPath, env, marks, len(r.Head))
+	return reading, err
 }
 
 // compare works out what changed since for the files that have, and which of them

@@ -271,3 +271,23 @@ func TestChangesOfAFileAndAFolderOfItsName(t *testing.T) {
 	gittest.Run(t, dir, "commit", "-q", "-m", "gone")
 	expect(t, dir, rangeOf(t, dir, false), "x again +0 -1 gone")
 }
+
+func TestAFileRenamedSinceItWasRead(t *testing.T) {
+	dir := readRepo(t)
+	gittest.Run(t, dir, "mv", "long.txt", "moved.txt")
+	gittest.Run(t, dir, "commit", "-q", "-m", "move")
+	expect(t, dir, rangeOf(t, dir, false), "")
+	gittest.CommitFile(t, dir, "moved.txt", lines(1, 39)+"feat 40\nfeat 41\n", "and edit")
+	r := rangeOf(t, dir, false)
+	expect(t, dir, r, "moved.txt again +1 -0")
+	if got := sinceLines(t, dir, r, "moved.txt"); got != "+feat 41" {
+		t.Errorf("since = %q", got)
+	}
+	// Read under its new name, and only that.
+	markAll(t, dir, r)
+	expect(t, dir, r, "")
+	marks, err := Marks(ctx, dir, feat)
+	if err != nil || len(marks) != 2 {
+		t.Errorf("marks = %v, %v", marks, err)
+	}
+}

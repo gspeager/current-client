@@ -331,7 +331,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
                 file={selected}
                 version={diffVersion}
                 loadDiff={(file, force, ignoreWhitespace) =>
-                  sinceDiff
+                  sinceDiff && selected.again
                     ? ReadThroughService.SinceDiff(range, file.path, force, ignoreWhitespace)
                     : ReadThroughService.FileDiff(range, file.origPath, file.path, force, ignoreWhitespace)
                 }

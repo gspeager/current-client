@@ -257,7 +257,7 @@ func (s *ReadThroughService) SetRead(info ReadThroughInfo, files []ReadThroughFi
 	var kept, gone []readthrough.File
 	for _, f := range files {
 		file := readthrough.File{}
-		file.Path = f.Path
+		file.Path, file.OrigPath = f.Path, f.OrigPath
 		file.Old = git.FileVersion{Mode: f.OldMode, Blob: f.OldBlob}
 		file.New = git.FileVersion{Mode: f.NewMode, Blob: f.NewBlob}
 		if f.Gone {

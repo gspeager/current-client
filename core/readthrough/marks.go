@@ -92,6 +92,12 @@ func SetRead(ctx context.Context, repoPath, key string, r Range, files []File, r
 	ref := markRef(key)
 	entries := map[string]git.FileVersion{}
 	for _, file := range files {
+		// A renamed file may be marked under the name it had.
+		if file.OrigPath != "" {
+			entries[readFolder+file.OrigPath], entries[baseFolder+file.OrigPath] = git.FileVersion{}, git.FileVersion{}
+		}
+	}
+	for _, file := range files {
 		entries[readFolder+file.Path], entries[baseFolder+file.Path] = git.FileVersion{}, git.FileVersion{}
 		if read {
 			entries[readFolder+file.Path], entries[baseFolder+file.Path] = file.New, file.Old
