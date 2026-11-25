@@ -203,3 +203,12 @@
   color: var(--outline);
   font: var(--ui-xs);
 }
+
+.read-through-again {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-sm);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}

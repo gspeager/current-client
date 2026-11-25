@@ -213,15 +213,7 @@ func (s *ReadThroughService) OfChange(repoPath, sourceBranch, targetBranch, head
 
 func (s *ReadThroughService) FileDiff(info ReadThroughInfo, origPath, path string, force, ignoreWhitespace bool) (FileDiff, error) {
 	ctx := context.Background()
-	revs := []string{info.Base}
-	if info.Uncommitted {
-		if stat, err := os.Stat(filepath.Join(info.Path, filepath.FromSlash(path))); err == nil && !force && isLarge(stat.Size()) {
-			return FileDiff{TooLarge: true, SizeBytes: stat.Size()}, nil
-		}
-	} else {
-		revs = append(revs, info.Head)
-	}
-	if large, size := largestVersion(ctx, info.Path, path, force, revs...); large {
+	if large, size := info.isLarge(ctx, path, force); large {
 		return FileDiff{TooLarge: true, SizeBytes: size}, nil
 	}
 	fd, err := readthrough.FileDiff(ctx, info.Path, info.changes(), origPath, path, ignoreWhitespace)
@@ -232,12 +224,26 @@ func (s *ReadThroughService) FileDiff(info ReadThroughInfo, origPath, path strin
 }
 
 // SinceDiff is a file's diff from what was read of it.
-func (s *ReadThroughService) SinceDiff(info ReadThroughInfo, path string, ignoreWhitespace bool) (FileDiff, error) {
-	fd, err := readthrough.SinceDiff(context.Background(), info.Path, info.Key, info.changes(), path, ignoreWhitespace)
+func (s *ReadThroughService) SinceDiff(info ReadThroughInfo, path string, force, ignoreWhitespace bool) (FileDiff, error) {
+	ctx := context.Background()
+	if large, size := info.isLarge(ctx, path, force); large {
+		return FileDiff{TooLarge: true, SizeBytes: size}, nil
+	}
+	fd, err := readthrough.SinceDiff(ctx, info.Path, info.Key, info.changes(), path, ignoreWhitespace)
 	if err != nil {
 		return FileDiff{}, err
 	}
 	return toFileDiff(fd), nil
+}
+
+func (info ReadThroughInfo) isLarge(ctx context.Context, path string, force bool) (bool, int64) {
+	if !info.Uncommitted {
+		return largestVersion(ctx, info.Path, path, force, info.Base, info.Head)
+	}
+	if stat, err := os.Stat(filepath.Join(info.Path, filepath.FromSlash(path))); err == nil && !force && isLarge(stat.Size()) {
+		return true, stat.Size()
+	}
+	return largestVersion(ctx, info.Path, path, force, info.Base)
 }
 
 // Findings is what the risk report's rules find over the range.

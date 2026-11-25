@@ -476,8 +476,15 @@ function DiffViewer({
             canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
           }
           blocksByLine={blocksByLine}
-          commentLabel={notes ? 'Add note on' : undefined}
-          onCommentLine={canComment ? (line, oldLine) => setComposer({ line, oldLine }) : undefined}
+          lineComment={
+            canComment
+              ? {
+                  label: notes ? 'Add note on' : 'Comment on',
+                  removed: !notes?.newOnly,
+                  run: (line, oldLine) => setComposer({ line, oldLine }),
+                }
+              : undefined
+          }
           onLineMenu={
             newIssue
               ? (e, line, content) =>
