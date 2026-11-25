@@ -10,10 +10,11 @@ interface CompareModalProps {
   repoPath: string
   initialFromRef: string
   initialToRef: string
+  initialPath?: string
   onClose: () => void
 }
 
-function CompareModal({ repoPath, initialFromRef, initialToRef, onClose }: CompareModalProps) {
+function CompareModal({ repoPath, initialFromRef, initialToRef, initialPath, onClose }: CompareModalProps) {
   const [fromRef, setFromRef] = useState(initialFromRef)
   const [toRef, setToRef] = useState(initialToRef)
 
@@ -39,6 +40,7 @@ function CompareModal({ repoPath, initialFromRef, initialToRef, onClose }: Compa
         key={`${fromRef}…${toRef}`}
         files={files}
         error={error}
+        initialPath={initialPath}
         emptyHint="No differences between these refs."
         images={() => ({
           repoPath,

@@ -12,6 +12,7 @@ import {
   FileDiff,
   FolderGit2,
   Keyboard,
+  Map as MapIcon,
   Package,
   GitBranchPlus,
   GitPullRequest,
@@ -96,6 +97,7 @@ import ActivityView from './features/activity/ActivityView'
 import ChangelogView from './features/changelog/ChangelogView'
 import ChangesView from './features/working-copy/ChangesView'
 import HistoryView from './features/history/HistoryView'
+import ExploreView from './features/explore/ExploreView'
 import ReadThroughSheet from './features/read-through/ReadThroughSheet'
 import { openingOf, ReadThroughContext, type ReadThroughOpening } from './features/read-through/readThrough'
 import NotesDialogs from './features/notes/NotesDialogs'
@@ -128,6 +130,7 @@ export interface AppProps {
   hideUpdateCheck?: boolean
   // For a host app that has its own terminal, or doesn't want one.
   hideTerminal?: boolean
+  hideExplore?: boolean
   handle?: Ref<CurrentClientAppHandle>
 }
 
@@ -137,6 +140,7 @@ function App({
   onActiveRepoChange,
   hideUpdateCheck = false,
   hideTerminal = false,
+  hideExplore = false,
   handle,
 }: AppProps = {}) {
   const {
@@ -430,11 +434,14 @@ function App({
     ...(issuesOn ? (['issues'] as const) : []),
     'activity',
     'changelog',
+    ...(hideExplore ? [] : (['explore'] as const)),
   ]
   const viewShortcut = (tab: AppTab) => `mod+${viewTabs.indexOf(tab) + 1}`
   const laneSlots = useMemo(() => assignLaneSlots((localBranches ?? []).map((b) => b.name)), [localBranches])
   const activeTab =
-    (rememberedTab === 'changes' && !changesLabel) || (rememberedTab === 'issues' && !issuesOn)
+    (rememberedTab === 'changes' && !changesLabel) ||
+    (rememberedTab === 'issues' && !issuesOn) ||
+    (rememberedTab === 'explore' && hideExplore)
       ? 'working-copy'
       : rememberedTab
   const savedNavCollapsed = settings.settings?.navCollapsed ?? false
@@ -708,6 +715,19 @@ function App({
       keywords: ['stats', 'contributors', 'health'],
       run: () => changeTab('activity'),
     },
+    ...(hideExplore
+      ? []
+      : [
+          {
+            id: 'view-explore',
+            shortcut: viewShortcut('explore'),
+            label: 'Explore',
+            section: 'Views' as const,
+            icon: MapIcon,
+            keywords: ['code map', 'treemap', 'folders', 'files', 'structure', 'changes'],
+            run: () => changeTab('explore'),
+          },
+        ]),
     {
       id: 'view-releases',
       shortcut: viewShortcut('changelog'),
@@ -943,6 +963,7 @@ function App({
                       onChange={changeTab}
                       changesLabel={changesLabel}
                       issueCount={issuesOn ? (myIssues?.issues?.length ?? 0) : null}
+                      hideExplore={hideExplore}
                       offHost={offHost}
                       onOffHost={() => openSettings('Integrations')}
                       changedCount={changedCount}
@@ -1161,6 +1182,18 @@ function App({
                               onStandup={() => setStandupOpen(true)}
                             />
                           </KeepAlive>
+                          {!hideExplore && (
+                            <KeepAlive active={activeTab === 'explore'}>
+                              <ExploreView
+                                key={repo.repoPath}
+                                repoPath={repo.repoPath}
+                                currentBranch={currentBranch ?? null}
+                                repoVersion={repoVersion}
+                                workingVersion={readThroughVersion}
+                                onOpenWorkingFile={openWorkingFile}
+                              />
+                            </KeepAlive>
+                          )}
                           {issuesOn && (
                             <KeepAlive active={activeTab === 'issues'}>
                               <IssuesView

@@ -1,10 +1,10 @@
-import { ChartColumn, CircleDot, FileDiff, GitCommitVertical, GitPullRequest, Tag } from 'lucide-react'
+import { ChartColumn, CircleDot, FileDiff, GitCommitVertical, GitPullRequest, Map, Tag } from 'lucide-react'
 import Tab from '../../components/controls/Tab'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { plural } from '../../lib/plural'
 import './TabBar.scss'
 
-export type AppTab = 'working-copy' | 'history' | 'activity' | 'changelog' | 'changes' | 'issues'
+export type AppTab = 'working-copy' | 'history' | 'activity' | 'changelog' | 'changes' | 'issues' | 'explore'
 
 interface TabBarProps {
   active: AppTab
@@ -21,6 +21,7 @@ interface TabBarProps {
   // its tabs show dimmed and open its settings, so the features can be found.
   offHost?: { hostname: string; changesLabel: string } | null
   onOffHost?: () => void
+  hideExplore?: boolean
 }
 
 // Core views first, the host's next, reports last.
@@ -33,6 +34,7 @@ function TabBar({
   issueCount = null,
   offHost = null,
   onOffHost,
+  hideExplore = false,
 }: TabBarProps) {
   const rovingTabs = useRovingRows('.tab', { horizontal: true })
   const hostTabs = (changesLabel ? 1 : 0) + (issueCount === null ? 0 : 1)
@@ -104,6 +106,12 @@ function TabBar({
         <Tag size={14} strokeWidth={1.75} aria-hidden="true" />
         Releases
       </Tab>
+      {!hideExplore && (
+        <Tab active={active === 'explore'} onClick={() => onChange('explore')} shortcut={`mod+${5 + hostTabs}`}>
+          <Map size={14} strokeWidth={1.75} aria-hidden="true" />
+          Explore
+        </Tab>
+      )}
     </nav>
   )
 }

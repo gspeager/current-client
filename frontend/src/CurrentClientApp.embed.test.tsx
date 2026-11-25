@@ -81,8 +81,15 @@ describe('CurrentClientApp embedding', () => {
     const workingCopy = await screen.findByRole('button', { name: /^Changes/ })
 
     const views = [...document.querySelectorAll('.tab-bar button')].map((b) => b.textContent)
-    expect(views).toEqual([expect.stringMatching(/^Changes/), 'History', 'Activity', 'Releases'])
+    expect(views).toEqual([expect.stringMatching(/^Changes/), 'History', 'Activity', 'Releases', 'Explore'])
     expect(workingCopy).toHaveClass('tab-active')
+  })
+
+  it('leaves Explore out when the host app hides it', async () => {
+    stubStartup(['/repos/app'], '/repos/app')
+    render(<CurrentClientApp hideExplore />)
+    await screen.findByRole('button', { name: /^Changes/ })
+    expect(screen.queryByRole('button', { name: 'Explore' })).toBeNull()
   })
 
   it('does not reload a tab that is visited again with no new commits', async () => {

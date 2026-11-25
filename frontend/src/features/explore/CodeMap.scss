@@ -1,0 +1,34 @@
+.code-map {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+
+  // The ring is the tile's, over the one everything that takes focus has.
+  &[tabindex][role]:focus-visible {
+    outline: none;
+  }
+
+  &:focus-visible .code-map-tile {
+    // Outside a line in the ground's color, since the accent is close to blue tiles.
+    box-shadow:
+      0 0 0 2px var(--surface-lowest),
+      0 0 0 4px var(--primary);
+  }
+}
+
+.code-map-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.code-map-tile {
+  position: absolute;
+  box-shadow:
+    0 0 0 1px var(--surface-lowest),
+    0 0 0 3px var(--on-surface);
+  pointer-events: none;
+}

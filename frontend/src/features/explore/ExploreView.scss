@@ -1,0 +1,166 @@
+@use '../../styles/patterns';
+
+.explore-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 0;
+}
+
+.explore-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+}
+
+.explore-select {
+  height: var(--h-chip);
+  max-width: 240px;
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.explore-shown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-left: auto;
+}
+
+.explore-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+}
+
+.explore-crumb {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  cursor: pointer;
+
+  &:not(:first-child)::before {
+    content: '/';
+    padding: 0 var(--space-xs);
+    color: var(--outline);
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    color: var(--on-surface);
+    cursor: default;
+  }
+}
+
+.explore-total,
+.explore-note {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.explore-release {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+
+  input {
+    width: 180px;
+    accent-color: var(--on-surface-variant);
+  }
+}
+
+.explore-release-name {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.explore-message {
+  flex: 1;
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.explore-error {
+  color: var(--error);
+}
+
+.explore-facts {
+  min-height: 16px;
+  @include patterns.truncate;
+}
+
+.explore-fact {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.explore-hint {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.explore-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+}
+
+.explore-legend-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  margin-left: auto;
+}
+
+.explore-key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.explore-swatch,
+.explore-step {
+  width: 10px;
+  height: 10px;
+}
+
+@for $slot from 1 through 8 {
+  .explore-swatch-#{$slot} {
+    background: var(--folder-#{$slot}-2);
+  }
+}
+
+.explore-swatch-other {
+  background: var(--folder-other-2);
+}
+
+@for $step from 1 through 4 {
+  .explore-step-#{$step} {
+    background: var(--folder-other-#{$step});
+  }
+}
+
+.explore-letter {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.explore-letter-conflict {
+  color: var(--warning);
+}
