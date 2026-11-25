@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"io/fs"
 	"net/url"
@@ -76,6 +77,20 @@ func editorError(err error, editorPath string) error {
 // appVersion is set by the Taskfiles with -ldflags "-X github.com/gspeager/current-client/app.appVersion=<version>";
 // a plain go build leaves it as "dev".
 var appVersion = "dev"
+
+// SaveImage writes a picture the frontend drew to where the user picks, as "png" or
+// "svg". Bindings carry bytes as base64.
+func (s *PlatformService) SaveImage(imageBase64, filename, kind string) (bool, error) {
+	image, err := base64.StdEncoding.DecodeString(imageBase64)
+	if err != nil {
+		return false, err
+	}
+	name := "PNG image"
+	if kind == "svg" {
+		name = "SVG image"
+	}
+	return saveFile("Save as image", filename, name, "*."+kind, image)
+}
 
 func (s *PlatformService) AppVersion() string {
 	return appVersion

@@ -8,11 +8,15 @@ import {
   FileDiff,
   HistoryService,
   MapChangesInfo,
+  PlatformService,
   TagService,
   type MapChangeInfo,
 } from '@current-client-bindings/app'
 import { ReadThroughContext } from '../read-through/readThrough'
+import { decodeBase64 } from '../../lib/base64'
 import ExploreView from './ExploreView'
+
+vi.mock('../../lib/pictureFonts', () => ({ PICTURE_FONTS: [] }))
 
 const file = (path: string, lines: number, over = {}) => ({ path, lines, binary: false, kind: '', ...over })
 
@@ -268,5 +272,49 @@ describe('changes', () => {
     press('Enter', { shiftKey: true })
     await userEvent.click(screen.getByRole('button', { name: 'Changes' }))
     expect(await screen.findByText('1 file · 4 lines changed')).toBeInTheDocument()
+  })
+})
+
+describe('saving', () => {
+  const save = async () => {
+    vi.mocked(PlatformService.SaveImage).mockResolvedValue(true)
+    await userEvent.click(screen.getByRole('button', { name: 'Save as image' }))
+    await userEvent.click(screen.getByRole('button', { name: 'SVG' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Save…' }))
+    const [data, filename] = vi.mocked(PlatformService.SaveImage).mock.lastCall!
+    return { svg: new TextDecoder().decode(decodeBase64(data)), filename }
+  }
+
+  it('saves the map on screen, saying what colors it', async () => {
+    view()
+    await map()
+    const { svg, filename } = await save()
+    expect(filename).toMatch(/^repo-code-map-.*\.svg$/)
+    expect(svg).toContain('>repo</text>')
+    expect(svg).toContain('>Code map, commits in 90 days</text>')
+    expect(svg).toContain('>a.ts</text>')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('names the comparison', async () => {
+    vi.mocked(ExploreService.Changes).mockResolvedValue(
+      new MapChangesInfo({ predicted: true, target: 'main', files: [change('src/a.ts', 'M')] }),
+    )
+    view()
+    await map()
+    await userEvent.click(screen.getByRole('button', { name: 'Changes' }))
+    await screen.findByText('Modified')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save as image' })).toBeEnabled())
+    const { svg, filename } = await save()
+    expect(filename).toMatch(/^repo-changes-/)
+    expect(svg).toContain('>Changes, uncommitted</text>')
+    expect(svg).toContain('>Predicted to conflict</text>')
+  })
+
+  it('has nothing to save without a map', async () => {
+    vi.mocked(ExploreService.Files).mockResolvedValue([])
+    view()
+    await waitFor(() => expect(ExploreService.Files).toHaveBeenCalled())
+    expect(screen.getByRole('button', { name: 'Save as image' })).toBeDisabled()
   })
 })

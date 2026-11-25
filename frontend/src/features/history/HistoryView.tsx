@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type MouseEvent, type KeyboardEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { BranchService, HistoryService, type CommitInfo } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
@@ -10,11 +10,15 @@ import HistoryToolbar from './HistoryToolbar'
 import { buildAsciiGraph } from './asciiGraph'
 import { ancestorShas } from './commitAncestry'
 import { identityKey } from './identityKey'
+import { baseName } from '../../lib/paths'
+import { colorsAt } from '../../lib/picture'
 import { plural } from '../../lib/plural'
+import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
-import { assignLaneColors } from './laneOwners'
+import { assignLaneColors, withoutRemote } from './laneOwners'
+import SaveGraphDialog from './SaveGraphDialog'
 import { useLaneColors } from '../../lib/laneColor'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { useResizableWidth } from '../../lib/useResizableWidth'
@@ -139,6 +143,9 @@ function HistoryView({
   // A file opened from the inspector; it only counts for the commit it was opened from.
   const [openedFile, setOpenedFile] = useState<{ sha: string; path: string } | null>(null)
   const { copied: graphCopied, copy } = useCopyToClipboard()
+  const [saving, setSaving] = useState<Omit<ComponentProps<typeof SaveGraphDialog>, 'repoName' | 'onClose'> | null>(
+    null,
+  )
   const [newShas, setNewShas] = useState<Set<string>>(new Set())
   const hasComputedNewShas = useRef(false)
   const parentRef = useRef<HTMLDivElement>(null)
@@ -343,6 +350,54 @@ function HistoryView({
     )
   }
 
+  const saveImage = () => {
+    const scroller = parentRef.current
+    if (!scroller) return
+    const color = colorsAt(scroller)
+    const first = Math.floor(scroller.scrollTop / rowHeight)
+    const last = Math.ceil((scroller.scrollTop + scroller.clientHeight) / rowHeight)
+    const total = rows.length + offset
+    setSaving({
+      rows: [
+        ...(workingRow
+          ? [{ text: plural(changedFiles, 'uncommitted file'), node: workingRow, colors: laneColors[0] }]
+          : []),
+        ...rows.map(({ commit, graphNode, index }) => ({
+          commit,
+          node: graphNode,
+          colors: rowLaneColors[index],
+          head: commit.sha === head?.sha,
+          dimmed: isDimmed(commit),
+          refs: refsBySha.get(commit.sha),
+          identity: identities.get(identityKey(commit.authorName, commit.authorEmail)),
+          time: relativeTime(new Date(commit.date)),
+        })),
+      ],
+      shown: [Math.min(first, total - 1), Math.min(last, total)],
+      about: [
+        filter.ref === ALL_BRANCHES ? 'all branches' : filter.ref || currentBranch || 'HEAD',
+        filter.firstParent && 'first parent only',
+        query && `matching “${search.trim()}”`,
+      ]
+        .filter(Boolean)
+        .join(', '),
+      options: {
+        width: scroller.clientWidth,
+        rowHeight,
+        laneCount,
+        upstreams,
+        laneColor,
+        refColor: (ref) => branchColor(withoutRemote(ref), ref.kind === 'branch' && ref.name === currentBranch),
+        color,
+      },
+      colors: {
+        ground: color('var(--surface)'),
+        name: color('var(--on-surface)'),
+        muted: color('var(--on-surface-variant)'),
+      },
+    })
+  }
+
   const commitContextMenu = (commit: CommitInfo) => (e: MouseEvent | KeyboardEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -387,6 +442,7 @@ function HistoryView({
               onFilterChange={changeFilter}
               showTypeFilter={conventional}
               onCopyAsciiGraph={copyAsciiGraph}
+              onSaveImage={rows.length > 0 ? saveImage : undefined}
               copied={graphCopied}
             />
 
@@ -515,6 +571,7 @@ function HistoryView({
       )}
 
       {commitActions.overlays}
+      {saving && <SaveGraphDialog repoName={baseName(repoPath)} {...saving} onClose={() => setSaving(null)} />}
       {contextMenu && <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />}
     </div>
   )

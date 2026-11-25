@@ -1,6 +1,6 @@
 import { arrowIntoList } from '../../lib/useRovingRows'
 import { useState } from 'react'
-import { Check, Copy, Search, SlidersHorizontal } from 'lucide-react'
+import { Check, Copy, ImageDown, Search, SlidersHorizontal } from 'lucide-react'
 import type { HistoryFilterInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
 import { BREAKING_FILTER, COMMIT_TYPES } from '../../lib/conventionalCommit'
@@ -19,6 +19,8 @@ interface HistoryToolbarProps {
   onFilterChange: (filter: HistoryFilterInfo) => void
   showTypeFilter: boolean
   onCopyAsciiGraph: () => void
+  // Not given while there's nothing to save.
+  onSaveImage?: () => void
   copied: boolean
 }
 
@@ -34,6 +36,7 @@ function HistoryToolbar({
   onFilterChange,
   showTypeFilter,
   onCopyAsciiGraph,
+  onSaveImage,
   copied,
 }: HistoryToolbarProps) {
   const [sinceDays, setSinceDays] = useState(0)
@@ -147,6 +150,16 @@ function HistoryToolbar({
         title="Copy as ASCII graph"
       >
         {copied ? <Check size={14} strokeWidth={1.75} /> : <Copy size={14} strokeWidth={1.5} />}
+      </button>
+      <button
+        type="button"
+        className="history-toolbar-copy-graph"
+        disabled={!onSaveImage}
+        onClick={onSaveImage}
+        aria-label="Save as image"
+        title="Save as image"
+      >
+        <ImageDown size={14} strokeWidth={1.5} />
       </button>
     </div>
   )

@@ -58,6 +58,18 @@ function renderHistory(props: Partial<Parameters<typeof HistoryView>[0]> = {}) {
 beforeEach(() => giveElementsLayout())
 
 describe('HistoryView', () => {
+  it('saves the graph as an image, once there is one', async () => {
+    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+    vi.mocked(HistoryService.ComputeGraphLayout).mockResolvedValue([])
+    renderHistory()
+    expect(screen.getByRole('button', { name: 'Save as image' })).toBeDisabled()
+    await screen.findByRole('row', { name: /Initial commit/ })
+    await userEvent.click(screen.getByRole('button', { name: 'Save as image' }))
+    const dialog = screen.getByRole('dialog', { name: 'Save as image' })
+    await userEvent.selectOptions(within(dialog).getByRole('combobox'), 'From the top')
+    expect(within(dialog).getByRole('spinbutton', { name: 'How many, up to 2' })).toHaveValue(2)
+  })
+
   it('opens the inspector for a clicked commit and reports the selection', async () => {
     vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
     const onSelectedShaChange = vi.fn()

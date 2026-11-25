@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
-import { canvasPainter, drawMap, readMapColors } from './drawMap'
+import { canvasPainter } from '../../lib/picture'
+import { drawMap, readMapColors } from './drawMap'
 import { folderOf } from './folderAreas'
 import { headerAt, layoutMap, neighbor, tileAt, type Direction, type MapItem, type MapLayout } from './mapLayout'
 import './CodeMap.scss'
@@ -24,6 +25,7 @@ interface CodeMapProps {
   onRoot: (folder: string) => void
   // The tile pointed at or focused.
   onActive: (item: MapItem | null) => void
+  onLayout: (layout: MapLayout) => void
 }
 
 // The folder one step into the map that holds the file, or null when it's directly
@@ -35,7 +37,7 @@ export function stepInto(layout: MapLayout, root: string, path: string): string 
 
 // Tens of thousands of tiles, so they're drawn on a canvas, with one element over
 // it for the tile that's pointed at or focused.
-function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActive }: CodeMapProps) {
+function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActive, onLayout }: CodeMapProps) {
   const box = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const { element: themed } = useCurrentClientRoot()
@@ -63,7 +65,15 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
   // The place is kept while focus is elsewhere, such as in what was opened from it.
   const tile = focused || pointed ? layout.tiles[index] : undefined
 
-  useEffect(() => onActive(tile?.item ?? null), [tile?.item]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The handlers are new each time the view draws, and only these changing matters.
+  /* eslint-disable react-hooks/exhaustive-deps */
+  useEffect(() => {
+    onLayout(layout)
+  }, [layout])
+  useEffect(() => {
+    onActive(tile?.item ?? null)
+  }, [tile?.item])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useLayoutEffect(() => {
     const draw = () => {
@@ -74,7 +84,7 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
       el.width = Math.round(layout.width * ratio)
       el.height = Math.round(layout.height * ratio)
       context.scale(ratio, ratio)
-      drawMap(canvasPainter(context, getComputedStyle(el).getPropertyValue('--font-mono')), layout, readMapColors(el))
+      drawMap(canvasPainter(context), layout, readMapColors(el))
     }
     draw()
     const observer = new MutationObserver(draw)

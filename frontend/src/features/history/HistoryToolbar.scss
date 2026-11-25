@@ -151,7 +151,12 @@
   color: var(--outline);
   cursor: pointer;
 
-  &:hover {
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:hover:not(:disabled) {
     background: var(--surface-container);
     color: var(--on-surface);
   }
