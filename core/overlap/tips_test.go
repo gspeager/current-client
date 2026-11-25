@@ -26,12 +26,12 @@ func TestPredictTipsChecksFetchedHeadsAndRemembersThem(t *testing.T) {
 	gittest.Run(t, dir, "branch", "-q", "-D", "conflicting", "clean")
 
 	merges := 0
-	previous := mergeMany
-	mergeMany = func(ctx context.Context, repoPath, ours string, theirs []string) ([][]string, error) {
+	previous := mergeBatch
+	mergeBatch = func(ctx context.Context, repoPath string, pairs [][2]string) ([][]string, error) {
 		merges++
-		return previous(ctx, repoPath, ours, theirs)
+		return previous(ctx, repoPath, pairs)
 	}
-	t.Cleanup(func() { mergeMany = previous })
+	t.Cleanup(func() { mergeBatch = previous })
 
 	got, err := PredictTips(context.Background(), dir, []string{conflicting, clean})
 	if err != nil {

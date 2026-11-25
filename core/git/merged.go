@@ -21,16 +21,34 @@ type MergedReport struct {
 	Branches []MergedBranch
 }
 
+// DefaultBase is the default branch, and what merged is judged against: its
+// upstream when it has one. Both are "" when there's no default branch.
+func DefaultBase(ctx context.Context, repoPath string) (def, base string, err error) {
+	list, err := listBranches(ctx, repoPath)
+	if err != nil {
+		return "", "", err
+	}
+	def, base = list.defaultBase(ctx, repoPath)
+	return def, base, nil
+}
+
+func (list branchList) defaultBase(ctx context.Context, repoPath string) (def, base string) {
+	if def = defaultBranch(list.branches, originHead(ctx, repoPath)); def == "" {
+		return "", ""
+	}
+	return def, list.base(def)
+}
+
 func MergedBranches(ctx context.Context, repoPath string) (MergedReport, error) {
 	list, err := listBranches(ctx, repoPath)
 	if err != nil {
 		return MergedReport{}, err
 	}
-	def := defaultBranch(list.branches, originHead(ctx, repoPath))
+	def, base := list.defaultBase(ctx, repoPath)
 	if def == "" {
 		return MergedReport{}, nil
 	}
-	report := MergedReport{Base: list.base(def)}
+	report := MergedReport{Base: base}
 	pastUpstream := func(b Branch) bool { return b.Ahead > 0 && list.upstream(b) != "" }
 	var candidates []Branch
 	var tips []string

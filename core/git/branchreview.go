@@ -32,8 +32,8 @@ func ReviewBranches(ctx context.Context, repoPath string) (BranchReview, error) 
 	if err != nil {
 		return BranchReview{}, err
 	}
-	review := BranchReview{Default: defaultBranch(list.branches, originHead(ctx, repoPath))}
-	review.Base = list.base(review.Default)
+	review := BranchReview{}
+	review.Default, review.Base = list.defaultBase(ctx, repoPath)
 	for _, b := range list.branches {
 		review.Rows = append(review.Rows, BranchReviewRow{Branch: b})
 	}

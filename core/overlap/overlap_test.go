@@ -66,10 +66,10 @@ func TestPredictEmptyRepository(t *testing.T) {
 
 // Git 2.38 and 2.39 have merge-tree --write-tree but not --stdin.
 func TestPredictFallsBackToOneMergeAtATime(t *testing.T) {
-	mergeMany = func(context.Context, string, string, []string) ([][]string, error) {
+	mergeBatch = func(context.Context, string, [][2]string) ([][]string, error) {
 		return nil, git.ErrMergeTreeStdinUnsupported
 	}
-	t.Cleanup(func() { mergeMany = git.MergeConflictsMany })
+	t.Cleanup(func() { mergeBatch = git.MergeConflictsBatch })
 
 	dir := gittest.InitRepo(t)
 	gittest.CommitFile(t, dir, "shared.txt", "base\n", "base")
@@ -91,17 +91,17 @@ func TestPredictFallsBackToOneMergeAtATime(t *testing.T) {
 // refuses to merge; it mustn't hide the other branches' conflicts.
 func TestPredictWithABranchOfUnrelatedHistory(t *testing.T) {
 	for _, tt := range []struct {
-		name      string
-		mergeMany func(context.Context, string, string, []string) ([][]string, error)
+		name       string
+		mergeBatch func(context.Context, string, [][2]string) ([][]string, error)
 	}{
-		{"in one batch", git.MergeConflictsMany},
-		{"one at a time", func(context.Context, string, string, []string) ([][]string, error) {
+		{"in one batch", git.MergeConflictsBatch},
+		{"one at a time", func(context.Context, string, [][2]string) ([][]string, error) {
 			return nil, git.ErrMergeTreeStdinUnsupported
 		}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			mergeMany = tt.mergeMany
-			t.Cleanup(func() { mergeMany = git.MergeConflictsMany })
+			mergeBatch = tt.mergeBatch
+			t.Cleanup(func() { mergeBatch = git.MergeConflictsBatch })
 
 			dir := gittest.InitRepo(t)
 			gittest.CommitFile(t, dir, "shared.txt", "base\n", "base")

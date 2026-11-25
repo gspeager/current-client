@@ -89,6 +89,13 @@ func MergeConflictsMany(ctx context.Context, repoPath, ours string, theirs []str
 	for i, tip := range theirs {
 		pairs[i] = [2]string{ours, tip}
 	}
+	return MergeConflictsBatch(ctx, repoPath, pairs)
+}
+
+// MergeConflictsBatch is MergeConflictsPairs in one process or not at all: it
+// returns ErrMergeTreeStdinUnsupported on Git before 2.40, and
+// ErrUnrelatedHistories when a pair shares no history.
+func MergeConflictsBatch(ctx context.Context, repoPath string, pairs [][2]string) ([][]string, error) {
 	env, discard := ScratchObjects(ctx, repoPath)
 	defer discard()
 	merges, err := mergeTreeBatch(ctx, repoPath, env, pairs)
