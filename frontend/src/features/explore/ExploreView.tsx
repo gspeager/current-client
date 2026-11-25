@@ -20,6 +20,8 @@ import CompareModal from '../history/CompareModal'
 import { useFileTools } from '../history/useFileTools'
 import { useOpenReadThrough } from '../read-through/readThrough'
 import CodeMap from './CodeMap'
+import ComparisonSelect from './ComparisonSelect'
+import StructureView from './StructureView'
 import { folderAreas, slotFinder, type FolderArea } from './folderAreas'
 import { readMapColors, type MapColors } from './drawMap'
 import { inFolder, type MapItem, type MapLayout } from './mapLayout'
@@ -57,9 +59,9 @@ interface ExploreViewProps {
 }
 
 // Explore's modes share what's being compared and the folder that fills the view.
-// The Code map is its one mode so far.
 function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onOpenWorkingFile }: ExploreViewProps) {
-  const [view, setView] = useState<'code' | 'changes'>('code')
+  const [view, setView] = useState<'code' | 'changes' | 'structure'>('code')
+  const [structureCompared, setStructureCompared] = useState(false)
   const [folder, setFolder] = useState('')
   const [comparison, setComparison] = useState<ExploreComparison>({ kind: 'working', ref: '' })
   const [coloring, setColoring] = useState<'commits' | 'age'>('commits')
@@ -170,12 +172,16 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     return `${lines}, ${commits}, ${last}`
   }
 
+  const openCompared = (path: string) => {
+    if (comparison.kind === 'working') onOpenWorkingFile(path)
+    else if (comparison.kind === 'branch') {
+      readThrough({ ref: `refs/heads/${comparison.ref}`, uncommitted: false, at: { path, line: 0 } })
+    } else setComparing(path)
+  }
+
   const open = (item: MapItem) => {
     if (view === 'code') tools.openHistory(item.path)
-    else if (comparison.kind === 'working') onOpenWorkingFile(item.path)
-    else if (comparison.kind === 'branch') {
-      readThrough({ ref: `refs/heads/${comparison.ref}`, uncommitted: false, at: { path: item.path, line: 0 } })
-    } else setComparing(item.path)
+    else openCompared(item.path)
   }
 
   const save = () => {
@@ -206,7 +212,6 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
   const loading = view === 'code' ? (atRelease ? !then : !now) : !changes
   const crumbs = root === '' ? [] : root.split('/').map((_, i, names) => names.slice(0, i + 1).join('/'))
   const total = within.reduce((sum, item) => sum + item.size, 0)
-  const picked = comparison.kind === 'working' ? 'working' : `${comparison.kind}:${comparison.ref}`
 
   return (
     <div className="explore-view" ref={box}>
@@ -218,6 +223,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
           options={[
             { value: 'code', label: 'Code' },
             { value: 'changes', label: 'Changes' },
+            { value: 'structure', label: 'Structure' },
           ]}
         />
         {view === 'code' ? (
@@ -246,144 +252,150 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
             )}
           </>
         ) : (
-          <select
-            className="explore-select"
-            aria-label="Compare"
-            value={picked}
-            onChange={(e) => {
-              const [kind, ...ref] = e.target.value.split(':')
-              setComparison({ kind, ref: ref.join(':') })
+          <ComparisonSelect
+            value={view === 'structure' && !structureCompared ? null : comparison}
+            none={view === 'structure' ? 'Not compared' : undefined}
+            branches={branches ?? []}
+            releases={[...releases].reverse()}
+            currentBranch={currentBranch}
+            onChange={(next) => {
+              setStructureCompared(!!next)
+              if (next) setComparison(next)
             }}
-          >
-            <option value="working">Uncommitted changes</option>
-            <optgroup label="A branch and its base">
-              {(branches ?? []).map(({ name }) => (
-                <option key={name} value={`branch:${name}`}>
-                  {name === currentBranch ? `${name} (current)` : name}
-                </option>
-              ))}
-            </optgroup>
-            {releases.length > 0 && (
-              <optgroup label="Since a release">
-                {[...releases].reverse().map(({ name }) => (
-                  <option key={name} value={`release:${name}`}>
-                    {name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+          />
         )}
-        <div className="explore-shown" role="group" aria-label="Show">
-          <Checkbox checked={shown.test} onChange={(test) => setShown({ ...shown, test })} label="Tests" />
-          <Checkbox
-            checked={shown.generated}
-            onChange={(generated) => setShown({ ...shown, generated })}
-            label="Generated"
-          />
-          <Checkbox
-            checked={shown.lockfile}
-            onChange={(lockfile) => setShown({ ...shown, lockfile })}
-            label="Lockfiles"
-          />
-          <Checkbox checked={shown.binary} onChange={(binary) => setShown({ ...shown, binary })} label="Binary" />
-        </div>
-        <button
-          type="button"
-          className="explore-save"
-          disabled={!!failure || loading || items.length === 0}
-          onClick={save}
-          aria-label="Save as image"
-          title="Save as image"
-        >
-          <ImageDown size={14} strokeWidth={1.75} />
-        </button>
-      </div>
-      <div className="explore-toolbar">
-        <nav className="explore-path" aria-label="Folder">
-          <button type="button" className="explore-crumb" disabled={root === ''} onClick={() => setFolder('')}>
-            All
-          </button>
-          {crumbs.map((path) => (
+        {view !== 'structure' && (
+          <>
+            <div className="explore-shown" role="group" aria-label="Show">
+              <Checkbox checked={shown.test} onChange={(test) => setShown({ ...shown, test })} label="Tests" />
+              <Checkbox
+                checked={shown.generated}
+                onChange={(generated) => setShown({ ...shown, generated })}
+                label="Generated"
+              />
+              <Checkbox
+                checked={shown.lockfile}
+                onChange={(lockfile) => setShown({ ...shown, lockfile })}
+                label="Lockfiles"
+              />
+              <Checkbox checked={shown.binary} onChange={(binary) => setShown({ ...shown, binary })} label="Binary" />
+            </div>
             <button
-              key={path}
               type="button"
-              className="explore-crumb"
-              disabled={path === root}
-              onClick={() => setFolder(path)}
+              className="explore-save"
+              disabled={!!failure || loading || items.length === 0}
+              onClick={save}
+              aria-label="Save as image"
+              title="Save as image"
             >
-              {path.slice(path.lastIndexOf('/') + 1)}
+              <ImageDown size={14} strokeWidth={1.75} />
             </button>
-          ))}
-        </nav>
-        <span className="explore-total">
-          {within.length.toLocaleString()} {within.length === 1 ? 'file' : 'files'} · {total.toLocaleString()}{' '}
-          {view === 'code' ? 'lines' : 'lines changed'}
-        </span>
-        {view === 'code' && releases.length > 0 && (
-          <label className="explore-release">
-            <span className="explore-release-name">{release?.name ?? 'Now'}</span>
-            <input
-              type="range"
-              min={0}
-              max={releases.length}
-              value={position ?? releases.length}
-              aria-label="Release"
-              aria-valuetext={release?.name ?? 'Now'}
-              onChange={(e) => setPosition(Number(e.target.value) >= releases.length ? null : Number(e.target.value))}
-            />
-          </label>
-        )}
-        {view === 'changes' && changes?.target && <span className="explore-note">against {changes.target}</span>}
-        {view === 'changes' && comparison.kind === 'branch' && changes && !changes.predicted && (
-          <span className="explore-note">Conflicts need Git 2.38 or newer</span>
-        )}
-        {view === 'changes' && (changes?.skipped ?? 0) > 0 && (
-          <span className="explore-note">{plural(changes!.skipped, 'large untracked file')} left out</span>
+          </>
         )}
       </div>
-      {failure ? (
-        <p className="explore-message explore-error">{failure}</p>
-      ) : loading ? (
-        <p className="explore-message">Reading files…</p>
-      ) : items.length === 0 ? (
-        <p className="explore-message">
-          {view === 'code'
-            ? 'No files to show.'
-            : comparison.kind === 'branch' && !changes?.target
-              ? 'This repository has no default branch to compare with.'
-              : 'Nothing has changed.'}
-        </p>
-      ) : (
-        <CodeMap
-          items={items}
-          root={root}
-          label={view === 'code' ? 'Code map' : 'Map of the changes'}
-          describe={describe}
-          onOpen={open}
-          onMenu={(e, item) =>
-            tools.openMenu(e, tools.pathItems(item.path, item.status !== 'A' && item.status !== 'D'))
-          }
-          onRoot={setFolder}
-          onActive={setActive}
-          onLayout={(next) => (layout.current = next)}
+      {view === 'structure' ? (
+        <StructureView
+          repoPath={repoPath}
+          folder={folder}
+          onFolder={setFolder}
+          comparison={structureCompared ? comparison : null}
+          version={workingVersion}
+          commitsOf={(path) => activity?.files[path]?.commits?.[PERIODS.length - 1]}
+          onHistory={tools.openHistory}
+          onBlame={tools.openBlame}
+          onDiff={openCompared}
         />
+      ) : (
+        <>
+          <div className="explore-toolbar">
+            <nav className="explore-path" aria-label="Folder">
+              <button type="button" className="explore-crumb" disabled={root === ''} onClick={() => setFolder('')}>
+                All
+              </button>
+              {crumbs.map((path) => (
+                <button
+                  key={path}
+                  type="button"
+                  className="explore-crumb"
+                  disabled={path === root}
+                  onClick={() => setFolder(path)}
+                >
+                  {path.slice(path.lastIndexOf('/') + 1)}
+                </button>
+              ))}
+            </nav>
+            <span className="explore-total">
+              {within.length.toLocaleString()} {within.length === 1 ? 'file' : 'files'} · {total.toLocaleString()}{' '}
+              {view === 'code' ? 'lines' : 'lines changed'}
+            </span>
+            {view === 'code' && releases.length > 0 && (
+              <label className="explore-release">
+                <span className="explore-release-name">{release?.name ?? 'Now'}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={releases.length}
+                  value={position ?? releases.length}
+                  aria-label="Release"
+                  aria-valuetext={release?.name ?? 'Now'}
+                  onChange={(e) =>
+                    setPosition(Number(e.target.value) >= releases.length ? null : Number(e.target.value))
+                  }
+                />
+              </label>
+            )}
+            {view === 'changes' && changes?.target && <span className="explore-note">against {changes.target}</span>}
+            {view === 'changes' && comparison.kind === 'branch' && changes && !changes.predicted && (
+              <span className="explore-note">Conflicts need Git 2.38 or newer</span>
+            )}
+            {view === 'changes' && (changes?.skipped ?? 0) > 0 && (
+              <span className="explore-note">{plural(changes!.skipped, 'large untracked file')} left out</span>
+            )}
+          </div>
+          {failure ? (
+            <p className="explore-message explore-error">{failure}</p>
+          ) : loading ? (
+            <p className="explore-message">Reading files…</p>
+          ) : items.length === 0 ? (
+            <p className="explore-message">
+              {view === 'code'
+                ? 'No files to show.'
+                : comparison.kind === 'branch' && !changes?.target
+                  ? 'This repository has no default branch to compare with.'
+                  : 'Nothing has changed.'}
+            </p>
+          ) : (
+            <CodeMap
+              items={items}
+              root={root}
+              label={view === 'code' ? 'Code map' : 'Map of the changes'}
+              describe={describe}
+              onOpen={open}
+              onMenu={(e, item) =>
+                tools.openMenu(e, tools.pathItems(item.path, item.status !== 'A' && item.status !== 'D'))
+              }
+              onRoot={setFolder}
+              onActive={setActive}
+              onLayout={(next) => (layout.current = next)}
+            />
+          )}
+          <div className="explore-facts">
+            {active ? (
+              <span className="explore-fact">{describe(active)}</span>
+            ) : (
+              <span className="explore-hint">
+                {activityError ??
+                  (view === 'code' && atRelease
+                    ? 'Brightness is off at a release.'
+                    : view === 'code' && activity?.limit
+                      ? `Commits are counted over the last ${activity.limit.toLocaleString()}.`
+                      : 'A tile is a file. A folder’s name opens it.')}
+              </span>
+            )}
+          </div>
+          <Legend areas={areas} steps={legend} changes={view === 'changes'} />
+        </>
       )}
-      <div className="explore-facts">
-        {active ? (
-          <span className="explore-fact">{describe(active)}</span>
-        ) : (
-          <span className="explore-hint">
-            {activityError ??
-              (view === 'code' && atRelease
-                ? 'Brightness is off at a release.'
-                : view === 'code' && activity?.limit
-                  ? `Commits are counted over the last ${activity.limit.toLocaleString()}.`
-                  : 'A tile is a file. A folder’s name opens it.')}
-          </span>
-        )}
-      </div>
-      <Legend areas={areas} steps={legend} changes={view === 'changes'} />
       {tools.overlays}
       {saving && (
         <SaveImageDialog

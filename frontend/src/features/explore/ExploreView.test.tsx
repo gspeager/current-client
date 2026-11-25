@@ -9,11 +9,13 @@ import {
   HistoryService,
   MapChangesInfo,
   PlatformService,
+  StructureInfo,
   TagService,
   type MapChangeInfo,
 } from '@current-client-bindings/app'
 import { ReadThroughContext } from '../read-through/readThrough'
 import { decodeBase64 } from '../../lib/base64'
+import { DialogProvider } from '../../components/chrome/DialogProvider'
 import ExploreView from './ExploreView'
 
 vi.mock('../../lib/pictureFonts', () => ({ PICTURE_FONTS: [] }))
@@ -46,15 +48,17 @@ const openWorkingFile = vi.fn()
 
 const view = () =>
   render(
-    <ReadThroughContext.Provider value={readThrough}>
-      <ExploreView
-        repoPath="/repo"
-        currentBranch="feat"
-        repoVersion={0}
-        workingVersion={0}
-        onOpenWorkingFile={openWorkingFile}
-      />
-    </ReadThroughContext.Provider>,
+    <DialogProvider>
+      <ReadThroughContext.Provider value={readThrough}>
+        <ExploreView
+          repoPath="/repo"
+          currentBranch="feat"
+          repoVersion={0}
+          workingVersion={0}
+          onOpenWorkingFile={openWorkingFile}
+        />
+      </ReadThroughContext.Provider>
+    </DialogProvider>,
   )
 
 beforeEach(() => {
@@ -249,7 +253,7 @@ describe('changes', () => {
       within(compare())
         .getAllByRole('option')
         .map((o) => o.textContent),
-    ).toEqual(['Uncommitted changes', 'feat (current)', 'main', 'v2', 'v1'])
+    ).toEqual(['Uncommitted changes', 'feat (current)', 'main', 'v2', 'v1', 'Choose…'])
     await userEvent.selectOptions(compare(), 'release:v1')
     await focusMap()
     press('Enter')
@@ -329,5 +333,38 @@ describe('saving', () => {
     view()
     await waitFor(() => expect(ExploreService.Files).toHaveBeenCalled())
     expect(screen.getByRole('button', { name: 'Save as image' })).toBeDisabled()
+  })
+})
+
+describe('the structure', () => {
+  it('shares the folder and what is compared with the other modes', async () => {
+    vi.mocked(ExploreService.Structure).mockResolvedValue(
+      new StructureInfo({ path: 'src', crumbs: [{ path: '', label: '' }], languages: ['Go'] }),
+    )
+    view()
+    await map()
+    await userEvent.click(screen.getByRole('button', { name: 'Structure' }))
+    await screen.findByText(/Links are read from Go/)
+    expect(ExploreService.Structure).toHaveBeenLastCalledWith('/repo', '', null)
+    expect(screen.queryByRole('checkbox', { name: 'Tests' })).toBeNull()
+    const compare = screen.getByRole('combobox', { name: 'Compare' })
+    await userEvent.selectOptions(compare, 'release:v1')
+    expect(ExploreService.Structure).toHaveBeenLastCalledWith('/repo', '', { kind: 'release', ref: 'v1' })
+    await userEvent.click(screen.getByRole('button', { name: 'Changes' }))
+    expect(ExploreService.Changes).toHaveBeenLastCalledWith('/repo', { kind: 'release', ref: 'v1' })
+  })
+
+  it('compares with any other point', async () => {
+    vi.mocked(ExploreService.Structure).mockResolvedValue(new StructureInfo({ languages: ['Go'] }))
+    view()
+    await map()
+    await userEvent.click(screen.getByRole('button', { name: 'Structure' }))
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Compare' }), 'other')
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Commit, branch or tag' }), 'abc123')
+    await userEvent.click(screen.getByRole('button', { name: 'Compare' }))
+    await waitFor(() =>
+      expect(ExploreService.Structure).toHaveBeenLastCalledWith('/repo', '', { kind: 'commit', ref: 'abc123' }),
+    )
+    expect(screen.getByRole('combobox', { name: 'Compare' })).toHaveDisplayValue('abc123')
   })
 })

@@ -1,0 +1,104 @@
+@use '../../styles/patterns';
+
+.structure-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 0;
+}
+
+.structure-all {
+  @include patterns.micro-button(var(--h-chip));
+  color: var(--on-surface-variant);
+}
+
+.structure-doc {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.structure-widely {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-lg);
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.structure-wide {
+  margin-right: var(--space-sm);
+}
+
+.structure-place {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--on-surface);
+  font: var(--data-sm);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.structure-rest {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+
+  summary {
+    cursor: pointer;
+  }
+
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-md);
+    max-height: 20vh;
+    margin: var(--space-xs) 0 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+}
+
+.structure-file {
+  flex-shrink: 0;
+
+  h3 {
+    margin: 0;
+    color: var(--on-surface);
+    font: var(--ui-md);
+    font-weight: 600;
+  }
+
+  ul {
+    margin: var(--space-xs) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-height: var(--h-row-tree);
+    border-top: var(--border-divider);
+  }
+}
+
+.structure-sha {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.structure-subject {
+  flex: 1;
+  @include patterns.truncate;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
