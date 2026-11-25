@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/gspeager/current-client/core/git"
 	"golang.org/x/sync/singleflight"
@@ -28,6 +29,11 @@ const cacheLimit = 4096
 
 const parallelMerges = 4
 
+// Merging a remote branch years behind HEAD takes seconds, and a large
+// repository keeps dozens, so one this much older than the newest is left out.
+// Local branches are always checked.
+const staleRemoteAge = 90 * 24 * time.Hour
+
 // mergeMany is replaced in tests to stand in for Git 2.38 and 2.39.
 var mergeMany = git.MergeConflictsMany
 
@@ -35,8 +41,8 @@ var mergeMany = git.MergeConflictsMany
 // after an action, share one prediction.
 var flights singleflight.Group
 
-// Predict returns the local and remote-tracking branches whose merge with HEAD
-// would conflict. It returns git.ErrMergeTreeUnsupported on Git before 2.38.
+// Predict returns the local branches, and the remote-tracking ones updated
+// recently, whose merge with HEAD would conflict. It returns git.ErrMergeTreeUnsupported on Git before 2.38.
 func Predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 	overlaps, err, _ := flights.Do(repoPath, func() (any, error) { return predict(ctx, repoPath) })
 	if err != nil {
@@ -55,8 +61,10 @@ func predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 		return nil, err
 	}
 	var branches []git.Ref
+	oldest := oldestChecked(refs)
 	for _, ref := range refs {
-		if ref.Kind != git.RefTag && ref.SHA != head {
+		stale := ref.Kind == git.RefRemoteBranch && ref.CommittedAt < oldest
+		if ref.Kind != git.RefTag && ref.SHA != head && !stale {
 			branches = append(branches, ref)
 		}
 	}
@@ -75,6 +83,19 @@ func predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 		}
 	}
 	return overlaps, nil
+}
+
+// oldestChecked counts back from the newest branch rather than from today, so
+// a repository nobody has touched for a year still shows its conflicts.
+func oldestChecked(refs []git.Ref) int64 {
+	var newest int64
+	for _, ref := range refs {
+		if ref.Kind != git.RefTag {
+			newest = max(newest, ref.CommittedAt)
+		}
+	}
+	// A commit dated in the future would make every other branch look old.
+	return min(newest, time.Now().Unix()) - int64(staleRemoteAge.Seconds())
 }
 
 // conflictFiles merges each tip with head, answering from the cache where it
