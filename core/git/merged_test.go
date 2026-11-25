@@ -181,8 +181,9 @@ func TestMergedInAPartialCloneNeverFetches(t *testing.T) {
 			t.Errorf("review has %s merged = %v", row.Name, row.Merged)
 		}
 	}
-	if _, err := mergedWithoutFetching(ctx, clone, "main", []string{"main", "gone"}); err == nil {
-		t.Error("a branch that isn't there has an answer")
+	tips := []string{"origin/merged", "origin/open", gittest.Run(t, clone, "rev-parse", "merged")}
+	if merged, err := mergedWithoutFetching(ctx, clone, "origin/main", tips); err != nil || !reflect.DeepEqual(merged, []bool{true, false, true}) {
+		t.Errorf("merged = %v, %v", merged, err)
 	}
 	if after := missingObjects(t, clone); after != before {
 		t.Errorf("fetched: missing after = %s, before = %s", after, before)

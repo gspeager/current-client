@@ -22,7 +22,7 @@ func TestAPartialCloneHidesTheForecastAndTheGrid(t *testing.T) {
 	}
 }
 
-// What the app reads by itself, with nobody asking.
+// What the sidebar and the Inbox read, which is no Git operation anyone started.
 func TestAPartialCloneFetchesNothingUnasked(t *testing.T) {
 	useTempSettings(t)
 	origin := t.TempDir()
@@ -43,29 +43,31 @@ func TestAPartialCloneFetchesNothingUnasked(t *testing.T) {
 	commit("a\nlayer\n")
 	gitIn(t, origin, "switch", "-q", "main")
 	commit("main\na\n")
-	clone := filepath.Join(t.TempDir(), "clone")
-	gitIn(t, origin, "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(origin), clone)
-	gitIn(t, clone, "branch", "-q", "side", "origin/side")
-	gitIn(t, clone, "branch", "-q", "layer", "origin/layer")
-	if err := updateConfig(func(cfg *config.Config) {
-		cfg.Stacks = map[string][]config.StackLink{clone: {{Branch: "side", Parent: "main"}, {Branch: "layer", Parent: "side"}}}
-	}); err != nil {
-		t.Fatal(err)
-	}
-	missing := func() string { return gitOut(t, clone, "rev-list", "--objects", "--all", "--missing=print") }
-	before := missing()
-	if !strings.Contains(before, "?") {
-		t.Fatal("the clone has every file")
-	}
-	for name, read := range map[string]func(){
-		"the Inbox":    func() { (&InboxService{}).Unseen([]string{clone}) },
-		"the stacks":   func() { _, _ = (&StackService{}).List(clone) },
-		"the forecast": func() { _, _ = (&OverlapService{}).Predict(clone) },
-		"the branches": func() { _, _ = (&BranchService{}).ListLocal(clone) },
-		"the status":   func() { _, _ = (&StatusService{}).GetStatus(clone) },
+	for name, read := range map[string]func(clone string){
+		"the Inbox":    func(clone string) { (&InboxService{}).Rows([]string{clone}, false) },
+		"the stacks":   func(clone string) { _, _ = (&StackService{}).List(clone) },
+		"the forecast": func(clone string) { _, _ = (&OverlapService{}).Predict(clone) },
+		"the branches": func(clone string) { _, _ = (&BranchService{}).ListLocal(clone) },
+		"the status":   func(clone string) { _, _ = (&StatusService{}).GetStatus(clone) },
 	} {
-		if read(); missing() != before {
-			t.Fatalf("%s fetched", name)
-		}
+		t.Run(name, func(t *testing.T) {
+			clone := filepath.Join(t.TempDir(), "clone")
+			gitIn(t, origin, "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(origin), clone)
+			gitIn(t, clone, "branch", "-q", "side", "origin/side")
+			gitIn(t, clone, "branch", "-q", "layer", "origin/layer")
+			if err := updateConfig(func(cfg *config.Config) {
+				cfg.Stacks = map[string][]config.StackLink{clone: {{Branch: "side", Parent: "main"}, {Branch: "layer", Parent: "side"}}}
+			}); err != nil {
+				t.Fatal(err)
+			}
+			missing := func() string { return gitOut(t, clone, "rev-list", "--objects", "--all", "--missing=print") }
+			before := missing()
+			if !strings.Contains(before, "?") {
+				t.Fatal("the clone has every file")
+			}
+			if read(clone); missing() != before {
+				t.Error("it fetched")
+			}
+		})
 	}
 }
