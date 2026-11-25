@@ -89,32 +89,7 @@ func (s *ReadThroughService) Open(repoPath string, request ReadThroughRequest) (
 	info.Uncommitted = request.Uncommitted && info.CheckedOut
 	forgetMarks(ctx, repoPath)
 
-	branch := strings.TrimPrefix(info.Key, "refs/heads/")
-	builtOn := ""
-	for _, link := range linksOf(repoPath) {
-		if link.Branch != branch || (info.Target != "" && info.Target != link.Parent) {
-			continue
-		}
-		if _, err := git.ResolveCommit(ctx, repoPath, "refs/heads/"+link.Parent); err == nil {
-			info.Target, builtOn = link.Parent, link.ParentTip
-		}
-	}
-	if info.Target == "" {
-		target, err := git.CompareBase(ctx, repoPath)
-		if err != nil || target == "" {
-			return info, err
-		}
-		info.Target = target
-	}
-	target, err := git.ResolveCommit(ctx, repoPath, info.Target)
-	if err != nil {
-		return info, &gitexec.AppError{Message: info.Target + " doesn't exist.", Detail: err.Error()}
-	}
-	info.Base, err = readthrough.Base(ctx, repoPath, target, info.Head, builtOn)
-	if errors.Is(err, git.ErrUnrelatedHistories) {
-		return info, &gitexec.AppError{Message: info.Name + " and " + info.Target + " share no history."}
-	}
-	if err != nil {
+	if err := info.settleBase(ctx, repoPath); err != nil || info.Target == "" {
 		return info, err
 	}
 	reading, err := readthrough.Read(ctx, info.Path, info.Key, info.changes())
@@ -145,6 +120,37 @@ func (s *ReadThroughService) Open(repoPath string, request ReadThroughRequest) (
 		}
 	})
 	return info, nil
+}
+
+// settleBase works out the target, when none was asked for, and where the head left
+// it. The target stays "" when there's nothing to compare with.
+func (info *ReadThroughInfo) settleBase(ctx context.Context, repoPath string) error {
+	branch := strings.TrimPrefix(info.Key, "refs/heads/")
+	builtOn := ""
+	for _, link := range linksOf(repoPath) {
+		if link.Branch != branch || (info.Target != "" && info.Target != link.Parent) {
+			continue
+		}
+		if _, err := git.ResolveCommit(ctx, repoPath, "refs/heads/"+link.Parent); err == nil {
+			info.Target, builtOn = link.Parent, link.ParentTip
+		}
+	}
+	if info.Target == "" {
+		target, err := git.CompareBase(ctx, repoPath)
+		if err != nil || target == "" {
+			return err
+		}
+		info.Target = target
+	}
+	target, err := git.ResolveCommit(ctx, repoPath, info.Target)
+	if err != nil {
+		return &gitexec.AppError{Message: info.Target + " doesn't exist.", Detail: err.Error()}
+	}
+	info.Base, err = readthrough.Base(ctx, repoPath, target, info.Head, builtOn)
+	if errors.Is(err, git.ErrUnrelatedHistories) {
+		return &gitexec.AppError{Message: info.Name + " and " + info.Target + " share no history."}
+	}
+	return err
 }
 
 // resolve fills in what's read and where it's checked out.
