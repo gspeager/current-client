@@ -33,10 +33,11 @@ function compare(a: string | number, b: string | number): number {
 interface BranchReviewDialogProps {
   repoPath: string
   onDeleted: (branches: DeletedBranch[]) => void
+  onConflictGrid: () => void
   onClose: () => void
 }
 
-function BranchReviewDialog({ repoPath, onDeleted, onClose }: BranchReviewDialogProps) {
+function BranchReviewDialog({ repoPath, onDeleted, onConflictGrid, onClose }: BranchReviewDialogProps) {
   const { confirm } = useDialogs()
   const { data: review, error: loadError } = useAsyncData(() => BranchService.ReviewBranches(repoPath), [repoPath])
   const [filter, setFilter] = useState<Filter>('all')
@@ -176,6 +177,9 @@ function BranchReviewDialog({ repoPath, onDeleted, onClose }: BranchReviewDialog
         )}
         <DialogError>{error}</DialogError>
         <div className="dialog-actions">
+          <button type="button" className="dialog-button branch-review-grid" onClick={onConflictGrid}>
+            Conflict grid
+          </button>
           <button type="button" className="dialog-button" onClick={onClose}>
             Close
           </button>

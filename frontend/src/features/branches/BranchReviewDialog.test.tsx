@@ -38,7 +38,7 @@ function renderDialog(onDeleted = vi.fn()) {
   vi.mocked(BranchService.ReviewBranches).mockResolvedValue({ base: 'origin/main', rows })
   render(
     <DialogProvider>
-      <BranchReviewDialog repoPath="/repo" onDeleted={onDeleted} onClose={vi.fn()} />
+      <BranchReviewDialog repoPath="/repo" onDeleted={onDeleted} onConflictGrid={vi.fn()} onClose={vi.fn()} />
     </DialogProvider>,
   )
   return onDeleted
@@ -134,5 +134,17 @@ describe('BranchReviewDialog', () => {
     renderDialog()
     await user.click(await screen.findByRole('checkbox', { name: 'Select all shown' }))
     expect(screen.getByRole('button', { name: 'Delete 2 branches' })).toBeEnabled()
+  })
+
+  it('opens the conflict grid', async () => {
+    vi.mocked(BranchService.ReviewBranches).mockResolvedValue({ base: 'origin/main', rows })
+    const onConflictGrid = vi.fn()
+    render(
+      <DialogProvider>
+        <BranchReviewDialog repoPath="/repo" onDeleted={vi.fn()} onConflictGrid={onConflictGrid} onClose={vi.fn()} />
+      </DialogProvider>,
+    )
+    await userEvent.click(await screen.findByRole('button', { name: 'Conflict grid' }))
+    expect(onConflictGrid).toHaveBeenCalled()
   })
 })

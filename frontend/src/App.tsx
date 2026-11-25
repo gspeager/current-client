@@ -17,6 +17,7 @@ import {
   GitBranchPlus,
   GitPullRequest,
   GitCommitVertical,
+  Grid3x3,
   Inbox,
   PackagePlus,
   Settings,
@@ -892,6 +893,14 @@ function App({
       icon: Table,
       keywords: ['branches', 'stale', 'unpushed', 'bulk delete', 'grid'],
       run: () => requestSidebar('branch-review'),
+    },
+    {
+      id: 'conflict-grid',
+      label: 'Conflict grid',
+      section: 'Tools',
+      icon: Grid3x3,
+      keywords: ['branches', 'merge', 'overlap', 'predict', 'pairs'],
+      run: () => requestSidebar('conflict-grid'),
     },
     {
       id: 'clean-up-branches',

@@ -1,0 +1,84 @@
+@use '../../styles/patterns';
+
+.conflict-grid {
+  max-height: 55vh;
+  overflow: auto;
+
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font: var(--data-sm);
+  }
+
+  th,
+  td {
+    min-width: var(--h-row-table);
+    height: var(--h-row-table);
+    padding: 0 var(--space-xs);
+    box-sizing: border-box;
+    border-right: var(--border-structure);
+    border-bottom: var(--border-structure);
+    text-align: center;
+    font-weight: 400;
+  }
+
+  thead th,
+  thead td {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface-low);
+    color: var(--outline);
+  }
+
+  tbody th,
+  thead td {
+    position: sticky;
+    left: 0;
+    background: var(--surface-low);
+    text-align: left;
+  }
+
+  thead td {
+    z-index: 2;
+  }
+
+  tbody th {
+    max-width: 260px;
+    color: var(--on-surface);
+    @include patterns.truncate;
+  }
+
+  [role='gridcell'] {
+    color: var(--outline);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface-container);
+    }
+
+    &[aria-selected='true'] {
+      background: var(--surface-highest);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+  }
+}
+
+.conflict-grid .conflict-grid-conflict {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.conflict-grid-number {
+  display: inline-block;
+  width: 3ch;
+  color: var(--outline);
+}
+
+.conflict-grid-self {
+  background: var(--surface-container);
+}
