@@ -33,5 +33,10 @@ func (s *WorktreeService) Add(repoPath, path, branch string, create bool) error 
 }
 
 func (s *WorktreeService) Remove(repoPath, path string, force bool) error {
-	return git.RemoveWorktree(context.Background(), repoPath, path, force)
+	ctx := context.Background()
+	if err := git.RemoveWorktree(ctx, repoPath, path, force); err != nil {
+		return err
+	}
+	forgetMarks(ctx, repoPath)
+	return nil
 }

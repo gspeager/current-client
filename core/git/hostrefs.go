@@ -24,6 +24,37 @@ func HostChangeRef(remote string, number int) string {
 	return hostRefPrefix + remote + "/mr/" + strconv.Itoa(number)
 }
 
+// RefAt is a ref at sha, a local branch before a remote one before a fetched
+// change head, or branch itself when it's ahead of sha. It's "" when there's none.
+func RefAt(ctx context.Context, repoPath, sha, branch string) (string, error) {
+	if sha == "" {
+		return "", nil
+	}
+	if _, err := ResolveCommit(ctx, repoPath, sha); err != nil {
+		return "", nil
+	}
+	result, err := runResult(ctx, repoPath, "for-each-ref", "--points-at="+sha, "--format=%(refname)", "refs/heads", "refs/remotes", hostRefPrefix)
+	if err != nil {
+		return "", err
+	}
+	at := strings.Fields(result.Stdout)
+	named := func(ref string) bool { return strings.HasSuffix(ref, "/"+branch) }
+	for _, prefix := range []string{"refs/heads/", "refs/remotes/", hostRefPrefix} {
+		in := func(ref string) bool { return strings.HasPrefix(ref, prefix) && !strings.HasSuffix(ref, "/HEAD") }
+		for _, accept := range []func(string) bool{named, func(string) bool { return true }} {
+			for _, ref := range at {
+				if in(ref) && accept(ref) {
+					return ref, nil
+				}
+			}
+		}
+	}
+	if local := "refs/heads/" + branch; isAncestor(ctx, repoPath, sha, local) {
+		return local, nil
+	}
+	return "", nil
+}
+
 // FetchHostChangeHead fetches remoteRef (refs/merge-requests/N/head on GitLab,
 // refs/pull/N/head on GitHub) into HostChangeRef(remote, number).
 func FetchHostChangeHead(ctx context.Context, repoPath, remote, remoteRef string, number int) error {
