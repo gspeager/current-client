@@ -51,6 +51,9 @@ function Modal({
                 first.focus()
               }
             }}
+            onEscapeKeyDown={(e) => {
+              if ((e.target as HTMLElement).closest('[data-takes-escape]')) e.preventDefault()
+            }}
             onCloseAutoFocus={(e) => {
               e.preventDefault()
               restoreFocus(opener.current)

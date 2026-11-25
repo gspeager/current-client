@@ -384,6 +384,11 @@ function App({
 
   const [openIssueKey, setOpenIssueKey] = useState<string | null>(null)
   const [newIssueDraft, setNewIssueDraft] = useState<IssueDraft | null>(null)
+  // Its files can be uncommitted ones.
+  const readThroughVersion = useMemo(
+    () => ({ repoVersion, files: workingTree.files }),
+    [repoVersion, workingTree.files],
+  )
   const [readThrough, setReadThrough] = useState<ReadThroughOpening | null>(null)
   const [issueFocus, setIssueFocus] = useState<string | null>(null)
   useEffect(() => {
@@ -971,7 +976,7 @@ function App({
                       <ReadThroughSheet
                         repoPath={repo.repoPath}
                         opening={readThrough}
-                        refreshKey={repoVersion}
+                        refreshKey={readThroughVersion}
                         onNotesChanged={notesState.reload}
                         onClose={() => setReadThrough(null)}
                       />

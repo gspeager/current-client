@@ -46,6 +46,7 @@ const diff = new FileDiff({
 })
 
 const notesChanged = vi.fn()
+const closed = vi.fn()
 
 const open = (refreshKey = 0, request = { ref: 'refs/heads/feat' }) => (
   <ReadThroughSheet
@@ -53,7 +54,7 @@ const open = (refreshKey = 0, request = { ref: 'refs/heads/feat' }) => (
     opening={request}
     refreshKey={refreshKey}
     onNotesChanged={notesChanged}
-    onClose={() => undefined}
+    onClose={closed}
   />
 )
 
@@ -233,6 +234,16 @@ describe('notes', () => {
     expect(block.closest('.diff-pane')).toBeNull()
     expect(within(block).getByText('Outdated')).toBeInTheDocument()
     expect(within(block).getByText('was here')).toBeInTheDocument()
+  })
+
+  it('closes its box on Escape, not the sheet, and gives the focus back', async () => {
+    await readA()
+    const add = screen.getByRole('button', { name: 'Add note' })
+    await userEvent.click(add)
+    await userEvent.type(screen.getByRole('textbox', { name: 'Note on src/a.ts' }), 'x{Escape}')
+    expect(screen.queryByRole('textbox', { name: 'Note on src/a.ts' })).toBeNull()
+    expect(closed).not.toHaveBeenCalled()
+    expect(add).toHaveFocus()
   })
 
   it('lists and copies them with their file and line', async () => {

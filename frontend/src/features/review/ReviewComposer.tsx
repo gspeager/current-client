@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useLayoutEffect, useState, type KeyboardEvent } from 'react'
 import { errorMessage } from '../../lib/errors'
 import './ReviewComposer.scss'
 
@@ -27,6 +27,14 @@ function ReviewComposer({
   const [body, setBody] = useState(initial)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Where focus came from, for when the box closes.
+  const [opener] = useState(() => document.activeElement)
+  useLayoutEffect(
+    () => () => {
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true })
+    },
+    [opener],
+  )
   const ready = body.trim() !== '' && !sending
   const send = () => {
     if (!ready) return
@@ -46,7 +54,7 @@ function ReviewComposer({
     }
   }
   return (
-    <div className="review-composer">
+    <div className="review-composer" data-takes-escape>
       <textarea
         className="review-composer-text"
         value={body}

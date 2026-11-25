@@ -29,7 +29,8 @@
   }
 }
 
-.changed-file-selected {
+.changed-file-selected,
+.changed-file-tickable-selected {
   background: var(--surface-container);
   box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }

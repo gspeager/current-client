@@ -28,7 +28,9 @@ export function groupFiles(files: ReadThroughFile[]): FileGroup[] {
   const groups = new Map<string, ReadThroughFile[]>()
   for (const file of files) {
     const folder = folderOf(file)
-    groups.set(folder, [...(groups.get(folder) ?? []), file])
+    const members = groups.get(folder)
+    if (members) members.push(file)
+    else groups.set(folder, [file])
   }
   const order = (a: ReadThroughFile, b: ReadThroughFile) =>
     stemOf(a.path).localeCompare(stemOf(b.path)) ||

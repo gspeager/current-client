@@ -282,7 +282,7 @@ function Overview({ info, files }: { info: ReadThroughInfo; files: ReadThroughFi
           <Totals totals={totalsByType(files)} />
         </Fact>
         {kinds.length > 0 && (
-          <Fact label="Of them">
+          <Fact label="Kinds">
             <Totals totals={kinds} />
           </Fact>
         )}

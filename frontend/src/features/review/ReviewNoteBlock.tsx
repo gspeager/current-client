@@ -14,7 +14,7 @@ export interface LineNotes {
 }
 
 export function noteWhere({ line, oldLine }: { line: number; oldLine: number }): string {
-  return line ? `line ${line}` : oldLine ? `old line ${oldLine}` : 'file'
+  return line ? `line ${line}` : oldLine ? `old line ${oldLine}` : 'whole file'
 }
 
 interface ReviewNoteBlockProps {

@@ -34,11 +34,14 @@ function ChangedFileRow({
 }: ChangedFileRowProps) {
   const path = relativeTo && file.path.startsWith(`${relativeTo}/`) ? file.path.slice(relativeTo.length + 1) : file.path
   return (
-    <li className={onRead ? 'read-through-row changed-file-tickable' : undefined}>
+    <li
+      className={onRead && `read-through-row changed-file-tickable${selected ? ' changed-file-tickable-selected' : ''}`}
+    >
       {onRead && <Checkbox checked={read} onChange={onRead} ariaLabel={`Read ${file.path}`} />}
       <button
         type="button"
-        className={`changed-file${selected ? ' changed-file-selected' : ''}${read ? ' changed-file-read' : ''}`}
+        className={`changed-file${selected && !onRead ? ' changed-file-selected' : ''}${read ? ' changed-file-read' : ''}`}
+        aria-current={onRead && selected ? 'true' : undefined}
         onClick={onSelect}
         onContextMenu={onContextMenu}
         onKeyDown={(e) => onContextMenu && isMenuKey(e) && onContextMenu(e)}

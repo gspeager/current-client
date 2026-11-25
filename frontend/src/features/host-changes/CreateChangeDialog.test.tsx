@@ -89,7 +89,7 @@ describe('CreateChangeDialog', () => {
     await userEvent.click(add)
     expect(description).toHaveValue(`${draft.description}\n\n- \`a.go:4\` why?`)
     expect(screen.queryByRole('checkbox', { name: 'a.go, line 4: why?' })).toBeNull()
-    expect(screen.getByRole('checkbox', { name: 'b.go, file: private' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'b.go, whole file: private' })).not.toBeChecked()
   })
 
   it('has no notes section for a branch without any', async () => {
