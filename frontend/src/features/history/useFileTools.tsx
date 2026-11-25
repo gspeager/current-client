@@ -39,5 +39,5 @@ export function useFileTools(repoPath: string) {
     </>
   )
 
-  return { openMenu, pathItems, overlays }
+  return { openMenu, pathItems, openHistory: setFileHistoryPath, overlays }
 }
