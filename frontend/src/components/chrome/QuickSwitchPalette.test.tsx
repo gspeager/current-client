@@ -350,6 +350,10 @@ describe('QuickSwitchPalette Workspace actions', () => {
       text: 'Wait for the audit',
       updatedAt: '2026-01-01T00:00:00Z',
       stale: false,
+      id: '',
+      path: '',
+      line: 0,
+      oldLine: 0,
     }
     const onOpenNote = vi.fn()
     const notes = { notes: [note], noteFor: () => undefined, edit: vi.fn(), openList: vi.fn() }

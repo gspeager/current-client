@@ -1,6 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image, List } from 'lucide-react'
-import { DiffService, type FileDiff, type LineSelection, type ReviewThread } from '@current-client-bindings/app'
+import {
+  DiffService,
+  type FileDiff,
+  type LineSelection,
+  type ReadThroughNote,
+  type ReviewThread,
+} from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -21,6 +27,7 @@ import DiffMinimap from './DiffMinimap'
 import PendingCommentBlock from '../review/PendingCommentBlock'
 import ReviewComposer from '../review/ReviewComposer'
 import ReviewDialog from '../review/ReviewDialog'
+import ReviewNoteBlock, { noteWhere, type LineNotes } from '../review/ReviewNoteBlock'
 import { useReviewActions } from '../review/useReviewActions'
 import { issueDraftFromLine, useNewIssue } from '../../lib/issuePanel'
 import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
@@ -81,6 +88,8 @@ interface DiffViewerProps extends HunkActions {
   // The change this diff belongs to, when the host is on: lines take review
   // comments, threads take replies, and a review can be submitted.
   review?: { repoPath: string; number: number; prefix: string }
+  // Notes on this file's lines, kept on this computer.
+  notes?: LineNotes
   // Where the first diff shown opens, and where the diff has since been scrolled.
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
@@ -104,6 +113,7 @@ function DiffViewer({
   outdatedThreads,
   conflictView = 'result',
   review,
+  notes,
   ...hunkActions
 }: DiffViewerProps) {
   const [showImage, setShowImage] = useState(true)
@@ -128,10 +138,10 @@ function DiffViewer({
   const displayRows = useMemo(() => (diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)), [diff, blocks])
   const blockStarts = useMemo(() => (diff.conflicted ? new Set(blocks.blockStarts) : undefined), [diff, blocks])
   const stats = useMemo(() => diffStats(diff), [diff])
-  const shownLines = useMemo(
-    () => new Set(diff.hunks.flatMap((h) => h.lines.map((l) => l.newLine).filter(Boolean))),
-    [diff],
-  )
+  const shownLines = useMemo(() => {
+    const refs = diff.hunks.flatMap((h) => h.lines.map((l) => lineRef(l.kind === 'removed' ? 0 : l.newLine, l.oldLine)))
+    return new Set(refs)
+  }, [diff])
   const long = useMemo(() => isLongDiff(displayRows), [displayRows])
   const setLineStops = useRovingRows('.diff-line-select', {
     compareRows: (a, b) => paneRowOf(a) - paneRowOf(b),
@@ -334,7 +344,7 @@ function DiffViewer({
   const place = (ref: string, node: ReactNode) => blocksByLine.set(ref, [...(blocksByLine.get(ref) ?? []), node])
   const unplaced: ReviewThread[] = []
   for (const thread of threads ?? []) {
-    if (!sidesApart && thread.line && shownLines.has(thread.line)) {
+    if (!sidesApart && thread.line && shownLines.has(lineRef(thread.line, 0))) {
       place(
         lineRef(thread.line, 0),
         <ReviewThreadBlock key={thread.id} thread={thread} actions={actions?.threadActions} />,
@@ -344,6 +354,27 @@ function DiffViewer({
     }
   }
   const drafted = draft.comments.filter((c) => c.path === path)
+  const unplacedNotes: ReadThroughNote[] = []
+  for (const note of notes?.items ?? []) {
+    const ref = lineRef(note.line, note.oldLine)
+    if (note.outdated || sidesApart || !shownLines.has(ref)) {
+      unplacedNotes.push(note)
+    } else {
+      place(ref, <ReviewNoteBlock key={note.id} note={note} onEdit={notes!.edit} />)
+    }
+  }
+  if (!sidesApart && notes && composer) {
+    place(
+      lineRef(composer.line, composer.oldLine),
+      <ReviewComposer
+        key="composer"
+        placeholder={`Note on ${noteWhere(composer)}`}
+        sendLabel="Add note"
+        onSend={(text) => notes.add(composer.line, composer.oldLine, text).then(() => setComposer(null))}
+        onCancel={() => setComposer(null)}
+      />,
+    )
+  }
   if (!sidesApart && target) {
     for (const c of drafted) {
       place(
@@ -367,7 +398,7 @@ function DiffViewer({
       )
     }
   }
-  const canComment = !!review && !!actions?.capabilities.lineComments && !diff.conflicted && !sidesApart
+  const canComment = (!!notes || (!!review && !!actions?.capabilities.lineComments)) && !diff.conflicted && !sidesApart
 
   return (
     <div className="diff-view">
@@ -437,6 +468,7 @@ function DiffViewer({
             canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
           }
           blocksByLine={blocksByLine}
+          commentLabel={notes ? 'Add note on' : undefined}
           onCommentLine={canComment ? (line, oldLine) => setComposer({ line, oldLine }) : undefined}
           onLineMenu={
             newIssue
@@ -456,6 +488,14 @@ function DiffViewer({
         />
         <DiffMinimap rows={displayRows} paneRef={paneRef} always={long && !sidesApart} />
       </div>
+      {unplacedNotes.length > 0 && (
+        <section className="review-threads-outdated" aria-label="Notes not shown at a line">
+          <span className="review-threads-outdated-label">Notes on lines not in this diff</span>
+          {unplacedNotes.map((note) => (
+            <ReviewNoteBlock key={note.id} note={note} onEdit={notes!.edit} />
+          ))}
+        </section>
+      )}
       {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
         <section className="review-threads-outdated" aria-label="Threads not shown at a line">
           {unplaced.length > 0 && (

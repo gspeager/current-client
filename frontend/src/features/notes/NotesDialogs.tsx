@@ -2,15 +2,29 @@ import { useState } from 'react'
 import { NotesService, type NoteInfo } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
 import { errorMessage } from '../../lib/errors'
-import type { NoteKind, NoteTarget, useNotesState } from './notes'
+import { targetOf, type NoteKind, type NoteTarget, type useNotesState } from './notes'
 import { shortSha } from '../../lib/text'
 import DialogError from '../../components/chrome/DialogError'
 
-export function noteLabel(note: { kind: string; target: string; subject?: string }): string {
+export function noteLabel(note: {
+  kind: string
+  target: string
+  subject?: string
+  path?: string
+  line?: number
+  oldLine?: number
+}): string {
+  if (note.kind === 'review' && note.path) return [note.path, note.line || note.oldLine].filter(Boolean).join(':')
   return note.kind === 'commit' ? `${shortSha(note.target)} ${note.subject ?? ''}`.trim() : note.target
 }
 
-const KIND_LABEL: Record<NoteKind, string> = { commit: 'Commit', branch: 'Branch', tag: 'Tag', file: 'File' }
+const KIND_LABEL: Record<NoteKind, string> = {
+  commit: 'Commit',
+  branch: 'Branch',
+  tag: 'Tag',
+  file: 'File',
+  review: 'Read through',
+}
 
 interface NoteEditorProps {
   repoPath: string
@@ -26,7 +40,10 @@ function NoteEditor({ repoPath, target, existing, onSaved, onClose }: NoteEditor
 
   const save = (value: string) => {
     setError(null)
-    NotesService.Set(repoPath, target.kind, target.target, target.subject ?? '', value)
+    const saved = target.id
+      ? NotesService.EditReview(repoPath, target.id, value)
+      : NotesService.Set(repoPath, target.kind, target.target, target.subject ?? '', value)
+    saved
       .then(() => {
         onSaved()
         onClose()
@@ -35,7 +52,7 @@ function NoteEditor({ repoPath, target, existing, onSaved, onClose }: NoteEditor
   }
 
   return (
-    <Modal title={`Note on ${noteLabel(target)}`} onClose={onClose} className="dialog-panel notes-panel">
+    <Modal title={`Note on ${noteLabel(existing ?? target)}`} onClose={onClose} className="dialog-panel notes-panel">
       <div className="dialog-body">
         <textarea
           className="note-editor"
@@ -85,7 +102,7 @@ function NotesList({ notes, onEdit, onOpen, onClose }: NotesListProps) {
         ) : (
           <ul className="notes-list">
             {notes.map((note) => (
-              <li key={`${note.kind}-${note.target}`} className="notes-row">
+              <li key={`${note.kind}-${note.target}-${note.id}`} className="notes-row">
                 <div className="notes-row-main">
                   <div className="notes-row-where">
                     <span>{KIND_LABEL[note.kind as NoteKind]}</span>
@@ -133,7 +150,7 @@ function NotesDialogs({ repoPath, state, onOpen }: NotesDialogsProps) {
       {listOpen && !editing && (
         <NotesList
           notes={context.notes}
-          onEdit={(note) => setEditing({ kind: note.kind as NoteKind, target: note.target, subject: note.subject })}
+          onEdit={(note) => setEditing(targetOf(note))}
           onOpen={(note) => {
             setListOpen(false)
             onOpen(note)
@@ -143,10 +160,14 @@ function NotesDialogs({ repoPath, state, onOpen }: NotesDialogsProps) {
       )}
       {editing && (
         <NoteEditor
-          key={`${editing.kind}-${editing.target}`}
+          key={`${editing.kind}-${editing.target}-${editing.id}`}
           repoPath={repoPath}
           target={editing}
-          existing={context.noteFor(editing.kind, editing.target)}
+          existing={
+            editing.id
+              ? context.notes.find((note) => note.id === editing.id)
+              : context.noteFor(editing.kind, editing.target)
+          }
           onSaved={reload}
           onClose={() => setEditing(null)}
         />

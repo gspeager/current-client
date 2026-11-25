@@ -4,6 +4,7 @@ import DiffViewer from '../../features/diff/DiffViewer'
 import DiffViewMenu from '../../features/diff/DiffViewMenu'
 import DiffViewModeToggle, { type DiffViewMode } from '../../features/diff/DiffViewModeToggle'
 import type { ImageSources } from '../../features/diff/ImageDiff'
+import type { LineNotes } from '../../features/review/ReviewNoteBlock'
 import { useAsyncData } from '../../lib/useAsyncData'
 import type { ReviewThreadsView } from '../../lib/useReviewThreads'
 
@@ -17,6 +18,7 @@ interface ChangedFileDiffProps {
   // Lets a submodule's change list the commits between its versions.
   repoPath?: string
   reviewThreads?: ReviewThreadsView
+  notes?: LineNotes
   // A line to open at; a new object asks again.
   focusLine?: { line: number } | null
   toolbar?: ReactNode
@@ -30,6 +32,7 @@ function ChangedFileDiff({
   images,
   repoPath,
   reviewThreads,
+  notes,
   focusLine,
   toolbar,
 }: ChangedFileDiffProps) {
@@ -66,6 +69,7 @@ function ChangedFileDiff({
         }
         images={images}
         repoPath={repoPath}
+        notes={notes}
         focusLine={focusLine}
         onForceLoad={() => setForcedPath(file.path)}
       />

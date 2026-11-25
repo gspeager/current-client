@@ -58,15 +58,25 @@ type CommentOnLine = (line: number, oldLine: number) => void
 
 // The comment button sits over the gutter, shown while the row is hovered or
 // it has focus, so the row grid stays as it is.
-function CommentButton({ line, oldLine, onComment }: { line: number; oldLine: number; onComment: CommentOnLine }) {
+function CommentButton({
+  line,
+  oldLine,
+  label,
+  onComment,
+}: {
+  line: number
+  oldLine: number
+  label: string
+  onComment: CommentOnLine
+}) {
   const where = line ? `line ${line}` : `old line ${oldLine}`
   return (
     <button
       type="button"
       className="diff-line-comment"
       onClick={() => onComment(line, oldLine)}
-      aria-label={`Comment on ${where}`}
-      title={`Comment on ${where}`}
+      aria-label={`${label} ${where}`}
+      title={`${label} ${where}`}
     >
       <MessageSquarePlus size={12} strokeWidth={1.75} />
     </button>
@@ -168,6 +178,7 @@ function splitRow(
   select?: LineSelect,
   extraClass = '',
   onComment?: CommentOnLine,
+  commentLabel = 'Comment on',
 ) {
   const line = side === 'left' ? pair.left : pair.right
   // The new side takes comments; the old side only for a line that is gone.
@@ -185,6 +196,7 @@ function splitRow(
         <CommentButton
           line={side === 'right' ? line.newLine : 0}
           oldLine={side === 'right' ? 0 : line.oldLine}
+          label={commentLabel}
           onComment={onComment}
         />
       )}
@@ -200,6 +212,7 @@ function unifiedRow(
   extraClass = '',
   singleNumber = false,
   onComment?: CommentOnLine,
+  commentLabel = 'Comment on',
 ) {
   const activeLine = side === 'left' ? pair.left : pair.right
   const isContext = pair.left !== null && pair.left === pair.right
@@ -236,6 +249,7 @@ function unifiedRow(
         <CommentButton
           line={removed ? 0 : activeLine.newLine}
           oldLine={removed ? activeLine.oldLine : 0}
+          label={commentLabel}
           onComment={onComment}
         />
       )}
@@ -345,6 +359,8 @@ interface DiffPaneProps extends HunkActions {
   blocksByLine?: Map<string, ReactNode[]>
   // Present when a line can take a review comment.
   onCommentLine?: CommentOnLine
+  // What its button says before the line.
+  commentLabel?: string
   // Present when a new-side line's context menu has something to offer.
   onLineMenu?: (e: MouseEvent, line: number, content: string) => void
   // Rows that open a conflict block, marked so the footer can walk to them.
@@ -376,6 +392,7 @@ function DiffPane(props: DiffPaneProps) {
     lineSelect,
     blocksByLine,
     onCommentLine,
+    commentLabel,
     onLineMenu,
     blockStarts,
     resultView = false,
@@ -470,10 +487,12 @@ function DiffPane(props: DiffPaneProps) {
   const renderPair = (pair: PairedLine, side: Side | undefined, extraClass: string): ReactNode => {
     if (side) return splitRow(pair, side, language, side, lineSelect, extraClass)
     if (mode === 'split') {
-      return (['left', 'right'] as const).map((s) => splitRow(pair, s, language, s, lineSelect, extraClass, comment))
+      return (['left', 'right'] as const).map((s) =>
+        splitRow(pair, s, language, s, lineSelect, extraClass, comment, commentLabel),
+      )
     }
     return unifiedRowsForPair(pair).map((row, k) =>
-      unifiedRow(row, language, k, lineSelect, k === 0 ? extraClass : '', resultView, comment),
+      unifiedRow(row, language, k, lineSelect, k === 0 ? extraClass : '', resultView, comment, commentLabel),
     )
   }
 

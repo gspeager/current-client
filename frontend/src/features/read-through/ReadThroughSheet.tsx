@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import {
+  NotesService,
   ReadThroughInfo,
+  ReadThroughNote,
   ReadThroughRequest,
   ReadThroughService,
   type ReadThroughFile,
@@ -13,39 +15,50 @@ import ChangedFileDiff from '../../components/git/ChangedFileDiff'
 import PathText from '../../components/git/PathText'
 import RefSelect, { useRefGroups } from '../../components/git/RefSelect'
 import ChangedFileRow from '../history/ChangedFileRow'
+import ReviewComposer from '../review/ReviewComposer'
+import ReviewNoteBlock, { noteWhere } from '../review/ReviewNoteBlock'
 import { plural } from '../../lib/plural'
+import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useActionError } from '../../lib/useActionError'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { groupFiles, totalsByKind, totalsByStatus, totalsByType, type Total } from './groupFiles'
-import type { ReadThroughTarget } from './readThrough'
+import { notesText } from './notesText'
+import type { ReadThroughOpening } from './readThrough'
 import './ReadThroughSheet.scss'
 
 const versionOf = (file: ReadThroughFile) => `${file.newBlob}:${file.path}`
 
 interface ReadThroughSheetProps {
   repoPath: string
-  request: Partial<ReadThroughTarget>
+  opening: ReadThroughOpening
   refreshKey: unknown
+  onNotesChanged: () => void
   onClose: () => void
 }
 
-function ReadThroughSheet({ repoPath, request, refreshKey, onClose }: ReadThroughSheetProps) {
-  const [target, setTarget] = useState(request.target ?? '')
-  const [uncommitted, setUncommitted] = useState(request.uncommitted ?? true)
+function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClose }: ReadThroughSheetProps) {
+  const [target, setTarget] = useState(opening.target ?? '')
+  const [uncommitted, setUncommitted] = useState(opening.uncommitted ?? true)
   const {
     data: info,
     error,
     reload,
   } = useAsyncData(
-    () => ReadThroughService.Open(repoPath, new ReadThroughRequest({ ...request, target, uncommitted })),
-    [repoPath, request, target, uncommitted],
+    () =>
+      ReadThroughService.Open(
+        repoPath,
+        new ReadThroughRequest({ ref: opening.ref, path: opening.path, target, uncommitted }),
+      ),
+    [repoPath, opening, target, uncommitted],
     { refreshKey, keepData: true },
   )
   const refGroups = useRefGroups(repoPath)
   const { error: actionError, setError: setActionError, fail } = useActionError()
   // Null is the overview.
-  const [path, setPath] = useState<string | null>(null)
+  const [path, setPath] = useState<string | null>(opening.at?.path ?? null)
+  const [focusLine, setFocusLine] = useState(opening.at?.line ? { line: opening.at.line } : null)
+  const [noting, setNoting] = useState(false)
   // Ticks shown before they're saved.
   const [ticking, setTicking] = useState<ReadonlyMap<string, boolean>>(new Map())
   const rows = useRovingRows('.read-through-row')
@@ -70,6 +83,29 @@ function ReadThroughSheet({ repoPath, request, refreshKey, onClose }: ReadThroug
 
   // Without its files, which every call would send back.
   const range = info && new ReadThroughInfo({ ...info, files: [] })
+  const { data: notes, reload: reloadNotes } = useAsyncData(
+    () => (range ? ReadThroughService.Notes(range) : null),
+    // Where it reads from comes with info.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [info?.key],
+    { refreshKey: info, keepData: true },
+  )
+  const noted = () => {
+    reloadNotes()
+    onNotesChanged()
+  }
+  const addNote = (file: ReadThroughFile, line: number, oldLine: number, text: string) =>
+    ReadThroughService.AddNote(
+      range!,
+      new ReadThroughNote({ path: file.path, oldPath: file.origPath, line, oldLine, text }),
+    ).then(noted)
+  const editNote = (id: string, text: string) => NotesService.EditReview(repoPath, id, text).then(noted)
+  const openFile = (next: string | null, line = 0) => {
+    setPath(next)
+    setFocusLine(line ? { line } : null)
+    setNoting(false)
+  }
+  const fileNotes = (notes ?? []).filter((note) => note.path === path)
   const setRead = (file: ReadThroughFile, read: boolean) => {
     if (!range) return
     setActionError(null)
@@ -85,7 +121,7 @@ function ReadThroughSheet({ repoPath, request, refreshKey, onClose }: ReadThroug
   const nextUnread = () => {
     const at = ordered.findIndex((f) => f.path === path)
     const after = [...ordered.slice(at + 1), ...ordered.slice(0, Math.max(0, at))]
-    setPath(after.find((f) => !f.read)?.path ?? null)
+    openFile(after.find((f) => !f.read)?.path ?? null)
   }
   const unreadElsewhere = files.some((f) => !f.read && f.path !== path)
 
@@ -136,7 +172,7 @@ function ReadThroughSheet({ repoPath, request, refreshKey, onClose }: ReadThroug
                   type="button"
                   className={path === null ? 'changed-file changed-file-selected' : 'changed-file'}
                   aria-pressed={path === null}
-                  onClick={() => setPath(null)}
+                  onClick={() => openFile(null)}
                 >
                   Overview
                 </button>
@@ -153,7 +189,7 @@ function ReadThroughSheet({ repoPath, request, refreshKey, onClose }: ReadThroug
                         key={file.path}
                         file={file}
                         selected={file.path === path}
-                        onSelect={() => setPath(file.path)}
+                        onSelect={() => openFile(file.path)}
                         relativeTo={group.folder}
                         read={file.read}
                         onRead={(read) => setRead(file, read)}
@@ -174,17 +210,39 @@ function ReadThroughSheet({ repoPath, request, refreshKey, onClose }: ReadThroug
                   path={selected.origPath ? `${selected.origPath} → ${selected.path}` : selected.path}
                   className="read-through-file-path"
                 />
+                <button type="button" className="read-through-button" onClick={() => setNoting(true)}>
+                  Add note
+                </button>
                 <Checkbox checked={selected.read} onChange={(read) => setRead(selected, read)} label="Read" />
-                <button type="button" className="read-through-next" disabled={!unreadElsewhere} onClick={nextUnread}>
+                <button type="button" className="read-through-button" disabled={!unreadElsewhere} onClick={nextUnread}>
                   Next unread
                 </button>
               </div>
+              {noting && (
+                <ReviewComposer
+                  placeholder={`Note on ${selected.path}`}
+                  sendLabel="Add note"
+                  onSend={(text) => addNote(selected, 0, 0, text).then(() => setNoting(false))}
+                  onCancel={() => setNoting(false)}
+                />
+              )}
+              {fileNotes
+                .filter((note) => !note.line && !note.oldLine)
+                .map((note) => (
+                  <ReviewNoteBlock key={note.id} note={note} onEdit={editNote} />
+                ))}
               <ChangedFileDiff
                 file={selected}
                 version={`${range.base}:${range.head}:${selected.oldBlob}:${selected.newBlob}`}
                 loadDiff={(file, force, ignoreWhitespace) =>
                   ReadThroughService.FileDiff(range, file.origPath, file.path, force, ignoreWhitespace)
                 }
+                notes={{
+                  items: fileNotes.filter((note) => note.line || note.oldLine),
+                  add: (line, oldLine, text) => addNote(selected, line, oldLine, text),
+                  edit: editNote,
+                }}
+                focusLine={focusLine}
                 images={{
                   repoPath: range.path,
                   before: { kind: 'commit', rev: range.base },
@@ -193,7 +251,13 @@ function ReadThroughSheet({ repoPath, request, refreshKey, onClose }: ReadThroug
               />
             </>
           ) : (
-            info && files.length > 0 && <Overview info={info} files={files} />
+            info &&
+            files.length > 0 && (
+              <>
+                <Overview info={info} files={files} />
+                <NoteList notes={notes ?? []} onOpen={(note) => openFile(note.path, note.outdated ? 0 : note.line)} />
+              </>
+            )
           )}
         </div>
       </div>
@@ -227,6 +291,34 @@ function Overview({ info, files }: { info: ReadThroughInfo; files: ReadThroughFi
         )}
       </FactList>
     </div>
+  )
+}
+
+function NoteList({ notes, onOpen }: { notes: ReadThroughNote[]; onOpen: (note: ReadThroughNote) => void }) {
+  const { copied, copy } = useCopyToClipboard()
+  if (notes.length === 0) return null
+  return (
+    <section className="read-through-notes" aria-label="Notes">
+      <div className="changed-files-browser-header">
+        <h3 className="changed-files-browser-label">Notes</h3>
+        <button type="button" className="read-through-button" onClick={() => copy(notesText(notes))}>
+          {copied ? 'Copied' : 'Copy review notes'}
+        </button>
+      </div>
+      <ul className="read-through-note-list">
+        {notes.map((note) => (
+          <li key={note.id}>
+            <button type="button" className="read-through-note" onClick={() => onOpen(note)}>
+              <span className="read-through-note-where">
+                {note.path} · {noteWhere(note)}
+                {note.outdated && <span className="review-note-outdated">Outdated</span>}
+              </span>
+              <span className="read-through-note-text">{note.text}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

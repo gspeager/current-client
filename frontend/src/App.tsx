@@ -97,9 +97,9 @@ import ChangelogView from './features/changelog/ChangelogView'
 import ChangesView from './features/working-copy/ChangesView'
 import HistoryView from './features/history/HistoryView'
 import ReadThroughSheet from './features/read-through/ReadThroughSheet'
-import { ReadThroughContext, type ReadThroughTarget } from './features/read-through/readThrough'
+import { openingOf, ReadThroughContext, type ReadThroughOpening } from './features/read-through/readThrough'
 import NotesDialogs from './features/notes/NotesDialogs'
-import { NotesContext, useNotesState, type NoteKind } from './features/notes/notes'
+import { NotesContext, targetOf, useNotesState } from './features/notes/notes'
 import { refFromSaved, savedFromRef } from './features/history/branchFilter'
 import './App.scss'
 
@@ -384,7 +384,7 @@ function App({
 
   const [openIssueKey, setOpenIssueKey] = useState<string | null>(null)
   const [newIssueDraft, setNewIssueDraft] = useState<IssueDraft | null>(null)
-  const [readThrough, setReadThrough] = useState<Partial<ReadThroughTarget> | null>(null)
+  const [readThrough, setReadThrough] = useState<ReadThroughOpening | null>(null)
   const [issueFocus, setIssueFocus] = useState<string | null>(null)
   useEffect(() => {
     setPushed(null)
@@ -538,7 +538,9 @@ function App({
   const openNote = (note: NoteInfo) => {
     if (!repo.repoPath) return
     if (note.stale) {
-      notesState.context.edit({ kind: note.kind as NoteKind, target: note.target, subject: note.subject })
+      notesState.context.edit(targetOf(note))
+    } else if (note.kind === 'review') {
+      setReadThrough({ ...openingOf(note.target), at: { path: note.path, line: note.line } })
     } else if (note.kind === 'file') {
       openWorkingFile(note.target)
     } else if (note.kind === 'commit') {
@@ -968,8 +970,9 @@ function App({
                     {readThrough && repo.repoPath && (
                       <ReadThroughSheet
                         repoPath={repo.repoPath}
-                        request={readThrough}
+                        opening={readThrough}
                         refreshKey={repoVersion}
+                        onNotesChanged={notesState.reload}
                         onClose={() => setReadThrough(null)}
                       />
                     )}

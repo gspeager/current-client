@@ -77,7 +77,7 @@
   font: var(--data-md);
 }
 
-.read-through-next {
+.read-through-button {
   flex-shrink: 0;
   height: var(--h-chip);
   padding: 0 var(--space-sm);
@@ -104,4 +104,48 @@
 
 .read-through-wrapping {
   white-space: normal;
+}
+
+.read-through-notes {
+  max-width: 720px;
+  margin-top: var(--space-lg);
+}
+
+.read-through-note-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.read-through-note {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm);
+  background: none;
+  border: none;
+  border-top: var(--border-structure);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.read-through-note-where {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  overflow-wrap: anywhere;
+}
+
+.read-through-note-text {
+  display: block;
+  margin-top: var(--space-xs);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }

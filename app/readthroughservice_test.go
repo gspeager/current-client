@@ -171,3 +171,77 @@ func TestRefOfAChangeOnThisComputer(t *testing.T) {
 		t.Errorf("with only a branch ahead of it, ref = %q", ref.Ref)
 	}
 }
+
+func reviewNotes(t *testing.T, info ReadThroughInfo) []ReadThroughNote {
+	t.Helper()
+	list, err := new(ReadThroughService).Notes(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return list
+}
+
+func TestReadThroughNotes(t *testing.T) {
+	repo := readThroughRepo(t)
+	gitIn(t, repo, "switch", "-q", "side")
+	writeIn(t, repo, "b.txt", "first\nsecond\nthird\n")
+	writeIn(t, repo, "a.txt", "replaced\n")
+	gitIn(t, repo, "commit", "-q", "-a", "-m", "more")
+	s := new(ReadThroughService)
+	request := ReadThroughRequest{Ref: "refs/heads/side", Uncommitted: true}
+	info := openReadThrough(t, repo, request)
+	for _, note := range []ReadThroughNote{
+		{Path: "b.txt", Line: 2, Text: " why?\n"},
+		{Path: "b.txt", Line: 3, Text: "fine"},
+		{Path: "b.txt", Text: "the whole file"},
+		{Path: "a.txt", OldLine: 1, Text: "was this needed"},
+	} {
+		if err := s.AddNote(info, note); err != nil {
+			t.Fatal(err)
+		}
+	}
+	list := reviewNotes(t, info)
+	if len(list) != 4 || list[0].Path != "a.txt" || list[0].LineText != "a" || list[1].Text != "the whole file" ||
+		list[2].Text != "why?" || list[2].LineText != "second" {
+		t.Fatalf("notes = %+v", list)
+	}
+
+	writeIn(t, repo, "b.txt", "new above\nfirst\nchanged\nthird\n")
+	list = reviewNotes(t, info)
+	if !list[2].Outdated || list[2].Line != 2 || list[3].Outdated || list[3].Line != 4 || list[0].Outdated || list[1].Outdated {
+		t.Errorf("after an edit, notes = %+v", list)
+	}
+	committed := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/side"})
+	if list := reviewNotes(t, committed); list[2].Outdated {
+		t.Errorf("without the edit, notes = %+v", list)
+	}
+	gitIn(t, repo, "checkout", "-q", ".")
+
+	notesService := new(NotesService)
+	if err := notesService.EditReview(repo, list[2].ID, "because"); err != nil {
+		t.Fatal(err)
+	}
+	if err := notesService.EditReview(repo, list[3].ID, " "); err != nil {
+		t.Fatal(err)
+	}
+	if list := reviewNotes(t, info); len(list) != 3 || list[2].Text != "because" || list[2].LineText != "second" {
+		t.Errorf("after editing, notes = %+v", list)
+	}
+
+	gitIn(t, repo, "switch", "-q", "main")
+	if err := new(BranchService).RenameBranch(repo, "side", "renamed"); err != nil {
+		t.Fatal(err)
+	}
+	if list := reviewNotes(t, openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/renamed"})); len(list) != 3 {
+		t.Errorf("after a rename, notes = %+v", list)
+	}
+	if note := noteOn(t, repo, "review", "refs/heads/renamed"); note == nil || note.Stale || note.Path == "" {
+		t.Errorf("listed as %+v", note)
+	}
+	if _, err := new(BranchService).DeleteBranch(repo, "renamed", true); err != nil {
+		t.Fatal(err)
+	}
+	if note := noteOn(t, repo, "review", "refs/heads/renamed"); note == nil || !note.Stale {
+		t.Errorf("a deleted branch's note is %+v", note)
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/readthrough"
+	"github.com/gspeager/current-client/internal/notes"
 )
 
 type BranchService struct{}
@@ -78,6 +79,7 @@ func (s *BranchService) RenameBranch(repoPath, oldName, newName string) error {
 	return errors.Join(
 		renameInStacks(repoPath, oldName, newName),
 		readthrough.Rename(ctx, repoPath, "refs/heads/"+oldName, "refs/heads/"+newName),
+		notes.Rename(notesKey(ctx, repoPath), "refs/heads/"+oldName, "refs/heads/"+newName),
 	)
 }
 

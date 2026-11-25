@@ -4,8 +4,10 @@ import {
   BranchService,
   DiffService,
   FileDiff,
+  NotesService,
   ReadThroughFile,
   ReadThroughInfo,
+  ReadThroughNote,
   ReadThroughService,
   TagService,
 } from '@current-client-bindings/app'
@@ -43,13 +45,25 @@ const diff = new FileDiff({
   ],
 })
 
+const notesChanged = vi.fn()
+
 const open = (refreshKey = 0, request = { ref: 'refs/heads/feat' }) => (
-  <ReadThroughSheet repoPath="/repo" request={request} refreshKey={refreshKey} onClose={() => undefined} />
+  <ReadThroughSheet
+    repoPath="/repo"
+    opening={request}
+    refreshKey={refreshKey}
+    onNotesChanged={notesChanged}
+    onClose={() => undefined}
+  />
 )
 
 beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn()
   vi.mocked(ReadThroughService.Open).mockResolvedValue(info())
   vi.mocked(ReadThroughService.FileDiff).mockResolvedValue(diff)
+  vi.mocked(ReadThroughService.Notes).mockResolvedValue([])
+  vi.mocked(ReadThroughService.AddNote).mockResolvedValue(undefined)
+  vi.mocked(NotesService.EditReview).mockResolvedValue(undefined)
   vi.mocked(ReadThroughService.SetRead).mockResolvedValue(undefined)
   vi.mocked(BranchService.ListLocal).mockResolvedValue([])
   vi.mocked(BranchService.ListRemote).mockResolvedValue(['origin/main'])
@@ -167,5 +181,80 @@ describe('reading', () => {
     vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('src/new.ts')] }))
     fireEvent.focus(window)
     expect(await screen.findByRole('checkbox', { name: 'Read src/new.ts' })).toBeInTheDocument()
+  })
+})
+
+describe('notes', () => {
+  const note = (over: Partial<ReadThroughNote>) =>
+    new ReadThroughNote({ id: 'n1', path: 'src/a.ts', line: 1, text: 'why?', lineText: 'new', ...over })
+  const readA = async () => {
+    await opened()
+    await userEvent.click(screen.getByRole('button', { name: /^a\.ts/ }))
+    await screen.findByText('new')
+  }
+
+  it('adds one on a line, on an old line and on the file', async () => {
+    await readA()
+    await userEvent.click(screen.getByRole('button', { name: 'Add note on line 1' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Note on line 1' }), 'why?{Meta>}{Enter}{/Meta}')
+    expect(vi.mocked(ReadThroughService.AddNote).mock.lastCall?.[1]).toMatchObject({
+      path: 'src/a.ts',
+      line: 1,
+      oldLine: 0,
+      text: 'why?',
+    })
+    await waitFor(() => expect(notesChanged).toHaveBeenCalled())
+    await userEvent.click(screen.getByRole('button', { name: 'Add note on old line 1' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Note on old line 1' }), 'gone{Meta>}{Enter}{/Meta}')
+    expect(vi.mocked(ReadThroughService.AddNote).mock.lastCall?.[1]).toMatchObject({ line: 0, oldLine: 1 })
+    await userEvent.click(screen.getByRole('button', { name: 'Add note' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Note on src/a.ts' }), 'whole{Meta>}{Enter}{/Meta}')
+    expect(vi.mocked(ReadThroughService.AddNote).mock.lastCall?.[1]).toMatchObject({ line: 0, oldLine: 0 })
+  })
+
+  it('shows one under its line, to edit and remove', async () => {
+    vi.mocked(ReadThroughService.Notes).mockResolvedValue([note({})])
+    await readA()
+    const block = screen.getByRole('group', { name: 'Note on line 1' })
+    expect(block.closest('.diff-pane')).not.toBeNull()
+    await userEvent.click(within(block).getByRole('button', { name: 'Edit note' }))
+    const text = within(block).getByRole('textbox')
+    expect(text).toHaveValue('why?')
+    await userEvent.type(text, ' really{Meta>}{Enter}{/Meta}')
+    expect(NotesService.EditReview).toHaveBeenLastCalledWith('/repo', 'n1', 'why? really')
+    await userEvent.click(within(block).getByRole('button', { name: 'Remove note' }))
+    expect(NotesService.EditReview).toHaveBeenLastCalledWith('/repo', 'n1', '')
+  })
+
+  it('marks one outdated when its line changes, with the line it was on', async () => {
+    vi.mocked(ReadThroughService.Notes).mockResolvedValue([note({ outdated: true, lineText: 'was here' })])
+    await readA()
+    const block = screen.getByRole('group', { name: 'Note on line 1' })
+    expect(block.closest('.diff-pane')).toBeNull()
+    expect(within(block).getByText('Outdated')).toBeInTheDocument()
+    expect(within(block).getByText('was here')).toBeInTheDocument()
+  })
+
+  it('lists and copies them with their file and line', async () => {
+    const writeText = vi.fn(() => Promise.resolve())
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    vi.mocked(ReadThroughService.Notes).mockResolvedValue([
+      note({}),
+      note({ id: 'n2', line: 0, oldLine: 4, text: 'two\nlines' }),
+      note({ id: 'n3', path: 'go.sum', line: 0, text: 'fine' }),
+      note({ id: 'n4', line: 9, outdated: true, lineText: 'was', text: 'stale' }),
+    ])
+    await opened()
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy review notes' }))
+    expect(writeText).toHaveBeenCalledWith(
+      [
+        '- `src/a.ts:1` why?',
+        '- `src/a.ts:4` (old version) two\n  lines',
+        '- `go.sum` fine',
+        '- `src/a.ts:9` (line changed since) stale',
+      ].join('\n'),
+    )
+    fireEvent.click(screen.getByRole('button', { name: /src\/a\.ts · line 1/ }))
+    expect(await screen.findByText('new')).toBeInTheDocument()
   })
 })

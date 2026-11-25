@@ -1,15 +1,21 @@
 package app
 
 import (
+	"cmp"
 	"context"
+	"crypto/rand"
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"time"
 
+	"github.com/gspeager/current-client/core/diff"
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/readthrough"
+	"github.com/gspeager/current-client/internal/notes"
 )
 
 type ReadThroughService struct{}
@@ -224,6 +230,96 @@ func (s *ReadThroughService) SetRead(info ReadThroughInfo, files []ReadThroughFi
 		return file
 	})
 	return readthrough.SetRead(context.Background(), info.Path, info.Key, info.changes(), listed, read)
+}
+
+// ReadThroughNote is on a line of the new version, a line of the old one, or the
+// whole file. Outdated means that line has changed since, so Line and OldLine are
+// where it was.
+type ReadThroughNote struct {
+	ID       string `json:"id"`
+	Path     string `json:"path"`
+	OldPath  string `json:"oldPath"`
+	Line     int    `json:"line"`
+	OldLine  int    `json:"oldLine"`
+	LineText string `json:"lineText"`
+	Text     string `json:"text"`
+	Outdated bool   `json:"outdated"`
+}
+
+// Notes lists what was noted while reading, in the order of the files.
+func (s *ReadThroughService) Notes(info ReadThroughInfo) ([]ReadThroughNote, error) {
+	ctx := context.Background()
+	stored, err := notes.List(notesKey(ctx, info.Path))
+	if err != nil {
+		return nil, err
+	}
+	list := []ReadThroughNote{}
+	for _, note := range stored {
+		if note.Kind != notes.KindReview || note.Target != info.Key {
+			continue
+		}
+		line, oldLine, outdated := note.Line, note.OldLine, false
+		if line+oldLine > 0 {
+			content, err := info.contentFor(ctx, note)
+			if err != nil {
+				return nil, err
+			}
+			at, found := note.LineIn(content)
+			outdated = !found
+			if found && line > 0 {
+				line = at
+			} else if found {
+				oldLine = at
+			}
+		}
+		list = append(list, ReadThroughNote{note.ID, note.Path, note.OldPath, line, oldLine, note.LineText, note.Text, outdated})
+	}
+	slices.SortStableFunc(list, func(a, b ReadThroughNote) int {
+		return cmp.Or(strings.Compare(a.Path, b.Path), cmp.Compare(a.Line+a.OldLine, b.Line+b.OldLine))
+	})
+	return list, nil
+}
+
+// contentFor is the version of the file the note is on, nil when it's gone.
+func (info ReadThroughInfo) contentFor(ctx context.Context, note notes.Note) ([]byte, error) {
+	var data []byte
+	var err error
+	switch {
+	case note.OldLine > 0:
+		data, _, err = diff.ReadRevisionFile(ctx, info.Path, info.Base, cmp.Or(note.OldPath, note.Path), maxFileContentBytes)
+	case info.Uncommitted:
+		data, _, err = diff.ReadWorkingFile(info.Path, note.Path, maxFileContentBytes)
+	default:
+		data, _, err = diff.ReadRevisionFile(ctx, info.Path, info.Head, note.Path, maxFileContentBytes)
+	}
+	if errors.Is(err, diff.ErrFileTooLarge) {
+		return nil, nil
+	}
+	return data, err
+}
+
+// AddNote keeps a note with the line it's written on.
+func (s *ReadThroughService) AddNote(info ReadThroughInfo, note ReadThroughNote) error {
+	ctx := context.Background()
+	added := notes.Note{
+		Kind:      notes.KindReview,
+		Target:    info.Key,
+		Text:      strings.TrimSpace(note.Text),
+		UpdatedAt: time.Now().UTC(),
+		ID:        rand.Text(),
+		Path:      note.Path,
+		OldPath:   note.OldPath,
+		Line:      note.Line,
+		OldLine:   note.OldLine,
+	}
+	if note.Line+note.OldLine > 0 {
+		content, err := info.contentFor(ctx, added)
+		if err != nil {
+			return err
+		}
+		added.Anchor(content)
+	}
+	return notes.Set(notesKey(ctx, info.Path), added)
 }
 
 // forgetMarks drops the marks of branches and worktrees that are gone. The

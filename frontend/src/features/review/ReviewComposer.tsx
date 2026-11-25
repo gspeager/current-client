@@ -7,6 +7,8 @@ interface ReviewComposerProps {
   // Sends to the host now; the composer closes when it resolves.
   onSend: (body: string) => Promise<void>
   sendLabel?: string
+  // The text it starts with.
+  initial?: string
   // Keeps the comment for a review submitted later; no request.
   onAddToReview?: (body: string) => void
   onCancel: () => void
@@ -14,8 +16,15 @@ interface ReviewComposerProps {
 
 // One text box with the two ways a comment leaves it: to the host now, or
 // into the drafted review. Cmd/Ctrl+Enter sends.
-function ReviewComposer({ placeholder, onSend, sendLabel = 'Comment', onAddToReview, onCancel }: ReviewComposerProps) {
-  const [body, setBody] = useState('')
+function ReviewComposer({
+  placeholder,
+  onSend,
+  sendLabel = 'Comment',
+  initial = '',
+  onAddToReview,
+  onCancel,
+}: ReviewComposerProps) {
+  const [body, setBody] = useState(initial)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const ready = body.trim() !== '' && !sending
