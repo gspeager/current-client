@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { ImageDown } from 'lucide-react'
 import { useDebounceValue } from 'usehooks-ts'
 import {
   BranchService,
@@ -7,17 +8,22 @@ import {
   type ExploreComparison,
   type MapChangeInfo,
 } from '@current-client-bindings/app'
+import SaveImageDialog from '../../components/chrome/SaveImageDialog'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import Checkbox from '../../components/forms/Checkbox'
+import { baseName } from '../../lib/paths'
+import { withHeading, type HeadingColors, type Picture } from '../../lib/picture'
 import { plural } from '../../lib/plural'
-import { relativeTime } from '../../lib/relativeTime'
+import { localDate, relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import CompareModal from '../history/CompareModal'
 import { useFileTools } from '../history/useFileTools'
 import { useOpenReadThrough } from '../read-through/readThrough'
 import CodeMap from './CodeMap'
 import { folderAreas, slotFinder, type FolderArea } from './folderAreas'
-import { inFolder, type MapItem } from './mapLayout'
+import { readMapColors, type MapColors } from './drawMap'
+import { inFolder, type MapItem, type MapLayout } from './mapLayout'
+import { mapPicture, type LegendEntry } from './mapPicture'
 import { ageLegend, ageStep, commitSteps, type Step, type StepLegend } from './mapSteps'
 import './ExploreView.scss'
 
@@ -35,6 +41,11 @@ const STATUS: Record<string, { word: string; step: Step }> = {
   R: { word: 'Renamed', step: 3 },
   D: { word: 'Deleted', step: 2 },
 }
+
+const CHANGE_KEYS = [
+  ...['A', 'M', 'R', 'D'].map((letter) => ({ letter, label: STATUS[letter].word })),
+  { letter: '!', label: 'Predicted to conflict' },
+]
 
 interface ExploreViewProps {
   repoPath: string
@@ -58,6 +69,9 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
   const [position, setPosition] = useState<number | null>(null)
   const [active, setActive] = useState<MapItem | null>(null)
   const [comparing, setComparing] = useState<string | null>(null)
+  const [saving, setSaving] = useState<{ picture: Picture; about: string; colors: HeadingColors } | null>(null)
+  const layout = useRef<MapLayout | null>(null)
+  const box = useRef<HTMLDivElement>(null)
   const readThrough = useOpenReadThrough()
   const tools = useFileTools(repoPath)
 
@@ -74,7 +88,10 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     refreshKey: repoVersion,
   })
   const { data: then, error: thenError } = useAsyncData(
-    () => (settled === 'HEAD' ? null : ExploreService.Files(repoPath, `refs/tags/${settled}`)),
+    () =>
+      settled === 'HEAD'
+        ? null
+        : ExploreService.Files(repoPath, `refs/tags/${settled}`).then((files) => ({ files, release: settled })),
     [repoPath, settled],
     { keepData: true },
   )
@@ -82,7 +99,10 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     refreshKey: repoVersion,
   })
   const { data: changes, error: changesError } = useAsyncData(
-    () => (view === 'changes' ? ExploreService.Changes(repoPath, comparison) : null),
+    () =>
+      view === 'changes'
+        ? ExploreService.Changes(repoPath, comparison).then((found) => ({ ...found, comparison }))
+        : null,
     [repoPath, view, comparison],
     { refreshKey: workingVersion, keepData: true },
   )
@@ -94,7 +114,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
 
   const atRelease = settled !== 'HEAD'
   const files = useMemo(
-    () => ((atRelease ? then : now) ?? []).filter(listed),
+    () => ((atRelease ? then?.files : now) ?? []).filter(listed),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [atRelease, then, now, shown],
   )
@@ -158,6 +178,28 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     } else setComparing(item.path)
   }
 
+  const save = () => {
+    if (!layout.current || !box.current) return
+    const colors = readMapColors(box.current)
+    const about =
+      view === 'code'
+        ? [
+            'Code map',
+            root,
+            atRelease
+              ? then?.release
+              : coloring === 'age'
+                ? 'by age'
+                : `commits ${PERIODS[period].words || 'of all time'}`,
+          ]
+        : ['Changes', root, changes && comparisonName(changes.comparison, changes.target)]
+    setSaving({
+      picture: mapPicture(layout.current, legendEntries(areas, legend, view === 'changes', colors), colors),
+      about: about.filter(Boolean).join(', '),
+      colors: { ground: colors.ground, name: colors.name, muted: colors.muted },
+    })
+  }
+
   const legend: StepLegend[] =
     view === 'changes' ? [] : atRelease ? [] : coloring === 'commits' ? steps.legend : ageLegend
   const failure = view === 'code' ? (error ?? (atRelease ? thenError : null)) : changesError
@@ -167,7 +209,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
   const picked = comparison.kind === 'working' ? 'working' : `${comparison.kind}:${comparison.ref}`
 
   return (
-    <div className="explore-view">
+    <div className="explore-view" ref={box}>
       <h2 className="visually-hidden">Explore</h2>
       <div className="explore-toolbar">
         <SegmentedControl
@@ -246,6 +288,16 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
           />
           <Checkbox checked={shown.binary} onChange={(binary) => setShown({ ...shown, binary })} label="Binary" />
         </div>
+        <button
+          type="button"
+          className="explore-save"
+          disabled={!!failure || loading || items.length === 0}
+          onClick={save}
+          aria-label="Save as image"
+          title="Save as image"
+        >
+          <ImageDown size={14} strokeWidth={1.75} />
+        </button>
       </div>
       <div className="explore-toolbar">
         <nav className="explore-path" aria-label="Folder">
@@ -314,6 +366,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
           }
           onRoot={setFolder}
           onActive={setActive}
+          onLayout={(next) => (layout.current = next)}
         />
       )}
       <div className="explore-facts">
@@ -332,6 +385,20 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
       </div>
       <Legend areas={areas} steps={legend} changes={view === 'changes'} />
       {tools.overlays}
+      {saving && (
+        <SaveImageDialog
+          name={`${baseName(repoPath)}-${view === 'code' ? 'code-map' : 'changes'}`}
+          picture={() =>
+            withHeading(saving.picture, {
+              title: baseName(repoPath),
+              about: saving.about,
+              date: localDate(),
+              colors: saving.colors,
+            })
+          }
+          onClose={() => setSaving(null)}
+        />
+      )}
       {comparing !== null && (
         <CompareModal
           repoPath={repoPath}
@@ -350,6 +417,21 @@ function describeChange({ path, origPath, status, added, removed, binary, confli
   const from = origPath ? ` from ${origPath}` : ''
   const lines = binary ? 'binary' : `+${added} -${removed}`
   return `${path}, ${what.toLowerCase()}${from}, ${lines}${conflict ? ', predicted to conflict' : ''}`
+}
+
+function comparisonName({ kind, ref }: ExploreComparison, target?: string): string {
+  if (kind === 'working') return 'uncommitted'
+  return kind === 'branch' ? `${ref} against ${target}` : `since ${ref}`
+}
+
+function legendEntries(areas: FolderArea[], steps: StepLegend[], changes: boolean, colors: MapColors): LegendEntry[] {
+  const colored = areas.filter((area) => area.slot > 0)
+  return [
+    ...colored.map((area) => ({ label: areaName(area), color: colors.steps[area.slot][1] })),
+    ...(areas.length > colored.length ? [{ label: 'Other folders', color: colors.steps[0][1] }] : []),
+    ...steps.map(({ step, label }) => ({ label, color: colors.steps[0][step - 1] })),
+    ...(changes ? CHANGE_KEYS : []),
+  ]
 }
 
 const areaName = (area: FolderArea) => area.path || 'Top folder'
@@ -378,18 +460,14 @@ function Legend({ areas, steps, changes }: { areas: FolderArea[]; steps: StepLeg
           </span>
         ))}
         {changes &&
-          ['A', 'M', 'R', 'D'].map((status) => (
-            <span key={status} className="explore-key">
-              <span className="explore-letter">{status}</span>
-              {STATUS[status].word}
+          CHANGE_KEYS.map(({ letter, label }) => (
+            <span key={letter} className="explore-key">
+              <span className={letter === '!' ? 'explore-letter explore-letter-conflict' : 'explore-letter'}>
+                {letter}
+              </span>
+              {label}
             </span>
           ))}
-        {changes && (
-          <span className="explore-key">
-            <span className="explore-letter explore-letter-conflict">!</span>
-            Predicted to conflict
-          </span>
-        )}
       </span>
     </div>
   )

@@ -1,4 +1,5 @@
-import { drawMap, type MapColors, type Painter } from './drawMap'
+import type { Painter } from '../../lib/picture'
+import { drawMap, type MapColors } from './drawMap'
 import { headerAt, layoutMap, neighbor, tileAt, type MapItem } from './mapLayout'
 
 const item = (path: string, size: number, over: Partial<MapItem> = {}): MapItem => ({
@@ -93,7 +94,10 @@ describe('drawMap', () => {
       rect: (_x, _y, _w, _h, fill) => calls.push(`rect ${fill}`),
       frame: (_x, _y, _w, _h, color, line) => calls.push(`frame ${color} ${line}`),
       line: (_x0, _y0, _x1, _y1, color) => calls.push(`line ${color}`),
-      text: (_x, _y, text, color) => calls.push(`text ${text} ${color}`),
+      text: (_x, _y, text, { color }) => calls.push(`text ${text} ${color}`),
+      path: () => undefined,
+      circle: () => undefined,
+      within: (_x, _y, _o, draw) => draw(),
     }
     drawMap(painter, layoutMap(list, '', 400, 300), colors)
     return calls

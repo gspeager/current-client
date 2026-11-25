@@ -1,3 +1,4 @@
+import { cut, TEXT_SIZE, textWidth, type Painter } from '../../lib/picture'
 import { HEADER, type MapLayout, type Tile } from './mapLayout'
 
 export interface MapColors {
@@ -11,17 +12,7 @@ export interface MapColors {
   steps: string[][]
 }
 
-// What a picture is drawn with: a canvas on screen, and an SVG when it's saved.
-export interface Painter {
-  rect: (x: number, y: number, width: number, height: number, fill: string) => void
-  frame: (x: number, y: number, width: number, height: number, color: string, line: number) => void
-  line: (x0: number, y0: number, x1: number, y1: number, color: string) => void
-  text: (x: number, baseline: number, text: string, color: string) => void
-}
-
-export const FONT_SIZE = 12
-// Of the data font, which is monospaced.
-const CHARACTER = FONT_SIZE * 0.6
+const DATA = { face: 'data' } as const
 const PAD = 6
 // Less of a name than this says nothing.
 const SHORTEST = 8
@@ -41,17 +32,6 @@ export function readMapColors(element: Element): MapColors {
   }
 }
 
-const fits = (width: number) => Math.floor((width - 2 * PAD) / CHARACTER)
-
-// A path keeps its end, where the name is.
-function cutLeft(text: string, room: number): string {
-  return text.length <= room ? text : room < 2 ? '' : `…${text.slice(text.length - room + 1)}`
-}
-
-function cutRight(text: string, room: number): string {
-  return text.length <= room ? text : room < SHORTEST ? '' : `${text.slice(0, room - 1)}…`
-}
-
 function drawTile(painter: Painter, tile: Tile, colors: MapColors) {
   const { x0, y0, item } = tile
   const width = tile.x1 - x0
@@ -69,14 +49,14 @@ function drawTile(painter: Painter, tile: Tile, colors: MapColors) {
     painter.frame(x0 + 2, y0 + 2, width - 4, height - 4, colors.onFolder, 1)
   }
   if (item.conflict && width > 4 && height > 4) painter.frame(x0, y0, width, height, colors.warning, 3)
-  if (height < FONT_SIZE + 6 || width < 24) return
+  if (height < TEXT_SIZE + 6 || width < 24) return
   const ink = deleted ? colors.muted : colors.onFolder
   const mark = item.status ? `${item.status}${item.conflict ? '!' : ''}` : ''
-  const room = fits(width)
-  const name = cutRight(tile.name, mark ? room - mark.length - 1 : room)
-  const baseline = y0 + FONT_SIZE + 3
-  if (mark && room >= mark.length) painter.text(tile.x1 - PAD - mark.length * CHARACTER, baseline, mark, ink)
-  if (name) painter.text(x0 + PAD, baseline, name, ink)
+  const baseline = y0 + TEXT_SIZE + 3
+  const room = width - 2 * PAD
+  if (mark && textWidth(mark, DATA) <= room) painter.text(tile.x1 - PAD, baseline, mark, { color: ink, align: 'right' })
+  const name = cut(tile.name, mark ? room - textWidth(`${mark} `, DATA) : room, DATA, 'right', SHORTEST)
+  if (name) painter.text(x0 + PAD, baseline, name, { color: ink })
 }
 
 export function drawMap(painter: Painter, layout: MapLayout, colors: MapColors) {
@@ -84,35 +64,8 @@ export function drawMap(painter: Painter, layout: MapLayout, colors: MapColors) 
   for (const folder of layout.folders) {
     if (!folder.header) continue
     painter.rect(folder.x0, folder.y0, folder.x1 - folder.x0, folder.y1 - folder.y0, colors.folder)
-    const name = cutLeft(folder.name, fits(folder.x1 - folder.x0))
-    if (name) painter.text(folder.x0 + PAD, folder.y0 + HEADER - 6, name, colors.name)
+    const name = cut(folder.name, folder.x1 - folder.x0 - 2 * PAD, DATA, 'left')
+    if (name) painter.text(folder.x0 + PAD, folder.y0 + HEADER - 6, name, { color: colors.name })
   }
   for (const tile of layout.tiles) drawTile(painter, tile, colors)
-}
-
-export function canvasPainter(context: CanvasRenderingContext2D, font: string): Painter {
-  context.font = `${FONT_SIZE}px ${font}`
-  return {
-    rect: (x, y, width, height, fill) => {
-      context.fillStyle = fill
-      context.fillRect(x, y, width, height)
-    },
-    frame: (x, y, width, height, color, line) => {
-      context.strokeStyle = color
-      context.lineWidth = line
-      context.strokeRect(x + line / 2, y + line / 2, Math.max(0, width - line), Math.max(0, height - line))
-    },
-    line: (x0, y0, x1, y1, color) => {
-      context.strokeStyle = color
-      context.lineWidth = 1
-      context.beginPath()
-      context.moveTo(x0, y0)
-      context.lineTo(x1, y1)
-      context.stroke()
-    },
-    text: (x, baseline, text, color) => {
-      context.fillStyle = color
-      context.fillText(text, x, baseline)
-    },
-  }
 }

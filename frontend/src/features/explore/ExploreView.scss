@@ -33,6 +33,29 @@
   margin-left: auto;
 }
 
+.explore-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
 .explore-path {
   display: flex;
   flex-wrap: wrap;

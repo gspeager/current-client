@@ -10,11 +10,17 @@ import HistoryToolbar from './HistoryToolbar'
 import { buildAsciiGraph } from './asciiGraph'
 import { ancestorShas } from './commitAncestry'
 import { identityKey } from './identityKey'
+import { baseName } from '../../lib/paths'
+import { colorsAt } from '../../lib/picture'
+import { BREAKING_FILTER } from '../../lib/conventionalCommit'
 import { plural } from '../../lib/plural'
+import { localDate, relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
-import { assignLaneColors } from './laneOwners'
+import { assignLaneColors, withoutRemote } from './laneOwners'
+import type { GraphPictureOptions, GraphPictureRow } from './graphPicture'
+import SaveGraphDialog, { MOST_ROWS } from './SaveGraphDialog'
 import { useLaneColors } from '../../lib/laneColor'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { useResizableWidth } from '../../lib/useResizableWidth'
@@ -139,6 +145,11 @@ function HistoryView({
   // A file opened from the inspector; it only counts for the commit it was opened from.
   const [openedFile, setOpenedFile] = useState<{ sha: string; path: string } | null>(null)
   const { copied: graphCopied, copy } = useCopyToClipboard()
+  const [saving, setSaving] = useState<{
+    shown: [number, number]
+    width: number
+    color: GraphPictureOptions['color']
+  } | null>(null)
   const [newShas, setNewShas] = useState<Set<string>>(new Set())
   const hasComputedNewShas = useRef(false)
   const parentRef = useRef<HTMLDivElement>(null)
@@ -278,6 +289,12 @@ function HistoryView({
     virtualizer.scrollToIndex(index + offset, { align: 'center' })
   }, [rows, offset, initialSelectedSha, virtualizer])
 
+  // As many as a picture can hold, for the dialog to offer.
+  useEffect(() => {
+    if (saving) loadThrough(MOST_ROWS - 1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saving, loading])
+
   // A jump from the overview strip waits for its row to load. A row the search or
   // Hide merges has taken out lands on the next one still shown.
   const [jumpRow, setJumpRow] = useState<number | null>(null)
@@ -343,6 +360,52 @@ function HistoryView({
     )
   }
 
+  const saveImage = () => {
+    const scroller = parentRef.current
+    if (!scroller) return
+    const first = Math.max(0, Math.floor(scroller.scrollTop / rowHeight))
+    const last = Math.ceil((scroller.scrollTop + scroller.clientHeight) / rowHeight)
+    const total = rows.length + offset
+    setSaving({
+      shown: [Math.min(first, total - 1), Math.min(last, total)],
+      width: scroller.clientWidth,
+      color: colorsAt(scroller),
+    })
+  }
+
+  const pictureRows = (): GraphPictureRow[] => [
+    ...(workingRow
+      ? [{ text: plural(changedFiles, 'uncommitted file'), node: workingRow, colors: laneColors[0] }]
+      : []),
+    ...rows
+      // More may be loading, ahead of their part of the graph.
+      .filter(({ graphNode }) => graphNode)
+      .map(({ commit, graphNode, index }) => ({
+        commit,
+        node: graphNode,
+        colors: rowLaneColors[index],
+        head: commit.sha === head?.sha,
+        dimmed: isDimmed(commit),
+        refs: refsBySha.get(commit.sha),
+        identity: identities.get(identityKey(commit.authorName, commit.authorEmail)),
+        time: relativeTime(new Date(commit.date)),
+      })),
+  ]
+
+  // What narrows the list. A search may be for a person.
+  const describeList = (names: boolean) =>
+    [
+      filter.ref === ALL_BRANCHES ? 'all branches' : filter.ref || currentBranch || 'HEAD',
+      filter.firstParent && 'first parent only',
+      hideMerges && 'without merges',
+      filter.since && `since ${localDate(new Date(filter.since))}`,
+      filter.type && (filter.type === BREAKING_FILTER ? 'breaking changes' : filter.type),
+      filter.author && (names ? `by ${filter.author}` : 'by one author'),
+      query && (names ? `matching “${search.trim()}”` : 'matching a search'),
+    ]
+      .filter(Boolean)
+      .join(', ')
+
   const commitContextMenu = (commit: CommitInfo) => (e: MouseEvent | KeyboardEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -387,6 +450,7 @@ function HistoryView({
               onFilterChange={changeFilter}
               showTypeFilter={conventional}
               onCopyAsciiGraph={copyAsciiGraph}
+              onSaveImage={rows.length > 0 ? saveImage : undefined}
               copied={graphCopied}
             />
 
@@ -515,6 +579,24 @@ function HistoryView({
       )}
 
       {commitActions.overlays}
+      {saving && (
+        <SaveGraphDialog
+          repoName={baseName(repoPath)}
+          about={describeList}
+          rows={pictureRows()}
+          shown={saving.shown}
+          options={{
+            width: saving.width,
+            rowHeight,
+            laneCount,
+            upstreams,
+            laneColor,
+            refColor: (ref) => branchColor(withoutRemote(ref), ref.kind === 'branch' && ref.name === currentBranch),
+            color: saving.color,
+          }}
+          onClose={() => setSaving(null)}
+        />
+      )}
       {contextMenu && <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />}
     </div>
   )
