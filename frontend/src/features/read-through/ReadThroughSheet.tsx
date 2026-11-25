@@ -24,6 +24,7 @@ import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { useActionError } from '../../lib/useActionError'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useRovingRows } from '../../lib/useRovingRows'
+import ChangeStructure from './ChangeStructure'
 import SecondLook from './SecondLook'
 import { groupFiles, totalsByKind, totalsByStatus, totalsByType, type Total } from './groupFiles'
 import { notesText } from './notesText'
@@ -41,6 +42,8 @@ function againText({ gone, conflict, sinceAdded, sinceRemoved }: ReadThroughFile
     return `${since} What was read doesn't merge with the new base, so the base's own changes are among them.`
   return since
 }
+
+const dirOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf('/')))
 
 const versionOf = (file: ReadThroughFile) => `${file.newBlob}:${file.path}`
 
@@ -103,10 +106,21 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     setMode(next)
     setTickedSince(new Set())
   }
-  const files = useMemo(
+  // A folder the structure opened, whose files are all that's listed.
+  const [area, setArea] = useState<string | null>(null)
+  const [areaOf, setAreaOf] = useState(info?.key)
+  if (areaOf !== info?.key) {
+    setAreaOf(info?.key)
+    setArea(null)
+  }
+  const listed = useMemo(
     () => all.filter((f) => (since ? !f.read || tickedSince.has(versionOf(f)) : !f.gone)),
     [all, since, tickedSince],
   )
+  const inArea = listed.filter((f) => [f.path, f.origPath].some((p) => p && dirOf(p) === area))
+  // A folder with nothing left listed lists everything again.
+  const files = area !== null && inArea.length > 0 ? inArea : listed
+  const showingArea = area !== null && inArea.length > 0
   const groups = useMemo(() => groupFiles(files), [files])
   const ordered = useMemo(() => groups.flatMap((group) => group.files), [groups])
   const selected = all.find((f) => f.path === path) ?? null
@@ -128,6 +142,12 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   // The overview lists them, so they're only read again for it.
   const findingsOf = useRef('')
   if (path === null) findingsOf.current = `${info?.head}:${versions}`
+  const { data: shape, error: shapeError } = useAsyncData(
+    () => (info && info.base ? ReadThroughService.Structure(info) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [info?.key, info?.base],
+    { refreshKey: findingsOf.current, keepData: true },
+  )
   const { data: report, error: reportError } = useAsyncData(
     () => (range && range.base ? ReadThroughService.Findings(range) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,6 +268,14 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
             </p>
           ) : (
             <div ref={rows}>
+              {showingArea && (
+                <p className="read-through-area">
+                  Only {area || 'the top folder'}
+                  <button type="button" className="read-through-button" onClick={() => setArea(null)}>
+                    Show all
+                  </button>
+                </p>
+              )}
               <div className="read-through-row">
                 <button
                   type="button"
@@ -358,6 +386,16 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
             files.length > 0 && (
               <>
                 <Overview info={info} files={since ? files.map(shownSince) : files} />
+                <ChangeStructure
+                  shape={shape}
+                  error={shapeError}
+                  onArea={(folder) => {
+                    setArea(folder)
+                    const first = all.find((f) => !f.gone && dirOf(f.path) === folder)
+                    if (first) openFile(first.path)
+                  }}
+                  onFile={(file) => openFile(file)}
+                />
                 <SecondLook
                   report={report}
                   error={reportError}

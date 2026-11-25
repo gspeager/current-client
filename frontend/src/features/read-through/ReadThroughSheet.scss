@@ -221,3 +221,53 @@
   color: var(--on-surface-variant);
   font: var(--ui-xs);
 }
+
+.change-structure-summary {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.change-structure .structure-graph {
+  max-height: 50vh;
+}
+
+.change-structure-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm);
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.change-structure-place {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--on-surface);
+  font: var(--data-sm);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.change-structure-facts {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.change-structure-mark {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.read-through-area {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}

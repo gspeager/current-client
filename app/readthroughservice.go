@@ -11,11 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gspeager/current-client/core/board"
 	"github.com/gspeager/current-client/core/diff"
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/readthrough"
 	"github.com/gspeager/current-client/internal/notes"
+	"github.com/gspeager/current-client/internal/structure"
 )
 
 type ReadThroughService struct{}
@@ -398,4 +400,83 @@ func readThroughGone(ctx context.Context, repoPath string) (func(key string) boo
 		present[worktreeKey+worktree.Path] = true
 	}
 	return func(key string) bool { return !present[key] }, nil
+}
+
+// ChangeStructureInfo is what a change does to the structure. Read is false where
+// links couldn't be read: no language read, or a partial clone, where the base's
+// files would be fetched. Then there are only areas.
+type ChangeStructureInfo struct {
+	Areas     []ChangeArea   `json:"areas"`
+	Links     []ChangeLink   `json:"links"`
+	ReadFirst []ChangeReason `json:"readFirst"`
+	Skim      []ChangeReason `json:"skim"`
+	Read      bool           `json:"read"`
+	Partial   bool           `json:"partial"`
+	Languages []string       `json:"languages"`
+}
+
+// ChangeArea.State is "added" or "removed" for a folder that's new or gone.
+type ChangeArea struct {
+	Path    string   `json:"path"`
+	State   string   `json:"state"`
+	Files   []string `json:"files"`
+	Added   int      `json:"added"`
+	Removed int      `json:"removed"`
+}
+
+type ChangeLink struct {
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Count int    `json:"count"`
+	State string `json:"state"`
+}
+
+// ChangeReason.Why is "used", by Count of the change's areas or of all files, a
+// file's kind, "renamed", or "few" lines in all.
+type ChangeReason struct {
+	Path   string `json:"path"`
+	Folder bool   `json:"folder"`
+	Why    string `json:"why"`
+	Count  int    `json:"count"`
+}
+
+func (s *ReadThroughService) Structure(info ReadThroughInfo) (ChangeStructureInfo, error) {
+	ctx := context.Background()
+	var changes []structure.Changed
+	for _, f := range info.Files {
+		// Listed only to say it changed since it was read.
+		if !f.Gone {
+			changes = append(changes, structure.Changed{Path: f.Path, OrigPath: f.OrigPath, Status: f.Status, Added: f.Added, Removed: f.Removed})
+		}
+	}
+	result := ChangeStructureInfo{Partial: git.PartialClone(ctx, info.Path)}
+	var now, then *structure.Graph
+	if !result.Partial {
+		head := info.Head
+		var env []string
+		if info.Uncommitted {
+			var discard func()
+			env, discard = git.ScratchWrites(ctx, info.Path)
+			defer discard()
+			var err error
+			if head, err = board.Tree(ctx, info.Path, env); err != nil {
+				return result, err
+			}
+		}
+		var err error
+		if now, err = structure.Build(ctx, info.Path, env, head); err != nil {
+			return result, err
+		}
+		if then, err = structure.Build(ctx, info.Path, nil, info.Base); err != nil {
+			return result, err
+		}
+		result.Languages = now.Languages
+		result.Read = len(now.Languages) > 0
+	}
+	shape := structure.CompareChange(now, then, changes)
+	result.Areas = mapSlice(shape.Areas, func(a structure.Area) ChangeArea { return ChangeArea(a) })
+	result.Links = mapSlice(shape.Links, func(l structure.AreaLink) ChangeLink { return ChangeLink(l) })
+	reason := func(r structure.Reason) ChangeReason { return ChangeReason(r) }
+	result.ReadFirst, result.Skim = mapSlice(shape.ReadFirst, reason), mapSlice(shape.Skim, reason)
+	return result, nil
 }

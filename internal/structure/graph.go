@@ -30,6 +30,8 @@ type Graph struct {
 	Unread    int
 	// A folder's own words for itself.
 	Docs map[string]string
+	// Every folder that holds a file, of any kind.
+	Folders map[string]bool
 	// Of the files read, where Git isn't asked for all of them.
 	Lines map[string]int
 }
@@ -140,6 +142,12 @@ func Build(ctx context.Context, repoPath string, env []string, rev string) (*Gra
 	if err != nil {
 		return nil, err
 	}
+	folders := map[string]bool{}
+	for _, f := range files {
+		for dir := folderOf(f.Path); dir != "" && !folders[dir]; dir = folderOf(dir) {
+			folders[dir] = true
+		}
+	}
 	files = slices.DeleteFunc(files, func(f git.TreeFile) bool { return filekind.Of(f.Path) != filekind.Code })
 	known, err := readFacts(ctx, repoPath, env, files)
 	if err != nil {
@@ -147,7 +155,7 @@ func Build(ctx context.Context, repoPath string, env []string, rev string) (*Gra
 	}
 	l := &linker{index: make(map[string]int32, len(files)), links: map[[2]int32]bool{}, config: map[string]*facts{}}
 	byLanguage := map[*language][]int32{}
-	graph := &Graph{Docs: map[string]string{}, Lines: map[string]int{}}
+	graph := &Graph{Docs: map[string]string{}, Lines: map[string]int{}, Folders: folders}
 	for i, f := range files {
 		l.files = append(l.files, f.Path)
 		l.facts = append(l.facts, known[i])

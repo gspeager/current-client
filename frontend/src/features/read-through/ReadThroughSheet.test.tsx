@@ -8,6 +8,7 @@ import {
   ReadThroughFile,
   ReadThroughInfo,
   ReadThroughNote,
+  ChangeStructureInfo,
   ReadThroughService,
   RiskReportInfo,
   TagService,
@@ -70,6 +71,7 @@ beforeEach(() => {
   vi.mocked(ReadThroughService.FileDiff).mockResolvedValue(diff)
   vi.mocked(ReadThroughService.Notes).mockResolvedValue([])
   vi.mocked(ReadThroughService.Findings).mockResolvedValue(report())
+  vi.mocked(ReadThroughService.Structure).mockResolvedValue(new ChangeStructureInfo({ read: true, languages: ['Go'] }))
   vi.mocked(ReadThroughService.AddNote).mockResolvedValue(undefined)
   vi.mocked(NotesService.EditReview).mockResolvedValue(undefined)
   vi.mocked(ReadThroughService.SetRead).mockResolvedValue(undefined)
@@ -513,5 +515,48 @@ describe('notes', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: /src\/a\.ts · line 1/ }))
     expect(await screen.findByText('new')).toBeInTheDocument()
+  })
+})
+
+describe('the structure', () => {
+  it('opens an area to its files alone, and back to all', async () => {
+    vi.mocked(ReadThroughService.Structure).mockResolvedValue(
+      new ChangeStructureInfo({
+        read: true,
+        areas: [
+          { path: '', state: '', files: ['go.sum'], added: 1, removed: 0 },
+          { path: 'src', state: '', files: ['src/a.ts', 'src/a.test.ts'], added: 4, removed: 2 },
+        ],
+        readFirst: [{ path: 'src', folder: true, why: 'used', count: 2 }],
+      }),
+    )
+    render(open())
+    const structure = within(await screen.findByRole('region', { name: 'Structure' }))
+    expect(structure.getByText('2 folders · no link between folders added or removed')).toBeInTheDocument()
+    await userEvent.click(
+      within(structure.getByRole('list', { name: 'Read first' })).getByRole('button', { name: 'src/' }),
+    )
+    expect(screen.getByText('Only src')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /go\.sum/ })).toBeNull()
+    expect(ReadThroughService.FileDiff).toHaveBeenCalledWith(expect.anything(), '', 'src/a.ts', false, false)
+    await userEvent.click(screen.getByRole('button', { name: 'Show all' }))
+    expect(screen.getByText('go.sum')).toBeInTheDocument()
+  })
+
+  it('lists everything again when the folder has nothing left listed, or what is read changes', async () => {
+    vi.mocked(ReadThroughService.Structure).mockResolvedValue(
+      new ChangeStructureInfo({
+        read: true,
+        areas: [{ path: 'src', state: '', files: ['src/a.ts'], added: 1, removed: 0 }],
+      }),
+    )
+    const { rerender } = render(open())
+    const structure = within(await screen.findByRole('region', { name: 'Structure' }))
+    await userEvent.click(structure.getByRole('button', { name: 'src/' }))
+    expect(screen.getByText('Only src')).toBeInTheDocument()
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('docs/x.md')] }))
+    rerender(open(1))
+    expect(await screen.findByText('x.md')).toBeInTheDocument()
+    expect(screen.queryByText('Only src')).toBeNull()
   })
 })

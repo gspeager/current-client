@@ -165,3 +165,45 @@ func TestStructureBeforeTheFirstCommit(t *testing.T) {
 		t.Error(info, errors.Join(err))
 	}
 }
+
+func shapeOf(t *testing.T, info ReadThroughInfo) ChangeStructureInfo {
+	t.Helper()
+	shape, err := new(ReadThroughService).Structure(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return shape
+}
+
+func TestAChangesStructure(t *testing.T) {
+	repo := structureRepo(t)
+	gitIn(t, repo, "switch", "-q", "-c", "feat")
+	if err := os.Mkdir(filepath.Join(repo, "text"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeIn(t, repo, "text/t.go", "package text\n\nfunc Cut() {}\n")
+	writeIn(t, repo, "app/run.go", "package app\n\nimport \"a/text\"\n\nfunc Run() { text.Cut() }\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-q", "-m", "text")
+	info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/feat"})
+	// One listed only as gone, with no status of its own.
+	info.Files = append(info.Files, ReadThroughFile{Path: "gone/g.go", Gone: true})
+	shape := shapeOf(t, info)
+	areas := mapSlice(shape.Areas, func(a ChangeArea) string { return a.Path + " " + a.State })
+	links := mapSlice(shape.Links, func(l ChangeLink) string { return l.From + ">" + l.To + " " + l.State })
+	if !slices.Equal(areas, []string{"app ", "text added"}) || !slices.Equal(links, []string{"app>core removed", "app>text added"}) || !shape.Read {
+		t.Errorf("areas %q, links %q, %+v", areas, links, shape)
+	}
+
+	// A worktree's uncommitted changes, with nothing left behind.
+	gitIn(t, repo, "switch", "-q", "main")
+	before := gitOut(t, repo, "count-objects", "-v")
+	writeIn(t, repo, "core/other.go", "package core\n\nimport \"a/app\"\n\nfunc o() { app.Run() }\n")
+	shape = shapeOf(t, openReadThrough(t, repo, ReadThroughRequest{Path: repo, Uncommitted: true}))
+	if links := mapSlice(shape.Links, func(l ChangeLink) string { return l.From + ">" + l.To + " " + l.State }); !slices.Equal(links, []string{"core>app added"}) {
+		t.Errorf("uncommitted links = %q", links)
+	}
+	if after := gitOut(t, repo, "count-objects", "-v"); after != before {
+		t.Errorf("objects after = %s, before = %s", after, before)
+	}
+}
