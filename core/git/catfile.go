@@ -30,6 +30,11 @@ func FileAt(ctx context.Context, repoPath, rev, path string) ([]byte, bool, erro
 // isn't at its revision, or whose revision doesn't exist, is left out, as
 // is a path that is a directory or a submodule there.
 func FilesAt(ctx context.Context, repoPath string, files []RevPath) (map[RevPath][]byte, error) {
+	return FilesAtWith(ctx, repoPath, nil, files)
+}
+
+// FilesAtWith is FilesAt where env names where the objects are.
+func FilesAtWith(ctx context.Context, repoPath string, env []string, files []RevPath) (map[RevPath][]byte, error) {
 	found := map[RevPath][]byte{}
 	if len(files) == 0 {
 		return found, nil
@@ -43,6 +48,7 @@ func FilesAt(ctx context.Context, repoPath string, files []RevPath) (map[RevPath
 	}
 	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
 		Dir:   repoPath,
+		Env:   env,
 		Args:  []string{"cat-file", "--batch"},
 		Stdin: strings.NewReader(input.String()),
 	})
