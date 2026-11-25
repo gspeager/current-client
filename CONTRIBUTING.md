@@ -82,8 +82,15 @@ All Git commands go through `core/gitexec`. Arguments are always passed as a lis
 - The cyan accent means only three things: keyboard focus, `HEAD`, and the one primary action in a pane.
 - Controls use the existing height tokens; don't add new sizes.
 - Nothing animates longer than 140 ms, and nothing slides, scales, bounces or fades in on load. One exception: a row being dragged follows the pointer, and rows it passes move out of its way within 140 ms. Nothing else moves, a drop has no settle animation, and `prefers-reduced-motion` turns the reflow off.
-- No illustrations, gradients or avatars. File paths truncate from the left so the file name stays visible.
+- File paths truncate from the left so the file name stays visible.
 - Labels are short and factual ("Unstage hunk", "Discard"), sentence case, no exclamation marks.
+- **Data pictures only.** A picture is drawn from the repository's data, such as the commit graph, the activity calendar or a map of the code. No illustration, photography, empty-state art, gradients or avatars. The product mark is the one exception, used small on first run and when a clean repository has nothing to show.
+- **Folders have colors of their own:** eight (`--folder-1-*` to `--folder-8-*`), each in four steps, and a neutral (`--folder-other-*`) for every folder past the eighth. Lane colors stay with branches and identity colors with people. More is a step further from the ground: lighter in dark, darker in light. A folder keeps its color while a filter, a period or a slider changes, and in every mode of Explore.
+- **Color is never the only sign of a folder.** It also has its name and a gap around it, and what a step says is also in words.
+- **One tab, Explore.** Views of the code, such as the Code map and Structure, are its modes, so the tab bar grows by one. Review opens from a branch, a worktree or a pull request, and isn't a tab.
+- **Explore's modes share what's being compared and the selected folder,** and nothing else.
+- **A host app can hide Explore** with a `hideExplore` prop, as `hideTerminal` hides the terminal.
+- **Structure may read what a file uses and defines,** such as its imports and type names. Completing, editing or explaining code is out of scope.
 
 ## Commits and pull requests
 
