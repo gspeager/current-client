@@ -258,8 +258,14 @@ func (m *Manager) AnyBusy(repo string) bool {
 
 // AnyBusyWhere is AnyBusy for the repositories that match.
 func (m *Manager) AnyBusyWhere(match func(repo string) bool) bool {
-	for _, id := range m.idsWhere(func(s *session) bool { return match(s.repo) }) {
-		if m.Busy(id) {
+	m.mu.Lock()
+	repos := map[string]string{}
+	for id, s := range m.sessions {
+		repos[id] = s.repo
+	}
+	m.mu.Unlock()
+	for id, repo := range repos {
+		if match(repo) && m.Busy(id) {
 			return true
 		}
 	}

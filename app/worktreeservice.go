@@ -22,6 +22,7 @@ type WorktreeInfo struct {
 	Current bool   `json:"current"`
 	Locked  bool   `json:"locked"`
 	Missing bool   `json:"missing"`
+	Bare    bool   `json:"bare"`
 }
 
 func (s *WorktreeService) List(repoPath string) ([]WorktreeInfo, error) {
@@ -60,13 +61,15 @@ type BoardInfo struct {
 
 type BoardColumn struct {
 	Worktree WorktreeInfo `json:"worktree"`
-	Files    []BoardFile  `json:"files"`
-	Added    int          `json:"added"`
-	Removed  int          `json:"removed"`
-	Skipped  int          `json:"skipped"`
-	Ahead    int          `json:"ahead"`
-	Behind   int          `json:"behind"`
-	Problem  string       `json:"problem"`
+	Changed  int          `json:"changed"`
+	// The first of what's changed, with the ones that collide first.
+	Files   []BoardFile `json:"files"`
+	Added   int         `json:"added"`
+	Removed int         `json:"removed"`
+	Skipped int         `json:"skipped"`
+	Ahead   int         `json:"ahead"`
+	Behind  int         `json:"behind"`
+	Problem string      `json:"problem"`
 	// Whether something is running in its terminal.
 	Running bool `json:"running"`
 }
@@ -83,10 +86,23 @@ func (s *WorktreeService) Board(repoPath string) (BoardInfo, error) {
 	}
 	info := BoardInfo{
 		Base:       read.Base,
-		Columns:    mapSlice(read.Columns, boardColumn),
 		Collisions: mapSlice(read.Collisions, func(c overlap.GridConflict) GridConflictInfo { return GridConflictInfo(c) }),
 		Unchecked:  read.Unchecked,
 		More:       read.More,
+	}
+	colliding := make([]map[string]bool, len(read.Columns))
+	for _, c := range read.Collisions {
+		for _, i := range []int{c.A, c.B} {
+			if colliding[i] == nil {
+				colliding[i] = map[string]bool{}
+			}
+			for _, file := range c.Files {
+				colliding[i][file] = true
+			}
+		}
+	}
+	for i, c := range read.Columns {
+		info.Columns = append(info.Columns, boardColumn(c, colliding[i]))
 	}
 	switch {
 	case errors.Is(read.Unpredicted, git.ErrMergeTreeUnsupported):
@@ -97,7 +113,10 @@ func (s *WorktreeService) Board(repoPath string) (BoardInfo, error) {
 	return info, nil
 }
 
-func boardColumn(c board.Column) BoardColumn {
+// What a column has room for. It's all sent again on every read.
+const mostBoardFiles = 100
+
+func boardColumn(c board.Column, colliding map[string]bool) BoardColumn {
 	column := BoardColumn{
 		Worktree: WorktreeInfo(c.Worktree),
 		Skipped:  c.Skipped,
@@ -105,13 +124,21 @@ func boardColumn(c board.Column) BoardColumn {
 		Behind:   c.Behind,
 		Problem:  c.Problem,
 		Running:  !policy.LocalCommandsOff() && terminals.AnyBusyWhere(func(path string) bool { return git.SamePath(path, c.Path) }),
-		Files: mapSlice(c.Files, func(f git.TreeChange) BoardFile {
-			return BoardFile{Path: f.Path, Status: f.Status[:1]}
-		}),
+		Changed:  len(c.Files),
+		Files:    []BoardFile{},
 	}
+	var rest []BoardFile
 	for _, f := range c.Files {
 		column.Added += f.Added
 		column.Removed += f.Removed
+		if file := (BoardFile{Path: f.Path, Status: f.Status[:1]}); colliding[f.Path] {
+			column.Files = append(column.Files, file)
+		} else {
+			rest = append(rest, file)
+		}
+	}
+	if room := mostBoardFiles - len(column.Files); room > 0 {
+		column.Files = append(column.Files, rest[:min(room, len(rest))]...)
 	}
 	return column
 }

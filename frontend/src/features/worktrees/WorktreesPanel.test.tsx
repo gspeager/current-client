@@ -16,6 +16,7 @@ function worktree(path: string, overrides: Partial<WorktreeInfo> = {}): Worktree
     current: false,
     locked: false,
     missing: false,
+    bare: false,
     ...overrides,
   }
 }

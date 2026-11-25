@@ -16,9 +16,6 @@ import { useOpenReadThrough } from '../read-through/readThrough'
 import { useBoard } from './useBoard'
 import './WorktreeBoard.scss'
 
-// More of a worktree's files than this say no more than their number.
-const MOST_FILES = 100
-
 const UNPREDICTED: Record<string, string> = {
   git: 'Predicting collisions needs Git 2.38 or newer.',
   partial: 'Collisions aren’t predicted in a partial clone, where merging fetches what was left out.',
@@ -53,13 +50,7 @@ function collidingFiles(board: BoardInfo, names: string[]): Map<string, string[]
   return byColumn
 }
 
-function WorktreeBoard({
-  repoPath,
-  onOpenRepository,
-  onOpenTerminal,
-  onNewWorktree,
-  onClose,
-}: WorktreeBoardProps) {
+function WorktreeBoard({ repoPath, onOpenRepository, onOpenTerminal, onNewWorktree, onClose }: WorktreeBoardProps) {
   const { board, error } = useBoard(repoPath)
   const names = useMemo(() => namesOf(board?.columns ?? []), [board])
   const colliding = useMemo(() => (board ? collidingFiles(board, names) : []), [board, names])
@@ -122,10 +113,8 @@ function Column({ name, column, base, colliding, onOpen, onTerminal }: ColumnPro
   const changed = new Set(files.map((file) => file.path))
   // Committed, so not among the uncommitted ones.
   const committed = [...colliding.keys()].filter((path) => !changed.has(path))
-  const listed = [
-    ...committed.map((path) => ({ path, status: '' })),
-    ...[...files].sort((a, b) => Number(colliding.has(b.path)) - Number(colliding.has(a.path))),
-  ]
+  const listed = [...committed.map((path) => ({ path, status: '' })), ...files]
+  const more = column.changed - files.length
   return (
     <section className="worktree-column" aria-label={name}>
       <h3 className="worktree-column-name" title={worktree.path}>
@@ -153,7 +142,7 @@ function Column({ name, column, base, colliding, onOpen, onTerminal }: ColumnPro
         !worktree.missing && (
           <>
             <p className="worktree-column-facts">
-              {files.length > 0 ? plural(files.length, 'changed file') : 'No changes'}
+              {column.changed > 0 ? plural(column.changed, 'changed file') : 'No changes'}
               <DiffStat added={column.added} removed={column.removed} binary={false} />
             </p>
             {base && (
@@ -168,7 +157,7 @@ function Column({ name, column, base, colliding, onOpen, onTerminal }: ColumnPro
               <p className="dialog-note">{plural(column.skipped, 'large untracked file')} not counted.</p>
             )}
             <ul className="worktree-column-files">
-              {listed.slice(0, MOST_FILES).map(({ path, status }) => {
+              {listed.map(({ path, status }) => {
                 const others = colliding.get(path)
                 return (
                   <li key={path} className={others ? 'worktree-column-colliding' : undefined}>
@@ -187,7 +176,7 @@ function Column({ name, column, base, colliding, onOpen, onTerminal }: ColumnPro
                   </li>
                 )
               })}
-              {listed.length > MOST_FILES && <li>{plural(listed.length - MOST_FILES, 'more file')}</li>}
+              {more > 0 && <li>{plural(more, 'more file')}</li>}
             </ul>
           </>
         )

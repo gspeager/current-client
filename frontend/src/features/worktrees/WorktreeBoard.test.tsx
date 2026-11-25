@@ -14,8 +14,10 @@ const column = (name: string, over: Partial<BoardColumn> = {}, worktree = {}) =>
       current: false,
       locked: false,
       missing: false,
+      bare: false,
       ...worktree,
     },
+    changed: over.files?.length ?? 0,
     files: [],
     ...over,
   })
@@ -66,14 +68,23 @@ it('shows a column for each worktree, with what it has', async () => {
     board({
       columns: [
         column('main', {}, { current: true }),
-        column('one', { files: edits('a.ts', 'b.ts'), added: 4, removed: 2, ahead: 3, behind: 1, skipped: 2 }),
+        column('one', {
+          files: edits('a.ts', 'b.ts'),
+          changed: 5,
+          added: 4,
+          removed: 2,
+          ahead: 3,
+          behind: 1,
+          skipped: 2,
+        }),
         column('two', {}, { branch: '', locked: true }),
         column('gone', {}, { missing: true }),
       ],
     }),
   )
   const one = screen.getByRole('region', { name: 'one' })
-  expect(one).toHaveTextContent('2 changed files+4-2')
+  expect(one).toHaveTextContent('5 changed files+4-2')
+  expect(one).toHaveTextContent('3 more files')
   expect(one).toHaveTextContent('↑3 ↓1origin/main')
   expect(one).toHaveTextContent('2 large untracked files not counted.')
   expect(screen.getByRole('region', { name: 'two' })).toHaveTextContent('detached abcdef1')
@@ -140,11 +151,11 @@ it('leaves the terminal and the running mark out where there is none', async () 
   expect(col('one').getByRole('button', { name: 'Read through one' })).toBeInTheDocument()
 })
 
-it('marks a file that collides in each column, committed or not, first', async () => {
+it('marks a file that collides in each column, committed or not', async () => {
   await open(
     board({
       columns: [
-        column('main', { files: edits('a.ts', 'z.ts') }),
+        column('main', { files: edits('z.ts', 'a.ts') }),
         column('one', { files: edits('z.ts') }),
         column('two'),
       ],

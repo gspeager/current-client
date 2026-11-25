@@ -171,6 +171,33 @@ func TestReadAWorktreeThatCantBeRead(t *testing.T) {
 	}
 }
 
+// Its status can be read and its tree can't be written.
+func TestReadTriesAgainAfterAFailure(t *testing.T) {
+	main, one, _ := boardRepo(t)
+	gittest.CommitFile(t, one, "a.txt", "a\n", "ahead")
+	gittest.Run(t, main, "config", "core.safecrlf", "true")
+	gittest.Run(t, main, "config", "core.autocrlf", "input")
+	if err := os.WriteFile(filepath.Join(one, "mixed.txt"), []byte("one\r\ntwo\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var r Reader
+	if c := read(t, &r, main).Columns[1]; c.Problem == "" {
+		t.Fatalf("column = %+v, want a problem", c)
+	}
+	gittest.Run(t, main, "config", "core.safecrlf", "false")
+	expect(t, "columns", columns(read(t, &r, main))[1:2], []string{"one ↑1 ↓0: A mixed.txt +2 -0"})
+}
+
+func TestReadLeavesOutABareRepository(t *testing.T) {
+	main, _, _ := boardRepo(t)
+	root := t.TempDir()
+	gittest.Run(t, root, "clone", "-q", "--bare", main, "hub.git")
+	linked := filepath.Join(root, "linked")
+	gittest.Run(t, filepath.Join(root, "hub.git"), "worktree", "add", "-q", linked, "one")
+	var r Reader
+	expect(t, "columns", columns(read(t, &r, linked)), []string{"linked ↑0 ↓0: "})
+}
+
 func TestReadUntrackedFilesTooLargeToCount(t *testing.T) {
 	main, one, _ := boardRepo(t)
 	large, err := os.Create(filepath.Join(one, "large.bin"))

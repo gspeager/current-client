@@ -23,6 +23,8 @@ type Worktree struct {
 	Locked  bool
 	// Missing means its folder is gone; removing it just forgets it.
 	Missing bool
+	// Bare is a repository without a working tree of its own.
+	Bare bool
 }
 
 // ListWorktrees takes repoPath as the top of a working tree, as Open returns
@@ -74,6 +76,8 @@ func parseWorktrees(output string) []Worktree {
 				w.Head = value
 			case "branch":
 				w.Branch = strings.TrimPrefix(value, "refs/heads/")
+			case "bare":
+				w.Bare = true
 			case "locked":
 				w.Locked = true
 			case "prunable":

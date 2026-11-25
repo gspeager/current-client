@@ -9,6 +9,7 @@ import (
 	"hash/fnv"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -96,6 +97,7 @@ func (r *Reader) Read(ctx context.Context, repoPath string) (Board, error) {
 			return Board{}, err
 		}
 	}
+	worktrees = slices.DeleteFunc(worktrees, func(w git.Worktree) bool { return w.Bare })
 	shown, more := pick(worktrees)
 	states := make([]state, len(shown))
 	inParallel(len(shown), func(i int) { states[i] = readState(ctx, shown[i]) })
@@ -104,8 +106,8 @@ func (r *Reader) Read(ctx context.Context, repoPath string) (Board, error) {
 	for i, s := range states {
 		stamp += fmt.Sprintf("\x00%v\x00%s\x00%v", shown[i], s.stamp, s.err)
 	}
-	// Pairs there was no time for are worth another go.
-	if stamp == r.stamp && len(r.board.Unchecked) == 0 {
+	// What there was no time for, or failed, is worth another go.
+	if stamp == r.stamp && len(r.board.Unchecked) == 0 && !r.board.hasProblem() {
 		return r.board, nil
 	}
 
@@ -125,6 +127,10 @@ func (r *Reader) Read(ctx context.Context, repoPath string) (Board, error) {
 		r.states[w.Path] = states[i]
 	}
 	return board, nil
+}
+
+func (b Board) hasProblem() bool {
+	return slices.ContainsFunc(b.Columns, func(c Column) bool { return c.Problem != "" })
 }
 
 // pick keeps the current worktree when there are more than fit.
@@ -204,6 +210,7 @@ func (r *Reader) column(ctx context.Context, env []string, w git.Worktree, s *st
 		return fail(s.err)
 	}
 	last, known := r.states[w.Path]
+	known = known && last.column.Problem == ""
 	s.baseTip = baseTip
 	if known && last.head == s.head && last.baseTip == baseTip {
 		column.Ahead, column.Behind = last.column.Ahead, last.column.Behind
