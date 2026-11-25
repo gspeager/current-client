@@ -32,6 +32,9 @@ type Column struct {
 	Files []git.TreeChange
 	// How many untracked files are too large to count.
 	Skipped int
+	// What the worktree holds, committed or not, so undoing an edit or committing it
+	// is the same tree.
+	Tree string
 	// Against the board's base.
 	Ahead   int
 	Behind  int
@@ -71,7 +74,6 @@ type state struct {
 	err      error
 
 	baseTip string
-	tree    string
 	column  Column
 }
 
@@ -111,7 +113,7 @@ func (r *Reader) Read(ctx context.Context, repoPath string) (Board, error) {
 		return r.board, nil
 	}
 
-	env, discard := git.ScratchObjects(ctx, repoPath)
+	env, discard := git.ScratchWrites(ctx, repoPath)
 	defer discard()
 	board := Board{Base: base, More: more, Columns: make([]Column, len(shown))}
 	tips := make([]string, len(shown))
@@ -209,37 +211,71 @@ func (r *Reader) column(ctx context.Context, env []string, w git.Worktree, s *st
 	if s.err != nil {
 		return fail(s.err)
 	}
+	var err error
 	last, known := r.states[w.Path]
 	known = known && last.column.Problem == ""
 	s.baseTip = baseTip
 	if known && last.head == s.head && last.baseTip == baseTip {
 		column.Ahead, column.Behind = last.column.Ahead, last.column.Behind
 	} else if s.head != "" && baseTip != "" {
-		var err error
 		if column.Ahead, column.Behind, err = git.AheadBehind(ctx, w.Path, s.head, baseTip); err != nil {
 			return fail(err)
 		}
 	}
 	if len(s.statuses) == 0 {
+		if known && last.head == s.head && len(last.statuses) == 0 {
+			column.Tree = last.column.Tree
+		} else if column.Tree, _, err = s.writeTree(ctx, w.Path, env); err != nil {
+			return fail(err)
+		}
 		return column, s.head
 	}
-	tree, skipped, err := snapshot.WriteTree(ctx, w.Path, env, s.statuses)
-	if err != nil {
+	if column.Tree, column.Skipped, err = s.writeTree(ctx, w.Path, env); err != nil {
 		return fail(err)
 	}
-	s.tree, column.Skipped = tree, skipped
-	if known && last.tree == tree && last.head == s.head {
+	if known && last.column.Tree == column.Tree && last.head == s.head {
 		column.Files = last.column.Files
-	} else if column.Files, err = changes(ctx, w.Path, env, s.head, tree); err != nil {
+	} else if column.Files, err = changes(ctx, w.Path, env, s.head, column.Tree); err != nil {
 		return fail(err)
 	}
 	if s.head == "" {
 		return column, ""
 	}
-	if tip, err = commit(ctx, w.Path, env, tree, s.head); err != nil {
+	if tip, err = commit(ctx, w.Path, env, column.Tree, s.head); err != nil {
 		return fail(err)
 	}
 	return column, tip
+}
+
+func (s state) writeTree(ctx context.Context, path string, env []string) (tree string, skipped int, err error) {
+	if len(s.statuses) > 0 || s.head == "" {
+		return snapshot.WriteTree(ctx, path, env, s.statuses)
+	}
+	tree, err = run(ctx, path, nil, "rev-parse", s.head+"^{tree}")
+	return tree, 0, err
+}
+
+// Tree is a worktree's Column.Tree. env is where its objects go.
+func Tree(ctx context.Context, path string, env []string) (string, error) {
+	s := readState(ctx, git.Worktree{Path: path})
+	if s.err != nil {
+		return "", s.err
+	}
+	tree, _, err := s.writeTree(ctx, path, env)
+	return tree, err
+}
+
+// Differing lists the files that differ between two trees among env's objects.
+func Differing(ctx context.Context, path string, env []string, from, to string) ([]string, error) {
+	if from == to {
+		return nil, nil
+	}
+	changed, err := git.TreeChangesWithoutRenames(ctx, path, env, from, to)
+	var paths []string
+	for _, change := range changed {
+		paths = append(paths, change.Path)
+	}
+	return paths, err
 }
 
 func changes(ctx context.Context, path string, env []string, head, tree string) ([]git.TreeChange, error) {

@@ -1026,6 +1026,7 @@ function App({
                         repoPath={repo.repoPath}
                         onOpenRepository={(path) => void repo.openRecent(path)}
                         onOpenTerminal={terminalsOff ? undefined : (path) => void openTerminalIn(path)}
+                        tasks={terminalsOff ? undefined : tasks}
                         onNewWorktree={() => {
                           setBoardOpen(false)
                           // Once closing has put the focus back, so the form can take it.
@@ -1256,7 +1257,14 @@ function App({
                             terminals={terminals}
                             focusRequest={terminalFocus}
                             theme={settings.settings?.theme}
-                            tasks={<TasksView key={repo.repoPath} repoPath={repo.repoPath} tasks={tasks} />}
+                            tasks={
+                              <TasksView
+                                key={repo.repoPath}
+                                repoPath={repo.repoPath}
+                                tasks={tasks}
+                                refreshKey={readThroughVersion}
+                              />
+                            }
                           />
                         )}
                         {terminals.error && <p className="app-terminal-error">{terminals.error}</p>}

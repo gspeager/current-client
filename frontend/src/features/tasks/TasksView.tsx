@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Play, Square, X } from 'lucide-react'
-import { TaskService, type TaskInfo } from '@current-client-bindings/app'
+import { TaskService, type TaskInfo, type TaskResultInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
 import { useDialogs } from '../../lib/useDialogs'
 import type { RunStatus, useTasks } from './useTasks'
 import { useActionError } from '../../lib/useActionError'
+import { useAsyncData } from '../../lib/useAsyncData'
+import { describeResult, explainResult, STATE_LABEL } from './taskResult'
 import './TasksView.scss'
 
 const STATUS_LABEL: Record<RunStatus, string> = {
@@ -21,15 +23,47 @@ function seconds(ms: number): string {
 interface TasksViewProps {
   repoPath: string
   tasks: ReturnType<typeof useTasks>
+  // Changes with the working tree, which can make a result out of date.
+  refreshKey?: unknown
 }
 
-function TasksView({ repoPath, tasks }: TasksViewProps) {
+type Run = ReturnType<ReturnType<typeof useTasks>['runOf']>
+
+// The result, unless it's of an earlier run than the one shown.
+function latest(run: Run, result: TaskResultInfo | undefined) {
+  if (!run) return result
+  return result && run.status === (result.passed ? 'passed' : 'failed') && run.durationMs === result.durationMs
+    ? result
+    : undefined
+}
+
+// A result says more than the run's own end, once it's read.
+function TaskStatus({ run, result }: { run: Run; result?: TaskResultInfo }) {
+  if (result) {
+    return (
+      <span
+        className={result.passed ? 'tasks-status tasks-status-passed' : 'tasks-status tasks-status-failed'}
+        title={explainResult(result)}
+      >
+        {result.passed ? 'Passed' : 'Failed'}
+        {result.state !== 'current' && `, ${STATE_LABEL[result.state]}`}
+      </span>
+    )
+  }
+  return run ? <span className={`tasks-status tasks-status-${run.status}`}>{STATUS_LABEL[run.status]}</span> : null
+}
+
+function TasksView({ repoPath, tasks, refreshKey }: TasksViewProps) {
   const { prompt } = useDialogs()
   const [selected, setSelected] = useState<string | null>(null)
   const { error: actionError, setError: setActionError, fail } = useActionError()
   const list = tasks.list
   const shown: TaskInfo | undefined = list?.tasks.find((task) => task.id === selected)
   const shownRun = shown && tasks.runOf(shown.id)
+  const ended = list?.tasks.map((task) => tasks.runOf(task.id)?.status).join()
+  const version = useMemo(() => ({ ended, refreshKey }), [ended, refreshKey])
+  const { data: results } = useAsyncData(() => TaskService.Results(repoPath), [repoPath], { refreshKey: version })
+  const shownResult = shown && latest(shownRun, results?.[shown.id])
 
   const addCommand = async () => {
     const name = await prompt({ title: 'Add a command', label: 'Name', confirmLabel: 'Next' })
@@ -97,7 +131,13 @@ function TasksView({ repoPath, tasks }: TasksViewProps) {
                   <span>{task.name}</span>
                   <span className="tasks-source">{task.source}</span>
                 </button>
-                {run && <span className={`tasks-status tasks-status-${run.status}`}>{STATUS_LABEL[run.status]}</span>}
+                <TaskStatus run={run} result={latest(run, results?.[task.id])} />
+                <Checkbox
+                  label="Board"
+                  checked={list.onBoard.includes(task.id)}
+                  onChange={(on) => void tasks.setOnBoard(task.id, on)}
+                  ariaLabel={`Show ${task.name} on the worktree board`}
+                />
                 <Checkbox
                   label="Commit"
                   checked={list.beforeCommit.includes(task.id)}
@@ -141,6 +181,11 @@ function TasksView({ repoPath, tasks }: TasksViewProps) {
                 </span>
               )}
             </p>
+            {shownResult && (
+              <p className="tasks-result" title={explainResult(shownResult)}>
+                {describeResult(shownResult)}
+              </p>
+            )}
             <pre className="tasks-output" aria-label={`Output of ${shown.name}`}>
               {shownRun?.output}
             </pre>

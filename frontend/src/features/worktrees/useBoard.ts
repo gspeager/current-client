@@ -15,10 +15,11 @@ const onVisibility = (changed: () => void) => {
 
 // Reads again and again while it's open and in view. Watching every worktree's
 // files takes a file descriptor for each on macOS, and two large ones use them up.
-export function useBoard(repoPath: string) {
+export function useBoard(repoPath: string, refreshKey: unknown) {
   const visible = useSyncExternalStore(onVisibility, () => document.visibilityState === 'visible')
   const [board, setBoard] = useState<BoardInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [asked, setAsked] = useState(0)
   useEffect(() => {
     if (!visible) return
     let current = true
@@ -41,6 +42,6 @@ export function useBoard(repoPath: string) {
       current = false
       clearTimeout(timer)
     }
-  }, [repoPath, visible])
-  return { board, error }
+  }, [repoPath, visible, asked, refreshKey])
+  return { board, error, refresh: () => setAsked((n) => n + 1) }
 }
