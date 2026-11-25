@@ -14,7 +14,7 @@ export const SHORTCUT_GROUPS: { name: string; shortcuts: Shortcut[] }[] = [
       { keys: 'mod+P', label: 'Go to anything, editor quick open key' },
       { keys: 'mod+shift+P', label: 'Go to anything, editor palette key' },
       { keys: 'mod+shift+F', label: 'Search in files' },
-      { keys: 'mod+1…6', label: 'Switch view' },
+      { keys: 'mod+1…7', label: 'Switch view' },
       { keys: 'F6', label: 'Next pane' },
       { keys: 'mod+B', label: 'Collapse sidebar' },
       { keys: 'ctrl+`', label: 'Terminal panel' },
@@ -41,6 +41,16 @@ export const SHORTCUT_GROUPS: { name: string; shortcuts: Shortcut[] }[] = [
       { keys: 'S', label: 'Stage the hunk, from the diff' },
       { keys: 'U', label: 'Unstage the hunk, from the diff' },
       { keys: 'D', label: 'Discard the hunk, from the diff' },
+    ],
+  },
+  {
+    name: 'Code map',
+    shortcuts: [
+      { keys: '← ↑ ↓ →', label: 'Next file that way' },
+      { keys: 'PageUp PageDown', label: 'Previous or next file' },
+      { keys: 'Enter', label: 'Open the file' },
+      { keys: 'shift+Enter', label: 'Open its folder' },
+      { keys: 'Backspace', label: 'Back out of the folder' },
     ],
   },
   {
