@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image, List } from 'lucide-react'
 import { DiffService, type FileDiff, type LineSelection, type ReviewThread } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
@@ -12,10 +12,10 @@ import LfsDiff from './LfsDiff'
 import { lfsPointerChange } from './lfsPointer'
 import SubmoduleDiff from './SubmoduleDiff'
 import { submoduleChange } from './submoduleChange'
-import { buildDisplayRows, diffStats } from './diffRows'
+import { buildDisplayRows, diffStats, isLongDiff, lineRef } from './diffRows'
 import { conflictRows, type ConflictView } from './conflictRows'
 import { formatSize } from './fileSize'
-import DiffPane, { lineKey, lineRef, type HunkActions } from './DiffPane'
+import DiffPane, { lineKey, type DiffPaneHandle, type HunkActions } from './DiffPane'
 import ReviewThreadBlock from './ReviewThreadBlock'
 import DiffMinimap from './DiffMinimap'
 import PendingCommentBlock from '../review/PendingCommentBlock'
@@ -37,6 +37,8 @@ interface DiffSideLabel {
   // A branch's lane color, where the side is a branch.
   color?: string
 }
+
+const paneRowOf = (el: HTMLElement) => Number(el.closest<HTMLElement>('[data-index]')?.dataset.index ?? 0)
 
 // The base side counts its removed lines, the target its added ones.
 function SideHeader({ side, which, count }: { side: DiffSideLabel; which: 'base' | 'target'; count?: number }) {
@@ -116,7 +118,29 @@ function DiffViewer({
   const { wrap } = useDiffWrap()
   const tooNarrowForSplit = useWindowNarrowerThan(NARROW_SPLIT_WIDTH)
   const paneRef = useRef<HTMLDivElement>(null)
-  const setLineStops = useRovingRows('.diff-line-select')
+  const handle = useRef<DiffPaneHandle>(null)
+  // A conflicted file shows its two sides, or the working file with the markers
+  // inline; either way there's no hunk to stage on its own.
+  const blocks = useMemo(
+    () => (diff.conflicted ? conflictRows(diff.hunks, conflictView) : { rows: [], blockStarts: [] }),
+    [diff, conflictView],
+  )
+  const displayRows = useMemo(() => (diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)), [diff, blocks])
+  const blockStarts = useMemo(() => (diff.conflicted ? new Set(blocks.blockStarts) : undefined), [diff, blocks])
+  const stats = useMemo(() => diffStats(diff), [diff])
+  const shownLines = useMemo(
+    () => new Set(diff.hunks.flatMap((h) => h.lines.map((l) => l.newLine).filter(Boolean))),
+    [diff],
+  )
+  const long = useMemo(() => isLongDiff(displayRows), [displayRows])
+  const setLineStops = useRovingRows('.diff-line-select', {
+    compareRows: (a, b) => paneRowOf(a) - paneRowOf(b),
+    scrollToEdge: long ? (edge) => handle.current?.revealEdge(edge) : undefined,
+    scrollPast: long
+      ? (row, forward, next) =>
+          (!next || paneRowOf(next) !== paneRowOf(row)) && !!handle.current?.revealChange(paneRowOf(row), forward)
+      : undefined,
+  })
   useEffect(() => setLineStops(paneRef.current))
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
   const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
@@ -142,11 +166,7 @@ function DiffViewer({
   const focused = useRef<{ line: number } | null>(null)
   useEffect(() => {
     if (!focusLine || focused.current === focusLine) return
-    const row = paneRef.current?.querySelector(`[data-line="${focusLine.line}"]`)
-    if (row) {
-      focused.current = focusLine
-      row.scrollIntoView({ block: 'center' })
-    }
+    if (handle.current?.revealLine(focusLine.line)) focused.current = focusLine
   }, [focusLine, diff])
 
   // The pane only exists once the diff has lines to show.
@@ -171,7 +191,7 @@ function DiffViewer({
   const stepBlock = (step: number) => {
     const index = Math.min(blocks.blockStarts.length - 1, Math.max(0, currentBlock + step))
     setCurrentBlock(index)
-    paneRef.current?.querySelectorAll('.diff-conflict-block-start')[index]?.scrollIntoView({ block: 'center' })
+    handle.current?.revealBlock(index)
   }
 
   // Shift-click selects every changed line between the last one toggled and this one.
@@ -186,17 +206,18 @@ function DiffViewer({
     lastToggled.current = key
   }
 
-  const selectionByHunk = new Map<string, LineSelection>(
-    diff.hunks.map((h) => [
-      h.raw,
-      {
-        added: h.lines.filter((l) => selectedLines.has(`+${l.newLine}`) && l.kind === 'added').map((l) => l.newLine),
-        removed: h.lines
-          .filter((l) => selectedLines.has(`-${l.oldLine}`) && l.kind === 'removed')
-          .map((l) => l.oldLine),
-      },
-    ]),
-  )
+  const selectionByHunk = useMemo(() => {
+    const byHunk = new Map<string, LineSelection>()
+    if (selectedLines.size === 0) return byHunk
+    for (const h of diff.hunks) {
+      const chosen = h.lines.filter((l) => selectedLines.has(lineKey(l) ?? ''))
+      byHunk.set(h.raw, {
+        added: chosen.filter((l) => l.kind === 'added').map((l) => l.newLine),
+        removed: chosen.filter((l) => l.kind === 'removed').map((l) => l.oldLine),
+      })
+    }
+    return byHunk
+  }, [diff, selectedLines])
   const canSelectLines = !diff.conflicted && Boolean(hunkActions.onStageHunk ?? hunkActions.onUnstageHunk)
 
   useWindowKeydown((e) => {
@@ -222,14 +243,12 @@ function DiffViewer({
     e.preventDefault()
     setCurrentHunkIndex((i) => {
       const next = forward ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
-      const headers = paneRef.current?.querySelectorAll('.diff-hunk-header')
-      headers?.[next]?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
+      handle.current?.revealHunk(next)
       return next
     })
   })
 
   const toggleGroup = (index: number) => setExpandedGroups((prev) => toggled(prev, index))
-  const blocks = diff.conflicted ? conflictRows(diff.hunks, conflictView) : { rows: [], blockStarts: [] }
 
   const submodule = submoduleChange(diff)
   if (submodule) return <SubmoduleDiff change={submodule} path={path} repoPath={repoPath} />
@@ -306,16 +325,11 @@ function DiffViewer({
     return <p className="diff-empty-state">No differences.</p>
   }
 
-  const stats = diffStats(diff)
-  // A conflicted file shows its two sides, or the working file with the markers
-  // inline; either way there's no hunk to stage on its own.
-  const displayRows = diff.conflicted ? blocks.rows : buildDisplayRows(diff.hunks)
   const chosenMode = diff.conflicted ? (conflictView === 'side-by-side' ? 'split' : 'unified') : viewMode
   const mode = tooNarrowForSplit ? 'unified' : chosenMode
   // Threads pin to a new-side line the diff shows; the rest, and all of them
   // when each side scrolls on its own, are listed under the diff.
   const sidesApart = mode === 'split' && !wrap
-  const shownLines = new Set(diff.hunks.flatMap((h) => h.lines.map((l) => l.newLine).filter(Boolean)))
   const blocksByLine = new Map<string, ReactNode[]>()
   const place = (ref: string, node: ReactNode) => blocksByLine.set(ref, [...(blocksByLine.get(ref) ?? []), node])
   const unplaced: ReviewThread[] = []
@@ -356,7 +370,7 @@ function DiffViewer({
   const canComment = !!review && !!actions?.capabilities.lineComments && !diff.conflicted && !sidesApart
 
   return (
-    <div>
+    <div className="diff-view">
       {summaryToggle}
       {imageToggle}
       {review && actions && (
@@ -410,13 +424,14 @@ function DiffViewer({
         <DiffPane
           mode={mode}
           rows={displayRows}
-          blockStarts={diff.conflicted ? new Set(blocks.blockStarts) : undefined}
+          blockStarts={blockStarts}
           resultView={diff.conflicted && conflictView === 'result'}
           path={path}
           expandedGroups={expandedGroups}
           onToggleGroup={toggleGroup}
           currentHunkIndex={currentHunkIndex}
           scrollRef={paneRef}
+          handle={handle}
           onScrollTopChange={onScrollTopChange}
           lineSelect={
             canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
@@ -439,34 +454,34 @@ function DiffViewer({
           }
           {...(diff.conflicted ? {} : hunkActions)}
         />
-        <DiffMinimap rows={displayRows} paneRef={paneRef} />
-        {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
-          <section className="review-threads-outdated" aria-label="Threads not shown at a line">
-            {unplaced.length > 0 && (
-              <span className="review-threads-outdated-label">Threads on lines not in this diff</span>
-            )}
-            {unplaced.map((thread) => (
-              <ReviewThreadBlock
-                key={thread.id}
-                thread={thread}
-                where={`line ${thread.line}`}
-                actions={actions?.threadActions}
-              />
-            ))}
-            {(outdatedThreads?.length ?? 0) > 0 && (
-              <span className="review-threads-outdated-label">Outdated: the code has changed since</span>
-            )}
-            {outdatedThreads?.map((thread) => (
-              <ReviewThreadBlock
-                key={thread.id}
-                thread={thread}
-                where={thread.oldLine ? `old line ${thread.oldLine}` : `line ${thread.line}`}
-                actions={actions?.threadActions}
-              />
-            ))}
-          </section>
-        )}
+        <DiffMinimap rows={displayRows} paneRef={paneRef} always={long && !sidesApart} />
       </div>
+      {(unplaced.length > 0 || (outdatedThreads?.length ?? 0) > 0) && (
+        <section className="review-threads-outdated" aria-label="Threads not shown at a line">
+          {unplaced.length > 0 && (
+            <span className="review-threads-outdated-label">Threads on lines not in this diff</span>
+          )}
+          {unplaced.map((thread) => (
+            <ReviewThreadBlock
+              key={thread.id}
+              thread={thread}
+              where={`line ${thread.line}`}
+              actions={actions?.threadActions}
+            />
+          ))}
+          {(outdatedThreads?.length ?? 0) > 0 && (
+            <span className="review-threads-outdated-label">Outdated: the code has changed since</span>
+          )}
+          {outdatedThreads?.map((thread) => (
+            <ReviewThreadBlock
+              key={thread.id}
+              thread={thread}
+              where={thread.oldLine ? `old line ${thread.oldLine}` : `line ${thread.line}`}
+              actions={actions?.threadActions}
+            />
+          ))}
+        </section>
+      )}
       {menu && <ContextMenu state={menu} onClose={() => setMenu(null)} />}
       {diff.conflicted && blocks.blockStarts.length > 0 && (
         <div className="diff-conflict-footer">

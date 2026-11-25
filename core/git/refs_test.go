@@ -12,21 +12,21 @@ import (
 
 func TestParseRefsFixture(t *testing.T) {
 	output := strings.Join([]string{
-		"aaa\t\trefs/heads/main",
-		"bbb\t\trefs/heads/feature/x",
-		"aaa\t\trefs/remotes/origin/main",
-		"ccc\t\trefs/remotes/origin/HEAD", // symbolic; must be skipped
-		"aaa\t\trefs/tags/v1.0.0",         // lightweight tag
-		"ddd\taaa\trefs/tags/v2.0.0",      // annotated tag, dereferences to aaa
+		"aaa\t\t1700000000\trefs/heads/main",
+		"bbb\t\t1700000000\trefs/heads/feature/x",
+		"aaa\t\t1700000000\trefs/remotes/origin/main",
+		"ccc\t\t1700000000\trefs/remotes/origin/HEAD", // symbolic; must be skipped
+		"aaa\t\t1700000000\trefs/tags/v1.0.0",         // lightweight tag
+		"ddd\taaa\t\trefs/tags/v2.0.0",                // annotated tag, dereferences to aaa
 		"",
 	}, "\n")
 
 	refs := parseRefs(output)
 	want := []Ref{
-		{Kind: RefBranch, Name: "main", SHA: "aaa"},
-		{Kind: RefBranch, Name: "feature/x", SHA: "bbb"},
-		{Kind: RefRemoteBranch, Name: "origin/main", SHA: "aaa"},
-		{Kind: RefTag, Name: "v1.0.0", SHA: "aaa"},
+		{Kind: RefBranch, Name: "main", SHA: "aaa", CommittedAt: 1700000000},
+		{Kind: RefBranch, Name: "feature/x", SHA: "bbb", CommittedAt: 1700000000},
+		{Kind: RefRemoteBranch, Name: "origin/main", SHA: "aaa", CommittedAt: 1700000000},
+		{Kind: RefTag, Name: "v1.0.0", SHA: "aaa", CommittedAt: 1700000000},
 		{Kind: RefTag, Name: "v2.0.0", SHA: "aaa"},
 	}
 	if !reflect.DeepEqual(refs, want) {

@@ -4,7 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gspeager/current-client/core/gitexec"
 )
@@ -45,13 +49,16 @@ type MergeResult struct {
 // MergeConflicts merges two commits in memory, without touching the working
 // tree or index, and returns the files that would conflict.
 func MergeConflicts(ctx context.Context, repoPath, ours, theirs string) ([]string, error) {
-	merge, err := mergeTree(ctx, repoPath, ours, theirs)
+	env, discard := scratchObjects(ctx, repoPath)
+	defer discard()
+	merge, err := mergeTree(ctx, repoPath, env, ours, theirs)
 	return merge.Files, err
 }
 
-func mergeTree(ctx context.Context, repoPath string, args ...string) (MergeResult, error) {
+func mergeTree(ctx context.Context, repoPath string, env []string, args ...string) (MergeResult, error) {
 	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
 		Dir:  repoPath,
+		Env:  env,
 		Args: append([]string{"merge-tree", "--write-tree", "--name-only", "--no-messages", "-z"}, args...),
 	})
 	if err != nil {
@@ -75,7 +82,9 @@ func MergeConflictsMany(ctx context.Context, repoPath, ours string, theirs []str
 	for i, tip := range theirs {
 		pairs[i] = [2]string{ours, tip}
 	}
-	merges, err := mergeTreeBatch(ctx, repoPath, pairs)
+	env, discard := scratchObjects(ctx, repoPath)
+	defer discard()
+	merges, err := mergeTreeBatch(ctx, repoPath, env, pairs)
 	if err != nil {
 		return nil, err
 	}
@@ -86,20 +95,82 @@ func MergeConflictsMany(ctx context.Context, repoPath, ours string, theirs []str
 // order: one process on Git 2.40 or newer. A pair sharing no history is
 // Unrelated; it costs the batch its one process, as Git before 2.40 does.
 func MergePairs(ctx context.Context, repoPath string, pairs [][2]string) ([]MergeResult, error) {
+	return mergePairs(ctx, repoPath, nil, pairs)
+}
+
+// mergePairsDiscarding is MergePairs for a caller that only compares the
+// trees: they aren't kept.
+func mergePairsDiscarding(ctx context.Context, repoPath string, pairs [][2]string) ([]MergeResult, error) {
+	env, discard := scratchObjects(ctx, repoPath)
+	defer discard()
+	return mergePairs(ctx, repoPath, env, pairs)
+}
+
+func mergePairs(ctx context.Context, repoPath string, env []string, pairs [][2]string) ([]MergeResult, error) {
 	if len(pairs) == 0 {
 		return nil, nil
 	}
-	merges, err := mergeTreeBatch(ctx, repoPath, pairs)
+	merges, err := mergeTreeBatch(ctx, repoPath, env, pairs)
 	if errors.Is(err, ErrMergeTreeStdinUnsupported) || errors.Is(err, ErrUnrelatedHistories) {
-		return mergePairsEach(ctx, repoPath, pairs)
+		return mergePairsEach(ctx, repoPath, env, pairs)
 	}
 	return merges, err
+}
+
+// scratchObjects makes a merge in memory write its objects to a folder that
+// discard removes. Merging every branch of a large repository writes hundreds
+// of megabytes that Git would otherwise keep until it prunes them. A partial
+// clone keeps them, since what it fetches for the merge would be thrown away too.
+func scratchObjects(ctx context.Context, repoPath string) (env []string, discard func()) {
+	discard = func() {}
+	commonDir, err := CommonDir(ctx, repoPath)
+	if err != nil {
+		return nil, discard
+	}
+	objects := os.Getenv("GIT_OBJECT_DIRECTORY")
+	if objects == "" {
+		objects = filepath.Join(commonDir, "objects")
+	}
+	// Git marks each pack a partial clone fetched with a .promisor file.
+	packs, _ := os.ReadDir(filepath.Join(objects, "pack"))
+	for _, pack := range packs {
+		if strings.HasSuffix(pack.Name(), ".promisor") {
+			return nil, discard
+		}
+	}
+	sweepScratch()
+	dir, err := os.MkdirTemp("", scratchPrefix)
+	if err != nil {
+		return nil, discard
+	}
+	// Quoted, so a path that holds the list separator is still one path. Git
+	// doesn't read the \u escapes strconv.Quote writes.
+	alternates := `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(filepath.ToSlash(objects)) + `"`
+	if inherited := os.Getenv("GIT_ALTERNATE_OBJECT_DIRECTORIES"); inherited != "" {
+		alternates += string(os.PathListSeparator) + inherited
+	}
+	return []string{"GIT_OBJECT_DIRECTORY=" + dir, "GIT_ALTERNATE_OBJECT_DIRECTORIES=" + alternates},
+		func() { _ = os.RemoveAll(dir) }
+}
+
+const scratchPrefix = "current-client-objects"
+
+// Quitting during a merge leaves its folder behind.
+var sweepScratch = sync.OnceFunc(func() { removeScratchOlderThan(24 * time.Hour) })
+
+func removeScratchOlderThan(age time.Duration) {
+	dirs, _ := filepath.Glob(filepath.Join(os.TempDir(), scratchPrefix+"*"))
+	for _, dir := range dirs {
+		if info, err := os.Lstat(dir); err == nil && time.Since(info.ModTime()) > age {
+			_ = os.RemoveAll(dir)
+		}
+	}
 }
 
 // MergeConflictsPairs is MergePairs reduced to each pair's conflicting
 // files: nil for a clean merge, and for a pair sharing no history.
 func MergeConflictsPairs(ctx context.Context, repoPath string, pairs [][2]string) ([][]string, error) {
-	merges, err := MergePairs(ctx, repoPath, pairs)
+	merges, err := mergePairsDiscarding(ctx, repoPath, pairs)
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +185,10 @@ func conflictsOf(merges []MergeResult) [][]string {
 	return conflicts
 }
 
-func mergePairsEach(ctx context.Context, repoPath string, pairs [][2]string) ([]MergeResult, error) {
+func mergePairsEach(ctx context.Context, repoPath string, env []string, pairs [][2]string) ([]MergeResult, error) {
 	merges := make([]MergeResult, len(pairs))
 	for i, pair := range pairs {
-		merge, err := mergeTree(ctx, repoPath, pair[0], pair[1])
+		merge, err := mergeTree(ctx, repoPath, env, pair[0], pair[1])
 		if errors.Is(err, ErrUnrelatedHistories) {
 			merge = MergeResult{Unrelated: true}
 		} else if err != nil {
@@ -128,13 +199,14 @@ func mergePairsEach(ctx context.Context, repoPath string, pairs [][2]string) ([]
 	return merges, nil
 }
 
-func mergeTreeBatch(ctx context.Context, repoPath string, pairs [][2]string) ([]MergeResult, error) {
+func mergeTreeBatch(ctx context.Context, repoPath string, env []string, pairs [][2]string) ([]MergeResult, error) {
 	var input strings.Builder
 	for _, pair := range pairs {
 		fmt.Fprintf(&input, "%s %s\n", pair[0], pair[1])
 	}
 	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
 		Dir:   repoPath,
+		Env:   env,
 		Args:  []string{"merge-tree", "--write-tree", "--stdin", "--name-only", "--no-messages", "-z"},
 		Stdin: strings.NewReader(input.String()),
 	})

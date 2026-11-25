@@ -2,8 +2,10 @@ package overlap
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/internal/gittest"
@@ -116,5 +118,72 @@ func TestPredictWithABranchOfUnrelatedHistory(t *testing.T) {
 				t.Errorf("Predict = %+v, %v; want %+v", got, err, want)
 			}
 		})
+	}
+}
+
+func branchNames(overlaps []Overlap) []string {
+	var names []string
+	for _, overlap := range overlaps {
+		names = append(names, overlap.Branch)
+	}
+	return names
+}
+
+// agedConflicts makes a repository whose branches all conflict with HEAD,
+// committed this many days ago, each one local and on origin.
+func agedConflicts(t *testing.T, headDays int, branchDays ...int) string {
+	t.Helper()
+	dir := gittest.InitRepo(t)
+	commit := func(content string, days int) {
+		when := fmt.Sprintf("%d +0000", time.Now().AddDate(0, 0, -days).Unix())
+		t.Setenv("GIT_AUTHOR_DATE", when)
+		t.Setenv("GIT_COMMITTER_DATE", when)
+		gittest.CommitFile(t, dir, "shared.txt", content, content)
+	}
+	commit("base\n", 900)
+	for _, days := range branchDays {
+		name := fmt.Sprintf("age-%d", days)
+		gittest.Run(t, dir, "switch", "-c", name, "main")
+		commit(name+"\n", days)
+		gittest.Run(t, dir, "update-ref", "refs/remotes/origin/"+name, "HEAD")
+	}
+	gittest.Run(t, dir, "switch", "main")
+	commit("ours\n", headDays)
+	return dir
+}
+
+func TestPredictLeavesOutOldRemoteBranches(t *testing.T) {
+	dir := agedConflicts(t, 1, 30, 89, 91, 800)
+	got, err := Predict(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"age-30", "age-800", "age-89", "age-91", "origin/age-30", "origin/age-89"}
+	if names := branchNames(got); !reflect.DeepEqual(names, want) {
+		t.Errorf("Predict = %v, want every local branch and the recent remote ones: %v", names, want)
+	}
+}
+
+func TestPredictCountsBackFromTheNewestBranch(t *testing.T) {
+	dir := agedConflicts(t, 500, 510, 800)
+	got, err := Predict(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"age-510", "age-800", "origin/age-510"}
+	if names := branchNames(got); !reflect.DeepEqual(names, want) {
+		t.Errorf("Predict in a quiet repository = %v, want %v", names, want)
+	}
+}
+
+func TestPredictIgnoresAnEarlyClock(t *testing.T) {
+	dir := agedConflicts(t, -400, 30)
+	got, err := Predict(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"age-30", "origin/age-30"}
+	if names := branchNames(got); !reflect.DeepEqual(names, want) {
+		t.Errorf("Predict with HEAD dated ahead = %v, want %v", names, want)
 	}
 }

@@ -1,5 +1,15 @@
 import type { DiffLine } from '@current-client-bindings/app'
-import { buildDisplayRows, diffStats, pairLines, unifiedRowsForPair } from './diffRows'
+import {
+  buildDisplayRows,
+  buildPaneRows,
+  columnsOf,
+  copiedText,
+  diffStats,
+  isLongDiff,
+  longestLine,
+  pairLines,
+  unifiedRowsForPair,
+} from './diffRows'
 
 function line(kind: 'context' | 'added' | 'removed', content: string, n = 1): DiffLine {
   return {
@@ -81,5 +91,74 @@ describe('diffStats', () => {
       ],
     }
     expect(diffStats(diff)).toEqual({ added: 2, removed: 1, hunks: 2 })
+  })
+})
+
+describe('buildPaneRows', () => {
+  const hunk = {
+    header: '@@',
+    raw: 'raw',
+    lines: [
+      line('removed', 'old', 1),
+      line('added', 'new', 1),
+      ...Array.from({ length: 9 }, (_, i) => line('context', `same ${i}`, i + 2)),
+    ],
+  }
+  const rows = buildDisplayRows([hunk])
+
+  it('lists headers, pairs, collapsed lines and the blocks under a line', () => {
+    const paneRows = buildPaneRows(rows, new Set(), (ref) => ref === '+1')
+    expect(paneRows.map((row) => row.kind)).toEqual(['header', 'pair', 'blocks', 'collapsed'])
+    expect(paneRows[3]).toMatchObject({ group: 2, count: 9 })
+  })
+
+  it('lists every line of an expanded group, under keys of their own', () => {
+    const paneRows = buildPaneRows(rows, new Set([2]), () => false)
+    expect(paneRows).toHaveLength(11)
+    expect(new Set(paneRows.map((row) => row.key)).size).toBe(11)
+  })
+
+  it('numbers the hunks', () => {
+    const paneRows = buildPaneRows(buildDisplayRows([hunk, hunk]), new Set(), () => false)
+    expect(paneRows.flatMap((row) => (row.kind === 'header' ? [row.hunk] : []))).toEqual([0, 1])
+  })
+})
+
+describe('a long diff', () => {
+  it('counts collapsed lines, since they can be expanded', () => {
+    const context = (n: number) =>
+      buildDisplayRows([{ header: '', raw: '', lines: Array(n).fill(line('context', 'x')) }])
+    expect(isLongDiff(context(400))).toBe(false)
+    expect(isLongDiff(context(600))).toBe(true)
+  })
+
+  it('measures its longest line with tabs filled out', () => {
+    expect(columnsOf('\tab')).toBe(10)
+    expect(columnsOf('abc\td')).toBe(9)
+    expect(columnsOf('é 日本語 😀')).toBe(11)
+    const rows = buildDisplayRows([
+      { header: '', raw: '', lines: [line('removed', 'short'), line('added', '\t\tlonger')] },
+    ])
+    expect(longestLine(rows)).toBe(22)
+  })
+})
+
+describe('copiedText', () => {
+  const rows = buildPaneRows(
+    buildDisplayRows([
+      { header: '@@', raw: '', lines: [line('removed', 'old'), line('added', 'new'), line('context', 'same', 2)] },
+    ]),
+    new Set(),
+    () => false,
+  )
+
+  it('takes the lines as the layout shows them, without headers', () => {
+    expect(copiedText(rows, 'unified')).toBe('old\nnew\nsame')
+    expect(copiedText(rows, 'split')).toBe('old\nnew\nsame\nsame')
+  })
+
+  it('takes one side where each side is its own', () => {
+    expect(copiedText(rows, 'split', 'left')).toBe('old\nsame')
+    expect(copiedText(rows, 'split', 'right')).toBe('new\nsame')
   })
 })

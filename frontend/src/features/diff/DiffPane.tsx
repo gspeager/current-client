@@ -1,11 +1,17 @@
 import Kbd from '../../components/controls/Kbd'
 import {
   Fragment,
+  useCallback,
+  useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
+  type ClipboardEvent,
+  type CSSProperties,
   type Key,
   type MouseEvent,
   type ReactNode,
+  type Ref,
   type RefObject,
   type UIEvent,
 } from 'react'
@@ -13,8 +19,20 @@ import { ChevronsUpDown, MessageSquarePlus } from 'lucide-react'
 import type { DiffLine, LineSelection } from '@current-client-bindings/app'
 import { plural } from '../../lib/plural'
 import { useDiffWrap } from './diffWrap'
-import { unifiedRowsForPair, type DisplayRow, type PairedLine, type UnifiedRow } from './diffRows'
+import {
+  buildPaneRows,
+  columnsOf,
+  copiedText,
+  isLongDiff,
+  longestLine,
+  unifiedRowsForPair,
+  type DisplayRow,
+  type PairedLine,
+  type PaneRow,
+  type UnifiedRow,
+} from './diffRows'
 import { languageForPath, tokenizeLine } from './syntaxHighlight'
+import { selectedRows, useDiffWindow } from './useDiffWindow'
 import { diffLineWords } from './wordDiff'
 
 type Side = 'left' | 'right'
@@ -34,12 +52,6 @@ export function lineKey(line: DiffLine | null): string | null {
   if (line?.kind === 'added') return `+${line.newLine}`
   if (line?.kind === 'removed') return `-${line.oldLine}`
   return null
-}
-
-// Names a line for blocks placed under it: a new-side line as +n, a removed
-// line as -n.
-export function lineRef(line: number, oldLine: number): string {
-  return line ? `+${line}` : `-${oldLine}`
 }
 
 type CommentOnLine = (line: number, oldLine: number) => void
@@ -270,8 +282,15 @@ function HunkActionButtons({
 // Wrap lines off in split view: each side scrolls on its own and scrolling one
 // moves the other. Both take the wider side's width so they scroll the same
 // distance and their rows stay aligned.
-function SyncedSides({ left, right }: { left: ReactNode; right: ReactNode }) {
-  const leftRef = useRef<HTMLDivElement>(null)
+function SyncedSides({
+  left,
+  right,
+  leftRef,
+}: {
+  left: ReactNode
+  right: ReactNode
+  leftRef: RefObject<HTMLDivElement>
+}) {
   const rightRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
@@ -298,6 +317,18 @@ function SyncedSides({ left, right }: { left: ReactNode; right: ReactNode }) {
   )
 }
 
+// Brings rows into view, whether or not they're drawn.
+export interface DiffPaneHandle {
+  // False when the diff doesn't show the line.
+  revealLine: (line: number) => boolean
+  revealHunk: (hunk: number) => void
+  revealBlock: (block: number) => void
+  revealEdge: (edge: 'first' | 'last') => void
+  // The nearest row with a changed line, after or before this one. False when
+  // it's already drawn, or there is none.
+  revealChange: (from: number, forward: boolean) => boolean
+}
+
 interface DiffPaneProps extends HunkActions {
   mode: 'split' | 'unified'
   rows: DisplayRow[]
@@ -306,6 +337,7 @@ interface DiffPaneProps extends HunkActions {
   onToggleGroup: (index: number) => void
   currentHunkIndex: number
   scrollRef: RefObject<HTMLDivElement>
+  handle?: Ref<DiffPaneHandle>
   // Present when lines can be selected for hunk actions.
   lineSelect?: LineSelect & { byHunk: Map<string, LineSelection> }
   // Blocks placed under a line, by lineRef: review threads, drafted
@@ -322,92 +354,186 @@ interface DiffPaneProps extends HunkActions {
   onScrollTopChange?: (top: number) => void
 }
 
-// Split mode is one grid, so hunk headers can span both columns, unless lines
-// don't wrap and each side scrolls sideways on its own.
-function DiffPane({
-  mode,
-  rows,
-  path,
-  expandedGroups,
-  onToggleGroup,
-  currentHunkIndex,
-  scrollRef,
-  lineSelect,
-  blocksByLine,
-  onCommentLine,
-  onLineMenu,
-  blockStarts,
-  resultView = false,
-  onScrollTopChange,
-  ...hunkActions
-}: DiffPaneProps) {
+const ROW_HEIGHT = 20
+// Only for rows that haven't been drawn; a drawn row is measured.
+const BLOCKS_ESTIMATE = 120
+const CHARACTER_WIDTH = 7.8
+const UNIFIED_GUTTERS = 102
+const SPLIT_GUTTERS = 62
+
+// Split mode is a grid for each row, so a hunk header can span both columns,
+// unless lines don't wrap and each side scrolls sideways on its own.
+function DiffPane(props: DiffPaneProps) {
+  const {
+    mode,
+    rows,
+    path,
+    expandedGroups,
+    onToggleGroup,
+    currentHunkIndex,
+    scrollRef,
+    handle,
+    lineSelect,
+    blocksByLine,
+    onCommentLine,
+    onLineMenu,
+    blockStarts,
+    resultView = false,
+    onScrollTopChange,
+    ...hunkActions
+  } = props
   const { wrap } = useDiffWrap()
+  const leftRef = useRef<HTMLDivElement>(null)
+  const sidesApart = mode === 'split' && !wrap
+  const scroller = () => (sidesApart ? leftRef.current : scrollRef.current)
+  const language = languageForPath(path)
+
+  // With each side rendered on its own a block can't span both, so DiffViewer
+  // lists them below the diff instead, and no line takes a comment.
+  const paneRows = useMemo(
+    () => buildPaneRows(rows, expandedGroups, (ref) => !sidesApart && !!blocksByLine?.has(ref), blockStarts),
+    [rows, expandedGroups, sidesApart, blocksByLine, blockStarts],
+  )
+  const windowed = useMemo(() => isLongDiff(rows), [rows])
+  const longest = useMemo(() => (windowed && !wrap ? longestLine(rows) : 0), [windowed, wrap, rows])
+
+  const linesIn = (text: string, width: number) => {
+    if (!wrap || width === 0) return 1
+    const room = mode === 'split' ? width / 2 - SPLIT_GUTTERS : width - UNIFIED_GUTTERS
+    return Math.max(1, Math.ceil(columnsOf(text) / Math.max(1, Math.floor(room / CHARACTER_WIDTH))))
+  }
+  const estimate = (row: PaneRow, width: number): number => {
+    if (row.kind === 'blocks') return BLOCKS_ESTIMATE
+    if (row.kind !== 'pair') return ROW_HEIGHT
+    const { left, right } = row.pair
+    if (mode === 'split')
+      return ROW_HEIGHT * Math.max(linesIn(left?.content ?? '', width), linesIn(right?.content ?? '', width))
+    return (
+      ROW_HEIGHT *
+      unifiedRowsForPair(row.pair).reduce((sum, { side }) => sum + linesIn(row.pair[side]!.content, width), 0)
+    )
+  }
+  const drawn = useDiffWindow({
+    windowed,
+    count: paneRows.length,
+    keyOf: useCallback((index) => paneRows[index].key, [paneRows]),
+    layout: `${mode}-${wrap}`,
+    heightOf: (index, width) => estimate(paneRows[index], width),
+    measured: (index) => wrap || paneRows[index]?.kind === 'blocks',
+    keep: useMemo(() => paneRows.flatMap((row, i) => (row.kind === 'blocks' ? [i] : [])), [paneRows]),
+    scroller,
+    paneRef: scrollRef,
+  })
+
+  const revealRow = (index: number, block: 'center' | 'nearest') => {
+    if (index >= 0) drawn.reveal(index, block)
+    return index >= 0
+  }
+  useImperativeHandle(handle, () => ({
+    revealLine: (line) =>
+      revealRow(
+        paneRows.findIndex(
+          (row) => row.kind === 'pair' && (row.pair.left?.newLine === line || row.pair.right?.newLine === line),
+        ),
+        'center',
+      ),
+    revealHunk: (hunk) =>
+      revealRow(
+        paneRows.findIndex((row) => row.kind === 'header' && row.hunk === hunk),
+        'nearest',
+      ),
+    revealBlock: (block) => {
+      const starts = paneRows.flatMap((row, i) => (row.kind === 'pair' && row.startsBlock ? [i] : []))
+      revealRow(starts[block] ?? -1, 'center')
+    },
+    revealEdge: (edge) => revealRow(edge === 'first' ? 0 : paneRows.length - 1, 'nearest'),
+    revealChange: (from, forward) => {
+      const step = forward ? 1 : -1
+      for (let i = from + step; i >= 0 && i < paneRows.length; i += step) {
+        const row = paneRows[i]
+        if (row.kind === 'pair' && (lineKey(row.pair.left) || lineKey(row.pair.right))) {
+          return !drawn.indexes.includes(i) && revealRow(i, 'nearest')
+        }
+      }
+      return false
+    },
+  }))
+
   // Capture, since scroll events don't bubble up from the two sides. Anything
   // else that scrolls inside the pane, such as a reply box, isn't the diff.
   const reportScroll = (e: UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement
     if (target === e.currentTarget || target.classList.contains('diff-side')) onScrollTopChange?.(target.scrollTop)
   }
-  const language = languageForPath(path)
-  // Blocks go after the pair; with each side rendered on its own they can't
-  // span both, so DiffViewer lists them below the diff instead, and no line
-  // takes a comment.
-  const blockRows = (pair: PairedLine, side?: Side): ReactNode[] => {
-    if (side || !blocksByLine) return []
-    const refs: string[] = []
-    if (pair.left && pair.left !== pair.right && pair.left.kind === 'removed') refs.push(lineRef(0, pair.left.oldLine))
-    if (pair.right?.newLine) refs.push(lineRef(pair.right.newLine, 0))
-    return refs.flatMap((ref) => blocksByLine.get(ref) ?? [])
-  }
+
   const comment = onCommentLine && !resultView ? onCommentLine : undefined
-  const renderPair = (pair: PairedLine, key: Key, side?: Side, extraClass = ''): ReactNode[] => [
-    ...(side
-      ? [splitRow(pair, side, language, key, lineSelect, extraClass)]
-      : mode === 'split'
-        ? [
-            splitRow(pair, 'left', language, `${key}-l`, lineSelect, extraClass, comment),
-            splitRow(pair, 'right', language, `${key}-r`, lineSelect, extraClass, comment),
-          ]
-        : unifiedRowsForPair(pair).map((row, k) =>
-            unifiedRow(row, language, `${key}-${k}`, lineSelect, k === 0 ? extraClass : '', resultView, comment),
-          )),
-    ...blockRows(pair, side),
-  ]
+  const renderPair = (pair: PairedLine, side: Side | undefined, extraClass: string): ReactNode => {
+    if (side) return splitRow(pair, side, language, side, lineSelect, extraClass)
+    if (mode === 'split') {
+      return (['left', 'right'] as const).map((s) => splitRow(pair, s, language, s, lineSelect, extraClass, comment))
+    }
+    return unifiedRowsForPair(pair).map((row, k) =>
+      unifiedRow(row, language, k, lineSelect, k === 0 ? extraClass : '', resultView, comment),
+    )
+  }
 
   // With a side, renders just that side; the right one gets blank rows where
   // the left has a hunk header or collapsed lines.
-  const renderRows = (side?: Side) => {
-    let hunkIndex = -1
-    return rows.flatMap<ReactNode>((row, i) => {
-      if ('header' in row) {
-        hunkIndex++
-        if (side === 'right') return <div key={i} className="diff-side-spacer" />
+  const renderRow = (row: PaneRow, side?: Side): ReactNode => {
+    switch (row.kind) {
+      case 'header':
+        if (side === 'right') return <div className="diff-side-spacer" />
         return (
           <div
-            key={i}
-            className={
-              hunkIndex === currentHunkIndex ? 'diff-hunk-header diff-hunk-header-current' : 'diff-hunk-header'
-            }
+            className={row.hunk === currentHunkIndex ? 'diff-hunk-header diff-hunk-header-current' : 'diff-hunk-header'}
           >
             <span>{row.header}</span>
             <HunkActionButtons raw={row.raw} lines={lineSelect?.byHunk.get(row.raw)} {...hunkActions} />
           </div>
         )
-      }
-      if ('collapsed' in row) {
-        if (expandedGroups.has(i)) {
-          return row.collapsed.flatMap((pair, j) => renderPair(pair, `${i}-${j}`, side))
-        }
-        if (side === 'right') return <div key={i} className="diff-side-spacer" />
+      case 'collapsed':
+        if (side === 'right') return <div className="diff-side-spacer" />
         return (
-          <button key={i} type="button" className="diff-collapsed" onClick={() => onToggleGroup(i)}>
+          <button type="button" className="diff-collapsed" onClick={() => onToggleGroup(row.group)}>
             <ChevronsUpDown size={12} strokeWidth={1.75} />
-            {row.collapsed.length} unchanged lines
+            {row.count} unchanged lines
           </button>
         )
+      case 'blocks':
+        return row.refs.flatMap((ref) => blocksByLine?.get(ref) ?? [])
+      case 'pair':
+        return renderPair(row.pair, side, row.startsBlock ? ' diff-conflict-block-start' : '')
+    }
+  }
+
+  // Scrolling redraws the pane with the same props, so a row already built is
+  // used again: highlighting and comparing words is most of its cost.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const built = useMemo(() => new Map<string, ReactNode>(), [props, wrap, paneRows])
+  const renderRows = (side?: Side) => {
+    const elements: ReactNode[] = []
+    let end = 0
+    const gap = (height: number, key: string) => {
+      if (height > 0) elements.push(<div key={key} className="diff-gap" style={{ height }} />)
+    }
+    for (const index of drawn.indexes) {
+      const row = paneRows[index]
+      if (!row) continue
+      gap(drawn.startOf(index) - end, `gap-${row.key}`)
+      end = drawn.endOf(index)
+      const cacheKey = `${side ?? ''}${row.key}`
+      if (!built.has(cacheKey)) {
+        built.set(
+          cacheKey,
+          <div key={row.key} className="diff-item" data-index={index} ref={drawn.measureRow(index)}>
+            {renderRow(row, side)}
+          </div>,
+        )
       }
-      return renderPair(row.pair, i, side, blockStarts?.has(i) ? ' diff-conflict-block-start' : '')
-    })
+      elements.push(built.get(cacheKey))
+    }
+    gap(drawn.total - end, 'gap-end')
+    return elements
   }
 
   const lineMenu = (e: MouseEvent) => {
@@ -417,16 +543,39 @@ function DiffPane({
     onLineMenu(e, Number(row.dataset.line), row.querySelector('.diff-content')?.textContent ?? '')
   }
 
-  const sidesApart = mode === 'split' && !wrap
+  // A selection across rows that aren't drawn has no text in the page to copy.
+  const copy = (e: ClipboardEvent) => {
+    const selected = windowed ? selectedRows(scrollRef.current) : null
+    if (!selected) return
+    const [first, last] = selected
+    const inView = new Set(drawn.indexes)
+    let complete = true
+    for (let i = first; i <= last && complete; i++) complete = inView.has(i)
+    if (complete) return
+    e.preventDefault()
+    const side = !sidesApart
+      ? undefined
+      : leftRef.current?.contains(document.getSelection()!.anchorNode)
+        ? 'left'
+        : 'right'
+    e.clipboardData.setData('text/plain', copiedText(paneRows.slice(first, last + 1), mode, side))
+  }
+
   return (
     <div
-      className={sidesApart ? 'diff-pane diff-pane-sides' : `diff-pane diff-pane-${mode}`}
+      className={`diff-pane diff-pane-${sidesApart ? 'sides' : mode}${windowed ? ' diff-pane-long' : ''}`}
       ref={scrollRef}
       tabIndex={0}
+      style={longest ? ({ '--longest-line': `${longest}ch` } as CSSProperties) : undefined}
       onContextMenu={lineMenu}
+      onCopy={copy}
       onScrollCapture={reportScroll}
     >
-      {sidesApart ? <SyncedSides left={renderRows('left')} right={renderRows('right')} /> : renderRows()}
+      {sidesApart ? (
+        <SyncedSides left={renderRows('left')} right={renderRows('right')} leftRef={leftRef} />
+      ) : (
+        renderRows()
+      )}
     </div>
   )
 }

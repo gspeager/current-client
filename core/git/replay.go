@@ -50,7 +50,7 @@ func replayToTip(ctx context.Context, repoPath, onto string, commits []string) (
 	}
 	steps := make([]ReplayStep, 0, len(commits))
 	for i, sha := range commits {
-		merge, err := mergeTree(ctx, repoPath, "--merge-base="+sha+"^", current, sha)
+		merge, err := mergeTree(ctx, repoPath, nil, "--merge-base="+sha+"^", current, sha)
 		if err != nil {
 			return nil, "", err
 		}
