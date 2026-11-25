@@ -1,5 +1,11 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import { BoardColumn, BoardInfo, WorktreeService } from '@current-client-bindings/app'
+import {
+  BoardColumn,
+  BoardInfo,
+  WorktreeService,
+  type BoardTask,
+  type TaskResultInfo,
+} from '@current-client-bindings/app'
 import { ReadThroughContext } from '../read-through/readThrough'
 import { nextRead } from './useBoard'
 import WorktreeBoard from './WorktreeBoard'
@@ -38,7 +44,11 @@ const onOpenTerminal = vi.fn()
 const onNewWorktree = vi.fn()
 const readThrough = vi.fn()
 
+const run = vi.fn()
+const stop = vi.fn()
+
 const open = async (info: BoardInfo, terminal = true) => {
+  run.mockResolvedValue(undefined)
   vi.mocked(WorktreeService.Board).mockResolvedValue(info)
   render(
     <ReadThroughContext.Provider value={readThrough}>
@@ -46,6 +56,7 @@ const open = async (info: BoardInfo, terminal = true) => {
         repoPath="/work/main"
         onOpenRepository={onOpenRepository}
         onOpenTerminal={terminal ? onOpenTerminal : undefined}
+        tasks={terminal ? { run, stop, error: null } : undefined}
         onNewWorktree={onNewWorktree}
         onClose={() => {}}
       />
@@ -216,4 +227,72 @@ it('shows why a worktree could not be read, beside the others', async () => {
   await open(board({ columns: [column('main'), column('one', { problem: 'index file corrupt' })] }))
   expect(col('one').getByText('index file corrupt')).toBeInTheDocument()
   expect(screen.getByRole('region', { name: 'main' })).toHaveTextContent('No changes')
+})
+
+const task = (
+  state: string | null,
+  over: Partial<BoardTask> = {},
+  result: Partial<TaskResultInfo> = {},
+): BoardTask => ({
+  task: {
+    id: 'make:test',
+    source: 'Makefile',
+    name: 'test',
+    command: 'make test',
+    file: 'Makefile',
+    note: '',
+    approved: true,
+    fingerprint: 'seen',
+    custom: false,
+  },
+  running: false,
+  result: state
+    ? {
+        passed: true,
+        at: new Date(Date.now() - 12 * 60_000).toISOString(),
+        durationMs: 900,
+        state,
+        changed: [],
+        ...result,
+      }
+    : null,
+  ...over,
+})
+
+const withTasks = board({
+  columns: [
+    column('now', { tasks: [task('current')] }),
+    column('old', { tasks: [task('outdated', {}, { passed: false })] }),
+    column('moved', { tasks: [task('changed', {}, { changed: ['a.out', 'b.out', 'c.out', 'd.out'] })] }),
+    column('unsure', { tasks: [task('unknown')] }),
+    column('never', { tasks: [task(null)] }),
+    column('busy', { tasks: [task('current', { running: true })] }),
+  ],
+})
+
+it('says whether a result is on the code as it is', async () => {
+  await open(withTasks)
+  expect(screen.getByRole('region', { name: 'now' })).toHaveTextContent('testPassed 12m ago, on this code')
+  expect(screen.getByRole('region', { name: 'old' })).toHaveTextContent('testFailed 12m ago, out of date')
+  expect(screen.getByRole('region', { name: 'moved' })).toHaveTextContent('Passed 12m ago, files changed while it ran')
+  expect(col('moved').getByTitle(/^Changed while it ran: a.out, b.out, c.out and 1 more\./)).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: 'unsure' })).toHaveTextContent('Passed 12m ago, may be out of date')
+  expect(screen.getByRole('region', { name: 'never' })).toHaveTextContent('testNot run')
+  expect(screen.getByRole('region', { name: 'busy' })).toHaveTextContent('testRunning')
+})
+
+it('runs and stops a task in its own worktree, and reads the board again', async () => {
+  await open(withTasks)
+  fireEvent.click(screen.getByRole('button', { name: 'Run test in old' }))
+  expect(run).toHaveBeenCalledWith(expect.objectContaining({ id: 'make:test' }), '/work/old')
+  await after(0)
+  expect(WorktreeService.Board).toHaveBeenCalledTimes(2)
+  fireEvent.click(screen.getByRole('button', { name: 'Stop test in busy' }))
+  expect(stop).toHaveBeenCalledWith('make:test', '/work/busy')
+})
+
+it('shows results that exist where nothing can be run', async () => {
+  await open(withTasks, false)
+  expect(screen.getByRole('region', { name: 'now' })).toHaveTextContent('Passed 12m ago, on this code')
+  expect(screen.queryByRole('button', { name: /^(Run|Stop) test/ })).toBeNull()
 })

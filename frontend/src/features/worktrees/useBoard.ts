@@ -19,6 +19,7 @@ export function useBoard(repoPath: string) {
   const visible = useSyncExternalStore(onVisibility, () => document.visibilityState === 'visible')
   const [board, setBoard] = useState<BoardInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [asked, setAsked] = useState(0)
   useEffect(() => {
     if (!visible) return
     let current = true
@@ -41,6 +42,6 @@ export function useBoard(repoPath: string) {
       current = false
       clearTimeout(timer)
     }
-  }, [repoPath, visible])
-  return { board, error }
+  }, [repoPath, visible, asked])
+  return { board, error, refresh: () => setAsked((n) => n + 1) }
 }

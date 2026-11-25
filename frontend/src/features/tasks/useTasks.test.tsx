@@ -31,7 +31,7 @@ const task = (overrides: Partial<TaskInfo> = {}): TaskInfo => ({
 })
 
 function list(overrides: Partial<TaskListInfo> = {}): TaskListInfo {
-  return { tasks: [task()], beforeCommit: [], beforePush: [], dir: '/repo', ...overrides }
+  return { tasks: [task()], beforeCommit: [], beforePush: [], onBoard: [], dir: '/repo', ...overrides }
 }
 
 function Harness() {
@@ -49,6 +49,7 @@ function Harness() {
 function renderTasks(info = list()) {
   vi.mocked(TaskService.List).mockResolvedValue(info)
   vi.mocked(TaskService.Run).mockResolvedValue()
+  vi.mocked(TaskService.Results).mockResolvedValue({})
   vi.mocked(TaskService.Approve).mockResolvedValue()
   render(
     <DialogProvider>
@@ -197,5 +198,57 @@ describe('tasks', () => {
     await user.type(within(dialog).getByRole('textbox'), 'make deploy')
     await user.click(within(dialog).getByRole('button', { name: 'Add' }))
     await vi.waitFor(() => expect(TaskService.AddCustom).toHaveBeenCalledWith('/repo', 'deploy', 'make deploy'))
+  })
+
+  it('says when a result is out of date, and reads them again when a run ends', async () => {
+    const user = userEvent.setup()
+    renderTasks()
+    await user.click(await screen.findByRole('button', { name: 'Run test' }))
+    const result = { passed: true, at: new Date().toISOString(), durationMs: 900, changed: [] }
+    vi.mocked(TaskService.Results).mockResolvedValue({ 'make:test': { ...result, state: 'current' } })
+    await finish(0)
+    expect(await screen.findByText('Passed just now, on this code')).toBeInTheDocument()
+
+    vi.mocked(TaskService.Results).mockResolvedValue({ 'make:test': { ...result, state: 'outdated' } })
+    await user.click(screen.getByRole('button', { name: 'Run test' }))
+    expect(screen.queryByText(/on this code/)).toBeNull()
+    await finish(0)
+    expect(await screen.findByText('Passed, out of date')).toBeInTheDocument()
+  })
+
+  it('chooses what the worktree board shows', async () => {
+    const user = userEvent.setup()
+    renderTasks(list({ onBoard: ['custom:x'] }))
+    vi.mocked(TaskService.SetOnBoard).mockResolvedValue()
+    await user.click(await screen.findByRole('checkbox', { name: 'Show test on the worktree board' }))
+    expect(TaskService.SetOnBoard).toHaveBeenCalledWith('/repo', ['custom:x', 'make:test'])
+  })
+
+  it('asks in another worktree before its first run there', async () => {
+    const user = userEvent.setup()
+    vi.mocked(TaskService.List).mockResolvedValue(list())
+    vi.mocked(TaskService.Run).mockResolvedValue()
+    vi.mocked(TaskService.Approve).mockResolvedValue()
+    function Elsewhere() {
+      const tasks = useTasks('/repo', 0)
+      return (
+        <button type="button" onClick={() => void tasks.run(task(), '/other')}>
+          elsewhere
+        </button>
+      )
+    }
+    render(
+      <DialogProvider>
+        <Elsewhere />
+      </DialogProvider>,
+    )
+    vi.mocked(TaskService.List).mockResolvedValue(list({ tasks: [task({ approved: false, fingerprint: 'there' })] }))
+    await user.click(screen.getByRole('button', { name: 'elsewhere' }))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Run this command?' })
+    expect(within(dialog).getByText(/In \/other/)).toBeInTheDocument()
+    expect(TaskService.List).toHaveBeenLastCalledWith('/other')
+    await user.click(within(dialog).getByRole('button', { name: 'Run' }))
+    await vi.waitFor(() => expect(TaskService.Run).toHaveBeenCalledWith('/other', 'make:test', expect.any(String)))
+    expect(TaskService.Approve).toHaveBeenCalledWith('/other', 'make:test', 'there')
   })
 })

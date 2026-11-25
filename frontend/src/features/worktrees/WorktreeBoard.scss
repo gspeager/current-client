@@ -79,6 +79,37 @@
   font: var(--data-sm);
 }
 
+.worktree-column-tasks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: var(--ui-xs);
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: var(--h-row-tree);
+  }
+
+  button {
+    @include patterns.icon-button;
+  }
+}
+
+.worktree-column-task-name {
+  color: var(--on-surface);
+}
+
+.worktree-column-result {
+  color: var(--on-surface-variant);
+}
+
+.worktree-column-failed {
+  color: var(--error);
+}
+
 .worktree-column-files {
   flex: 1;
   max-height: 34vh;

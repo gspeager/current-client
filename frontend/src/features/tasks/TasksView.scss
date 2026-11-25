@@ -151,6 +151,13 @@
   font: var(--data-sm);
 }
 
+.tasks-result {
+  flex-shrink: 0;
+  margin: 0 0 var(--space-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
 .tasks-output-command {
   @include patterns.truncate;
 }

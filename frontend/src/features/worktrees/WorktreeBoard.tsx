@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { BookOpen, FolderOpen, Play, SquareTerminal, TriangleAlert } from 'lucide-react'
-import type { BoardColumn, BoardInfo } from '@current-client-bindings/app'
+import { BookOpen, FolderOpen, Play, Square, SquareTerminal, TriangleAlert } from 'lucide-react'
+import type { BoardColumn, BoardInfo, BoardTask } from '@current-client-bindings/app'
 import DialogError from '../../components/chrome/DialogError'
 import Modal from '../../components/chrome/Modal'
 import BranchPill from '../../components/git/BranchPill'
@@ -12,6 +12,8 @@ import { useLaneColors } from '../../lib/laneColor'
 import { baseName } from '../../lib/paths'
 import { plural } from '../../lib/plural'
 import { shortSha } from '../../lib/text'
+import { describeResult, explainResult } from '../tasks/taskResult'
+import type { useTasks } from '../tasks/useTasks'
 import { useOpenReadThrough } from '../read-through/readThrough'
 import { useBoard } from './useBoard'
 import './WorktreeBoard.scss'
@@ -26,6 +28,8 @@ interface WorktreeBoardProps {
   onOpenRepository: (path: string) => void
   // Not given when there's no terminal.
   onOpenTerminal?: (path: string) => void
+  // Not given when nothing can be run. Results that exist are shown all the same.
+  tasks?: Pick<ReturnType<typeof useTasks>, 'run' | 'stop' | 'error'>
   onNewWorktree: () => void
   onClose: () => void
 }
@@ -50,8 +54,15 @@ function collidingFiles(board: BoardInfo, names: string[]): Map<string, string[]
   return byColumn
 }
 
-function WorktreeBoard({ repoPath, onOpenRepository, onOpenTerminal, onNewWorktree, onClose }: WorktreeBoardProps) {
-  const { board, error } = useBoard(repoPath)
+function WorktreeBoard({
+  repoPath,
+  onOpenRepository,
+  onOpenTerminal,
+  tasks,
+  onNewWorktree,
+  onClose,
+}: WorktreeBoardProps) {
+  const { board, error, refresh } = useBoard(repoPath)
   const names = useMemo(() => namesOf(board?.columns ?? []), [board])
   const colliding = useMemo(() => (board ? collidingFiles(board, names) : []), [board, names])
 
@@ -67,7 +78,7 @@ function WorktreeBoard({ repoPath, onOpenRepository, onOpenTerminal, onNewWorktr
       }
     >
       <div className="worktree-board">
-        <DialogError>{error}</DialogError>
+        <DialogError>{error ?? tasks?.error}</DialogError>
         {!board && !error && <p className="dialog-message">Reading each worktree…</p>}
         {board && (
           <>
@@ -81,6 +92,8 @@ function WorktreeBoard({ repoPath, onOpenRepository, onOpenTerminal, onNewWorktr
                   colliding={colliding[i]}
                   onOpen={onOpenRepository}
                   onTerminal={onOpenTerminal}
+                  onRun={tasks && ((task) => void tasks.run(task.task, column.worktree.path).then(refresh))}
+                  onStop={tasks && ((task) => tasks.stop(task.task.id, column.worktree.path))}
                 />
               ))}
             </div>
@@ -104,9 +117,11 @@ interface ColumnProps {
   colliding: Map<string, string[]>
   onOpen: (path: string) => void
   onTerminal?: (path: string) => void
+  onRun?: (task: BoardTask) => void
+  onStop?: (task: BoardTask) => void
 }
 
-function Column({ name, column, base, colliding, onOpen, onTerminal }: ColumnProps) {
+function Column({ name, column, base, colliding, onOpen, onTerminal, onRun, onStop }: ColumnProps) {
   const { branchColor } = useLaneColors()
   const readThrough = useOpenReadThrough()
   const { worktree, files } = column
@@ -155,6 +170,13 @@ function Column({ name, column, base, colliding, onOpen, onTerminal }: ColumnPro
             )}
             {column.skipped > 0 && (
               <p className="dialog-note">{plural(column.skipped, 'large untracked file')} not counted.</p>
+            )}
+            {column.tasks.length > 0 && (
+              <ul className="worktree-column-tasks">
+                {column.tasks.map((task) => (
+                  <ColumnTask key={task.task.id} task={task} worktree={name} onRun={onRun} onStop={onStop} />
+                ))}
+              </ul>
             )}
             <ul className="worktree-column-files">
               {listed.map(({ path, status }) => {
@@ -206,6 +228,40 @@ function Column({ name, column, base, colliding, onOpen, onTerminal }: ColumnPro
         </div>
       )}
     </section>
+  )
+}
+
+interface ColumnTaskProps {
+  task: BoardTask
+  worktree: string
+  onRun?: (task: BoardTask) => void
+  onStop?: (task: BoardTask) => void
+}
+
+function ColumnTask({ task, worktree, onRun, onStop }: ColumnTaskProps) {
+  const { name } = task.task
+  const { result, running } = task
+  const label = running ? `Stop ${name} in ${worktree}` : `Run ${name} in ${worktree}`
+  const act = running ? onStop : onRun
+  const Icon = running ? Square : Play
+  const failed = result && !result.passed && !running
+  return (
+    <li>
+      {act && (
+        <button type="button" aria-label={label} title={label} onClick={() => act(task)}>
+          <Icon size={12} strokeWidth={1.75} />
+        </button>
+      )}
+      <span className="worktree-column-task-name" title={task.task.command}>
+        {name}
+      </span>
+      <span
+        className={failed ? 'worktree-column-result worktree-column-failed' : 'worktree-column-result'}
+        title={result && !running ? explainResult(result) : undefined}
+      >
+        {running ? 'Running' : result ? describeResult(result) : 'Not run'}
+      </span>
+    </li>
   )
 }
 

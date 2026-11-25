@@ -98,13 +98,12 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
     }
   }, [])
 
-  const key = useCallback((id: string) => `${repoPath}\0${id}`, [repoPath])
+  const key = useCallback((id: string, path = repoPath) => `${path}\0${id}`, [repoPath])
 
   // The run is known before it starts, since a quick one can finish before the
   // call that started it returns.
-  const launch = async (task: TaskInfo, checklist = false) => {
-    if (!repoPath) return
-    const taskKey = key(task.id)
+  const launch = async (task: TaskInfo, path: string, checklist = false) => {
+    const taskKey = key(task.id, path)
     if (running.current.has(taskKey)) return
     running.current.add(taskKey)
     setError(null)
@@ -114,7 +113,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
     if (checklist) checklistRuns.current.set(runId, task.name)
     setRuns((prev) => ({ ...prev, [taskKey]: { runId, status: 'running', output: '', exitCode: 0, durationMs: 0 } }))
     try {
-      await TaskService.Run(repoPath, task.id, runId)
+      await TaskService.Run(path, task.id, runId)
     } catch (err: unknown) {
       setError(errorMessage(err))
       taskOfRun.current.delete(runId)
@@ -130,16 +129,17 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
 
   // Shows the command and folder before its first run, and again if it has changed.
   // The list is read again first, since editing a Makefile moves no ref.
-  const run = async (listed: TaskInfo) => {
-    if (!repoPath) return
-    const fresh = await TaskService.List(repoPath).catch(() => null)
+  // path is another worktree's, whose approvals are its own.
+  const run = async (listed: TaskInfo, path = repoPath) => {
+    if (!path) return
+    const fresh = await TaskService.List(path).catch(() => null)
     const task = fresh?.tasks.find((item) => item.id === listed.id) ?? listed
     if (!task.approved) {
       const confirmed = await confirm({
         title: 'Run this command?',
         message: [
           task.command,
-          `In ${repoPath}.`,
+          `In ${path}.`,
           task.file ? `From ${task.file}, which hasn't been approved as it is now.` : 'Not approved yet.',
           task.note,
         ]
@@ -149,18 +149,18 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
       })
       if (!confirmed) return
       try {
-        await TaskService.Approve(repoPath, task.id, task.fingerprint)
+        await TaskService.Approve(path, task.id, task.fingerprint)
       } catch (err: unknown) {
         setError(errorMessage(err))
         return
       }
       reload()
     }
-    await launch(task)
+    await launch(task, path)
   }
 
-  const stop = (taskId: string) => {
-    const current = runs[key(taskId)]
+  const stop = (taskId: string, path = repoPath) => {
+    const current = runs[key(taskId, path)]
     if (current) void TaskService.Stop(current.runId).catch(() => undefined)
   }
 
@@ -179,7 +179,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
         : null,
     )
     for (const task of chosen) {
-      if (task.approved) void launch(task, true)
+      if (task.approved) void launch(task, repoPath, true)
     }
   }
 
@@ -191,7 +191,14 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
     reload()
   }
 
-  const runOf = (taskId: string): TaskRun | undefined => runs[key(taskId)]
+  const setOnBoard = async (id: string, on: boolean) => {
+    if (!repoPath || !list) return
+    const next = on ? [...list.onBoard, id] : list.onBoard.filter((item) => item !== id)
+    await TaskService.SetOnBoard(repoPath, next).catch((err: unknown) => setError(errorMessage(err)))
+    reload()
+  }
+
+  const runOf = (taskId: string, path = repoPath): TaskRun | undefined => runs[key(taskId, path)]
 
   return {
     list,
@@ -203,6 +210,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
     runOf,
     runChecklist,
     setChecklist,
+    setOnBoard,
     reload,
   }
 }
