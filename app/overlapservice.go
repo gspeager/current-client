@@ -16,8 +16,8 @@ type OverlapInfo struct {
 	Files  []string `json:"files"`
 }
 
-// OverlapReport.Supported is false on Git before 2.38, where the prediction is
-// hidden rather than shown as an error.
+// OverlapReport.Supported is false on Git before 2.38, and in a partial clone, where
+// merging would fetch. The prediction is hidden rather than shown as an error.
 type OverlapReport struct {
 	Supported bool          `json:"supported"`
 	Overlaps  []OverlapInfo `json:"overlaps"`
@@ -25,7 +25,7 @@ type OverlapReport struct {
 
 func (s *OverlapService) Predict(repoPath string) (OverlapReport, error) {
 	overlaps, err := overlap.Predict(context.Background(), repoPath)
-	if errors.Is(err, git.ErrMergeTreeUnsupported) {
+	if errors.Is(err, git.ErrMergeTreeUnsupported) || errors.Is(err, overlap.ErrPartialClone) {
 		return OverlapReport{}, nil
 	}
 	if err != nil {

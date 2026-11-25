@@ -284,3 +284,27 @@ func TestAPartialCloneKeepsWhatItMerges(t *testing.T) {
 		discard()
 	}
 }
+
+func TestAPartialCloneThatBorrowsItsPacks(t *testing.T) {
+	ctx := context.Background()
+	origin := gittest.InitRepo(t)
+	gittest.CommitFile(t, origin, "a.txt", "a\n", "base")
+	gittest.Run(t, origin, "config", "uploadpack.allowFilter", "true")
+	root, url := t.TempDir(), "file://"+filepath.ToSlash(origin)
+	gittest.Run(t, root, "clone", "-q", "--filter=blob:none", url, "partial")
+	gittest.Run(t, root, "clone", "-q", "--filter=blob:none", "--reference", "partial", url, "borrows")
+	gittest.Run(t, root, "clone", "-q", "--reference", origin, url, "whole")
+	for name, want := range map[string]bool{"partial": true, "borrows": true, "whole": false} {
+		if got := PartialClone(ctx, filepath.Join(root, name)); got != want {
+			t.Errorf("PartialClone(%s) = %v, want %v", name, got, want)
+		}
+	}
+	// A folder can name itself.
+	objects := filepath.Join(root, "whole", ".git", "objects")
+	if err := os.WriteFile(filepath.Join(objects, "info", "alternates"), []byte("# itself\n\n.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if PartialClone(ctx, filepath.Join(root, "whole")) {
+		t.Error("a whole clone is partial")
+	}
+}

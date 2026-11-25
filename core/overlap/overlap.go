@@ -41,8 +41,12 @@ var mergeBatch = git.MergeConflictsBatch
 // after an action, share one prediction.
 var flights singleflight.Group
 
+// ErrPartialClone means merging would fetch what the clone leaves out.
+var ErrPartialClone = errors.New("merging would fetch what this partial clone leaves out")
+
 // Predict returns the local branches, and the remote-tracking ones updated
-// recently, whose merge with HEAD would conflict. It returns git.ErrMergeTreeUnsupported on Git before 2.38.
+// recently, whose merge with HEAD would conflict. It returns
+// git.ErrMergeTreeUnsupported on Git before 2.38, and ErrPartialClone.
 func Predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 	overlaps, err, _ := flights.Do(repoPath, func() (any, error) { return predict(ctx, repoPath) })
 	if err != nil {
@@ -52,6 +56,9 @@ func Predict(ctx context.Context, repoPath string) ([]Overlap, error) {
 }
 
 func predict(ctx context.Context, repoPath string) ([]Overlap, error) {
+	if git.PartialClone(ctx, repoPath) {
+		return nil, ErrPartialClone
+	}
 	head, err := git.ResolveCommit(ctx, repoPath, "HEAD")
 	if err != nil {
 		return nil, nil
