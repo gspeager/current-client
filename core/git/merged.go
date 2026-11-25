@@ -62,7 +62,7 @@ func MergedBranches(ctx context.Context, repoPath string) (MergedReport, error) 
 			tips = append(tips, b.Upstream)
 		}
 	}
-	merged, err := MergedInto(ctx, repoPath, report.Base, tips)
+	merged, err := mergedWithoutFetching(ctx, repoPath, report.Base, tips)
 	if err != nil {
 		return MergedReport{}, err
 	}
@@ -80,6 +80,29 @@ func MergedBranches(ctx context.Context, repoPath string) (MergedReport, error) 
 		}
 	}
 	return report, nil
+}
+
+// mergedWithoutFetching is MergedInto where nobody started a Git operation. In a partial
+// clone a merge would fetch, so there only a tip in base's history counts, and a
+// squash or rebase merge isn't found. Tips are branches, or their commits.
+func mergedWithoutFetching(ctx context.Context, repoPath, base string, tips []string) ([]bool, error) {
+	if !PartialClone(ctx, repoPath) {
+		return MergedInto(ctx, repoPath, base, tips)
+	}
+	result, err := runResult(ctx, repoPath, "for-each-ref", "--merged="+base, "--format=%(objectname) %(refname:short)",
+		"refs/heads", "refs/remotes")
+	if err != nil {
+		return nil, err
+	}
+	inBase := map[string]bool{}
+	for _, name := range strings.Fields(result.Stdout) {
+		inBase[name] = true
+	}
+	merged := make([]bool, len(tips))
+	for i, tip := range tips {
+		merged[i] = inBase[tip]
+	}
+	return merged, nil
 }
 
 // MergedInto reports for each tip whether merging it into base would leave
