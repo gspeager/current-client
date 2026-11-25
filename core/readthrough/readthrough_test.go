@@ -65,16 +65,21 @@ func list(files map[string]File) []File {
 	return all
 }
 
-func readPaths(t *testing.T, dir, key string, files map[string]File) map[string]bool {
+func readAll(t *testing.T, dir, key string, r Range) Reading {
 	t.Helper()
-	marks, err := Marks(ctx, dir, key)
+	reading, err := Read(ctx, dir, key, r)
 	if err != nil {
 		t.Fatal(err)
 	}
+	return reading
+}
+
+func readPaths(t *testing.T, dir, key string, r Range) map[string]bool {
+	t.Helper()
 	read := map[string]bool{}
-	for path, file := range files {
-		if IsRead(marks, file) {
-			read[path] = true
+	for _, file := range readAll(t, dir, key, r).Files {
+		if file.Read {
+			read[file.Path] = true
 		}
 	}
 	return read
@@ -197,29 +202,29 @@ func TestReadingAFileAndItChangingAgain(t *testing.T) {
 	if err := SetRead(ctx, dir, key, r, list(files), true); err != nil {
 		t.Fatal(err)
 	}
-	if read := readPaths(t, dir, key, files); len(read) != 4 {
+	if read := readPaths(t, dir, key, r); len(read) != 4 {
 		t.Fatalf("read = %v", read)
 	}
 	if err := SetRead(ctx, dir, key, r, []File{files["moved.txt"]}, false); err != nil {
 		t.Fatal(err)
 	}
-	if read := readPaths(t, dir, key, files); len(read) != 3 || read["moved.txt"] {
+	if read := readPaths(t, dir, key, r); len(read) != 3 || read["moved.txt"] {
 		t.Fatalf("after unmarking one, read = %v", read)
 	}
-	if read := readPaths(t, dir, "refs/heads/other", files); len(read) != 0 {
+	if read := readPaths(t, dir, "refs/heads/other", r); len(read) != 0 {
 		t.Errorf("another branch has %v", read)
 	}
 
 	gittest.CommitFile(t, dir, "a.go", "package a\n\nvar A = 3\n", "change again")
 	r = rangeOf(t, dir, false)
-	if read := readPaths(t, dir, key, filesOf(t, dir, r)); read["a.go"] || !read["deleted.txt"] || !read["a_test.go"] {
+	if read := readPaths(t, dir, key, r); read["a.go"] || !read["deleted.txt"] || !read["a_test.go"] {
 		t.Errorf("after a change, read = %v", read)
 	}
 
 	// A rebase that leaves a file as it was leaves its mark.
 	gittest.Run(t, dir, "rebase", "-q", "main")
 	r = rangeOf(t, dir, false)
-	if read := readPaths(t, dir, key, filesOf(t, dir, r)); read["a.go"] || !read["deleted.txt"] || !read["a_test.go"] {
+	if read := readPaths(t, dir, key, r); read["a.go"] || !read["deleted.txt"] || !read["a_test.go"] {
 		t.Errorf("after a rebase, read = %v", read)
 	}
 }
@@ -236,7 +241,7 @@ func TestReadingUncommittedChanges(t *testing.T) {
 	if err := SetRead(ctx, dir, key, r, list(files), true); err != nil {
 		t.Fatal(err)
 	}
-	if read := readPaths(t, dir, key, filesOf(t, dir, r)); read["new.go"] || !read["a.go"] {
+	if read := readPaths(t, dir, key, r); read["new.go"] || !read["a.go"] {
 		t.Errorf("read = %v", read)
 	}
 	marks, err := Marks(ctx, dir, key)
@@ -274,7 +279,7 @@ func TestMarksOfAFileWhoseFolderWasOneOfThem(t *testing.T) {
 	if err := SetRead(ctx, dir, "k", r, list(files), true); err != nil {
 		t.Fatal(err)
 	}
-	if read := readPaths(t, dir, "k", files); len(read) != 1 {
+	if read := readPaths(t, dir, "k", r); len(read) != 1 {
 		t.Errorf("read = %v of %v", read, files)
 	}
 }
@@ -298,7 +303,7 @@ func TestForgettingAndRenamingMarks(t *testing.T) {
 	if err != nil || len(marks) != 1 || marks[markRef("refs/heads/feat/nested")] != "refs/heads/feat/nested" {
 		t.Errorf("marks = %v, %v", marks, err)
 	}
-	if read := readPaths(t, dir, "refs/heads/feat/nested", files); len(read) != 4 {
+	if read := readPaths(t, dir, "refs/heads/feat/nested", r); len(read) != 4 {
 		t.Errorf("read = %v", read)
 	}
 }

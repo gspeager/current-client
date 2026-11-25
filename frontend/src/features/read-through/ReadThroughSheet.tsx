@@ -11,6 +11,7 @@ import {
 import type { DiffFocus } from '../diff/DiffViewer'
 import DiffSheet from '../../components/chrome/DiffSheet'
 import { Fact, FactList } from '../../components/chrome/FactList'
+import SegmentedControl from '../../components/controls/SegmentedControl'
 import Checkbox from '../../components/forms/Checkbox'
 import ChangedFileDiff from '../../components/git/ChangedFileDiff'
 import PathText from '../../components/git/PathText'
@@ -28,6 +29,18 @@ import { groupFiles, totalsByKind, totalsByStatus, totalsByType, type Total } fr
 import { notesText } from './notesText'
 import type { ReadThroughOpening } from './readThrough'
 import './ReadThroughSheet.scss'
+
+// A file with the lines that changed since it was read, for one read before.
+const shownSince = (file: ReadThroughFile): ReadThroughFile =>
+  file.again ? { ...file, added: file.sinceAdded, removed: file.sinceRemoved, binary: file.sinceBinary } : file
+
+function againText({ gone, conflict, sinceAdded, sinceRemoved }: ReadThroughFile): string {
+  const since = `Changed since it was read: +${sinceAdded} -${sinceRemoved}.`
+  if (gone) return `${since} The change no longer holds it.`
+  if (conflict)
+    return `${since} What was read doesn't merge with the new base, so the base's own changes are among them.`
+  return since
+}
 
 const versionOf = (file: ReadThroughFile) => `${file.newBlob}:${file.path}`
 
@@ -63,6 +76,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   const [noting, setNoting] = useState(false)
   // Ticks shown before they're saved.
   const [ticking, setTicking] = useState<ReadonlyMap<string, boolean>>(new Map())
+  const [mode, setMode] = useState<'whole' | 'since'>('whole')
   const rows = useRovingRows('.read-through-row')
 
   // Another worktree isn't watched, so what changed there shows on coming back.
@@ -74,14 +88,32 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     return () => window.removeEventListener('focus', onFocus)
   }, [])
 
-  const files = useMemo(
-    () => (info?.files ?? []).map((f) => ({ ...f, read: ticking.get(versionOf(f)) ?? f.read })),
+  const all = useMemo(
+    () =>
+      (info?.files ?? []).map((f) => {
+        const read = ticking.get(versionOf(f)) ?? f.read
+        return { ...f, read, again: f.again && !read }
+      }),
     [info, ticking],
+  )
+  const since = mode === 'since' && !!info?.marked
+  // One ticked in this mode stays listed, so the list doesn't move under the pointer.
+  const [tickedSince, setTickedSince] = useState<ReadonlySet<string>>(new Set())
+  const showMode = (next: 'whole' | 'since') => {
+    setMode(next)
+    setTickedSince(new Set())
+  }
+  const files = useMemo(
+    () => all.filter((f) => (since ? !f.read || tickedSince.has(versionOf(f)) : !f.gone)),
+    [all, since, tickedSince],
   )
   const groups = useMemo(() => groupFiles(files), [files])
   const ordered = useMemo(() => groups.flatMap((group) => group.files), [groups])
-  const selected = files.find((f) => f.path === path) ?? null
-  const readCount = files.filter((f) => f.read).length
+  const selected = all.find((f) => f.path === path) ?? null
+  const whole = all.filter((f) => !f.gone)
+  const unread = all.filter((f) => !f.read)
+  const againCount = all.filter((f) => f.again).length
+  const progress = `${whole.filter((f) => f.read).length} of ${whole.length} read`
 
   // Without its files, which every call would send back.
   const range = info && new ReadThroughInfo({ ...info, files: [] })
@@ -118,12 +150,14 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     setNoting(false)
   }
   const fileNotes = (notes ?? []).filter((note) => note.path === path)
-  const setRead = (file: ReadThroughFile, read: boolean) => {
+  const setRead = (changed: ReadThroughFile[], read: boolean) => {
     if (!range) return
     setActionError(null)
-    const tick = (value: boolean) => setTicking((prev) => new Map(prev).set(versionOf(file), value))
+    const tick = (value: boolean) =>
+      setTicking((prev) => new Map([...prev, ...changed.map((file) => [versionOf(file), value] as const)]))
     tick(read)
-    ReadThroughService.SetRead(range, [file], read)
+    if (since) setTickedSince((prev) => new Set([...prev, ...changed.map(versionOf)]))
+    ReadThroughService.SetRead(range, changed, read)
       .catch((err: unknown) => {
         tick(!read)
         fail(err)
@@ -135,6 +169,16 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     const after = [...ordered.slice(at + 1), ...ordered.slice(0, Math.max(0, at))]
     openFile(after.find((f) => !f.read)?.path ?? null)
   }
+  // Settled when the diff loads, so ticking a file leaves what's being read as it is.
+  const diffVersion = `${info?.base}:${info?.head}:${selected?.oldBlob}:${selected?.newBlob}:${mode}`
+  const loaded = useRef({ diff: '', since: false })
+  if (loaded.current.diff !== `${path}:${diffVersion}`) {
+    loaded.current = {
+      diff: `${path}:${diffVersion}`,
+      since: !!selected && (selected.gone || (since && selected.again)),
+    }
+  }
+  const sinceDiff = loaded.current.since
   const unreadElsewhere = files.some((f) => !f.read && f.path !== path)
 
   return (
@@ -157,9 +201,6 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
           {(info?.checkedOut || error) && (
             <Checkbox checked={uncommitted} onChange={setUncommitted} label="Uncommitted changes" />
           )}
-          <span className="read-through-progress" role="status">
-            {info && files.length > 0 && `${readCount} of ${files.length} read`}
-          </span>
           <button type="button" className="read-through-refresh" onClick={reload} aria-label="Refresh" title="Refresh">
             <RefreshCw size={14} strokeWidth={1.75} />
           </button>
@@ -168,12 +209,38 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     >
       <div className="changed-files-browser">
         <div className="changed-files-browser-files read-through-files">
+          <div className="read-through-toolbar">
+            {!!info?.marked && (
+              <SegmentedControl
+                value={mode}
+                onChange={showMode}
+                options={[
+                  { value: 'whole', label: 'Whole change' },
+                  { value: 'since', label: 'Since last read' },
+                ]}
+              />
+            )}
+            <span className="read-through-progress" role="status">
+              {whole.length > 0 && progress}
+              {againCount > 0 && ` · ${againCount} changed again`}
+            </span>
+            <button
+              type="button"
+              className="read-through-button"
+              disabled={unread.length === 0}
+              onClick={() => setRead(unread, true)}
+            >
+              Mark all as read
+            </button>
+          </div>
           {error ? (
             <p className="changed-files-browser-error">{error}</p>
           ) : info === null ? (
             <p className="changed-files-browser-hint">Loading changed files…</p>
           ) : info.target === '' ? (
             <p className="changed-files-browser-hint">This repository has no default branch to compare with.</p>
+          ) : since && files.length === 0 ? (
+            <p className="changed-files-browser-hint">Everything is read, and nothing has changed since.</p>
           ) : files.length === 0 ? (
             <p className="changed-files-browser-hint">
               No changes against {info.target}
@@ -201,12 +268,13 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
                     {group.files.map((file) => (
                       <ChangedFileRow
                         key={file.path}
-                        file={file}
+                        file={since ? shownSince(file) : file}
                         selected={file.path === path}
                         onSelect={() => openFile(file.path)}
                         relativeTo={group.folder}
                         read={file.read}
-                        onRead={(read) => setRead(file, read)}
+                        onRead={(read) => setRead([file], read)}
+                        again={file.again ? againText(file) : undefined}
                       />
                     ))}
                   </ul>
@@ -227,11 +295,25 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
                 <button type="button" className="read-through-button" onClick={() => setNoting(true)}>
                   Add note
                 </button>
-                <Checkbox checked={selected.read} onChange={(read) => setRead(selected, read)} label="Read" />
+                <Checkbox checked={selected.read} onChange={(read) => setRead([selected], read)} label="Read" />
                 <button type="button" className="read-through-button" disabled={!unreadElsewhere} onClick={nextUnread}>
                   Next unread
                 </button>
               </div>
+              {selected.again && (
+                <p className="read-through-again">
+                  {againText(selected)}{' '}
+                  {!selected.gone && (
+                    <button
+                      type="button"
+                      className="read-through-button"
+                      onClick={() => showMode(since ? 'whole' : 'since')}
+                    >
+                      {since ? 'Show the whole change' : 'Show what changed since'}
+                    </button>
+                  )}
+                </p>
+              )}
               {noting && (
                 <ReviewComposer
                   placeholder={`Note on ${selected.path}`}
@@ -247,32 +329,39 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
                 ))}
               <ChangedFileDiff
                 file={selected}
-                version={`${range.base}:${range.head}:${selected.oldBlob}:${selected.newBlob}`}
+                version={diffVersion}
                 loadDiff={(file, force, ignoreWhitespace) =>
-                  ReadThroughService.FileDiff(range, file.origPath, file.path, force, ignoreWhitespace)
+                  sinceDiff && selected.again
+                    ? ReadThroughService.SinceDiff(range, file.path, force, ignoreWhitespace)
+                    : ReadThroughService.FileDiff(range, file.origPath, file.path, force, ignoreWhitespace)
                 }
                 notes={{
-                  items: fileNotes.filter((note) => note.line || note.oldLine),
+                  items: fileNotes.filter((note) => note.line || (note.oldLine && !sinceDiff)),
+                  newOnly: sinceDiff,
                   add: (line, oldLine, text) => addNote(selected, line, oldLine, text),
                   edit: editNote,
                 }}
                 focusLine={focusLine}
-                images={{
-                  repoPath: range.path,
-                  before: { kind: 'commit', rev: range.base },
-                  after: range.uncommitted ? { kind: 'worktree', rev: '' } : { kind: 'commit', rev: range.head },
-                }}
+                images={
+                  sinceDiff
+                    ? undefined
+                    : {
+                        repoPath: range.path,
+                        before: { kind: 'commit', rev: range.base },
+                        after: range.uncommitted ? { kind: 'worktree', rev: '' } : { kind: 'commit', rev: range.head },
+                      }
+                }
               />
             </>
           ) : (
             info &&
             files.length > 0 && (
               <>
-                <Overview info={info} files={files} />
+                <Overview info={info} files={since ? files.map(shownSince) : files} />
                 <SecondLook
                   report={report}
                   error={reportError}
-                  listed={(file) => files.some((f) => f.path === file)}
+                  listed={(file) => whole.some((f) => f.path === file)}
                   onOpen={(finding) => openFile(finding.path, finding.line, finding.oldLine)}
                 />
                 <NoteList

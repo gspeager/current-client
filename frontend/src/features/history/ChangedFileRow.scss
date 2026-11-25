@@ -54,3 +54,12 @@
 .changed-file-read .changed-file-path {
   color: var(--outline);
 }
+
+.changed-file-again {
+  flex-shrink: 0;
+  padding: 0 var(--space-xs);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--warning);
+  font: var(--ui-xs);
+}

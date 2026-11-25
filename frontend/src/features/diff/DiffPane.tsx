@@ -54,29 +54,25 @@ export function lineKey(line: DiffLine | null): string | null {
   return null
 }
 
-type CommentOnLine = (line: number, oldLine: number) => void
-
 // The comment button sits over the gutter, shown while the row is hovered or
 // it has focus, so the row grid stays as it is.
-function CommentButton({
-  line,
-  oldLine,
-  label,
-  onComment,
-}: {
-  line: number
-  oldLine: number
+export interface LineComment {
+  // What the button says before the line.
   label: string
-  onComment: CommentOnLine
-}) {
+  // Whether a removed line takes one.
+  removed: boolean
+  run: (line: number, oldLine: number) => void
+}
+
+function CommentButton({ line, oldLine, comment }: { line: number; oldLine: number; comment: LineComment }) {
   const where = line ? `line ${line}` : `old line ${oldLine}`
   return (
     <button
       type="button"
       className="diff-line-comment"
-      onClick={() => onComment(line, oldLine)}
-      aria-label={`${label} ${where}`}
-      title={`${label} ${where}`}
+      onClick={() => comment.run(line, oldLine)}
+      aria-label={`${comment.label} ${where}`}
+      title={`${comment.label} ${where}`}
     >
       <MessageSquarePlus size={12} strokeWidth={1.75} />
     </button>
@@ -177,12 +173,12 @@ function splitRow(
   key: Key,
   select?: LineSelect,
   extraClass = '',
-  onComment?: CommentOnLine,
-  commentLabel = 'Comment on',
+  comment?: LineComment,
 ) {
   const line = side === 'left' ? pair.left : pair.right
   // The new side takes comments; the old side only for a line that is gone.
-  const commentable = onComment && line && (side === 'right' ? line.newLine > 0 : line.kind === 'removed')
+  const commentable =
+    comment && line && (side === 'right' ? line.newLine > 0 : comment.removed && line.kind === 'removed')
   return (
     <div
       key={key}
@@ -196,8 +192,7 @@ function splitRow(
         <CommentButton
           line={side === 'right' ? line.newLine : 0}
           oldLine={side === 'right' ? 0 : line.oldLine}
-          label={commentLabel}
-          onComment={onComment}
+          comment={comment}
         />
       )}
     </div>
@@ -211,13 +206,12 @@ function unifiedRow(
   select?: LineSelect,
   extraClass = '',
   singleNumber = false,
-  onComment?: CommentOnLine,
-  commentLabel = 'Comment on',
+  comment?: LineComment,
 ) {
   const activeLine = side === 'left' ? pair.left : pair.right
   const isContext = pair.left !== null && pair.left === pair.right
   const removed = !isContext && side === 'left' && activeLine?.kind === 'removed'
-  const commentable = onComment && activeLine && (removed || (activeLine.newLine ?? 0) > 0)
+  const commentable = comment && activeLine && (removed ? comment.removed : (activeLine.newLine ?? 0) > 0)
   if (singleNumber) {
     return (
       <div key={key} className={`${rowClass(activeLine)} diff-row-result${extraClass}`}>
@@ -249,8 +243,7 @@ function unifiedRow(
         <CommentButton
           line={removed ? 0 : activeLine.newLine}
           oldLine={removed ? activeLine.oldLine : 0}
-          label={commentLabel}
-          onComment={onComment}
+          comment={comment}
         />
       )}
     </div>
@@ -358,9 +351,7 @@ interface DiffPaneProps extends HunkActions {
   // comments, the composer.
   blocksByLine?: Map<string, ReactNode[]>
   // Present when a line can take a review comment.
-  onCommentLine?: CommentOnLine
-  // What its button says before the line.
-  commentLabel?: string
+  lineComment?: LineComment
   // Present when a new-side line's context menu has something to offer.
   onLineMenu?: (e: MouseEvent, line: number, content: string) => void
   // Rows that open a conflict block, marked so the footer can walk to them.
@@ -391,8 +382,7 @@ function DiffPane(props: DiffPaneProps) {
     handle,
     lineSelect,
     blocksByLine,
-    onCommentLine,
-    commentLabel,
+    lineComment,
     onLineMenu,
     blockStarts,
     resultView = false,
@@ -487,16 +477,14 @@ function DiffPane(props: DiffPaneProps) {
     if (target === e.currentTarget || target.classList.contains('diff-side')) onScrollTopChange?.(target.scrollTop)
   }
 
-  const comment = onCommentLine && !resultView ? onCommentLine : undefined
+  const comment = resultView ? undefined : lineComment
   const renderPair = (pair: PairedLine, side: Side | undefined, extraClass: string): ReactNode => {
     if (side) return splitRow(pair, side, language, side, lineSelect, extraClass)
     if (mode === 'split') {
-      return (['left', 'right'] as const).map((s) =>
-        splitRow(pair, s, language, s, lineSelect, extraClass, comment, commentLabel),
-      )
+      return (['left', 'right'] as const).map((s) => splitRow(pair, s, language, s, lineSelect, extraClass, comment))
     }
     return unifiedRowsForPair(pair).map((row, k) =>
-      unifiedRow(row, language, k, lineSelect, k === 0 ? extraClass : '', resultView, comment, commentLabel),
+      unifiedRow(row, language, k, lineSelect, k === 0 ? extraClass : '', resultView, comment),
     )
   }
 

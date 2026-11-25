@@ -143,6 +143,142 @@ describe('the overview', () => {
   })
 })
 
+describe('since last read', () => {
+  const again = (over: Partial<ReadThroughFile> = {}) =>
+    file('src/a.ts', { again: true, sinceAdded: 1, sinceRemoved: 0, newBlob: 'n2', ...over })
+  const mixed = () =>
+    info({
+      marked: 2,
+      files: [
+        again(),
+        file('src/b.ts', { read: true }),
+        file('src/c.ts'),
+        file('old.txt', { gone: true, again: true, sinceAdded: 0, sinceRemoved: 4 }),
+      ],
+    })
+  const listedFiles = () => screen.getAllByRole('checkbox', { name: /^Read / }).map((c) => c.getAttribute('aria-label'))
+  const inSince = async () => {
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(mixed())
+    vi.mocked(ReadThroughService.SinceDiff).mockResolvedValue(
+      new FileDiff({ hunks: [{ ...diff.hunks[0], lines: [{ ...diff.hunks[0].lines[1], content: 'added since' }] }] }),
+    )
+    const view = render(open())
+    await screen.findByText(/1 of 3 read/)
+    await userEvent.click(screen.getByRole('button', { name: 'Since last read' }))
+    return view
+  }
+
+  it('is offered once something has been read', async () => {
+    await opened()
+    expect(screen.queryByRole('button', { name: 'Since last read' })).toBeNull()
+  })
+
+  it('counts the files changed again, and says so on each', async () => {
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(mixed())
+    render(open())
+    expect(await screen.findByText('1 of 3 read · 2 changed again')).toBeInTheDocument()
+    expect(listedFiles()).toEqual(['Read src/a.ts', 'Read src/b.ts', 'Read src/c.ts'])
+    expect(screen.getAllByText('again')).toHaveLength(1)
+    expect(screen.getByTitle('Changed since it was read: +1 -0.')).toBeInTheDocument()
+  })
+
+  it('lists what is unread or changed since, with the lines that changed', async () => {
+    await inSince()
+    expect(listedFiles()).toEqual(['Read old.txt', 'Read src/a.ts', 'Read src/c.ts'])
+    expect(screen.getByText('+3 -5')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /^a\.ts/ }))
+    expect(await screen.findByText('added since')).toBeInTheDocument()
+    expect(ReadThroughService.SinceDiff).toHaveBeenCalledWith(
+      expect.objectContaining({ base: 'base' }),
+      'src/a.ts',
+      false,
+      false,
+    )
+    expect(screen.getByText('Changed since it was read: +1 -0.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Show the whole change' }))
+    await waitFor(() => expect(ReadThroughService.FileDiff).toHaveBeenCalled())
+    await userEvent.click(await screen.findByRole('button', { name: 'Show what changed since' }))
+    expect(await screen.findByText('added since')).toBeInTheDocument()
+  })
+
+  it('shows a file the change no longer holds, and a base that did not merge', async () => {
+    await inSince()
+    await userEvent.click(screen.getByRole('button', { name: /^old\.txt/ }))
+    expect(
+      await screen.findByText('Changed since it was read: +0 -4. The change no longer holds it.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Show the whole change' })).toBeNull()
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ marked: 1, files: [again({ conflict: true })] }))
+    fireEvent.focus(window)
+    expect(await screen.findByTitle(/What was read doesn't merge with the new base/)).toBeInTheDocument()
+  })
+
+  it('leaves a file in the list and its diff as it is once ticked', async () => {
+    await inSince()
+    await userEvent.click(screen.getByRole('button', { name: /^a\.ts/ }))
+    await screen.findByText('added since')
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(
+      info({ marked: 2, files: [file('src/a.ts', { newBlob: 'n2', read: true }), file('src/c.ts')] }),
+    )
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Read' }))
+    expect(await screen.findByText('1 of 2 read')).toBeInTheDocument()
+    expect(listedFiles()).toEqual(['Read src/a.ts', 'Read src/c.ts'])
+    expect(screen.getByText('added since')).toBeInTheDocument()
+    expect(ReadThroughService.FileDiff).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Ignore whitespace', hidden: true }))
+    expect(await screen.findByText('new')).toBeInTheDocument()
+    expect(ReadThroughService.SinceDiff).toHaveBeenCalledTimes(1)
+  })
+
+  it('takes notes on new lines only, as the old side is not the base', async () => {
+    vi.mocked(ReadThroughService.Notes).mockResolvedValue([
+      new ReadThroughNote({ id: 'n1', path: 'src/a.ts', oldLine: 1, text: 'on the base' }),
+    ])
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(mixed())
+    vi.mocked(ReadThroughService.SinceDiff).mockResolvedValue(diff)
+    render(open())
+    await userEvent.click(await screen.findByRole('button', { name: 'Since last read' }))
+    await userEvent.click(screen.getByRole('button', { name: /^a\.ts/ }))
+    expect(await screen.findByRole('button', { name: 'Add note on line 1' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add note on old line 1' })).toBeNull()
+    expect(screen.queryByText('on the base')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Show the whole change' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add note on old line 1' }))
+    expect(screen.getByRole('textbox', { name: 'Note on old line 1' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Show what changed since' }))
+    await waitFor(() => expect(ReadThroughService.SinceDiff).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('textbox', { name: 'Note on old line 1' })).toBeNull()
+  })
+
+  it('marks every file as read', async () => {
+    await inSince()
+    await userEvent.click(screen.getByRole('button', { name: 'Mark all as read' }))
+    const [, marked, read] = vi.mocked(ReadThroughService.SetRead).mock.calls[0]
+    expect(marked.map((f) => [f.path, f.gone])).toEqual([
+      ['src/a.ts', false],
+      ['src/c.ts', false],
+      ['old.txt', true],
+    ])
+    expect(read).toBe(true)
+    expect(screen.getByRole('button', { name: 'Mark all as read' })).toBeDisabled()
+  })
+
+  it('leaves out what was ticked before choosing it', async () => {
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(mixed())
+    render(open())
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Read src/c.ts' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Since last read' }))
+    expect(listedFiles()).toEqual(['Read old.txt', 'Read src/a.ts'])
+  })
+
+  it('says when there is nothing new', async () => {
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ marked: 1, files: [file('src/b.ts', { read: true })] }))
+    render(open())
+    await userEvent.click(await screen.findByRole('button', { name: 'Since last read' }))
+    expect(screen.getByText('Everything is read, and nothing has changed since.')).toBeInTheDocument()
+  })
+})
+
 describe('worth a second look', () => {
   const finding = (over: object) => ({
     rule: 'ci',

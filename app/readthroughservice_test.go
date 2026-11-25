@@ -297,3 +297,40 @@ func TestReadThroughFindings(t *testing.T) {
 		t.Errorf("turned off = %v", rules)
 	}
 }
+
+func TestReadThroughSinceLastRead(t *testing.T) {
+	repo := readThroughRepo(t)
+	s := new(ReadThroughService)
+	request := ReadThroughRequest{Ref: "refs/heads/side"}
+	info := openReadThrough(t, repo, request)
+	if info.Marked != 0 {
+		t.Errorf("marked = %d", info.Marked)
+	}
+	if err := s.SetRead(info, info.Files, true); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "switch", "-q", "side")
+	writeIn(t, repo, "b.txt", "b\nmore\n")
+	gitIn(t, repo, "commit", "-q", "-a", "-m", "more")
+	info = openReadThrough(t, repo, request)
+	if f := info.Files[0]; info.Marked != 1 || f.Read || !f.Again || f.SinceAdded != 1 || f.SinceRemoved != 0 {
+		t.Errorf("info = %+v", info)
+	}
+	diff, err := s.SinceDiff(info, "b.txt", false, false)
+	if err != nil || len(diff.Hunks) != 1 || len(diff.Hunks[0].Lines) != 2 {
+		t.Errorf("diff = %+v, %v", diff, err)
+	}
+
+	gitIn(t, repo, "rm", "-q", "b.txt")
+	gitIn(t, repo, "commit", "-q", "-m", "gone")
+	info = openReadThrough(t, repo, request)
+	if len(info.Files) != 1 || !info.Files[0].Gone || info.Files[0].Status != "D" {
+		t.Fatalf("info = %+v", info)
+	}
+	if err := s.SetRead(info, info.Files, true); err != nil {
+		t.Fatal(err)
+	}
+	if info := openReadThrough(t, repo, request); len(info.Files) != 0 || info.Marked != 0 {
+		t.Errorf("read again, info = %+v", info)
+	}
+}

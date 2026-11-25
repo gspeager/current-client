@@ -9,6 +9,8 @@ import './PendingCommentBlock.scss'
 export interface LineNotes {
   items: ReadThroughNote[]
   add: (line: number, oldLine: number, text: string) => Promise<void>
+  // The old side isn't the base, so its lines take none.
+  newOnly?: boolean
   // Empty text removes it.
   edit: (id: string, text: string) => Promise<void>
 }

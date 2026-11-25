@@ -20,6 +20,8 @@ interface ChangedFileRowProps {
   // With onRead, whether the file is ticked as read.
   read?: boolean
   onRead?: (read: boolean) => void
+  // Why it's marked as changed again.
+  again?: string
 }
 
 function ChangedFileRow({
@@ -31,6 +33,7 @@ function ChangedFileRow({
   relativeTo,
   read = false,
   onRead,
+  again,
 }: ChangedFileRowProps) {
   const path = relativeTo && file.path.startsWith(`${relativeTo}/`) ? file.path.slice(relativeTo.length + 1) : file.path
   return (
@@ -47,6 +50,11 @@ function ChangedFileRow({
         onKeyDown={(e) => onContextMenu && isMenuKey(e) && onContextMenu(e)}
       >
         <PathText path={file.origPath ? `${file.origPath} → ${path}` : path} className="changed-file-path" />
+        {again && (
+          <span className="changed-file-again" title={again}>
+            again
+          </span>
+        )}
         <ThreadCount count={threads} />
         <DiffStat added={file.added} removed={file.removed} binary={file.binary} />
         <StatusBadge status={file.status} />
