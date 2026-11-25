@@ -116,6 +116,16 @@ func TestExploreWithNothingToCompareWith(t *testing.T) {
 	gitIn(t, t.TempDir(), "init", "-q", "-b", "odd", repo)
 	gitIn(t, repo, "config", "user.name", "T")
 	gitIn(t, repo, "config", "user.email", "t@example.com")
+	s := new(ExploreService)
+	if files, err := s.Files(repo, "HEAD"); err != nil || len(files) != 0 {
+		t.Errorf("before the first commit, files = %v, %v", files, err)
+	}
+	if activity, err := s.Activity(repo); err != nil || activity.Files == nil {
+		t.Errorf("before the first commit, activity = %v, %v", activity, err)
+	}
+	if changes := changesOf(t, repo, "working", ""); len(changes.Files) != 0 {
+		t.Errorf("before the first commit, changes = %+v", changes)
+	}
 	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "x")
 	if changes := changesOf(t, repo, "branch", "odd"); changes.Target != "" || len(changes.Files) != 0 {
 		t.Errorf("changes = %+v", changes)

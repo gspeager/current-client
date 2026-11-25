@@ -65,7 +65,8 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
   const { data: branches } = useAsyncData(() => BranchService.ListLocal(repoPath), [repoPath], {
     refreshKey: repoVersion,
   })
-  const releases = useMemo(() => [...(tags ?? [])].sort((a, b) => a.date.localeCompare(b.date)), [tags])
+  // Git lists the newest first.
+  const releases = useMemo(() => [...(tags ?? [])].reverse(), [tags])
   const release = position === null ? null : (releases[position] ?? null)
   // Dragging the slider passes releases nobody stops at.
   const [settled] = useDebounceValue(release?.name ?? 'HEAD', 120)
@@ -142,7 +143,8 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     if (view === 'changes' && change) return describeChange(change)
     const lines = `${item.path}, ${plural(item.size, 'line')}`
     if (atRelease) return `${lines} at ${settled}`
-    const file = activity?.files[item.path]
+    if (!activity) return lines
+    const file = activity.files[item.path]
     const commits = `${plural(commitsOf(item.path), 'commit')}${PERIODS[period].words && ` ${PERIODS[period].words}`}`
     const last = file ? `changed ${relativeTime(new Date(file.last))}` : 'changed earlier'
     return `${lines}, ${commits}, ${last}`
@@ -263,7 +265,8 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
           ))}
         </nav>
         <span className="explore-total">
-          {plural(within.length, 'file')} · {total.toLocaleString()} {view === 'code' ? 'lines' : 'lines changed'}
+          {within.length.toLocaleString()} {within.length === 1 ? 'file' : 'files'} · {total.toLocaleString()}{' '}
+          {view === 'code' ? 'lines' : 'lines changed'}
         </span>
         {view === 'code' && releases.length > 0 && (
           <label className="explore-release">
@@ -306,20 +309,24 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
           label={view === 'code' ? 'Code map' : 'Map of the changes'}
           describe={describe}
           onOpen={open}
-          onMenu={(e, item) => tools.openMenu(e, tools.pathItems(item.path, item.status !== 'A'))}
+          onMenu={(e, item) =>
+            tools.openMenu(e, tools.pathItems(item.path, item.status !== 'A' && item.status !== 'D'))
+          }
           onRoot={setFolder}
           onActive={setActive}
         />
       )}
-      <div className="explore-facts" role="status">
+      <div className="explore-facts">
         {active ? (
           <span className="explore-fact">{describe(active)}</span>
         ) : (
           <span className="explore-hint">
             {activityError ??
-              (view === 'code' && activity?.limit
-                ? `Commits are counted over the last ${activity.limit.toLocaleString()}.`
-                : 'A tile is a file. A folder’s name opens it.')}
+              (view === 'code' && atRelease
+                ? 'Brightness is off at a release.'
+                : view === 'code' && activity?.limit
+                  ? `Commits are counted over the last ${activity.limit.toLocaleString()}.`
+                  : 'A tile is a file. A folder’s name opens it.')}
           </span>
         )}
       </div>

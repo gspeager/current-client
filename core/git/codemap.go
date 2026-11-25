@@ -55,7 +55,7 @@ type FileActivity struct {
 // more says the history goes further back. Merges aren't counted, so a merged
 // branch's commits aren't counted twice.
 func FileCommits(ctx context.Context, repoPath, rev string, periods []int, mostCommits int) (files []FileActivity, more bool, err error) {
-	result, err := runResult(ctx, repoPath, "log", "--no-merges", "--no-renames", "--no-ext-diff", "--no-show-signature",
+	result, err := runResult(ctx, repoPath, "-c", "log.showRoot=true", "log", "--no-merges", "--no-renames", "--no-ext-diff", "--no-show-signature",
 		"--max-count="+strconv.Itoa(mostCommits+1), "--format=%x01%ct", "--name-only", "-z", rev, "--")
 	if err != nil {
 		return nil, false, err

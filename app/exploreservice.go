@@ -22,15 +22,25 @@ type MapFileInfo struct {
 	Kind string `json:"kind"`
 }
 
-// Files is every file at rev, a tag or HEAD, with its lines.
+// Files is every file at rev, a tag or HEAD, with its lines. Before the first
+// commit there are none.
 func (s *ExploreService) Files(repoPath, rev string) ([]MapFileInfo, error) {
-	files, err := git.LineCounts(context.Background(), repoPath, rev)
+	ctx := context.Background()
+	if rev == "HEAD" && noCommits(ctx, repoPath) {
+		return []MapFileInfo{}, nil
+	}
+	files, err := git.LineCounts(ctx, repoPath, rev)
 	if err != nil {
 		return nil, err
 	}
 	return mapSlice(files, func(f git.FileLines) MapFileInfo {
 		return MapFileInfo{Path: f.Path, Lines: f.Lines, Binary: f.Binary, Kind: string(filekind.Of(f.Path))}
 	}), nil
+}
+
+func noCommits(ctx context.Context, repoPath string) bool {
+	_, err := git.ResolveCommit(ctx, repoPath, "HEAD")
+	return err != nil
 }
 
 // The periods commits are counted over, in days; 0 is all that's read.
@@ -52,7 +62,11 @@ type MapActivity struct {
 }
 
 func (s *ExploreService) Activity(repoPath string) (MapActivity, error) {
-	files, more, err := git.FileCommits(context.Background(), repoPath, "HEAD", mapPeriods, mostMapCommits)
+	ctx := context.Background()
+	if noCommits(ctx, repoPath) {
+		return MapActivity{Files: map[string]MapActivityInfo{}}, nil
+	}
+	files, more, err := git.FileCommits(ctx, repoPath, "HEAD", mapPeriods, mostMapCommits)
 	if err != nil {
 		return MapActivity{}, err
 	}
@@ -99,6 +113,9 @@ type MapChangesInfo struct {
 func (s *ExploreService) Changes(repoPath string, comparison ExploreComparison) (MapChangesInfo, error) {
 	ctx := context.Background()
 	changes := MapChangesInfo{Files: []MapChangeInfo{}, Predicted: true}
+	if noCommits(ctx, repoPath) {
+		return changes, nil
+	}
 	head, err := git.ResolveCommit(ctx, repoPath, "HEAD")
 	if err != nil {
 		return changes, err

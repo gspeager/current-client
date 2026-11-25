@@ -73,6 +73,7 @@ func TestFileCommitsOverPeriods(t *testing.T) {
 	commitDaysAgo(t, dir, 4, "side.txt")
 	gittest.Run(t, dir, "switch", "-q", "main")
 	gittest.Run(t, dir, "merge", "-q", "--no-ff", "-m", "merge", "side")
+	gittest.Run(t, dir, "config", "log.showRoot", "false")
 
 	files, more, err := FileCommits(context.Background(), dir, "HEAD", []int{30, 90, 0}, 100)
 	if err != nil || more {

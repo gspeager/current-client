@@ -64,8 +64,8 @@ beforeEach(() => {
   })
   vi.mocked(ExploreService.Changes).mockResolvedValue(new MapChangesInfo({ predicted: true, files: [] }))
   vi.mocked(TagService.ListTags).mockResolvedValue([
-    { name: 'v2', sha: 'b', annotated: false, date: '2026-02-01' },
-    { name: 'v1', sha: 'a', annotated: false, date: '2026-01-01' },
+    { name: 'v2', sha: 'b', annotated: false, date: '2026-02-01T00:00:00Z' },
+    { name: 'v1', sha: 'a', annotated: false, date: '2026-02-01T00:00:00Z' },
   ])
   vi.mocked(BranchService.ListLocal).mockResolvedValue([{ name: 'feat' }, { name: 'main' }] as never)
 })
@@ -95,7 +95,7 @@ describe('the code', () => {
     await focusMap()
     expect(tile()).toBe('src/a.ts, 300 lines, 4 commits in 90 days, changed just now')
     expect(document.getElementById('code-map-tile')).toHaveAttribute('aria-setsize', '4')
-    expect(screen.getByRole('status')).toHaveTextContent('src/a.ts, 300 lines')
+    expect(document.querySelector('.explore-facts')).toHaveTextContent('src/a.ts, 300 lines')
     press('End')
     expect(tile()).toMatch(/^docs\/x\.md, 20 lines, 0 commits in 90 days, changed earlier/)
     press('Home')
@@ -113,6 +113,24 @@ describe('the code', () => {
     await focusMap()
     press('Enter')
     await waitFor(() => expect(HistoryService.GetFileHistory).toHaveBeenCalledWith('/repo', 'src/a.ts', 200, 0))
+  })
+
+  it('keeps its place while focus is elsewhere', async () => {
+    view()
+    await focusMap()
+    press('End')
+    const last = tile()
+    act(() => (document.activeElement as HTMLElement).blur())
+    expect(tile()).toBeUndefined()
+    await focusMap()
+    expect(tile()).toBe(last)
+  })
+
+  it('says nothing of commits until they are read', async () => {
+    vi.mocked(ExploreService.Activity).mockReturnValue(new Promise(() => undefined) as never)
+    view()
+    await focusMap()
+    expect(tile()).toBe('src/a.ts, 300 lines')
   })
 
   it('opens a folder to fill the map, and goes back', async () => {
@@ -150,6 +168,8 @@ describe('the code', () => {
     expect(await screen.findByText('1 file · 10 lines')).toBeInTheDocument()
     await focusMap()
     expect(tile()).toBe('src/old.ts, 10 lines at v1')
+    act(() => (document.activeElement as HTMLElement).blur())
+    expect(screen.getByText('Brightness is off at a release.')).toBeInTheDocument()
     fireEvent.change(slider, { target: { value: '2' } })
     expect(await screen.findByText('4 files · 470 lines')).toBeInTheDocument()
   })

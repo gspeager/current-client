@@ -43,6 +43,7 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
   const [active, setActive] = useState<string | null>(null)
   const [overHeader, setOverHeader] = useState<string | null>(null)
   const [focused, setFocused] = useState(false)
+  const [pointed, setPointed] = useState(false)
 
   useLayoutEffect(() => {
     const el = box.current!
@@ -59,7 +60,8 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
 
   const layout = useMemo(() => layoutMap(items, root, size.width, size.height), [items, root, size])
   const index = useMemo(() => layout.tiles.findIndex((tile) => tile.item.path === active), [layout, active])
-  const tile = layout.tiles[index]
+  // The place is kept while focus is elsewhere, such as in what was opened from it.
+  const tile = focused || pointed ? layout.tiles[index] : undefined
 
   useEffect(() => onActive(tile?.item ?? null), [tile?.item]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -96,6 +98,7 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
 
   const onMouseMove = (e: MouseEvent) => {
     const found = at(e)
+    setPointed(true)
     setActive(found.tile?.item.path ?? null)
     setOverHeader(found.header?.path ?? null)
   }
@@ -134,7 +137,7 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
   return (
     <div
       ref={box}
-      className={header ? 'code-map code-map-over-folder' : 'code-map'}
+      className="code-map"
       role="listbox"
       aria-label={label}
       aria-activedescendant={tile ? 'code-map-tile' : undefined}
@@ -143,7 +146,7 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
       onMouseMove={onMouseMove}
       onMouseLeave={() => {
         setOverHeader(null)
-        if (!focused) setActive(null)
+        setPointed(false)
       }}
       onClick={onClick}
       onContextMenu={(e) => {
@@ -155,10 +158,7 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
         setFocused(true)
         if (index < 0 && layout.tiles.length > 0) setActive(layout.tiles[0].item.path)
       }}
-      onBlur={() => {
-        setFocused(false)
-        setActive(null)
-      }}
+      onBlur={() => setFocused(false)}
     >
       <canvas ref={canvas} className="code-map-canvas" aria-hidden="true" />
       {tile && (
