@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -89,6 +90,13 @@ func MergeConflictsMany(ctx context.Context, repoPath, ours string, theirs []str
 	for i, tip := range theirs {
 		pairs[i] = [2]string{ours, tip}
 	}
+	return MergeConflictsBatch(ctx, repoPath, pairs)
+}
+
+// MergeConflictsBatch is MergeConflictsPairs in one process or not at all: it
+// returns ErrMergeTreeStdinUnsupported on Git before 2.40, and
+// ErrUnrelatedHistories when a pair shares no history.
+func MergeConflictsBatch(ctx context.Context, repoPath string, pairs [][2]string) ([][]string, error) {
 	env, discard := ScratchObjects(ctx, repoPath)
 	defer discard()
 	merges, err := mergeTreeBatch(ctx, repoPath, env, pairs)
@@ -131,20 +139,12 @@ func mergePairs(ctx context.Context, repoPath string, env []string, pairs [][2]s
 // thrown away too.
 func ScratchObjects(ctx context.Context, repoPath string) (env []string, discard func()) {
 	discard = func() {}
-	commonDir, err := CommonDir(ctx, repoPath)
+	objects, err := objectsDir(ctx, repoPath)
 	if err != nil {
 		return nil, discard
 	}
-	objects := os.Getenv("GIT_OBJECT_DIRECTORY")
-	if objects == "" {
-		objects = filepath.Join(commonDir, "objects")
-	}
-	// Git marks each pack a partial clone fetched with a .promisor file.
-	packs, _ := os.ReadDir(filepath.Join(objects, "pack"))
-	for _, pack := range packs {
-		if strings.HasSuffix(pack.Name(), ".promisor") {
-			return nil, discard
-		}
+	if hasPromisorPack(objects) {
+		return nil, discard
 	}
 	sweepScratch()
 	dir, err := os.MkdirTemp("", scratchPrefix)
@@ -159,6 +159,26 @@ func ScratchObjects(ctx context.Context, repoPath string) (env []string, discard
 	}
 	return []string{"GIT_OBJECT_DIRECTORY=" + dir, "GIT_ALTERNATE_OBJECT_DIRECTORIES=" + alternates},
 		func() { _ = os.RemoveAll(dir) }
+}
+
+// Git marks each pack a partial clone fetched with a .promisor file.
+func hasPromisorPack(objects string) bool {
+	packs, _ := os.ReadDir(filepath.Join(objects, "pack"))
+	return slices.ContainsFunc(packs, func(pack os.DirEntry) bool { return strings.HasSuffix(pack.Name(), ".promisor") })
+}
+
+// PartialClone says whether reading a file may fetch it.
+func PartialClone(ctx context.Context, repoPath string) bool {
+	objects, err := objectsDir(ctx, repoPath)
+	return err == nil && hasPromisorPack(objects)
+}
+
+func objectsDir(ctx context.Context, repoPath string) (string, error) {
+	if objects := os.Getenv("GIT_OBJECT_DIRECTORY"); objects != "" {
+		return objects, nil
+	}
+	commonDir, err := CommonDir(ctx, repoPath)
+	return filepath.Join(commonDir, "objects"), err
 }
 
 const scratchPrefix = "current-client-objects"

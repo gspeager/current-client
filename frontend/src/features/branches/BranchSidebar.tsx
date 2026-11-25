@@ -21,6 +21,7 @@ import type { SidebarSections } from '../../lib/useSidebarSections'
 import SetUpstreamDialog from './SetUpstreamDialog'
 import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
 import BranchReviewDialog from './BranchReviewDialog'
+import ConflictGridDialog from './ConflictGridDialog'
 import RebasePreviewDialog from './RebasePreviewDialog'
 import StackSection from './StackSection'
 import TidyUpDialog from './TidyUpDialog'
@@ -139,6 +140,7 @@ function BranchSidebar({
   const notes = useNotes()
   const [cleanUp, setCleanUp] = useState(false)
   const [branchReview, setBranchReview] = useState(false)
+  const [conflictGrid, setConflictGrid] = useState(false)
   const [rebasePreview, setRebasePreview] = useState<string | null>(null)
   const [tidyUp, setTidyUp] = useState(false)
   const { data: stackList, reload: reloadStacks } = useAsyncData(() => StackService.List(repoPath), [repoPath], {
@@ -149,6 +151,7 @@ function BranchSidebar({
   useEffect(() => {
     if (request?.action === 'clean-up') setCleanUp(true)
     if (request?.action === 'branch-review') setBranchReview(true)
+    if (request?.action === 'conflict-grid') setConflictGrid(true)
     if (request?.action === 'tidy-up') setTidyUp(true)
     if (request?.action === 'restack') {
       const stack = stackWith(branchStatus?.current ?? '')
@@ -760,7 +763,15 @@ function BranchSidebar({
         />
       )}
       {branchReview && (
-        <BranchReviewDialog repoPath={repoPath} onDeleted={cleanedUp} onClose={() => setBranchReview(false)} />
+        <BranchReviewDialog
+          repoPath={repoPath}
+          onDeleted={cleanedUp}
+          onConflictGrid={() => setConflictGrid(true)}
+          onClose={() => setBranchReview(false)}
+        />
+      )}
+      {conflictGrid && (
+        <ConflictGridDialog repoPath={repoPath} refreshKey={refreshKey} onClose={() => setConflictGrid(false)} />
       )}
       {upstreamFor && (
         <SetUpstreamDialog

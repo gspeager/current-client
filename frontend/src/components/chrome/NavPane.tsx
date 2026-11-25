@@ -41,6 +41,7 @@ export interface SidebarRequest {
     | 'new-branch'
     | 'clean-up'
     | 'branch-review'
+    | 'conflict-grid'
     | 'tidy-up'
     | 'restack'
     | 'new-tag'
@@ -192,6 +193,7 @@ function NavPane({
     const owner: Partial<Record<SidebarRequest['action'], SectionId>> = {
       'new-branch': 'branches',
       'clean-up': 'branches',
+      'conflict-grid': 'branches',
       'new-stash': 'stash',
       'show-stash': 'stash',
       'new-worktree': 'worktrees',

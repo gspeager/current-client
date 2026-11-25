@@ -34,8 +34,8 @@ const parallelMerges = 4
 // Local branches are always checked.
 const staleRemoteAge = 90 * 24 * time.Hour
 
-// mergeMany is replaced in tests to stand in for Git 2.38 and 2.39.
-var mergeMany = git.MergeConflictsMany
+// mergeBatch is replaced in tests to stand in for Git 2.38 and 2.39.
+var mergeBatch = git.MergeConflictsBatch
 
 // flights makes callers that ask together, such as the views refreshing
 // after an action, share one prediction.
@@ -98,77 +98,101 @@ func oldestChecked(refs []git.Ref) int64 {
 	return min(newest, time.Now().Unix()) - int64(staleRemoteAge.Seconds())
 }
 
-// conflictFiles merges each tip with head, answering from the cache where it
-// can, and merging only the tips that share history with head where the
-// batch refuses: an orphan branch such as gh-pages can't be merged, so it
-// can't conflict either.
+// conflictFiles merges each tip with head. Where the batch refuses, it merges only
+// the tips that share history with head: an orphan branch such as gh-pages can't be
+// merged, so it can't conflict either.
 func conflictFiles(ctx context.Context, repoPath, head string, tips []string, namespaces ...string) ([][]string, error) {
-	files := make([][]string, len(tips))
-	var missing []int
-	var toMerge []string
-	cache.Lock()
+	pairs := make([][2]string, len(tips))
 	for i, tip := range tips {
-		if cached, ok := cache.results[[2]string{head, tip}]; ok {
-			files[i] = cached
-		} else {
-			missing = append(missing, i)
-			toMerge = append(toMerge, tip)
-		}
+		pairs[i] = [2]string{head, tip}
 	}
-	cache.Unlock()
-	if len(toMerge) == 0 {
+	return cached(pairs, func(missing [][2]string) ([][]string, error) {
+		merged, err := merge(ctx, repoPath, missing)
+		if errors.Is(err, git.ErrUnrelatedHistories) {
+			return mergeSharingHistory(ctx, repoPath, head, missing, namespaces...)
+		}
+		return merged, err
+	})
+}
+
+// cached answers from the cache where it can, and merges the rest together.
+func cached(pairs [][2]string, mergeMissing func(missing [][2]string) ([][]string, error)) ([][]string, error) {
+	files, at := known(pairs)
+	if len(at) == 0 {
 		return files, nil
 	}
-	merged, err := merge(ctx, repoPath, head, toMerge)
-	if errors.Is(err, git.ErrUnrelatedHistories) {
-		merged, err = mergeSharingHistory(ctx, repoPath, head, toMerge, namespaces...)
+	missing := make([][2]string, len(at))
+	for k, i := range at {
+		missing[k] = pairs[i]
 	}
+	merged, err := mergeMissing(missing)
 	if err != nil {
 		return nil, err
 	}
-	cache.Lock()
-	if len(cache.results)+len(toMerge) > cacheLimit {
-		clear(cache.results)
-	}
-	for k, i := range missing {
+	remember(missing, merged)
+	for k, i := range at {
 		files[i] = merged[k]
-		cache.results[[2]string{head, toMerge[k]}] = merged[k]
 	}
-	cache.Unlock()
 	return files, nil
 }
 
-// merge merges every tip in one process, or one per process on Git 2.38 and 2.39.
-func merge(ctx context.Context, repoPath, head string, tips []string) ([][]string, error) {
-	merged, err := mergeMany(ctx, repoPath, head, tips)
+// known is what the cache answers, and the indexes of the pairs it doesn't.
+func known(pairs [][2]string) (files [][]string, missing []int) {
+	files = make([][]string, len(pairs))
+	cache.Lock()
+	defer cache.Unlock()
+	for i, pair := range pairs {
+		found, ok := cache.results[pair]
+		if !ok {
+			missing = append(missing, i)
+		}
+		files[i] = found
+	}
+	return files, missing
+}
+
+func remember(pairs [][2]string, files [][]string) {
+	cache.Lock()
+	defer cache.Unlock()
+	if len(cache.results)+len(pairs) > cacheLimit {
+		clear(cache.results)
+	}
+	for i, pair := range pairs {
+		cache.results[pair] = files[i]
+	}
+}
+
+// merge merges every pair in one process, or one per process on Git 2.38 and 2.39.
+func merge(ctx context.Context, repoPath string, pairs [][2]string) ([][]string, error) {
+	merged, err := mergeBatch(ctx, repoPath, pairs)
 	if errors.Is(err, git.ErrMergeTreeStdinUnsupported) {
-		return mergeEach(ctx, repoPath, head, tips)
+		return mergeEach(ctx, repoPath, pairs)
 	}
 	return merged, err
 }
 
-func mergeSharingHistory(ctx context.Context, repoPath, head string, tips []string, namespaces ...string) ([][]string, error) {
+func mergeSharingHistory(ctx context.Context, repoPath, head string, pairs [][2]string, namespaces ...string) ([][]string, error) {
 	related, err := git.SharingHistory(ctx, repoPath, head, namespaces...)
 	if err != nil {
 		return nil, err
 	}
-	var relatedTips []string
-	for _, tip := range tips {
-		if related[tip] {
-			relatedTips = append(relatedTips, tip)
+	var relatedPairs [][2]string
+	for _, pair := range pairs {
+		if related[pair[1]] {
+			relatedPairs = append(relatedPairs, pair)
 		}
 	}
-	merged := make([][]string, len(tips))
-	if len(relatedTips) == 0 {
+	merged := make([][]string, len(pairs))
+	if len(relatedPairs) == 0 {
 		return merged, nil
 	}
-	relatedMerged, err := merge(ctx, repoPath, head, relatedTips)
+	relatedMerged, err := merge(ctx, repoPath, relatedPairs)
 	if err != nil {
 		return nil, err
 	}
 	next := 0
-	for i, tip := range tips {
-		if related[tip] {
+	for i, pair := range pairs {
+		if related[pair[1]] {
 			merged[i] = relatedMerged[next]
 			next++
 		}
@@ -176,16 +200,16 @@ func mergeSharingHistory(ctx context.Context, repoPath, head string, tips []stri
 	return merged, nil
 }
 
-func mergeEach(ctx context.Context, repoPath, head string, tips []string) ([][]string, error) {
-	files := make([][]string, len(tips))
-	errs := make([]error, len(tips))
+func mergeEach(ctx context.Context, repoPath string, pairs [][2]string) ([][]string, error) {
+	files := make([][]string, len(pairs))
+	errs := make([]error, len(pairs))
 	slots := make(chan struct{}, parallelMerges)
 	var wg sync.WaitGroup
-	for i, tip := range tips {
+	for i, pair := range pairs {
 		wg.Go(func() {
 			slots <- struct{}{}
 			defer func() { <-slots }()
-			files[i], errs[i] = git.MergeConflicts(ctx, repoPath, head, tip)
+			files[i], errs[i] = git.MergeConflicts(ctx, repoPath, pair[0], pair[1])
 		})
 	}
 	wg.Wait()
