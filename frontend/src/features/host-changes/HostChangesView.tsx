@@ -436,7 +436,16 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
             {checkout.running ? 'Checking out…' : 'Check out locally'}
           </button>
           {readable?.ref && (
-            <button type="button" className="host-change-button" onClick={() => openReadThrough(readable)}>
+            <button
+              type="button"
+              className="host-change-button"
+              onClick={() =>
+                openReadThrough({
+                  ...readable,
+                  name: readable.ref.startsWith('refs/current-client/') ? `${list.prefix}${change.number}` : undefined,
+                })
+              }
+            >
               <BookOpen size={14} strokeWidth={1.75} />
               Read through
             </button>

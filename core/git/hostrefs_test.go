@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -159,5 +160,25 @@ func TestDeleteHostRefsKeepsOtherRemotesAndBranches(t *testing.T) {
 	}
 	if got := gittest.Run(t, dir, "for-each-ref", hostRefPrefix); got != "" {
 		t.Fatalf("refs left after deleting all: %q", got)
+	}
+}
+
+// A partial clone fetches a commit it's asked to read.
+func TestRefAtNeverFetches(t *testing.T) {
+	origin := gittest.InitRepo(t)
+	gittest.CommitFile(t, origin, "a.txt", "a\n", "base")
+	gittest.Run(t, origin, "config", "uploadpack.allowFilter", "true")
+	gittest.Run(t, origin, "config", "uploadpack.allowAnySHA1InWant", "true")
+	clone := filepath.Join(t.TempDir(), "clone")
+	gittest.Run(t, t.TempDir(), "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(origin), clone)
+	gittest.CommitFile(t, origin, "a.txt", "later\n", "later")
+	later := gittest.Run(t, origin, "rev-parse", "HEAD")
+
+	ref, err := RefAt(context.Background(), clone, later, "main")
+	if err != nil || ref != "" {
+		t.Errorf("RefAt = %q, %v", ref, err)
+	}
+	if objects := gittest.Run(t, clone, "cat-file", "--batch-all-objects", "--batch-check=%(objectname)"); strings.Contains(objects, later) {
+		t.Error("the commit was fetched")
 	}
 }

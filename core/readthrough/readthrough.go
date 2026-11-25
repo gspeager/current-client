@@ -67,7 +67,6 @@ func Base(ctx context.Context, repoPath, target, head, builtOn string) (string, 
 	return base, nil
 }
 
-// FileDiff is one file's diff over the range.
 func FileDiff(ctx context.Context, repoPath string, r Range, origPath, path string, ignoreWhitespace bool) (diff.FileDiff, error) {
 	if !r.Uncommitted {
 		return diff.GetRangeDiff(ctx, repoPath, nil, r.Base, r.Head, origPath, path, ignoreWhitespace)

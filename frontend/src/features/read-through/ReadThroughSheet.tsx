@@ -131,8 +131,8 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
       onClose={onClose}
       headerContent={
         <div className="read-through-header">
-          <span className="read-through-name" title={info?.name}>
-            {info?.name}
+          <span className="read-through-name" title={opening.name ?? info?.name}>
+            {opening.name ?? info?.name}
           </span>
           <span className="read-through-against">against</span>
           <RefSelect
@@ -142,7 +142,9 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
             label="Compare with"
             extraOptions={info?.target ? [] : [{ value: '', label: 'Choose a branch' }]}
           />
-          {info?.checkedOut && <Checkbox checked={uncommitted} onChange={setUncommitted} label="Uncommitted changes" />}
+          {(info?.checkedOut || error) && (
+            <Checkbox checked={uncommitted} onChange={setUncommitted} label="Uncommitted changes" />
+          )}
           <span className="read-through-progress" role="status">
             {info && files.length > 0 && `${readCount} of ${files.length} read`}
           </span>

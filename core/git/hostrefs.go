@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -24,32 +25,36 @@ func HostChangeRef(remote string, number int) string {
 	return hostRefPrefix + remote + "/mr/" + strconv.Itoa(number)
 }
 
-// RefAt is a ref at sha, a local branch before a remote one before a fetched
-// change head, or branch itself when it's ahead of sha. It's "" when there's none.
+// How far back RefAt looks in a branch ahead of the commit.
+const mostAhead = 500
+
+// RefAt is a ref at sha: one named branch before any other, and a local branch
+// before a remote one before a fetched change head. Else it's the local branch
+// of that name when it's ahead of sha, and "" when there's none. It never reads
+// the commit, which a partial clone would fetch.
 func RefAt(ctx context.Context, repoPath, sha, branch string) (string, error) {
 	if sha == "" {
-		return "", nil
-	}
-	if _, err := ResolveCommit(ctx, repoPath, sha); err != nil {
 		return "", nil
 	}
 	result, err := runResult(ctx, repoPath, "for-each-ref", "--points-at="+sha, "--format=%(refname)", "refs/heads", "refs/remotes", hostRefPrefix)
 	if err != nil {
 		return "", err
 	}
-	at := strings.Fields(result.Stdout)
+	at := slices.DeleteFunc(strings.Fields(result.Stdout), func(ref string) bool { return strings.HasSuffix(ref, "/HEAD") })
 	named := func(ref string) bool { return strings.HasSuffix(ref, "/"+branch) }
-	for _, prefix := range []string{"refs/heads/", "refs/remotes/", hostRefPrefix} {
-		in := func(ref string) bool { return strings.HasPrefix(ref, prefix) && !strings.HasSuffix(ref, "/HEAD") }
-		for _, accept := range []func(string) bool{named, func(string) bool { return true }} {
+	anyName := func(string) bool { return true }
+	for _, accept := range []func(string) bool{named, anyName} {
+		for _, prefix := range []string{"refs/heads/", "refs/remotes/", hostRefPrefix} {
 			for _, ref := range at {
-				if in(ref) && accept(ref) {
+				if strings.HasPrefix(ref, prefix) && accept(ref) {
 					return ref, nil
 				}
 			}
 		}
 	}
-	if local := "refs/heads/" + branch; isAncestor(ctx, repoPath, sha, local) {
+	local := "refs/heads/" + branch
+	ahead, err := runResult(ctx, repoPath, "rev-list", "--max-count="+strconv.Itoa(mostAhead), local)
+	if err == nil && slices.Contains(strings.Fields(ahead.Stdout), sha) {
 		return local, nil
 	}
 	return "", nil

@@ -35,8 +35,8 @@ type Note struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 
 	// Of a review note. Line is in the new version and OldLine in the old; with
-	// neither, it's on the whole file. OldPath is a renamed file's. LineText and Before are the line when
-	// written and the one before it.
+	// neither, it's on the whole file. OldPath is a renamed file's. LineText and
+	// Before are the line when written and the one before it.
 	ID       string `json:"id,omitempty"`
 	Path     string `json:"path,omitempty"`
 	OldPath  string `json:"oldPath,omitempty"`

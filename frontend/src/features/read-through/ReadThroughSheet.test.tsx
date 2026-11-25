@@ -48,10 +48,12 @@ const diff = new FileDiff({
 const notesChanged = vi.fn()
 const closed = vi.fn()
 
-const open = (refreshKey = 0, request = { ref: 'refs/heads/feat' }) => (
+const REQUEST = { ref: 'refs/heads/feat' }
+
+const open = (refreshKey = 0) => (
   <ReadThroughSheet
     repoPath="/repo"
-    opening={request}
+    opening={REQUEST}
     refreshKey={refreshKey}
     onNotesChanged={notesChanged}
     onClose={closed}
@@ -120,6 +122,15 @@ describe('the overview', () => {
     expect(screen.queryByRole('checkbox', { name: 'Uncommitted changes' })).toBeNull()
   })
 
+  it('can leave uncommitted changes out when they cannot be read', async () => {
+    vi.mocked(ReadThroughService.Open).mockRejectedValueOnce(new Error('too many large untracked files'))
+    render(open())
+    expect(await screen.findByText('too many large untracked files')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Uncommitted changes' }))
+    expect(await screen.findByText('1 of 3 read')).toBeInTheDocument()
+    expect(ReadThroughService.Open).toHaveBeenLastCalledWith('/repo', expect.objectContaining({ uncommitted: false }))
+  })
+
   it('says when there is nothing to compare with', async () => {
     vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ target: '', files: [] }))
     render(open())
@@ -144,8 +155,7 @@ describe('ticking a file', () => {
     vi.mocked(ReadThroughService.Open).mockResolvedValue(
       info({ files: [file('src/a.ts'), file('src/a.test.ts'), file('go.sum', { newBlob: 'changed' })] }),
     )
-    const request = { ref: 'refs/heads/feat' }
-    rerender(open(1, request))
+    rerender(open(1))
     expect(await screen.findByText('0 of 3 read')).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Read go.sum' })).not.toBeChecked()
   })
@@ -244,6 +254,31 @@ describe('notes', () => {
     expect(screen.queryByRole('textbox', { name: 'Note on src/a.ts' })).toBeNull()
     expect(closed).not.toHaveBeenCalled()
     expect(add).toHaveFocus()
+  })
+
+  it('leaves the focus with a file clicked while its box is open', async () => {
+    await readA()
+    await userEvent.click(screen.getByRole('button', { name: 'Add note' }))
+    const next = screen.getByRole('button', { name: /^a\.test\.ts/ })
+    await userEvent.click(next)
+    expect(screen.queryByRole('textbox', { name: 'Note on src/a.ts' })).toBeNull()
+    expect(next).toHaveFocus()
+  })
+
+  it('keeps what is being typed when the file changes', async () => {
+    const { rerender } = await opened()
+    await userEvent.click(screen.getByRole('button', { name: /^a\.ts/ }))
+    await screen.findByText('new')
+    await userEvent.click(screen.getByRole('button', { name: 'Add note on line 1' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Note on line 1' }), 'half a tho')
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('src/a.ts', { newBlob: 'n2' })] }))
+    const line = { ...diff.hunks[0].lines[1], content: 'newer' }
+    vi.mocked(ReadThroughService.FileDiff).mockResolvedValue(
+      new FileDiff({ hunks: [{ ...diff.hunks[0], lines: [diff.hunks[0].lines[0], line] }] }),
+    )
+    rerender(open(1))
+    expect(await screen.findByText('newer')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Note on line 1' })).toHaveValue('half a tho')
   })
 
   it('lists and copies them with their file and line', async () => {

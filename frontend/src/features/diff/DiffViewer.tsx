@@ -121,6 +121,7 @@ function DiffViewer({
   const draft = useReviewDraft(target)
   const actions = useReviewActions(review?.repoPath, review?.number)
   const [composer, setComposer] = useState<{ line: number; oldLine: number } | null>(null)
+  const takesNotes = !!notes
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewed, setReviewed] = useState(false)
   const newIssue = useNewIssue()
@@ -195,8 +196,9 @@ function DiffViewer({
     setCurrentBlock(0)
     setSelectedLines(new Set())
     lastToggled.current = null
-    setComposer(null)
-  }, [diff])
+    // What's read through keeps moving, and a note being typed stays.
+    if (!takesNotes) setComposer(null)
+  }, [diff, takesNotes])
 
   const stepBlock = (step: number) => {
     const index = Math.min(blocks.blockStarts.length - 1, Math.max(0, currentBlock + step))

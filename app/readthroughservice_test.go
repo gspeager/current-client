@@ -112,6 +112,10 @@ func TestReadThroughAStackedBranchAgainstItsParent(t *testing.T) {
 	if info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/layer"}); info.Target != "side" || !slices.Equal(pathsOf(info), []string{"c.txt"}) {
 		t.Errorf("info = %+v", info)
 	}
+	gitIn(t, repo, "branch", "-q", "-D", "side")
+	if info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/layer"}); info.Target != "main" || len(info.Files) != 2 {
+		t.Errorf("with its parent deleted, info = %+v", info)
+	}
 }
 
 func TestReadThroughMarksFollowTheirBranch(t *testing.T) {
@@ -163,7 +167,8 @@ func TestRefOfAChangeOnThisComputer(t *testing.T) {
 	}
 	gitIn(t, repo, "update-ref", "refs/current-client/hosts/origin/mr/7", side)
 	for _, c := range []struct{ branch, sha, want string }{
-		{"feature", side, "refs/heads/side"},
+		{"feature", side, "refs/remotes/origin/feature"},
+		{"unknown", side, "refs/heads/side"},
 		{"feature", "0123456789012345678901234567890123456789", ""},
 		{"feature", "", ""},
 	} {

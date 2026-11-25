@@ -81,7 +81,10 @@ func (s *ReadThroughService) Open(repoPath string, request ReadThroughRequest) (
 	branch := strings.TrimPrefix(info.Key, "refs/heads/")
 	builtOn := ""
 	for _, link := range linksOf(repoPath) {
-		if link.Branch == branch && (info.Target == "" || info.Target == link.Parent) {
+		if link.Branch != branch || (info.Target != "" && info.Target != link.Parent) {
+			continue
+		}
+		if _, err := git.ResolveCommit(ctx, repoPath, "refs/heads/"+link.Parent); err == nil {
 			info.Target, builtOn = link.Parent, link.ParentTip
 		}
 	}
@@ -157,12 +160,7 @@ func (info *ReadThroughInfo) resolve(ctx context.Context, repoPath string, reque
 		return nil
 	}
 	info.Key = request.Ref
-	for _, prefix := range []string{"refs/heads/", "refs/remotes/", "refs/"} {
-		if name, ok := strings.CutPrefix(request.Ref, prefix); ok {
-			info.Name = name
-			break
-		}
-	}
+	info.Name = strings.TrimPrefix(strings.TrimPrefix(request.Ref, "refs/heads/"), "refs/remotes/")
 	if info.Head, err = git.ResolveCommit(ctx, repoPath, request.Ref); err != nil {
 		return err
 	}
