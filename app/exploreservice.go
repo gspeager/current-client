@@ -81,8 +81,9 @@ func (s *ExploreService) Activity(repoPath string) (MapActivity, error) {
 }
 
 // ExploreComparison is what Explore's views compare: "working" for uncommitted
-// changes, "branch" for a branch since it left its base, or "release" for HEAD since
-// a tag. Ref is the branch or the tag.
+// changes, "branch" for a branch since it left its base, "release" for HEAD since a
+// tag, or "commit" for HEAD since any other point. Ref is the branch, the tag or the
+// point.
 type ExploreComparison struct {
 	Kind string `json:"kind"`
 	Ref  string `json:"ref"`
@@ -116,37 +117,19 @@ func (s *ExploreService) Changes(repoPath string, comparison ExploreComparison) 
 	if noCommits(ctx, repoPath) {
 		return changes, nil
 	}
-	head, err := git.ResolveCommit(ctx, repoPath, "HEAD")
-	if err != nil {
+	r, target, err := comparedRange(ctx, repoPath, comparison)
+	if err != nil || (comparison.Kind == "branch" && target == "") {
 		return changes, err
 	}
-	r := readthrough.Range{Base: head, Head: head}
+	changes.Target = target
 	var conflicts []string
-	switch comparison.Kind {
-	case "working":
-		r.Uncommitted = true
-	case "branch":
-		info := ReadThroughInfo{Key: "refs/heads/" + comparison.Ref, Name: comparison.Ref}
-		if info.Head, err = git.ResolveCommit(ctx, repoPath, info.Key); err != nil {
-			return changes, err
-		}
-		if err := info.settleBase(ctx, repoPath); err != nil || info.Target == "" {
-			return changes, err
-		}
-		r = info.changes()
-		changes.Target = info.Target
-		conflicts, err = git.MergeConflicts(ctx, repoPath, info.Target, info.Head)
+	if target != "" {
+		conflicts, err = git.MergeConflicts(ctx, repoPath, target, r.Head)
 		if errors.Is(err, git.ErrMergeTreeUnsupported) {
 			changes.Predicted = false
 		} else if err != nil {
 			return changes, err
 		}
-	case "release":
-		if r.Base, err = git.ResolveCommit(ctx, repoPath, "refs/tags/"+comparison.Ref); err != nil {
-			return changes, err
-		}
-	default:
-		return changes, &gitexec.AppError{Message: "Unknown comparison.", Detail: comparison.Kind}
 	}
 	files, skipped, err := readthrough.Files(ctx, repoPath, r)
 	if err != nil {
@@ -166,4 +149,34 @@ func (s *ExploreService) Changes(repoPath string, comparison ExploreComparison) 
 		})
 	}
 	return changes, nil
+}
+
+// comparedRange is what a comparison is from and to. target is a branch's, "" when
+// there's nothing to compare it with.
+func comparedRange(ctx context.Context, repoPath string, comparison ExploreComparison) (r readthrough.Range, target string, err error) {
+	head, err := git.ResolveCommit(ctx, repoPath, "HEAD")
+	if err != nil {
+		return r, "", err
+	}
+	r = readthrough.Range{Base: head, Head: head}
+	switch comparison.Kind {
+	case "working":
+		r.Uncommitted = true
+	case "branch":
+		info := ReadThroughInfo{Key: "refs/heads/" + comparison.Ref, Name: comparison.Ref}
+		if info.Head, err = git.ResolveCommit(ctx, repoPath, info.Key); err != nil {
+			return r, "", err
+		}
+		if err := info.settleBase(ctx, repoPath); err != nil || info.Target == "" {
+			return r, "", err
+		}
+		return info.changes(), info.Target, nil
+	case "release":
+		r.Base, err = git.ResolveCommit(ctx, repoPath, "refs/tags/"+comparison.Ref)
+	case "commit":
+		r.Base, err = git.ResolveCommit(ctx, repoPath, comparison.Ref)
+	default:
+		err = &gitexec.AppError{Message: "Unknown comparison.", Detail: comparison.Kind}
+	}
+	return r, "", err
 }
