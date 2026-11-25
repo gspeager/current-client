@@ -20,7 +20,7 @@
 # Debian 13 provides the GTK >= 4.14 API baseline used by the default Linux backend.
 FROM golang:1.26-trixie
 
-ARG WAILS_VERSION=v3.0.0-beta.23
+ARG WAILS_VERSION=v3.1.0
 ARG NFPM_VERSION=v2.41.1
 
 # Install base tools, GCC, and GTK/WebKit dev packages.
@@ -30,12 +30,10 @@ ARG NFPM_VERSION=v2.41.1
 # detection while assembling the AppImage.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl nodejs npm pkg-config gcc libc6-dev dpkg-dev file \
-    libgtk-3-dev libwebkit2gtk-4.1-dev \
-    libgtk-4-dev libwebkitgtk-6.0-dev \
+    libgtk-4-dev libwebkitgtk-6.0-dev libx11-dev \
     && pkg-config --atleast-version=4.14 gtk4 \
     && pkg-config --exists webkitgtk-6.0 \
-    && pkg-config --exists gtk+-3.0 \
-    && pkg-config --exists webkit2gtk-4.1 \
+    && pkg-config --exists x11 \
     && rm -rf /var/lib/apt/lists/*
 
 # wails3 CLI — provides the `wails3 task` runner used below, plus

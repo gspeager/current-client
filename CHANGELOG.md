@@ -2,6 +2,12 @@
 
 All notable changes to Current Client are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include breaking changes).
 
+## [Unreleased]
+
+### Changed
+
+- **Built on a stable Wails.** The app moves from a pre-release of Wails to 3.1.0. Among Wails' fixes since: copying to the clipboard on macOS 27, an AppImage that could fail to start outside Debian and Ubuntu, and on Windows, getting focus back with the window and recovering when WebView2 fails. An app that embeds Current Client needs the same Wails version, and one that imports `core/` needs Go 1.26. ([#421](https://github.com/gspeager/current-client/issues/421))
+
 ## [0.6.1] - 2026-11-15
 
 ### Fixed
