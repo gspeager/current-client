@@ -54,13 +54,25 @@ function ConflictGridDialog({ repoPath, refreshKey, onClose }: ConflictGridDialo
       ].filter(Boolean)
     : []
 
+  const late = grid
+    ? [
+        grid.unchecked.length > 0 && plural(grid.unchecked.length, 'pair'),
+        grid.maybeMerged > 0 && `whether ${plural(grid.maybeMerged, 'branch is', 'branches are')} merged`,
+      ].filter(Boolean)
+    : []
+
   return (
     <Modal title="Conflict grid" onClose={onClose} className="dialog-panel conflict-grid-panel">
       <div className="dialog-body">
         <DialogError>{error}</DialogError>
         {!grid && loading && <p className="dialog-message">Checking each pair of branches…</p>}
         {grid && !grid.supported && <p className="dialog-message">Predicting conflicts needs Git 2.38 or newer.</p>}
-        {grid?.supported && names.length < 2 && <p className="dialog-message">No two unmerged local branches.</p>}
+        {grid?.partial && (
+          <p className="dialog-message">Not available in a partial clone, where merging fetches what was left out.</p>
+        )}
+        {grid?.supported && !grid.partial && names.length < 2 && (
+          <p className="dialog-message">No two unmerged local branches.</p>
+        )}
         {grid?.supported && names.length >= 2 && (
           <>
             <Checkbox checked={conflictsOnly} onChange={setConflictsOnly} label="Only branches with a conflict" />
@@ -112,10 +124,15 @@ function ConflictGridDialog({ repoPath, refreshKey, onClose }: ConflictGridDialo
               Committed work only, newest first, without merged branches.
               {leftOut.length > 0 && ` Left out: ${leftOut.join('; ')}.`}
             </p>
-            {grid.unchecked.length > 0 && (
+            {late.length > 0 && (
               <p className="dialog-note" role="status">
-                {plural(grid.unchecked.length, 'pair')} not checked in time.{' '}
-                <button type="button" className="dialog-button" disabled={loading} onClick={reload}>
+                {late.join(', ')} not checked in time.{' '}
+                <button
+                  type="button"
+                  className="dialog-button"
+                  aria-disabled={loading}
+                  onClick={() => !loading && reload()}
+                >
                   {loading ? 'Checking…' : 'Check more'}
                 </button>
               </p>

@@ -38,14 +38,17 @@ func (s *OverlapService) Predict(repoPath string) (OverlapReport, error) {
 }
 
 // GridInfo is every local branch that isn't merged against every other. Supported
-// is false on Git before 2.38.
+// is false on Git before 2.38, and Partial is true for a partial clone, where
+// merging would fetch.
 type GridInfo struct {
-	Supported bool               `json:"supported"`
-	Branches  []GridBranchInfo   `json:"branches"`
-	Conflicts []GridConflictInfo `json:"conflicts"`
-	Unchecked [][2]int           `json:"unchecked"`
-	Older     int                `json:"older"`
-	Unrelated []string           `json:"unrelated"`
+	Supported   bool               `json:"supported"`
+	Partial     bool               `json:"partial"`
+	Branches    []GridBranchInfo   `json:"branches"`
+	Conflicts   []GridConflictInfo `json:"conflicts"`
+	Unchecked   [][2]int           `json:"unchecked"`
+	MaybeMerged int                `json:"maybeMerged"`
+	Older       int                `json:"older"`
+	Unrelated   []string           `json:"unrelated"`
 }
 
 type GridBranchInfo struct {
@@ -66,6 +69,9 @@ func (s *OverlapService) Grid(repoPath string) (GridInfo, error) {
 	if errors.Is(err, git.ErrMergeTreeUnsupported) {
 		return GridInfo{}, nil
 	}
+	if errors.Is(err, overlap.ErrPartialClone) {
+		return GridInfo{Supported: true, Partial: true}, nil
+	}
 	if err != nil {
 		return GridInfo{}, err
 	}
@@ -74,9 +80,10 @@ func (s *OverlapService) Grid(repoPath string) (GridInfo, error) {
 		Branches: mapSlice(grid.Branches, func(b git.Branch) GridBranchInfo {
 			return GridBranchInfo{Name: b.Name, Current: b.Current, LastCommitDate: b.LastCommitDate}
 		}),
-		Conflicts: mapSlice(grid.Conflicts, func(c overlap.GridConflict) GridConflictInfo { return GridConflictInfo(c) }),
-		Unchecked: grid.Unchecked,
-		Older:     grid.Older,
-		Unrelated: grid.Unrelated,
+		Conflicts:   mapSlice(grid.Conflicts, func(c overlap.GridConflict) GridConflictInfo { return GridConflictInfo(c) }),
+		Unchecked:   grid.Unchecked,
+		MaybeMerged: grid.MaybeMerged,
+		Older:       grid.Older,
+		Unrelated:   grid.Unrelated,
 	}, nil
 }

@@ -766,10 +766,7 @@ function BranchSidebar({
         <BranchReviewDialog
           repoPath={repoPath}
           onDeleted={cleanedUp}
-          onConflictGrid={() => {
-            setBranchReview(false)
-            setConflictGrid(true)
-          }}
+          onConflictGrid={() => setConflictGrid(true)}
           onClose={() => setBranchReview(false)}
         />
       )}

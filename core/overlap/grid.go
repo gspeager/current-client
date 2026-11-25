@@ -30,8 +30,10 @@ const (
 type Grid struct {
 	Branches  []git.Branch
 	Conflicts []GridConflict
-	// The pairs there was no time for. Comparing again goes on with them.
-	Unchecked [][2]int
+	// The pairs, and branches that may be merged, there was no time for. Comparing
+	// again goes on with them.
+	Unchecked   [][2]int
+	MaybeMerged int
 	// How many older branches there was no room for.
 	Older int
 	// The ones that share no history with the others, such as gh-pages.
@@ -48,8 +50,11 @@ type GridConflict struct {
 // or not, and a commit and one it shares no history with.
 var mergedInto, unrelated sync.Map
 
+// ErrPartialClone means merging would fetch what the clone leaves out.
+var ErrPartialClone = errors.New("merging would fetch what this partial clone leaves out")
+
 // Compare merges every pair of branches that isn't merged yet. It returns
-// git.ErrMergeTreeUnsupported on Git before 2.38.
+// git.ErrMergeTreeUnsupported on Git before 2.38, and ErrPartialClone.
 func Compare(ctx context.Context, repoPath string) (Grid, error) {
 	grid, err, _ := flights.Do("grid\x00"+repoPath, func() (any, error) { return compare(ctx, repoPath, gridTime) })
 	if err != nil {
@@ -59,15 +64,17 @@ func Compare(ctx context.Context, repoPath string) (Grid, error) {
 }
 
 func compare(ctx context.Context, repoPath string, most time.Duration) (Grid, error) {
-	branches, anchor, older, err := unmergedBranches(ctx, repoPath, most)
-	if err != nil || len(branches) == 0 {
+	if git.PartialClone(ctx, repoPath) {
+		return Grid{}, ErrPartialClone
+	}
+	found, err := unmergedBranches(ctx, repoPath, most)
+	if err != nil || len(found.branches) == 0 {
 		return Grid{}, err
 	}
 	until := time.Now().Add(most)
 	mergeSome, limit := mergeBatch, mostBranches
 	for {
-		grid := newGrid(branches, anchor, limit)
-		grid.Older += older
+		grid := found.grid(limit)
 		err := grid.merge(until, func(pairs [][2]string) ([][]string, error) { return mergeSome(ctx, repoPath, pairs) })
 		switch {
 		case err == nil:
@@ -75,12 +82,13 @@ func compare(ctx context.Context, repoPath string, most time.Duration) (Grid, er
 		case errors.Is(err, git.ErrMergeTreeStdinUnsupported):
 			mergeSome, limit = mergeOneByOne, mostBranchesOneByOne
 		case errors.Is(err, git.ErrUnrelatedHistories):
-			found, err := findUnrelated(ctx, repoPath, anchor, branches)
+			apart, err := found.findUnrelated(ctx, repoPath)
 			if err != nil {
 				return Grid{}, err
 			}
-			// Each shares history with the anchor, and some pair of them doesn't.
-			if !found {
+			// There's no default branch to say which to leave out, or each shares
+			// history with it and some pair of them doesn't.
+			if !apart {
 				mergeSome = git.MergeConflictsPairs
 			}
 		default:
@@ -89,45 +97,63 @@ func compare(ctx context.Context, repoPath string, most time.Duration) (Grid, er
 	}
 }
 
-// unmergedBranches are newest first, with the default branch among them, whose tip
-// is the anchor. One there was no time to check is taken as not merged.
-func unmergedBranches(ctx context.Context, repoPath string, most time.Duration) (branches []git.Branch, anchor string, older int, err error) {
-	branches, err = git.ListBranches(ctx, repoPath)
+// candidates are the branches that aren't merged, newest first, with the default
+// branch among them.
+type candidates struct {
+	branches []git.Branch
+	// The default branch, or "", and its tip.
+	def         string
+	anchor      string
+	maybeMerged int
+	older       int
+}
+
+// unmergedBranches takes one there was no time to check as not merged.
+func unmergedBranches(ctx context.Context, repoPath string, most time.Duration) (candidates, error) {
+	branches, err := git.ListBranches(ctx, repoPath)
 	if err != nil {
-		return nil, "", 0, err
+		return candidates{}, err
 	}
 	// A detached HEAD is listed too.
 	branches = slices.DeleteFunc(branches, func(b git.Branch) bool { return strings.HasPrefix(b.Name, "(") })
-	if len(branches) == 0 {
-		return nil, "", 0, nil
-	}
 	slices.SortStableFunc(branches, func(a, b git.Branch) int { return committedAt(b).Compare(committedAt(a)) })
 	def, base, err := git.DefaultBase(ctx, repoPath)
 	if err != nil || def == "" {
-		return branches, branches[0].Tip, 0, err
+		return candidates{branches: branches}, err
 	}
-	i := slices.IndexFunc(branches, func(b git.Branch) bool { return b.Name == def })
-	anchor = branches[i].Tip
-	if len(branches) > mostCandidates {
-		kept := slices.Clone(branches[:mostCandidates])
-		if i >= mostCandidates {
-			kept[mostCandidates-1] = branches[i]
+	found := candidates{def: def}
+	for _, b := range branches {
+		if b.Name == def {
+			found.anchor = b.Tip
 		}
-		older = len(branches) - mostCandidates
-		branches = kept
 	}
+	found.branches, found.older = newest(branches, mostCandidates, def)
 	baseTip, err := git.ResolveCommit(ctx, repoPath, base)
 	if err != nil {
-		return nil, "", 0, err
+		return candidates{}, err
 	}
-	if err := findMerged(ctx, repoPath, baseTip, branches, time.Now().Add(most)); err != nil {
-		return nil, "", 0, err
+	if found.maybeMerged, err = findMerged(ctx, repoPath, baseTip, found.branches, time.Now().Add(most)); err != nil {
+		return candidates{}, err
 	}
-	branches = slices.DeleteFunc(branches, func(b git.Branch) bool {
+	found.branches = slices.DeleteFunc(found.branches, func(b git.Branch) bool {
 		merged, _ := mergedInto.Load([2]string{baseTip, b.Tip})
 		return merged == true && b.Name != def
 	})
-	return branches, anchor, older, nil
+	return found, nil
+}
+
+// newest is as many as the limit, with the one named keep in place of the last when
+// it's older, and how many that leaves.
+func newest(branches []git.Branch, limit int, keep string) (kept []git.Branch, older int) {
+	if len(branches) <= limit {
+		return slices.Clone(branches), 0
+	}
+	kept = slices.Clone(branches[:limit])
+	at := slices.IndexFunc(branches, func(b git.Branch) bool { return b.Name == keep })
+	if at >= limit {
+		kept[limit-1] = branches[at]
+	}
+	return kept, len(branches) - limit
 }
 
 func committedAt(b git.Branch) time.Time {
@@ -135,49 +161,54 @@ func committedAt(b git.Branch) time.Time {
 	return at
 }
 
-func findMerged(ctx context.Context, repoPath, base string, branches []git.Branch, until time.Time) error {
+func findMerged(ctx context.Context, repoPath, base string, branches []git.Branch, until time.Time) (unchecked int, err error) {
 	var tips []string
 	for _, b := range branches {
 		if _, checked := mergedInto.Load([2]string{base, b.Tip}); !checked {
 			tips = append(tips, b.Tip)
 		}
 	}
-	_, err := inBatches(tips, until, func(batch []string) error {
+	left, err := inBatches(tips, until, func(batch []string) error {
 		merged, err := git.MergedInto(ctx, repoPath, base, batch)
 		for i := range merged {
 			mergedInto.Store([2]string{base, batch[i]}, merged[i])
 		}
 		return err
 	})
-	return err
+	return len(left), err
 }
 
-func newGrid(branches []git.Branch, anchor string, limit int) Grid {
-	var grid Grid
-	for _, branch := range branches {
-		if _, apart := unrelated.Load([2]string{anchor, branch.Tip}); apart {
+func (c candidates) grid(limit int) Grid {
+	grid := Grid{MaybeMerged: c.maybeMerged}
+	var related []git.Branch
+	for _, branch := range c.branches {
+		if _, apart := unrelated.Load([2]string{c.anchor, branch.Tip}); apart {
 			grid.Unrelated = append(grid.Unrelated, branch.Name)
-		} else if len(grid.Branches) < limit {
-			grid.Branches = append(grid.Branches, branch)
 		} else {
-			grid.Older++
+			related = append(related, branch)
 		}
 	}
+	grid.Branches, grid.Older = newest(related, limit, c.def)
+	grid.Older += c.older
 	return grid
 }
 
-func findUnrelated(ctx context.Context, repoPath, anchor string, branches []git.Branch) (found bool, err error) {
-	related, err := git.SharingHistory(ctx, repoPath, anchor, "refs/heads")
+// findUnrelated says whether there are more than were known.
+func (c candidates) findUnrelated(ctx context.Context, repoPath string) (more bool, err error) {
+	if c.anchor == "" {
+		return false, nil
+	}
+	related, err := git.SharingHistory(ctx, repoPath, c.anchor, "refs/heads")
 	if err != nil {
 		return false, err
 	}
-	for _, branch := range branches {
+	for _, branch := range c.branches {
 		if !related[branch.Tip] {
-			_, before := unrelated.LoadOrStore([2]string{anchor, branch.Tip}, true)
-			found = found || !before
+			_, before := unrelated.LoadOrStore([2]string{c.anchor, branch.Tip}, true)
+			more = more || !before
 		}
 	}
-	return found, nil
+	return more, nil
 }
 
 // merge fills in the grid, the newest branches first.

@@ -71,16 +71,34 @@ it('goes on with the pairs there was no time for', async () => {
   expect(screen.queryByRole('button', { name: 'Check more' })).toBeNull()
 })
 
+it('goes on with which branches are merged, and keeps the keyboard there', async () => {
+  open(grid({ maybeMerged: 2 }))
+  await cell(/main and two/)
+  expect(screen.getByRole('status')).toHaveTextContent('whether 2 branches are merged not checked in time.')
+  vi.mocked(OverlapService.Grid).mockReturnValue(new Promise(() => {}) as never)
+  await userEvent.click(screen.getByRole('button', { name: 'Check more' }))
+  const checking = screen.getByRole('button', { name: 'Checking…' })
+  expect(checking).toHaveFocus()
+  await userEvent.click(checking)
+  expect(OverlapService.Grid).toHaveBeenCalledTimes(2)
+})
+
 it('says what is left out', async () => {
   open(grid({ older: 4, unrelated: ['gh-pages'] }))
   await cell(/main and two/)
   expect(screen.getByText(/Left out: 4 older branches; gh-pages \(no shared history\)/)).toBeInTheDocument()
 })
 
-it('says when Git is too old, and when there is nothing to compare', async () => {
+it('says when Git is too old, or the clone is partial', async () => {
   const { unmount } = open(new GridInfo())
   expect(await screen.findByText('Predicting conflicts needs Git 2.38 or newer.')).toBeInTheDocument()
   unmount()
+  open(new GridInfo({ supported: true, partial: true }))
+  expect(await screen.findByText(/Not available in a partial clone/)).toBeInTheDocument()
+  expect(screen.queryByText('No two unmerged local branches.')).toBeNull()
+})
+
+it('says when there is nothing to compare', async () => {
   open(grid({ branches: [], conflicts: [] }))
   expect(await screen.findByText('No two unmerged local branches.')).toBeInTheDocument()
 })
