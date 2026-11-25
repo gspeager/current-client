@@ -61,10 +61,10 @@ func TestAddListAndRemoveWorktrees(t *testing.T) {
 	for _, w := range worktrees {
 		byBranch[w.Branch] = w
 	}
-	if w := byBranch["existing"]; !w.Current || !samePath(w.Path, existingPath) {
+	if w := byBranch["existing"]; !w.Current || !SamePath(w.Path, existingPath) {
 		t.Fatalf("existing worktree = %+v, want the current one at %s", w, existingPath)
 	}
-	if w := byBranch["feature/new"]; w.Current || !samePath(w.Path, newPath) {
+	if w := byBranch["feature/new"]; w.Current || !SamePath(w.Path, newPath) {
 		t.Fatalf("new worktree = %+v", w)
 	}
 
@@ -120,11 +120,11 @@ func TestListBranchesReportsTheirWorktree(t *testing.T) {
 	for _, b := range branches {
 		switch b.Name {
 		case "feature":
-			if !samePath(b.WorktreePath, elsewhere) {
+			if !SamePath(b.WorktreePath, elsewhere) {
 				t.Fatalf("feature's worktree = %q, want %q", b.WorktreePath, elsewhere)
 			}
 		case "main":
-			if !samePath(b.WorktreePath, dir) {
+			if !SamePath(b.WorktreePath, dir) {
 				t.Fatalf("main's worktree = %q, want the main one %q", b.WorktreePath, dir)
 			}
 		}
@@ -143,7 +143,7 @@ func TestListWorktreesWithoutLinkedOnesMatchesGit(t *testing.T) {
 	want := parseWorktrees(gittest.Run(t, dir, "worktree", "list", "--porcelain"))
 	want[0].Current = true
 	if len(got) != 1 || got[0].Branch != want[0].Branch || got[0].Head != want[0].Head || !got[0].Main || !got[0].Current ||
-		!samePath(got[0].Path, want[0].Path) {
+		!SamePath(got[0].Path, want[0].Path) {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}
 }

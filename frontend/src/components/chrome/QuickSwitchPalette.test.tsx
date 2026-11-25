@@ -69,6 +69,7 @@ function Shell({
         onDismissFeedback={workspace.dismissFeedback}
         onBranchChanged={onBranchChanged}
         onFetched={vi.fn()}
+        onOpenWorktreeBoard={() => {}}
         onOpenRepository={vi.fn()}
         onOpenHeadCommit={vi.fn()}
         width={240}

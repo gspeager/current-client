@@ -75,6 +75,7 @@ interface NavPaneProps {
   request?: SidebarRequest | null
   // Opens a repository (such as a worktree or submodule) as a tab.
   onOpenRepository: (path: string) => void
+  onOpenWorktreeBoard: () => void
   width: number
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
@@ -158,6 +159,7 @@ function NavPane({
   pruneOnFetch,
   onOpenHeadCommit,
   onOpenRepository,
+  onOpenWorktreeBoard,
   width,
   collapsed,
   onCollapsedChange,
@@ -309,6 +311,7 @@ function NavPane({
             repoPath={repoPath}
             refreshKey={repoVersion}
             sections={sections}
+            onOpenBoard={onOpenWorktreeBoard}
             onOpenRepository={onOpenRepository}
             onWorktreesChanged={onBranchChanged}
             request={request}

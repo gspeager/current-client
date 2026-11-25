@@ -23,6 +23,8 @@ type Worktree struct {
 	Locked  bool
 	// Missing means its folder is gone; removing it just forgets it.
 	Missing bool
+	// Bare is a repository without a working tree of its own.
+	Bare bool
 }
 
 // ListWorktrees takes repoPath as the top of a working tree, as Open returns
@@ -37,7 +39,7 @@ func ListWorktrees(ctx context.Context, repoPath string) ([]Worktree, error) {
 	}
 	worktrees := parseWorktrees(result.Stdout)
 	for i := range worktrees {
-		worktrees[i].Current = samePath(worktrees[i].Path, repoPath)
+		worktrees[i].Current = SamePath(worktrees[i].Path, repoPath)
 	}
 	return worktrees, nil
 }
@@ -74,6 +76,8 @@ func parseWorktrees(output string) []Worktree {
 				w.Head = value
 			case "branch":
 				w.Branch = strings.TrimPrefix(value, "refs/heads/")
+			case "bare":
+				w.Bare = true
 			case "locked":
 				w.Locked = true
 			case "prunable":
@@ -88,9 +92,9 @@ func parseWorktrees(output string) []Worktree {
 	return worktrees
 }
 
-// samePath compares two absolute paths as the file system would, resolving
+// SamePath compares two absolute paths as the file system would, resolving
 // symlinks (macOS's /tmp is /private/tmp) and ignoring case on Windows.
-func samePath(a, b string) bool {
+func SamePath(a, b string) bool {
 	resolve := func(p string) string {
 		p = filepath.Clean(filepath.FromSlash(p))
 		if r, err := filepath.EvalSymlinks(p); err == nil {
@@ -141,5 +145,5 @@ func SameRepository(ctx context.Context, a, b string) bool {
 		return false
 	}
 	second, err := gitDirs(ctx, b)
-	return err == nil && samePath(first.commonDir, second.commonDir)
+	return err == nil && SamePath(first.commonDir, second.commonDir)
 }

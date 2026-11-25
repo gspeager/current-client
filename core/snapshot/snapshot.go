@@ -97,10 +97,11 @@ func WorkingTree(ctx context.Context, repoPath string, env []string) (tree strin
 	if err != nil {
 		return "", 0, err
 	}
-	return writeTree(ctx, repoPath, env, statuses)
+	return WriteTree(ctx, repoPath, env, statuses)
 }
 
-func writeTree(ctx context.Context, repoPath string, env []string, statuses []git.Status) (tree string, skipped int, err error) {
+// WriteTree is WorkingTree for a caller that has the status.
+func WriteTree(ctx context.Context, repoPath string, env []string, statuses []git.Status) (tree string, skipped int, err error) {
 	dir, err := os.MkdirTemp("", "current-client-snapshot")
 	if err != nil {
 		return "", 0, err
@@ -146,7 +147,7 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 	if err != nil || len(statuses) == 0 {
 		return false, err
 	}
-	tree, skipped, err := writeTree(ctx, repoPath, nil, statuses)
+	tree, skipped, err := WriteTree(ctx, repoPath, nil, statuses)
 	if err != nil {
 		return false, err
 	}

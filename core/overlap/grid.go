@@ -40,7 +40,7 @@ type Grid struct {
 	Unrelated []string
 }
 
-// GridConflict is a pair of Branches, by index, the first the smaller.
+// GridConflict is a pair of branches or commits, by index, the first the smaller.
 type GridConflict struct {
 	A, B  int
 	Files []string
@@ -211,18 +211,36 @@ func (c candidates) findUnrelated(ctx context.Context, repoPath string) (more bo
 	return more, nil
 }
 
+// Between merges every pair of commits, some of which may only be where env says. A
+// pair sharing no history has nothing to conflict. unchecked are the pairs there was
+// no time for.
+func Between(ctx context.Context, repoPath string, env, commits []string) (conflicts []GridConflict, unchecked [][2]int, err error) {
+	return between(commits, time.Now().Add(gridTime), func(pairs [][2]string) ([][]string, error) {
+		return git.MergeConflictsIn(ctx, repoPath, env, pairs)
+	})
+}
+
 // merge fills in the grid, the newest branches first.
-func (grid *Grid) merge(until time.Time, mergeSome func(pairs [][2]string) ([][]string, error)) error {
+func (grid *Grid) merge(until time.Time, mergeSome func(pairs [][2]string) ([][]string, error)) (err error) {
+	tips := make([]string, len(grid.Branches))
+	for i, branch := range grid.Branches {
+		tips[i] = branch.Tip
+	}
+	grid.Conflicts, grid.Unchecked, err = between(tips, until, mergeSome)
+	return err
+}
+
+func between(tips []string, until time.Time, mergeSome func(pairs [][2]string) ([][]string, error)) (conflicts []GridConflict, unchecked [][2]int, err error) {
 	var cells [][2]int
 	var pairs [][2]string
-	for b := range grid.Branches {
+	for b := range tips {
 		for a := range b {
 			cells = append(cells, [2]int{a, b})
-			pairs = append(pairs, [2]string{grid.Branches[a].Tip, grid.Branches[b].Tip})
+			pairs = append(pairs, [2]string{tips[a], tips[b]})
 		}
 	}
 	files, missing := known(pairs)
-	unchecked, err := inBatches(missing, until, func(batch []int) error {
+	left, err := inBatches(missing, until, func(batch []int) error {
 		some := make([][2]string, len(batch))
 		for k, i := range batch {
 			some[k] = pairs[i]
@@ -238,17 +256,17 @@ func (grid *Grid) merge(until time.Time, mergeSome func(pairs [][2]string) ([][]
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	for _, i := range unchecked {
-		grid.Unchecked = append(grid.Unchecked, cells[i])
+	for _, i := range left {
+		unchecked = append(unchecked, cells[i])
 	}
 	for i, cell := range cells {
 		if len(files[i]) > 0 {
-			grid.Conflicts = append(grid.Conflicts, GridConflict{A: cell[0], B: cell[1], Files: files[i]})
+			conflicts = append(conflicts, GridConflict{A: cell[0], B: cell[1], Files: files[i]})
 		}
 	}
-	return nil
+	return conflicts, unchecked, nil
 }
 
 // inBatches does some at a time, starting nothing after until or a failure, and

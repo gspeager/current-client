@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { SidebarRequest } from '../../components/chrome/NavPane'
-import { BookOpen, FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
+import { BookOpen, Columns3, FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { BranchService, RepositoryService, WorktreeService, type WorktreeInfo } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
@@ -25,6 +25,7 @@ interface WorktreesPanelProps {
   sections: SidebarSections
   onOpenRepository: (path: string) => void
   onWorktreesChanged?: () => void
+  onOpenBoard: () => void
 }
 
 function parentFolder(path: string): string {
@@ -37,6 +38,7 @@ function WorktreesPanel({
   sections,
   onOpenRepository,
   onWorktreesChanged,
+  onOpenBoard,
   request = null,
 }: WorktreesPanelProps) {
   const {
@@ -169,15 +171,26 @@ function WorktreesPanel({
         open={sections.isOpen('worktrees', hasOthers)}
         onToggle={() => sections.toggle('worktrees', hasOthers)}
         actions={
-          <button
-            type="button"
-            className="worktrees-panel-add"
-            onClick={() => setShowNew((v) => !v)}
-            aria-label="Add worktree"
-            title="Add worktree"
-          >
-            <Plus size={18} strokeWidth={1.75} />
-          </button>
+          <>
+            <button
+              type="button"
+              className="worktrees-panel-add"
+              onClick={() => setShowNew((v) => !v)}
+              aria-label="Add worktree"
+              title="Add worktree"
+            >
+              <Plus size={18} strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              className="worktrees-panel-add"
+              onClick={onOpenBoard}
+              aria-label="Worktree board"
+              title="Worktree board"
+            >
+              <Columns3 size={18} strokeWidth={1.75} />
+            </button>
+          </>
         }
         onPinnedEscape={() => setShowNew(false)}
         pinned={
