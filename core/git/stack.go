@@ -58,7 +58,7 @@ type restackStep struct {
 // planRestack works out each layer in order. A layer that's gone or merged hands
 // its children to its own parent, and they keep the tip they were built on, so
 // only their own commits move, even after a squash merge.
-func planRestack(ctx context.Context, repoPath string, links []StackLink) ([]restackStep, error) {
+func planRestack(ctx context.Context, repoPath string, links []StackLink, merged mergedCheck) ([]restackStep, error) {
 	replaced := map[string]string{}
 	moved := map[string]bool{}
 	var steps []restackStep
@@ -88,7 +88,7 @@ func planRestack(ctx context.Context, repoPath string, links []StackLink) ([]res
 		if step.commits, err = CountCommits(ctx, repoPath, step.from+".."+tip); err != nil {
 			return nil, err
 		}
-		if step.commits > 0 && mergedInto(ctx, repoPath, ontoRef, tip) {
+		if step.commits > 0 && merged.one(ctx, repoPath, ontoRef, tip) {
 			step.merged = true
 			replaced[link.Branch] = onto
 			steps = append(steps, step)
@@ -101,8 +101,10 @@ func planRestack(ctx context.Context, repoPath string, links []StackLink) ([]res
 	return steps, nil
 }
 
-func mergedInto(ctx context.Context, repoPath, base, tip string) bool {
-	merged, err := MergedInto(ctx, repoPath, base, []string{tip})
+type mergedCheck func(ctx context.Context, repoPath, base string, tips []string) ([]bool, error)
+
+func (check mergedCheck) one(ctx context.Context, repoPath, base, tip string) bool {
+	merged, err := check(ctx, repoPath, base, []string{tip})
 	if err != nil {
 		return isAncestor(ctx, repoPath, tip, base)
 	}
@@ -119,7 +121,7 @@ type StackLayer struct {
 }
 
 func StackLayers(ctx context.Context, repoPath string, links []StackLink) ([]StackLayer, error) {
-	steps, err := planRestack(ctx, repoPath, links)
+	steps, err := planRestack(ctx, repoPath, links, mergedWithoutFetching)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +179,7 @@ type RestackPreview struct {
 // become. Nothing above a conflict can be predicted.
 func PreviewRestack(ctx context.Context, repoPath string, links []StackLink) (RestackPreview, error) {
 	preview := RestackPreview{Predicted: true}
-	steps, err := planRestack(ctx, repoPath, links)
+	steps, err := planRestack(ctx, repoPath, links, MergedInto)
 	if err != nil {
 		return preview, err
 	}
@@ -274,7 +276,7 @@ type RestackResult struct {
 // works from Git 2.23, where git rebase --update-refs needs 2.38.
 func Restack(ctx context.Context, repoPath string, links []StackLink) (RestackResult, error) {
 	var result RestackResult
-	steps, err := planRestack(ctx, repoPath, links)
+	steps, err := planRestack(ctx, repoPath, links, MergedInto)
 	if err != nil {
 		return result, err
 	}

@@ -404,3 +404,27 @@ func TestPreviewPredictsAboveALayerWithNoCommits(t *testing.T) {
 		t.Fatalf("above the empty layer: %s", got)
 	}
 }
+
+func TestStackLayersInAPartialCloneNeverFetch(t *testing.T) {
+	ctx := context.Background()
+	dir, links := threeLayers(t)
+	gittest.Run(t, dir, "switch", "-q", "middle")
+	gittest.CommitFile(t, dir, "base.txt", "base\nmiddle\n", "edit")
+	gittest.Run(t, dir, "switch", "-q", "main")
+	gittest.CommitFile(t, dir, "base.txt", "main\nbase\n", "edit on main")
+	gittest.Run(t, dir, "merge", "-q", "--no-ff", "-m", "merge", "bottom")
+	clone := partialCloneOf(t, dir, "bottom", "middle", "top")
+	before := missingObjects(t, clone)
+	layers, err := StackLayers(ctx, clone, links)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, layer := range layers {
+		if layer.Merged != (layer.Branch == "bottom") {
+			t.Errorf("%s: merged = %v", layer.Branch, layer.Merged)
+		}
+	}
+	if after := missingObjects(t, clone); after != before {
+		t.Errorf("fetched: missing after = %s, before = %s", after, before)
+	}
+}

@@ -2,7 +2,10 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // MergedBranch is a local branch whose work is already in Base. Newer means
@@ -62,7 +65,7 @@ func MergedBranches(ctx context.Context, repoPath string) (MergedReport, error) 
 			tips = append(tips, b.Upstream)
 		}
 	}
-	merged, err := MergedInto(ctx, repoPath, report.Base, tips)
+	merged, err := mergedWithoutFetching(ctx, repoPath, report.Base, tips)
 	if err != nil {
 		return MergedReport{}, err
 	}
@@ -80,6 +83,62 @@ func MergedBranches(ctx context.Context, repoPath string) (MergedReport, error) 
 		}
 	}
 	return report, nil
+}
+
+// mergedWithoutFetching is MergedInto for an answer nobody asked for. In a partial
+// clone a merge would fetch, so there only a tip in base's history counts, and a
+// squash or rebase merge isn't found.
+func mergedWithoutFetching(ctx context.Context, repoPath, base string, tips []string) ([]bool, error) {
+	if !PartialClone(ctx, repoPath) {
+		return MergedInto(ctx, repoPath, base, tips)
+	}
+	if len(tips) == 0 {
+		return nil, nil
+	}
+	commits, err := resolveCommits(ctx, repoPath, tips)
+	if err != nil {
+		return nil, err
+	}
+	ahead, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+		Dir:   repoPath,
+		Args:  []string{"rev-list", "--stdin"},
+		Stdin: strings.NewReader(strings.Join(commits, "\n") + "\n^" + base + "\n"),
+	})
+	if err != nil {
+		return nil, err
+	}
+	notInBase := map[string]bool{}
+	for _, sha := range strings.Fields(ahead.Stdout) {
+		notInBase[sha] = true
+	}
+	merged := make([]bool, len(tips))
+	for i, commit := range commits {
+		merged[i] = !notInBase[commit]
+	}
+	return merged, nil
+}
+
+func resolveCommits(ctx context.Context, repoPath string, revs []string) ([]string, error) {
+	var input strings.Builder
+	for _, rev := range revs {
+		input.WriteString(rev + "^{commit}\n")
+	}
+	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+		Dir:   repoPath,
+		Args:  []string{"cat-file", "--batch-check=%(objectname)"},
+		Stdin: strings.NewReader(input.String()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	commits := strings.Split(strings.TrimSpace(result.Stdout), "\n")
+	for _, commit := range commits {
+		// "<rev> missing"
+		if strings.Contains(commit, " ") {
+			return nil, fmt.Errorf("not a commit: %s", commit)
+		}
+	}
+	return commits, nil
 }
 
 // MergedInto reports for each tip whether merging it into base would leave

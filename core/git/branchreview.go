@@ -118,13 +118,14 @@ func parseCountPair(text string) [2]int {
 }
 
 // fillMerged finds squash and rebase merges as well as merge commits, on Git
-// 2.38 or newer. Before it, only a branch whose commits are all in base counts.
+// 2.38 or newer. Before it, and in a partial clone, only a branch whose commits are
+// all in base counts.
 func fillMerged(ctx context.Context, repoPath, base string, rows []BranchReviewRow) error {
 	tips := make([]string, len(rows))
 	for i := range rows {
 		tips[i] = rows[i].Tip
 	}
-	merged, err := MergedInto(ctx, repoPath, base, tips)
+	merged, err := mergedWithoutFetching(ctx, repoPath, base, tips)
 	if errors.Is(err, ErrMergeTreeUnsupported) {
 		for i := range rows {
 			rows[i].Merged = rows[i].AheadBase == 0

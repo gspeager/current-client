@@ -2,7 +2,9 @@ package git
 
 import (
 	"context"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/gspeager/current-client/core/internal/gittest"
@@ -110,5 +112,87 @@ func TestMergedIntoAnswersEachTip(t *testing.T) {
 	merged, err := MergedInto(context.Background(), dir, "origin/main", tips)
 	if err != nil || !reflect.DeepEqual(merged, []bool{true, false, true, false, true}) {
 		t.Fatalf("merged = %v, %v", merged, err)
+	}
+}
+
+// partialCloneOf has no file's content but those checked out.
+func partialCloneOf(t *testing.T, dir string, branches ...string) string {
+	t.Helper()
+	gittest.Run(t, dir, "config", "uploadpack.allowFilter", "true")
+	clone := filepath.Join(t.TempDir(), "clone")
+	gittest.Run(t, dir, "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(dir), clone)
+	for _, branch := range branches {
+		gittest.Run(t, clone, "branch", "-q", branch, "origin/"+branch)
+	}
+	return clone
+}
+
+func missingObjects(t *testing.T, dir string) string {
+	t.Helper()
+	missing := gittest.Run(t, dir, "rev-list", "--objects", "--all", "--missing=print")
+	if !strings.Contains(missing, "?") {
+		t.Fatal("nothing is missing")
+	}
+	return missing
+}
+
+func TestMergedInAPartialCloneNeverFetches(t *testing.T) {
+	ctx := context.Background()
+	// main stands in for origin's, with a squash and a merge commit on it.
+	origin := gittest.InitRepo(t)
+	gittest.CommitFile(t, origin, "a.txt", "a\n", "base")
+	for _, name := range []string{"squashed", "merged", "open"} {
+		gittest.Run(t, origin, "switch", "-q", "-c", name, "main")
+		gittest.CommitFile(t, origin, name+".txt", name+"\n", name)
+	}
+	// Merging these two reads both versions of the file.
+	gittest.CommitFile(t, origin, "a.txt", "a\nopen\n", "edit")
+	gittest.Run(t, origin, "switch", "-q", "main")
+	gittest.CommitFile(t, origin, "a.txt", "main\na\n", "edit on main")
+	gittest.Run(t, origin, "merge", "-q", "--squash", "squashed")
+	gittest.Run(t, origin, "commit", "-q", "-m", "squashed")
+	gittest.Run(t, origin, "merge", "-q", "--no-ff", "-m", "merge", "merged")
+	clone := partialCloneOf(t, origin, "squashed", "merged", "open")
+	gittest.Run(t, clone, "switch", "-q", "-c", "past", "origin/merged")
+	gittest.Run(t, clone, "config", "user.name", "T")
+	gittest.Run(t, clone, "config", "user.email", "t@example.com")
+	gittest.Run(t, clone, "commit", "-q", "--allow-empty", "-m", "newer")
+	gittest.Run(t, clone, "switch", "-q", "main")
+	before := missingObjects(t, clone)
+
+	report, err := MergedBranches(ctx, clone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]bool{}
+	for _, b := range report.Branches {
+		got[b.Name] = b.Newer
+	}
+	// A squash merge can't be told without its files.
+	if want := map[string]bool{"merged": false, "past": true}; !reflect.DeepEqual(got, want) {
+		t.Errorf("merged, and whether newer = %v, want %v", got, want)
+	}
+	review, err := ReviewBranches(ctx, clone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range review.Rows {
+		if want := row.Name == "merged" || row.Name == "main"; row.Merged != want {
+			t.Errorf("review has %s merged = %v", row.Name, row.Merged)
+		}
+	}
+	if _, err := mergedWithoutFetching(ctx, clone, "main", []string{"main", "gone"}); err == nil {
+		t.Error("a branch that isn't there has an answer")
+	}
+	if after := missingObjects(t, clone); after != before {
+		t.Errorf("fetched: missing after = %s, before = %s", after, before)
+	}
+}
+
+func TestMergedWithoutFetchingInAFullClone(t *testing.T) {
+	dir := mergedFixture(t)
+	merged, err := mergedWithoutFetching(context.Background(), dir, "origin/main", []string{"squashed", "open"})
+	if err != nil || !reflect.DeepEqual(merged, []bool{true, false}) {
+		t.Errorf("merged = %v, %v", merged, err)
 	}
 }
