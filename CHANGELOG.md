@@ -28,6 +28,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 - **Very large diffs open without freezing.** A long diff draws only the lines on screen. A 50,000-line diff that took several seconds to open, and more than half a second for each step of scrolling, now opens in a fraction of a second and scrolls smoothly. ([#369](https://github.com/gspeager/current-client/issues/369))
 - **Checking which branches would conflict no longer grows the repository.** Each check merged the branches in memory but left the results among the repository's objects until Git cleaned them up, hundreds of megabytes on a large repository. ([#369](https://github.com/gspeager/current-client/issues/369))
 - **The diff in Changes scrolls on its own again.** Its column headers stay in view, the strip showing where changes fall is back, and a branch's scroll position is remembered, none of which worked since 0.6.0. Opening a commit's file in History is fixed the same way. ([#369](https://github.com/gspeager/current-client/issues/369))
+- **A partial clone no longer connects to the remote to predict conflicts.** Checking which branches would conflict made Git fetch the files the clone leaves out, whenever a branch moved. Conflict marks aren't shown in a partial clone now. ([#457](https://github.com/gspeager/current-client/pull/457))
 - **Clicking away from a row no longer pulls the list back to it** once it scrolls out of sight. ([#369](https://github.com/gspeager/current-client/issues/369))
 
 ## [0.6.1] - 2026-11-15

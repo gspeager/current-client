@@ -180,18 +180,29 @@ func TestCompareUnrelatedHistoriesWithoutADefaultBranch(t *testing.T) {
 	}
 }
 
-func TestCompareNeverFetches(t *testing.T) {
+func TestAPartialCloneNeverFetches(t *testing.T) {
 	dir := gridRepo(t)
 	gittest.Run(t, dir, "config", "uploadpack.allowFilter", "true")
 	clone := filepath.Join(t.TempDir(), "clone")
 	gittest.Run(t, dir, "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(dir), clone)
 	gittest.Run(t, clone, "branch", "one", "origin/one")
-	before := looseObjects(t, clone)
-	if _, err := Compare(context.Background(), clone); !errors.Is(err, ErrPartialClone) {
-		t.Errorf("err = %v, want ErrPartialClone", err)
+	missing := func() string {
+		return gittest.Run(t, clone, "rev-list", "--objects", "--all", "--missing=print")
 	}
-	if after := looseObjects(t, clone); after != before {
-		t.Errorf("objects after = %s, before = %s", after, before)
+	before := missing()
+	if !strings.Contains(before, "?") {
+		t.Fatal("the clone has every file")
+	}
+	for name, check := range map[string]func() error{
+		"Compare": func() error { _, err := Compare(context.Background(), clone); return err },
+		"Predict": func() error { _, err := Predict(context.Background(), clone); return err },
+	} {
+		if err := check(); !errors.Is(err, ErrPartialClone) {
+			t.Errorf("%s: %v, want ErrPartialClone", name, err)
+		}
+		if after := missing(); after != before {
+			t.Errorf("%s fetched: missing after = %s, before = %s", name, after, before)
+		}
 	}
 }
 

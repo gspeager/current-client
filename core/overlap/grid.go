@@ -50,9 +50,6 @@ type GridConflict struct {
 // or not, and a commit and one it shares no history with.
 var mergedInto, unrelated sync.Map
 
-// ErrPartialClone means merging would fetch what the clone leaves out.
-var ErrPartialClone = errors.New("merging would fetch what this partial clone leaves out")
-
 // Compare merges every pair of branches that isn't merged yet. It returns
 // git.ErrMergeTreeUnsupported on Git before 2.38, and ErrPartialClone.
 func Compare(ctx context.Context, repoPath string) (Grid, error) {
