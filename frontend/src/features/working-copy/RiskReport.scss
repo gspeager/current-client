@@ -68,3 +68,9 @@
 .risk-report-row-secret .risk-report-message {
   color: var(--error);
 }
+
+.risk-report-left-out {
+  padding: var(--space-xs);
+  color: var(--outline);
+  font: var(--ui-xs);
+}

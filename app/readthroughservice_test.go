@@ -264,3 +264,36 @@ func TestReadThroughNotes(t *testing.T) {
 		t.Errorf("a deleted branch's note is %+v", note)
 	}
 }
+
+func TestReadThroughFindings(t *testing.T) {
+	repo := readThroughRepo(t)
+	worktree := filepath.Join(t.TempDir(), "linked")
+	gitIn(t, repo, "worktree", "add", "-q", worktree, "side")
+	writeIn(t, worktree, "AGENTS.md", "x\n")
+	s := new(ReadThroughService)
+	rulesOf := func(info ReadThroughInfo) []string {
+		t.Helper()
+		report, err := s.Findings(info)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mapSlice(report.Findings, func(finding RiskFindingInfo) string { return finding.Rule })
+	}
+	uncommitted := openReadThrough(t, repo, ReadThroughRequest{Path: worktree, Uncommitted: true})
+	objects := gitOut(t, repo, "count-objects")
+	if rules := rulesOf(uncommitted); !slices.Equal(rules, []string{"agent-instructions"}) {
+		t.Errorf("uncommitted = %v", rules)
+	}
+	if after := gitOut(t, repo, "count-objects"); after != objects {
+		t.Errorf("objects went from %s to %s", objects, after)
+	}
+	if rules := rulesOf(openReadThrough(t, repo, ReadThroughRequest{Path: worktree})); len(rules) != 0 {
+		t.Errorf("committed = %v", rules)
+	}
+	if err := new(SettingsService).SetRiskRulesOff([]string{"agent-instructions"}); err != nil {
+		t.Fatal(err)
+	}
+	if rules := rulesOf(uncommitted); len(rules) != 0 {
+		t.Errorf("turned off = %v", rules)
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"github.com/gspeager/current-client/core/filekind"
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
+	"github.com/gspeager/current-client/core/risk"
 	"github.com/gspeager/current-client/core/snapshot"
 )
 
@@ -45,6 +46,20 @@ func Files(ctx context.Context, repoPath string, r Range) (files []File, skipped
 		files = append(files, File{change, filekind.Of(change.Path)})
 	}
 	return files, skipped, nil
+}
+
+// Findings is the risk report over the range, leaving out the rules in off.
+func Findings(ctx context.Context, repoPath string, r Range, off []string) (risk.Report, error) {
+	if !r.Uncommitted {
+		return risk.CheckRange(ctx, repoPath, risk.Range{From: r.Base, To: r.Head}, off)
+	}
+	env, discard := git.ScratchObjects(ctx, repoPath)
+	defer discard()
+	tree, _, err := snapshot.WorkingTree(ctx, repoPath, env)
+	if err != nil {
+		return risk.Report{}, err
+	}
+	return risk.CheckRange(ctx, repoPath, risk.Range{From: r.Base, To: tree, Head: r.Head, Env: env}, off)
 }
 
 // Base is where head left target. A branch built on another is compared with the

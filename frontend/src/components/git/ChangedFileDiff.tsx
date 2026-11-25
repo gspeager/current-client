@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import type { ChangedFile, FileDiff } from '@current-client-bindings/app'
-import DiffViewer from '../../features/diff/DiffViewer'
+import DiffViewer, { type DiffFocus } from '../../features/diff/DiffViewer'
 import DiffViewMenu from '../../features/diff/DiffViewMenu'
 import DiffViewModeToggle, { type DiffViewMode } from '../../features/diff/DiffViewModeToggle'
 import type { ImageSources } from '../../features/diff/ImageDiff'
@@ -20,7 +20,7 @@ interface ChangedFileDiffProps {
   reviewThreads?: ReviewThreadsView
   notes?: LineNotes
   // A line to open at; a new object asks again.
-  focusLine?: { line: number } | null
+  focusLine?: DiffFocus | null
   toolbar?: ReactNode
 }
 

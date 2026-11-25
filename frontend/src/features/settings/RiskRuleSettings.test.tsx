@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { RISK_RULES } from '../../lib/riskRules'
 import RiskRuleSettings from './RiskRuleSettings'
 
 describe('RiskRuleSettings', () => {
@@ -16,5 +17,10 @@ describe('RiskRuleSettings', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Conflict markers' }))
     expect(onChange).toHaveBeenLastCalledWith([])
+  })
+
+  it('has a switch for every rule', () => {
+    render(<RiskRuleSettings off={[]} onChange={vi.fn()} />)
+    expect(screen.getAllByRole('checkbox')).toHaveLength(RISK_RULES.length)
   })
 })
