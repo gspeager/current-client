@@ -98,8 +98,11 @@ type Config struct {
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
 
-	// Commands, by repository path. TaskApprovals holds what each approval saw.
+	// Commands. CustomTasks and BoardTasks, the ids shown on the worktree board, are by
+	// the shared Git directory, so every worktree has them; older CustomTasks are by
+	// path. Approvals, which hold what each one saw, and the checklist are by path.
 	CustomTasks   map[string][]CustomTask      `json:"customTasks,omitempty"`
+	BoardTasks    map[string][]string          `json:"boardTasks,omitempty"`
 	TaskApprovals map[string]map[string]string `json:"taskApprovals,omitempty"`
 	TaskChecklist map[string]TaskChecklist     `json:"taskChecklist,omitempty"`
 	Stacks        map[string][]StackLink       `json:"stacks,omitempty"`

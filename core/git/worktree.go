@@ -95,17 +95,19 @@ func parseWorktrees(output string) []Worktree {
 // SamePath compares two absolute paths as the file system would, resolving
 // symlinks (macOS's /tmp is /private/tmp) and ignoring case on Windows.
 func SamePath(a, b string) bool {
-	resolve := func(p string) string {
-		p = filepath.Clean(filepath.FromSlash(p))
-		if r, err := filepath.EvalSymlinks(p); err == nil {
-			return r
-		}
-		return p
+	return PathKey(a) == PathKey(b)
+}
+
+// PathKey is the same for every way of writing a path that SamePath takes as one.
+func PathKey(path string) string {
+	path = filepath.Clean(filepath.FromSlash(path))
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		path = resolved
 	}
 	if runtime.GOOS == "windows" {
-		return strings.EqualFold(resolve(a), resolve(b))
+		return strings.ToLower(path)
 	}
-	return resolve(a) == resolve(b)
+	return path
 }
 
 // AddWorktree checks out branch in a new worktree at path. With create, branch

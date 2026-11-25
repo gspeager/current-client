@@ -146,6 +146,21 @@ func ScratchObjects(ctx context.Context, repoPath string) (env []string, discard
 	if hasPromisorPack(objects) {
 		return nil, discard
 	}
+	return scratchBeside(objects)
+}
+
+// ScratchWrites is ScratchObjects for a caller that fetches nothing, so a partial
+// clone has nothing to keep.
+func ScratchWrites(ctx context.Context, repoPath string) (env []string, discard func()) {
+	objects, err := objectsDir(ctx, repoPath)
+	if err != nil {
+		return nil, func() {}
+	}
+	return scratchBeside(objects)
+}
+
+func scratchBeside(objects string) (env []string, discard func()) {
+	discard = func() {}
 	sweepScratch()
 	dir, err := os.MkdirTemp("", scratchPrefix)
 	if err != nil {

@@ -3,11 +3,14 @@ package app
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/gspeager/current-client/core/board"
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/overlap"
+	"github.com/gspeager/current-client/internal/config"
 	"github.com/gspeager/current-client/internal/policy"
+	"github.com/gspeager/current-client/internal/tasks"
 )
 
 type WorktreeService struct {
@@ -72,6 +75,14 @@ type BoardColumn struct {
 	Problem string      `json:"problem"`
 	// Whether something is running in its terminal.
 	Running bool `json:"running"`
+	// The ones chosen to show, where this worktree has them.
+	Tasks []BoardTask `json:"tasks"`
+}
+
+type BoardTask struct {
+	Task    TaskInfo        `json:"task"`
+	Running bool            `json:"running"`
+	Result  *TaskResultInfo `json:"result"`
 }
 
 type BoardFile struct {
@@ -101,8 +112,12 @@ func (s *WorktreeService) Board(repoPath string) (BoardInfo, error) {
 			}
 		}
 	}
+	cfg := configOrDefault()
+	onBoard := cfg.BoardTasks[tasksKey(repoPath)]
 	for i, c := range read.Columns {
-		info.Columns = append(info.Columns, boardColumn(c, colliding[i]))
+		column := boardColumn(c, colliding[i])
+		column.Tasks = boardTasks(cfg, onBoard, c)
+		info.Columns = append(info.Columns, column)
 	}
 	switch {
 	case errors.Is(read.Unpredicted, git.ErrMergeTreeUnsupported):
@@ -141,4 +156,25 @@ func boardColumn(c board.Column, colliding map[string]bool) BoardColumn {
 		column.Files = append(column.Files, rest[:min(room, len(rest))]...)
 	}
 	return column
+}
+
+func boardTasks(cfg config.Config, onBoard []string, c board.Column) []BoardTask {
+	shown := []BoardTask{}
+	if len(onBoard) == 0 || c.Missing {
+		return shown
+	}
+	worktree := git.PathKey(c.Path)
+	for _, task := range tasks.Discover(c.Path, customTasks(cfg, c.Path)) {
+		if !slices.Contains(onBoard, task.ID) {
+			continue
+		}
+		outcome, has, running := taskResults.Of(worktree, task.ID)
+		one := BoardTask{Task: taskInfo(cfg, c.Path, task), Running: running}
+		if has {
+			result := resultInfo(outcome, c.Tree, task.Command)
+			one.Result = &result
+		}
+		shown = append(shown, one)
+	}
+	return shown
 }

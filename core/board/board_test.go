@@ -253,8 +253,12 @@ func TestReadAPartialClone(t *testing.T) {
 	clone := filepath.Join(t.TempDir(), "clone")
 	gittest.Run(t, main, "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(main), clone)
 	gittest.WriteFile(t, clone, "shared.txt", "edited\n")
+	before := gittest.Run(t, clone, "count-objects", "-v")
 	var r Reader
 	board := read(t, &r, clone)
+	if after := gittest.Run(t, clone, "count-objects", "-v"); after != before {
+		t.Errorf("objects after = %s, before = %s", after, before)
+	}
 	if !errors.Is(board.Unpredicted, overlap.ErrPartialClone) || len(board.Columns[0].Files) != 1 {
 		t.Errorf("board = %+v", board)
 	}
