@@ -12,6 +12,7 @@ import {
   RemoteService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
+import { useOpenReadThrough } from '../read-through/readThrough'
 import ContextMenu, { menuAnchor, rowKeyDown, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { localNameFor } from './branches'
@@ -132,6 +133,7 @@ function BranchSidebar({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   // Refreshes the graph too, which still shows the deleted remote branch.
   const deleteRemote = useDeleteRemoteBranch(repoPath, branchesChanged)
+  const readThrough = useOpenReadThrough()
   const [compareWith, setCompareWith] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<DeletedBranch[] | null>(null)
   const notes = useNotes()
@@ -341,6 +343,10 @@ function BranchSidebar({
         { label: 'Rebase current onto…', onClick: () => setRebasePreview(b.name), disabled: b.current },
         {
           separatorBefore: true,
+          label: 'Read through',
+          onClick: () => readThrough({ ref: `refs/heads/${b.name}` }),
+        },
+        {
           label: 'Compare with current',
           onClick: () => setCompareWith(b.name),
           disabled: b.current,
@@ -396,6 +402,7 @@ function BranchSidebar({
       ...menuAnchor(e),
       items: [
         { label: 'Check out', onClick: () => checkoutBranch(localNameFor(name, remoteNames)), disabled: !!blocked },
+        { label: 'Read through', onClick: () => readThrough({ ref: `refs/remotes/${name}` }) },
         {
           label: 'Delete on remote…',
           onClick: () => void deleteRemote.deleteRemoteBranch(name),

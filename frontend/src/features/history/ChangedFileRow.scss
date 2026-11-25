@@ -38,3 +38,18 @@
   flex: 1;
   font: var(--data-md);
 }
+
+.changed-file-tickable {
+  display: flex;
+  align-items: center;
+  padding-left: var(--space-sm);
+
+  .changed-file {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.changed-file-read .changed-file-path {
+  color: var(--outline);
+}

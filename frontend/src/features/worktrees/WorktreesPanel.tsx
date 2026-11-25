@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { SidebarRequest } from '../../components/chrome/NavPane'
-import { FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
+import { BookOpen, FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { BranchService, RepositoryService, WorktreeService, type WorktreeInfo } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
@@ -9,6 +9,7 @@ import { errorMessage } from '../../lib/errors'
 import { baseName, joinPath } from '../../lib/paths'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import { useOpenReadThrough } from '../read-through/readThrough'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import { shortSha } from '../../lib/text'
@@ -55,6 +56,7 @@ function WorktreesPanel({
   const [parent, setParent] = useState<string | null>(null)
   const [created, setCreated] = useState<string | null>(null)
   const rowMenu = useRowMenu()
+  const readThrough = useOpenReadThrough()
   const error = loadError ?? actionError
 
   const main = worktrees?.find((w) => w.main)
@@ -126,6 +128,16 @@ function WorktreesPanel({
   const hasOthers = (others ?? 0) > 0
 
   const worktreeActions = (w: WorktreeInfo): RowAction[] => [
+    ...(!w.missing
+      ? [
+          {
+            label: 'Read through',
+            ariaLabel: `Read through worktree ${baseName(w.path)}`,
+            icon: BookOpen,
+            run: () => readThrough({ path: w.path }),
+          },
+        ]
+      : []),
     ...(!w.current && !w.missing
       ? [
           {

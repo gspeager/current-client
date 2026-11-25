@@ -140,27 +140,34 @@ func TestRefOfAChangeOnThisComputer(t *testing.T) {
 	s := new(ReadThroughService)
 	side := gitOut(t, repo, "rev-parse", "side")
 	gitIn(t, repo, "update-ref", "refs/remotes/origin/feature", side)
+	if request, _ := s.OfChange(repo, "feature", "main", side); request.Target != "main" {
+		t.Errorf("target = %q", request.Target)
+	}
+	gitIn(t, repo, "update-ref", "refs/remotes/origin/main", gitOut(t, repo, "rev-parse", "main"))
+	if request, _ := s.OfChange(repo, "feature", "main", side); request.Target != "origin/main" {
+		t.Errorf("target with a remote = %q", request.Target)
+	}
 	gitIn(t, repo, "update-ref", "refs/current-client/hosts/origin/mr/7", side)
 	for _, c := range []struct{ branch, sha, want string }{
 		{"feature", side, "refs/heads/side"},
 		{"feature", "0123456789012345678901234567890123456789", ""},
 		{"feature", "", ""},
 	} {
-		if ref, err := s.RefOfChange(repo, c.branch, c.sha); err != nil || ref != c.want {
-			t.Errorf("RefOfChange(%q, %q) = %q, %v", c.branch, c.sha, ref, err)
+		if ref, err := s.OfChange(repo, c.branch, "main", c.sha); err != nil || ref.Ref != c.want {
+			t.Errorf("OfChange(%q, %q) = %q, %v", c.branch, c.sha, ref.Ref, err)
 		}
 	}
 	gitIn(t, repo, "switch", "-q", "side")
 	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "ahead")
-	if ref, _ := s.RefOfChange(repo, "feature", side); ref != "refs/remotes/origin/feature" {
-		t.Errorf("with the branch ahead, ref = %q", ref)
+	if ref, _ := s.OfChange(repo, "feature", "main", side); ref.Ref != "refs/remotes/origin/feature" {
+		t.Errorf("with the branch ahead, ref = %q", ref.Ref)
 	}
 	gitIn(t, repo, "update-ref", "-d", "refs/remotes/origin/feature")
-	if ref, _ := s.RefOfChange(repo, "feature", side); ref != "refs/current-client/hosts/origin/mr/7" {
-		t.Errorf("with only a fetched head, ref = %q", ref)
+	if ref, _ := s.OfChange(repo, "feature", "main", side); ref.Ref != "refs/current-client/hosts/origin/mr/7" {
+		t.Errorf("with only a fetched head, ref = %q", ref.Ref)
 	}
 	gitIn(t, repo, "update-ref", "-d", "refs/current-client/hosts/origin/mr/7")
-	if ref, _ := s.RefOfChange(repo, "side", side); ref != "refs/heads/side" {
-		t.Errorf("with only a branch ahead of it, ref = %q", ref)
+	if ref, _ := s.OfChange(repo, "side", "main", side); ref.Ref != "refs/heads/side" {
+		t.Errorf("with only a branch ahead of it, ref = %q", ref.Ref)
 	}
 }

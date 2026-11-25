@@ -176,10 +176,22 @@ func (info *ReadThroughInfo) resolve(ctx context.Context, repoPath string, reque
 	return nil
 }
 
-// RefOfChange is the ref a pull request's head is at on this computer, "" when
-// it isn't here.
-func (s *ReadThroughService) RefOfChange(repoPath, sourceBranch, headSHA string) (string, error) {
-	return git.RefAt(context.Background(), repoPath, headSHA, sourceBranch)
+// OfChange is a pull request as a request: the ref its head is at on this
+// computer, "" when it isn't here, against its target as of the last fetch.
+func (s *ReadThroughService) OfChange(repoPath, sourceBranch, targetBranch, headSHA string) (ReadThroughRequest, error) {
+	ctx := context.Background()
+	ref, err := git.RefAt(ctx, repoPath, headSHA, sourceBranch)
+	if err != nil || ref == "" {
+		return ReadThroughRequest{}, err
+	}
+	request := ReadThroughRequest{Ref: ref, Uncommitted: true}
+	for _, target := range []string{"origin/" + targetBranch, targetBranch} {
+		if _, err := git.ResolveCommit(ctx, repoPath, target); err == nil {
+			request.Target = target
+			break
+		}
+	}
+	return request, nil
 }
 
 func (s *ReadThroughService) FileDiff(info ReadThroughInfo, origPath, path string, force, ignoreWhitespace bool) (FileDiff, error) {

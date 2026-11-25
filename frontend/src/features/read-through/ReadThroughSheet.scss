@@ -1,0 +1,107 @@
+@use '../../styles/patterns';
+
+.read-through-header {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.read-through-name {
+  @include patterns.truncate;
+  color: var(--on-surface);
+  font: var(--data-md);
+}
+
+.read-through-against {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.read-through-progress {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.read-through-refresh {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-chip);
+  height: var(--h-chip);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--outline);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+.read-through-files {
+  width: 380px;
+}
+
+.read-through-folder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 var(--space-xs);
+  font: inherit;
+}
+
+.read-through-folder-path {
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.read-through-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.read-through-file-path {
+  flex: 1;
+  min-width: 0;
+  color: var(--on-surface);
+  font: var(--data-md);
+}
+
+.read-through-next {
+  flex-shrink: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.read-through-overview {
+  max-width: 720px;
+}
+
+.read-through-wrapping {
+  white-space: normal;
+}
