@@ -198,7 +198,14 @@ func removeScratchOlderThan(age time.Duration) {
 // MergeConflictsPairs is MergePairs reduced to each pair's conflicting
 // files: nil for a clean merge, and for a pair sharing no history.
 func MergeConflictsPairs(ctx context.Context, repoPath string, pairs [][2]string) ([][]string, error) {
-	merges, err := mergePairsDiscarding(ctx, repoPath, pairs)
+	env, discard := ScratchObjects(ctx, repoPath)
+	defer discard()
+	return MergeConflictsIn(ctx, repoPath, env, pairs)
+}
+
+// MergeConflictsIn is MergeConflictsPairs where env says, such as ScratchObjects'.
+func MergeConflictsIn(ctx context.Context, repoPath string, env []string, pairs [][2]string) ([][]string, error) {
+	merges, err := mergePairs(ctx, repoPath, env, pairs)
 	if err != nil {
 		return nil, err
 	}

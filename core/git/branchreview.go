@@ -89,14 +89,22 @@ func fillBaseCounts(ctx context.Context, repoPath, base string, rows []BranchRev
 		return nil
 	}
 	for i := range rows {
-		result, err := runResult(ctx, repoPath, "rev-list", "--left-right", "--count", rows[i].Tip+"..."+base)
-		if err != nil {
+		var err error
+		if rows[i].AheadBase, rows[i].BehindBase, err = AheadBehind(ctx, repoPath, rows[i].Tip, base); err != nil {
 			return err
 		}
-		count := parseCountPair(result.Stdout)
-		rows[i].AheadBase, rows[i].BehindBase = count[0], count[1]
 	}
 	return nil
+}
+
+// AheadBehind counts the commits only commit has, and those only base has.
+func AheadBehind(ctx context.Context, repoPath, commit, base string) (ahead, behind int, err error) {
+	result, err := runResult(ctx, repoPath, "rev-list", "--left-right", "--count", commit+"..."+base)
+	if err != nil {
+		return 0, 0, err
+	}
+	count := parseCountPair(result.Stdout)
+	return count[0], count[1], nil
 }
 
 func parseCountPair(text string) [2]int {

@@ -253,7 +253,12 @@ func (m *Manager) Busy(id string) bool {
 
 // AnyBusy says whether a session for repo is busy, or any at all when repo is "".
 func (m *Manager) AnyBusy(repo string) bool {
-	for _, id := range m.idsWhere(func(s *session) bool { return repo == "" || s.repo == repo }) {
+	return m.AnyBusyWhere(func(started string) bool { return repo == "" || started == repo })
+}
+
+// AnyBusyWhere is AnyBusy for the repositories that match.
+func (m *Manager) AnyBusyWhere(match func(repo string) bool) bool {
+	for _, id := range m.idsWhere(func(s *session) bool { return match(s.repo) }) {
 		if m.Busy(id) {
 			return true
 		}
