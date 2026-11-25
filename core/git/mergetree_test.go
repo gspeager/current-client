@@ -136,11 +136,11 @@ func TestMergePairsOneByOneMatchesTheBatch(t *testing.T) {
 	ctx := context.Background()
 	pairs := [][2]string{{"one", "two"}, {"two", "one"}, {"one", "three"}, {"main", "main"}, {"three", "two"}}
 
-	batch, err := mergeTreeBatch(ctx, dir, pairs)
+	batch, err := mergeTreeBatch(ctx, dir, nil, pairs)
 	if err != nil {
 		t.Fatal(err)
 	}
-	each, err := mergePairsEach(ctx, dir, pairs)
+	each, err := mergePairsEach(ctx, dir, nil, pairs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,5 +175,81 @@ func TestMergePairsAnswersAroundUnrelatedHistory(t *testing.T) {
 	}
 	if !merges[1].Unrelated || !merges[2].Unrelated || merges[1].Tree != "" {
 		t.Errorf("unrelated = %+v %+v", merges[1], merges[2])
+	}
+}
+
+// Reading which branches conflict shouldn't grow the repository.
+func TestMergingInMemoryWritesNoObjects(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "a.txt", "a\n", "base")
+	gittest.Run(t, dir, "switch", "-c", "theirs")
+	gittest.CommitFile(t, dir, "a.txt", "theirs\n", "their a")
+	gittest.Run(t, dir, "switch", "main")
+	gittest.CommitFile(t, dir, "a.txt", "ours\n", "our a")
+	worktree := filepath.Join(t.TempDir(), "linked: worktree")
+	gittest.Run(t, dir, "worktree", "add", "-q", "--detach", worktree)
+	ctx := context.Background()
+	before := gittest.Run(t, dir, "count-objects")
+
+	for _, path := range []string{dir, worktree} {
+		if files, err := MergeConflicts(ctx, path, "main", "theirs"); err != nil || len(files) != 1 {
+			t.Errorf("MergeConflicts in %s = %v, %v", path, files, err)
+		}
+		if files, err := MergeConflictsMany(ctx, path, "main", []string{"theirs"}); err != nil || len(files[0]) != 1 {
+			t.Errorf("MergeConflictsMany in %s = %v, %v", path, files, err)
+		}
+		if files, err := MergeConflictsPairs(ctx, path, [][2]string{{"main", "theirs"}}); err != nil || len(files[0]) != 1 {
+			t.Errorf("MergeConflictsPairs in %s = %v, %v", path, files, err)
+		}
+		if merged, err := MergedInto(ctx, path, "main", []string{"theirs"}); err != nil || merged[0] {
+			t.Errorf("MergedInto in %s = %v, %v", path, merged, err)
+		}
+	}
+	if after := gittest.Run(t, dir, "count-objects"); after != before {
+		t.Errorf("objects went from %s to %s", before, after)
+	}
+
+	// MergePairs' callers may read the tree it names.
+	merges, err := MergePairs(ctx, dir, [][2]string{{"main", "theirs"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gittest.Run(t, dir, "cat-file", "-e", merges[0].Tree)
+}
+
+func TestMergingInMemoryInAFolderWithTheListSeparator(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows paths can't hold the separator")
+	}
+	dir := filepath.Join(t.TempDir(), "a:b")
+	gittest.Run(t, t.TempDir(), "init", "-q", "-b", "main", dir)
+	gittest.Run(t, dir, "config", "user.name", "t")
+	gittest.Run(t, dir, "config", "user.email", "t@example.com")
+	gittest.CommitFile(t, dir, "a.txt", "a\n", "base")
+	gittest.Run(t, dir, "switch", "-c", "theirs")
+	gittest.CommitFile(t, dir, "a.txt", "theirs\n", "their a")
+	gittest.Run(t, dir, "switch", "main")
+	gittest.CommitFile(t, dir, "a.txt", "ours\n", "our a")
+	if files, err := MergeConflicts(context.Background(), dir, "main", "theirs"); err != nil || len(files) != 1 {
+		t.Errorf("MergeConflicts = %v, %v", files, err)
+	}
+}
+
+func TestAPartialCloneKeepsWhatItMerges(t *testing.T) {
+	origin := gittest.InitRepo(t)
+	gittest.CommitFile(t, origin, "a.txt", "a\n", "base")
+	gittest.Run(t, origin, "config", "uploadpack.allowFilter", "true")
+	clone := filepath.Join(t.TempDir(), "clone")
+	gittest.Run(t, t.TempDir(), "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(origin), clone)
+
+	env, discard := scratchObjects(context.Background(), clone)
+	defer discard()
+	if env != nil {
+		t.Errorf("env = %v, want none", env)
+	}
+	if env, discard := scratchObjects(context.Background(), origin); env == nil {
+		t.Error("a full repository has no temporary folder")
+	} else {
+		discard()
 	}
 }

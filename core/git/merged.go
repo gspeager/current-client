@@ -78,7 +78,7 @@ func MergedInto(ctx context.Context, repoPath, base string, tips []string) ([]bo
 	for i, tip := range tips {
 		pairs[i] = [2]string{base, tip}
 	}
-	merges, err := MergePairs(ctx, repoPath, pairs)
+	merges, err := mergePairsDiscarding(ctx, repoPath, pairs)
 	if err != nil {
 		return nil, err
 	}
