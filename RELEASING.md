@@ -92,7 +92,7 @@ Building the AppImage under emulation fails (QEMU rejects the AppImage tooling's
 
 ```
 git fetch --tags origin && git switch --detach vX.Y.Z
-docker build -t current-client-linux-native -f build/docker/Dockerfile.linux-native .
+docker build --pull -t current-client-linux-native -f build/docker/Dockerfile.linux-native .
 docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/app" current-client-linux-native
 ```
 
