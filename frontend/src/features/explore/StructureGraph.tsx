@@ -14,6 +14,8 @@ interface StructureGraphProps {
   compared: boolean
   onOpen: (path: string) => void
   onUp?: () => void
+  // What a card says under its name, where it isn't its size.
+  describe?: (node: StructureNode) => string
 }
 
 const ARROWS: Record<string, Arrow> = {
@@ -42,7 +44,8 @@ function facts(node: StructureNode, commits: number | undefined, compared: boole
 
 // Cards and the lines between them. Everything a line says is in its cards' names for
 // a screen reader.
-function StructureGraph({ label, nodes, links, commitsOf, compared, onOpen, onUp }: StructureGraphProps) {
+function StructureGraph({ label, nodes, links, commitsOf, compared, onOpen, onUp, describe }: StructureGraphProps) {
+  const factsOf = (node: StructureNode) => describe?.(node) ?? facts(node, commitsOf(node.path), compared)
   const box = useRef<HTMLDivElement>(null)
   const [room, setRoom] = useState(0)
   const [pointed, setPointed] = useState<number | null>(null)
@@ -71,7 +74,7 @@ function StructureGraph({ label, nodes, links, commitsOf, compared, onOpen, onUp
     return [
       node.path,
       node.side === 'used-by' ? 'outside, uses this' : node.side === 'uses' ? 'outside, used by this' : '',
-      facts(node, commitsOf(node.path), compared),
+      factsOf(node),
       uses && `uses ${uses}`,
       usedBy && `used by ${usedBy}`,
     ]
@@ -173,7 +176,7 @@ function StructureGraph({ label, nodes, links, commitsOf, compared, onOpen, onUp
                 <span className="structure-card-name">
                   {cutMiddle(node.label, LABEL_CHARACTERS[card ? 'card' : node.state ? 'marked' : 'side'])}
                 </span>
-                {card && <span className="structure-card-facts">{facts(node, commitsOf(node.path), compared)}</span>}
+                {card && <span className="structure-card-facts">{factsOf(node)}</span>}
                 {!card && node.state && (
                   <span className="structure-card-state">{node.state === 'added' ? 'new' : 'removed'}</span>
                 )}
