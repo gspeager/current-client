@@ -1,0 +1,105 @@
+@use '../../styles/patterns';
+
+.structure-graph {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.structure-sized {
+  position: relative;
+  min-width: 100%;
+}
+
+.structure-drawn {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.structure-caption {
+  position: absolute;
+  top: 0;
+  transform: translateY(-20px);
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.structure-line {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.structure-mark {
+  fill: var(--on-surface);
+  font: var(--data-sm);
+  text-anchor: middle;
+}
+
+.structure-card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 var(--space-sm) 0 var(--space-md);
+  overflow: hidden;
+  background: var(--surface-container);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+}
+
+.structure-card-side {
+  background: var(--surface);
+}
+
+.structure-card-removed {
+  border-style: dashed;
+
+  .structure-card-name {
+    text-decoration: line-through;
+  }
+}
+
+.structure-card-color {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+}
+
+.structure-card-name {
+  font: var(--data-sm);
+  white-space: nowrap;
+}
+
+.structure-card-facts {
+  @include patterns.truncate;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.structure-card-state {
+  position: absolute;
+  right: var(--space-sm);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.structure-dim {
+  opacity: 0.2;
+}

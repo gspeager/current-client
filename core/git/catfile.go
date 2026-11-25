@@ -39,28 +39,43 @@ func FilesAtWith(ctx context.Context, repoPath string, env []string, files []Rev
 	if len(files) == 0 {
 		return found, nil
 	}
-	var input strings.Builder
-	for _, f := range files {
+	specs := make([]string, len(files))
+	for i, f := range files {
 		if strings.ContainsAny(f.Rev+f.Path, "\n") {
 			return nil, fmt.Errorf("can't read %q at %q: a line break in the name", f.Path, f.Rev)
 		}
-		input.WriteString(f.Rev + ":" + f.Path + "\n")
+		specs[i] = f.Rev + ":" + f.Path
 	}
+	blobs, err := Blobs(ctx, repoPath, env, specs)
+	if err != nil {
+		return nil, err
+	}
+	for i, blob := range blobs {
+		if blob != nil {
+			found[files[i]] = blob
+		}
+	}
+	return found, nil
+}
+
+// Blobs reads each object named in one process, nil where it isn't a file.
+func Blobs(ctx context.Context, repoPath string, env, names []string) ([][]byte, error) {
 	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
 		Dir:   repoPath,
 		Env:   env,
 		Args:  []string{"cat-file", "--batch"},
-		Stdin: strings.NewReader(input.String()),
+		Stdin: strings.NewReader(strings.Join(names, "\n") + "\n"),
 	})
 	if err != nil {
 		return nil, err
 	}
+	blobs := make([][]byte, len(names))
 	// "<oid> <type> <size>\n<content>\n", or "<spec> missing\n".
 	rest := result.Stdout
-	for _, f := range files {
+	for i, name := range names {
 		header, after, ok := strings.Cut(rest, "\n")
 		if !ok {
-			return nil, fmt.Errorf("cat-file stopped before %s", f.Path)
+			return nil, fmt.Errorf("cat-file stopped before %s", name)
 		}
 		rest = after
 		if strings.HasSuffix(header, " missing") || strings.HasSuffix(header, " ambiguous") {
@@ -69,12 +84,12 @@ func FilesAtWith(ctx context.Context, repoPath string, env []string, files []Rev
 		fields := strings.Fields(header)
 		size, err := strconv.Atoi(fields[len(fields)-1])
 		if len(fields) != 3 || err != nil || len(rest) < size+1 {
-			return nil, fmt.Errorf("cat-file's answer for %s can't be read: %q", f.Path, header)
+			return nil, fmt.Errorf("cat-file's answer for %s can't be read: %q", name, header)
 		}
 		if fields[1] == "blob" {
-			found[f] = []byte(rest[:size])
+			blobs[i] = []byte(rest[:size])
 		}
 		rest = rest[size+1:]
 	}
-	return found, nil
+	return blobs, nil
 }
