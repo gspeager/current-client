@@ -177,8 +177,8 @@ it('marks what is new, gone and changed without relying on color', async () => {
     }),
   })
   render(<Harness comparison={{ kind: 'branch', ref: 'feat' }} />)
-  expect(await card(/^app, .*3 changed, uses fresh\/, gone\/$/)).toHaveTextContent('3 changed')
-  expect(await card(/^fresh, .*, new, used by app\/$/)).toHaveTextContent('new')
+  expect(await card(/^app, 2 files · 3 changed, uses fresh\/, gone\/$/)).toHaveTextContent('3 changed')
+  expect(await card(/^fresh, new · 2 files .*, used by app\/$/)).toHaveTextContent('new')
   expect(await card(/^gone, removed, used by app\/$/)).toHaveTextContent('removed')
   expect([...document.querySelectorAll('.structure-mark')].map((el) => el.textContent)).toEqual(['+', '−'])
   expect(screen.getByText('against main')).toBeInTheDocument()

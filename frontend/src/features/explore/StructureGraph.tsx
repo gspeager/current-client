@@ -22,18 +22,22 @@ const ARROWS: Record<string, Arrow> = {
   ArrowUp: 'up',
   ArrowDown: 'down',
 }
-const WORD: Record<string, string> = { added: 'new', removed: 'removed' }
-const LABEL_CHARACTERS = { card: 22, side: 21 }
+// A side's label gives way to what happened to it.
+const LABEL_CHARACTERS = { card: 22, side: 21, marked: 13 }
 // Text is 12px, and no smaller than 9.6.
 const SMALLEST = 0.8
 
 const colorOf = (node: StructureNode | undefined) => `var(--folder-${node && node.slot > 0 ? node.slot : 'other'}-2)`
 
-function facts(node: StructureNode, commits: number | undefined): string {
+function facts(node: StructureNode, commits: number | undefined, compared: boolean): string {
   if (node.state === 'removed') return 'removed'
-  const { files, lines } = node.count
-  if (node.folder) return `${counted(files, 'file')} · ${counted(lines, 'line')}`
-  return [counted(lines, 'line'), commits !== undefined && counted(commits, 'commit')].filter(Boolean).join(' · ')
+  const { files, lines, changed } = node.count
+  const isNew = node.state === 'added'
+  const isChanged = compared && changed > 0 && !isNew
+  const parts = node.folder
+    ? [counted(files, 'file'), isChanged ? `${changed.toLocaleString()} changed` : counted(lines, 'line')]
+    : [counted(lines, 'line'), isChanged ? 'changed' : commits !== undefined && counted(commits, 'commit')]
+  return [isNew && 'new', ...parts].filter(Boolean).join(' · ')
 }
 
 // Cards and the lines between them. Everything a line says is in its cards' names for
@@ -67,9 +71,7 @@ function StructureGraph({ label, nodes, links, commitsOf, compared, onOpen, onUp
     return [
       node.path,
       node.side === 'used-by' ? 'outside, uses this' : node.side === 'uses' ? 'outside, used by this' : '',
-      facts(node, commitsOf(node.path)),
-      node.state === 'added' && 'new',
-      compared && node.state === '' && node.count.changed > 0 && `${node.count.changed} changed`,
+      facts(node, commitsOf(node.path), compared),
       uses && `uses ${uses}`,
       usedBy && `used by ${usedBy}`,
     ]
@@ -122,7 +124,7 @@ function StructureGraph({ label, nodes, links, commitsOf, compared, onOpen, onUp
                   key={`${from}-${to}`}
                   className={dim ? 'structure-line structure-dim' : 'structure-line'}
                   stroke={colorOf(nodes[from].side === 'card' ? nodes[from] : nodes[to])}
-                  strokeWidth={Math.min(4, 1.2 + Math.sqrt(count) * 0.2)}
+                  strokeWidth={Math.min(3, 1.2 + Math.sqrt(count) * 0.15)}
                   strokeDasharray={state === 'removed' ? '4 4' : undefined}
                 >
                   <path d={linePath(points)} />
@@ -169,17 +171,11 @@ function StructureGraph({ label, nodes, links, commitsOf, compared, onOpen, onUp
                   <span className="structure-card-color" style={{ background: colorOf(node) }} />
                 )}
                 <span className="structure-card-name">
-                  {cutMiddle(node.label, card ? LABEL_CHARACTERS.card : LABEL_CHARACTERS.side)}
+                  {cutMiddle(node.label, LABEL_CHARACTERS[card ? 'card' : node.state ? 'marked' : 'side'])}
                 </span>
-                {card && <span className="structure-card-facts">{facts(node, commitsOf(node.path))}</span>}
-                {compared && node.state !== 'removed' && (node.state || node.count.changed > 0) && (
-                  <span className="structure-card-changed">
-                    {node.state
-                      ? WORD[node.state]
-                      : node.folder
-                        ? `${node.count.changed.toLocaleString()} changed`
-                        : 'changed'}
-                  </span>
+                {card && <span className="structure-card-facts">{facts(node, commitsOf(node.path), compared)}</span>}
+                {!card && node.state && (
+                  <span className="structure-card-state">{node.state === 'added' ? 'new' : 'removed'}</span>
                 )}
               </button>
             )

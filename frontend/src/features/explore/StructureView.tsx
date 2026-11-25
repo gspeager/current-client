@@ -141,13 +141,14 @@ function StructureView({
   )
 }
 
-function whatIsRead({ languages, unread, moreUsedBy, moreUses }: StructureInfo): string {
+function whatIsRead({ languages, unread, moreUsedBy, moreUses, compared }: StructureInfo): string {
   const others = moreUsedBy + moreUses
   return [
     languages.length > 0
       ? `Links are read from ${languages.join(', ')}.`
       : 'No links: none of its languages is read. Folders and history only.',
     unread > 0 && `${counted(unread, 'file')} of code in other languages ${unread === 1 ? "isn't" : "aren't"} read.`,
+    compared && '+ is a link that’s new, − one that’s gone.',
     others > 0 && `${counted(others, 'other place')} outside ${others === 1 ? "isn't" : "aren't"} shown.`,
     'Tests, generated files and lockfiles are left out.',
   ]
