@@ -189,10 +189,12 @@
 }
 
 // In Changes the diff takes all the height its pane has.
-.changes-diff .diff-viewer {
+.changes-diff .diff-view {
   flex: 1;
-  min-height: 0;
-  max-height: none;
+
+  .diff-viewer {
+    max-height: none;
+  }
 }
 
 .changes-clean .changes-clean-commit {

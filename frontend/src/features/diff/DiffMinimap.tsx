@@ -5,27 +5,36 @@ import './DiffMinimap.scss'
 interface DiffMinimapProps {
   rows: DisplayRow[]
   paneRef: RefObject<HTMLDivElement>
+  // Takes its place before the pane is measured, so appearing doesn't narrow it.
+  always?: boolean
 }
 
 type Mark = { top: number; height: number; kind: 'added' | 'removed' }
 
+// About what the strip can show; a long diff's rows share them.
+const SLOTS = 1000
+
 function marksFor(rows: DisplayRow[]): Mark[] {
   const marks: Mark[] = []
-  const unit = 100 / Math.max(rows.length, 1)
+  const slots = Math.min(Math.max(rows.length, 1), SLOTS)
+  const unit = 100 / slots
+  let filled = -1
   rows.forEach((row, i) => {
     if (!('pair' in row)) return
     const kinds = [row.pair.left?.kind, row.pair.right?.kind]
     const kind = kinds.includes('added') ? 'added' : kinds.includes('removed') ? 'removed' : null
-    if (!kind) return
+    const slot = Math.floor((i / rows.length) * slots)
+    if (!kind || slot === filled) return
     const last = marks[marks.length - 1]
-    if (last?.kind === kind && Math.abs(last.top + last.height - i * unit) < 0.001) last.height += unit
-    else marks.push({ top: i * unit, height: unit, kind })
+    if (last?.kind === kind && slot === filled + 1) last.height += unit
+    else marks.push({ top: slot * unit, height: unit, kind })
+    filled = slot
   })
   return marks
 }
 
 // Where a file's changes fall, and which part is on screen. A click scrolls there.
-function DiffMinimap({ rows, paneRef }: DiffMinimapProps) {
+function DiffMinimap({ rows, paneRef, always = false }: DiffMinimapProps) {
   const marks = useMemo(() => marksFor(rows), [rows])
   const [view, setView] = useState<{ top: number; height: number } | null>(null)
 
@@ -52,7 +61,7 @@ function DiffMinimap({ rows, paneRef }: DiffMinimapProps) {
     }
   }, [paneRef, rows])
 
-  if (!view) return null
+  if (!view && !always) return null
 
   const jump = (e: MouseEvent<HTMLDivElement>) => {
     const pane = paneRef.current
@@ -70,7 +79,7 @@ function DiffMinimap({ rows, paneRef }: DiffMinimapProps) {
           style={{ top: `${mark.top}%`, height: `max(2px, ${mark.height}%)` }}
         />
       ))}
-      <span className="diff-minimap-view" style={{ top: `${view.top}%`, height: `${view.height}%` }} />
+      {view && <span className="diff-minimap-view" style={{ top: `${view.top}%`, height: `${view.height}%` }} />}
     </div>
   )
 }

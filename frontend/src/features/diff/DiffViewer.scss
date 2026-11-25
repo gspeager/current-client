@@ -1,6 +1,13 @@
 @use '../../styles/tokens/typography';
 @use '../../styles/patterns';
 
+// What scrolls is the pane inside, so the column must be able to shrink.
+.diff-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 // Diff grid values from design-system.md §5.4, separate from the seven control heights.
 .diff-viewer {
   --row-height: 20px;
@@ -80,14 +87,31 @@
   min-height: 0;
   // One hatch behind the whole pane avoids per-row seams; opaque rows cover it.
   background: var(--diff-void);
+  // The pane corrects its own position as rows are measured.
+  overflow-anchor: none;
 }
 
-.diff-pane-split {
+// Holds in a block's margins, which count toward the row's height.
+.diff-item {
+  display: flow-root;
+}
+
+.diff-pane-split .diff-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  // A height-limited pane must scroll, never squeeze rows and clip wrapped lines.
-  grid-auto-rows: max-content;
-  align-content: start;
+}
+
+// Its scrollbar is there from the start, so drawing rows never changes the width.
+.diff-pane-long {
+  &:not(.diff-pane-sides),
+  .diff-side {
+    overflow-y: scroll;
+  }
+}
+
+// Rows scrolled out of a long diff.
+.diff-gap {
+  background: var(--surface);
 }
 
 .diff-empty-state {
@@ -488,9 +512,10 @@
     }
   }
 
+  // A long diff draws few of its lines, so its width comes from the longest.
   .diff-side-content {
     width: max-content;
-    min-width: 100%;
+    min-width: max(100%, calc(var(--longest-line, 0px) + var(--gutter-width) + var(--marker-width) + 8px));
   }
 
   .diff-side-spacer {
@@ -506,6 +531,10 @@
     display: grid;
     grid-template-columns: minmax(max-content, 1fr);
     align-content: start;
+  }
+
+  .diff-pane-unified .diff-gap {
+    min-width: calc(var(--longest-line, 0px) + 2 * var(--gutter-width) + var(--marker-width) + 8px);
   }
 
   // Keeps the hunk's buttons in view rather than at the far end of a wide row.

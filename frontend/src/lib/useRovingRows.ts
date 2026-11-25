@@ -9,6 +9,10 @@ interface RovingOptions {
   horizontal?: boolean
   // A virtualized list scrolls here, so Home and End reach rows not yet drawn.
   scrollToEdge?: (edge: 'first' | 'last') => void
+  // Scrolls to the row after or before this one, where it isn't drawn yet.
+  scrollPast?: (row: HTMLElement, forward: boolean) => void
+  // For rows whose order on screen isn't their order in the page.
+  compareRows?: (a: HTMLElement, b: HTMLElement) => number
 }
 
 function focusTarget(row: HTMLElement): HTMLElement | null {
@@ -20,11 +24,15 @@ function focusTarget(row: HTMLElement): HTMLElement | null {
 // left and right reach the controls inside a row.
 export function useRovingRows(
   rowSelector: string,
-  { selectOnMove = false, horizontal = false, scrollToEdge }: RovingOptions = {},
+  { selectOnMove = false, horizontal = false, scrollToEdge, scrollPast, compareRows }: RovingOptions = {},
 ) {
   const [container, setContainer] = useState<HTMLElement | null>(null)
   const scrollEdge = useRef(scrollToEdge)
   scrollEdge.current = scrollToEdge
+  const past = useRef(scrollPast)
+  past.current = scrollPast
+  const compare = useRef(compareRows)
+  compare.current = compareRows
 
   useEffect(() => {
     if (!container) return
@@ -35,7 +43,10 @@ export function useRovingRows(
     let lostRow: HTMLElement | null = null
     container.dataset.roving = ''
 
-    const rowsOf = () => [...container.querySelectorAll<HTMLElement>(rowSelector)]
+    const rowsOf = () => {
+      const rows = [...container.querySelectorAll<HTMLElement>(rowSelector)]
+      return compare.current ? rows.sort(compare.current) : rows
+    }
 
     const sync = () => {
       const rows = rowsOf()
@@ -74,6 +85,8 @@ export function useRovingRows(
       else row.click()
     }
 
+    const onceDrawn = (move: () => void) => requestAnimationFrame(() => requestAnimationFrame(move))
+
     const onKeyDown = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement
       if (e.altKey || e.metaKey || e.ctrlKey) return
@@ -87,13 +100,11 @@ export function useRovingRows(
         e.preventDefault()
         const last = e.key === 'End'
         scrollEdge.current(last ? 'last' : 'first')
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            const drawn = rowsOf()
-            const row = last ? drawn[drawn.length - 1] : drawn[0]
-            if (row) moveTo(row)
-          }),
-        )
+        onceDrawn(() => {
+          const drawn = rowsOf()
+          const row = last ? drawn[drawn.length - 1] : drawn[0]
+          if (row) moveTo(row)
+        })
         return
       }
       if (e.key === forward || e.key === back || e.key === 'Home' || e.key === 'End') {
@@ -106,7 +117,16 @@ export function useRovingRows(
                 ? rows[0]
                 : rows[rows.length - 1]
         e.preventDefault()
-        if (next) moveTo(next)
+        if (next) {
+          moveTo(next)
+        } else if (past.current && (e.key === forward || e.key === back)) {
+          past.current(row, e.key === forward)
+          onceDrawn(() => {
+            const drawn = rowsOf()
+            const beyond = drawn[drawn.indexOf(row) + (e.key === forward ? 1 : -1)]
+            if (beyond) moveTo(beyond)
+          })
+        }
         return
       }
       if (!horizontal && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
@@ -120,9 +140,16 @@ export function useRovingRows(
       }
     }
 
+    // A click elsewhere leaves the row on purpose; a virtualized list may drop it later.
+    let clicking = false
+    const onPointerDown = () => {
+      clicking = true
+      setTimeout(() => (clicking = false))
+    }
+
     const onFocusOut = (e: FocusEvent) => {
       const row = (e.target as HTMLElement).closest<HTMLElement>(rowSelector)
-      lostAt = row && !e.relatedTarget ? rowsOf().indexOf(row) : null
+      lostAt = row && !e.relatedTarget && !clicking ? rowsOf().indexOf(row) : null
       lostRow = row
     }
 
@@ -141,11 +168,15 @@ export function useRovingRows(
     container.addEventListener('keydown', onKeyDown)
     container.addEventListener('focusin', onFocusIn)
     container.addEventListener('focusout', onFocusOut)
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('mousedown', onPointerDown, true)
     return () => {
       observer.disconnect()
       container.removeEventListener('keydown', onKeyDown)
       container.removeEventListener('focusin', onFocusIn)
       container.removeEventListener('focusout', onFocusOut)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('mousedown', onPointerDown, true)
     }
   }, [container, rowSelector, selectOnMove, horizontal])
 

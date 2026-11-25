@@ -157,7 +157,7 @@ describe('DiffViewer with review threads', () => {
     )
     const rows = [...document.querySelectorAll('.diff-pane > *')]
     const lineIndex = rows.findIndex((r) => r.textContent?.includes('var client = 1'))
-    expect(rows[lineIndex + 1]).toHaveClass('review-thread')
+    expect(rows[lineIndex + 1].firstElementChild).toHaveClass('review-thread')
     const away = screen.getByRole('region', { name: 'Threads not shown at a line' })
     expect(within(away).getByRole('group', { name: 'Unresolved thread by Ada at line 99' })).toBeInTheDocument()
     expect(within(away).getByRole('group', { name: 'Unresolved thread by Ada at old line 15' })).toBeInTheDocument()
