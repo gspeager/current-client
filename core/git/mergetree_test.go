@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/internal/gittest"
@@ -217,21 +218,51 @@ func TestMergingInMemoryWritesNoObjects(t *testing.T) {
 	gittest.Run(t, dir, "cat-file", "-e", merges[0].Tree)
 }
 
-func TestMergingInMemoryInAFolderWithTheListSeparator(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Windows paths can't hold the separator")
+func TestMergingInMemoryInFoldersGitMustUnquote(t *testing.T) {
+	folders := []string{"no\u00a0break", "\u65e5\u672c"}
+	if runtime.GOOS != "windows" {
+		folders = append(folders, "a:b", `"quoted"`, `back\slash`)
 	}
-	dir := filepath.Join(t.TempDir(), "a:b")
-	gittest.Run(t, t.TempDir(), "init", "-q", "-b", "main", dir)
-	gittest.Run(t, dir, "config", "user.name", "t")
-	gittest.Run(t, dir, "config", "user.email", "t@example.com")
-	gittest.CommitFile(t, dir, "a.txt", "a\n", "base")
-	gittest.Run(t, dir, "switch", "-c", "theirs")
-	gittest.CommitFile(t, dir, "a.txt", "theirs\n", "their a")
-	gittest.Run(t, dir, "switch", "main")
-	gittest.CommitFile(t, dir, "a.txt", "ours\n", "our a")
-	if files, err := MergeConflicts(context.Background(), dir, "main", "theirs"); err != nil || len(files) != 1 {
-		t.Errorf("MergeConflicts = %v, %v", files, err)
+	for _, folder := range folders {
+		dir := filepath.Join(t.TempDir(), folder)
+		gittest.Run(t, t.TempDir(), "init", "-q", "-b", "main", dir)
+		gittest.Run(t, dir, "config", "user.name", "t")
+		gittest.Run(t, dir, "config", "user.email", "t@example.com")
+		gittest.CommitFile(t, dir, "a.txt", "a\n", "base")
+		gittest.Run(t, dir, "switch", "-c", "theirs")
+		gittest.CommitFile(t, dir, "a.txt", "theirs\n", "their a")
+		gittest.Run(t, dir, "switch", "main")
+		gittest.CommitFile(t, dir, "a.txt", "ours\n", "our a")
+		if files, err := MergeConflicts(context.Background(), dir, "main", "theirs"); err != nil || len(files) != 1 {
+			t.Errorf("MergeConflicts in %q = %v, %v", folder, files, err)
+		}
+	}
+}
+
+func TestTemporaryObjectsLeftBehindAreRemoved(t *testing.T) {
+	temp := t.TempDir()
+	t.Setenv("TMPDIR", temp)
+	t.Setenv("TMP", temp)
+	old, recent, other := filepath.Join(temp, scratchPrefix+"1"), filepath.Join(temp, scratchPrefix+"2"), filepath.Join(temp, "other")
+	for _, dir := range []string{old, recent, other} {
+		if err := os.Mkdir(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lastWeek := time.Now().Add(-7 * 24 * time.Hour)
+	for _, dir := range []string{old, other} {
+		if err := os.Chtimes(dir, lastWeek, lastWeek); err != nil {
+			t.Fatal(err)
+		}
+	}
+	removeScratchOlderThan(24 * time.Hour)
+	if _, err := os.Stat(old); !os.IsNotExist(err) {
+		t.Errorf("the old folder is still there: %v", err)
+	}
+	for _, dir := range []string{recent, other} {
+		if _, err := os.Stat(dir); err != nil {
+			t.Error(err)
+		}
 	}
 }
 

@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gspeager/current-client/core/gitexec"
 )
@@ -137,17 +138,33 @@ func scratchObjects(ctx context.Context, repoPath string) (env []string, discard
 			return nil, discard
 		}
 	}
-	dir, err := os.MkdirTemp("", "current-client-objects")
+	sweepScratch()
+	dir, err := os.MkdirTemp("", scratchPrefix)
 	if err != nil {
 		return nil, discard
 	}
-	// Quoted, so a path that holds the list separator is still one path.
-	alternates := strconv.Quote(filepath.ToSlash(objects))
+	// Quoted, so a path that holds the list separator is still one path. Git
+	// doesn't read the \u escapes strconv.Quote writes.
+	alternates := `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(filepath.ToSlash(objects)) + `"`
 	if inherited := os.Getenv("GIT_ALTERNATE_OBJECT_DIRECTORIES"); inherited != "" {
 		alternates += string(os.PathListSeparator) + inherited
 	}
 	return []string{"GIT_OBJECT_DIRECTORY=" + dir, "GIT_ALTERNATE_OBJECT_DIRECTORIES=" + alternates},
 		func() { _ = os.RemoveAll(dir) }
+}
+
+const scratchPrefix = "current-client-objects"
+
+// Quitting during a merge leaves its folder behind.
+var sweepScratch = sync.OnceFunc(func() { removeScratchOlderThan(24 * time.Hour) })
+
+func removeScratchOlderThan(age time.Duration) {
+	dirs, _ := filepath.Glob(filepath.Join(os.TempDir(), scratchPrefix+"*"))
+	for _, dir := range dirs {
+		if info, err := os.Lstat(dir); err == nil && time.Since(info.ModTime()) > age {
+			_ = os.RemoveAll(dir)
+		}
+	}
 }
 
 // MergeConflictsPairs is MergePairs reduced to each pair's conflicting
