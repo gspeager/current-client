@@ -6,6 +6,7 @@ import (
 
 	"github.com/gspeager/current-client/core/board"
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/internal/structure"
 )
 
@@ -89,6 +90,11 @@ var lastStructure = struct {
 	structureView
 }{}
 
+var (
+	errSparsePartial = &gitexec.AppError{Message: "Not available in a sparse partial clone, where reading the code would fetch it."}
+	errNoBase        = &gitexec.AppError{Message: "This repository has no default branch to compare with."}
+)
+
 // Structure is what's inside a folder or a file, "" for the whole repository, with what
 // uses it and what it uses, compared with another point when one is given.
 func (s *ExploreService) Structure(repoPath, path string, comparison *ExploreComparison) (StructureInfo, error) {
@@ -97,12 +103,16 @@ func (s *ExploreService) Structure(repoPath, path string, comparison *ExploreCom
 	if noCommits(ctx, repoPath) {
 		return info, nil
 	}
-	if comparison != nil && comparison.Kind != "working" && git.PartialClone(ctx, repoPath) {
+	partial := git.PartialClone(ctx, repoPath)
+	if partial && git.SparseCheckout(ctx, repoPath) {
+		return info, errSparsePartial
+	}
+	if partial && comparison != nil && comparison.Kind != "working" {
 		info.Partial, comparison = true, nil
 	}
 	lastStructure.Lock()
 	defer lastStructure.Unlock()
-	read, target, err := readStructure(ctx, repoPath, comparison)
+	read, target, err := readStructure(ctx, repoPath, comparison, partial)
 	if err != nil {
 		return info, err
 	}
@@ -113,7 +123,7 @@ func (s *ExploreService) Structure(repoPath, path string, comparison *ExploreCom
 	return info, nil
 }
 
-func readStructure(ctx context.Context, repoPath string, comparison *ExploreComparison) (read structureView, target string, err error) {
+func readStructure(ctx context.Context, repoPath string, comparison *ExploreComparison, partial bool) (read structureView, target string, err error) {
 	commit, err := git.ResolveCommit(ctx, repoPath, "HEAD")
 	if err != nil {
 		return read, "", err
@@ -125,6 +135,9 @@ func readStructure(ctx context.Context, repoPath string, comparison *ExploreComp
 		compared, branchTarget, err := comparedRange(ctx, repoPath, *comparison)
 		if err != nil {
 			return read, "", err
+		}
+		if comparison.Kind == "branch" && branchTarget == "" {
+			return read, "", errNoBase
 		}
 		tree, commit, then, target = compared.Head, compared.Head, compared.Base, branchTarget
 		if compared.Uncommitted {
@@ -159,6 +172,10 @@ func readStructure(ctx context.Context, repoPath string, comparison *ExploreComp
 		}
 	}
 	read.view = structure.NewView(now, before)
+	if partial {
+		read.lines = now.Lines
+		return read, target, nil
+	}
 	counts, err := git.LineCounts(ctx, repoPath, commit)
 	if err != nil {
 		return read, "", err

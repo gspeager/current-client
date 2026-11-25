@@ -208,7 +208,10 @@ func (v *View) label(p, dir string) string {
 }
 
 func (v *View) crumbs(dir string) []Crumb {
-	crumbs := []Crumb{{}}
+	var crumbs []Crumb
+	if v.step("") == "" || dir == "" {
+		crumbs = append(crumbs, Crumb{})
+	}
 	last := ""
 	parts := strings.Split(dir, "/")
 	for i := range parts {

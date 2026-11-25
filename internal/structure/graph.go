@@ -4,6 +4,8 @@
 package structure
 
 import (
+	"bytes"
+	"cmp"
 	"context"
 	"path"
 	"runtime"
@@ -28,6 +30,8 @@ type Graph struct {
 	Unread    int
 	// A folder's own words for itself.
 	Docs map[string]string
+	// Of the files read, where Git isn't asked for all of them.
+	Lines map[string]int
 }
 
 // facts are what one file says by itself, whatever the others are, so they're kept by
@@ -43,8 +47,9 @@ type facts struct {
 	scope string
 	// The namespaces or modules named by using or import, for languages that don't
 	// name files.
-	sees []string
-	doc  string
+	sees  []string
+	doc   string
+	lines int
 	// A module's name, a workspace package's, a tsconfig's paths.
 	module  string
 	aliases []alias
@@ -142,11 +147,14 @@ func Build(ctx context.Context, repoPath string, env []string, rev string) (*Gra
 	}
 	l := &linker{index: make(map[string]int32, len(files)), links: map[[2]int32]bool{}, config: map[string]*facts{}}
 	byLanguage := map[*language][]int32{}
-	graph := &Graph{Docs: map[string]string{}}
+	graph := &Graph{Docs: map[string]string{}, Lines: map[string]int{}}
 	for i, f := range files {
 		l.files = append(l.files, f.Path)
 		l.facts = append(l.facts, known[i])
 		l.index[f.Path] = int32(i)
+		if known[i] != nil {
+			graph.Lines[f.Path] = known[i].lines
+		}
 		switch lang := languageOf(f.Path); {
 		case lang != nil:
 			byLanguage[lang] = append(byLanguage[lang], int32(i))
@@ -164,7 +172,7 @@ func Build(ctx context.Context, repoPath string, env []string, rev string) (*Gra
 	for lang, indexes := range byLanguage {
 		count[lang.name] = len(indexes)
 	}
-	slices.SortFunc(graph.Languages, func(a, b string) int { return count[b] - count[a] })
+	slices.SortFunc(graph.Languages, func(a, b string) int { return cmp.Or(count[b]-count[a], strings.Compare(a, b)) })
 	graph.Files = l.files
 	for link := range l.links {
 		graph.Links = append(graph.Links, link)
@@ -184,7 +192,12 @@ func readerFor(file string) func(src string) *facts {
 
 func readFacts(ctx context.Context, repoPath string, env []string, files []git.TreeFile) ([]*facts, error) {
 	known := make([]*facts, len(files))
-	key := func(i int) string { return files[i].Blob + path.Ext(files[i].Path) }
+	key := func(i int) string {
+		if languageOf(files[i].Path) != nil {
+			return files[i].Blob + path.Ext(files[i].Path)
+		}
+		return files[i].Blob + path.Base(files[i].Path)
+	}
 	var missing []int
 	kept.Lock()
 	for i, f := range files {
@@ -197,6 +210,8 @@ func readFacts(ctx context.Context, repoPath string, env []string, files []git.T
 	}
 	kept.Unlock()
 
+	// What a partial clone left out is left unread. Git before 2.45 would fetch it.
+	env = append(slices.Clone(env), "GIT_NO_LAZY_FETCH=1")
 	var mu sync.Mutex
 	var failed error
 	slots := make(chan struct{}, max(2, runtime.NumCPU()/2))
@@ -220,6 +235,7 @@ func readFacts(ctx context.Context, repoPath string, env []string, files []git.T
 				known[i] = &facts{}
 				if blob := blobs[k]; len(blob) <= largestRead {
 					known[i] = readerFor(files[i].Path)(string(blob))
+					known[i].lines = bytes.Count(blob, []byte("\n"))
 				}
 			}
 		})

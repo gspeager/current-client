@@ -111,7 +111,7 @@ func linkGo(l *linker, files []int32) {
 		}
 	}
 	folderOf := func(importPath string) (string, bool) {
-		for prefix := importPath; prefix != "."; prefix = path.Dir(prefix) {
+		for prefix := importPath; prefix != "." && prefix != "/"; prefix = path.Dir(prefix) {
 			if root, ok := modules[prefix]; ok {
 				dir := path.Join(root, strings.TrimPrefix(strings.TrimPrefix(importPath, prefix), "/"))
 				return dir, packages[dir] != nil

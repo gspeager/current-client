@@ -88,6 +88,7 @@ func TestGo(t *testing.T) {
 		"tools/kit.go":              "package kit\n\nfunc Run() {}\n",
 		"nested/go.mod":             "module example.com/app/nested\n",
 		"nested/in/in.go":           "package in\n\nimport . \"example.com/app/store\"\n\nfunc x() { Closed() }\n",
+		"hang.go":                   "package main\n\nimport (\n\t\"/x\"\n\t\"\"\n)\n",
 		"broken.go":                 "package main\n\nimport \"example.com/app/store\"\n\nfunc broken( { store.Closed()\n",
 		"vendor/example.com/v/v.go": "package v\n",
 	}), "HEAD")
@@ -186,6 +187,33 @@ func TestSwift(t *testing.T) {
 	expect(t, "links", linksOf(graph),
 		"Modules/Core/Sources/Core/Parse.swift > Modules/Core/Sources/Core/Feed.swift",
 		"Mac/App.swift > Modules/Core/Sources/Core/Feed.swift", "Mac/Window.swift > Mac/App.swift")
+}
+
+func TestTypeScriptBases(t *testing.T) {
+	graph := build(t, repo(t, files{
+		"tsconfig.json":      `{"compilerOptions": {"baseUrl": "src", "paths": {"*": ["./any/*"]}}}`,
+		"src/main.ts":        "import 'lib/x'\nimport 'y'\nimport 'react'\n",
+		"src/lib/x.ts":       "",
+		"src/any/y.ts":       "",
+		"pkg/package.json":   `{"source": "in/index.ts"}`,
+		"pkg/main.ts":        "import 'react'\n",
+		"pkg/in/react.ts":    "",
+		"twin/package.json":  `{"name": "twin", "compilerOptions": {"baseUrl": "a"}}`,
+		"twin/tsconfig.json": `{"name": "twin", "compilerOptions": {"baseUrl": "a"}}`,
+		"twin/main.ts":       "import 'z'\n",
+		"twin/a/z.ts":        "",
+	}), "HEAD")
+	expect(t, "links", linksOf(graph), "src/main.ts > src/lib/x.ts", "src/main.ts > src/any/y.ts", "twin/main.ts > twin/a/z.ts")
+}
+
+func TestARepositoryInOneFolder(t *testing.T) {
+	view := NewView(build(t, repo(t, files{"src/a/x.go": "package a\n", "src/b/y.go": "package b\n"}), "HEAD"), nil)
+	if level := view.Level(""); level.Path != "src" || fmt.Sprint(level.Crumbs) != "[{src src}]" {
+		t.Errorf("the top is %q, %v", level.Path, level.Crumbs)
+	}
+	if level := view.Level("src/a/x.go"); len(level.Crumbs) != 3 {
+		t.Errorf("a file's path = %v", level.Crumbs)
+	}
 }
 
 func TestALanguageThatIsntRead(t *testing.T) {

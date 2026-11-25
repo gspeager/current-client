@@ -72,9 +72,9 @@ func readTSConfig(src string) *facts {
 	}
 	f := &facts{base: config.CompilerOptions.BaseURL}
 	for from, to := range config.CompilerOptions.Paths {
-		a := alias{from: strings.TrimSuffix(from, "/*")}
+		a := alias{from: strings.TrimSuffix(strings.TrimSuffix(from, "*"), "/")}
 		for _, target := range to {
-			a.to = append(a.to, strings.TrimSuffix(target, "/*"))
+			a.to = append(a.to, strings.TrimSuffix(strings.TrimSuffix(target, "*"), "/"))
 		}
 		f.aliases = append(f.aliases, a)
 	}

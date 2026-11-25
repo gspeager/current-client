@@ -341,3 +341,9 @@ func SharingHistory(ctx context.Context, repoPath, ours string, namespaces ...st
 	}
 	return related, nil
 }
+
+// SparseCheckout says whether only some of HEAD's files are checked out.
+func SparseCheckout(ctx context.Context, repoPath string) bool {
+	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"config", "--bool", "core.sparseCheckout"}})
+	return err == nil && strings.TrimSpace(result.Stdout) == "true"
+}

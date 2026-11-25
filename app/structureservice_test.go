@@ -130,6 +130,33 @@ func TestStructureInAPartialCloneFetchesNothing(t *testing.T) {
 	}
 }
 
+func TestStructureInASparsePartialCloneFetchesNothing(t *testing.T) {
+	origin := structureRepo(t)
+	gitIn(t, origin, "config", "uploadpack.allowFilter", "true")
+	clone := filepath.Join(t.TempDir(), "clone")
+	gitIn(t, origin, "clone", "-q", "--filter=blob:none", "--no-checkout", "file://"+filepath.ToSlash(origin), clone)
+	missing := func() string { return gitOut(t, clone, "rev-list", "--objects", "--all", "--missing=print") }
+	before := missing()
+	if info, _ := structureOf(t, clone, "", nil); len(info.Nodes) == 0 {
+		t.Errorf("with nothing checked out: %+v", info)
+	}
+	gitIn(t, clone, "config", "core.sparseCheckout", "true")
+	if _, err := new(ExploreService).Structure(clone, "", nil); !errors.Is(err, errSparsePartial) {
+		t.Errorf("err = %v", err)
+	}
+	if after := missing(); after != before {
+		t.Errorf("fetched: missing after = %s, before = %s", after, before)
+	}
+}
+
+func TestStructureOfABranchWithNoBase(t *testing.T) {
+	repo := structureRepo(t)
+	gitIn(t, repo, "branch", "-m", "main", "trunk-of-ours")
+	if _, err := new(ExploreService).Structure(repo, "", &ExploreComparison{Kind: "branch", Ref: "trunk-of-ours"}); !errors.Is(err, errNoBase) {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestStructureBeforeTheFirstCommit(t *testing.T) {
 	repo := t.TempDir()
 	gitIn(t, repo, "init", "-q")

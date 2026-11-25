@@ -133,7 +133,8 @@ func (l *linker) jsAliased(aliases []alias, from, name string) (int32, bool) {
 			continue
 		}
 		rest, ok := strings.CutPrefix(name, a.from)
-		if !ok || (rest != "" && !strings.HasPrefix(rest, "/") && !strings.HasSuffix(a.from, "/")) {
+		// A base's own name is empty, and stands for any.
+		if !ok || (rest != "" && a.from != "" && !strings.HasPrefix(rest, "/") && !strings.HasSuffix(a.from, "/")) {
 			continue
 		}
 		for _, to := range a.to {
@@ -162,7 +163,7 @@ func (l *linker) jsAliases() []alias {
 			}
 			aliases = append(aliases, resolved)
 		}
-		if f.base != "" && f.module == "" {
+		if f.base != "" && tsconfigName.MatchString(path.Base(p)) {
 			// Any name can start from the base.
 			aliases = append(aliases, alias{to: []string{path.Join(dir, f.base)}, within: within})
 		}
