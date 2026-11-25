@@ -49,7 +49,7 @@ type MergeResult struct {
 // MergeConflicts merges two commits in memory, without touching the working
 // tree or index, and returns the files that would conflict.
 func MergeConflicts(ctx context.Context, repoPath, ours, theirs string) ([]string, error) {
-	env, discard := scratchObjects(ctx, repoPath)
+	env, discard := ScratchObjects(ctx, repoPath)
 	defer discard()
 	merge, err := mergeTree(ctx, repoPath, env, ours, theirs)
 	return merge.Files, err
@@ -82,7 +82,7 @@ func MergeConflictsMany(ctx context.Context, repoPath, ours string, theirs []str
 	for i, tip := range theirs {
 		pairs[i] = [2]string{ours, tip}
 	}
-	env, discard := scratchObjects(ctx, repoPath)
+	env, discard := ScratchObjects(ctx, repoPath)
 	defer discard()
 	merges, err := mergeTreeBatch(ctx, repoPath, env, pairs)
 	if err != nil {
@@ -101,7 +101,7 @@ func MergePairs(ctx context.Context, repoPath string, pairs [][2]string) ([]Merg
 // mergePairsDiscarding is MergePairs for a caller that only compares the
 // trees: they aren't kept.
 func mergePairsDiscarding(ctx context.Context, repoPath string, pairs [][2]string) ([]MergeResult, error) {
-	env, discard := scratchObjects(ctx, repoPath)
+	env, discard := ScratchObjects(ctx, repoPath)
 	defer discard()
 	return mergePairs(ctx, repoPath, env, pairs)
 }
@@ -117,11 +117,12 @@ func mergePairs(ctx context.Context, repoPath string, env []string, pairs [][2]s
 	return merges, err
 }
 
-// scratchObjects makes a merge in memory write its objects to a folder that
-// discard removes. Merging every branch of a large repository writes hundreds
-// of megabytes that Git would otherwise keep until it prunes them. A partial
-// clone keeps them, since what it fetches for the merge would be thrown away too.
-func scratchObjects(ctx context.Context, repoPath string) (env []string, discard func()) {
+// ScratchObjects is an environment in which Git writes its objects to a folder
+// that discard removes. Merging every branch of a large repository in memory
+// writes hundreds of megabytes that Git would otherwise keep until it prunes
+// them. A partial clone keeps them, since what it fetches for the merge would be
+// thrown away too.
+func ScratchObjects(ctx context.Context, repoPath string) (env []string, discard func()) {
 	discard = func() {}
 	commonDir, err := CommonDir(ctx, repoPath)
 	if err != nil {

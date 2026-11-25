@@ -273,12 +273,12 @@ func TestAPartialCloneKeepsWhatItMerges(t *testing.T) {
 	clone := filepath.Join(t.TempDir(), "clone")
 	gittest.Run(t, t.TempDir(), "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(origin), clone)
 
-	env, discard := scratchObjects(context.Background(), clone)
+	env, discard := ScratchObjects(context.Background(), clone)
 	defer discard()
 	if env != nil {
 		t.Errorf("env = %v, want none", env)
 	}
-	if env, discard := scratchObjects(context.Background(), origin); env == nil {
+	if env, discard := ScratchObjects(context.Background(), origin); env == nil {
 		t.Error("a full repository has no temporary folder")
 	} else {
 		discard()

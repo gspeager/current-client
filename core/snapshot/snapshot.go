@@ -71,19 +71,9 @@ func currentBranch(ctx context.Context, repoPath string) string {
 	return branch
 }
 
-// Take saves the working tree before action, unless there's nothing to save or
-// it's what the newest snapshot already holds. It reads through a copy of the
-// index, so the real one is untouched and unchanged files aren't hashed again.
-func Take(ctx context.Context, repoPath, action string, limit int) (bool, error) {
-	statuses, err := git.GetStatus(ctx, repoPath)
-	if err != nil || len(statuses) == 0 {
-		return false, err
-	}
-	dir, err := os.MkdirTemp("", "current-client-snapshot")
-	if err != nil {
-		return false, err
-	}
-	defer os.RemoveAll(dir)
+// CopyIndex copies the index into dir and returns the environment that uses the
+// copy, so a command can change it and the real one is untouched.
+func CopyIndex(ctx context.Context, repoPath, dir string) ([]string, error) {
 	index := filepath.Join(dir, "index")
 	if real, err := run(ctx, repoPath, nil, "rev-parse", "--git-path", "index"); err == nil {
 		if !filepath.IsAbs(real) {
@@ -91,14 +81,38 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 		}
 		if data, err := os.ReadFile(real); err == nil {
 			if err := os.WriteFile(index, data, 0o600); err != nil {
-				return false, err
+				return nil, err
 			}
 		}
 	}
-	env := []string{"GIT_INDEX_FILE=" + index}
+	return []string{"GIT_INDEX_FILE=" + index}, nil
+}
+
+// WorkingTree writes the working tree's tracked and untracked files as a tree,
+// leaving out untracked files too large to keep, which skipped counts. It reads
+// through a copy of the index, so unchanged files aren't hashed again. With
+// git.ScratchObjects' env, it leaves no objects behind.
+func WorkingTree(ctx context.Context, repoPath string, env []string) (tree string, skipped int, err error) {
+	statuses, err := git.GetStatus(ctx, repoPath)
+	if err != nil {
+		return "", 0, err
+	}
+	return writeTree(ctx, repoPath, env, statuses)
+}
+
+func writeTree(ctx context.Context, repoPath string, env []string, statuses []git.Status) (tree string, skipped int, err error) {
+	dir, err := os.MkdirTemp("", "current-client-snapshot")
+	if err != nil {
+		return "", 0, err
+	}
+	defer os.RemoveAll(dir)
+	indexEnv, err := CopyIndex(ctx, repoPath, dir)
+	if err != nil {
+		return "", 0, err
+	}
+	env = append(indexEnv, env...)
 
 	args := []string{"add", "-A", "--", "."}
-	skipped := 0
 	var kept int64
 	for _, status := range statuses {
 		if status.WorktreeStatus != '?' {
@@ -112,16 +126,27 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 			args = append(args, ":(exclude,literal)"+status.Path)
 			skipped++
 			if skipped > mostLeftOut {
-				return false, fmt.Errorf("too many large untracked files to snapshot")
+				return "", 0, fmt.Errorf("too many large untracked files to snapshot")
 			}
 			continue
 		}
 		kept += info.Size()
 	}
 	if _, err := run(ctx, repoPath, env, args...); err != nil {
+		return "", 0, err
+	}
+	tree, err = run(ctx, repoPath, env, "write-tree")
+	return tree, skipped, err
+}
+
+// Take saves the working tree before action, unless there's nothing to save or
+// it's what the newest snapshot already holds.
+func Take(ctx context.Context, repoPath, action string, limit int) (bool, error) {
+	statuses, err := git.GetStatus(ctx, repoPath)
+	if err != nil || len(statuses) == 0 {
 		return false, err
 	}
-	tree, err := run(ctx, repoPath, env, "write-tree")
+	tree, skipped, err := writeTree(ctx, repoPath, nil, statuses)
 	if err != nil {
 		return false, err
 	}
