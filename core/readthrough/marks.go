@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -62,13 +63,7 @@ func Marks(ctx context.Context, repoPath, key string) (map[string]Mark, error) {
 	if result.ExitCode != 0 {
 		return marks, nil
 	}
-	for _, entry := range strings.Split(result.Stdout, "\x00") {
-		header, path, ok := strings.Cut(entry, "\t")
-		fields := strings.Fields(header)
-		if !ok || len(fields) != 3 {
-			continue
-		}
-		version := git.FileVersion{Mode: fields[0], Blob: fields[2]}
+	for path, version := range parseVersions(result.Stdout) {
 		if name, ok := strings.CutPrefix(path, readFolder); ok {
 			mark := marks[name]
 			mark.Read = version
@@ -80,12 +75,6 @@ func Marks(ctx context.Context, repoPath, key string) (map[string]Mark, error) {
 		}
 	}
 	return marks, nil
-}
-
-// IsRead says whether the file is as it was when read.
-func IsRead(marks map[string]Mark, file File) bool {
-	mark, marked := marks[file.Path]
-	return marked && mark.Read == file.New
 }
 
 // SetRead marks files as read, or as not. They're the versions the reader saw: one
@@ -100,34 +89,16 @@ func SetRead(ctx context.Context, repoPath, key string, r Range, files []File, r
 		}
 		files = unchanged
 	}
-	dir, err := os.MkdirTemp("", "current-client-index")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(dir)
-	m := marker{ctx, repoPath, []string{"GIT_INDEX_FILE=" + filepath.Join(dir, "index")}}
 	ref := markRef(key)
-	if _, err := m.run("", "rev-parse", "--verify", "--quiet", ref); err == nil {
-		if _, err := m.run("", "read-tree", ref); err != nil {
-			return err
-		}
-	}
-	var entries strings.Builder
-	write := func(version git.FileVersion, path string) {
-		if !read || version == (git.FileVersion{}) {
-			version = git.FileVersion{Mode: "0", Blob: strings.Repeat("0", len(r.Head))}
-		}
-		fmt.Fprintf(&entries, "%s %s\t%s\x00", version.Mode, version.Blob, path)
-	}
+	entries := map[string]git.FileVersion{}
 	for _, file := range files {
-		write(file.New, readFolder+file.Path)
-		write(file.Old, baseFolder+file.Path)
+		entries[readFolder+file.Path], entries[baseFolder+file.Path] = git.FileVersion{}, git.FileVersion{}
+		if read {
+			entries[readFolder+file.Path], entries[baseFolder+file.Path] = file.New, file.Old
+		}
 	}
-	if _, err := m.run(entries.String(), "update-index", "-z", "--replace", "--index-info"); err != nil {
-		return err
-	}
-	// Without its objects a partial clone would fetch them.
-	tree, err := m.run("", "write-tree", "--missing-ok")
+	m := marker{ctx, repoPath, nil}
+	tree, err := m.writeTree(ref, entries, len(r.Head))
 	if err != nil {
 		return err
 	}
@@ -164,6 +135,37 @@ type marker struct {
 	ctx      context.Context
 	repoPath string
 	env      []string
+}
+
+// writeTree writes a tree of entries on top of what from holds, if it exists. An
+// entry with no version is taken out.
+func (m marker) writeTree(from string, entries map[string]git.FileVersion, idLength int) (string, error) {
+	dir, err := os.MkdirTemp("", "current-client-index")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(dir)
+	index := marker{m.ctx, m.repoPath, append([]string{"GIT_INDEX_FILE=" + filepath.Join(dir, "index")}, m.env...)}
+	if from != "" {
+		if _, err := index.run("", "rev-parse", "--verify", "--quiet", from); err == nil {
+			if _, err := index.run("", "read-tree", from); err != nil {
+				return "", err
+			}
+		}
+	}
+	var input strings.Builder
+	for _, path := range slices.Sorted(maps.Keys(entries)) {
+		version := entries[path]
+		if version == (git.FileVersion{}) {
+			version = git.FileVersion{Mode: "0", Blob: strings.Repeat("0", idLength)}
+		}
+		fmt.Fprintf(&input, "%s %s\t%s\x00", version.Mode, version.Blob, path)
+	}
+	if _, err := index.run(input.String(), "update-index", "-z", "--replace", "--index-info"); err != nil {
+		return "", err
+	}
+	// Without its objects a partial clone would fetch them.
+	return index.run("", "write-tree", "--missing-ok")
 }
 
 func (m marker) run(input string, args ...string) (string, error) {

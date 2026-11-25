@@ -69,10 +69,19 @@ type TreeChange struct {
 // TreeChanges lists what differs from one tree or commit to another. env can
 // name where their objects are.
 func TreeChanges(ctx context.Context, repoPath string, env []string, from, to string) ([]TreeChange, error) {
+	return treeChanges(ctx, repoPath, env, "-M", from, to)
+}
+
+// TreeChangesWithoutRenames is TreeChanges with each path compared with itself.
+func TreeChangesWithoutRenames(ctx context.Context, repoPath string, env []string, from, to string) ([]TreeChange, error) {
+	return treeChanges(ctx, repoPath, env, "--no-renames", from, to)
+}
+
+func treeChanges(ctx context.Context, repoPath string, env []string, renames, from, to string) ([]TreeChange, error) {
 	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Env:  env,
-		Args: []string{"diff", "--raw", "--numstat", "--no-abbrev", "--no-ext-diff", "--no-relative", "-M", "-z", from, to},
+		Args: []string{"diff", "--raw", "--numstat", "--no-abbrev", "--no-ext-diff", "--no-relative", renames, "-z", from, to},
 	})
 	if err != nil {
 		return nil, err

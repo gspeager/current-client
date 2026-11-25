@@ -55,6 +55,13 @@ func MergeConflicts(ctx context.Context, repoPath, ours, theirs string) ([]strin
 	return merge.Files, err
 }
 
+// MergeInMemory merges two commits where env says, without following renames.
+// The result's tree is among env's objects.
+func MergeInMemory(ctx context.Context, repoPath string, env []string, ours, theirs string) (MergeResult, error) {
+	env = append([]string{"GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=merge.renames", "GIT_CONFIG_VALUE_0=false"}, env...)
+	return mergeTree(ctx, repoPath, env, ours, theirs)
+}
+
 func mergeTree(ctx context.Context, repoPath string, env []string, args ...string) (MergeResult, error) {
 	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
 		Dir:  repoPath,

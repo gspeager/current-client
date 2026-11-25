@@ -47,6 +47,8 @@ type ReadThroughInfo struct {
 	Uncommitted bool              `json:"uncommitted"`
 	Files       []ReadThroughFile `json:"files"`
 	Skipped     int               `json:"skipped"`
+	// How many files have been read at some time.
+	Marked int `json:"marked"`
 }
 
 type ReadThroughFile struct {
@@ -57,12 +59,21 @@ type ReadThroughFile struct {
 	Removed  int    `json:"removed"`
 	Binary   bool   `json:"binary"`
 	// "", "test", "generated" or "lockfile".
-	Kind    string `json:"kind"`
-	Read    bool   `json:"read"`
-	OldMode string `json:"oldMode"`
-	OldBlob string `json:"oldBlob"`
-	NewMode string `json:"newMode"`
-	NewBlob string `json:"newBlob"`
+	Kind string `json:"kind"`
+	Read bool   `json:"read"`
+	// Changed since it was read, by SinceAdded and SinceRemoved lines. Gone means the
+	// change no longer holds it, and Conflict that the new base's changes are among
+	// those lines.
+	Again        bool   `json:"again"`
+	Gone         bool   `json:"gone"`
+	SinceAdded   int    `json:"sinceAdded"`
+	SinceRemoved int    `json:"sinceRemoved"`
+	SinceBinary  bool   `json:"sinceBinary"`
+	Conflict     bool   `json:"conflict"`
+	OldMode      string `json:"oldMode"`
+	OldBlob      string `json:"oldBlob"`
+	NewMode      string `json:"newMode"`
+	NewBlob      string `json:"newBlob"`
 }
 
 func (info ReadThroughInfo) changes() readthrough.Range {
@@ -106,29 +117,31 @@ func (s *ReadThroughService) Open(repoPath string, request ReadThroughRequest) (
 	if err != nil {
 		return info, err
 	}
-	files, skipped, err := readthrough.Files(ctx, info.Path, info.changes())
+	reading, err := readthrough.Read(ctx, info.Path, info.Key, info.changes())
 	if err != nil {
 		return info, err
 	}
-	marks, err := readthrough.Marks(ctx, repoPath, info.Key)
-	if err != nil {
-		return info, err
-	}
-	info.Skipped = skipped
-	info.Files = mapSlice(files, func(f readthrough.File) ReadThroughFile {
+	info.Skipped, info.Marked = reading.Skipped, reading.Marked
+	info.Files = mapSlice(reading.Files, func(f readthrough.ReadFile) ReadThroughFile {
 		return ReadThroughFile{
-			Status:   f.Status,
-			Path:     f.Path,
-			OrigPath: f.OrigPath,
-			Added:    f.Added,
-			Removed:  f.Removed,
-			Binary:   f.Binary,
-			Kind:     string(f.Kind),
-			Read:     readthrough.IsRead(marks, f),
-			OldMode:  f.Old.Mode,
-			OldBlob:  f.Old.Blob,
-			NewMode:  f.New.Mode,
-			NewBlob:  f.New.Blob,
+			Status:       f.Status,
+			Path:         f.Path,
+			OrigPath:     f.OrigPath,
+			Added:        f.Added,
+			Removed:      f.Removed,
+			Binary:       f.Binary,
+			Kind:         string(f.Kind),
+			Read:         f.Read,
+			Again:        f.Again,
+			Gone:         f.Gone,
+			SinceAdded:   f.Since.Added,
+			SinceRemoved: f.Since.Removed,
+			SinceBinary:  f.Since.Binary,
+			Conflict:     f.Since.Conflict,
+			OldMode:      f.Old.Mode,
+			OldBlob:      f.Old.Blob,
+			NewMode:      f.New.Mode,
+			NewBlob:      f.New.Blob,
 		}
 	})
 	return info, nil
@@ -218,21 +231,43 @@ func (s *ReadThroughService) FileDiff(info ReadThroughInfo, origPath, path strin
 	return toFileDiff(fd), nil
 }
 
+// SinceDiff is a file's diff from what was read of it.
+func (s *ReadThroughService) SinceDiff(info ReadThroughInfo, path string, ignoreWhitespace bool) (FileDiff, error) {
+	fd, err := readthrough.SinceDiff(context.Background(), info.Path, info.Key, info.changes(), path, ignoreWhitespace)
+	if err != nil {
+		return FileDiff{}, err
+	}
+	return toFileDiff(fd), nil
+}
+
 // Findings is what the risk report's rules find over the range.
 func (s *ReadThroughService) Findings(info ReadThroughInfo) (RiskReportInfo, error) {
 	return riskReportInfo(readthrough.Findings(context.Background(), info.Path, info.changes(), configOrDefault().RiskRulesOff))
 }
 
-// SetRead marks the files as read, or as not. They're as Open listed them.
+// SetRead marks the files as read, or as not. They're as Open listed them. One
+// that's gone is forgotten, as there's nothing left to have read.
 func (s *ReadThroughService) SetRead(info ReadThroughInfo, files []ReadThroughFile, read bool) error {
-	listed := mapSlice(files, func(f ReadThroughFile) readthrough.File {
+	var kept, gone []readthrough.File
+	for _, f := range files {
 		file := readthrough.File{}
 		file.Path = f.Path
 		file.Old = git.FileVersion{Mode: f.OldMode, Blob: f.OldBlob}
 		file.New = git.FileVersion{Mode: f.NewMode, Blob: f.NewBlob}
-		return file
-	})
-	return readthrough.SetRead(context.Background(), info.Path, info.Key, info.changes(), listed, read)
+		if f.Gone {
+			gone = append(gone, file)
+		} else {
+			kept = append(kept, file)
+		}
+	}
+	ctx := context.Background()
+	set := func(files []readthrough.File, read bool) error {
+		if len(files) == 0 {
+			return nil
+		}
+		return readthrough.SetRead(ctx, info.Path, info.Key, info.changes(), files, read)
+	}
+	return errors.Join(set(kept, read), set(gone, false))
 }
 
 // ReadThroughNote is on a line of the new version, a line of the old one, or the

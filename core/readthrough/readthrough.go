@@ -32,6 +32,10 @@ type File struct {
 func Files(ctx context.Context, repoPath string, r Range) (files []File, skipped int, err error) {
 	env, discard := git.ScratchObjects(ctx, repoPath)
 	defer discard()
+	return listFiles(ctx, repoPath, env, r)
+}
+
+func listFiles(ctx context.Context, repoPath string, env []string, r Range) (files []File, skipped int, err error) {
 	to := r.Head
 	if r.Uncommitted {
 		if to, skipped, err = snapshot.WorkingTree(ctx, repoPath, env); err != nil {
