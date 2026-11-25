@@ -29,7 +29,7 @@ const open = (rows: number) =>
   render(
     <SaveGraphDialog
       repoName="repo"
-      about="all branches"
+      about={(names) => (names ? 'by Ada' : 'by one author')}
       rows={Array.from({ length: rows }, row)}
       shown={[10, 30]}
       options={{
@@ -41,7 +41,6 @@ const open = (rows: number) =>
         refColor: () => '#fff',
         color: (color) => color,
       }}
-      colors={{ ground: '#000', name: '#fff', muted: '#888' }}
       onClose={() => {}}
     />,
   )
@@ -58,7 +57,7 @@ it('saves the rows on screen', async () => {
   expect(screen.getByRole('option', { name: 'On screen (20 rows)' })).toBeInTheDocument()
   const svg = await saved()
   expect(commits(svg)).toEqual(Array.from({ length: 20 }, (_, i) => i + 10))
-  expect(svg).toContain('Commit graph, all branches')
+  expect(svg).toContain('Commit graph, by Ada')
   expect(svg).toContain('Ada Lovelace')
 })
 
@@ -79,5 +78,7 @@ it('saves as many from the top as asked, up to 500', async () => {
 it('leaves people out', async () => {
   open(50)
   await userEvent.click(screen.getByRole('checkbox', { name: "People's names and initials" }))
-  expect(await saved()).not.toContain('Ada')
+  const svg = await saved()
+  expect(svg).not.toContain('Ada')
+  expect(svg).toContain('Commit graph, by one author')
 })

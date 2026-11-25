@@ -35,8 +35,10 @@ export interface Painter {
 }
 
 export const TEXT_SIZE = 12
-// The data face is monospaced.
+// The data face is monospaced, save for what it doesn't have: Chinese, Japanese and
+// Korean, and emoji.
 const CHARACTER = 0.6
+const WIDE = /[\u2e80-\uffff]/
 // What the other comes to, about, where there's nothing to measure with.
 const ABOUT = 0.52
 
@@ -52,12 +54,16 @@ let measuring: CanvasRenderingContext2D | null | undefined
 
 export function textWidth(text: string, style: Omit<TextStyle, 'color'>): number {
   const size = style.size ?? TEXT_SIZE
-  if ((style.face ?? 'data') === 'data') return text.length * size * CHARACTER
+  if ((style.face ?? 'data') === 'data' && !WIDE.test(text)) return text.length * size * CHARACTER
   if (measuring === undefined) measuring = document.createElement('canvas').getContext('2d')
   if (!measuring) return text.length * size * ABOUT
   measuring.font = fontOf({ ...style, color: '' })
   return measuring.measureText(text).width
 }
+
+// A character of two halves, cut between them.
+const HALF_AFTER = /[\ud800-\udbff]$/
+const HALF_BEFORE = /^[\udc00-\udfff]/
 
 // As much of the text as fits, with an ellipsis where it's cut. At least this many
 // of its characters, or nothing.
@@ -72,7 +78,9 @@ export function cut(
   let low = 0
   let high = text.length
   const part = (length: number) =>
-    end === 'right' ? `${text.slice(0, length).trimEnd()}…` : `…${text.slice(text.length - length)}`
+    end === 'right'
+      ? `${text.slice(0, length).replace(HALF_AFTER, '').trimEnd()}…`
+      : `…${text.slice(text.length - length).replace(HALF_BEFORE, '')}`
   while (low < high) {
     const middle = Math.ceil((low + high) / 2)
     if (textWidth(part(middle), style) <= room) low = middle
@@ -145,10 +153,11 @@ export function canvasPainter(context: CanvasRenderingContext2D): Painter {
   }
 }
 
-const escaped = (text: string) =>
-  // A control character isn't allowed in XML at all.
-  // eslint-disable-next-line no-control-regex
-  text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`)
+// XML doesn't allow these at all.
+// eslint-disable-next-line no-control-regex
+const NEVER_IN_XML = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g
+
+const escaped = (text: string) => text.replace(NEVER_IN_XML, '').replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`)
 
 const n = (value: number) => String(Math.round(value * 100) / 100)
 

@@ -28,7 +28,7 @@ describe('writeSvg', () => {
   })
 
   it('writes any text as text', async () => {
-    const said = `<script>alert("&")</script>\u0007 'é' 日本`
+    const said = `<script>alert("&")</script>\u0007\ufffe 'é' 日本`
     const svg = parse(
       await writeSvg(
         picture((painter) => painter.text(0, 0, said, { color: '"><x/>' })),
@@ -36,7 +36,7 @@ describe('writeSvg', () => {
       ),
     )
     expect(svg.querySelector('parsererror, script, x')).toBeNull()
-    expect(svg.querySelector('text')?.textContent).toBe(said.replace('\u0007', ''))
+    expect(svg.querySelector('text')?.textContent).toBe(said.replace('\u0007\ufffe', ''))
   })
 
   it('holds the fonts its text needs, and no others', async () => {
@@ -80,9 +80,33 @@ describe('cut', () => {
     expect(cut('1234567890', room, {}, 'left')).toBe('…4567890')
   })
 
+  it('never splits a character', () => {
+    for (let chars = 1; chars < 12; chars++) {
+      for (const end of ['left', 'right'] as const) {
+        expect(cut('ab🎉🎉cd🎉🎉ef', chars * 6.3, { face: 'ui' }, end)).not.toMatch(
+          /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/,
+        )
+      }
+    }
+  })
+
   it('says nothing when too little fits', () => {
     expect(cut('1234567890', room, {}, 'right', 8)).toBe('')
     expect(cut('1234567890', -5, {}, 'right')).toBe('')
+  })
+})
+
+describe('textWidth', () => {
+  it('measures what the data face does not have', () => {
+    expect(textWidth('main…', { size: 10 })).toBe(30)
+    vi.resetModules()
+    return import('./picture').then((fresh) => {
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+        measureText: (text: string) => ({ width: text.length * 10 }),
+      } as never)
+      expect(fresh.textWidth('修正', { size: 10 })).toBe(20)
+      expect(fresh.textWidth('main', { size: 10 })).toBe(24)
+    })
   })
 })
 

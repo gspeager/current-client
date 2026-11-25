@@ -86,10 +86,8 @@ function drawRow(painter: Painter, row: GraphPictureRow, options: GraphPictureOp
   if (names) {
     if (row.identity) {
       painter.circle(author + 10, rowHeight / 2, 10, { fill: row.identity.color })
-      painter.text(author + 10, rowHeight / 2 + 3, row.identity.initials, {
-        face: 'ui',
-        size: 9,
-        weight: 600,
+      painter.text(author + 10, rowHeight / 2 + 3.5, row.identity.initials, {
+        ...SMALL,
         align: 'center',
         color: BADGE_INK,
       })

@@ -1,27 +1,26 @@
 import { useState } from 'react'
 import SaveImageDialog from '../../components/chrome/SaveImageDialog'
 import Checkbox from '../../components/forms/Checkbox'
-import { withHeading, type HeadingColors } from '../../lib/picture'
+import { withHeading } from '../../lib/picture'
 import { plural } from '../../lib/plural'
 import { localDate } from '../../lib/relativeTime'
 import { graphPicture, type GraphPictureOptions, type GraphPictureRow } from './graphPicture'
 
 // More would be a file too large to open.
-const MOST_ROWS = 500
+export const MOST_ROWS = 500
 
 interface SaveGraphDialogProps {
   repoName: string
-  // What the list is filtered to.
-  about: string
+  // What the list is filtered to, with or without who.
+  about: (names: boolean) => string
   rows: GraphPictureRow[]
   // The rows on screen, the last not included.
   shown: [number, number]
   options: Omit<GraphPictureOptions, 'rows' | 'names'>
-  colors: HeadingColors
   onClose: () => void
 }
 
-function SaveGraphDialog({ repoName, about, rows, shown, options, colors, onClose }: SaveGraphDialogProps) {
+function SaveGraphDialog({ repoName, about, rows, shown, options, onClose }: SaveGraphDialogProps) {
   const [range, setRange] = useState<'shown' | 'from-top'>('shown')
   const most = Math.min(MOST_ROWS, rows.length)
   const [count, setCount] = useState(String(Math.min(100, most)))
@@ -35,9 +34,13 @@ function SaveGraphDialog({ repoName, about, rows, shown, options, colors, onClos
       picture={() =>
         withHeading(graphPicture({ ...options, rows: picked, names }), {
           title: repoName,
-          about: `Commit graph, ${about}`,
+          about: `Commit graph, ${about(names)}`,
           date: localDate(),
-          colors,
+          colors: {
+            ground: options.color('var(--surface)'),
+            name: options.color('var(--on-surface)'),
+            muted: options.color('var(--on-surface-variant)'),
+          },
         })
       }
       onClose={onClose}

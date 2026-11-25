@@ -311,6 +311,19 @@ describe('saving', () => {
     expect(svg).toContain('>Predicted to conflict</text>')
   })
 
+  it('names what is on the map while another comparison loads', async () => {
+    vi.mocked(ExploreService.Changes).mockResolvedValueOnce(
+      new MapChangesInfo({ predicted: true, files: [change('src/a.ts', 'M')] }),
+    )
+    view()
+    await map()
+    await userEvent.click(screen.getByRole('button', { name: 'Changes' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save as image' })).toBeEnabled())
+    vi.mocked(ExploreService.Changes).mockReturnValue(new Promise(() => {}) as never)
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Compare' }), 'branch:feat')
+    expect((await save()).svg).toContain('>Changes, uncommitted</text>')
+  })
+
   it('has nothing to save without a map', async () => {
     vi.mocked(ExploreService.Files).mockResolvedValue([])
     view()

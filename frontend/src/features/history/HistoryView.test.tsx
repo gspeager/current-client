@@ -21,8 +21,11 @@ import {
 import { Links } from '@current-client-bindings/core/hostlink'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { giveElementsLayout } from '../../test/bindings'
+import { decodeBase64 } from '../../lib/base64'
 import { DensityContext } from '../../lib/density'
 import HistoryView from './HistoryView'
+
+vi.mock('../../lib/pictureFonts', () => ({ PICTURE_FONTS: [] }))
 
 const REPO = '/repos/app'
 
@@ -58,16 +61,87 @@ function renderHistory(props: Partial<Parameters<typeof HistoryView>[0]> = {}) {
 beforeEach(() => giveElementsLayout())
 
 describe('HistoryView', () => {
-  it('saves the graph as an image, once there is one', async () => {
-    vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
-    vi.mocked(HistoryService.ComputeGraphLayout).mockResolvedValue([])
-    renderHistory()
-    expect(screen.getByRole('button', { name: 'Save as image' })).toBeDisabled()
-    await screen.findByRole('row', { name: /Initial commit/ })
-    await userEvent.click(screen.getByRole('button', { name: 'Save as image' }))
-    const dialog = screen.getByRole('dialog', { name: 'Save as image' })
-    await userEvent.selectOptions(within(dialog).getByRole('combobox'), 'From the top')
-    expect(within(dialog).getByRole('spinbutton', { name: 'How many, up to 2' })).toHaveValue(2)
+  describe('saving as an image', () => {
+    const nodeOf = ({ sha }: { sha: string }) =>
+      new GraphNode({ sha, lane: 0, hasChild: true, parentLanes: [0], convergingLanes: [], passThrough: [] })
+    const opened = async () => {
+      await userEvent.click(screen.getByRole('button', { name: 'Save as image' }))
+      return within(screen.getByRole('dialog', { name: 'Save as image' }))
+    }
+    const saved = async (dialog: ReturnType<typeof within>) => {
+      vi.mocked(PlatformService.SaveImage).mockResolvedValue(true)
+      await userEvent.click(dialog.getByRole('button', { name: 'SVG' }))
+      await userEvent.click(dialog.getByRole('button', { name: 'Save…' }))
+      const svg = new TextDecoder().decode(decodeBase64(vi.mocked(PlatformService.SaveImage).mock.lastCall![0]))
+      return [...svg.matchAll(/<text[^>]*>([^<]*)</g)].map((m) => m[1])
+    }
+
+    beforeEach(() => {
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+      vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1200)
+      vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(800)
+      vi.mocked(HistoryService.ComputeGraphLayout).mockImplementation(
+        (refs) => Promise.resolve((refs ?? []).map(nodeOf)) as never,
+      )
+    })
+
+    it('waits for something to save', async () => {
+      vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+      renderHistory()
+      expect(screen.getByRole('button', { name: 'Save as image' })).toBeDisabled()
+      await screen.findByRole('row', { name: /Initial commit/ })
+      const said = await saved(await opened())
+      expect(said).toEqual(expect.arrayContaining(['app', 'Fix login redirect', 'Initial commit']))
+      expect(said).toContain('Commit graph, all branches')
+    })
+
+    it('saves what is on screen while the list bounces past its top', async () => {
+      vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+      renderHistory()
+      await screen.findByRole('row', { name: /Initial commit/ })
+      vi.spyOn(Element.prototype, 'scrollTop', 'get').mockReturnValue(-40)
+      expect(await saved(await opened())).toContain('Initial commit')
+    })
+
+    it('loads enough to save 500', async () => {
+      vi.mocked(HistoryService.GetHistory).mockImplementation(
+        (_repo, limit, skip) =>
+          Promise.resolve(
+            Array.from({ length: limit }, (_, i) =>
+              commit(String(skip + i).padStart(40, '0'), `Commit ${skip + i}`, []),
+            ),
+          ) as never,
+      )
+      renderHistory()
+      await screen.findByRole('row', { name: /Commit 0/ })
+      const dialog = await opened()
+      await userEvent.selectOptions(dialog.getByRole('combobox'), 'From the top')
+      const field = await dialog.findByRole('spinbutton', { name: 'How many, up to 500' })
+      await userEvent.clear(field)
+      await userEvent.type(field, '450')
+      expect((await saved(dialog)).filter((text) => /^Commit \d/.test(text))).toHaveLength(450)
+    })
+
+    it('says what narrows the list, without who when names are left out', async () => {
+      vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+      renderHistory({ firstParent: true })
+      await screen.findByRole('row', { name: /Initial commit/ })
+      fireEvent.change(screen.getByRole('textbox', { name: 'Author filter' }), { target: { value: 'ada' } })
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Hide merges' }))
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Lovelace' } })
+      await screen.findByRole('row', { name: /Initial commit/ })
+      const named = await saved(await opened())
+      expect(named).toContain(
+        'Commit graph, all branches, first parent only, without merges, by ada, matching “Lovelace”',
+      )
+      const dialog = await opened()
+      await userEvent.click(dialog.getByRole('checkbox', { name: /names/ }))
+      const without = await saved(dialog)
+      expect(without.join(' ')).not.toMatch(/ada|lovelace/i)
+      expect(without).toContain(
+        'Commit graph, all branches, first parent only, without merges, by one author, matching a search',
+      )
+    })
   })
 
   it('opens the inspector for a clicked commit and reports the selection', async () => {

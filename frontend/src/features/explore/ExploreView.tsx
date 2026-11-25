@@ -88,7 +88,10 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     refreshKey: repoVersion,
   })
   const { data: then, error: thenError } = useAsyncData(
-    () => (settled === 'HEAD' ? null : ExploreService.Files(repoPath, `refs/tags/${settled}`)),
+    () =>
+      settled === 'HEAD'
+        ? null
+        : ExploreService.Files(repoPath, `refs/tags/${settled}`).then((files) => ({ files, release: settled })),
     [repoPath, settled],
     { keepData: true },
   )
@@ -96,7 +99,10 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     refreshKey: repoVersion,
   })
   const { data: changes, error: changesError } = useAsyncData(
-    () => (view === 'changes' ? ExploreService.Changes(repoPath, comparison) : null),
+    () =>
+      view === 'changes'
+        ? ExploreService.Changes(repoPath, comparison).then((found) => ({ ...found, comparison }))
+        : null,
     [repoPath, view, comparison],
     { refreshKey: workingVersion, keepData: true },
   )
@@ -108,7 +114,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
 
   const atRelease = settled !== 'HEAD'
   const files = useMemo(
-    () => ((atRelease ? then : now) ?? []).filter(listed),
+    () => ((atRelease ? then?.files : now) ?? []).filter(listed),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [atRelease, then, now, shown],
   )
@@ -180,9 +186,13 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
         ? [
             'Code map',
             root,
-            atRelease ? settled : coloring === 'age' ? 'by age' : `commits ${PERIODS[period].words || 'of all time'}`,
+            atRelease
+              ? then?.release
+              : coloring === 'age'
+                ? 'by age'
+                : `commits ${PERIODS[period].words || 'of all time'}`,
           ]
-        : ['Changes', root, comparisonName(comparison, changes?.target)]
+        : ['Changes', root, changes && comparisonName(changes.comparison, changes.target)]
     setSaving({
       picture: mapPicture(layout.current, legendEntries(areas, legend, view === 'changes', colors), colors),
       about: about.filter(Boolean).join(', '),
