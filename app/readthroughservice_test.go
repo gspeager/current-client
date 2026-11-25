@@ -135,6 +135,20 @@ func TestReadThroughMarksFollowTheirBranch(t *testing.T) {
 	}
 }
 
+func TestRemovingARepositoryRemovesItsMarks(t *testing.T) {
+	repo := readThroughRepo(t)
+	info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/side"})
+	if err := new(ReadThroughService).SetRead(info, info.Files, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := new(RepositoryService).RemoveRecentRepository(repo); err != nil {
+		t.Fatal(err)
+	}
+	if refs := gitOut(t, repo, "for-each-ref", "refs/current-client"); refs != "" {
+		t.Errorf("refs = %s", refs)
+	}
+}
+
 func TestRefOfAChangeOnThisComputer(t *testing.T) {
 	repo := readThroughRepo(t)
 	s := new(ReadThroughService)

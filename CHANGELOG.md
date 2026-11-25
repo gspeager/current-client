@@ -4,6 +4,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Read through a branch, a worktree or a pull request.** **Read through**, in a branch's or worktree's menu, on a pull request whose head is on this computer, and in Go to anything, opens every file it changes against where it left its target, as of the last fetch, or against its parent when it's stacked. Uncommitted changes are included where the branch is checked out. Files are grouped by folder with tests beside their code, above totals by status, type and kind. Tick a file as **Read**, and the tick clears when the file changes again; a rebase that leaves the file as it was leaves the tick. Add notes to a file or a line, which are marked **Outdated** when that line changes, **Copy review notes** as text with file and line, or choose which go in a pull request's description with **Add to description**. Ticks and notes stay on this computer, notes outside the repository, and nothing is fetched or pushed. ([#425](https://github.com/gspeager/current-client/issues/425))
+
 ### Changed
 
 - **Built on a stable Wails.** The app moves from a pre-release of Wails to 3.1.0. Among Wails' fixes since: copying to the clipboard on macOS 27, an AppImage that could fail to start outside Debian and Ubuntu, and on Windows, getting focus back with the window and recovering when WebView2 fails. An app that embeds Current Client needs the same Wails version, and one that imports `core/` needs Go 1.26. ([#421](https://github.com/gspeager/current-client/issues/421))
