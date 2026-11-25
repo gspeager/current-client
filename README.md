@@ -72,7 +72,7 @@ Report security problems privately, as described in [SECURITY.md](SECURITY.md).
 
 ## Contributing
 
-Current Client is a Go ([Wails v3](https://v3.wails.io/)) app with a React and TypeScript frontend. [CONTRIBUTING.md](CONTRIBUTING.md) covers building, testing and the rules every change follows. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+Current Client is a Go ([Wails v3](https://wails.io/)) app with a React and TypeScript frontend. [CONTRIBUTING.md](CONTRIBUTING.md) covers building, testing and the rules every change follows. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## Using Current Client in another app
 

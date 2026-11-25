@@ -22,7 +22,7 @@ These are not negotiable, and a change that breaks one won't be merged:
 
 ## Building and testing
 
-You need Go 1.25+, Node.js 18+, the [Wails v3 CLI](https://v3.wails.io/quick-start/installation/) and Git 2.23+.
+You need Go 1.26+, Node.js 18+, the [Wails v3 CLI](https://wails.io/quick-start/installation/) at the version in `go.mod`, and Git 2.23+.
 
 ```bash
 wails3 dev                                     # run with hot reload
