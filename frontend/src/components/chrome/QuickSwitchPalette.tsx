@@ -544,8 +544,8 @@ function QuickSwitchPalette({
           <Section heading="Notes" icon={StickyNote} count={noteResults.length}>
             {noteResults.map((note) => (
               <Row
-                key={`note:${note.kind}:${note.target}`}
-                value={`note:${note.kind}:${note.target}`}
+                key={`note:${note.kind}:${note.target}:${note.id}`}
+                value={`note:${note.kind}:${note.target}:${note.id}`}
                 label={`Note on ${noteLabel(note)}: ${note.text}`}
                 icon={StickyNote}
                 onSelect={() => {

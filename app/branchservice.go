@@ -2,11 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
+	"github.com/gspeager/current-client/core/readthrough"
+	"github.com/gspeager/current-client/internal/notes"
 )
 
 type BranchService struct{}
@@ -69,10 +72,15 @@ func (s *BranchService) UnsetUpstream(repoPath, branch string) error {
 }
 
 func (s *BranchService) RenameBranch(repoPath, oldName, newName string) error {
-	if err := git.RenameBranch(context.Background(), repoPath, oldName, newName); err != nil {
+	ctx := context.Background()
+	if err := git.RenameBranch(ctx, repoPath, oldName, newName); err != nil {
 		return err
 	}
-	return renameInStacks(repoPath, oldName, newName)
+	return errors.Join(
+		renameInStacks(repoPath, oldName, newName),
+		readthrough.Rename(ctx, repoPath, "refs/heads/"+oldName, "refs/heads/"+newName),
+		notes.Rename(notesKey(ctx, repoPath), "refs/heads/"+oldName, "refs/heads/"+newName),
+	)
 }
 
 // DeleteBranch returns the deleted branch's tip, so it can be recreated.
@@ -86,7 +94,11 @@ func (s *BranchService) DeleteBranch(repoPath, name string, force bool) (string,
 	if force && !git.CommitOnAnotherRef(ctx, repoPath, tip, "refs/heads/"+name) {
 		snapshotTip(repoPath, "branch delete", name, tip)
 	}
-	return tip, git.DeleteBranch(ctx, repoPath, name, force)
+	if err := git.DeleteBranch(ctx, repoPath, name, force); err != nil {
+		return tip, err
+	}
+	forgetMarks(ctx, repoPath)
+	return tip, nil
 }
 
 // MergeBranch takes mode "" (fast-forward when possible), "no-ff" or "squash".

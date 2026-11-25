@@ -11,6 +11,10 @@ const note = (overrides: Partial<NoteInfo> = {}): NoteInfo => ({
   text: 'Check this next time',
   updatedAt: '2026-01-01T00:00:00Z',
   stale: false,
+  id: '',
+  path: '',
+  line: 0,
+  oldLine: 0,
   ...overrides,
 })
 

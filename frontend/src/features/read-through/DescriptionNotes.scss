@@ -1,0 +1,35 @@
+@use '../../styles/patterns';
+
+.description-notes {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.description-notes-list {
+  max-height: 140px;
+  margin: var(--space-xs) 0 var(--space-sm);
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-height: var(--h-chip);
+  }
+}
+
+.description-notes-where {
+  flex-shrink: 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.description-notes-text {
+  @include patterns.truncate;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}

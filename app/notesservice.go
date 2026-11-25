@@ -24,6 +24,11 @@ type NoteInfo struct {
 	Text      string `json:"text"`
 	UpdatedAt string `json:"updatedAt"`
 	Stale     bool   `json:"stale"`
+	// Of a review note, which is on a file or a line of what Target names.
+	ID      string `json:"id"`
+	Path    string `json:"path"`
+	Line    int    `json:"line"`
+	OldLine int    `json:"oldLine"`
 }
 
 // Worktrees share one repository, so they share its notes.
@@ -54,6 +59,12 @@ func (s *NotesService) List(repoPath string) ([]NoteInfo, error) {
 	present := func(kind git.RefKind, name string) bool {
 		return slices.ContainsFunc(refs, func(ref git.Ref) bool { return ref.Kind == kind && ref.Name == name })
 	}
+	var gone func(key string) bool
+	if slices.ContainsFunc(stored, func(note notes.Note) bool { return note.Kind == notes.KindReview }) {
+		if gone, err = readThroughGone(ctx, repoPath); err != nil {
+			return nil, err
+		}
+	}
 	info := []NoteInfo{}
 	for _, note := range stored {
 		stale := false
@@ -67,8 +78,21 @@ func (s *NotesService) List(repoPath string) ([]NoteInfo, error) {
 		case notes.KindFile:
 			_, statErr := os.Stat(filepath.Join(repoPath, filepath.FromSlash(note.Target)))
 			stale = statErr != nil
+		case notes.KindReview:
+			stale = gone(note.Target)
 		}
-		info = append(info, NoteInfo{note.Kind, note.Target, note.Subject, note.Text, note.UpdatedAt.Format(time.RFC3339), stale})
+		info = append(info, NoteInfo{
+			Kind:      note.Kind,
+			Target:    note.Target,
+			Subject:   note.Subject,
+			Text:      note.Text,
+			UpdatedAt: note.UpdatedAt.Format(time.RFC3339),
+			Stale:     stale,
+			ID:        note.ID,
+			Path:      note.Path,
+			Line:      note.Line,
+			OldLine:   note.OldLine,
+		})
 	}
 	return info, nil
 }
@@ -85,4 +109,9 @@ func (s *NotesService) Set(repoPath, kind, target, subject, text string) error {
 		Text:      strings.TrimSpace(text),
 		UpdatedAt: time.Now().UTC(),
 	})
+}
+
+// EditReview changes a review note's text, or removes the note when text is empty.
+func (s *NotesService) EditReview(repoPath, id, text string) error {
+	return notes.Edit(notesKey(context.Background(), repoPath), id, strings.TrimSpace(text))
 }

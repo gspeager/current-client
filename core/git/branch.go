@@ -250,6 +250,17 @@ func DefaultBranch(ctx context.Context, repoPath string) (string, error) {
 	return defaultBranch(branches, originHead(ctx, repoPath)), nil
 }
 
+// CompareBase is what a branch is compared with unless told otherwise: the
+// default branch's upstream as of the last fetch, the default branch when it has
+// none, and "" when the repository has no default branch.
+func CompareBase(ctx context.Context, repoPath string) (string, error) {
+	list, err := listBranches(ctx, repoPath)
+	if err != nil {
+		return "", err
+	}
+	return list.base(defaultBranch(list.branches, originHead(ctx, repoPath))), nil
+}
+
 // originHead returns "" when origin/HEAD isn't set, e.g. no origin remote or
 // a repo that was never cloned.
 func originHead(ctx context.Context, repoPath string) string {

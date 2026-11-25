@@ -118,6 +118,12 @@ describe('buildPaneRows', () => {
     expect(new Set(paneRows.map((row) => row.key)).size).toBe(11)
   })
 
+  it('lists the lines of a group that holds a block', () => {
+    const paneRows = buildPaneRows(rows, new Set(), (ref) => ref === '+5')
+    expect(paneRows.filter((row) => row.kind === 'collapsed')).toHaveLength(0)
+    expect(paneRows.map((row) => row.kind)).toContain('blocks')
+  })
+
   it('numbers the hunks', () => {
     const paneRows = buildPaneRows(buildDisplayRows([hunk, hunk]), new Set(), () => false)
     expect(paneRows.flatMap((row) => (row.kind === 'header' ? [row.hunk] : []))).toEqual([0, 1])

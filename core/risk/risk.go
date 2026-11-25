@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gspeager/current-client/core/deps"
+	"github.com/gspeager/current-client/core/filekind"
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
 )
@@ -263,13 +264,11 @@ func packagesChanged(ctx context.Context, repoPath, file string) (bool, error) {
 	return err != nil || len(changes) > 0, nil
 }
 
-var generatedPath = regexp.MustCompile(`(^|/)(dist|build|vendor|node_modules|generated|__generated__|target)/|\.min\.(js|css)$|\.pb\.go$|[._]generated\.[a-z]+$`)
-
 func generatedFindings(staged []string) []Finding {
 	var first string
 	count := 0
 	for _, file := range staged {
-		if generatedPath.MatchString(file) {
+		if filekind.IsGenerated(file) {
 			if count == 0 {
 				first = file
 			}

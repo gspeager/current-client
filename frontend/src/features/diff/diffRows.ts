@@ -145,7 +145,8 @@ export function buildPaneRows(
   rows.forEach((row, i) => {
     if ('header' in row) paneRows.push({ kind: 'header', key: `${i}`, hunk: hunk++, header: row.header, raw: row.raw })
     else if ('pair' in row) addPair(row.pair, `${i}`, blockStarts?.has(i) ?? false)
-    else if (expandedGroups.has(i)) row.collapsed.forEach((pair, j) => addPair(pair, `${i}-${j}`, false))
+    else if (expandedGroups.has(i) || row.collapsed.some((pair) => blockRefs(pair, hasBlocks).length > 0))
+      row.collapsed.forEach((pair, j) => addPair(pair, `${i}-${j}`, false))
     else paneRows.push({ kind: 'collapsed', key: `${i}`, group: i, count: row.collapsed.length })
   })
   return paneRows

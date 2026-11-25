@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -22,6 +23,41 @@ var allRefs = []string{"--exclude=refs/stash", "--exclude=" + appRefNamespace + 
 
 func HostChangeRef(remote string, number int) string {
 	return hostRefPrefix + remote + "/mr/" + strconv.Itoa(number)
+}
+
+// How far back RefAt looks in a branch ahead of the commit.
+const mostAhead = 500
+
+// RefAt is a ref at sha: one named branch before any other, and a local branch
+// before a remote one before a fetched change head. Else it's the local branch
+// of that name when it's ahead of sha, and "" when there's none. It never reads
+// the commit, which a partial clone would fetch.
+func RefAt(ctx context.Context, repoPath, sha, branch string) (string, error) {
+	if sha == "" {
+		return "", nil
+	}
+	result, err := runResult(ctx, repoPath, "for-each-ref", "--points-at="+sha, "--format=%(refname)", "refs/heads", "refs/remotes", hostRefPrefix)
+	if err != nil {
+		return "", err
+	}
+	at := slices.DeleteFunc(strings.Fields(result.Stdout), func(ref string) bool { return strings.HasSuffix(ref, "/HEAD") })
+	named := func(ref string) bool { return strings.HasSuffix(ref, "/"+branch) }
+	anyName := func(string) bool { return true }
+	for _, accept := range []func(string) bool{named, anyName} {
+		for _, prefix := range []string{"refs/heads/", "refs/remotes/", hostRefPrefix} {
+			for _, ref := range at {
+				if strings.HasPrefix(ref, prefix) && accept(ref) {
+					return ref, nil
+				}
+			}
+		}
+	}
+	local := "refs/heads/" + branch
+	ahead, err := runResult(ctx, repoPath, "rev-list", "--max-count="+strconv.Itoa(mostAhead), local)
+	if err == nil && slices.Contains(strings.Fields(ahead.Stdout), sha) {
+		return local, nil
+	}
+	return "", nil
 }
 
 // FetchHostChangeHead fetches remoteRef (refs/merge-requests/N/head on GitLab,

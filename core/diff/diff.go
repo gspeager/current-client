@@ -116,6 +116,24 @@ func GetRefDiff(ctx context.Context, repoPath, path, fromRef, toRef string, igno
 	return runDiff(ctx, repoPath, diffArgs(refs, ignoreWhitespace, path))
 }
 
+// GetRangeDiff is GetRefDiff for a file that may have been renamed, given both
+// its paths. An untracked file shows when env names an index that has it.
+func GetRangeDiff(ctx context.Context, repoPath string, env []string, from, to, origPath, path string, ignoreWhitespace bool) (FileDiff, error) {
+	revs := []string{"-M", from}
+	if to != "" {
+		revs = append(revs, to)
+	}
+	args := diffArgs(revs, ignoreWhitespace, path)
+	if origPath != "" {
+		args = append(args, origPath)
+	}
+	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: repoPath, Env: env, Args: args})
+	if err != nil {
+		return FileDiff{}, err
+	}
+	return ParseUnifiedDiff(result.Stdout)
+}
+
 func diffArgs(revArgs []string, ignoreWhitespace bool, path string) []string {
 	args := []string{"diff", "--no-color", "-U20"}
 	if ignoreWhitespace {

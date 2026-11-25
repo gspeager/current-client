@@ -4,12 +4,18 @@ import { NotesService, type NoteInfo } from '@current-client-bindings/app'
 import { useAsyncData } from '../../lib/useAsyncData'
 import './notes.scss'
 
-export type NoteKind = 'commit' | 'branch' | 'tag' | 'file'
+export type NoteKind = 'commit' | 'branch' | 'tag' | 'file' | 'review'
 
 export interface NoteTarget {
   kind: NoteKind
   target: string
   subject?: string
+  // Of a review note, as its target can hold many.
+  id?: string
+}
+
+export function targetOf(note: NoteInfo): NoteTarget {
+  return { kind: note.kind as NoteKind, target: note.target, subject: note.subject, id: note.id }
 }
 
 export interface Notes {

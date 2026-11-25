@@ -2,11 +2,8 @@ import { useEffect, useState } from 'react'
 import type { ChangedFile, FileDiff } from '@current-client-bindings/app'
 import ChangedFileRow from '../../features/history/ChangedFileRow'
 import { useReviewThreads } from '../../lib/useReviewThreads'
-import DiffViewer from '../../features/diff/DiffViewer'
-import DiffViewMenu from '../../features/diff/DiffViewMenu'
 import type { ImageSources } from '../../features/diff/ImageDiff'
-import DiffViewModeToggle, { type DiffViewMode } from '../../features/diff/DiffViewModeToggle'
-import { useAsyncData } from '../../lib/useAsyncData'
+import ChangedFileDiff from './ChangedFileDiff'
 import './ChangedFilesBrowser.scss'
 
 interface ChangedFilesBrowserProps {
@@ -35,17 +32,6 @@ function ChangedFilesBrowser({
 }: ChangedFilesBrowserProps) {
   const reviewThreads = useReviewThreads(repoPath ?? '', files)
   const [selected, setSelected] = useState<ChangedFile | null>(() => files?.find((f) => f.path === initialPath) ?? null)
-  const [viewMode, setViewMode] = useState<DiffViewMode>('split')
-  const [ignoreWhitespace, setIgnoreWhitespace] = useState(false)
-  const [forcedPath, setForcedPath] = useState<string | null>(null)
-  const force = selected !== null && forcedPath === selected.path
-  const { data: diff, error: diffError } = useAsyncData(
-    () => (selected ? loadDiff(selected, force, ignoreWhitespace) : null),
-    // loadDiff is a new function every render; the key above covers what it depends on.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selected, force, ignoreWhitespace],
-  )
-
   // The first file (or the one asked for) opens with the list, so the sheet is useful at once.
   useEffect(() => {
     if (selected === null && files && files.length > 0) {
@@ -84,32 +70,14 @@ function ChangedFilesBrowser({
       <div className="changed-files-browser-diff">
         {!selected ? (
           <p className="changed-files-browser-hint">Select a file to view its diff.</p>
-        ) : diffError ? (
-          <p className="changed-files-browser-error">Could not load diff: {diffError}</p>
-        ) : diff ? (
-          <>
-            <div className="changed-files-browser-toolbar">
-              <DiffViewModeToggle value={viewMode} onChange={setViewMode} />
-              <DiffViewMenu ignoreWhitespace={ignoreWhitespace} onIgnoreWhitespaceChange={setIgnoreWhitespace} />
-            </div>
-            <DiffViewer
-              diff={diff}
-              path={selected.path}
-              viewMode={viewMode}
-              threads={reviewThreads.byPath[selected.path]}
-              outdatedThreads={reviewThreads.outdatedByPath[selected.path]}
-              review={
-                repoPath && reviewThreads.number
-                  ? { repoPath, number: reviewThreads.number, prefix: reviewThreads.prefix }
-                  : undefined
-              }
-              images={images?.(selected)}
-              repoPath={repoPath}
-              onForceLoad={() => setForcedPath(selected.path)}
-            />
-          </>
         ) : (
-          <p className="changed-files-browser-hint">Loading diff…</p>
+          <ChangedFileDiff
+            file={selected}
+            loadDiff={loadDiff}
+            images={images?.(selected)}
+            repoPath={repoPath}
+            reviewThreads={reviewThreads}
+          />
         )}
       </div>
     </div>

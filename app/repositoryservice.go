@@ -9,6 +9,7 @@ import (
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
+	"github.com/gspeager/current-client/core/readthrough"
 	"github.com/gspeager/current-client/core/repository"
 	"github.com/gspeager/current-client/core/snapshot"
 	"github.com/gspeager/current-client/internal/config"
@@ -109,6 +110,7 @@ func (s *RepositoryService) RemoveRecentRepository(path string) error {
 		// Worktrees share refs, so the repository is still in use through another.
 		if worktrees, err := git.ListWorktrees(ctx, path); err == nil && len(worktrees) <= 1 {
 			_ = snapshot.DeleteAll(ctx, path)
+			_ = readthrough.Forget(ctx, path, func(string) bool { return true })
 		}
 	}
 	return err

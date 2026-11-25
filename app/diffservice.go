@@ -90,11 +90,15 @@ func largestVersion(ctx context.Context, repoPath, path string, force bool, revs
 		return false, 0
 	}
 	for _, rev := range revs {
-		if size, found := diff.RevisionFileSize(ctx, repoPath, rev, path); found && size > diff.LargeFileThreshold {
+		if size, found := diff.RevisionFileSize(ctx, repoPath, rev, path); found && isLarge(size) {
 			return true, size
 		}
 	}
 	return false, 0
+}
+
+func isLarge(size int64) bool {
+	return size > diff.LargeFileThreshold
 }
 
 func (s *DiffService) StageHunk(repoPath, path, hunkText string) error {

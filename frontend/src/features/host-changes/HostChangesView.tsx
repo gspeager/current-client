@@ -6,6 +6,7 @@ import IdentityBadge from '../../components/git/IdentityBadge'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import {
   ArrowRight,
+  BookOpen,
   CircleCheck,
   CircleHelp,
   ClipboardCheck,
@@ -22,6 +23,7 @@ import {
   BranchChange,
   HistoryService,
   HostService,
+  ReadThroughService,
   type ChangeList,
   type MergeResult,
 } from '@current-client-bindings/app'
@@ -47,6 +49,7 @@ import ReviewDialog from '../review/ReviewDialog'
 import { useReviewActions } from '../review/useReviewActions'
 import { useReviewDraft } from '../../lib/reviewDraft'
 import MergeChangeDialog from './MergeChangeDialog'
+import { useOpenReadThrough } from '../read-through/readThrough'
 import { createChangeFor } from '../../lib/createChange'
 import { errorMessage } from '../../lib/errors'
 import { openWebPage } from '../../lib/hostPages'
@@ -352,6 +355,14 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
   const conflict = forecast?.conflicts?.find((c) => c.number === change.number)
   const checkout = useCancellableOperation(`${repoPath}:${change.number}`)
   const [checkedOut, setCheckedOut] = useState<string | null>(null)
+  const openReadThrough = useOpenReadThrough()
+  // Only when the head is here; nothing is fetched for it.
+  const { data: readable } = useAsyncData(
+    () =>
+      ReadThroughService.OfChange(repoPath, change.sourceBranch, change.targetBranch, change.headSha).catch(() => null),
+    [repoPath, change.sourceBranch, change.targetBranch, change.headSha],
+    { refreshKey: checkedOut },
+  )
   // What the last refresh knows about merging it; cache and Git only.
   const { data: readiness } = useAsyncData(
     () => (change.state === 'open' ? HostService.MergeReadiness(repoPath, change.number) : null),
@@ -424,6 +435,21 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
             <GitBranch size={14} strokeWidth={1.75} />
             {checkout.running ? 'Checking out…' : 'Check out locally'}
           </button>
+          {readable?.ref && (
+            <button
+              type="button"
+              className="host-change-button"
+              onClick={() =>
+                openReadThrough({
+                  ...readable,
+                  name: readable.ref.startsWith('refs/current-client/') ? `${list.prefix}${change.number}` : undefined,
+                })
+              }
+            >
+              <BookOpen size={14} strokeWidth={1.75} />
+              Read through
+            </button>
+          )}
           {change.state === 'open' && !merged && reviewActions && (
             <button
               type="button"

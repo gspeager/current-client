@@ -6,6 +6,7 @@ import { errorMessage } from '../../lib/errors'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
+import DescriptionNotes from '../read-through/DescriptionNotes'
 import DialogError from '../../components/chrome/DialogError'
 import './CreateChangeDialog.scss'
 
@@ -121,6 +122,11 @@ function CreateChangeForm({ repoPath, draft, onCreated, onClose }: CreateChangeF
             rows={10}
           />
         </label>
+        <DescriptionNotes
+          repoPath={repoPath}
+          branch={draft.branch}
+          onAdd={(text) => setDescription((prev) => [prev.trimEnd(), text].filter(Boolean).join('\n\n'))}
+        />
         <Switch checked={isDraft} onChange={setIsDraft} label="Draft" />
         <DialogError>{error}</DialogError>
         <div className="dialog-actions">

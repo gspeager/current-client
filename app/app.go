@@ -41,6 +41,7 @@ func Services() []application.Service {
 		application.NewService(&TaskService{}),
 		application.NewService(&StackService{}),
 		application.NewService(&CompareService{}),
+		application.NewService(&ReadThroughService{}),
 		application.NewService(&ChangelogService{}),
 		application.NewService(&UndoService{}),
 		application.NewService(&OverlapService{}),

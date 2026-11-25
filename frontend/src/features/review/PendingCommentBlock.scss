@@ -40,3 +40,27 @@
   margin: 0;
   color: var(--on-surface);
 }
+
+// Kept here and never sent, so without the warning color.
+.review-note {
+  border-left-color: var(--on-surface-variant);
+}
+
+.review-note-remove {
+  margin-left: 0;
+}
+
+.review-note-outdated {
+  padding: 0 var(--space-xs);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--warning);
+}
+
+.review-note-line {
+  margin: 0 0 var(--space-xs);
+  overflow-x: auto;
+  color: var(--outline);
+  font: var(--data-sm);
+  white-space: pre;
+}

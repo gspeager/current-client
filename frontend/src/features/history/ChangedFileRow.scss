@@ -29,7 +29,8 @@
   }
 }
 
-.changed-file-selected {
+.changed-file-selected,
+.changed-file-tickable-selected {
   background: var(--surface-container);
   box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
 }
@@ -37,4 +38,19 @@
 .changed-file-path {
   flex: 1;
   font: var(--data-md);
+}
+
+.changed-file-tickable {
+  display: flex;
+  align-items: center;
+  padding-left: var(--space-sm);
+
+  .changed-file {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.changed-file-read .changed-file-path {
+  color: var(--outline);
 }
