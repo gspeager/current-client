@@ -5,7 +5,6 @@ package app
 import (
 	"context"
 	"errors"
-	"sort"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
@@ -36,11 +35,6 @@ type ForecastReport struct {
 	Conflicts []ForecastConflict `json:"conflicts"`
 }
 
-const (
-	// forecastCap bounds the heads fetched and merged per refresh, newest first.
-	forecastCap = 20
-)
-
 func (s *HostService) Forecast(repoPath string) (ForecastReport, error) {
 	_, info, ok, err := enabledHost(repoPath)
 	if err != nil || !ok {
@@ -63,33 +57,15 @@ func refreshForecast(ctx context.Context, info HostInfo, repoPath, remote string
 	}
 	report := ForecastReport{Enabled: true, Branch: current.Name, Conflicts: []ForecastConflict{}}
 	ownBranch, _ := cutRemote(current.Upstream, remote)
-	for _, change := range changes {
-		if change.SourceProject == "" && change.SourceBranch == ownBranch && ownBranch != "" {
-			report.Base = change.TargetBranch
-		}
-	}
+	report.Base = hostapi.ForecastBase(changes, ownBranch)
 	if report.Base == "" {
 		if report.Base, err = git.DefaultBranch(ctx, repoPath); err != nil || report.Base == "" {
 			return
 		}
 	}
 
-	var candidates []hostapi.Change
-	for _, change := range changes {
-		if change.TargetBranch != report.Base || change.HeadSHA == "" {
-			continue
-		}
-		if change.SourceProject == "" && change.SourceBranch == ownBranch {
-			continue
-		}
-		candidates = append(candidates, change)
-	}
-	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].UpdatedAt.After(candidates[j].UpdatedAt) })
-	report.Total = len(candidates)
-	if len(candidates) > forecastCap {
-		candidates = candidates[:forecastCap]
-	}
-	report.Checked = len(candidates)
+	candidates, total := hostapi.ForecastCandidates(changes, report.Base, ownBranch)
+	report.Total, report.Checked = total, len(candidates)
 
 	refs := map[int]string{}
 	tips := make([]string, 0, len(candidates))

@@ -1,0 +1,257 @@
+package changelog
+
+import (
+	"context"
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/gspeager/current-client/core/git"
+)
+
+// Check is one item of the release readiness list. Level is ok,
+// warn, info or unknown; Evidence is what the verdict rests on.
+type Check struct {
+	Label    string   `json:"label"`
+	Level    string   `json:"level"`
+	Value    string   `json:"value"`
+	Evidence []string `json:"evidence"`
+	// AsOf is when a host fact was read, for a check from the host cache.
+	AsOf *time.Time `json:"asOf"`
+}
+
+type Readiness struct {
+	Ref      string `json:"ref"`
+	SHA      string `json:"sha"`
+	Version  string `json:"version"`
+	Previous string `json:"previous"`
+	Target   string `json:"target"`
+	// Tag is the tag the version takes, with a "v" when the last one had it.
+	Tag string `json:"tag"`
+	// TaggedAs is the tag already on the candidate, if any.
+	TaggedAs string  `json:"taggedAs"`
+	Checks   []Check `json:"checks"`
+}
+
+const evidenceCap = 20
+
+var versionTag = regexp.MustCompile(`^v?\d+\.\d+\.\d+`)
+
+// CheckRelease checks a candidate ref against the release before it, from Git
+// alone. Empty version takes the one the changelog suggests; empty target, the
+// default branch. versionFiles are the files that must name the version.
+func CheckRelease(ctx context.Context, repoPath, ref, version, target string, versionFiles []string) (Readiness, error) {
+	if ref == "" {
+		ref = "HEAD"
+	}
+	sha, err := git.ResolveCommit(ctx, repoPath, ref)
+	if err != nil {
+		return Readiness{}, err
+	}
+	r := Readiness{Ref: ref, SHA: sha, Version: strings.TrimPrefix(strings.TrimSpace(version), "v"), Target: target}
+	// A candidate that is already tagged is that tag's release, checked
+	// against the tag before it.
+	own := ""
+	if r.Previous, err = git.LatestTag(ctx, repoPath, sha); err == nil && r.Previous != "" {
+		if tagged, _ := git.ResolveCommit(ctx, repoPath, "refs/tags/"+r.Previous); tagged == sha {
+			own = r.Previous
+			r.Previous, _ = git.LatestTag(ctx, repoPath, sha+"^")
+		}
+	}
+	release, err := Build(ctx, repoPath, r.Previous, sha, "")
+	if err != nil {
+		return Readiness{}, err
+	}
+	if r.Version == "" && versionTag.MatchString(own) {
+		r.Version = versionOf(own)
+	}
+	if r.Version == "" {
+		r.Version = release.SuggestedVersion
+	}
+	if r.Version == "" {
+		r.Version = nextVersion(r.Previous)
+	}
+	r.TaggedAs = own
+	if r.Version != "" {
+		r.Tag = r.Version
+		if r.Previous == "" || strings.HasPrefix(r.Previous, "v") {
+			r.Tag = "v" + r.Version
+		}
+	}
+	if r.Target == "" {
+		r.Target, _ = git.DefaultBranch(ctx, repoPath)
+	}
+	r.Checks = append(r.Checks, workingTreeCheck(ctx, repoPath))
+	r.Checks = append(r.Checks, versionFileChecks(ctx, repoPath, sha, r.Version, versionOf(r.Previous), versionFiles)...)
+	r.Checks = append(r.Checks, changelogCheck(ctx, repoPath, sha, r.Version), commitsCheck(r.Previous, release))
+	return r, nil
+}
+
+func versionOf(tag string) string {
+	return strings.TrimPrefix(tag, "v")
+}
+
+var numericVersion = regexp.MustCompile(`^v?\d+(\.\d+)*$`)
+
+// nextVersion is the last tag with its last number raised, for tags the
+// changelog can't suggest from, such as v1.1 or 7: "1.2", "8". "" for a
+// tag that isn't a plain version.
+func nextVersion(tag string) string {
+	if !numericVersion.MatchString(tag) {
+		return ""
+	}
+	parts := strings.Split(versionOf(tag), ".")
+	last, _ := strconv.Atoi(parts[len(parts)-1])
+	parts[len(parts)-1] = strconv.Itoa(last + 1)
+	return strings.Join(parts, ".")
+}
+
+func capped(lines []string) []string {
+	if len(lines) <= evidenceCap {
+		return lines
+	}
+	return append(lines[:evidenceCap:evidenceCap], fmt.Sprintf("and %d more", len(lines)-evidenceCap))
+}
+
+func workingTreeCheck(ctx context.Context, repoPath string) Check {
+	check := Check{Label: "Working tree"}
+	statuses, err := git.GetStatus(ctx, repoPath)
+	switch {
+	case err != nil:
+		check.Level, check.Value = "unknown", err.Error()
+	case len(statuses) == 0:
+		check.Level, check.Value = "ok", "Clean"
+	default:
+		check.Level, check.Value = "warn", fmt.Sprintf("%d changed %s", len(statuses), pluralWord(len(statuses), "file", "files"))
+		for _, st := range statuses {
+			check.Evidence = append(check.Evidence, st.Path)
+		}
+		check.Evidence = capped(check.Evidence)
+	}
+	return check
+}
+
+func pluralWord(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
+}
+
+// versionPattern finds version as a whole: 0.5.0 in "0.5.0" and "0.5.0.0",
+// not in "10.5.0" or "1.0.5.0".
+func versionPattern(version string) *regexp.Regexp {
+	return regexp.MustCompile(`(^|[^0-9.])` + regexp.QuoteMeta(version) + `([^0-9]|$)`)
+}
+
+func linesWith(text string, pattern *regexp.Regexp) []int {
+	var lines []int
+	for i, line := range strings.Split(text, "\n") {
+		if pattern.MatchString(line) {
+			lines = append(lines, i+1)
+		}
+	}
+	return lines
+}
+
+// versionFileChecks reads every configured file at the candidate in one
+// process: each must name the version, and none may still name the last.
+func versionFileChecks(ctx context.Context, repoPath, sha, version, previous string, files []string) []Check {
+	if len(files) == 0 {
+		return []Check{{Label: "Version files", Level: "unknown", Value: "None set for this repository"}}
+	}
+	if version == "" {
+		return []Check{{Label: "Version files", Level: "unknown", Value: "No version to look for"}}
+	}
+	revs := make([]git.RevPath, len(files))
+	for i, f := range files {
+		revs[i] = git.RevPath{Rev: sha, Path: f}
+	}
+	contents, err := git.FilesAt(ctx, repoPath, revs)
+	if err != nil {
+		return []Check{{Label: "Version files", Level: "unknown", Value: err.Error()}}
+	}
+	checks := make([]Check, 0, len(files))
+	for _, rev := range revs {
+		check := Check{Label: rev.Path}
+		data, ok := contents[rev]
+		if !ok {
+			check.Level, check.Value = "warn", "Not at this commit"
+			checks = append(checks, check)
+			continue
+		}
+		text := strings.ReplaceAll(string(data), "\r\n", "\n")
+		found := linesWith(text, versionPattern(version))
+		var stale []int
+		if previous != "" && previous != version {
+			stale = linesWith(text, versionPattern(previous))
+		}
+		for _, n := range found {
+			check.Evidence = append(check.Evidence, fmt.Sprintf("line %d: %s", n, version))
+		}
+		for _, n := range stale {
+			check.Evidence = append(check.Evidence, fmt.Sprintf("line %d: still %s", n, previous))
+		}
+		check.Evidence = capped(check.Evidence)
+		switch {
+		case len(found) == 0:
+			check.Level, check.Value = "warn", "No "+version
+		case len(stale) > 0:
+			check.Level, check.Value = "warn", "Has "+version+", and still "+previous
+		default:
+			check.Level, check.Value = "ok", "Has "+version
+		}
+		checks = append(checks, check)
+	}
+	return checks
+}
+
+func changelogCheck(ctx context.Context, repoPath, sha, version string) Check {
+	file := filepath.Base(Path(repoPath))
+	check := Check{Label: "Changelog"}
+	data, found, err := git.FileAt(ctx, repoPath, sha, file)
+	switch {
+	case err != nil:
+		check.Level, check.Value = "unknown", err.Error()
+	case !found:
+		check.Level, check.Value = "warn", "No "+file+" at this commit"
+	case version == "":
+		check.Level, check.Value = "unknown", "No version to look for"
+	default:
+		notes, ok := SectionNotes(string(data), version)
+		if ok {
+			check.Level, check.Value = "ok", file+" has a section for "+version
+			if notes == "" {
+				check.Level, check.Value = "warn", file+"'s section for "+version+" is empty"
+			}
+			return check
+		}
+		check.Level, check.Value = "warn", file+" has no section for "+version
+		if _, unreleased := SectionNotes(string(data), Unreleased); unreleased {
+			check.Evidence = []string{"It has [" + Unreleased + "], to rename to [" + version + "]"}
+		}
+	}
+	return check
+}
+
+func commitsCheck(previous string, release Release) Check {
+	since := "the first commit"
+	if previous != "" {
+		since = previous
+	}
+	check := Check{Label: "Commits since " + since}
+	n := len(release.Entries)
+	if n == 0 {
+		check.Level, check.Value = "warn", "None, so nothing to release"
+		return check
+	}
+	check.Level, check.Value = "info", fmt.Sprintf("%d %s, merges left out", n, pluralWord(n, "commit", "commits"))
+	for _, e := range release.Entries {
+		check.Evidence = append(check.Evidence, e.SHA[:min(7, len(e.SHA))]+" "+e.Description)
+	}
+	check.Evidence = capped(check.Evidence)
+	return check
+}

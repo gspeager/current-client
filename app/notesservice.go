@@ -10,6 +10,7 @@ import (
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
+	"github.com/gspeager/current-client/core/readthrough"
 	"github.com/gspeager/current-client/internal/notes"
 )
 
@@ -65,7 +66,7 @@ func listNotes(repoPath string) ([]NoteInfo, error) {
 	}
 	var gone func(key string) bool
 	if slices.ContainsFunc(stored, func(note notes.Note) bool { return note.Kind == notes.KindReview }) {
-		if gone, err = readThroughGone(ctx, repoPath); err != nil {
+		if gone, err = readthrough.Gone(ctx, repoPath); err != nil {
 			return nil, err
 		}
 	}
