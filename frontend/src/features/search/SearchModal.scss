@@ -96,3 +96,14 @@
   white-space: pre;
   @include patterns.truncate;
 }
+
+.search-repository {
+  margin-top: var(--space-md);
+}
+
+.search-repository-name {
+  margin: 0 0 var(--space-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+  font-weight: 600;
+}

@@ -96,4 +96,30 @@ describe('SearchModal', () => {
     await userEvent.type(screen.getByRole('textbox', { name: 'Search for' }), '(')
     expect(await screen.findByText('Search failed: parentheses not balanced')).toBeInTheDocument()
   })
+
+  it('searches every open repository in turn, each under its name, and opens a match there', async () => {
+    vi.mocked(SearchService.SearchContents).mockImplementation((path: string) =>
+      cancellable(
+        Promise.resolve({
+          matches: path === '/repos/site' ? [{ path: 'login.ts', line: 4, text: 'export function login()' }] : [],
+          truncated: false,
+        }),
+      ),
+    )
+    vi.mocked(PlatformService.OpenFileInEditor).mockResolvedValue(undefined)
+    vi.mocked(BranchService.ListLocal).mockResolvedValue([])
+    vi.mocked(BranchService.ListRemote).mockResolvedValue([])
+    vi.mocked(TagService.ListTags).mockResolvedValue([])
+    render(<SearchModal repoPath={REPO} others={['/repos/site']} onClose={vi.fn()} onOpenFileHistory={vi.fn()} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open repositories (2)' }))
+    expect(screen.queryByLabelText('Search in')).toBeNull()
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search for' }), 'login')
+
+    const site = within(await screen.findByRole('region', { name: 'In site' }))
+    expect(await screen.findByText('No matches in app.')).toBeInTheDocument()
+    await userEvent.click(site.getByRole('button', { name: /export function login/ }))
+    expect(PlatformService.OpenFileInEditor).toHaveBeenCalledWith('/repos/site', 'login.ts', 4)
+    expect(SearchService.SearchContents).toHaveBeenCalledWith('/repos/site', expect.objectContaining({ rev: '' }))
+  })
 })

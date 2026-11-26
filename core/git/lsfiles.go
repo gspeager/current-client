@@ -24,6 +24,24 @@ func WatchedPaths(ctx context.Context, repoPath string) ([]string, error) {
 	return paths, nil
 }
 
+// FindTracked lists up to limit tracked files whose path holds query, ignoring case.
+func FindTracked(ctx context.Context, repoPath, query string, limit int) ([]string, error) {
+	result, err := runResult(ctx, repoPath, "ls-files", "-z", "--cached")
+	if err != nil {
+		return nil, err
+	}
+	query = strings.ToLower(query)
+	var found []string
+	for p := range strings.SplitSeq(result.Stdout, "\x00") {
+		if p != "" && strings.Contains(strings.ToLower(p), query) {
+			if found = append(found, p); len(found) == limit {
+				break
+			}
+		}
+	}
+	return found, nil
+}
+
 // TreeFile is a file at a commit or tree. Symbolic links and submodules aren't.
 type TreeFile struct {
 	Path string

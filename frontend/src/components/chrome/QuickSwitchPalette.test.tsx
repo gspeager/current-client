@@ -27,7 +27,9 @@ import { Launcher } from '@current-client-bindings/internal/platform'
 
 const REPO = '/repos/app'
 
-const repo = { recentRepos: [], openRecent: vi.fn() } as unknown as ReturnType<typeof useRepositoryLifecycle>
+const repo = { recentRepos: [], tabs: [REPO], openRecent: vi.fn() } as unknown as ReturnType<
+  typeof useRepositoryLifecycle
+>
 
 const workingTree = {
   files: [],
