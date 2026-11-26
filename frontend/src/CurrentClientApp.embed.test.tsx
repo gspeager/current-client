@@ -181,6 +181,7 @@ describe('CurrentClientApp embedding', () => {
         BranchService.CurrentBranchStatus,
         WorktreeService.List,
         RepositoryService.GetTabSummaries,
+        RemoteService.LastFetchTime,
       ]) {
         expect(read).not.toHaveBeenCalled()
       }
