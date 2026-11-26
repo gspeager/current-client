@@ -272,7 +272,7 @@ interface ChangeRowProps {
   prefix: string
   selected: boolean
   onSelect: () => void
-  // The signed-in username, so a request for review reads as yours or someone else's.
+  // The signed-in username, so a review request reads as the user's or someone else's.
   me: string
   displayName: (name: string) => string
 }
@@ -393,8 +393,8 @@ function ChangeDetail({ repoPath, change, list, onBranchChanged, onMerged, onRev
     repoPath,
   )
   const threadCount = counts.threads ?? (change.unresolvedThreads > 0 ? change.unresolvedThreads : undefined)
-  // The pane's one primary follows the state: your review when it is asked
-  // for, Merge once nothing stands in the way, otherwise none.
+  // The pane's one primary follows the state: the user's review when it is
+  // asked for, Merge once nothing stands in the way, otherwise none.
   const primary =
     change.state !== 'open' || merged
       ? null

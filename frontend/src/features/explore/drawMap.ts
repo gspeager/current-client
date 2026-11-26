@@ -8,13 +8,13 @@ export interface MapColors {
   muted: string
   onFolder: string
   warning: string
-  // By slot, 0 for other, then by step from 1.
+  // Indexed by slot (0 for other folders), then by step - 1.
   steps: string[][]
 }
 
 const DATA = { face: 'data' } as const
 const PAD = 6
-// Less of a name than this says nothing.
+// A tile's name cut to fewer characters than this isn't drawn.
 const SHORTEST = 8
 
 export function readMapColors(element: Element): MapColors {

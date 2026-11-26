@@ -41,7 +41,7 @@ export function useNavigation({ repoPath, setActiveTab, remember, onChangeTab }:
     setCommitFocus((prev) => ({ position, ref, request: (prev?.request ?? 0) + 1 }))
   }
 
-  // Its position, so History can load that far back.
+  // Looks up the commit's position first, so History can load that far back.
   const openCommitAnywhere = (sha: string) =>
     void HistoryService.GetCommitPosition(repoPath ?? '', sha)
       .then((position) => openCommit(sha, position))

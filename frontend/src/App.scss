@@ -98,6 +98,9 @@
 // Windows High Contrast drops backgrounds and box-shadows, which carry selection
 // and the lane and status dots here.
 @media (forced-colors: active) {
+  // A selected row's modifier class is named <block>-selected and must come last
+  // in its className: [class$=] matches the end of the whole attribute, not of
+  // each class.
   [class$='-selected'],
   .settings-rail-item-active,
   .tab-active {

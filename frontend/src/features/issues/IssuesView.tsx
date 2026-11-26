@@ -29,7 +29,7 @@ type Filter = 'mine' | 'all' | 'closed'
 
 const keyOf = (listed: ListedIssue) => (/^\d+$/.test(listed.issue.key) ? `#${listed.issue.key}` : listed.issue.key)
 
-// The issues on the host and the tracker: assigned to you from the last
+// The issues on the host and the tracker: assigned to the user from the last
 // refresh, or the project's open or closed ones once asked for, with the
 // selected one as the pane beside the list.
 function IssuesView({

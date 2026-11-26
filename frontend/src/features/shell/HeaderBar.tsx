@@ -54,7 +54,7 @@ interface HeaderBarProps {
   onResult?: (result: ActionResult) => void
   repo: ReturnType<typeof useRepositoryLifecycle>
   dirty: boolean
-  // The Inbox, a view across every open repository, beside the tabs.
+  // Whether the Inbox, a view across every open repository beside the tabs, is open.
   inboxOpen?: boolean
   onToggleInbox?: () => void
   onUndo?: () => void

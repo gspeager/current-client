@@ -4,7 +4,7 @@ import type { MapLayout } from './mapLayout'
 
 export interface LegendEntry {
   label: string
-  // A square of a color, or a letter.
+  // Shown as a square of this color unless letter is set.
   color?: string
   letter?: string
 }

@@ -57,9 +57,9 @@ export function lineKey(line: DiffLine | null): string | null {
 // The comment button sits over the gutter, shown while the row is hovered or
 // it has focus, so the row grid stays as it is.
 export interface LineComment {
-  // What the button says before the line.
+  // The button's name and tooltip ahead of the line, such as "Comment on".
   label: string
-  // Whether a removed line takes one.
+  // Whether removed lines get the button too.
   removed: boolean
   run: (line: number, oldLine: number) => void
 }

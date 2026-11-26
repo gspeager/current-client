@@ -67,7 +67,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
   const [coloring, setColoring] = useState<'commits' | 'age'>('commits')
   const [period, setPeriod] = useState(1)
   const [shown, setShown] = useState({ test: true, generated: true, lockfile: false, binary: false })
-  // A position among the releases; past the last is now.
+  // An index into releases, oldest first; null or past the last is HEAD.
   const [position, setPosition] = useState<number | null>(null)
   const [active, setActive] = useState<MapItem | null>(null)
   const [comparing, setComparing] = useState<string | null>(null)
@@ -84,7 +84,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
   // Git lists the newest first.
   const releases = useMemo(() => [...(tags ?? [])].reverse(), [tags])
   const release = position === null ? null : (releases[position] ?? null)
-  // Dragging the slider passes releases nobody stops at.
+  // Debounced, so dragging the slider doesn't read every release it passes.
   const [settled] = useDebounceValue(release?.name ?? 'HEAD', 120)
   const { data: now, error } = useAsyncData(() => ExploreService.Files(repoPath, 'HEAD'), [repoPath], {
     refreshKey: repoVersion,

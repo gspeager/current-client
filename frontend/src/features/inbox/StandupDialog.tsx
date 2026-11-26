@@ -15,7 +15,7 @@ interface StandupDialogProps {
   onClose: () => void
 }
 
-// What you did across the open repositories, as text to paste: commits from
+// The user's work across the open repositories, as text to paste: commits from
 // Git, and with a host on, changes and reviews from its last refresh. Opening
 // it asks no host.
 function StandupDialog({ paths, onClose }: StandupDialogProps) {

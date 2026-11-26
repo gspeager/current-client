@@ -40,7 +40,7 @@ function namesOf(columns: BoardColumn[]): string[] {
   return names.map((name, i) => (names.indexOf(name) === names.lastIndexOf(name) ? name : columns[i].worktree.path))
 }
 
-// By column, each file that collides and with which others.
+// For each column, its colliding files and the names of the columns they collide with.
 function collidingFiles(board: BoardInfo, names: string[]): Map<string, string[]>[] {
   const byColumn = names.map(() => new Map<string, string[]>())
   const add = (column: number, file: string, other: number) =>
@@ -126,7 +126,7 @@ function Column({ name, column, base, colliding, onOpen, onTerminal, onRun, onSt
   const readThrough = useOpenReadThrough()
   const { worktree, files } = column
   const changed = new Set(files.map((file) => file.path))
-  // Committed, so not among the uncommitted ones.
+  // Colliding files committed on the branch, which the uncommitted list doesn't hold.
   const committed = [...colliding.keys()].filter((path) => !changed.has(path))
   const listed = [...committed.map((path) => ({ path, status: '' })), ...files]
   const more = column.changed - files.length

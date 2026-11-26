@@ -14,7 +14,7 @@ interface ActivityViewProps {
   dirty: boolean
   changedCount?: number
   hasConflict: boolean
-  // What you did across the open repositories, to paste into a standup.
+  // The user's work across the open repositories, to paste into a standup.
   onStandup?: () => void
 }
 

@@ -22,7 +22,7 @@ export function commitSteps(counts: number[]): { stepOf: (count: number) => Step
             values[values.length - 1],
           ]),
         ]
-  // The last of the steps, so the most is always the brightest.
+  // Steps are counted down from 4, so the largest count is always the brightest.
   const first = 5 - tops.length
   const stepOf = (count: number): Step => {
     if (count <= 0) return 1

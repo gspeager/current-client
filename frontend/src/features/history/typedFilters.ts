@@ -28,7 +28,7 @@ export function typedValues(box: string): Record<FilterKey, string> {
   return values
 }
 
-// What's left to search for.
+// The box's text without its key:value filters.
 export function typedText(box: string): string {
   return tokens(box)
     .filter((token) => !token.key)

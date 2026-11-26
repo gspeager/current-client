@@ -32,7 +32,7 @@ import type { ReadThroughOpening } from './readThrough'
 import './ReadThroughSheet.scss'
 import { dirName } from '../../lib/paths'
 
-// A file with the lines that changed since it was read, for one read before.
+// A file read before, with its line counts replaced by what changed since.
 const shownSince = (file: ReadThroughFile): ReadThroughFile =>
   file.again ? { ...file, added: file.sinceAdded, removed: file.sinceRemoved, binary: file.sinceBinary } : file
 
@@ -128,7 +128,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   const againCount = all.filter((f) => f.again).length
   const progress = `${whole.filter((f) => f.read).length} of ${whole.length} read`
 
-  // Without its files, which every call would send back.
+  // The info without its files, which every call would otherwise send back.
   const range = info && new ReadThroughInfo({ ...info, files: [] })
   const { data: notes, reload: reloadNotes } = useAsyncData(
     () => (range ? ReadThroughService.Notes(range) : null),

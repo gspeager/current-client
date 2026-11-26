@@ -6,7 +6,7 @@
   cursor: pointer;
   user-select: none;
 
-  // The ring is the tile's, over the one everything that takes focus has.
+  // The focused tile's ring stands in for the outline every focusable element gets.
   &[tabindex][role]:focus-visible {
     outline: none;
   }

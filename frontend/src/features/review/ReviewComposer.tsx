@@ -7,7 +7,6 @@ interface ReviewComposerProps {
   // Sends to the host now; the composer closes when it resolves.
   onSend: (body: string) => Promise<void>
   sendLabel?: string
-  // The text it starts with.
   initial?: string
   // Keeps the comment for a review submitted later; no request.
   onAddToReview?: (body: string) => void

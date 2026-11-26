@@ -210,7 +210,7 @@ export function useTasks(repoPath: string | null, refreshKey: unknown) {
     run,
     stop,
     runOf,
-    // How many runs have, in any worktree.
+    // How many runs have ended, in any worktree.
     ended,
     runChecklist,
     setChecklist,

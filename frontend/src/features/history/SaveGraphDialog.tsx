@@ -11,10 +11,10 @@ export const MOST_ROWS = 500
 
 interface SaveGraphDialogProps {
   repoName: string
-  // What the list is filtered to, with or without who.
+  // The list's filters in words; names false leaves out who they name.
   about: (names: boolean) => string
   rows: GraphPictureRow[]
-  // The rows on screen, the last not included.
+  // The rows on screen, as [first, end).
   shown: [number, number]
   options: Omit<GraphPictureOptions, 'rows' | 'names'>
   onClose: () => void
