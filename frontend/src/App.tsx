@@ -136,6 +136,8 @@ export interface AppProps {
   // For a host app that has its own terminal, or doesn't want one.
   hideTerminal?: boolean
   hideExplore?: boolean
+  // False for a host app that asks about turning on a host's integration in its own words.
+  hostPrompt?: boolean
   handle?: Ref<CurrentClientAppHandle>
 }
 
@@ -146,6 +148,7 @@ function App({
   hideUpdateCheck = false,
   hideTerminal = false,
   hideExplore = false,
+  hostPrompt = true,
   handle,
 }: AppProps = {}) {
   const {
@@ -337,7 +340,7 @@ function App({
       if (closed) repo.closeTab(path)
     })
   useOpenRequests(repo)
-  useHostPrompt(hostIntegration ? repo.repoPath : null, bumpHostsVersion)
+  useHostPrompt(hostIntegration && hostPrompt ? repo.repoPath : null, bumpHostsVersion)
 
   // Settings may have changed the git executable path.
   const closeSettings = () => {

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import {
   GitService,
   HistoryService,
+  HostService,
   RepositoryService,
   SettingsService,
   type OpenTabsInfo,
@@ -110,5 +111,45 @@ describe('CurrentClientApp embedding', () => {
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     expect(listLoads()).toBe(loads)
+  })
+
+  describe('while hidden', () => {
+    const github = [{ hostname: 'github.com', provider: 'github', enabled: false, dismissed: false, managed: false }]
+
+    it('opens no dialog, tells the host one waits, and asks once shown', async () => {
+      stubStartup(['/repos/app'], '/repos/app')
+      vi.mocked(HostService.Detect).mockResolvedValue(github as never)
+      const onNeedsAttention = vi.fn()
+      const { rerender } = render(
+        <>
+          <button type="button">The host's own view</button>
+          <CurrentClientApp active={false} onNeedsAttention={onNeedsAttention} />
+        </>,
+      )
+
+      await waitFor(() => expect(onNeedsAttention).toHaveBeenCalled())
+      expect(screen.queryByRole('alertdialog', { hidden: true })).toBeNull()
+      expect(document.body.style.pointerEvents).not.toBe('none')
+      expect(screen.getByRole('button', { name: "The host's own view" }).closest('[aria-hidden]')).toBeNull()
+
+      rerender(
+        <>
+          <button type="button">The host's own view</button>
+          <CurrentClientApp active onNeedsAttention={onNeedsAttention} />
+        </>,
+      )
+      expect(await screen.findByRole('alertdialog', { name: 'Turn on GitHub integration?' })).toBeInTheDocument()
+    })
+
+    it('asks nothing about a host when the host app asks in its own words', async () => {
+      stubStartup(['/repos/app'], '/repos/app')
+      vi.mocked(HostService.Detect).mockResolvedValue(github as never)
+      render(<CurrentClientApp hostPrompt={false} />)
+      await waitFor(() => expect(RepositoryService.OpenRepository).toHaveBeenCalledWith('/repos/app'))
+      await waitFor(() => expect(document.querySelector('.header-bar')).not.toBeNull())
+      await waitFor(() => expect(HostService.Detect).toHaveBeenCalled())
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(screen.queryByRole('alertdialog')).toBeNull()
+    })
   })
 })
