@@ -16,7 +16,7 @@ Current Client runs entirely on your machine and connects only to the servers yo
 - Stage and unstage whole files, single hunks or single lines.
 - Split and unified diffs, with word-level changes highlighted.
 - Read through a whole branch, worktree or pull request file by file, with ticks that clear when a file changes and private notes on files and lines.
-- A commit graph with search across the full history, blame and file history.
+- A commit graph with search across the full history, filters typed in the search box such as `author:` and `since:`, blame and file history.
 - Search across every file's contents, now or at any commit.
 - Undo the last operation — a commit, amend, merge, pull, rebase, reset or branch switch — after a preview of what will move.
 - See which Git hooks run, Husky's and those set in config included, and turn one off without deleting it.

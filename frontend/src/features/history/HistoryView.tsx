@@ -6,7 +6,17 @@ import CommitDetailPanel from './CommitDetailPanel'
 import CommitFileDiff from './CommitFileDiff'
 import CommitRow from './CommitRow'
 import WorkingChangesRow from './WorkingChangesRow'
+import { useDebounceValue } from 'usehooks-ts'
 import HistoryToolbar from './HistoryToolbar'
+import {
+  FILTER_KEYS,
+  describeSince,
+  typedFilters,
+  typedText,
+  typedValues,
+  withTyped,
+  type FilterKey,
+} from './typedFilters'
 import { buildAsciiGraph } from './asciiGraph'
 import { ancestorShas } from './commitAncestry'
 import { identityKey } from './identityKey'
@@ -14,7 +24,7 @@ import { baseName } from '../../lib/paths'
 import { colorsAt } from '../../lib/picture'
 import { BREAKING_FILTER } from '../../lib/conventionalCommit'
 import { plural } from '../../lib/plural'
-import { localDate, relativeTime } from '../../lib/relativeTime'
+import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useCommitActions } from './useCommitActions'
 import { useCommitGraph } from './useCommitGraph'
@@ -137,6 +147,20 @@ function HistoryView({
   // The commit whose Checks a job click asked for.
   const [checksFor, setChecksFor] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  // The box's typed filters set the same filter as the menu, once typing pauses.
+  const [typedSearch] = useDebounceValue(search, 300)
+  useEffect(() => {
+    const typed = typedFilters(typedSearch)
+    if (FILTER_KEYS.some((key) => typed[key] !== filter[key])) setFilter((prev) => ({ ...prev, ...typed }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typedSearch])
+  // The menu writes its filter into the box too.
+  const setTyped = (key: FilterKey, value: string) => {
+    const box = withTyped(search, key, value)
+    setSearch(box)
+    setFilter((prev) => ({ ...prev, ...typedFilters(box) }))
+  }
+  const typed = typedValues(search)
   const [hideMerges, setHideMerges] = useState(false)
   const [focusedSha, setFocusedSha] = useState<string | null>(null)
   // One highlight at a time: an author (by mailmapped email) or a lane.
@@ -240,7 +264,8 @@ function HistoryView({
     : undefined
 
   // Graph nodes come from the unfiltered history so filtered rows keep their lanes.
-  const query = search.trim().toLowerCase()
+  const text = typedText(search).trim()
+  const query = text.toLowerCase()
   const rows = commits
     .map((commit, index) => ({ commit, graphNode: graphNodes[index], index }))
     .filter(({ commit, graphNode }) => {
@@ -398,10 +423,11 @@ function HistoryView({
       filter.ref === ALL_BRANCHES ? 'all branches' : filter.ref || currentBranch || 'HEAD',
       filter.firstParent && 'first parent only',
       hideMerges && 'without merges',
-      filter.since && `since ${localDate(new Date(filter.since))}`,
+      typed.since && describeSince(typed.since),
+      typed.until && `until ${typed.until}`,
       filter.type && (filter.type === BREAKING_FILTER ? 'breaking changes' : filter.type),
       filter.author && (names ? `by ${filter.author}` : 'by one author'),
-      query && (names ? `matching “${search.trim()}”` : 'matching a search'),
+      query && (names ? `matching “${text}”` : 'matching a search'),
     ]
       .filter(Boolean)
       .join(', ')
@@ -448,6 +474,8 @@ function HistoryView({
               branches={branches ?? []}
               filter={filter}
               onFilterChange={changeFilter}
+              typed={typed}
+              onTypedChange={setTyped}
               showTypeFilter={conventional}
               onCopyAsciiGraph={copyAsciiGraph}
               onSaveImage={rows.length > 0 ? saveImage : undefined}
