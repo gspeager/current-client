@@ -9,9 +9,9 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// FileLines is a file's size at a commit. A binary file has no lines.
 type FileLines struct {
-	Path   string
+	Path string
+	// 0 for a binary file.
 	Lines  int
 	Binary bool
 }
@@ -44,10 +44,9 @@ func LineCounts(ctx context.Context, repoPath, rev string) ([]FileLines, error) 
 	return files, nil
 }
 
-// FileActivity is how often a file changed under its name, in each of the periods
-// asked for, and when it last did.
 type FileActivity struct {
-	Path    string
+	Path string
+	// Commits that changed the file under this name, one count per period asked for.
 	Commits []int
 	Last    time.Time
 }

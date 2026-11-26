@@ -20,24 +20,26 @@ import (
 )
 
 const (
-	// 190 pairs, and a status each time the board is read.
+	// 20 worktrees make 190 pairs to merge, and a status each every time the board
+	// is read.
 	mostColumns = 20
 	parallel    = 4
 )
 
-// Column is a worktree. Problem is why the rest couldn't be read.
+// Column is a worktree.
 type Column struct {
 	git.Worktree
 	// What differs from HEAD, untracked files included.
 	Files []git.TreeChange
 	// How many untracked files are too large to count.
 	Skipped int
-	// What the worktree holds, committed or not, so undoing an edit or committing it
-	// is the same tree.
+	// Tree is the worktree's files, committed or not, so undoing an edit or
+	// committing it leaves the same tree.
 	Tree string
-	// Against the board's base.
-	Ahead   int
-	Behind  int
+	// Ahead and Behind count commits against the board's Base.
+	Ahead  int
+	Behind int
+	// Problem is why the rest of the column couldn't be read.
 	Problem string
 }
 
@@ -108,7 +110,7 @@ func (r *Reader) Read(ctx context.Context, repoPath string) (Board, error) {
 	for i, s := range states {
 		stamp += fmt.Sprintf("\x00%v\x00%s\x00%v", shown[i], s.stamp, s.err)
 	}
-	// What there was no time for, or failed, is worth another go.
+	// Pairs there was no time for and columns that failed are read again.
 	if stamp == r.stamp && len(r.board.Unchecked) == 0 && !r.board.hasProblem() {
 		return r.board, nil
 	}
@@ -162,7 +164,8 @@ func inParallel(count int, do func(i int)) {
 	wg.Wait()
 }
 
-// readState tells one edit of a changed file from the next by its size and time.
+// readState stamps the worktree's status and each changed file's size, time and
+// mode, to tell one edit from the next.
 func readState(ctx context.Context, w git.Worktree) state {
 	if w.Missing {
 		return state{}
@@ -289,7 +292,8 @@ func changes(ctx context.Context, path string, env []string, head, tree string) 
 	return git.TreeChanges(ctx, path, env, head, tree)
 }
 
-// The same work is the same commit, so what it conflicts with is known already.
+// A fixed identity and date make the same work the same commit, so overlap's
+// cache already knows what it conflicts with.
 var identity = append(gitexec.Identity("board@localhost"), "GIT_AUTHOR_DATE=1700000000 +0000", "GIT_COMMITTER_DATE=1700000000 +0000")
 
 func commit(ctx context.Context, path string, env []string, tree, head string) (string, error) {

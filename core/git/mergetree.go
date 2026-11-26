@@ -37,13 +37,13 @@ func mergeTreeError(result gitexec.Result) error {
 	return gitexec.WrapResult(result)
 }
 
-// MergeResult is a merge of two commits in memory: the tree it would make,
-// and the files that would conflict when it isn't clean. Unrelated means the
-// commits share no history, so there is no merge.
+// MergeResult is a merge of two commits in memory.
 type MergeResult struct {
-	Tree      string
-	Clean     bool
-	Files     []string
+	Tree  string
+	Clean bool
+	// The files that would conflict when the merge isn't clean.
+	Files []string
+	// The commits share no history, so there is no merge.
 	Unrelated bool
 }
 
@@ -56,8 +56,8 @@ func MergeConflicts(ctx context.Context, repoPath, ours, theirs string) ([]strin
 	return merge.Files, err
 }
 
-// MergeInMemory merges two commits where env says, without following renames.
-// The result's tree is among env's objects.
+// MergeInMemory merges two commits without following renames, writing the
+// result's tree where env puts objects.
 func MergeInMemory(ctx context.Context, repoPath string, env []string, ours, theirs string) (MergeResult, error) {
 	env = append([]string{"GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=merge.renames", "GIT_CONFIG_VALUE_0=false"}, env...)
 	return mergeTree(ctx, repoPath, env, ours, theirs)
@@ -114,7 +114,7 @@ func MergePairs(ctx context.Context, repoPath string, pairs [][2]string) ([]Merg
 }
 
 // mergePairsDiscarding is MergePairs for a caller that only compares the
-// trees: they aren't kept.
+// trees: the merges' objects are written to scratch and removed after.
 func mergePairsDiscarding(ctx context.Context, repoPath string, pairs [][2]string) ([]MergeResult, error) {
 	env, discard := ScratchObjects(ctx, repoPath)
 	defer discard()
@@ -240,7 +240,8 @@ func MergeConflictsPairs(ctx context.Context, repoPath string, pairs [][2]string
 	return MergeConflictsIn(ctx, repoPath, env, pairs)
 }
 
-// MergeConflictsIn is MergeConflictsPairs where env says, such as ScratchObjects'.
+// MergeConflictsIn is MergeConflictsPairs with its objects where env puts them,
+// such as ScratchObjects' folder.
 func MergeConflictsIn(ctx context.Context, repoPath string, env []string, pairs [][2]string) ([][]string, error) {
 	merges, err := mergePairs(ctx, repoPath, env, pairs)
 	if err != nil {

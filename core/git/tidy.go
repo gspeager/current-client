@@ -28,22 +28,23 @@ type TidyCommit struct {
 	Suggested string
 }
 
-// TidyPlan is the commits Tidy up history offers, oldest first. Base is what
-// they sit on, "" when the range reaches the root.
 type TidyPlan struct {
-	Head     string
+	Head string
+	// What the commits sit on, "" when the range reaches the root.
 	Base     string
 	BaseName string
-	Commits  []TidyCommit
-	Dirty    bool
+	// The commits Tidy up history offers, oldest first.
+	Commits []TidyCommit
+	Dirty   bool
 	// A merge commit in the range: a rewrite would flatten it, so it's refused.
 	HasMerges bool
 }
 
-// TidyStep is a commit in its new place. Message is only read for TidyReword.
+// TidyStep is a commit in its new place.
 type TidyStep struct {
-	SHA     string
-	Action  string
+	SHA    string
+	Action string
+	// Only read for TidyReword.
 	Message string
 }
 
@@ -211,11 +212,12 @@ func validateTidy(plan TidyPlan, steps []TidyStep) error {
 	return nil
 }
 
-// TidyPreview says what running steps would do. Outcomes are in steps' order,
-// with dropped commits left out; Predicted is false on Git before 2.40.
+// TidyPreview says what running steps would do.
 type TidyPreview struct {
-	Result    []TidyResultCommit
-	Replay    []ReplayStep
+	Result []TidyResultCommit
+	// In steps' order, with dropped commits left out.
+	Replay []ReplayStep
+	// False on Git before 2.40.
 	Predicted bool
 	ForcePush bool
 	Upstream  string

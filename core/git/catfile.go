@@ -9,8 +9,8 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// RevPath is a file at a revision; Rev "" is the index.
 type RevPath struct {
+	// "" is the index.
 	Rev  string
 	Path string
 }

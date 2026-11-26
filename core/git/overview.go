@@ -10,12 +10,12 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// OverviewDay is a day's commits among those History lists. FirstRow is the
-// newest one's row, which is where a jump to this day lands. Rows follow graph
+// OverviewDay is a day's commits among those History lists. Rows follow graph
 // order, which dates needn't, so days are sorted by date but their rows aren't.
 type OverviewDay struct {
-	Day      time.Time
-	Commits  int
+	Day     time.Time
+	Commits int
+	// The newest commit's row, where a jump to this day lands.
 	FirstRow int
 }
 

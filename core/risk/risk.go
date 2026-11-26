@@ -39,32 +39,36 @@ const (
 	longestLineScanned = 8 << 10
 )
 
-// Finding.Line is in the new version and OldLine in the old one. Both are 0 when
-// it's about the whole file.
+// Finding's Line and OldLine are both 0 when it's about the whole file.
 type Finding struct {
-	Rule    string
-	Path    string
+	Rule string
+	Path string
+	// Line is in the new version.
 	Line    int
 	Message string
+	// OldLine is in the old version.
 	OldLine int
 }
 
-// Report holds at most 100 findings, shared among the rules that match so a long
-// list of one doesn't leave out another. LeftOut counts each rule's others.
+// Report holds at most mostFindings findings, shared among the rules that match
+// so a long list from one doesn't leave out another.
 type Report struct {
 	Findings []Finding
-	LeftOut  map[string]int
-	// The range has too many commits to read each for secrets.
+	// LeftOut counts each rule's findings past its share.
+	LeftOut map[string]int
+	// CommitsNotRead means the range has too many commits to read each for secrets.
 	CommitsNotRead bool
 }
 
-// Range is what changes from the commit From to To, a commit or a tree. Head is
-// the range's last commit, when To is a tree. Env can name where its objects are.
+// Range is what changes from the commit From to To.
 type Range struct {
 	From string
-	To   string
+	// To is a commit or a tree.
+	To string
+	// Head is the range's last commit, when To is a tree.
 	Head string
-	Env  []string
+	// Env can name where the range's objects are.
+	Env []string
 }
 
 // Check reports on what's staged, leaving out the rules in off.
@@ -103,11 +107,11 @@ func CheckRange(ctx context.Context, repoPath string, r Range, off []string) (Re
 type change struct {
 	repoPath string
 	env      []string
-	// The arguments that say what git diff compares.
+	// diff is the arguments that say what git diff compares.
 	diff []string
-	// The versions of a file before and after; "" is the index.
+	// from and to are the revisions before and after; "" is the index.
 	from, to string
-	// What has been done to its files, for messages.
+	// verb says what was done to the files, for messages: "staged" or "changed".
 	verb string
 }
 
@@ -123,7 +127,7 @@ func (c change) run(ctx context.Context, stdin string, args ...string) (string, 
 
 type found struct {
 	findings []Finding
-	// The values themselves, which never leave this package.
+	// secrets holds the matched values, which never leave this package.
 	secrets map[string]bool
 }
 
@@ -184,8 +188,8 @@ func inspect(ctx context.Context, c change, off []string) (found, error) {
 	return found{findings, secrets}, nil
 }
 
-// share gives every rule the same part of the list, and what one doesn't use to
-// the others.
+// share gives every rule the same share of mostFindings, and the part one rule
+// doesn't use to the others.
 func share(findings []Finding) Report {
 	if len(findings) <= mostFindings {
 		return Report{Findings: findings}
@@ -303,8 +307,8 @@ func lockfileFindings(ctx context.Context, c change, files []string, sizes map[s
 	return findings, nil
 }
 
-// A manifest also holds scripts and metadata, which don't touch the lockfile.
-// One that doesn't parse can't be ruled out, so it counts as changed.
+// packagesChanged ignores a manifest's scripts and metadata, which don't touch the
+// lockfile. A manifest that doesn't parse can't be ruled out, so it counts as changed.
 func packagesChanged(ctx context.Context, c change, file string) (bool, error) {
 	before, after := git.RevPath{Rev: c.from, Path: file}, git.RevPath{Rev: c.to, Path: file}
 	files, err := git.FilesAtWith(ctx, c.repoPath, c.env, []git.RevPath{before, after})

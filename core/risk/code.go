@@ -10,11 +10,11 @@ import (
 	"github.com/gspeager/current-client/core/filekind"
 )
 
-// A test as each language declares one, and how it's told not to run.
+// testSyntax is how a language declares a test and how it skips one.
 type testSyntax struct {
 	declared *regexp.Regexp
 	skipped  *regexp.Regexp
-	// Tests sit beside code in the same file, so any file can have them.
+	// anywhere means tests sit beside code in the same file, so any file can have them.
 	anywhere bool
 }
 
@@ -134,7 +134,7 @@ func tests(n int) string {
 	return fmt.Sprintf("%d tests", n)
 }
 
-// A focused test leaves the file's others unrun.
+// focused matches a test marked to run alone, which leaves the file's other tests unrun.
 var focused = regexp.MustCompile(`\.only\b|^\s*f(it|describe)\(`)
 
 func skippedTests(lines changedLines) []Finding {
@@ -152,7 +152,8 @@ func skippedTests(lines changedLines) []Finding {
 	return findings
 }
 
-// What each checker reads, as it's written in a comment or an attribute.
+// silenced matches each checker's directive to ignore a line, as written in a
+// comment or an attribute.
 var silenced = regexp.MustCompile(`(?:(?://|/\*|#|--|<!--|\{/\*)\s*(` +
 	`eslint-disable(?:-next-line|-line)?|stylelint-disable\S*|biome-ignore|tslint:disable\S*|oxlint-disable\S*|` +
 	`@ts-ignore|@ts-expect-error|@ts-nocheck|` +
@@ -163,7 +164,8 @@ var silenced = regexp.MustCompile(`(?:(?://|/\*|#|--|<!--|\{/\*)\s*(` +
 	`|(#pragma warning (?:disable|\(disable))` +
 	`|(@SuppressWarnings|@Suppress\(|@SuppressLint|\[SuppressMessage|#!?\[allow\())`)
 
-// Every pattern above holds one of these, and few lines do.
+// Every directive in silenced holds one of silencedWords, and few lines do, so
+// they rule a line out before the regex runs.
 var silencedWords = []string{
 	"isable", "gnore", "uppress", "nolint", "nosec", "nosem", "noqa", "NOSONAR", "nocheck", "expect-error", "skip", "allow(", "codeql[",
 }
@@ -172,7 +174,7 @@ func mayBeSilenced(text string) bool {
 	return slices.ContainsFunc(silencedWords, func(word string) bool { return strings.Contains(text, word) })
 }
 
-// A checker is often written about, too.
+// prose files are skipped: documentation often mentions a checker's directives.
 var prose = regexp.MustCompile(`(?i)\.(md|mdx|markdown|txt|rst|adoc)$`)
 
 func silencedCheckers(lines changedLines) []Finding {

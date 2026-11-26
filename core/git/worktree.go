@@ -140,7 +140,6 @@ func RemoveWorktree(ctx context.Context, repoPath, path string, force bool) erro
 	return err
 }
 
-// SameRepository says whether two paths are worktrees of one repository.
 func SameRepository(ctx context.Context, a, b string) bool {
 	first, err := gitDirs(ctx, a)
 	if err != nil {

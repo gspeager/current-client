@@ -47,15 +47,15 @@ func parseSignatureStatus(code string) SignatureStatus {
 // %aN/%aE apply .mailmap, matching shortlog and blame.
 const historyFormat = "%H\x1f%P\x1f%aN\x1f%aE\x1f%at\x1f%s\x1f%b\x1f%G?"
 
-// HistoryFilter.Ref is empty for HEAD, "--all" for every ref, or a branch name.
-// Type is empty for every commit, a Conventional Commits type, or
-// BreakingType for breaking changes of any type.
 type HistoryFilter struct {
+	// "" for HEAD, "--all" for every ref, or a branch name.
 	Ref    string
 	Since  string
 	Until  string
 	Author string
-	Type   string
+	// "" for every commit, a Conventional Commits type, or BreakingType for
+	// breaking changes of any type.
+	Type string
 	// FirstParent follows only each merge's first parent, so a side branch's
 	// commits are left out.
 	FirstParent bool

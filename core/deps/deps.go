@@ -274,7 +274,8 @@ func parseCargoToml(data []byte) (versions, error) {
 	return found, nil
 }
 
-// A dependency is a version string, or a table that may hold one.
+// addTomlDependencies reads each dependency as a version string, or a table
+// that may hold one.
 func addTomlDependencies(found versions, section map[string]any) {
 	for name, value := range section {
 		switch dependency := value.(type) {
@@ -332,7 +333,7 @@ func parsePyproject(data []byte) (versions, error) {
 	for _, group := range project.DependencyGroups {
 		var list []string
 		for _, entry := range group {
-			// The other form is a table including another group.
+			// An entry that isn't a requirement includes another group, and is skipped.
 			if requirement, ok := entry.(string); ok {
 				list = append(list, requirement)
 			}

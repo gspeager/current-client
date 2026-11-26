@@ -23,9 +23,9 @@ type allowlist struct {
 	regexes   []*regexp.Regexp
 	stopwords []string
 	paths     []*regexp.Regexp
-	// "line" or "match" tests that rather than the secret.
+	// target is "line" or "match" to test the whole line or match rather than the secret.
 	target string
-	// Every kind of check must hold, rather than any one.
+	// all means every kind of check must hold, rather than any one.
 	all bool
 }
 
@@ -116,7 +116,7 @@ func matchesAny(regexes []*regexp.Regexp, text string) bool {
 	return slices.ContainsFunc(regexes, func(regex *regexp.Regexp) bool { return regex.MatchString(text) })
 }
 
-// Test data holds real-looking keys on purpose.
+// fixturePath is skipped: test data holds real-looking keys on purpose.
 var fixturePath = regexp.MustCompile(`(?i)(^|/)(testdata|fixtures?|__fixtures__|__snapshots__)/`)
 
 func (r secretRules) scanLine(path, line string) []secretMatch {
@@ -152,7 +152,7 @@ type secretMatch struct {
 	secret string
 }
 
-// With no group named, a rule's secret is its first group, as in gitleaks.
+// secretOf takes the first group when a rule names none, as gitleaks does.
 func secretOf(groups []string, group int) string {
 	switch {
 	case group > 0 && group < len(groups):

@@ -15,11 +15,11 @@ const (
 )
 
 // Section is a GitLab CODEOWNERS section; GitHub files have one unnamed
-// section. Approvals is how many of its owners must approve, 0 for the
-// host's default.
+// section.
 type Section struct {
-	Name      string
-	Optional  bool
+	Name     string
+	Optional bool
+	// Approvals is how many of the section's owners must approve, 0 for the host's default.
 	Approvals int
 	Default   []string
 }

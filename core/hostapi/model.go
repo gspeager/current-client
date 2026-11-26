@@ -37,23 +37,23 @@ type User struct {
 	Username string `json:"username"`
 }
 
-// Change is a merge request or pull request. SourceProject is the fork's
-// project path when the change comes from one, else empty.
+// Change is a merge request or pull request.
 type Change struct {
-	Number            int         `json:"number"`
-	Title             string      `json:"title"`
-	Description       string      `json:"description"`
-	State             ChangeState `json:"state"`
-	Draft             bool        `json:"draft"`
-	SourceBranch      string      `json:"sourceBranch"`
-	SourceProject     string      `json:"sourceProject"`
-	TargetBranch      string      `json:"targetBranch"`
-	Author            User        `json:"author"`
-	Labels            []string    `json:"labels"`
-	HeadSHA           string      `json:"headSha"`
-	CI                CIStatus    `json:"ci"`
-	UnresolvedThreads int         `json:"unresolvedThreads"`
-	HasConflicts      bool        `json:"hasConflicts"`
+	Number       int         `json:"number"`
+	Title        string      `json:"title"`
+	Description  string      `json:"description"`
+	State        ChangeState `json:"state"`
+	Draft        bool        `json:"draft"`
+	SourceBranch string      `json:"sourceBranch"`
+	// SourceProject is the fork's project path when the change comes from one.
+	SourceProject     string   `json:"sourceProject"`
+	TargetBranch      string   `json:"targetBranch"`
+	Author            User     `json:"author"`
+	Labels            []string `json:"labels"`
+	HeadSHA           string   `json:"headSha"`
+	CI                CIStatus `json:"ci"`
+	UnresolvedThreads int      `json:"unresolvedThreads"`
+	HasConflicts      bool     `json:"hasConflicts"`
 	// ConflictsKnown says HasConflicts came from the host; GitHub's list
 	// entries carry no answer.
 	ConflictsKnown bool     `json:"conflictsKnown"`
@@ -91,11 +91,11 @@ func SetReview(reviews []Review, review Review) []Review {
 	return append(reviews, review)
 }
 
-// ChangeFile is one file a change touches; Status is added, deleted,
-// modified or renamed, OldPath set only for a rename.
 type ChangeFile struct {
-	Path      string `json:"path"`
-	OldPath   string `json:"oldPath"`
+	Path string `json:"path"`
+	// OldPath is set only for a rename.
+	OldPath string `json:"oldPath"`
+	// Status is "added", "deleted", "modified" or "renamed".
 	Status    string `json:"status"`
 	Additions int    `json:"additions"`
 	Deletions int    `json:"deletions"`
@@ -122,34 +122,34 @@ type Pipeline struct {
 	WebURL string   `json:"webUrl"`
 }
 
-// Job is one CI job. Retryable says the host's API can run it again: a
-// failed or canceled GitLab job, or GitHub Actions job.
 type Job struct {
-	ID        int64         `json:"id"`
-	Name      string        `json:"name"`
-	Stage     string        `json:"stage"`
-	Status    CIStatus      `json:"status"`
-	Duration  time.Duration `json:"duration"`
-	WebURL    string        `json:"webUrl"`
-	Retryable bool          `json:"retryable"`
+	ID       int64         `json:"id"`
+	Name     string        `json:"name"`
+	Stage    string        `json:"stage"`
+	Status   CIStatus      `json:"status"`
+	Duration time.Duration `json:"duration"`
+	WebURL   string        `json:"webUrl"`
+	// Retryable says the host's API can run the job again: a failed or canceled
+	// GitLab job, or GitHub Actions job.
+	Retryable bool `json:"retryable"`
 }
 
-// jobs is the pipeline's job list as last read, for a host that re-runs by
-// workflow run rather than by pipeline.
 type CIRetrier interface {
 	RetryJob(ctx context.Context, project string, job Job) error
+	// RetryPipeline's jobs are the pipeline's job list as last read, for a host
+	// that re-runs by workflow run rather than by pipeline.
 	RetryPipeline(ctx context.Context, project string, pipelineID int64, jobs []Job) error
 }
 
-// Thread is a review discussion. Path and Line are where it was left; Line
-// is 0 for a thread on the change as a whole. Outdated means the code it
-// was left on has changed since.
+// Thread is a review discussion.
 type Thread struct {
-	ID       string `json:"id"`
-	Path     string `json:"path"`
-	Line     int    `json:"line"`
-	OldLine  int    `json:"oldLine"`
-	Resolved bool   `json:"resolved"`
+	ID   string `json:"id"`
+	Path string `json:"path"`
+	// Line is 0 for a thread on the change as a whole.
+	Line     int  `json:"line"`
+	OldLine  int  `json:"oldLine"`
+	Resolved bool `json:"resolved"`
+	// Outdated means the code the thread was left on has changed since.
 	Outdated bool   `json:"outdated"`
 	Notes    []Note `json:"notes"`
 }
@@ -160,11 +160,12 @@ type Note struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-// Issue is one issue on a tracker. Key is how its references name it:
-// "123" for a host's #123, "PROJ-123" for Jira. Number is the host's
-// number, 0 on a tracker whose keys aren't numbers.
+// Issue is one issue on a tracker.
 type Issue struct {
-	Key    string `json:"key"`
+	// Key is how references name the issue: "123" for a host's #123, "PROJ-123"
+	// for Jira.
+	Key string `json:"key"`
+	// Number is 0 on a tracker whose keys aren't numbers.
 	Number int    `json:"number"`
 	Title  string `json:"title"`
 	State  string `json:"state"`
@@ -245,9 +246,7 @@ type ReleasePublisher interface {
 	PublishRelease(ctx context.Context, project string, release NewRelease) (PublishedRelease, error)
 }
 
-// Deployment is the latest deployment to one environment. Production is
-// the host's own word where it has one (GitHub's production_environment,
-// GitLab's production tier), else the name.
+// Deployment is the latest deployment to one environment.
 type Deployment struct {
 	Environment string    `json:"environment"`
 	SHA         string    `json:"sha"`
@@ -256,11 +255,13 @@ type Deployment struct {
 	DeployedAt  time.Time `json:"deployedAt"`
 	DeployedBy  User      `json:"deployedBy"`
 	WebURL      string    `json:"webUrl"`
-	Production  bool      `json:"production"`
+	// Production is the host's own word where it has one (GitHub's
+	// production_environment, GitLab's production tier), else IsProductionName.
+	Production bool `json:"production"`
 }
 
-// Deployments are newest first.
 type Deployer interface {
+	// Deployments are newest first.
 	Deployments(ctx context.Context, project string) ([]Deployment, error)
 }
 
@@ -271,15 +272,16 @@ func IsProductionName(environment string) bool {
 	return productionName.MatchString(environment)
 }
 
-// BranchRule is what the host forbids on branches matching Pattern, which
-// may end in a wildcard ("release/*"). NoPush means nobody pushes directly;
-// RestrictedPush that only some roles or people may.
+// BranchRule is what the host forbids on branches matching Pattern.
 type BranchRule struct {
-	Pattern        string `json:"pattern"`
-	NoPush         bool   `json:"noPush"`
-	RestrictedPush bool   `json:"restrictedPush"`
-	NoForcePush    bool   `json:"noForcePush"`
-	NoDelete       bool   `json:"noDelete"`
+	// Pattern may end in a wildcard ("release/*").
+	Pattern string `json:"pattern"`
+	// NoPush means nobody pushes directly.
+	NoPush bool `json:"noPush"`
+	// RestrictedPush means only some roles or people may push directly.
+	RestrictedPush bool `json:"restrictedPush"`
+	NoForcePush    bool `json:"noForcePush"`
+	NoDelete       bool `json:"noDelete"`
 }
 
 // Matches follows the hosts: * stands for any run of characters.
@@ -323,11 +325,11 @@ func MatchRule(rules []BranchRule, branch string) (BranchRule, bool) {
 }
 
 // Todo is an entry on GitLab's To-Do List or in GitHub's notifications.
-// Target is "change", "issue" or "" for anything else, such as a commit.
 type Todo struct {
-	ID        string
-	Project   string
-	Reason    string
+	ID      string
+	Project string
+	Reason  string
+	// Target is "change", "issue" or "" for anything else, such as a commit.
 	Target    string
 	Number    int
 	Title     string
@@ -364,13 +366,13 @@ const (
 	MergeMethodRebase = "rebase"
 )
 
-// MergeOptions lists the host's preferred method first. DeleteBranchFixed
-// means the host decides that for every merge, as GitHub does; otherwise
-// each merge may say.
 type MergeOptions struct {
-	Methods           []string `json:"methods"`
-	DeleteBranch      bool     `json:"deleteBranch"`
-	DeleteBranchFixed bool     `json:"deleteBranchFixed"`
+	// Methods lists the host's preferred method first.
+	Methods      []string `json:"methods"`
+	DeleteBranch bool     `json:"deleteBranch"`
+	// DeleteBranchFixed means the host decides DeleteBranch for every merge, as
+	// GitHub does; otherwise each merge may say.
+	DeleteBranchFixed bool `json:"deleteBranchFixed"`
 }
 
 // MergeRequest carries the head the merge is meant for, so a change that
@@ -381,11 +383,11 @@ type MergeRequest struct {
 	HeadSHA      string
 }
 
-// MergeRefusedError's Reason is plain words from the status the host gave;
-// the response body is never read.
 type MergeRefusedError struct {
 	Host   string
 	Status int
+	// Reason is plain words for the status the host gave; the response body is
+	// never read.
 	Reason string
 }
 
@@ -420,11 +422,12 @@ type ReviewCapabilities struct {
 	RequestChanges bool `json:"requestChanges"`
 }
 
-// NewComment is a comment on a line of a change's diff: Line on the new
-// side, or OldLine on the old side for a removed line.
+// NewComment is a comment on a line of a change's diff.
 type NewComment struct {
-	Path    string `json:"path"`
-	Line    int    `json:"line"`
+	Path string `json:"path"`
+	// Line is on the new side.
+	Line int `json:"line"`
+	// OldLine is on the old side, for a removed line.
 	OldLine int    `json:"oldLine"`
 	Body    string `json:"body"`
 }

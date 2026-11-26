@@ -16,7 +16,6 @@ import (
 	"github.com/gspeager/current-client/core/git"
 )
 
-// place is where a name is exported.
 type place struct {
 	path string
 	line int
@@ -198,7 +197,7 @@ func receiverName(receiver *ast.FieldList) string {
 
 var scriptEntry = regexp.MustCompile(`^(.*/)?(src/)?index\.(d\.ts|[cm]?[jt]sx?)$`)
 
-// scriptEntries is the changed files that are a package's index.
+// scriptEntries is the changed files that are a JavaScript or TypeScript package's index.
 func (c change) scriptEntries(ctx context.Context, files []git.ChangedFile) (map[string]bool, error) {
 	manifests := map[string][]string{}
 	var asked []string

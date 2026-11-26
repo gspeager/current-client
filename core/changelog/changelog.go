@@ -40,12 +40,12 @@ var typeSections = map[string]string{
 
 var sectionOrder = []string{Breaking, Added, Changed, Fixed, "Documentation", "Style", "Refactoring", "Tests", "Build", "CI", "Chores"}
 
-// Entry.Type is empty for a commit that doesn't follow Conventional Commits;
-// its Description is then the whole subject.
 type Entry struct {
-	SHA         string
-	Type        string
-	Scope       string
+	SHA string
+	// Type is empty for a commit that doesn't follow Conventional Commits.
+	Type  string
+	Scope string
+	// Description is the whole subject when Type is empty.
 	Description string
 	Section     string
 	Author      string
@@ -58,11 +58,11 @@ type MarkdownOptions struct {
 	Dates   bool
 }
 
-// Release.Sections lists the sections its entries fall into, in Markdown order.
 type Release struct {
 	SuggestedVersion string
 	Entries          []Entry
-	Sections         []string
+	// Sections lists the sections the entries fall into, in Markdown order.
+	Sections []string
 }
 
 // An empty from means all of to's history. With since set, the version is
@@ -218,9 +218,9 @@ func orderedSections(lines map[string][]string) []string {
 	return order
 }
 
-// ReleaseSection is one release's share of a range. Tag is empty for the
-// commits after the newest tag, whose version the caller chooses.
+// ReleaseSection is one release's share of a range.
 type ReleaseSection struct {
+	// Tag is empty for the commits after the newest tag, whose version the caller chooses.
 	Tag     string
 	Version string
 	Date    string

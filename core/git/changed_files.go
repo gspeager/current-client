@@ -50,13 +50,12 @@ func parentCount(ctx context.Context, repoPath, rev string) (int, error) {
 	return len(strings.Fields(result.Stdout)) - 1, nil
 }
 
-// FileVersion is a file in a tree; both are "" when it isn't there.
+// FileVersion's Mode and Blob are both "" when the file isn't in the tree.
 type FileVersion struct {
 	Mode string
 	Blob string
 }
 
-// TreeChange is a file that differs between two trees, with its content in each.
 type TreeChange struct {
 	ChangedFile
 	Added   int

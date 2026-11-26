@@ -33,9 +33,7 @@ var (
 	ErrHistoryChanged = errors.New("History changed since the preview. Check the undo again.")
 )
 
-// Plan says what Apply will do. Removed and Restored count the commits that
-// leave and come back to the branch; Pushed is true when a removed commit is
-// already on the upstream.
+// Plan says what Apply will do.
 type Plan struct {
 	Operation string
 	Detail    string
@@ -44,9 +42,11 @@ type Plan struct {
 	To        string
 	SwitchTo  string
 	Mode      git.ResetMode
-	Removed   int
-	Restored  int
-	Pushed    bool
+	// Removed and Restored count the commits that leave and come back to the branch.
+	Removed  int
+	Restored int
+	// Pushed is true when a removed commit is already on the upstream.
+	Pushed bool
 }
 
 func Preview(ctx context.Context, repoPath string) (Plan, error) {

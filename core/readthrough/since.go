@@ -11,27 +11,24 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// Reading is a range with what has been read of it.
 type Reading struct {
 	Files   []ReadFile
 	Skipped int
-	// How many files have been read at some time.
+	// Files marked read under the key, in this range or an earlier one.
 	Marked int
 }
 
-// ReadFile is a file of the range. Again means it has changed since it was read,
-// and Since is how.
 type ReadFile struct {
 	File
-	Read  bool
+	Read bool
+	// Again means the file has changed since it was read, and Since says how.
 	Again bool
 	Since Since
-	// Gone means it was read and the range doesn't change it any more. It's only
-	// here to show what changed since.
+	// Gone means the file was read and the range no longer changes it. It's only
+	// listed to show what changed since.
 	Gone bool
 }
 
-// Since is a file compared with what was read of it.
 type Since struct {
 	Added   int
 	Removed int
@@ -105,8 +102,8 @@ func read(ctx context.Context, repoPath string, env []string, key string, r Rang
 	return reading, err
 }
 
-// compare works out what changed since for the files that have, and which of them
-// only took the new base's changes.
+// compare counts what changed since it was read in each file read again, and
+// marks read again the files whose only change came from the new base.
 func (reading *Reading) compare(ctx context.Context, repoPath string, env []string, marks map[string]Mark, idLength int) error {
 	m := marker{ctx, repoPath, env}
 	var again []*ReadFile
@@ -140,7 +137,7 @@ func (reading *Reading) compare(ctx context.Context, repoPath string, env []stri
 		change, changed := changes[file.Path]
 		file.Since.Added, file.Since.Removed, file.Since.Binary = change.Added, change.Removed, change.Binary
 		if changed {
-			// One the range no longer changes has no status of its own.
+			// A file the range no longer changes has no status of its own.
 			file.Status = cmp.Or(file.Status, change.Status)
 			continue
 		}
@@ -151,7 +148,7 @@ func (reading *Reading) compare(ctx context.Context, repoPath string, env []stri
 }
 
 // carry merges what was read of each file onto its new base. Git before 2.38
-// can't, so there every one is a conflict.
+// can't merge trees, so there every file is a conflict.
 func carry(m marker, files []*ReadFile, marks map[string]Mark, idLength int) error {
 	if len(files) == 0 {
 		return nil
@@ -241,7 +238,6 @@ func parseVersions(output string) map[string]git.FileVersion {
 
 var errNotSince = &gitexec.AppError{Message: "This file hasn't changed since it was read."}
 
-// SinceDiff is a file's diff from what was read of it.
 func SinceDiff(ctx context.Context, repoPath, key string, r Range, path string, ignoreWhitespace bool) (diff.FileDiff, error) {
 	env, discard := git.ScratchObjects(ctx, repoPath)
 	defer discard()

@@ -9,9 +9,8 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// ConventionalCommit.Type is lowercased, and empty when the message doesn't
-// follow Conventional Commits.
 type ConventionalCommit struct {
+	// Lowercased; "" when the message doesn't follow Conventional Commits.
 	Type         string
 	Scope        string
 	Breaking     bool

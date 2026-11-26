@@ -303,7 +303,8 @@ func toUser(u user) hostapi.User {
 	return hostapi.User{Name: name, Username: u.Login}
 }
 
-// A comment whose position is gone was left on code that has changed since.
+// toThread marks a comment outdated when its position is gone: it was left on
+// code that has changed since.
 func toThread(c reviewComment, headSHA string, first hostapi.Note) hostapi.Thread {
 	thread := hostapi.Thread{ID: strconv.FormatInt(c.ID, 10), Path: c.Path, Notes: []hostapi.Note{first}}
 	line := 0
@@ -326,7 +327,7 @@ func toThread(c reviewComment, headSHA string, first hostapi.Note) hostapi.Threa
 // frontend (a 53-bit mantissa) and comes back exact.
 const pipelineIDChars = 13
 
-// webRoot is the pages' address: github.com for its own API host, else
+// webRoot is the web pages' address: github.com for its own API host, else
 // the Enterprise Server itself, which serves the API under /api/v3.
 func (p *Provider) webRoot() string {
 	if p.host.Name == "github.com" || p.host.Name == "api.github.com" {

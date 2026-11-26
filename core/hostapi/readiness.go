@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-// Fact is one thing that bears on whether a change can merge. Level is ok,
-// warn, info or unknown.
+// Fact is one thing that bears on whether a change can merge.
 type Fact struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
+	// Level is "ok", "warn", "info" or "unknown".
 	Level string `json:"level"`
 }
 
@@ -61,8 +61,8 @@ func ProtectionFact(rules []BranchRule, target string) (Fact, bool) {
 	return Fact{"Protection", value, "info"}, true
 }
 
-// Everyone involved, verdicts first as the list orders them; it needs
-// attention while changes are requested or a review still waits.
+// reviewsFact names every reviewer, verdicts first as the list orders them. It
+// warns while changes are requested or a review still waits.
 func reviewsFact(reviews []Review) Fact {
 	names := map[ReviewState][]string{}
 	for _, r := range reviews {

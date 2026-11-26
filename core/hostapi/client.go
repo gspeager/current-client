@@ -26,11 +26,13 @@ import (
 	"github.com/gspeager/current-client/core/git"
 )
 
-// Host is one the caller enabled: Name as the user sees it in settings
-// (hostname, with its port when the remote has one) and API its base URL.
+// Host is one the caller enabled.
 type Host struct {
+	// Name is the host as the user sees it in settings: the hostname, with its
+	// port when the remote has one.
 	Name string
-	API  string
+	// API is the base URL of the host's API.
+	API string
 }
 
 type TokenSource interface {
@@ -72,14 +74,14 @@ type Client struct {
 	status  map[string]*HostStatus
 }
 
-// HostStatus's budget is what the host's last answer reported; Limit is 0
-// when it reported none.
 type HostStatus struct {
 	LastRequest time.Time
 	InFlight    int
-	Remaining   int
-	Limit       int
-	ResetAt     time.Time
+	// Remaining, Limit and ResetAt are the rate limit budget the host's last
+	// answer reported; Limit is 0 when it reported none.
+	Remaining int
+	Limit     int
+	ResetAt   time.Time
 }
 
 func New(opts Options) *Client {
@@ -127,12 +129,13 @@ type Response struct {
 var ErrNotEnabled = errors.New("host integration is off")
 
 // HostError is an answer the host gave that the caller can't use. It carries
-// the status and never the response body. A caller that knows which token
-// scope the request needed sets Scope, so a 403 can name it.
+// the status and never the response body.
 type HostError struct {
 	Host   string
 	Status int
-	Scope  string
+	// Scope is set by a caller that knows which token scope the request needed,
+	// so a 403 can name it.
+	Scope string
 }
 
 func (e *HostError) Error() string {

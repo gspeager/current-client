@@ -14,18 +14,18 @@ import (
 // WorktreeKey starts the key of a worktree that has no branch checked out.
 const WorktreeKey = "worktree:"
 
-// Target is what a read through reads. Key names it for its marks and notes,
-// Path is the working tree its commands run in, and CheckedOut whether it's
-// what's checked out there.
 type Target struct {
-	Key        string
-	Name       string
-	Path       string
-	Head       string
+	// Key names the marks and notes of the read through.
+	Key  string
+	Name string
+	// Path is the working tree its commands run in.
+	Path string
+	Head string
+	// CheckedOut is whether the ref is what's checked out at Path.
 	CheckedOut bool
 }
 
-// Resolve finds a ref by its full name, or with path the worktree there.
+// Resolve finds a ref by its full name or, when path is set, the worktree at path.
 func Resolve(ctx context.Context, repoPath, ref, path string) (Target, error) {
 	if path != "" {
 		t := Target{Path: path, CheckedOut: true, Key: WorktreeKey + path, Name: filepath.Base(path)}
@@ -71,8 +71,8 @@ func Resolve(ctx context.Context, repoPath, ref, path string) (Target, error) {
 	return t, nil
 }
 
-// SettleBase works out the target, when none was asked for, from a stacked
-// branch's parent or the compare base, and where head left it. The target is ""
+// SettleBase picks the target, when none was asked for, from a stacked branch's
+// parent or the compare base, and the base head is compared with. settled is ""
 // when there's nothing to compare with.
 func SettleBase(ctx context.Context, repoPath, key, name, target, head string, links []git.StackLink) (settled, base string, err error) {
 	branch := strings.TrimPrefix(key, "refs/heads/")
@@ -101,7 +101,6 @@ func SettleBase(ctx context.Context, repoPath, key, name, target, head string, l
 	return target, base, err
 }
 
-// ForgetGone drops the marks of branches and worktrees that are gone.
 func ForgetGone(ctx context.Context, repoPath string) error {
 	gone, err := Gone(ctx, repoPath)
 	if err != nil {
@@ -110,7 +109,7 @@ func ForgetGone(ctx context.Context, repoPath string) error {
 	return Forget(ctx, repoPath, gone)
 }
 
-// Gone says whether the branch or worktree a key names has been deleted.
+// Gone returns whether the branch or worktree a key names has been deleted.
 func Gone(ctx context.Context, repoPath string) (func(key string) bool, error) {
 	worktrees, err := git.ListWorktrees(ctx, repoPath)
 	if err != nil {

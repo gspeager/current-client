@@ -12,12 +12,13 @@ import (
 	"github.com/gspeager/current-client/core/git"
 )
 
-// Check is one item of the release readiness list. Level is ok,
-// warn, info or unknown; Evidence is what the verdict rests on.
+// Check is one item of the release readiness list.
 type Check struct {
-	Label    string   `json:"label"`
-	Level    string   `json:"level"`
-	Value    string   `json:"value"`
+	Label string `json:"label"`
+	// Level is "ok", "warn", "info" or "unknown".
+	Level string `json:"level"`
+	Value string `json:"value"`
+	// Evidence is what the verdict rests on.
 	Evidence []string `json:"evidence"`
 	// AsOf is when a host fact was read, for a check from the host cache.
 	AsOf *time.Time `json:"asOf"`

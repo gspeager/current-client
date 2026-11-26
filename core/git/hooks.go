@@ -13,30 +13,32 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// Hooks are what Git runs in a repository. Dir is the hooks directory in use, and
-// Scope is where core.hooksPath set it, if it's set: "global" or "system" applies
-// to every repository. Tracked means the directory is in the repository, so
-// turning a hook off is a change to commit. Worktrees is how many worktrees share
-// it. ConfigUnsupported means hooks are set in config and this Git doesn't run them.
 type Hooks struct {
-	Dir               string
-	Scope             string
-	Tracked           bool
-	Worktrees         int
+	// The hooks directory in use.
+	Dir string
+	// Where core.hooksPath set Dir, "" when it isn't set; "global" or "system"
+	// applies to every repository.
+	Scope string
+	// Dir is in the repository, so turning a hook off is a change to commit.
+	Tracked bool
+	// How many worktrees share Dir.
+	Worktrees int
+	// Hooks are set in config and this Git doesn't run them.
 	ConfigUnsupported bool
 	List              []Hook
 }
 
-// Hook is a file in the hooks directory, or a hook set in config, which has a Name
-// of its own, a Command and the Scope it's set in. Manager is the tool that writes
-// it, where that can be told.
+// Hook is a file in the hooks directory, or a hook set in config.
 type Hook struct {
-	Event   string
+	Event string
+	// A file's Name is its Event. A config hook has a name of its own, a
+	// Command and the Scope it's set in.
 	Name    string
 	Path    string
 	Command string
 	Scope   string
 	On      bool
+	// The tool that writes the hook, where that can be told.
 	Manager string
 }
 

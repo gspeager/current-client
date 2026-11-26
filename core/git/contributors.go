@@ -18,8 +18,8 @@ type ContributorStat struct {
 }
 
 // Contributors passes HEAD explicitly: without a revision, shortlog reads
-// from stdin and returns nothing.
-// The all-time list is cached, with .mailmap, as Activity's stats and chart both ask.
+// from stdin and returns nothing. The all-time list is cached until a ref or
+// .mailmap changes, as Activity's stats and chart both ask for it.
 func Contributors(ctx context.Context, repoPath, since, until string) ([]ContributorStat, error) {
 	if since == "" && until == "" {
 		stats, err := cachedByRefs(ctx, repoPath, "contributors", func() ([]ContributorStat, error) {

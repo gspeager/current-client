@@ -9,9 +9,8 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// BranchReviewRow is a local branch with what's needed to judge it. Ahead and
-// Behind in Branch are against its upstream; the Base counts against the base.
 type BranchReviewRow struct {
+	// Ahead and Behind count against the branch's upstream.
 	Branch
 	AuthorName  string
 	AuthorEmail string
@@ -20,13 +19,12 @@ type BranchReviewRow struct {
 	Merged      bool
 }
 
-// BranchReview holds every local branch, compared with Base: the default
-// branch's upstream when it has one, or the default branch, which is "" when
-// the repository has none.
 type BranchReview struct {
 	Default string
-	Base    string
-	Rows    []BranchReviewRow
+	// The default branch's upstream when it has one, else the default branch;
+	// "" when the repository has neither.
+	Base string
+	Rows []BranchReviewRow
 }
 
 func ReviewBranches(ctx context.Context, repoPath string) (BranchReview, error) {

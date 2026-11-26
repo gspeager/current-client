@@ -24,21 +24,21 @@ type Host struct {
 
 // Links are the URL prefixes a reference completes: Issue+"123",
 // MergeRequest+"45", and Root+"group/project"+IssuePath+"12" for a
-// reference to another project. MergeRequest is empty where "!45" isn't
-// host syntax. Commit+sha, Tree+branch, Tag+name and Blob+sha+"/"+path
-// (+"#L<n>") are the host's pages for those; Project is the repository's
-// home page.
+// reference to another project. Commit+sha, Tree+branch, Tag+name and
+// Blob+sha+"/"+path (+"#L<n>") are the host's pages for those.
 type Links struct {
-	Issue        string `json:"issue"`
+	Issue string `json:"issue"`
+	// MergeRequest is empty where "!45" isn't host syntax.
 	MergeRequest string `json:"mergeRequest"`
 	Root         string `json:"root"`
 	IssuePath    string `json:"issuePath"`
-	Project      string `json:"project"`
-	Commit       string `json:"commit"`
-	Tree         string `json:"tree"`
-	Tag          string `json:"tag"`
-	Blob         string `json:"blob"`
-	Style        Style  `json:"style"`
+	// Project is the repository's home page.
+	Project string `json:"project"`
+	Commit  string `json:"commit"`
+	Tree    string `json:"tree"`
+	Tag     string `json:"tag"`
+	Blob    string `json:"blob"`
+	Style   Style  `json:"style"`
 }
 
 // NewChange is the host's pre-filled form for a merge request / pull
