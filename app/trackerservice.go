@@ -13,19 +13,20 @@ import (
 // nothing is asked of the tracker to build them.
 type TrackerService struct{}
 
-// TrackerInfo is one tracker's row. Managed is the organization's default
-// from policy.json, which every repository without its own tracker uses.
+// TrackerInfo is one tracker's row.
 type TrackerInfo struct {
-	Site    string   `json:"site"`
-	Kind    string   `json:"kind"`
-	Keys    []string `json:"keys"`
-	Repos   []string `json:"repos"`
-	Managed bool     `json:"managed"`
+	Site  string   `json:"site"`
+	Kind  string   `json:"kind"`
+	Keys  []string `json:"keys"`
+	Repos []string `json:"repos"`
+	// Managed marks the organization's default from policy.json, which every
+	// repository without its own tracker uses.
+	Managed bool `json:"managed"`
 	// HostName is what the status bar names while its integration is on.
 	HostName string `json:"hostName"`
-	// Enabled is the integration switch in force, Locked says the policy
-	// fixes it, and HasToken that a token was saved for it.
-	Enabled  bool `json:"enabled"`
+	// Enabled is the integration switch in force.
+	Enabled bool `json:"enabled"`
+	// Locked says the policy fixes Enabled.
 	Locked   bool `json:"locked"`
 	HasToken bool `json:"hasToken"`
 }
@@ -38,18 +39,19 @@ type TrackerList struct {
 	OpenRepos []string      `json:"openRepos"`
 }
 
-// TrackerLinks is what a repository's references link to. KeyPattern and
-// BranchKeyPattern are regular expressions with the key in group 1, the same
-// in Go and JavaScript.
+// TrackerLinks is what a repository's references link to.
 type TrackerLinks struct {
-	Site             string `json:"site"`
-	Kind             string `json:"kind"`
-	Browse           string `json:"browse"`
+	Site   string `json:"site"`
+	Kind   string `json:"kind"`
+	Browse string `json:"browse"`
+	// KeyPattern and BranchKeyPattern are regular expressions with the key in
+	// group 1, the same in Go and JavaScript.
 	KeyPattern       string `json:"keyPattern"`
 	BranchKeyPattern string `json:"branchKeyPattern"`
 	Managed          bool   `json:"managed"`
 	HostName         string `json:"hostName"`
-	// Reading is the tracker's integration on: its issues open in the app.
+	// Reading means the tracker's integration is on, so its issues open in the
+	// app rather than only linking out.
 	Reading bool `json:"reading"`
 }
 

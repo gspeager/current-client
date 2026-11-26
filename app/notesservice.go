@@ -16,16 +16,17 @@ import (
 
 type NotesService struct{}
 
-// NoteInfo.Stale means the commit, branch, tag or file it's on is gone. The
-// note stays, so nothing written is lost to a rebase or a clean-up.
 type NoteInfo struct {
 	Kind      string `json:"kind"`
 	Target    string `json:"target"`
 	Subject   string `json:"subject"`
 	Text      string `json:"text"`
 	UpdatedAt string `json:"updatedAt"`
-	Stale     bool   `json:"stale"`
-	// Of a review note, which is on a file or a line of what Target names.
+	// Stale means the commit, branch, tag or file the note is on is gone. The
+	// note stays, so nothing written is lost to a rebase or a clean-up.
+	Stale bool `json:"stale"`
+	// ID, Path, Line and OldLine are a review note's, which is on a file or a
+	// line of what Target names.
 	ID      string `json:"id"`
 	Path    string `json:"path"`
 	Line    int    `json:"line"`

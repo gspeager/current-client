@@ -16,9 +16,9 @@ type OverlapInfo struct {
 	Files  []string `json:"files"`
 }
 
-// OverlapReport.Supported is false on Git before 2.38, and in a partial clone, where
-// merging would fetch. The prediction is hidden rather than shown as an error.
 type OverlapReport struct {
+	// Supported is false on Git before 2.38, and in a partial clone, where
+	// merging would fetch. The prediction is hidden rather than shown as an error.
 	Supported bool          `json:"supported"`
 	Overlaps  []OverlapInfo `json:"overlaps"`
 }
@@ -37,11 +37,11 @@ func (s *OverlapService) Predict(repoPath string) (OverlapReport, error) {
 	}, nil
 }
 
-// GridInfo is every local branch that isn't merged against every other. Supported
-// is false on Git before 2.38, and Partial is true for a partial clone, where
-// merging would fetch.
+// GridInfo is every local branch that isn't merged against every other.
 type GridInfo struct {
-	Supported   bool               `json:"supported"`
+	// Supported is false on Git before 2.38.
+	Supported bool `json:"supported"`
+	// Partial is true for a partial clone, where merging would fetch.
 	Partial     bool               `json:"partial"`
 	Branches    []GridBranchInfo   `json:"branches"`
 	Conflicts   []GridConflictInfo `json:"conflicts"`
@@ -57,8 +57,8 @@ type GridBranchInfo struct {
 	LastCommitDate string `json:"lastCommitDate"`
 }
 
-// A and B are indexes of Branches.
 type GridConflictInfo struct {
+	// A and B are indexes into GridInfo.Branches.
 	A     int      `json:"a"`
 	B     int      `json:"b"`
 	Files []string `json:"files"`

@@ -25,14 +25,15 @@ type StandupRepo struct {
 	Reviewed    []StandupChange `json:"reviewed"`
 }
 
-// StandupChange is a merge request / pull request; Review is the user's
-// review on it (approved, changes_requested, commented) in Reviewed.
+// StandupChange is a merge request / pull request.
 type StandupChange struct {
 	Number    int       `json:"number"`
 	Title     string    `json:"title"`
 	WebURL    string    `json:"webUrl"`
 	UpdatedAt time.Time `json:"updatedAt"`
-	Review    string    `json:"review"`
+	// Review is the user's review on a change in Reviewed: approved,
+	// changes_requested or commented.
+	Review string `json:"review"`
 }
 
 type StandupCommit struct {

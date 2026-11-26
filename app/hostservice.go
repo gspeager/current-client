@@ -20,15 +20,14 @@ import (
 
 type HostService struct{}
 
-// Provider and APIURL are what is in effect; the Detected and Default fields
-// are what the remote URL alone gives, for Settings to show beside a choice.
-// SSLVerifyOff reports Git's http.sslVerify=false for the API address, which
-// Settings warns about; certificate checks stay on regardless. Remote and
-// Project are empty for a host added by hand.
 type HostInfo struct {
-	Remote           string `json:"remote"`
-	Hostname         string `json:"hostname"`
-	Project          string `json:"project"`
+	// Remote and Project are empty for a host added by hand.
+	Remote   string `json:"remote"`
+	Hostname string `json:"hostname"`
+	Project  string `json:"project"`
+	// Provider and APIURL are what is in effect; DetectedProvider and
+	// DefaultAPIURL are what the remote URL alone gives, for Settings to show
+	// beside a choice.
 	Provider         string `json:"provider"`
 	DetectedProvider string `json:"detectedProvider"`
 	APIURL           string `json:"apiUrl"`
@@ -37,17 +36,19 @@ type HostInfo struct {
 	Managed          bool   `json:"managed"`
 	HasToken         bool   `json:"hasToken"`
 	Dismissed        bool   `json:"dismissed"`
-	SSLVerifyOff     bool   `json:"sslVerifyOff"`
+	// SSLVerifyOff reports Git's http.sslVerify=false for the API address,
+	// which Settings warns about; certificate checks stay on regardless.
+	SSLVerifyOff bool `json:"sslVerifyOff"`
 }
 
-// HostStatusInfo carries the request budget the host last reported;
-// Limit is 0 when it reported none.
+// HostStatusInfo carries the request budget the host last reported.
 type HostStatusInfo struct {
 	LastRequest *time.Time `json:"lastRequest"`
 	InFlight    bool       `json:"inFlight"`
 	Remaining   int        `json:"remaining"`
-	Limit       int        `json:"limit"`
-	ResetAt     *time.Time `json:"resetAt"`
+	// Limit is 0 when the host reported none.
+	Limit   int        `json:"limit"`
+	ResetAt *time.Time `json:"resetAt"`
 }
 
 func (s *HostService) Detect(repoPath string) ([]HostInfo, error) {
@@ -206,11 +207,11 @@ func (s *HostService) RemoveToken(hostname string) error {
 	return setHostFlag(hostname, func(host *config.HostConfig) { host.HasToken = false })
 }
 
-// TestConnection goes through the same client and rules as every other
-// request: the provider where one exists, else the host's user endpoint.
 // A connection test answers quickly or says it couldn't.
 const connectionTestTimeout = 15 * time.Second
 
+// TestConnection goes through the same client and rules as every other
+// request: the provider where one exists, else the host's user endpoint.
 func (s *HostService) TestConnection(hostname string) (string, error) {
 	hosts := configOrDefault().Hosts
 	info := infoFor(hostByName(hostname), hosts)

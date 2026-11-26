@@ -15,8 +15,8 @@ import (
 
 var errHostOff = &gitexec.AppError{Message: "Integration is off for this repository's host."}
 
-// How long a host request may take, and one that streams or writes a lot, such
-// as a job's full log or a review with its comments.
+// How long a host request may take; slowHostTimeout is for one that streams or
+// writes a lot, such as a job's full log or a review with its comments.
 const (
 	hostTimeout     = 30 * time.Second
 	slowHostTimeout = time.Minute

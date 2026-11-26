@@ -38,16 +38,16 @@ type TaskDoneEvent struct {
 	Stopped    bool   `json:"stopped"`
 }
 
-// TaskInfo.Approved is false until the user has seen this command, and again if
-// the command or the file it comes from has changed since.
 type TaskInfo struct {
-	ID       string `json:"id"`
-	Source   string `json:"source"`
-	Name     string `json:"name"`
-	Command  string `json:"command"`
-	File     string `json:"file"`
-	Note     string `json:"note"`
-	Approved bool   `json:"approved"`
+	ID      string `json:"id"`
+	Source  string `json:"source"`
+	Name    string `json:"name"`
+	Command string `json:"command"`
+	File    string `json:"file"`
+	Note    string `json:"note"`
+	// Approved is false until the user has seen this command, and again if the
+	// command or the file it comes from has changed since.
+	Approved bool `json:"approved"`
 	// Fingerprint goes back to Approve, so approval covers what was shown.
 	Fingerprint string `json:"fingerprint"`
 	Custom      bool   `json:"custom"`
@@ -57,20 +57,21 @@ type TaskListInfo struct {
 	Tasks        []TaskInfo `json:"tasks"`
 	BeforeCommit []string   `json:"beforeCommit"`
 	BeforePush   []string   `json:"beforePush"`
-	// Shown on the worktree board.
+	// OnBoard is the task ids the worktree board shows.
 	OnBoard []string `json:"onBoard"`
 	Dir     string   `json:"dir"`
 }
 
-// TaskResultInfo is a task's last result. State is "current" on the code as it is
-// now, "outdated", "changed" when files changed while it ran, which are Changed, or
-// "unknown".
+// TaskResultInfo is a task's last result.
 type TaskResultInfo struct {
 	Passed     bool      `json:"passed"`
 	At         time.Time `json:"at"`
 	DurationMs int64     `json:"durationMs"`
-	State      string    `json:"state"`
-	Changed    []string  `json:"changed"`
+	// State is "current" when it ran on the code as it is now, "outdated",
+	// "changed" when files changed while it ran, or "unknown".
+	State string `json:"state"`
+	// Changed is the files that changed while it ran.
+	Changed []string `json:"changed"`
 }
 
 var (
@@ -142,7 +143,7 @@ func (s *TaskService) Results(repoPath string) (map[string]TaskResultInfo, error
 	ctx := context.Background()
 	env, discard := git.ScratchWrites(ctx, repoPath)
 	defer discard()
-	// Without it the state is unknown.
+	// Without the tree, every result's state is unknown.
 	tree, _ := board.Tree(ctx, repoPath, env)
 	for _, task := range tasks.Discover(repoPath, customTasks(configOrDefault(), repoPath)) {
 		if outcome, has, _ := taskResults.Of(worktree, task.ID); has {
@@ -225,8 +226,8 @@ func (s *TaskService) Run(repoPath, id, runID string) error {
 	return err
 }
 
-// code is a worktree's as a task starts. Its objects are kept until the task ends, to
-// say what changed meanwhile.
+// code is a worktree's tree as a task starts. Its objects are kept until the task
+// ends, to say what changed meanwhile.
 type code struct {
 	repoPath string
 	tree     string
@@ -234,8 +235,8 @@ type code struct {
 	discard  func()
 }
 
-// A command isn't held up for long by a worktree that's slow to read. Its result's
-// state is unknown then.
+// mostReadingCode bounds readCode, so a worktree that's slow to read doesn't
+// hold a command up for long. The result's state is then unknown.
 var mostReadingCode = 5 * time.Second
 
 func readCode(repoPath string) code {

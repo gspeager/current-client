@@ -22,13 +22,14 @@ func init() {
 }
 
 // OpenRequestInfo is a repository to open, from a path argument, a
-// current-client:// link or the file manager. Confirm means a link names a
-// repository the app doesn't know, so it asks first: a repository's own settings
-// can run programs as soon as Git reads it, and a link can come from a web page.
-// Problem is set instead of a path for a link that can't be used.
+// current-client:// link or the file manager.
 type OpenRequestInfo struct {
-	Path    string `json:"path"`
-	Confirm bool   `json:"confirm"`
+	Path string `json:"path"`
+	// Confirm means a link names a repository the app doesn't know, so it asks
+	// first: a repository's own settings can run programs as soon as Git reads
+	// it, and a link can come from a web page.
+	Confirm bool `json:"confirm"`
+	// Problem is set instead of Path for a link that can't be used.
 	Problem string `json:"problem"`
 }
 

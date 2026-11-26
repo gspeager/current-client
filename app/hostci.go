@@ -11,9 +11,9 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
-// CIMark is what a commit or branch tip shows for its pipeline. Status is
-// empty when the host has no pipeline for the commit.
+// CIMark is what a commit or branch tip shows for its pipeline.
 type CIMark struct {
+	// Status is empty when the host has no pipeline for the commit.
 	Status     string `json:"status"`
 	PipelineID int64  `json:"pipelineId"`
 	WebURL     string `json:"webUrl"`

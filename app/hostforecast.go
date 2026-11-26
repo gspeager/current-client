@@ -25,11 +25,11 @@ type ForecastConflict struct {
 
 // ForecastReport is the last refresh's forecast for the checked-out branch:
 // which of the open changes targeting the same base would conflict with it.
-// Checked may be less than Total when the cap cut the list.
 type ForecastReport struct {
-	Enabled   bool               `json:"enabled"`
-	Branch    string             `json:"branch"`
-	Base      string             `json:"base"`
+	Enabled bool   `json:"enabled"`
+	Branch  string `json:"branch"`
+	Base    string `json:"base"`
+	// Checked may be less than Total when the cap cut the list.
 	Checked   int                `json:"checked"`
 	Total     int                `json:"total"`
 	Conflicts []ForecastConflict `json:"conflicts"`

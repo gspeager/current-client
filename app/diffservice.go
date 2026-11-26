@@ -195,10 +195,9 @@ type DependencyChangeInfo struct {
 	To   string `json:"to"`
 }
 
-// DependencySummaryInfo.Available is false when there's nothing to summarize:
-// the file isn't a manifest or lockfile, is too large, or doesn't parse. The
-// raw diff is still there for those.
 type DependencySummaryInfo struct {
+	// Available is false when the file isn't a manifest or lockfile, is too
+	// large, or doesn't parse. The raw diff is still there for those.
 	Available bool                   `json:"available"`
 	Changes   []DependencyChangeInfo `json:"changes"`
 }

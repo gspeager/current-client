@@ -11,11 +11,12 @@ import (
 )
 
 // BranchChange is what a branch row or graph ref shows for its merge
-// request / pull request. State is empty when only the number is known,
-// from Git alone, with the host's API off.
+// request / pull request.
 type BranchChange struct {
-	Number            int    `json:"number"`
-	Prefix            string `json:"prefix"`
+	Number int    `json:"number"`
+	Prefix string `json:"prefix"`
+	// State is empty when only the number is known, from Git alone, with the
+	// host's API off.
 	State             string `json:"state"`
 	Draft             bool   `json:"draft"`
 	CI                string `json:"ci"`

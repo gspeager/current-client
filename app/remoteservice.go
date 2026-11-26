@@ -115,12 +115,13 @@ func (s *RemoteService) PullRebase(ctx context.Context, repoPath string, auth *g
 
 // PushResult says what was pushed and, when the branch has no known merge
 // request / pull request, where to create one: the link the host printed,
-// else one built from the remote's address. Kind names the host's word.
+// else one built from the remote's address.
 type PushResult struct {
 	Branch     string `json:"branch"`
 	Upstream   string `json:"upstream"`
 	CreateLink string `json:"createLink"`
-	Kind       string `json:"kind"`
+	// Kind is the host's word, "pull request" or "merge request".
+	Kind string `json:"kind"`
 }
 
 func (s *RemoteService) Push(ctx context.Context, repoPath string, auth *gitexec.Credential) (PushResult, error) {
@@ -259,9 +260,9 @@ type PushWarning struct {
 	NoDelete       bool   `json:"noDelete"`
 }
 
-// PushWarning is nil when the host is off, has
-// shown no rules, or none covers the branch. remoteBranch is "origin/main";
-// empty means the current branch's upstream.
+// PushWarning is nil when the host is off, has shown no rules, or none covers
+// the branch. remoteBranch is like "origin/main"; empty means the current
+// branch's upstream.
 func (s *RemoteService) PushWarning(repoPath, remoteBranch string) (*PushWarning, error) {
 	ctx := context.Background()
 	if remoteBranch == "" {

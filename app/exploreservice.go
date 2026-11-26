@@ -18,7 +18,7 @@ type MapFileInfo struct {
 	Path   string `json:"path"`
 	Lines  int    `json:"lines"`
 	Binary bool   `json:"binary"`
-	// "", "test", "generated" or "lockfile".
+	// Kind is "", "test", "generated" or "lockfile".
 	Kind string `json:"kind"`
 }
 
@@ -42,21 +42,23 @@ func noCommits(ctx context.Context, repoPath string) bool {
 	return err != nil
 }
 
-// The periods commits are counted over, in days; 0 is all that's read.
+// The periods commits are counted over, in days; 0 counts every commit read.
 var mapPeriods = []int{30, 90, 365, 0}
 
-// Reading every commit of a very long history takes minutes.
+// mostMapCommits caps the commits Activity reads: reading every commit of a
+// very long history takes minutes.
 const mostMapCommits = 20000
 
 type MapActivityInfo struct {
-	// In mapPeriods' order.
+	// Commits is a count for each of mapPeriods, in its order.
 	Commits []int  `json:"commits"`
 	Last    string `json:"last"`
 }
 
 type MapActivity struct {
 	Files map[string]MapActivityInfo `json:"files"`
-	// The commits read, when the history goes further back; 0 when it doesn't.
+	// Limit is the number of commits read when the history goes further back;
+	// 0 when every commit was read.
 	Limit int `json:"limit"`
 }
 
@@ -78,35 +80,36 @@ func (s *ExploreService) Activity(ctx context.Context, repoPath string) (MapActi
 	return activity, nil
 }
 
-// ExploreComparison is what Explore's views compare: "working" for uncommitted
-// changes, "branch" for a branch since it left its base, "release" for HEAD since a
-// tag, or "commit" for HEAD since any other point. Ref is the branch, the tag or the
-// point.
+// ExploreComparison is what Explore's views compare.
 type ExploreComparison struct {
+	// Kind is "working" for uncommitted changes, "branch" for a branch since it
+	// left its base, "release" for HEAD since a tag, or "commit" for HEAD since
+	// any other point.
 	Kind string `json:"kind"`
-	Ref  string `json:"ref"`
+	// Ref is the branch, the tag or the point.
+	Ref string `json:"ref"`
 }
 
 type MapChangeInfo struct {
 	Path     string `json:"path"`
 	OrigPath string `json:"origPath"`
-	// A, M, D, R or T.
+	// Status is A, M, D, R or T.
 	Status  string `json:"status"`
 	Added   int    `json:"added"`
 	Removed int    `json:"removed"`
 	Binary  bool   `json:"binary"`
 	Kind    string `json:"kind"`
-	// Predicted to conflict with the branch's target.
+	// Conflict is predicted against the branch's target.
 	Conflict bool `json:"conflict"`
 }
 
-// MapChangesInfo.Target is a branch's target, "" when there's nothing to compare
-// with. Predicted is false when Git is too old to predict conflicts.
 type MapChangesInfo struct {
-	Target    string          `json:"target"`
-	Files     []MapChangeInfo `json:"files"`
-	Skipped   int             `json:"skipped"`
-	Predicted bool            `json:"predicted"`
+	// Target is a branch's target, "" when there's nothing to compare with.
+	Target  string          `json:"target"`
+	Files   []MapChangeInfo `json:"files"`
+	Skipped int             `json:"skipped"`
+	// Predicted is false when Git is too old to predict conflicts.
+	Predicted bool `json:"predicted"`
 }
 
 func (s *ExploreService) Changes(ctx context.Context, repoPath string, comparison ExploreComparison) (MapChangesInfo, error) {

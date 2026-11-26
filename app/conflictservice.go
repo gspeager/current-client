@@ -11,10 +11,11 @@ type ConflictService struct{}
 type ConflictStateInfo struct {
 	Operation       string   `json:"operation"` // "", "merge", "cherry-pick", "revert", "rebase", or "am"
 	ConflictedPaths []string `json:"conflictedPaths"`
-	// The branch names the resolve actions use: ours is the checked-out side.
+	// Ours and Theirs are the branch names the resolve actions use; Ours is the
+	// checked-out side.
 	Ours   string `json:"ours"`
 	Theirs string `json:"theirs"`
-	// The message git prepared for the commit that finishes the operation.
+	// Message is what git prepared for the commit that finishes the operation.
 	Message string `json:"message"`
 }
 

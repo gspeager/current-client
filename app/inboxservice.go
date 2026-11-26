@@ -23,41 +23,43 @@ type InboxService struct {
 
 const staleAfter = 30 * 24 * time.Hour
 
-// InboxRow is one thing to do. Kind says which: dirty, operation,
-// unpushed, conflict, stale, merged (local); review, changes-requested,
-// ci-failed, assigned, todo, undeployed (host). FetchedAt is set on host rows: when the
-// cache learned it. TodoID is set on a row the host's to-do list has too,
-// so it can be marked done there.
+// InboxRow is one thing to do.
 type InboxRow struct {
 	// ID names a host row across refreshes; local rows have none.
 	ID string `json:"id"`
 	// New is a host row the Inbox hasn't shown yet.
-	New       bool       `json:"new"`
-	Kind      string     `json:"kind"`
-	Branch    string     `json:"branch"`
-	Number    int        `json:"number"`
-	Prefix    string     `json:"prefix"`
-	Key       string     `json:"key"`
-	Title     string     `json:"title"`
-	Detail    string     `json:"detail"`
-	Count     int        `json:"count"`
-	WebURL    string     `json:"webUrl"`
+	New bool `json:"new"`
+	// Kind is dirty, operation, unpushed, conflict, stale or merged for a local
+	// row; review, changes-requested, ci-failed, assigned, todo or undeployed
+	// for a host row.
+	Kind   string `json:"kind"`
+	Branch string `json:"branch"`
+	Number int    `json:"number"`
+	Prefix string `json:"prefix"`
+	Key    string `json:"key"`
+	Title  string `json:"title"`
+	Detail string `json:"detail"`
+	Count  int    `json:"count"`
+	WebURL string `json:"webUrl"`
+	// FetchedAt is when the cache learned a host row; nil on local rows.
 	FetchedAt *time.Time `json:"fetchedAt"`
-	TodoID    string     `json:"todoId"`
+	// TodoID is set on a row the host's to-do list has too, so it can be
+	// marked done there.
+	TodoID string `json:"todoId"`
 }
 
-// InboxRepo is one open repository's rows. HostEnabled with no FetchedAt
-// means the host is on but nothing has refreshed it this session, so the
-// host rows aren't known yet rather than empty. Notice says why the host's
-// to-do list is missing, once per host.
+// InboxRepo is one open repository's rows.
 type InboxRepo struct {
 	Path        string     `json:"path"`
 	Name        string     `json:"name"`
 	Rows        []InboxRow `json:"rows"`
 	Error       string     `json:"error"`
 	HostEnabled bool       `json:"hostEnabled"`
-	FetchedAt   *time.Time `json:"fetchedAt"`
-	Notice      string     `json:"notice"`
+	// FetchedAt is nil, with HostEnabled, while nothing has refreshed the host
+	// this session: its rows aren't known yet rather than empty.
+	FetchedAt *time.Time `json:"fetchedAt"`
+	// Notice says why the host's to-do list is missing, once per host.
+	Notice string `json:"notice"`
 }
 
 // Rows is the Inbox's list. With markSeen, the host rows it returns count
