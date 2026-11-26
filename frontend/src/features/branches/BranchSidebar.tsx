@@ -144,16 +144,20 @@ function BranchSidebar({
   useSidebarCommand('conflict-grid', () => setConflictGrid(true))
   useSidebarCommand('tidy-up', () => setTidyUp(true))
   useSidebarCommand('new-branch', () => setShowNewBranch(true))
-  useSidebarCommand('restack', () => {
-    const stack = stackWith(branchStatus?.current ?? '')
-    if (!stack) {
-      actions.setError("The current branch isn't in a stack.")
-      return
-    }
-    if (!sections.isOpen('branches', true)) sections.toggle('branches', true)
-    if (!sections.isOpen('branches-stacks', true)) sections.toggle('branches-stacks', true)
-    setRestack(stack.root)
-  })
+  useSidebarCommand(
+    'restack',
+    () => {
+      const stack = stackWith(branchStatus?.current ?? '')
+      if (!stack) {
+        actions.setError("The current branch isn't in a stack.")
+        return
+      }
+      if (!sections.isOpen('branches', true)) sections.toggle('branches', true)
+      if (!sections.isOpen('branches-stacks', true)) sections.toggle('branches-stacks', true)
+      setRestack(stack.root)
+    },
+    stackList !== null && !!branchStatus,
+  )
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 
   const cleanedUp = (branches: DeletedBranch[]) => {

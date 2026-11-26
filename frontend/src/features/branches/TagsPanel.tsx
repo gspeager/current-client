@@ -53,12 +53,16 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
 
   // Publish release from the palette takes the newest tag, which is listed first.
   useSidebarCommand('new-tag', () => setShowNewTag(true))
-  useSidebarCommand('publish-release', () => {
-    const newest = tags?.[0]
-    if (!newest) setActionError('No tag to publish a release from')
-    else if (!canPublish) setActionError('Publishing a release needs the host integration on with write scope')
-    else setReleaseTag(newest.name)
-  })
+  useSidebarCommand(
+    'publish-release',
+    () => {
+      const newest = tags?.[0]
+      if (!newest) setActionError('No tag to publish a release from')
+      else if (!canPublish) setActionError('Publishing a release needs the host integration on with write scope')
+      else setReleaseTag(newest.name)
+    },
+    tags !== null && canPublish !== null,
+  )
 
   const createTag = () => {
     setActionError(null)

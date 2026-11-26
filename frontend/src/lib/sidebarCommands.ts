@@ -53,8 +53,9 @@ export type SidebarCommands = ReturnType<typeof createSidebarCommands>
 
 export const SidebarCommandsContext = createContext<SidebarCommands | null>(null)
 
-export function useSidebarCommand(command: SidebarCommand, handler: () => void) {
+// ready false holds a waiting command until what the handler reads has loaded.
+export function useSidebarCommand(command: SidebarCommand, handler: () => void, ready = true) {
   const commands = useContext(SidebarCommandsContext)
   const run = useEventCallback(handler)
-  useEffect(() => commands?.register(command, run), [commands, command, run])
+  useEffect(() => (ready ? commands?.register(command, run) : undefined), [commands, command, run, ready])
 }
