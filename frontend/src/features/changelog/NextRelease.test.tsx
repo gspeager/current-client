@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ChangelogService, HostService, TagService } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import NextRelease from './NextRelease'
+import { renderWithDialogs } from '../../test/render'
 
 const result = (over = {}) => ({
   ref: 'HEAD',
@@ -22,11 +22,7 @@ const result = (over = {}) => ({
 })
 
 function renderBlock(onTagged = vi.fn()) {
-  render(
-    <DialogProvider>
-      <NextRelease repoPath="/r/app" repoVersion={0} onTagged={onTagged} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<NextRelease repoPath="/r/app" repoVersion={0} onTagged={onTagged} />)
   return onTagged
 }
 

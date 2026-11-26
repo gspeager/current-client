@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, type BranchReviewRowInfo } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchReviewDialog from './BranchReviewDialog'
+import { renderWithDialogs } from '../../test/render'
 
 function row(name: string, overrides: Partial<BranchReviewRowInfo> = {}): BranchReviewRowInfo {
   return {
@@ -36,10 +36,8 @@ const rows = [
 
 function renderDialog(onDeleted = vi.fn()) {
   vi.mocked(BranchService.ReviewBranches).mockResolvedValue({ base: 'origin/main', rows })
-  render(
-    <DialogProvider>
-      <BranchReviewDialog repoPath="/repo" onDeleted={onDeleted} onConflictGrid={vi.fn()} onClose={vi.fn()} />
-    </DialogProvider>,
+  renderWithDialogs(
+    <BranchReviewDialog repoPath="/repo" onDeleted={onDeleted} onConflictGrid={vi.fn()} onClose={vi.fn()} />,
   )
   return onDeleted
 }
@@ -139,10 +137,8 @@ describe('BranchReviewDialog', () => {
   it('opens the conflict grid', async () => {
     vi.mocked(BranchService.ReviewBranches).mockResolvedValue({ base: 'origin/main', rows })
     const onConflictGrid = vi.fn()
-    render(
-      <DialogProvider>
-        <BranchReviewDialog repoPath="/repo" onDeleted={vi.fn()} onConflictGrid={onConflictGrid} onClose={vi.fn()} />
-      </DialogProvider>,
+    renderWithDialogs(
+      <BranchReviewDialog repoPath="/repo" onDeleted={vi.fn()} onConflictGrid={onConflictGrid} onClose={vi.fn()} />,
     )
     await userEvent.click(await screen.findByRole('button', { name: 'Conflict grid' }))
     expect(onConflictGrid).toHaveBeenCalled()

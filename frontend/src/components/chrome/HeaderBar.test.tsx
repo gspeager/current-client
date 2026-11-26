@@ -1,11 +1,11 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, RemoteService, RepositoryService } from '@current-client-bindings/app'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
-import { DialogProvider } from './DialogProvider'
 import HeaderBar from './HeaderBar'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
-const REPO = '/repos/app'
 const repo = {
   tabs: [REPO],
   tabSummaries: {},
@@ -25,23 +25,21 @@ function renderHeader(overrides: Partial<Parameters<typeof HeaderBar>[0]> = {}) 
     onPushTags: vi.fn(),
     onPushSetUpstream: vi.fn(),
   }
-  render(
-    <DialogProvider>
-      <HeaderBar
-        repoPath={REPO}
-        repoVersion={0}
-        lastFetchedAt={new Date(Date.now() - 26 * 60 * 1000)}
-        pruneOnFetch={false}
-        repo={repo}
-        dirty={false}
-        workspaceActions={[]}
-        onOpenSettings={vi.fn()}
-        onOpenCommit={vi.fn()}
-        syncing={false}
-        {...handlers}
-        {...overrides}
-      />
-    </DialogProvider>,
+  renderWithDialogs(
+    <HeaderBar
+      repoPath={REPO}
+      repoVersion={0}
+      lastFetchedAt={new Date(Date.now() - 26 * 60 * 1000)}
+      pruneOnFetch={false}
+      repo={repo}
+      dirty={false}
+      workspaceActions={[]}
+      onOpenSettings={vi.fn()}
+      onOpenCommit={vi.fn()}
+      syncing={false}
+      {...handlers}
+      {...overrides}
+    />,
   )
   return handlers
 }

@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HostService, TagService } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import PublishReleaseDialog from './PublishReleaseDialog'
+import { renderWithDialogs } from '../../test/render'
 
 const draft = {
   tag: 'v0.3.0',
@@ -14,11 +14,7 @@ const draft = {
 }
 
 function renderDialog() {
-  render(
-    <DialogProvider>
-      <PublishReleaseDialog repoPath="/repos/app" tag="v0.3.0" onClose={vi.fn()} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<PublishReleaseDialog repoPath="/repos/app" tag="v0.3.0" onClose={vi.fn()} />)
 }
 
 describe('PublishReleaseDialog', () => {

@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { BlameLineInfo, BlameService, IdentityService } from '@current-client-bindings/app'
 import { OpenCommitContext } from '../../lib/openCommit'
 import BlameView from './BlameView'
+import { REPO } from '../../test/factories'
 
-const REPO = '/repos/app'
 const CHANGED = 'b'.repeat(40)
 const ADDED = 'a'.repeat(40)
 

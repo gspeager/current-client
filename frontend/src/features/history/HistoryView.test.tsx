@@ -24,10 +24,10 @@ import { giveElementsLayout } from '../../test/bindings'
 import { decodeBase64 } from '../../lib/base64'
 import { DensityContext } from '../../lib/density'
 import HistoryView from './HistoryView'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 vi.mock('../../lib/pictureFonts', () => ({ PICTURE_FONTS: [] }))
-
-const REPO = '/repos/app'
 
 function commit(sha: string, subject: string, parentShas: string[]): CommitInfo {
   return {
@@ -51,11 +51,7 @@ const history = [
 ]
 
 function renderHistory(props: Partial<Parameters<typeof HistoryView>[0]> = {}) {
-  render(
-    <DialogProvider>
-      <HistoryView repoPath={REPO} {...props} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<HistoryView repoPath={REPO} {...props} />)
 }
 
 beforeEach(() => giveElementsLayout())

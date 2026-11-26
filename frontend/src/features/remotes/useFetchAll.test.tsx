@@ -3,8 +3,7 @@ import { act, renderHook } from '@testing-library/react'
 import { RemoteService } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { useFetchAll } from './useFetchAll'
-
-const REPO = '/repos/app'
+import { REPO } from '../../test/factories'
 
 function wrapper({ children }: { children: ReactNode }) {
   return <DialogProvider>{children}</DialogProvider>

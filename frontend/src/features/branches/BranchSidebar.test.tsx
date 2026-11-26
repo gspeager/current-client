@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   BranchChange,
@@ -16,27 +16,24 @@ import {
 } from '@current-client-bindings/app'
 import { CIStatus, Job } from '@current-client-bindings/core/hostapi'
 import { Links, Style } from '@current-client-bindings/core/hostlink'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import BranchSidebar from './BranchSidebar'
 import { defaultSections } from '../../test/sections'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 function branch(name: string, current = false): BranchInfo {
   return { name, current, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath: '', tip: '' }
 }
 
 function renderSidebar(onBranchChanged = vi.fn(), sections = defaultSections()) {
-  render(
-    <DialogProvider>
-      <BranchSidebar
-        repoPath={REPO}
-        dirty={false}
-        refreshKey={0}
-        sections={sections}
-        onBranchChanged={onBranchChanged}
-      />
-    </DialogProvider>,
+  renderWithDialogs(
+    <BranchSidebar
+      repoPath={REPO}
+      dirty={false}
+      refreshKey={0}
+      sections={sections}
+      onBranchChanged={onBranchChanged}
+    />,
   )
   return onBranchChanged
 }
@@ -92,16 +89,14 @@ describe('BranchSidebar groups', () => {
   })
 
   it('badges the checked-out branch as merging and the other side as incoming', async () => {
-    render(
-      <DialogProvider>
-        <BranchSidebar
-          repoPath={REPO}
-          dirty={false}
-          refreshKey={0}
-          sections={defaultSections()}
-          conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'feature' })}
-        />
-      </DialogProvider>,
+    renderWithDialogs(
+      <BranchSidebar
+        repoPath={REPO}
+        dirty={false}
+        refreshKey={0}
+        sections={defaultSections()}
+        conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'feature' })}
+      />,
     )
 
     expect(await screen.findByText('merging')).toHaveClass('branch-row-mode')
@@ -111,16 +106,14 @@ describe('BranchSidebar groups', () => {
 
   it('blocks checking out and new branches until the merge is finished', async () => {
     vi.mocked(BranchService.CheckoutBranch).mockResolvedValue()
-    render(
-      <DialogProvider>
-        <BranchSidebar
-          repoPath={REPO}
-          dirty={false}
-          refreshKey={0}
-          sections={defaultSections()}
-          conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'feature' })}
-        />
-      </DialogProvider>,
+    renderWithDialogs(
+      <BranchSidebar
+        repoPath={REPO}
+        dirty={false}
+        refreshKey={0}
+        sections={defaultSections()}
+        conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'feature' })}
+      />,
     )
 
     const docs = await screen.findByRole('button', { name: /^docs/ })
@@ -134,16 +127,14 @@ describe('BranchSidebar groups', () => {
   })
 
   it('badges a remote-tracking branch as incoming when that is what is merging', async () => {
-    render(
-      <DialogProvider>
-        <BranchSidebar
-          repoPath={REPO}
-          dirty={false}
-          refreshKey={0}
-          sections={openSections()}
-          conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'origin/login' })}
-        />
-      </DialogProvider>,
+    renderWithDialogs(
+      <BranchSidebar
+        repoPath={REPO}
+        dirty={false}
+        refreshKey={0}
+        sections={openSections()}
+        conflict={new ConflictStateInfo({ operation: 'merge', ours: 'main', theirs: 'origin/login' })}
+      />,
     )
 
     expect((await screen.findByText('origin/login')).closest('.branch-row')).toHaveTextContent('incoming')

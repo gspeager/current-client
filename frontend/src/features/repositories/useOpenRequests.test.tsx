@@ -1,8 +1,9 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RepositoryService } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { useOpenRequests } from './useOpenRequests'
+import { renderWithDialogs } from '../../test/render'
 
 function Harness({ repo }: { repo: Parameters<typeof useOpenRequests>[0] }) {
   useOpenRequests(repo)
@@ -11,11 +12,7 @@ function Harness({ repo }: { repo: Parameters<typeof useOpenRequests>[0] }) {
 
 function renderWith(restored = true) {
   const repo = { restored, openFromOutside: vi.fn().mockResolvedValue(undefined) }
-  const view = render(
-    <DialogProvider>
-      <Harness repo={repo} />
-    </DialogProvider>,
-  )
+  const view = renderWithDialogs(<Harness repo={repo} />)
   return { repo, ...view }
 }
 
@@ -25,11 +22,7 @@ describe('useOpenRequests', () => {
   it('waits for tabs to be restored, then opens a path straight away', async () => {
     take().mockResolvedValue([{ path: '/repos/a', confirm: false, problem: '' }])
     const repo = { restored: false, openFromOutside: vi.fn().mockResolvedValue(undefined) }
-    const { rerender } = render(
-      <DialogProvider>
-        <Harness repo={repo} />
-      </DialogProvider>,
-    )
+    const { rerender } = renderWithDialogs(<Harness repo={repo} />)
     expect(take()).not.toHaveBeenCalled()
 
     const ready = { ...repo, restored: true }

@@ -4,8 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { RemoteService } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { useDeleteRemoteBranch } from './useDeleteRemoteBranch'
-
-const REPO = '/repos/app'
+import { REPO } from '../../test/factories'
 
 function wrapper({ children }: { children: ReactNode }) {
   return <DialogProvider>{children}</DialogProvider>

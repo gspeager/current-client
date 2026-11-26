@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   BranchService,
@@ -15,8 +15,8 @@ import {
 } from '@current-client-bindings/app'
 import { ReadThroughContext } from '../read-through/readThrough'
 import { decodeBase64 } from '../../lib/base64'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import ExploreView from './ExploreView'
+import { renderWithDialogs } from '../../test/render'
 
 vi.mock('../../lib/pictureFonts', () => ({ PICTURE_FONTS: [] }))
 
@@ -47,18 +47,16 @@ const readThrough = vi.fn()
 const openWorkingFile = vi.fn()
 
 const view = () =>
-  render(
-    <DialogProvider>
-      <ReadThroughContext.Provider value={readThrough}>
-        <ExploreView
-          repoPath="/repo"
-          currentBranch="feat"
-          repoVersion={0}
-          workingVersion={0}
-          onOpenWorkingFile={openWorkingFile}
-        />
-      </ReadThroughContext.Provider>
-    </DialogProvider>,
+  renderWithDialogs(
+    <ReadThroughContext.Provider value={readThrough}>
+      <ExploreView
+        repoPath="/repo"
+        currentBranch="feat"
+        repoVersion={0}
+        workingVersion={0}
+        onOpenWorkingFile={openWorkingFile}
+      />
+    </ReadThroughContext.Provider>,
   )
 
 beforeEach(() => {

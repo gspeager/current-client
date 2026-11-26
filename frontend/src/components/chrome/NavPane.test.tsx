@@ -13,8 +13,8 @@ import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import { DialogProvider } from './DialogProvider'
 import NavPane, { type SidebarRequest } from './NavPane'
 import { useWorkspaceActions } from './useWorkspaceActions'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 const workingTree = {
   files: [],
@@ -81,11 +81,7 @@ const openToolbox = () => userEvent.click(screen.getByRole('button', { name: 'To
 
 describe('NavPane asked to open a section', () => {
   it.each(['tidy-up', 'restack', 'branch-review'] as const)('opens Branches for %s, not Tags', async (action) => {
-    render(
-      <DialogProvider>
-        <Shell collapsed={false} onCollapsedChange={vi.fn()} request={{ action, n: 1 }} />
-      </DialogProvider>,
-    )
+    renderWithDialogs(<Shell collapsed={false} onCollapsedChange={vi.fn()} request={{ action, n: 1 }} />)
     // Hidden from the accessibility tree while the action's own dialog is open.
     const section = (name: RegExp) => screen.findByRole('button', { name, hidden: true })
     expect(await section(/^Branches/)).toHaveAttribute('aria-expanded', 'true')

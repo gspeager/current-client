@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, RecoverService, type SnapshotInfo } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import RecoverPanel from './RecoverPanel'
+import { renderWithDialogs } from '../../test/render'
 
 const tree: SnapshotInfo = {
   id: '2',
@@ -27,11 +27,7 @@ const tip: SnapshotInfo = {
 
 function renderPanel(snapshots = [tree, tip]) {
   vi.mocked(RecoverService.List).mockResolvedValue(snapshots)
-  render(
-    <DialogProvider>
-      <RecoverPanel repoPath="/repo" onClose={vi.fn()} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<RecoverPanel repoPath="/repo" onClose={vi.fn()} />)
 }
 
 describe('RecoverPanel', () => {

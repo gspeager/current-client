@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DiffService, FileContent, FileDiff } from '@current-client-bindings/app'
 import DiffViewer from './DiffViewer'
+import { REPO } from '../../test/factories'
 
-const REPO = '/repos/app'
 const images = { repoPath: REPO, before: { kind: 'commit', rev: 'abc^' }, after: { kind: 'commit', rev: 'abc' } }
 const binary = new FileDiff({ binary: true })
 

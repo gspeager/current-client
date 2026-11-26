@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SubmoduleService, type SubmoduleInfo } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import SubmodulesPanel from './SubmodulesPanel'
 import { defaultSections } from '../../test/sections'
+import { renderWithDialogs } from '../../test/render'
 
 const REPO = '/projects/app'
 
@@ -15,15 +15,13 @@ function renderPanel(submodules: SubmoduleInfo[]) {
   vi.mocked(SubmoduleService.List).mockResolvedValue(submodules)
   const onOpenRepository = vi.fn()
   const onSubmodulesChanged = vi.fn()
-  const { container } = render(
-    <DialogProvider>
-      <SubmodulesPanel
-        sections={defaultSections()}
-        repoPath={REPO}
-        onOpenRepository={onOpenRepository}
-        onSubmodulesChanged={onSubmodulesChanged}
-      />
-    </DialogProvider>,
+  const { container } = renderWithDialogs(
+    <SubmodulesPanel
+      sections={defaultSections()}
+      repoPath={REPO}
+      onOpenRepository={onOpenRepository}
+      onSubmodulesChanged={onSubmodulesChanged}
+    />,
   )
   return { container, onOpenRepository, onSubmodulesChanged }
 }

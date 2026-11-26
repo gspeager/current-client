@@ -1,19 +1,15 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HookService, HooksInfo } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import HooksPanel from './HooksPanel'
+import { renderWithDialogs } from '../../test/render'
 
 const REPO = '/repo'
 
 function show(hooks: Partial<HooksInfo>) {
   vi.mocked(HookService.Hooks).mockResolvedValue(new HooksInfo({ dir: '/repo/.git/hooks', worktrees: 1, ...hooks }))
   vi.mocked(HookService.SetHookOn).mockResolvedValue(undefined)
-  render(
-    <DialogProvider>
-      <HooksPanel repoPath={REPO} onClose={() => {}} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<HooksPanel repoPath={REPO} onClose={() => {}} />)
 }
 
 it('lists the hooks and turns one off', async () => {

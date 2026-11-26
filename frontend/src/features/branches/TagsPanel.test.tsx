@@ -1,11 +1,10 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HostService, RemoteService, TagInfo, TagService } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import TagsPanel from './TagsPanel'
 import { defaultSections } from '../../test/sections'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 function renderPanel() {
   vi.mocked(TagService.ListTags).mockResolvedValue([
@@ -15,11 +14,7 @@ function renderPanel() {
     { name: 'upstream', fetchUrl: '', pushUrl: '' },
     { name: 'origin', fetchUrl: '', pushUrl: '' },
   ])
-  render(
-    <DialogProvider>
-      <TagsPanel sections={defaultSections()} repoPath={REPO} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<TagsPanel sections={defaultSections()} repoPath={REPO} />)
 }
 
 describe('TagsPanel', () => {
