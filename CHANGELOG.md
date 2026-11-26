@@ -35,6 +35,10 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- **A card shown on hover appears over a dialog,** such as a pull request's or a commit's, instead of behind it. ([#492](https://github.com/gspeager/current-client/issues/492))
+- **Publish release and Restack current stack from Go to anything work with the sidebar collapsed.** They waited for the tags or stacks to load, instead of saying there were none. ([#486](https://github.com/gspeager/current-client/issues/486))
+- **In Windows High Contrast, the selected commit and the selected file keep their outline** when the commit is new or the file is marked read. ([#493](https://github.com/gspeager/current-client/issues/493))
+- **Messages from Tidy up, the host and the issue tracker read as sentences,** capitalized and ending in a period, like the rest. ([#481](https://github.com/gspeager/current-client/issues/481))
 - **A file named with accents or other non-ASCII letters shows its real name** in diffs, in Activity's most-changed files and in the language breakdown, instead of Git's quoted form, such as `"caf\303\251.txt"`. ([#478](https://github.com/gspeager/current-client/issues/478))
 - **Tidy up history, Restack and Branch review from Go to anything open Branches in the sidebar,** not Tags. ([#472](https://github.com/gspeager/current-client/issues/472))
 - **An app embedding Current Client no longer freezes while Current Client is hidden.** A question Current Client asks, such as whether to turn on a host's integration, waits until it's shown instead of opening a dialog nobody can see that still took every click. `onNeedsAttention` tells the host app a question is waiting, and `hostPrompt={false}` leaves the host question to an app that asks in its own words. ([#431](https://github.com/gspeager/current-client/issues/431))
