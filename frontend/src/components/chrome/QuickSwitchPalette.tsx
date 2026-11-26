@@ -430,6 +430,14 @@ function QuickSwitchPalette({
         className="quick-switch-command"
         value={selectedValue}
         onValueChange={setSelectedValue}
+        onKeyDown={(e) => {
+          // A file's other choice, as the footer says.
+          const file = selectedValue.startsWith('file:') ? selectedValue.slice('file:'.length) : null
+          if (file && onBlameFile && e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault()
+            runAndClose(() => onBlameFile(file))
+          }
+        }}
       >
         <div className="quick-switch-search">
           <Search size={16} strokeWidth={1.5} />
@@ -571,6 +579,20 @@ function QuickSwitchPalette({
               >
                 <span className="quick-switch-row-name">{highlight(baseName(path))}</span>
                 <PathText path={path} className="quick-switch-path" />
+                {onBlameFile && (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="quick-switch-row-blame"
+                    aria-label={`Blame ${path}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      runAndClose(() => onBlameFile(path))
+                    }}
+                  >
+                    Blame
+                  </button>
+                )}
               </Row>
             ))}
           </Section>
@@ -738,7 +760,13 @@ function QuickSwitchPalette({
           <span className="quick-switch-hint">
             <CornerDownLeft size={12} strokeWidth={1.5} /> select
           </span>
-          <span className="quick-switch-hint">Type blame and a file name to blame it</span>
+          {selectedValue.startsWith('file:') && onBlameFile ? (
+            <span className="quick-switch-hint">
+              <Kbd>{shortcutLabel('mod+↵')}</Kbd> blame
+            </span>
+          ) : (
+            <span className="quick-switch-hint">Type blame and a file name to blame it</span>
+          )}
           {resultCount > 0 && <span className="quick-switch-result-count">{plural(resultCount, 'result')}</span>}
         </div>
       </Command>

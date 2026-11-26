@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/gspeager/current-client/core/gitexec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,10 +19,26 @@ type BlameLine struct {
 	Summary     string
 	LineNo      int
 	Content     string
+	// The commit before SHA that had the file, and its path there; empty for
+	// the commit that added it.
+	Previous     string
+	PreviousPath string
 }
 
 func Blame(ctx context.Context, repoPath, path string) ([]BlameLine, error) {
-	result, err := runResult(ctx, repoPath, "blame", "--porcelain", "-w", "--", path)
+	return BlameAt(ctx, repoPath, path, "")
+}
+
+// BlameAt blames path as of rev, or the working tree when rev is empty.
+func BlameAt(ctx context.Context, repoPath, path, rev string) ([]BlameLine, error) {
+	if strings.HasPrefix(rev, "-") {
+		return nil, &gitexec.AppError{Message: "That isn't a commit."}
+	}
+	args := []string{"blame", "--porcelain", "-w"}
+	if rev != "" {
+		args = append(args, rev)
+	}
+	result, err := runResult(ctx, repoPath, append(args, "--", path)...)
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +55,8 @@ func parseBlame(output string) ([]BlameLine, error) {
 		authorEmail string
 		authorTime  int64
 		summary     string
+		previous    string
+		prevPath    string
 	}
 	metaBySHA := make(map[string]*commitMeta)
 
@@ -55,13 +74,15 @@ func parseBlame(output string) ([]BlameLine, error) {
 				return nil, fmt.Errorf("blame content line before any header for %q", curSHA)
 			}
 			lines = append(lines, BlameLine{
-				SHA:         curSHA,
-				AuthorName:  meta.authorName,
-				AuthorEmail: meta.authorEmail,
-				Date:        time.Unix(meta.authorTime, 0),
-				Summary:     meta.summary,
-				LineNo:      curLineNo,
-				Content:     line[1:],
+				SHA:          curSHA,
+				AuthorName:   meta.authorName,
+				AuthorEmail:  meta.authorEmail,
+				Date:         time.Unix(meta.authorTime, 0),
+				Summary:      meta.summary,
+				LineNo:       curLineNo,
+				Content:      line[1:],
+				Previous:     meta.previous,
+				PreviousPath: meta.prevPath,
 			})
 			continue
 		}
@@ -94,6 +115,8 @@ func parseBlame(output string) ([]BlameLine, error) {
 			meta.authorTime = ts
 		case strings.HasPrefix(line, "summary "):
 			meta.summary = strings.TrimPrefix(line, "summary ")
+		case strings.HasPrefix(line, "previous "):
+			meta.previous, meta.prevPath, _ = strings.Cut(strings.TrimPrefix(line, "previous "), " ")
 		}
 	}
 	if err := scanner.Err(); err != nil {

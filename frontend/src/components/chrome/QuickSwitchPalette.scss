@@ -226,3 +226,21 @@
   padding: var(--space-xs) var(--space-md);
   border-bottom: 1px solid var(--outline-variant);
 }
+
+.quick-switch-row-blame {
+  flex-shrink: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+  cursor: pointer;
+  visibility: hidden;
+
+  [cmdk-item]:hover &,
+  [cmdk-item][data-selected='true'] & {
+    visibility: visible;
+  }
+}

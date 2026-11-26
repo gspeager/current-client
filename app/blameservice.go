@@ -17,22 +17,32 @@ type BlameLineInfo struct {
 	Summary     string `json:"summary"`
 	LineNo      int    `json:"lineNo"`
 	Content     string `json:"content"`
+	// Where Blame before this commit goes; empty for the commit that added the file.
+	Previous     string `json:"previous"`
+	PreviousPath string `json:"previousPath"`
 }
 
 func (s *BlameService) GetBlame(repoPath, path string) ([]BlameLineInfo, error) {
-	lines, err := git.Blame(context.Background(), repoPath, path)
+	return s.GetBlameAt(repoPath, path, "")
+}
+
+// GetBlameAt blames path as of rev, or the working tree when rev is empty.
+func (s *BlameService) GetBlameAt(repoPath, path, rev string) ([]BlameLineInfo, error) {
+	lines, err := git.BlameAt(context.Background(), repoPath, path, rev)
 	if err != nil {
 		return nil, err
 	}
 	return mapSlice(lines, func(l git.BlameLine) BlameLineInfo {
 		return BlameLineInfo{
-			SHA:         l.SHA,
-			AuthorName:  l.AuthorName,
-			AuthorEmail: l.AuthorEmail,
-			Date:        l.Date.Format(time.RFC3339),
-			Summary:     l.Summary,
-			LineNo:      l.LineNo,
-			Content:     l.Content,
+			SHA:          l.SHA,
+			AuthorName:   l.AuthorName,
+			AuthorEmail:  l.AuthorEmail,
+			Date:         l.Date.Format(time.RFC3339),
+			Summary:      l.Summary,
+			LineNo:       l.LineNo,
+			Content:      l.Content,
+			Previous:     l.Previous,
+			PreviousPath: l.PreviousPath,
 		}
 	}), nil
 }

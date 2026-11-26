@@ -50,14 +50,57 @@
   font: var(--code);
 }
 
-.blame-row-ghost {
-  color: var(--outline);
-  font: var(--ui-xs);
-  white-space: normal;
-}
-
 .blame-hint {
   margin: var(--space-md);
   color: var(--outline);
   font: var(--ui-sm);
+}
+
+.blame-row-detail {
+  grid-column: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-xs);
+  color: var(--outline);
+  font: var(--ui-xs);
+  cursor: default;
+
+  button {
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--on-surface);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+}
+
+.blame-row-sha {
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.blame-at {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+
+  button {
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--on-surface);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
 }
