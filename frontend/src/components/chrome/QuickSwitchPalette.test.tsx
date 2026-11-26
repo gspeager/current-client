@@ -5,6 +5,7 @@ import { ClipboardCheck } from 'lucide-react'
 import {
   BisectService,
   SettingsService,
+  StatusService,
   BranchService,
   HistoryService,
   PatchService,
@@ -45,6 +46,7 @@ interface ShellSpies {
   onOpenSettings?: (group?: string) => void
   onOpenCommit?: (sha: string, position: number) => void
   onReadiness?: () => void
+  onBlameFile?: (path: string) => void
 }
 
 // The palette and the sidebar sharing one set of Workspace actions, as in App.
@@ -53,6 +55,7 @@ function Shell({
   onOpenSettings = vi.fn(),
   onOpenCommit = vi.fn(),
   onReadiness = vi.fn(),
+  onBlameFile = vi.fn(),
 }: ShellSpies) {
   const [paletteOpen, setPaletteOpen] = useState(true)
   const workspace = useWorkspaceActions({
@@ -104,6 +107,7 @@ function Shell({
           onPush={vi.fn()}
           onFetchAll={vi.fn()}
           onOpenFile={vi.fn()}
+          onBlameFile={onBlameFile}
           onSearchFiles={vi.fn()}
           onOpenCommit={onOpenCommit}
         />
@@ -198,6 +202,27 @@ describe('QuickSwitchPalette features', () => {
     await userEvent.click(await within(palette()).findByRole('option', { name: 'Install terminal command' }))
     expect(onOpenSettings).toHaveBeenCalledWith('Tools and folders')
     expect(PlatformService.InstallTerminalCommand).not.toHaveBeenCalled()
+  })
+
+  it('offers Blame on a file result, from its button or the keyboard', async () => {
+    vi.mocked(StatusService.ListFiles).mockResolvedValue(['src/parse.ts', 'README.md'])
+    const onBlameFile = vi.fn()
+    renderPalette(undefined, { onBlameFile })
+    await userEvent.type(screen.getByRole('combobox'), 'parse')
+    const file = await within(palette()).findByRole('option', { name: /File history of src\/parse.ts/ })
+    await userEvent.keyboard('{Control>}{Enter}{/Control}')
+    expect(onBlameFile).toHaveBeenCalledWith('src/parse.ts')
+    expect(file).not.toBeInTheDocument()
+  })
+
+  it('offers Blame on a file result from its button', async () => {
+    vi.mocked(StatusService.ListFiles).mockResolvedValue(['src/parse.ts'])
+    const onBlameFile = vi.fn()
+    renderPalette(undefined, { onBlameFile })
+    await userEvent.type(screen.getByRole('combobox'), 'parse')
+    const file = await within(palette()).findByRole('option', { name: /File history of src\/parse.ts/ })
+    await userEvent.click(within(file).getByRole('button', { name: 'Blame src/parse.ts', hidden: true }))
+    expect(onBlameFile).toHaveBeenCalledWith('src/parse.ts')
   })
 
   it('lists tags once typed for and opens the tagged commit', async () => {
