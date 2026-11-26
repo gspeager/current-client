@@ -1,0 +1,80 @@
+@use '../../styles/patterns';
+
+.hooks-panel {
+  width: 720px;
+}
+
+.hooks-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.hooks-about {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.hooks-dir {
+  font: var(--data-sm);
+  color: var(--on-surface-variant);
+}
+
+.hooks-hint {
+  margin: 0;
+  color: var(--outline);
+  font: var(--ui-sm);
+}
+
+.hooks-error {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-xs) var(--space-md);
+  color: var(--error);
+  font: var(--ui-sm);
+}
+
+.hooks-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hooks-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius);
+
+  &:hover {
+    background: var(--surface-container);
+  }
+}
+
+.hooks-row-event {
+  flex-shrink: 0;
+  width: 168px;
+  font: var(--data-md);
+}
+
+.hooks-row-source {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.hooks-row-manager {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

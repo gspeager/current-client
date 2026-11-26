@@ -9,12 +9,14 @@ import {
   Split,
   SquareTerminal,
   Undo2,
+  Webhook,
   type LucideIcon,
   LifeBuoy,
 } from 'lucide-react'
 import { DashboardService, PatchService, PlatformService, UndoService } from '@current-client-bindings/app'
 import type { Links } from '@current-client-bindings/core/hostlink'
 import { hostName, repositoryPage } from '../../lib/hostPages'
+import HooksPanel from '../../features/hooks/HooksPanel'
 import BisectWizard from '../../features/history/BisectWizard'
 import RecoverPanel from '../../features/history/RecoverPanel'
 import ReflogPanel from '../../features/history/ReflogPanel'
@@ -94,7 +96,7 @@ export function useWorkspaceActions({
 }: WorkspaceActionsOptions): WorkspaceActions {
   const { confirm } = useDialogs()
   const [feedback, setFeedback] = useState<(WorkspaceFeedback & { repoPath: string }) | null>(null)
-  const [open, setOpen] = useState<'reflog' | 'recover' | 'bisect' | null>(null)
+  const [open, setOpen] = useState<'reflog' | 'recover' | 'bisect' | 'hooks' | null>(null)
   const dismissFeedback = () => setFeedback(null)
 
   if (!repoPath) return { actions: [], feedback: null, dismissFeedback, modals: null }
@@ -214,6 +216,15 @@ export function useWorkspaceActions({
       run: () => run(importPatch(), 'Could not import patch'),
     },
     {
+      id: 'hooks',
+      label: 'Git hooks',
+      short: 'Hooks',
+      group: 'tools',
+      icon: Webhook,
+      keywords: ['pre-commit', 'husky', 'hooksPath'],
+      run: () => setOpen('hooks'),
+    },
+    {
       id: 'check-integrity',
       label: 'Check integrity',
       short: 'Check integrity',
@@ -236,6 +247,7 @@ export function useWorkspaceActions({
       {open === 'recover' && (
         <RecoverPanel repoPath={repoPath} onClose={() => setOpen(null)} onBranchChanged={onBranchChanged} />
       )}
+      {open === 'hooks' && <HooksPanel repoPath={repoPath} onClose={() => setOpen(null)} />}
       {open === 'reflog' && (
         <ReflogPanel repoPath={repoPath} onClose={() => setOpen(null)} onBranchChanged={onBranchChanged} />
       )}

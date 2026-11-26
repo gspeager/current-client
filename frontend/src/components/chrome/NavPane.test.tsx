@@ -166,7 +166,7 @@ describe('NavPane expanded', () => {
     const groups = [...document.querySelectorAll('.nav-pane-footer .nav-pane-tool-group')]
     expect(groups.map((row) => row.textContent)).toEqual([
       expect.stringMatching(/^Open inTerminal(Finder|File Explorer|File Manager)VS Code$/),
-      'ToolsUndoRecoverReflogBisectApply patchMaintenance',
+      'ToolsUndoRecoverReflogBisectApply patchHooksMaintenance',
     ])
     for (const button of groups.flatMap((g) => [...g.querySelectorAll('button')])) {
       expect(button).toHaveClass('nav-pane-tool')
