@@ -1,7 +1,7 @@
 // design-system.md §2.1. Bundled via @fontsource in CurrentClientApp.tsx; system stacks are fallbacks.
 .current-client {
   --font-chrome: 'Geist Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, sfmono-regular, menlo, monospace;
 }
 
 // JetBrains Mono's contextual alternates draw `<-` as an arrow and `!=` as ≠;
