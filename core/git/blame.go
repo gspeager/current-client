@@ -32,10 +32,19 @@ func Blame(ctx context.Context, repoPath, path string) ([]BlameLine, error) {
 
 // BlameAt blames path as of rev, or the working tree when rev is empty.
 func BlameAt(ctx context.Context, repoPath, path, rev string) ([]BlameLine, error) {
+	return BlameRanges(ctx, repoPath, path, rev, nil)
+}
+
+// BlameRanges blames only the given lines of path as of rev, each range a
+// first line and a count.
+func BlameRanges(ctx context.Context, repoPath, path, rev string, ranges [][2]int) ([]BlameLine, error) {
 	if strings.HasPrefix(rev, "-") {
 		return nil, &gitexec.AppError{Message: "That isn't a commit."}
 	}
 	args := []string{"blame", "--porcelain", "-w"}
+	for _, r := range ranges {
+		args = append(args, "-L", fmt.Sprintf("%d,+%d", r[0], r[1]))
+	}
 	if rev != "" {
 		args = append(args, rev)
 	}
