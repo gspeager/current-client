@@ -57,11 +57,11 @@ Add tests with your change: Go unit tests for parsing and logic, integration tes
 
 ## How the code is organized
 
-- `core/` — the reusable library: runs Git, parses its output, diffs, the commit graph, identity badges, opening repositories, changelogs from Conventional Commits, undo, and conflict prediction. It must not import `internal/`, Wails or the settings file; pass it the values it needs.
-- `internal/` — app-only code: settings, platform integration, file watching.
-- `app/` — the Wails services the frontend calls. Keep them thin. `main.go` only creates the window and registers `app.Services()`.
+- `core/` — the reusable library: runs Git (`core/gitexec`), parses its output (`core/git`), diffs, the commit graph, identity badges, opening repositories, changelogs from Conventional Commits, undo, conflict prediction, Read through, the staged-change checks, and the GitHub, GitLab and Jira clients (`core/hostapi`). It must not import `internal/`, `app/`, Wails or the settings file; pass it the values it needs.
+- `internal/` — app-only code: settings, `policy.json`, platform integration, file watching, terminals, tasks, notes, the update check, and Explore's Structure.
+- `app/` — the Wails services the frontend calls. Keep them thin: rules that don't need Wails go in `core/`, or `internal/` when app-only. `main.go` only creates the window and registers `app.Services()`.
 - `frontend/` — React + TypeScript. The frontend never runs commands or touches the file system; everything goes through the Wails bindings. Other apps can mount it through `frontend/src/embed.ts`, so its styles stay scoped to the `.current-client` root and it imports bindings as `@current-client-bindings/…`, never by relative path.
-  - `frontend/src/features/<area>/` — one folder per area of the app (`working-copy`, `diff`, `history`, `branches`, `remotes`, `activity`, `changelog`, `repositories`, `settings`), holding that area's view, components, hooks and helpers together.
+  - `frontend/src/features/<area>/` — one folder per area of the app (`working-copy`, `diff`, `history`, `branches`, `explore`, `read-through`, `host-changes`, `inbox`, `settings` and the rest), holding that area's view, components, hooks and helpers together. Features import the generated bindings directly.
   - `frontend/src/components/`, `lib/`, `styles/` — what more than one area uses: design-system controls and form fields, the app shell (header, navigation pane, status bar, dialogs), shared Git elements such as branch pills and identity badges, and general hooks and helpers. Code moves here once a second area needs it.
 - `examples/embed/` — a host app that embeds Current Client. It has its own Go module; build and test it after changing `app/`, `CurrentClientApp` or anything it imports.
 
