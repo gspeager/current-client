@@ -50,11 +50,9 @@ export function useHunkNavigation({ diff, blockStarts, pane, handle, hunkActions
     const total = diff.hunks.length
     if (total === 0) return
     e.preventDefault()
-    setCurrentHunk((i) => {
-      const next = forward ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
-      handle.current?.revealHunk(next)
-      return next
-    })
+    const next = forward ? Math.min(total - 1, currentHunk + 1) : Math.max(0, currentHunk - 1)
+    setCurrentHunk(next)
+    handle.current?.revealHunk(next)
   })
 
   return { currentHunk, currentBlock, stepBlock }

@@ -43,8 +43,7 @@ function ChangedFileDiff({
   const force = forcedPath === file.path
   const { data: diff, error } = useAsyncData(
     () => loadDiff(file, force, ignoreWhitespace),
-    // loadDiff is a new function every render; the path covers what it depends on.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadDiff and file are new each render; the path covers what they read
     [file.path, force, ignoreWhitespace],
     { refreshKey: version },
   )
