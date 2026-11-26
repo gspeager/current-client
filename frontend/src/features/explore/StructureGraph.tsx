@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { StructureLink, StructureNode } from '@current-client-bindings/app'
 import { counted } from './structureWords'
@@ -125,7 +126,7 @@ function StructureGraph({ label, nodes, links, commitsOf, compared, onOpen, onUp
               return (
                 <g
                   key={`${from}-${to}`}
-                  className={dim ? 'structure-line structure-dim' : 'structure-line'}
+                  className={clsx('structure-line', dim && 'structure-dim')}
                   stroke={colorOf(nodes[from].side === 'card' ? nodes[from] : nodes[to])}
                   strokeWidth={Math.min(3, 1.2 + Math.sqrt(count) * 0.15)}
                   strokeDasharray={state === 'removed' ? '4 4' : undefined}

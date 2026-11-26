@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import './TitleTooltips.scss'
@@ -101,7 +102,7 @@ function TitleTooltips({ root }: { root: HTMLElement }) {
     <div
       ref={tipRef}
       role="tooltip"
-      className={tip.above ? 'title-tooltip title-tooltip-above' : 'title-tooltip'}
+      className={clsx('title-tooltip', tip.above && 'title-tooltip-above')}
       style={{ left: tip.x, top: tip.y }}
     >
       {tip.text}

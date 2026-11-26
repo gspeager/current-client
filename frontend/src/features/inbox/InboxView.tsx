@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRovingRows } from '../../lib/useRovingRows'
 import {
@@ -263,7 +264,7 @@ function InboxRepoSection({ repo, open, onToggle, onGo, onRefreshed }: InboxRepo
           return (
             <section
               key={group.name}
-              className={tidyUp ? 'inbox-group inbox-group-quiet' : 'inbox-group'}
+              className={clsx('inbox-group', tidyUp && 'inbox-group-quiet')}
               aria-label={`${repo.name}: ${group.name}`}
             >
               <h4 className="inbox-group-label">

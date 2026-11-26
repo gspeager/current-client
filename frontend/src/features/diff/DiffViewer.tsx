@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image, List } from 'lucide-react'
 import { DiffService, type FileDiff, type ReadThroughNote, type ReviewThread } from '@current-client-bindings/app'
@@ -394,9 +395,7 @@ function DiffViewer({
           <SideHeader side={targetSide} which="target" count={diff.conflicted ? undefined : stats.added} />
         </div>
       )}
-      <div
-        className={`diff-viewer${mode === 'split' ? '' : ' diff-viewer-unified'}${wrap ? '' : ' diff-viewer-nowrap'}`}
-      >
+      <div className={clsx('diff-viewer', mode !== 'split' && 'diff-viewer-unified', !wrap && 'diff-viewer-nowrap')}>
         <DiffPane
           mode={mode}
           rows={displayRows}

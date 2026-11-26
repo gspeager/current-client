@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { hostUserName } from '../../lib/useNameIdentities'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import { type IdentityInfo, BranchChange } from '@current-client-bindings/app'
@@ -23,7 +24,7 @@ function ChangeRow({ change, prefix, selected, onSelect, me, identity, displayNa
   return (
     <button
       type="button"
-      className={selected ? 'host-change-row host-change-row-selected' : 'host-change-row'}
+      className={clsx('host-change-row', selected && 'host-change-row-selected')}
       onClick={onSelect}
     >
       <span className="host-change-row-head">

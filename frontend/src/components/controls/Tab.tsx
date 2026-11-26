@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import { ariaShortcut, shortcutLabel } from '../../lib/shortcuts'
 import './Tab.scss'
@@ -19,7 +20,7 @@ function Tab({ active, onClick, children, label, off, shortcut }: TabProps) {
   return (
     <button
       type="button"
-      className={active ? 'tab tab-active' : off ? 'tab tab-off' : 'tab'}
+      className={clsx('tab', active ? 'tab-active' : off && 'tab-off')}
       onClick={onClick}
       aria-label={label}
       aria-current={active ? 'page' : undefined}

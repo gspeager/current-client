@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { Ellipsis, Pencil, X } from 'lucide-react'
 import type {
@@ -73,7 +74,7 @@ function BranchRow({
   const incoming = !!conflict && b.name === conflict.theirs
   return (
     <li
-      className={`branch-row${b.current ? ' branch-row-current' : ''}${isBlocked ? ' branch-row-blocked' : ''}`}
+      className={clsx('branch-row', b.current && 'branch-row-current', isBlocked && 'branch-row-blocked')}
       onDoubleClick={checkout}
       onContextMenu={onMenu}
       role="button"

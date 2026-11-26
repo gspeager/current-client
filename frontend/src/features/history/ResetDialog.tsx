@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState } from 'react'
 import type { CommitInfo } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
@@ -44,10 +45,7 @@ function ResetDialog({ repoPath, commit, onClose, onReset }: ResetDialogProps) {
         </p>
         <div className="reset-dialog-modes" role="radiogroup" aria-label="Reset mode">
           {MODES.map((m) => (
-            <label
-              key={m.mode}
-              className={mode === m.mode ? 'reset-dialog-mode reset-dialog-mode-on' : 'reset-dialog-mode'}
-            >
+            <label key={m.mode} className={clsx('reset-dialog-mode', mode === m.mode && 'reset-dialog-mode-on')}>
               <input
                 type="radio"
                 name="reset-mode"

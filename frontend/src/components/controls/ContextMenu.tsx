@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import './ContextMenu.scss'
 
@@ -128,7 +129,7 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
           <button
             type="button"
             role="menuitem"
-            className={item.destructive ? 'context-menu-item context-menu-item-destructive' : 'context-menu-item'}
+            className={clsx('context-menu-item', item.destructive && 'context-menu-item-destructive')}
             disabled={item.disabled}
             onClick={() => {
               onClose()

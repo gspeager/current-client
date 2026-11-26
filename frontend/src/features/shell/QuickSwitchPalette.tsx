@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Command } from 'cmdk'
 import { useDebounceValue } from 'usehooks-ts'
@@ -213,7 +214,7 @@ function Row({ value, label, icon: Icon, action = false, onSelect, children }: R
     <Command.Item
       value={value}
       aria-label={label}
-      className={action ? 'quick-switch-row quick-switch-row-action' : 'quick-switch-row'}
+      className={clsx('quick-switch-row', action && 'quick-switch-row-action')}
       onSelect={onSelect}
     >
       {Icon && <Icon size={14} strokeWidth={1.5} className="quick-switch-row-icon" />}

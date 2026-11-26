@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
@@ -171,7 +172,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
         <ArrowRight size={14} strokeWidth={1.75} className="next-release-arrow" aria-hidden="true" />
         <button
           type="button"
-          className={tagged && canPublish ? 'next-release-step next-release-step-primary' : 'next-release-step'}
+          className={clsx('next-release-step', tagged && canPublish && 'next-release-step-primary')}
           onClick={() => setPublishing(true)}
           disabled={!tagged || !canPublish}
           title={publishHint}
@@ -207,9 +208,7 @@ function CheckRow({ check }: { check: ReleaseCheck }) {
       title={check.level !== 'warn' && evidence.length > 0 ? evidence.join('\n') : undefined}
     >
       <Icon size={14} strokeWidth={1.75} aria-label={level.label} role="img" />
-      <span className={isPath(check.label) ? 'release-check-label release-check-path' : 'release-check-label'}>
-        {check.label}
-      </span>
+      <span className={clsx('release-check-label', isPath(check.label) && 'release-check-path')}>{check.label}</span>
       <span className="release-check-value">{check.value}</span>
       {check.asOf && <span className="release-check-asof">{relativeTime(new Date(check.asOf))}</span>}
       {check.level === 'warn' && evidence.length > 0 && (

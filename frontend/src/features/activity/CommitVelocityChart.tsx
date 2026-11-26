@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { ActivityService } from '@current-client-bindings/app'
 import { averageWeeklyCommits, busiestWeekday, weeklyBuckets } from './commitVelocity'
 import { localDay } from './calendarLayout'
@@ -64,7 +65,10 @@ function CommitVelocityChart({ repoPath, repoVersion }: CommitVelocityChartProps
                   />
                 </span>
                 <span
-                  className={`commit-velocity-week-label${i === weeks.length - 1 ? ' commit-velocity-week-label-current' : ''}`}
+                  className={clsx(
+                    'commit-velocity-week-label',
+                    i === weeks.length - 1 && 'commit-velocity-week-label-current',
+                  )}
                 >
                   {i === weeks.length - 1
                     ? 'Now'

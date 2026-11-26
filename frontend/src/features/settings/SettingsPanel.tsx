@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import BranchPill from '../../components/git/BranchPill'
 import { useRef, useState } from 'react'
 import { Monitor, Moon, Rows3, Rows4, Sun } from 'lucide-react'
@@ -147,7 +148,7 @@ function SettingsPanel({
             <button
               key={title}
               type="button"
-              className={title === section ? 'settings-rail-item settings-rail-item-active' : 'settings-rail-item'}
+              className={clsx('settings-rail-item', title === section && 'settings-rail-item-active')}
               aria-current={title === section ? 'true' : undefined}
               onClick={() => {
                 setSection(title)

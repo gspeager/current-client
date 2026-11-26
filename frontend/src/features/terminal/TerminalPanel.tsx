@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import { Plus, X } from 'lucide-react'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
@@ -45,7 +46,7 @@ function TerminalPanel({ repoPath, terminals, focusRequest, theme, tasks }: Term
             {current.shells.map((shell) => (
               <span
                 key={shell.id}
-                className={shell.id === current.active ? 'terminal-tab terminal-tab-active' : 'terminal-tab'}
+                className={clsx('terminal-tab', shell.id === current.active && 'terminal-tab-active')}
               >
                 <button
                   type="button"

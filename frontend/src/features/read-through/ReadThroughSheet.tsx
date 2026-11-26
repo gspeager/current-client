@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import {
@@ -278,7 +279,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
               <div className="read-through-row">
                 <button
                   type="button"
-                  className={path === null ? 'changed-file changed-file-selected' : 'changed-file'}
+                  className={clsx('changed-file', path === null && 'changed-file-selected')}
                   aria-pressed={path === null}
                   onClick={() => openFile(null)}
                 >

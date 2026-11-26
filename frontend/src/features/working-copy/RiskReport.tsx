@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, TriangleAlert } from 'lucide-react'
 import { CommitService, type FileStatus } from '@current-client-bindings/app'
@@ -45,7 +46,7 @@ function RiskReport({ repoPath, staged, rulesOff, onOpen }: RiskReportProps) {
             <li key={i}>
               <button
                 type="button"
-                className={finding.rule === 'secret' ? 'risk-report-row risk-report-row-secret' : 'risk-report-row'}
+                className={clsx('risk-report-row', finding.rule === 'secret' && 'risk-report-row-secret')}
                 title={riskReason(finding.rule)}
                 onClick={() => onOpen(finding.path, finding.line, finding.oldLine)}
               >

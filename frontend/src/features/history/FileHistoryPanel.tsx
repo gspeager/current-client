@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState } from 'react'
 import { DiffService, HistoryService } from '@current-client-bindings/app'
 import { diffBaseFor } from '../diff/diffMapping'
@@ -61,7 +62,7 @@ function FileHistoryPanel({ repoPath, path, onClose }: FileHistoryPanelProps) {
               <button
                 type="button"
                 key={c.sha}
-                className={c.sha === selectedSha ? 'file-history-row file-history-row-selected' : 'file-history-row'}
+                className={clsx('file-history-row', c.sha === selectedSha && 'file-history-row-selected')}
                 onClick={() => setSelectedSha(c.sha)}
               >
                 <span className="file-history-row-subject">{c.subject}</span>

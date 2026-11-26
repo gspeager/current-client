@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useMemo, useState } from 'react'
 import { Play, Square, X } from 'lucide-react'
 import { TaskService, type TaskInfo, type TaskResultInfo } from '@current-client-bindings/app'
@@ -102,7 +103,7 @@ function TasksView({ repoPath, tasks, refreshKey }: TasksViewProps) {
           {list?.tasks.map((task) => {
             const run = tasks.runOf(task.id)
             return (
-              <li key={task.id} className={task.id === selected ? 'tasks-row tasks-row-selected' : 'tasks-row'}>
+              <li key={task.id} className={clsx('tasks-row', task.id === selected && 'tasks-row-selected')}>
                 {run?.status === 'running' ? (
                   <button
                     type="button"

@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import {
   ActivityService,
@@ -86,7 +87,10 @@ function RepoStatStrip({ repoPath, repoVersion, dirty, changedCount = 0, action 
               <span className="repo-stat-strip-value repo-stat-strip-branch" title={data[0].currentBranch}>
                 <span className="repo-stat-strip-branch-name">{data[0].currentBranch}</span>
                 <span
-                  className={`repo-stat-strip-dot${dirty ? ' repo-stat-strip-dot-dirty' : ' repo-stat-strip-dot-clean'}`}
+                  className={clsx(
+                    'repo-stat-strip-dot',
+                    dirty ? 'repo-stat-strip-dot-dirty' : 'repo-stat-strip-dot-clean',
+                  )}
                 />
               </span>
               {changedCount > 0 && (

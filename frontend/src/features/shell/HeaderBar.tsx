@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { HistoryService, UndoService, type NoteInfo } from '@current-client-bindings/app'
 import { System } from '@wailsio/runtime'
 import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
@@ -509,7 +510,7 @@ function HeaderBar({
       {onToggleInbox && (
         <button
           type="button"
-          className={inboxOpen ? 'header-bar-inbox header-bar-inbox-open' : 'header-bar-inbox'}
+          className={clsx('header-bar-inbox', inboxOpen && 'header-bar-inbox-open')}
           aria-pressed={inboxOpen}
           aria-label={inboxUnseen > 0 ? `Inbox, ${inboxUnseen} new` : 'Inbox'}
           title={

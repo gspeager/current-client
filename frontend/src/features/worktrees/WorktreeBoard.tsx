@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useMemo, useState } from 'react'
 import { BookOpen, FolderOpen, Play, Square, SquareTerminal, TriangleAlert } from 'lucide-react'
 import type { BoardColumn, BoardInfo, BoardTask } from '@current-client-bindings/app'
@@ -256,7 +257,7 @@ function ColumnTask({ task, worktree, onRun, onStop }: ColumnTaskProps) {
         {name}
       </span>
       <span
-        className={failed ? 'worktree-column-result worktree-column-failed' : 'worktree-column-result'}
+        className={clsx('worktree-column-result', failed && 'worktree-column-failed')}
         title={result && !running ? explainResult(result) : undefined}
       >
         {running ? 'Running' : result ? describeResult(result) : 'Not run'}

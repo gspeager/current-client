@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { FolderOpen } from 'lucide-react'
 import type { useRepositoryLifecycle } from './useRepositoryLifecycle'
 import { useRecentSummaries } from './useRecentSummaries'
@@ -26,7 +27,7 @@ function RepoQuickList({ repo, onOpenAnother }: RepoQuickListProps) {
             <li key={s.path}>
               <button
                 type="button"
-                className={s.path === repo.repoPath ? 'repo-quick-row repo-quick-row-current' : 'repo-quick-row'}
+                className={clsx('repo-quick-row', s.path === repo.repoPath && 'repo-quick-row-current')}
                 onClick={() => repo.openRecent(s.path)}
                 disabled={!s.available}
                 title={s.path}

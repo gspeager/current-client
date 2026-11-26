@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState } from 'react'
 import { ChevronRight, MessageSquare } from 'lucide-react'
 import type { ReviewThread } from '@current-client-bindings/app'
@@ -32,16 +33,12 @@ function ReviewThreadBlock({ thread, where, actions }: ReviewThreadBlockProps) {
   const first = thread.notes?.[0]
   const title = `${thread.resolved ? 'Resolved' : 'Unresolved'} thread${first ? ` by ${first.author}` : ''}${where ? ` at ${where}` : ''}`
   return (
-    <div
-      className={thread.resolved ? 'review-thread review-thread-resolved' : 'review-thread'}
-      role="group"
-      aria-label={title}
-    >
+    <div className={clsx('review-thread', thread.resolved && 'review-thread-resolved')} role="group" aria-label={title}>
       <button type="button" className="review-thread-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <ChevronRight
           size={12}
           strokeWidth={1.75}
-          className={open ? 'review-thread-chevron review-thread-chevron-open' : 'review-thread-chevron'}
+          className={clsx('review-thread-chevron', open && 'review-thread-chevron-open')}
         />
         <MessageSquare size={12} strokeWidth={1.75} />
         <span className="review-thread-summary">

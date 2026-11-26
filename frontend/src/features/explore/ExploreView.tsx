@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useMemo, useRef, useState } from 'react'
 import { ImageDown } from 'lucide-react'
 import { useDebounceValue } from 'usehooks-ts'
@@ -474,9 +475,7 @@ function Legend({ areas, steps, changes }: { areas: FolderArea[]; steps: StepLeg
         {changes &&
           CHANGE_KEYS.map(({ letter, label }) => (
             <span key={letter} className="explore-key">
-              <span className={letter === '!' ? 'explore-letter explore-letter-conflict' : 'explore-letter'}>
-                {letter}
-              </span>
+              <span className={clsx('explore-letter', letter === '!' && 'explore-letter-conflict')}>{letter}</span>
               {label}
             </span>
           ))}
