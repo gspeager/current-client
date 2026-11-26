@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { NoteMark } from '../notes/notes'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Ellipsis, Users, Undo2 } from 'lucide-react'
@@ -59,11 +60,7 @@ function FileRow({
   const rowStyle = indent > 0 ? { ...style, paddingLeft: `calc(var(--space-sm) + ${indent}px)` } : style
 
   return (
-    <div
-      className={selected ? 'file-row file-row-selected' : 'file-row'}
-      onContextMenu={onContextMenu}
-      style={rowStyle}
-    >
+    <div className={clsx('file-row', selected && 'file-row-selected')} onContextMenu={onContextMenu} style={rowStyle}>
       <Checkbox
         checked={checked}
         onChange={onToggleChecked}

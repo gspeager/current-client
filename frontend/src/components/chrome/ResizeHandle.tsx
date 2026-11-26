@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import './ResizeHandle.scss'
 
 interface ResizeHandleProps {
@@ -10,7 +11,7 @@ interface ResizeHandleProps {
 function ResizeHandle({ onDragStart, ariaLabel, horizontal = false }: ResizeHandleProps) {
   return (
     <div
-      className={horizontal ? 'resize-handle resize-handle-horizontal' : 'resize-handle'}
+      className={clsx('resize-handle', horizontal && 'resize-handle-horizontal')}
       onMouseDown={onDragStart}
       role="separator"
       aria-orientation={horizontal ? 'horizontal' : 'vertical'}

@@ -64,7 +64,7 @@
       min-width: 88px;
     }
 
-    > :not(:first-child):not(.commit-row-refs-more) {
+    > :not(:first-child, .commit-row-refs-more) {
       display: none;
     }
   }

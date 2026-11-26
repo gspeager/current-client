@@ -5,13 +5,13 @@
   font-family: var(--font-mono);
   @include typography.mono-numeric;
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+  text-decoration-color: color-mix(in srgb, currentcolor 50%, transparent);
   text-underline-offset: 2px;
   border-radius: var(--radius-xs);
   cursor: pointer;
 
   &:hover {
-    text-decoration-color: currentColor;
+    text-decoration-color: currentcolor;
   }
 }
 

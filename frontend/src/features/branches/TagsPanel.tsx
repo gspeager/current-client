@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, CloudOff, Copy, PackagePlus, Plus, StickyNote, Tag, Upload, X } from 'lucide-react'
 import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
@@ -248,7 +249,7 @@ function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
             {tags.map((t) => (
               <li key={t.name} className="tag-row-group">
                 <div
-                  className={t.annotated ? 'tag-row tag-row-expandable' : 'tag-row'}
+                  className={clsx('tag-row', t.annotated && 'tag-row-expandable')}
                   onClick={() => toggleExpand(t)}
                   onContextMenu={rowMenu.open(tagActions(t.name))}
                   title={t.name}

@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useRef, type ReactNode, type SyntheticEvent } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
@@ -39,7 +40,7 @@ function Modal({
           onContextMenu={stopPropagation}
         >
           <Dialog.Content
-            className={`modal-panel ${className}`}
+            className={clsx('modal-panel', className)}
             aria-describedby={undefined}
             onOpenAutoFocus={(e) => {
               // The first real control, rather than the header's Close.

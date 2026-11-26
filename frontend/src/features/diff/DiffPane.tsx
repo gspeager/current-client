@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import Kbd from '../../components/controls/Kbd'
 import {
   Fragment,
@@ -496,9 +497,7 @@ function DiffPane(props: DiffPaneProps) {
       case 'header':
         if (side === 'right') return <div className="diff-side-spacer" />
         return (
-          <div
-            className={row.hunk === currentHunkIndex ? 'diff-hunk-header diff-hunk-header-current' : 'diff-hunk-header'}
-          >
+          <div className={clsx('diff-hunk-header', row.hunk === currentHunkIndex && 'diff-hunk-header-current')}>
             <span>{row.header}</span>
             <HunkActionButtons raw={row.raw} lines={lineSelect?.byHunk.get(row.raw)} {...hunkActions} />
           </div>
@@ -575,7 +574,7 @@ function DiffPane(props: DiffPaneProps) {
 
   return (
     <div
-      className={`diff-pane diff-pane-${sidesApart ? 'sides' : mode}${windowed ? ' diff-pane-long' : ''}`}
+      className={clsx('diff-pane', `diff-pane-${sidesApart ? 'sides' : mode}`, windowed && 'diff-pane-long')}
       ref={scrollRef}
       tabIndex={0}
       style={longest ? ({ '--longest-line': `${longest}ch` } as CSSProperties) : undefined}

@@ -4,8 +4,7 @@
   flex: 1;
   // The list keeps a useful height however much sits below it.
   min-height: 112px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden auto;
   position: relative;
 }
 

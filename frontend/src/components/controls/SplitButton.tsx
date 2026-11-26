@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
@@ -37,9 +38,7 @@ function SplitButton({
   const ref = useDismissibleDetails()
 
   return (
-    <div
-      className={`split-button${secondary ? ' split-button-secondary' : ''}${compact ? ' split-button-compact' : ''}`}
-    >
+    <div className={clsx('split-button', secondary && 'split-button-secondary', compact && 'split-button-compact')}>
       <button type="button" className="split-button-main" onClick={onClick} disabled={disabled}>
         {children}
       </button>

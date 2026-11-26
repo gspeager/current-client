@@ -234,6 +234,6 @@
   width: 16px;
   height: 16px;
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, currentcolor 18%, transparent);
   font: var(--kbd);
 }

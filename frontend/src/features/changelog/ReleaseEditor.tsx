@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Check, ChevronDown, Code, Copy, Eye } from 'lucide-react'
@@ -399,7 +400,7 @@ function ReleaseEditor({
         {renderError && <p className="changelog-error">Could not render the Markdown: {renderError}</p>}
         {mode === 'markdown' ? (
           <textarea
-            className={stale ? 'changelog-markdown changelog-stale' : 'changelog-markdown'}
+            className={clsx('changelog-markdown', stale && 'changelog-stale')}
             aria-label="Changelog Markdown"
             aria-busy={stale}
             value={markdown}
@@ -412,7 +413,7 @@ function ReleaseEditor({
         ) : (
           // Rendered by goldmark, which escapes raw HTML; links stay inert so the app never navigates away.
           <div
-            className={rendering || stale ? 'changelog-preview changelog-stale' : 'changelog-preview'}
+            className={clsx('changelog-preview', (rendering || stale) && 'changelog-stale')}
             aria-label="Changelog preview"
             aria-busy={rendering || stale}
             onClick={(e) => {
@@ -444,7 +445,7 @@ function FilterMenu({ label, items, mono = false, isShown, onToggle }: FilterMen
         <span className="changelog-count">{shown === items.length ? 'All' : `${shown} of ${items.length}`}</span>
         <ChevronDown size={14} strokeWidth={1.5} />
       </summary>
-      <div className={mono ? 'changelog-filter-menu changelog-filter-menu-mono' : 'changelog-filter-menu'}>
+      <div className={clsx('changelog-filter-menu', mono && 'changelog-filter-menu-mono')}>
         {items.map(([item, count]) => (
           <span key={item} className="changelog-filter-option">
             <Checkbox checked={isShown(item)} onChange={(on) => onToggle(item, on)} label={item} />

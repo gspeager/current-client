@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { NoteMark } from '../notes/notes'
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { Ellipsis } from 'lucide-react'
@@ -98,13 +99,11 @@ function CommitRow({
   const { branchColor } = useLaneColors()
   const prefix = (conventional && parsePrefix(commit.subject)?.prefix) || ''
   const pills = refs ? pairUpstreams(refs, upstreams) : []
-  const classes = ['commit-row']
-  if (selected) classes.push('commit-row-selected')
-  if (isNew) classes.push('commit-row-new')
 
   return (
     <div
-      className={classes.join(' ')}
+      // -selected last: forced colors matches the class attribute's end.
+      className={clsx('commit-row', isNew && 'commit-row-new', selected && 'commit-row-selected')}
       onClick={onSelect}
       onContextMenu={onContextMenu}
       style={{ ...style, opacity: dimmed ? 0.4 : 1 }}

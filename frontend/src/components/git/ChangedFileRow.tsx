@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { isMenuKey } from '../controls/ContextMenu'
 import type { ChangedFile as ChangedFileInfo } from '@current-client-bindings/app'
@@ -38,12 +39,12 @@ function ChangedFileRow({
   const path = relativeTo && file.path.startsWith(`${relativeTo}/`) ? file.path.slice(relativeTo.length + 1) : file.path
   return (
     <li
-      className={onRead && `read-through-row changed-file-tickable${selected ? ' changed-file-tickable-selected' : ''}`}
+      className={onRead && clsx('read-through-row changed-file-tickable', selected && 'changed-file-tickable-selected')}
     >
       {onRead && <Checkbox checked={read} onChange={onRead} ariaLabel={`Read ${file.path}`} />}
       <button
         type="button"
-        className={`changed-file${selected && !onRead ? ' changed-file-selected' : ''}${read ? ' changed-file-read' : ''}`}
+        className={clsx('changed-file', read && 'changed-file-read', selected && !onRead && 'changed-file-selected')}
         aria-current={onRead && selected ? 'true' : undefined}
         onClick={onSelect}
         onContextMenu={onContextMenu}

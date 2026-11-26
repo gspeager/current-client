@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState, type KeyboardEvent } from 'react'
 import { ActivityService } from '@current-client-bindings/app'
 import { ACTIVITY_INTENSITY_STEPS, activityIntensity, layoutActivityCalendar, localDay } from './calendarLayout'
@@ -109,7 +110,7 @@ function ActivityCalendar({ repoPath, repoVersion }: ActivityCalendarProps) {
                 role="option"
                 aria-selected={i === activeDay}
                 aria-label={`${cell.date}: ${plural(cell.commits, 'commit')}`}
-                className={i === activeDay ? 'activity-cell activity-cell-active' : 'activity-cell'}
+                className={clsx('activity-cell', i === activeDay && 'activity-cell-active')}
                 style={{
                   gridColumn: cell.weekIndex + 2,
                   gridRow: cell.dayOfWeek + 2,

@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import Checkbox from '../../components/forms/Checkbox'
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import { GitCommitVertical, UserPlus, X } from 'lucide-react'
@@ -305,13 +306,19 @@ function CommitComposer({
             <span className="commit-composer-counter">
               Subject
               <span
-                className={`commit-composer-counter-value${subject.length > SUBJECT_TARGET ? ' commit-composer-counter-over' : ''}`}
+                className={clsx(
+                  'commit-composer-counter-value',
+                  subject.length > SUBJECT_TARGET && 'commit-composer-counter-over',
+                )}
               >
                 {subject.length}/{SUBJECT_TARGET}
               </span>
               <span className="commit-composer-counter-bar">
                 <span
-                  className={`commit-composer-counter-fill${subject.length > SUBJECT_TARGET ? ' commit-composer-counter-fill-over' : ''}`}
+                  className={clsx(
+                    'commit-composer-counter-fill',
+                    subject.length > SUBJECT_TARGET && 'commit-composer-counter-fill-over',
+                  )}
                   style={{ width: `${Math.min(100, (subject.length / SUBJECT_TARGET) * 100)}%` }}
                 />
               </span>

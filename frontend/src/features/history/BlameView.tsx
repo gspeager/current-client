@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState } from 'react'
 import { BlameService, type BlameLineInfo } from '@current-client-bindings/app'
 import { ageIntensity } from './blameAge'
@@ -84,7 +85,7 @@ function BlameView({ repoPath, path, onClose }: BlameViewProps) {
             return (
               <div
                 key={l.lineNo}
-                className={focused ? 'blame-row blame-row-focused' : 'blame-row'}
+                className={clsx('blame-row', focused && 'blame-row-focused')}
                 onClick={() => setFocusedLine(focused ? null : l.lineNo)}
                 title={`${l.authorName} — ${l.summary}`}
               >

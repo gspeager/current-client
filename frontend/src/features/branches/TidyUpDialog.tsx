@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useEffect, useState } from 'react'
 import {
   DndContext,
@@ -79,7 +80,7 @@ function CommitRow({ row, index, count, canFold, outcome, onChange, onMove }: Co
   return (
     <li
       ref={setNodeRef}
-      className={isDragging ? 'tidy-row tidy-row-dragging' : 'tidy-row'}
+      className={clsx('tidy-row', isDragging && 'tidy-row-dragging')}
       style={{ transform: CSS.Translate.toString(transform), transition }}
     >
       <div className="tidy-row-line">
@@ -87,10 +88,7 @@ function CommitRow({ row, index, count, canFold, outcome, onChange, onMove }: Co
           <GripVertical size={14} strokeWidth={1.75} />
         </button>
         <span className="tidy-sha">{shortSha(row.sha)}</span>
-        <span
-          className={row.action === 'drop' ? 'tidy-subject tidy-subject-dropped' : 'tidy-subject'}
-          title={row.subject}
-        >
+        <span className={clsx('tidy-subject', row.action === 'drop' && 'tidy-subject-dropped')} title={row.subject}>
           {row.subject}
         </span>
         {outcome?.outcome === 'conflict' && <span className="tidy-conflict">Conflict</span>}

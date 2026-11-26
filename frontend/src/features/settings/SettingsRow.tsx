@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { createContext, useContext, type ReactNode } from 'react'
 import './SettingsRow.scss'
 
@@ -30,7 +31,7 @@ interface SettingsRowProps {
 
 function SettingsRow({ label, hint, error, stacked = false, children }: SettingsRowProps) {
   return (
-    <div className={stacked ? 'settings-row settings-row-stacked' : 'settings-row'}>
+    <div className={clsx('settings-row', stacked && 'settings-row-stacked')}>
       <div className="settings-row-text">
         <span className="settings-row-label">{label}</span>
         {hint && <p className="settings-hint">{hint}</p>}

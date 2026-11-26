@@ -100,6 +100,6 @@
   .search-match {
     background: color-mix(in srgb, var(--primary) 30%, transparent);
     color: var(--on-surface);
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
   }
 }

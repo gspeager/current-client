@@ -92,13 +92,13 @@
 }
 
 // Close appears when it can be used, so names keep the room.
-.header-bar-tab:not(:hover):not(:focus-within) .header-bar-tab-close {
+.header-bar-tab:not(:hover, :focus-within) .header-bar-tab-close {
   width: 0;
   overflow: hidden;
   opacity: 0;
 }
 
 // A dot on a tab means uncommitted work, as it does beside a branch name. Clean needs no mark.
-.header-bar-tab-dot:not(.header-bar-tab-dot-dirty):not(.header-bar-tab-dot-unavailable) {
+.header-bar-tab-dot:not(.header-bar-tab-dot-dirty, .header-bar-tab-dot-unavailable) {
   display: none;
 }
