@@ -2,6 +2,7 @@ import { GitService } from '@current-client-bindings/app'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { formatSize } from './fileSize'
 import type { LfsChange } from './lfsPointer'
+import './LfsDiff.scss'
 
 function LfsDiff({ change }: { change: LfsChange }) {
   const { oldSize, newSize } = change

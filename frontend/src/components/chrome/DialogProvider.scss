@@ -25,15 +25,6 @@
   color: var(--on-surface);
 }
 
-.dialog-note {
-  @include patterns.panel-hint;
-}
-
-.dialog-error {
-  color: var(--error);
-  font: var(--ui-xs);
-}
-
 .dialog-field {
   display: flex;
   flex-direction: column;

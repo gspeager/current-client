@@ -1,0 +1,13 @@
+.host-change-reviewers li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font: var(--ui-sm);
+}
+
+.host-change-reviewer-state {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

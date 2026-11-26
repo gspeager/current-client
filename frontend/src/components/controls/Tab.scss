@@ -21,17 +21,6 @@
   color: var(--on-surface);
 }
 
-.tab-count {
-  margin-left: var(--space-xs);
-  color: var(--outline);
-  font: var(--data-sm);
-  font-weight: 400;
-}
-
-.tab-count-conflict {
-  color: var(--error);
-}
-
 // Dimmed less than a disabled control (45%), since a click still goes somewhere.
 .tab-off {
   opacity: 0.6;

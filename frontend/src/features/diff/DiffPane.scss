@@ -1,0 +1,261 @@
+// An opaque base under the translucent fill keeps the hatch from bleeding through.
+@mixin change-row($fill, $rule, $ink) {
+  background-color: var(--surface);
+  background-image: linear-gradient($fill, $fill);
+  box-shadow: inset 2px 0 0 0 $rule;
+
+  .diff-marker {
+    color: $rule;
+  }
+
+  .diff-content {
+    color: $ink;
+  }
+}
+
+@mixin tinted-row($color) {
+  @include change-row(color-mix(in srgb, $color 9%, transparent), $color, $color);
+}
+
+.diff-pane {
+  flex: 1;
+  overflow: auto;
+  // Lets the pane shrink below its content height.
+  min-height: 0;
+  // One hatch behind the whole pane avoids per-row seams; opaque rows cover it.
+  background: var(--diff-void);
+  // The pane corrects its own position as rows are measured.
+  overflow-anchor: none;
+}
+
+// Holds in a block's margins, which count toward the row's height.
+.diff-item {
+  display: flow-root;
+}
+
+// Rows scrolled out of a long diff.
+.diff-gap {
+  background: var(--surface);
+}
+
+.diff-hunk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  grid-column: 1 / -1;
+  gap: var(--space-sm);
+  height: var(--row-height);
+  line-height: var(--row-height);
+  padding: 0 var(--space-sm);
+  color: var(--outline);
+  background: var(--surface-low);
+  white-space: pre;
+  overflow: hidden;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.diff-hunk-header-current {
+  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
+}
+
+.diff-conflict-block-start {
+  border-top: 1px solid var(--error);
+}
+
+.diff-hunk-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.diff-stage-hunk,
+.diff-discard-hunk {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-micro);
+  padding: 0 var(--space-sm);
+  border: none;
+  border-radius: var(--radius);
+  font: var(--ui-xs);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.diff-stage-hunk {
+  color: var(--on-surface);
+  background: var(--surface-highest);
+
+  &:hover {
+    background: var(--outline-variant);
+  }
+}
+
+.diff-discard-hunk {
+  color: var(--error);
+  background: none;
+
+  &:hover {
+    background: color-mix(in srgb, var(--error) 18%, transparent);
+  }
+}
+
+.diff-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--gutter-width) var(--marker-width) minmax(0, 1fr);
+  min-height: var(--row-height);
+  line-height: var(--row-height);
+  white-space: pre-wrap;
+  background: var(--surface);
+
+  &-unified {
+    grid-template-columns: var(--gutter-width) var(--gutter-width) var(--marker-width) minmax(0, 1fr);
+  }
+
+  // The conflicted file as it is: only the working file's line numbers.
+  &-result {
+    grid-template-columns: var(--gutter-width) var(--marker-width) minmax(0, 1fr);
+  }
+
+  &-added {
+    @include change-row(var(--diff-add-fill), var(--diff-add-rule), var(--diff-add-ink));
+  }
+
+  &-removed {
+    @include change-row(var(--diff-del-fill), var(--diff-del-rule), var(--diff-del-ink));
+  }
+
+  // Reuses --secondary rather than adding a moved-line color.
+  &-moved {
+    @include tinted-row(var(--secondary));
+  }
+
+  // Our side is HEAD's version, so it takes HEAD's accent; markers use the
+  // conflict color from design-system.md.
+  &-conflict-ours {
+    @include tinted-row(var(--primary));
+  }
+
+  &-conflict-theirs {
+    @include tinted-row(var(--secondary));
+  }
+
+  &-conflict-marker {
+    @include tinted-row(var(--error));
+  }
+
+  &-empty {
+    background: none;
+  }
+
+  &-split-left {
+    border-right: var(--border-structure);
+  }
+}
+
+.diff-line-number {
+  text-align: right;
+  padding-right: var(--space-xs);
+  color: var(--code-linenum);
+  user-select: none;
+}
+
+// A changed line's number selects it for the hunk's actions. A wrapped row's
+// number stays beside its first line.
+.diff-line-select {
+  align-self: start;
+  height: var(--row-height);
+  padding: 0 var(--space-xs) 0 0;
+  background: none;
+  border: none;
+  color: var(--code-linenum);
+  font: inherit;
+  line-height: inherit;
+  text-align: right;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+.diff-marker {
+  text-align: center;
+  user-select: none;
+  color: var(--outline);
+}
+
+.diff-content {
+  padding-right: var(--space-sm);
+  // Wrapped lines hang under the first, so they don't read as unindented code.
+  padding-left: 2ch;
+  text-indent: -2ch;
+  overflow-wrap: anywhere;
+  color: var(--code-ink);
+}
+
+.diff-word-added {
+  background: var(--diff-add-word);
+  border-radius: var(--radius-xs);
+}
+
+.diff-word-removed {
+  background: var(--diff-del-word);
+  border-radius: var(--radius-xs);
+}
+
+.diff-collapsed {
+  font: var(--ui-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  grid-column: 1 / -1;
+  width: 100%;
+  height: var(--row-height);
+  line-height: var(--row-height);
+  padding: 0 var(--space-sm);
+  border: none;
+  color: var(--outline);
+  background: var(--surface-low);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface-variant);
+  }
+}
+
+// Over the gutter, shown while its row is hovered or holds focus; the row
+// grid underneath is untouched.
+.diff-line-comment {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-micro);
+  height: var(--h-micro);
+  padding: 0;
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  opacity: 0;
+
+  .diff-row:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}

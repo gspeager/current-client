@@ -45,6 +45,7 @@ import FilesTab from './FilesTab'
 import MergeVerdict from './MergeVerdict'
 import OverviewCommits from './OverviewCommits'
 import ThreadsTab from './ThreadsTab'
+import './ChangeDetail.scss'
 
 type DetailTab = 'overview' | 'checks' | 'threads' | 'files' | 'commits'
 

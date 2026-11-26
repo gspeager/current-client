@@ -1,0 +1,29 @@
+.submodule-diff-shas,
+.submodule-diff-sha {
+  font: var(--data-sm);
+}
+
+.submodule-diff-commits li {
+  display: flex;
+  gap: var(--space-sm);
+  height: var(--h-micro);
+  align-items: center;
+  font: var(--data-sm);
+  color: var(--on-surface-variant);
+}
+
+.submodule-diff-marker {
+  width: 1ch;
+}
+
+.submodule-diff-added .submodule-diff-marker {
+  color: var(--diff-add-rule);
+}
+
+.submodule-diff-removed .submodule-diff-marker {
+  color: var(--diff-del-rule);
+}
+
+.submodule-diff-sha {
+  color: var(--outline);
+}

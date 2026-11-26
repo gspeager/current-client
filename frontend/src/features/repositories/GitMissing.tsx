@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { GitService, PlatformService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
+import './GitMissing.scss'
 
 interface GitMissingProps {
   error: string

@@ -1,4 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react'
+import './SettingsRow.scss'
 
 interface SettingsGroupProps {
   title: string
