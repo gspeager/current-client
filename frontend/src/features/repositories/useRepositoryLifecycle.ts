@@ -5,7 +5,9 @@ import { errorMessage } from '../../lib/errors'
 import { cloneFolderName } from './cloneFolderName'
 
 // initialRepoPath, when given, is focused instead of the saved focused tab.
-export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
+// shown is false while an embedding app has never shown Current Client: the other
+// tabs' summaries, which only their chips use, wait until it is.
+export function useRepositoryLifecycle(initialRepoPath: string | null = null, shown = true) {
   const [repoPath, setRepoPathState] = useState<string | null>(null)
   const [repoError, setRepoError] = useState<string | null>(null)
   const [cloneUrl, setCloneUrl] = useState('')
@@ -29,8 +31,10 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
 
   // The focused tab's chip shows the live branch status instead, so a tab's
   // summary is read for the other tabs and again on leaving it.
+  const shownRef = useRef(shown)
+  shownRef.current = shown
   const refreshTabSummaries = (paths: string[]) => {
-    if (paths.length === 0) return
+    if (paths.length === 0 || !shownRef.current) return
     RepositoryService.GetTabSummaries(paths)
       .then((results) => {
         setTabSummaries((prev) => {
@@ -105,6 +109,14 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null) {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Shown for the first time after the tabs were restored, it reads what it skipped.
+  const wasShown = useRef(shown)
+  useEffect(() => {
+    if (shown && !wasShown.current && restored) refreshTabSummaries(tabs.filter((p) => p !== repoPath))
+    wasShown.current = shown
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown])
 
   const previousRepoPath = useRef<string | null>(null)
   useEffect(() => {

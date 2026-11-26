@@ -105,6 +105,7 @@ import ExploreView from './features/explore/ExploreView'
 import ReadThroughSheet from './features/read-through/ReadThroughSheet'
 import { openingOf, ReadThroughContext, type ReadThroughOpening } from './features/read-through/readThrough'
 import { OpenCommitContext } from './lib/openCommit'
+import { useCurrentClientRoot } from './lib/currentClientRoot'
 import NotesDialogs from './features/notes/NotesDialogs'
 import { NotesContext, targetOf, useNotesState } from './features/notes/notes'
 import { refFromSaved, savedFromRef } from './features/history/branchFilter'
@@ -178,13 +179,20 @@ function App({
   // Bumped to remount Changes on a newly requested file, as commitFocus does for History.
   const [fileFocus, setFileFocus] = useState(0)
 
-  const repo = useRepositoryLifecycle(activeRepoPath)
-  const integration = useHostIndicator(repo.repoPath ?? '', hostsVersion, hostIntegration && !!repo.repoPath)
+  // Hidden behind a host app's view and never shown, nothing reads the repository
+  // for the screen: viewPath stays null. Restoring tabs, the fetch timer and the
+  // file watcher still use repo.repoPath.
+  const { active } = useCurrentClientRoot()
+  const [shown, setShown] = useState(active)
+  if (active && !shown) setShown(true)
+  const repo = useRepositoryLifecycle(activeRepoPath, shown)
+  const viewPath = shown ? repo.repoPath : null
+  const integration = useHostIndicator(viewPath ?? '', hostsVersion, hostIntegration && !!viewPath)
   const changesLabel = integration ? changesLabelFor(integration.host.provider) : null
-  const hostLinks = useHostLinks(repo.repoPath ?? '')
+  const hostLinks = useHostLinks(viewPath ?? '')
   const { repoVersion, bumpRepoVersion, justBumped } = useRepoVersion()
   // The branch's known change, to offer a create link only while it has none.
-  const changes = useBranchChanges(repo.repoPath ?? '', repoVersion)
+  const changes = useBranchChanges(viewPath ?? '', repoVersion)
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(repo.repoPath)
   const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
   const settings = useSettings()
@@ -203,7 +211,7 @@ function App({
   }
 
   const terminalsOff = hideTerminal || (settings.settings?.localCommandsOff ?? false)
-  const tasks = useTasks(terminalsOff ? null : repo.repoPath, repoVersion)
+  const tasks = useTasks(terminalsOff ? null : viewPath, repoVersion)
   // A pull fetches too, so it moves "fetched … ago" as well as the branch.
   const { pull, pullMerge, pullRebase, push, forcePush, pushTags, pushSetUpstream, pullOp, pushOp } = useRemoteSync(
     repo.repoPath,
@@ -216,17 +224,17 @@ function App({
   useEffect(() => {
     if (pullOp.running || pushOp.running) setActionResult(null)
   }, [pullOp.running, pushOp.running])
-  const workingTree = useWorkingTree(repo.repoPath)
-  const { conflictState, reloadConflictState } = useConflictState(repo.repoPath, repoVersion)
+  const workingTree = useWorkingTree(viewPath)
+  const { conflictState, reloadConflictState } = useConflictState(viewPath, repoVersion)
   const operation = conflictState?.operation ?? null
   const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
   // With its repository, since a tab switch renders once before the old list is cleared.
   const { data: branchList } = useAsyncData(
     () => {
-      const repoPath = repo.repoPath
+      const repoPath = viewPath
       return repoPath ? BranchService.ListLocal(repoPath).then((branches) => ({ repoPath, branches })) : null
     },
-    [repo.repoPath],
+    [viewPath],
     { refreshKey: repoVersion },
   )
   const localBranches = branchList?.repoPath === repo.repoPath ? branchList.branches : null
@@ -243,10 +251,10 @@ function App({
     if (localBranches) forgetBranchesExcept(localBranches.map((b) => b.name))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localBranches])
-  const notesState = useNotesState(repo.repoPath, repoVersion)
+  const notesState = useNotesState(viewPath, repoVersion)
   const { data: conventional } = useAsyncData(
-    () => (repo.repoPath ? HistoryService.FollowsConventionalCommits(repo.repoPath) : null),
-    [repo.repoPath],
+    () => (viewPath ? HistoryService.FollowsConventionalCommits(viewPath) : null),
+    [viewPath],
     { refreshKey: repoVersion },
   )
 
@@ -340,7 +348,7 @@ function App({
       if (closed) repo.closeTab(path)
     })
   useOpenRequests(repo)
-  useHostPrompt(hostIntegration && hostPrompt ? repo.repoPath : null, bumpHostsVersion)
+  useHostPrompt(hostIntegration && hostPrompt ? viewPath : null, bumpHostsVersion)
 
   // Settings may have changed the git executable path.
   const closeSettings = () => {
@@ -428,14 +436,12 @@ function App({
   }, [repo.repoPath])
   const hostOn = !!integration
   const { data: canWriteIssues } = useAsyncData(
-    () => (hostOn && repo.repoPath ? HostService.CanWriteIssues(repo.repoPath) : null),
-    [hostOn, repo.repoPath],
+    () => (hostOn && viewPath ? HostService.CanWriteIssues(viewPath) : null),
+    [hostOn, viewPath],
   )
-  const { data: tracker } = useAsyncData(
-    () => (repo.repoPath ? TrackerService.Links(repo.repoPath) : null),
-    [repo.repoPath],
-    { refreshKey: hostsVersion },
-  )
+  const { data: tracker } = useAsyncData(() => (viewPath ? TrackerService.Links(viewPath) : null), [viewPath], {
+    refreshKey: hostsVersion,
+  })
   const issueActions = useMemo(
     () => ({
       open: hostOn || tracker?.reading ? setOpenIssueKey : undefined,
@@ -531,8 +537,8 @@ function App({
   // A host the remote points at with integration off, and not locked off,
   // shows its tabs dimmed; finding it reads the remote, nothing is asked.
   const { data: detectedHosts } = useAsyncData(
-    () => (hostIntegration && repo.repoPath && !hostOn ? HostService.Detect(repo.repoPath) : null),
-    [hostIntegration, repo.repoPath, hostOn],
+    () => (hostIntegration && viewPath && !hostOn ? HostService.Detect(viewPath) : null),
+    [hostIntegration, viewPath, hostOn],
     { refreshKey: hostsVersion },
   )
   const offHostInfo = integration ? undefined : detectedHosts?.find((h) => !h.enabled && !h.managed)
@@ -540,8 +546,8 @@ function App({
     ? { hostname: offHostInfo.hostname, changesLabel: changesLabelFor(offHostInfo.provider) }
     : null
   const { data: myIssues } = useAsyncData(
-    () => (issuesOn && repo.repoPath ? HostService.MyIssues(repo.repoPath) : null),
-    [issuesOn, repo.repoPath],
+    () => (issuesOn && viewPath ? HostService.MyIssues(viewPath) : null),
+    [issuesOn, viewPath],
     { refreshKey: hostRefresh },
   )
   // After a merge from the app whose branch is local, the sidebar opens
@@ -553,7 +559,7 @@ function App({
   // once the Inbox closes, since showing them counts as seeing them.
   const [inboxUnseen, setInboxUnseen] = useState(0)
   useEffect(() => {
-    if (inboxOpen || repo.tabs.length === 0) return
+    if (!shown || inboxOpen || repo.tabs.length === 0) return
     let active = true
     InboxService.Unseen(repo.tabs)
       .then((n) => active && setInboxUnseen(n))
@@ -561,7 +567,7 @@ function App({
     return () => {
       active = false
     }
-  }, [inboxOpen, repo.tabs, hostRefresh])
+  }, [shown, inboxOpen, repo.tabs, hostRefresh])
 
   const onChangeCreated = (number: number) => {
     setCreateChangeFor(null)
@@ -941,6 +947,9 @@ function App({
       run: () => requestSidebar('clean-up'),
     },
   ]
+
+  // Drawn the first time it's shown, so its views read nothing before then.
+  if (!shown) return null
 
   return (
     <DensityContext.Provider value={settings.settings?.density === 'compact' ? 'compact' : 'comfortable'}>
