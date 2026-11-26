@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import type { CancellablePromise } from '@wailsio/runtime'
+import { useStableValue } from './useStableValue'
 
 export interface Elsewhere<T> {
   path: string
@@ -15,23 +17,22 @@ export const NEXT_AFTER_MS = 2000
 export function useSearchElsewhere<T>(paths: string[], query: string, search: (path: string) => CancellablePromise<T>) {
   const [found, setFound] = useState<Elsewhere<T>[]>([])
   const [waiting, setWaiting] = useState(0)
-  const key = paths.join('\0')
-  const searchRef = useRef(search)
-  searchRef.current = search
+  const searched = useStableValue(paths)
+  const searchIn = useEventCallback(search)
 
   useEffect(() => {
     setFound([])
-    if (!query || paths.length === 0) {
+    if (!query || searched.length === 0) {
       setWaiting(0)
       return
     }
-    setWaiting(paths.length)
+    setWaiting(searched.length)
     let stopped = false
     const running = new Set<{ cancel: () => void }>()
     void (async () => {
-      for (const path of paths) {
+      for (const path of searched) {
         if (stopped) return
-        const search = searchRef.current(path)
+        const search = searchIn(path)
         running.add(search)
         const done = search
           .then((matches) => {
@@ -49,8 +50,7 @@ export function useSearchElsewhere<T>(paths: string[], query: string, search: (p
       stopped = true
       running.forEach((search) => search.cancel())
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, query])
+  }, [searched, query, searchIn])
 
   return { found: found.filter((f) => paths.includes(f.path)), waiting }
 }
