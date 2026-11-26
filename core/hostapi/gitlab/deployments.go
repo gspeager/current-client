@@ -29,8 +29,8 @@ type deployment struct {
 func (p *Provider) Deployments(ctx context.Context, project string) ([]hostapi.Deployment, error) {
 	var page []deployment
 	query := url.Values{"order_by": {"id"}, "sort": {"desc"}, "per_page": {"100"}}
-	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "deployments"), query, &page); err != nil {
-		return nil, hostapi.WithScope(err, readScope)
+	if err := p.get(ctx, readScope, projectPath(project, "deployments"), query, &page); err != nil {
+		return nil, err
 	}
 	var out []hostapi.Deployment
 	seen := map[string]bool{}

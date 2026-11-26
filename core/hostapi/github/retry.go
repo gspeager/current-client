@@ -24,7 +24,7 @@ func (p *Provider) RetryJob(ctx context.Context, project string, job hostapi.Job
 		return errNotActions
 	}
 	path := repoPath(project, "actions", "jobs", strconv.FormatInt(job.ID, 10), "rerun")
-	return hostapi.WithScope(p.client.PostJSON(ctx, p.host, path, map[string]any{}, nil), scope)
+	return p.post(ctx, scope, path, map[string]any{}, nil)
 }
 
 // RetryPipeline re-runs the failed jobs of each workflow run that has one,
@@ -39,8 +39,8 @@ func (p *Provider) RetryPipeline(ctx context.Context, project string, _ int64, j
 		}
 		asked[m[1]] = true
 		path := repoPath(project, "actions", "runs", m[1], "rerun-failed-jobs")
-		if err := p.client.PostJSON(ctx, p.host, path, map[string]any{}, nil); err != nil {
-			return hostapi.WithScope(err, scope)
+		if err := p.post(ctx, scope, path, map[string]any{}, nil); err != nil {
+			return err
 		}
 	}
 	if len(asked) == 0 {

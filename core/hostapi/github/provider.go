@@ -4,12 +4,10 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gspeager/current-client/core/hostapi"
 )
@@ -39,142 +37,11 @@ func New(client *hostapi.Client, host hostapi.Host) *Provider {
 
 var _ hostapi.Provider = (*Provider)(nil)
 
-// user reads only what the model keeps; avatar_url is never decoded.
-type user struct {
-	Login string `json:"login"`
-	Name  string `json:"name"`
-}
-
-type repoRef struct {
-	Ref  string `json:"ref"`
-	SHA  string `json:"sha"`
-	Repo *struct {
-		FullName string `json:"full_name"`
-	} `json:"repo"`
-}
-
-type pullRequest struct {
-	Number    int       `json:"number"`
-	Title     string    `json:"title"`
-	Body      string    `json:"body"`
-	State     string    `json:"state"`
-	Draft     bool      `json:"draft"`
-	MergedAt  *string   `json:"merged_at"`
-	MergeSHA  string    `json:"merge_commit_sha"`
-	Mergeable *bool     `json:"mergeable"`
-	Head      repoRef   `json:"head"`
-	Base      repoRef   `json:"base"`
-	User      user      `json:"user"`
-	Labels    []label   `json:"labels"`
-	UpdatedAt time.Time `json:"updated_at"`
-	HTMLURL   string    `json:"html_url"`
-	Reviewers []user    `json:"requested_reviewers"`
-}
-
-type review struct {
-	User  user   `json:"user"`
-	State string `json:"state"`
-}
-
-type label struct {
-	Name string `json:"name"`
-}
-
-type pullFile struct {
-	Filename         string `json:"filename"`
-	PreviousFilename string `json:"previous_filename"`
-	Status           string `json:"status"`
-	Additions        int    `json:"additions"`
-	Deletions        int    `json:"deletions"`
-}
-
-type pullCommit struct {
-	SHA    string `json:"sha"`
-	Commit struct {
-		Message string `json:"message"`
-		Author  struct {
-			Name string    `json:"name"`
-			Date time.Time `json:"date"`
-		} `json:"author"`
-	} `json:"commit"`
-}
-
-type reviewComment struct {
-	ID           int64     `json:"id"`
-	InReplyTo    int64     `json:"in_reply_to_id"`
-	Path         string    `json:"path"`
-	Line         *int      `json:"line"`
-	OriginalLine *int      `json:"original_line"`
-	Side         string    `json:"side"`
-	Body         string    `json:"body"`
-	User         user      `json:"user"`
-	CreatedAt    time.Time `json:"created_at"`
-	CommitID     string    `json:"commit_id"`
-	Position     *int      `json:"position"`
-}
-
-type checkRun struct {
-	ID          int64   `json:"id"`
-	Name        string  `json:"name"`
-	Status      string  `json:"status"`
-	Conclusion  string  `json:"conclusion"`
-	HTMLURL     string  `json:"html_url"`
-	StartedAt   *string `json:"started_at"`
-	CompletedAt *string `json:"completed_at"`
-	App         struct {
-		Slug string `json:"slug"`
-	} `json:"app"`
-}
-
-type checkRuns struct {
-	CheckRuns []checkRun `json:"check_runs"`
-}
-
-type commitStatus struct {
-	State    string `json:"state"`
-	Statuses []struct {
-		ID        int64  `json:"id"`
-		Context   string `json:"context"`
-		State     string `json:"state"`
-		TargetURL string `json:"target_url"`
-	} `json:"statuses"`
-}
-
-type issue struct {
-	Number      int    `json:"number"`
-	Title       string `json:"title"`
-	State       string `json:"state"`
-	HTMLURL     string `json:"html_url"`
-	PullRequest *struct {
-		URL string `json:"url"`
-	} `json:"pull_request"`
-	Body   string `json:"body"`
-	Labels []struct {
-		Name string `json:"name"`
-	} `json:"labels"`
-	Milestone *struct {
-		Title string `json:"title"`
-	} `json:"milestone"`
-	User      user      `json:"user"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-type issueComment struct {
-	User      user      `json:"user"`
-	Body      string    `json:"body"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-type rule struct {
-	Type string `json:"type"`
-}
-
 func (p *Provider) OpenChanges(ctx context.Context, project string) ([]hostapi.Change, bool, error) {
-	prs, truncated, err := hostapi.GetAll[pullRequest](ctx, p.client, p.host, repoPath(project, "pulls"),
+	prs, truncated, err := getAll[pullRequest](ctx, p, scope, repoPath(project, "pulls"),
 		url.Values{"state": {"open"}, "per_page": {"100"}})
 	if err != nil {
-		return nil, false, hostapi.WithScope(err, scope)
+		return nil, false, err
 	}
 	return toChanges(prs), truncated, nil
 }
@@ -182,10 +49,10 @@ func (p *Provider) OpenChanges(ctx context.Context, project string) ([]hostapi.C
 // ClosedChanges is one page of 50, closed and merged alike, since GitHub
 // lists both under one state.
 func (p *Provider) ClosedChanges(ctx context.Context, project string) ([]hostapi.Change, bool, error) {
-	prs, more, err := hostapi.GetPage[pullRequest](ctx, p.client, p.host, repoPath(project, "pulls"),
+	prs, more, err := getPage[pullRequest](ctx, p, scope, repoPath(project, "pulls"),
 		url.Values{"state": {"closed"}, "sort": {"updated"}, "direction": {"desc"}, "per_page": {"50"}})
 	if err != nil {
-		return nil, false, hostapi.WithScope(err, scope)
+		return nil, false, err
 	}
 	return toChanges(prs), more, nil
 }
@@ -228,14 +95,14 @@ func (p *Provider) ChangeCommits(ctx context.Context, project string, number int
 
 // pullItems reads every page of one of a pull request's lists.
 func pullItems[T any](ctx context.Context, p *Provider, project string, number int, list string) ([]T, error) {
-	items, _, err := hostapi.GetAll[T](ctx, p.client, p.host, repoPath(project, "pulls", strconv.Itoa(number), list), url.Values{"per_page": {"100"}})
-	return items, hostapi.WithScope(err, scope)
+	items, _, err := getAll[T](ctx, p, scope, repoPath(project, "pulls", strconv.Itoa(number), list), url.Values{"per_page": {"100"}})
+	return items, err
 }
 
 func (p *Provider) Change(ctx context.Context, project string, number int) (hostapi.Change, error) {
 	var pr pullRequest
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number)), nil, &pr); err != nil {
-		return hostapi.Change{}, hostapi.WithScope(err, scope)
+	if err := p.get(ctx, scope, repoPath(project, "pulls", strconv.Itoa(number)), nil, &pr); err != nil {
+		return hostapi.Change{}, err
 	}
 	return toChange(pr), nil
 }
@@ -306,170 +173,10 @@ func hasVerdict(reviews []hostapi.Review, login string) bool {
 	return false
 }
 
-// LatestPipeline is the commit's check runs and commit statuses read as one
-// result. GitHub has no pipeline id, so the id is the start of the SHA,
-// which Jobs turns back into a commit reference.
-func (p *Provider) LatestPipeline(ctx context.Context, project, sha string) (hostapi.Pipeline, bool, error) {
-	jobs, err := p.commitJobs(ctx, project, sha)
-	if err != nil || len(jobs) == 0 {
-		return hostapi.Pipeline{}, false, err
-	}
-	statuses := make([]hostapi.CIStatus, 0, len(jobs))
-	for _, job := range jobs {
-		statuses = append(statuses, job.Status)
-	}
-	id, err := pipelineID(sha)
-	if err != nil {
-		return hostapi.Pipeline{}, false, err
-	}
-	return hostapi.Pipeline{ID: id, Status: combine(statuses), WebURL: p.webRoot() + project + "/commit/" + sha + "/checks"}, true, nil
-}
-
-// Jobs gets back the abbreviated commit the pipeline id was made from; the
-// host resolves it like any short SHA.
-func (p *Provider) Jobs(ctx context.Context, project string, pipelineID int64) ([]hostapi.Job, error) {
-	return p.commitJobs(ctx, project, fmt.Sprintf("%0*x", pipelineIDChars, pipelineID))
-}
-
-func (p *Provider) commitJobs(ctx context.Context, project, ref string) ([]hostapi.Job, error) {
-	var runs checkRuns
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "commits", ref, "check-runs"), url.Values{"per_page": {"100"}}, &runs); err != nil {
-		return nil, hostapi.WithScope(err, scope)
-	}
-	var status commitStatus
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "commits", ref, "status"), nil, &status); err != nil {
-		return nil, hostapi.WithScope(err, scope)
-	}
-	jobs := make([]hostapi.Job, 0, len(runs.CheckRuns)+len(status.Statuses))
-	for _, run := range runs.CheckRuns {
-		jobs = append(jobs, hostapi.Job{
-			ID:        run.ID,
-			Name:      run.Name,
-			Stage:     run.App.Slug,
-			Status:    checkStatus(run),
-			Duration:  duration(run.StartedAt, run.CompletedAt),
-			WebURL:    run.HTMLURL,
-			Retryable: run.App.Slug == actionsApp && hostapi.Retryable(checkStatus(run)),
-		})
-	}
-	for _, s := range status.Statuses {
-		jobs = append(jobs, hostapi.Job{ID: s.ID, Name: s.Context, Stage: "status", Status: statusState(s.State), WebURL: s.TargetURL})
-	}
-	return jobs, nil
-}
-
-// JobLog reads an Actions job's log; a check run made by Actions has the
-// job's id. The host answers with a redirect to the log's storage, which the
-// client follows without the token.
-func (p *Provider) JobLog(ctx context.Context, project string, jobID int64, maxBytes int) (string, bool, error) {
-	resp, err := p.client.Get(ctx, p.host, repoPath(project, "actions", "jobs", strconv.FormatInt(jobID, 10), "logs"), nil)
-	if err != nil {
-		return "", false, hostapi.WithScope(err, scope)
-	}
-	log, truncated := hostapi.TailLog(resp.Body, maxBytes)
-	return log, truncated, nil
-}
-
-func (p *Provider) Issue(ctx context.Context, project string, number int) (hostapi.Issue, error) {
-	is, err := p.issue(ctx, project, number)
-	if err != nil {
-		return hostapi.Issue{}, err
-	}
-	return toIssue(is), nil
-}
-
-func (p *Provider) issue(ctx context.Context, project string, number int) (issue, error) {
-	var is issue
-	err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", strconv.Itoa(number)), nil, &is)
-	return is, hostapi.WithScope(err, scope)
-}
-
-func (p *Provider) AssignedIssues(ctx context.Context, project, username string) ([]hostapi.Issue, error) {
-	return p.listIssues(ctx, project, url.Values{"assignee": {username}, "state": {"open"}})
-}
-
-func (p *Provider) ProjectIssues(ctx context.Context, project string, open bool) ([]hostapi.Issue, error) {
-	state := "closed"
-	if open {
-		state = "open"
-	}
-	return p.listIssues(ctx, project, url.Values{"state": {state}})
-}
-
-// listIssues leaves out pull requests, which GitHub lists as issues too.
-func (p *Provider) listIssues(ctx context.Context, project string, query url.Values) ([]hostapi.Issue, error) {
-	query.Set("sort", "updated")
-	query.Set("per_page", "50")
-	var page []issue
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues"), query, &page); err != nil {
-		return nil, hostapi.WithScope(err, scope)
-	}
-	issues := make([]hostapi.Issue, 0, len(page))
-	for _, is := range page {
-		if is.PullRequest == nil {
-			issues = append(issues, toIssue(is))
-		}
-	}
-	return issues, nil
-}
-
 var (
 	_ hostapi.IssueTracker = (*Provider)(nil)
 	_ hostapi.IssueLister  = (*Provider)(nil)
 )
-
-func (p *Provider) IssueByKey(ctx context.Context, project, key string) (hostapi.Issue, error) {
-	number, err := hostapi.IssueNumber(key)
-	if err != nil {
-		return hostapi.Issue{}, err
-	}
-	return p.Issue(ctx, project, number)
-}
-
-func (p *Provider) IssueDetails(ctx context.Context, project, key string) (hostapi.IssueDetails, error) {
-	number, err := hostapi.IssueNumber(key)
-	if err != nil {
-		return hostapi.IssueDetails{}, err
-	}
-	is, err := p.issue(ctx, project, number)
-	if err != nil {
-		return hostapi.IssueDetails{}, err
-	}
-	return toIssueDetails(is), nil
-}
-
-func (p *Provider) IssueComments(ctx context.Context, project, key string) ([]hostapi.Note, error) {
-	number, err := hostapi.IssueNumber(key)
-	if err != nil {
-		return nil, err
-	}
-	var page []issueComment
-	query := url.Values{"per_page": {"100"}}
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "issues", strconv.Itoa(number), "comments"), query, &page); err != nil {
-		return nil, hostapi.WithScope(err, scope)
-	}
-	notes := make([]hostapi.Note, 0, len(page))
-	for _, c := range page {
-		notes = append(notes, hostapi.Note{Author: toUser(c.User), Body: c.Body, CreatedAt: c.CreatedAt})
-	}
-	return notes, nil
-}
-
-func toIssue(is issue) hostapi.Issue {
-	return hostapi.Issue{Key: strconv.Itoa(is.Number), Number: is.Number, Title: is.Title, State: is.State, WebURL: is.HTMLURL}
-}
-
-func toIssueDetails(is issue) hostapi.IssueDetails {
-	labels := make([]string, 0, len(is.Labels))
-	for _, l := range is.Labels {
-		labels = append(labels, l.Name)
-	}
-	out := hostapi.IssueDetails{Issue: toIssue(is), Description: is.Body, Labels: labels, Author: toUser(is.User), CreatedAt: is.CreatedAt, UpdatedAt: is.UpdatedAt}
-	if is.Milestone != nil {
-		out.Milestone = is.Milestone.Title
-	}
-	return out
-}
 
 func (p *Provider) CreateChange(ctx context.Context, project string, change hostapi.NewChange) (hostapi.Change, error) {
 	body := map[string]any{
@@ -480,8 +187,8 @@ func (p *Provider) CreateChange(ctx context.Context, project string, change host
 		"draft": change.Draft,
 	}
 	var pr pullRequest
-	if err := p.client.PostJSON(ctx, p.host, repoPath(project, "pulls"), body, &pr); err != nil {
-		return hostapi.Change{}, hostapi.WithScope(err, scope)
+	if err := p.post(ctx, scope, repoPath(project, "pulls"), body, &pr); err != nil {
+		return hostapi.Change{}, err
 	}
 	return toChange(pr), nil
 }
@@ -496,12 +203,12 @@ func (p *Provider) BranchRules(ctx context.Context, project string, branches []s
 	}
 	for _, branch := range branches {
 		var applied []rule
-		err := p.client.GetJSON(ctx, p.host, repoPath(project, "rules", "branches", url.PathEscape(branch)), nil, &applied)
+		err := p.get(ctx, scope, repoPath(project, "rules", "branches", url.PathEscape(branch)), nil, &applied)
 		if status := hostapi.StatusOf(err); status == http.StatusNotFound || status == http.StatusForbidden {
 			return rules, nil
 		}
 		if err != nil {
-			return nil, hostapi.WithScope(err, scope)
+			return nil, err
 		}
 		if r, ok := branchRule(branch, applied); ok {
 			rules = append(rules, r)
@@ -529,8 +236,8 @@ func branchRule(branch string, applied []rule) (hostapi.BranchRule, bool) {
 
 func (p *Provider) CurrentUser(ctx context.Context) (hostapi.User, error) {
 	var u user
-	if err := p.client.GetJSON(ctx, p.host, "user", nil, &u); err != nil {
-		return hostapi.User{}, hostapi.WithScope(err, scope)
+	if err := p.get(ctx, scope, "user", nil, &u); err != nil {
+		return hostapi.User{}, err
 	}
 	return toUser(u), nil
 }
@@ -614,76 +321,10 @@ func toThread(c reviewComment, headSHA string, first hostapi.Note) hostapi.Threa
 	return thread
 }
 
-func checkStatus(run checkRun) hostapi.CIStatus {
-	if run.Status != "completed" {
-		if run.Status == "in_progress" {
-			return hostapi.CIRunning
-		}
-		return hostapi.CIPending
-	}
-	switch run.Conclusion {
-	case "success":
-		return hostapi.CISuccess
-	case "failure", "timed_out", "action_required", "startup_failure":
-		return hostapi.CIFailed
-	case "cancelled":
-		return hostapi.CICanceled
-	case "skipped", "neutral", "stale":
-		return hostapi.CISkipped
-	}
-	return hostapi.CIUnknown
-}
-
-func statusState(state string) hostapi.CIStatus {
-	switch state {
-	case "success":
-		return hostapi.CISuccess
-	case "failure", "error":
-		return hostapi.CIFailed
-	case "pending":
-		return hostapi.CIPending
-	}
-	return hostapi.CIUnknown
-}
-
-// combine reads several results as one, the way the host's own merge box
-// does: a failure first, then anything still going, then a cancellation.
-func combine(statuses []hostapi.CIStatus) hostapi.CIStatus {
-	seen := map[hostapi.CIStatus]bool{}
-	for _, s := range statuses {
-		seen[s] = true
-	}
-	for _, s := range []hostapi.CIStatus{hostapi.CIFailed, hostapi.CIRunning, hostapi.CIPending, hostapi.CICanceled, hostapi.CISuccess, hostapi.CISkipped} {
-		if seen[s] {
-			return s
-		}
-	}
-	return hostapi.CIUnknown
-}
-
-func duration(started, completed *string) time.Duration {
-	if started == nil || completed == nil {
-		return 0
-	}
-	from, err1 := time.Parse(time.RFC3339, *started)
-	to, err2 := time.Parse(time.RFC3339, *completed)
-	if err1 != nil || err2 != nil || to.Before(from) {
-		return 0
-	}
-	return to.Sub(from)
-}
-
 // GitHub has no pipeline id, so a commit's is its SHA's first hex digits:
 // 13 of them, 52 bits, so the id survives being a JavaScript number in the
 // frontend (a 53-bit mantissa) and comes back exact.
 const pipelineIDChars = 13
-
-func pipelineID(sha string) (int64, error) {
-	if len(sha) < pipelineIDChars {
-		return 0, fmt.Errorf("%q is not a full commit id", sha)
-	}
-	return strconv.ParseInt(sha[:pipelineIDChars], 16, 64)
-}
 
 // webRoot is the pages' address: github.com for its own API host, else
 // the Enterprise Server itself, which serves the API under /api/v3.

@@ -22,20 +22,20 @@ type release struct {
 // have, GitHub would make one at the default branch's tip.
 func (p *Provider) PublishRelease(ctx context.Context, project string, r hostapi.NewRelease) (hostapi.PublishedRelease, error) {
 	var ref struct{}
-	err := p.client.GetJSON(ctx, p.host, repoPath(project, "git", "ref", "tags", strings.ReplaceAll(url.PathEscape(r.Tag), "%2F", "/")), nil, &ref)
+	err := p.get(ctx, scope, repoPath(project, "git", "ref", "tags", strings.ReplaceAll(url.PathEscape(r.Tag), "%2F", "/")), nil, &ref)
 	if hostapi.IsNotFound(err) {
 		return hostapi.PublishedRelease{}, fmt.Errorf("%s has no tag %s yet; push it first", p.host.Name, r.Tag)
 	}
 	if err != nil {
-		return hostapi.PublishedRelease{}, hostapi.WithScope(err, scope)
+		return hostapi.PublishedRelease{}, err
 	}
 	var created release
-	err = p.client.PostJSON(ctx, p.host, repoPath(project, "releases"), map[string]string{"tag_name": r.Tag, "name": r.Name, "body": r.Notes}, &created)
+	err = p.post(ctx, scope, repoPath(project, "releases"), map[string]string{"tag_name": r.Tag, "name": r.Name, "body": r.Notes}, &created)
 	if hostapi.StatusOf(err) == http.StatusUnprocessableEntity {
 		return hostapi.PublishedRelease{}, fmt.Errorf("%s refused the release: %s already has one", p.host.Name, r.Tag)
 	}
 	if err != nil {
-		return hostapi.PublishedRelease{}, hostapi.WithScope(err, scope)
+		return hostapi.PublishedRelease{}, err
 	}
 	return hostapi.PublishedRelease{Tag: created.TagName, Name: created.Name, WebURL: created.HTMLURL}, nil
 }

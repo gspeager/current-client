@@ -18,7 +18,7 @@ func (p *Provider) ReviewCapabilities() hostapi.ReviewCapabilities {
 
 // Reply answers a thread, whose id is its first comment's.
 func (p *Provider) Reply(ctx context.Context, project string, number int, threadID, body string) error {
-	return hostapi.WithScope(p.client.PostJSON(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number), "comments", threadID, "replies"), map[string]string{"body": body}, nil), scope)
+	return p.post(ctx, scope, repoPath(project, "pulls", strconv.Itoa(number), "comments", threadID, "replies"), map[string]string{"body": body}, nil)
 }
 
 func (p *Provider) ResolveThread(context.Context, string, int, string, bool) error {
@@ -28,7 +28,7 @@ func (p *Provider) ResolveThread(context.Context, string, int, string, bool) err
 func (p *Provider) CommentOnLine(ctx context.Context, project string, number int, headSHA string, comment hostapi.NewComment) error {
 	body := reviewCommentBody(comment)
 	body["commit_id"] = headSHA
-	return hostapi.WithScope(p.client.PostJSON(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number), "comments"), body, nil), scope)
+	return p.post(ctx, scope, repoPath(project, "pulls", strconv.Itoa(number), "comments"), body, nil)
 }
 
 func (p *Provider) SubmitReview(ctx context.Context, project string, number int, headSHA string, review hostapi.ReviewSubmission) error {
@@ -44,7 +44,7 @@ func (p *Provider) SubmitReview(ctx context.Context, project string, number int,
 	if headSHA != "" {
 		body["commit_id"] = headSHA
 	}
-	return hostapi.WithScope(p.client.PostJSON(ctx, p.host, repoPath(project, "pulls", strconv.Itoa(number), "reviews"), body, nil), scope)
+	return p.post(ctx, scope, repoPath(project, "pulls", strconv.Itoa(number), "reviews"), body, nil)
 }
 
 func reviewCommentBody(c hostapi.NewComment) map[string]any {

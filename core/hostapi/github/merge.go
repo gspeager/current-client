@@ -19,8 +19,8 @@ type repository struct {
 
 func (p *Provider) MergeOptions(ctx context.Context, project string) (hostapi.MergeOptions, error) {
 	var repo repository
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project), nil, &repo); err != nil {
-		return hostapi.MergeOptions{}, hostapi.WithScope(err, scope)
+	if err := p.get(ctx, scope, repoPath(project), nil, &repo); err != nil {
+		return hostapi.MergeOptions{}, err
 	}
 	options := hostapi.MergeOptions{DeleteBranch: repo.DeleteBranchAfter, DeleteBranchFixed: true}
 	for _, m := range []struct {
@@ -41,7 +41,7 @@ func (p *Provider) Merge(ctx context.Context, project string, number int, how ho
 	if how.HeadSHA != "" {
 		body["sha"] = how.HeadSHA
 	}
-	err := p.client.RequestJSON(ctx, p.host, http.MethodPut, repoPath(project, "pulls", strconv.Itoa(number), "merge"), body, nil)
+	err := p.send(ctx, scope, http.MethodPut, repoPath(project, "pulls", strconv.Itoa(number), "merge"), body, nil)
 	return hostapi.WithScope(hostapi.RefusedMerge(err, p.host.Name, mergeRefusals), scope)
 }
 

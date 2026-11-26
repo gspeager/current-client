@@ -22,7 +22,7 @@ type release struct {
 // rather than making one.
 func (p *Provider) PublishRelease(ctx context.Context, project string, r hostapi.NewRelease) (hostapi.PublishedRelease, error) {
 	var created release
-	err := p.client.PostJSON(ctx, p.host, projectPath(project, "releases"), map[string]string{"tag_name": r.Tag, "name": r.Name, "description": r.Notes}, &created)
+	err := p.post(ctx, writeScope, projectPath(project, "releases"), map[string]string{"tag_name": r.Tag, "name": r.Name, "description": r.Notes}, &created)
 	switch hostapi.StatusOf(err) {
 	case http.StatusConflict:
 		return hostapi.PublishedRelease{}, fmt.Errorf("%s refused the release: %s already has one", p.host.Name, r.Tag)
@@ -30,7 +30,7 @@ func (p *Provider) PublishRelease(ctx context.Context, project string, r hostapi
 		return hostapi.PublishedRelease{}, fmt.Errorf("%s has no tag %s yet; push it first", p.host.Name, r.Tag)
 	}
 	if err != nil {
-		return hostapi.PublishedRelease{}, hostapi.WithScope(err, writeScope)
+		return hostapi.PublishedRelease{}, err
 	}
 	return hostapi.PublishedRelease{Tag: created.TagName, Name: created.Name, WebURL: created.Links.Self}, nil
 }

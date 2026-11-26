@@ -20,8 +20,8 @@ func (p *Provider) MergeOptions(ctx context.Context, project string) (hostapi.Me
 		SquashOption      string `json:"squash_option"`
 		DeleteBranchAfter bool   `json:"remove_source_branch_after_merge"`
 	}
-	if err := p.client.GetJSON(ctx, p.host, projectPath(project), nil, &settings); err != nil {
-		return hostapi.MergeOptions{}, hostapi.WithScope(err, readScope)
+	if err := p.get(ctx, readScope, projectPath(project), nil, &settings); err != nil {
+		return hostapi.MergeOptions{}, err
 	}
 	options := hostapi.MergeOptions{DeleteBranch: settings.DeleteBranchAfter}
 	switch settings.SquashOption {
@@ -45,7 +45,7 @@ func (p *Provider) Merge(ctx context.Context, project string, number int, how ho
 	if how.HeadSHA != "" {
 		body["sha"] = how.HeadSHA
 	}
-	err := p.client.RequestJSON(ctx, p.host, http.MethodPut, projectPath(project, "merge_requests", strconv.Itoa(number), "merge"), body, nil)
+	err := p.send(ctx, writeScope, http.MethodPut, projectPath(project, "merge_requests", strconv.Itoa(number), "merge"), body, nil)
 	return hostapi.WithScope(hostapi.RefusedMerge(err, p.host.Name, mergeRefusals), writeScope)
 }
 
