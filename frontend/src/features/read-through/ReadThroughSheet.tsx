@@ -9,6 +9,7 @@ import {
   ReadThroughService,
   type ReadThroughFile,
 } from '@current-client-bindings/app'
+import type { Report as ReworkReport } from '@current-client-bindings/core/rework'
 import type { DiffFocus } from '../diff/DiffViewer'
 import DiffSheet from '../../components/chrome/DiffSheet'
 import { Fact, FactList } from '../../components/chrome/FactList'
@@ -26,6 +27,7 @@ import { useAction } from '../../lib/useAction'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useRovingRows } from '../../lib/useRovingRows'
 import ChangeStructure from './ChangeStructure'
+import Rework from './Rework'
 import SecondLook from './SecondLook'
 import { groupFiles, totalsByKind, totalsByStatus, totalsByType, type Total } from './groupFiles'
 import { notesText } from './notesText'
@@ -152,6 +154,13 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     [info?.key, info?.base],
     { refreshKey: findingsOf.current, keepData: true },
   )
+  const { data: rework, error: reworkError } = useAsyncData(
+    () => (range && range.base ? ReadThroughService.Rework(range) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new info re-reads it only through findingsOf
+    [info?.key, info?.base],
+    { refreshKey: findingsOf.current, keepData: true },
+  )
+  const rewrittenIn = useMemo(() => new Map(rework?.files.map((f) => [f.path, f.rewritten])), [rework])
   const noted = () => {
     reloadNotes()
     onNotesChanged()
@@ -301,6 +310,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
                         read={file.read}
                         onRead={(read) => setRead([file], read)}
                         again={file.again ? againText(file) : undefined}
+                        rewritten={rewrittenIn.get(file.path)}
                       />
                     ))}
                   </ul>
@@ -383,7 +393,14 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
             info &&
             files.length > 0 && (
               <>
-                <Overview info={info} files={since ? files.map(shownSince) : files} />
+                <Overview info={info} files={since ? files.map(shownSince) : files} rework={rework} />
+                <Rework
+                  report={rework}
+                  error={reworkError}
+                  uncommitted={info.uncommitted}
+                  listed={(file) => whole.some((f) => f.path === file)}
+                  onOpen={(file) => openFile(file)}
+                />
                 <ChangeStructure
                   shape={shape}
                   error={shapeError}
@@ -415,7 +432,15 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   )
 }
 
-function Overview({ info, files }: { info: ReadThroughInfo; files: ReadThroughFile[] }) {
+function Overview({
+  info,
+  files,
+  rework,
+}: {
+  info: ReadThroughInfo
+  files: ReadThroughFile[]
+  rework: ReworkReport | null
+}) {
   const sum = (count: (file: ReadThroughFile) => number) => files.reduce((total, file) => total + count(file), 0)
   const kinds = totalsByKind(files)
   return (
@@ -434,6 +459,12 @@ function Overview({ info, files }: { info: ReadThroughInfo; files: ReadThroughFi
         {kinds.length > 0 && (
           <Fact label="Kinds">
             <Totals totals={kinds} />
+          </Fact>
+        )}
+        {!!rework?.rewritten && (
+          <Fact label="Rewritten">
+            {plural(rework.rewritten, 'line')} of {rework.written} written,{' '}
+            {Math.round((rework.rewritten / rework.written) * 100)}%
           </Fact>
         )}
         {info.skipped > 0 && (
