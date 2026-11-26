@@ -22,6 +22,7 @@ export function useResizableWidth(
   const [width, setWidth] = useState(clamp(defaultWidth, min, max))
   const startX = useRef(0)
   const startWidth = useRef(0)
+  const dragged = useRef(0)
   const sign = direction === 'grow-right' ? 1 : -1
 
   useEffect(() => {
@@ -37,7 +38,8 @@ export function useResizableWidth(
 
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
-      setWidth(clamp(startWidth.current + sign * (pointer(e, axis) - startX.current), min, max))
+      dragged.current = clamp(startWidth.current + sign * (pointer(e, axis) - startX.current), min, max)
+      setWidth(dragged.current)
     },
     [min, max, sign, axis],
   )
@@ -45,10 +47,7 @@ export function useResizableWidth(
   const onMouseUp = useCallback(() => {
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('mouseup', onMouseUp)
-    setWidth((current) => {
-      SettingsService.SetPaneWidth(storageKey, current).catch(() => {})
-      return current
-    })
+    SettingsService.SetPaneWidth(storageKey, dragged.current).catch(() => {})
   }, [onMouseMove, storageKey])
 
   const onDragStart = useCallback(
@@ -56,6 +55,7 @@ export function useResizableWidth(
       e.preventDefault()
       startX.current = pointer(e, axis)
       startWidth.current = width
+      dragged.current = width
       window.addEventListener('mousemove', onMouseMove)
       window.addEventListener('mouseup', onMouseUp)
     },
