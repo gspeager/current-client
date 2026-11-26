@@ -1,8 +1,8 @@
 .segmented-control {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
   background: var(--surface-container);
   border-radius: var(--radius);
 }

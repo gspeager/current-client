@@ -1,9 +1,7 @@
 @use '../../styles/patterns';
 
 .repo-grid-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .repo-card-grid {
@@ -12,7 +10,7 @@
   gap: var(--space-sm);
   max-height: 320px;
   overflow-y: auto;
-  padding: 2px;
+  padding: var(--space-2xs);
 
   @container (min-width: 480px) {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -88,9 +86,7 @@
 
 .repo-card-dot {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
 }
 
 .repo-card-dot-dirty {
@@ -111,7 +107,7 @@
   flex-shrink: 0;
   padding: 0 var(--space-xs);
   border: 1px solid var(--outline);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--outline);
   font: var(--ui-xs);
 }
@@ -152,7 +148,7 @@
 .repo-card-sparkline {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-2xs);
   height: 20px;
 }
 

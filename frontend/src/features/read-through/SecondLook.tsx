@@ -1,6 +1,7 @@
 import type { RiskFindingInfo, RiskReportInfo } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
 import { RISK_RULES } from '../../lib/riskRules'
+import './SecondLook.scss'
 
 interface SecondLookProps {
   report: RiskReportInfo | null

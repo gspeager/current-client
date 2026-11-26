@@ -11,7 +11,7 @@ import {
 import ConflictBanner from './features/branches/ConflictBanner'
 import HeaderBar from './features/shell/HeaderBar'
 import KeepAlive from './components/chrome/KeepAlive'
-import NavPane, { type SidebarRequest } from './features/shell/NavPane'
+import NavPane from './features/shell/NavPane'
 import ResizeHandle from './components/chrome/ResizeHandle'
 import SettingsPanel, { settingsGroups } from './features/settings/SettingsPanel'
 import StatusBar from './components/chrome/StatusBar'
@@ -25,6 +25,7 @@ import type { ActionResult } from './lib/actionResult'
 import { assignLaneSlots } from './lib/laneColor'
 import { useAsyncData } from './lib/useAsyncData'
 import { usePerRepository } from './lib/usePerRepository'
+import { createSidebarCommands } from './lib/sidebarCommands'
 import { useWindowKeydown } from './lib/useWindowKeydown'
 import { isTypingTarget, matchesShortcut } from './lib/shortcuts'
 import { NARROW_SIDEBAR_WIDTH, useWindowNarrowerThan } from './lib/useWindowNarrowerThan'
@@ -70,7 +71,7 @@ import ChangesView from './features/working-copy/ChangesView'
 import HistoryView from './features/history/HistoryView'
 import ExploreView from './features/explore/ExploreView'
 import ReadThroughSheet from './features/read-through/ReadThroughSheet'
-import { openingOf, type ReadThroughOpening } from './features/read-through/readThrough'
+import { openingOf, type ReadThroughOpening } from './lib/readThrough'
 import { useCurrentClientRoot } from './lib/currentClientRoot'
 import NotesDialogs from './features/notes/NotesDialogs'
 import { targetOf, useNotesState } from './features/notes/notes'
@@ -436,9 +437,8 @@ function App({
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
   // After a merge from the app whose branch is local, the sidebar opens
   // Clean up merged branches; the palette asks for its forms the same way.
-  const [sidebarRequest, setSidebarRequest] = useState<SidebarRequest | null>(null)
-  const requestSidebar = (action: SidebarRequest['action']) =>
-    setSidebarRequest((r) => ({ action, n: (r?.n ?? 0) + 1 }))
+  const [sidebarCommands] = useState(createSidebarCommands)
+  const requestSidebar = sidebarCommands.run
   // Host rows the Inbox hasn't shown: counted after each refresh, and again
   // once the Inbox closes, since showing them counts as seeing them.
   const [inboxUnseen, setInboxUnseen] = useState(0)
@@ -699,7 +699,7 @@ function App({
             workspaceFeedback={workspace.feedback}
             onDismissFeedback={workspace.dismissFeedback}
             hostVersion={host.hostRefresh}
-            request={sidebarRequest}
+            commands={sidebarCommands}
             onPushToCreate={
               requestCreateChange
                 ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))

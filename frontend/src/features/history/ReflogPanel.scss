@@ -20,12 +20,7 @@
 }
 
 .reflog-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  @include patterns.panel-list;
 }
 
 .reflog-row {
@@ -97,7 +92,7 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: var(--h-chip);
   padding: 0 var(--space-sm);
   opacity: 0;

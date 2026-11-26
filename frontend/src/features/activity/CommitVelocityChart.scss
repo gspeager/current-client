@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 @use './card';
 
 .commit-velocity {
@@ -11,7 +13,7 @@
 .commit-velocity-heading {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .commit-velocity-title {
@@ -31,9 +33,7 @@
 }
 
 .commit-velocity-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .commit-velocity-bars {
@@ -41,7 +41,7 @@
   flex: 1;
   display: flex;
   align-items: flex-end;
-  gap: 4px;
+  gap: var(--space-xs);
   height: 144px;
 }
 
@@ -68,7 +68,7 @@
 .commit-velocity-bar {
   width: 100%;
   min-height: 4px;
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   background: color-mix(in srgb, var(--tertiary) 60%, var(--surface-low));
 }
 
@@ -80,7 +80,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  z-index: 1;
+  z-index: var(--z-raised);
   border-top: 1px dashed var(--outline);
 }
 

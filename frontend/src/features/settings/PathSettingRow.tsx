@@ -1,5 +1,6 @@
 import PathText from '../../components/git/PathText'
 import SettingsRow from './SettingsRow'
+import './PathSettingRow.scss'
 
 interface PathSettingRowProps {
   label: string

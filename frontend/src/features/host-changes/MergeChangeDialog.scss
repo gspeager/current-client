@@ -1,11 +1,11 @@
+@use '../../styles/patterns';
+
 .merge-change-panel {
   width: min(520px, 90vw);
 }
 
 .merge-change-warnings {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);

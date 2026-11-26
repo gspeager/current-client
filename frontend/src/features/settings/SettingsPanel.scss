@@ -16,7 +16,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
   width: 180px;
   padding: var(--space-md) var(--space-sm);
   border-right: var(--border-structure);
@@ -40,9 +40,8 @@
 }
 
 .settings-rail-item-active {
-  background: var(--surface-container);
   color: var(--on-surface);
-  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
+  @include patterns.selected-row;
 }
 
 .settings-body {
@@ -55,30 +54,10 @@
   padding: var(--space-lg);
 }
 
-.settings-group[hidden] {
-  display: none;
-}
-
-.settings-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
 .settings-group-title {
   margin: 0;
   @include patterns.eyebrow;
   color: var(--outline);
-}
-
-// Rows in a group are separated by the in-panel divider from design-system.md §6.
-.settings-group-rows {
-  display: flex;
-  flex-direction: column;
-
-  > .settings-row + .settings-row {
-    border-top: 1px solid var(--surface-highest);
-  }
 }
 
 .settings-row {
@@ -95,32 +74,11 @@
   }
 }
 
-.settings-row-stacked {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .settings-row-text {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
   min-width: 0;
-}
-
-.settings-row-label {
-  color: var(--on-surface);
-  font: var(--ui-md);
-}
-
-.settings-row-control {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-xs);
-  min-width: 0;
-
-  .settings-row-stacked & {
-    align-items: stretch;
-  }
 }
 
 .settings-hint {
@@ -136,9 +94,7 @@
 }
 
 .settings-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }
 
 .settings-actions {
@@ -192,20 +148,11 @@
   }
 }
 
-.settings-git-config {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  width: 100%;
-}
-
 .settings-git-flags {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   overflow-wrap: anywhere;
 }
 
@@ -235,11 +182,6 @@
   }
 }
 
-.settings-path-unset {
-  color: var(--outline);
-  font: var(--ui-sm);
-}
-
 .settings-identity-fields {
   display: flex;
   gap: var(--space-sm);
@@ -265,9 +207,7 @@
 .settings-identity-list {
   display: flex;
   flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
 
   li {
     display: flex;
@@ -277,26 +217,12 @@
   }
 }
 
-.settings-identity-swatch {
-  flex-shrink: 0;
-  width: var(--space-md);
-  height: var(--space-md);
-  border-radius: 50%; // Same circle as the identity badge it previews.
-}
-
 .settings-identity-key {
   flex: 1;
   min-width: 0;
   @include patterns.truncate;
   color: var(--on-surface-variant);
   font: var(--data-sm);
-}
-
-.settings-integrations {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-sm) 0;
 }
 
 .settings-host {
@@ -308,27 +234,10 @@
   border-radius: var(--radius);
 }
 
-.settings-host-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-lg);
-}
-
-.settings-host-switch {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
 .settings-host-name,
 .settings-host-project,
 .settings-host-api {
   font: var(--data-sm);
-}
-
-.settings-host-name {
-  color: var(--on-surface);
 }
 
 .settings-host-fields {
@@ -348,66 +257,16 @@
   }
 }
 
-.settings-update {
-  flex-wrap: wrap;
-}
-
-.settings-value {
-  color: var(--on-surface);
-  font: var(--data-sm);
-}
-
-.settings-update-link {
-  display: inline-flex;
-  flex-basis: 100%;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
 .settings-code {
   color: var(--on-surface-variant);
   font: var(--data-sm);
   user-select: all;
 }
 
-.settings-trackers {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
-}
-
 .settings-subheading {
   margin: 0;
   color: var(--on-surface);
   font: var(--title-sm);
-}
-
-.settings-tracker-repos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-md);
-  margin: 0;
-  padding: 0;
-  border: none;
-
-  legend {
-    padding: 0;
-    margin-bottom: var(--space-xs);
-  }
-}
-
-.settings-tracker-repo {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font: var(--data-sm);
-  color: var(--on-surface);
-}
-
-// A person's name is chrome, not data.
-.settings-field-text {
-  font: var(--ui-sm);
 }
 
 .settings-preview {

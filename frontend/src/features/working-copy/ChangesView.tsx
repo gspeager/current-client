@@ -17,7 +17,7 @@ import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
-import { useHeadCommit } from './useHeadCommit'
+import { useHeadCommit } from '../history/useHeadCommit'
 import { useResizableWidth } from '../../lib/useResizableWidth'
 import { nextSelection, type SectionPaths } from './selection'
 import type { WorkingTreeSection, useWorkingTree } from './useWorkingTree'
@@ -29,6 +29,7 @@ import { useWorkingTreeActions } from './useWorkingTreeActions'
 import { useConflictResolution } from './useConflictResolution'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import { shortSha } from '../../lib/text'
+import PathText from '../../components/git/PathText'
 import './ChangesView.scss'
 
 interface ChangesViewProps {
@@ -294,11 +295,7 @@ function ChangesView({
                 </button>
               )}
               <span className="changes-diff-path">
-                {dir && (
-                  <span className="changes-diff-path-dir">
-                    <bdi>{dir}</bdi>
-                  </span>
-                )}
+                {dir && <PathText path={dir} className="changes-diff-path-dir" />}
                 <span className="changes-diff-path-file">{file}</span>
               </span>
               {diff?.conflicted ? (

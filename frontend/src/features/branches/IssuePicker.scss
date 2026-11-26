@@ -21,10 +21,8 @@
 
 .issue-picker-list {
   max-height: 208px;
-  margin: 0;
-  padding: 0;
+  @include patterns.list-reset;
   overflow-y: auto;
-  list-style: none;
   border: var(--border-structure);
   border-radius: var(--radius);
 }
@@ -60,9 +58,7 @@
 }
 
 .issue-picker-note {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 
   &.issue-picker-error {
     color: var(--error);

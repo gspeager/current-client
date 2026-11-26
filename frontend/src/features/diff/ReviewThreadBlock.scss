@@ -1,8 +1,10 @@
+@use '../../styles/patterns';
+
 // A thread sits between diff rows; it spans the whole grid and takes the
 // height it needs, like a hunk header, so the 20px row grid around it holds.
 .review-thread {
   grid-column: 1 / -1;
-  margin: 2px var(--space-sm);
+  margin: var(--space-2xs) var(--space-sm);
   background: var(--surface);
   border: var(--border-structure);
   border-left: 2px solid var(--secondary);
@@ -50,7 +52,7 @@
 .review-note-meta {
   display: flex;
   gap: var(--space-sm);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-2xs);
   font: var(--ui-xs);
 }
 
@@ -84,24 +86,6 @@
 }
 
 .review-thread-error {
-  margin: 0;
+  @include patterns.panel-error;
   padding: 0 var(--space-sm) var(--space-sm);
-  color: var(--error);
-  font: var(--ui-xs);
-}
-
-.review-threads-outdated {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  max-height: 40%;
-  overflow-y: auto;
-  gap: var(--space-xs);
-  padding: var(--space-sm);
-  border-top: var(--border-structure);
-}
-
-.review-threads-outdated-label {
-  color: var(--outline);
-  font: var(--ui-xs);
 }

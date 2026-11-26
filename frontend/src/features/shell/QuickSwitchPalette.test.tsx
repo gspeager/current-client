@@ -19,6 +19,7 @@ import {
 import type { useRepositoryLifecycle } from '../repositories/useRepositoryLifecycle'
 import type { useWorkingTree } from '../working-copy/useWorkingTree'
 import NavPane from './NavPane'
+import { createSidebarCommands } from '../../lib/sidebarCommands'
 import QuickSwitchPalette from './QuickSwitchPalette'
 import { useWorkspaceActions } from './useWorkspaceActions'
 import { NotesContext } from '../notes/notes'
@@ -67,6 +68,7 @@ function Shell({
   return (
     <>
       <NavPane
+        commands={createSidebarCommands()}
         repoPath={REPO}
         repoVersion={0}
         workingTree={workingTree}

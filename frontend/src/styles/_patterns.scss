@@ -260,11 +260,43 @@
   font: var(--ui-xs);
 }
 
-@mixin panel-list {
+@mixin list-reset {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+@mixin panel-list {
+  @include list-reset;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
+}
+
+// A row of a sidebar panel's list: remotes, worktrees, submodules, tags, stashes.
+@mixin sidebar-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: var(--h-row-tree);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+}
+
+// A status dot. Callers set the color.
+@mixin dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+// A button that reads as a link in running text. Callers set the color.
+@mixin link-button {
+  background: none;
+  border: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }

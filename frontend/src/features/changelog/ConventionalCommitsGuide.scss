@@ -20,9 +20,7 @@
 }
 
 .conventional-guide-examples {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   font: var(--data-sm);
   color: var(--on-surface-variant);
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { IdentityService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import SettingsRow from './SettingsRow'
+import './IdentitySettings.scss'
 
 interface IdentitySettingsProps {
   onSaved?: () => void

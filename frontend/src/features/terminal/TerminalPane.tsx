@@ -6,6 +6,7 @@ import '@xterm/xterm/css/xterm.css'
 import { TerminalService } from '@current-client-bindings/app'
 import { isTerminalToggle } from './terminalKeys'
 import { decodeBase64 } from '../../lib/base64'
+import './TerminalPane.scss'
 
 const OUTPUT_EVENT = 'terminal:output'
 const EXIT_EVENT = 'terminal:exit'

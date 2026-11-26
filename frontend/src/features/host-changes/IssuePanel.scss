@@ -7,7 +7,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 5;
+  z-index: var(--z-overlay);
   display: flex;
   width: var(--pane-inspector);
   border-left: var(--border-structure);
@@ -67,9 +67,7 @@
 }
 
 .issue-panel-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .issue-panel-labels {
@@ -90,7 +88,7 @@
     overflow: hidden;
     appearance: none;
     border: none;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: var(--surface-highest);
   }
 

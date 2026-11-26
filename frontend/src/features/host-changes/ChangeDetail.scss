@@ -1,0 +1,115 @@
+.host-changes-notice {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+}
+
+.host-change-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0 0 0 var(--space-md);
+  border-left: var(--border-structure);
+}
+
+.host-change-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.host-change-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  margin: 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+
+  > * + *::before {
+    content: '·';
+    margin-right: var(--space-sm);
+    color: var(--outline);
+  }
+}
+
+.host-change-facts-reviews {
+  display: flex;
+  flex-direction: column;
+}
+
+.host-change-facts-checks {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.host-change-tabs {
+  display: flex;
+  height: var(--h-tab-bar);
+  border-bottom: var(--border-structure);
+}
+
+.host-change-tab-count {
+  margin-left: var(--space-xs);
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.host-change-tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.host-change-tile {
+  min-width: 0;
+  padding: var(--space-sm);
+  background: var(--surface-low);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 2px 0 0 var(--outline-variant);
+}
+
+.host-change-flow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  color: var(--on-surface);
+  font: var(--data-sm);
+  overflow-wrap: anywhere;
+}
+
+.host-change-protection {
+  color: var(--outline);
+}
+
+.host-change-author {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.host-change-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: var(--space-xl);
+}
+
+.host-change-overview-main,
+.host-change-overview-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.host-change-labels {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}

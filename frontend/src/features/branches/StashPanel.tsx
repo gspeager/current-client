@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import type { SidebarRequest } from '../shell/NavPane'
+import { useState } from 'react'
+import { useSidebarCommand } from '../../lib/sidebarCommands'
 import { ArrowDownToLine, Download, Eye, Package, PackagePlus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { StashService, type StashInfo } from '@current-client-bindings/app'
@@ -15,7 +15,6 @@ import { useAction } from '../../lib/useAction'
 import './StashPanel.scss'
 
 interface StashPanelProps {
-  request?: SidebarRequest | null
   repoPath: string
   dirty: boolean
   // Reloads the list when it changes, such as after a stash made from Changes.
@@ -24,7 +23,7 @@ interface StashPanelProps {
   onStashChanged?: () => void
 }
 
-function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, request = null }: StashPanelProps) {
+function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged }: StashPanelProps) {
   useClockTick()
   const {
     data: stashes,
@@ -38,9 +37,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
   const [includeUntracked, setIncludeUntracked] = useState(false)
   const [keepIndex, setKeepIndex] = useState(false)
   const [showNewStash, setShowNewStash] = useState(false)
-  useEffect(() => {
-    if (request?.action === 'new-stash') setShowNewStash(true)
-  }, [request])
+  useSidebarCommand('new-stash', () => setShowNewStash(true))
   const [busyIndex, setBusyIndex] = useState<number | null>(null)
   const [shownStash, setShownStash] = useState<StashInfo | null>(null)
   const rowMenu = useRowMenu()

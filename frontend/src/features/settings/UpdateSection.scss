@@ -1,0 +1,15 @@
+.settings-update {
+  flex-wrap: wrap;
+}
+
+.settings-value {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.settings-update-link {
+  display: inline-flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: var(--space-sm);
+}

@@ -3,7 +3,7 @@
 .remotes-panel {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .remotes-panel-add {
@@ -36,7 +36,7 @@
 .remotes-panel-fetch-all {
   height: var(--h-micro);
   padding: 0 var(--space-xs);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-2xs);
   background: none;
   border: none;
   border-radius: var(--radius-xs);
@@ -56,14 +56,7 @@
 }
 
 .remote-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  height: var(--h-row-tree);
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
+  @include patterns.sidebar-row;
 
   &:hover {
     background: var(--surface-container);

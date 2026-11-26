@@ -2,6 +2,7 @@ import { SubmoduleService } from '@current-client-bindings/app'
 import { useAsyncData } from '../../lib/useAsyncData'
 import type { SubmoduleChange } from './submoduleChange'
 import { shortSha } from '../../lib/text'
+import './SubmoduleDiff.scss'
 
 interface SubmoduleDiffProps {
   change: SubmoduleChange

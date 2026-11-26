@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   DashboardService,
@@ -11,7 +11,8 @@ import {
 } from '@current-client-bindings/app'
 import type { useWorkingTree } from '../working-copy/useWorkingTree'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
-import NavPane, { type SidebarRequest } from './NavPane'
+import NavPane from './NavPane'
+import { createSidebarCommands, type SidebarCommands } from '../../lib/sidebarCommands'
 import { useWorkspaceActions } from './useWorkspaceActions'
 import { renderWithDialogs } from '../../test/render'
 import { REPO } from '../../test/factories'
@@ -29,13 +30,18 @@ interface ShellProps {
   collapsed: boolean
   onCollapsedChange: (next: boolean) => void
   onOpenHeadCommit?: (sha: string) => void
-  request?: SidebarRequest | null
+  commands?: SidebarCommands
 }
 
 // The sidebar with its Workspace actions wired the way App wires them.
 const openTerminal = vi.fn()
 
-function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn(), request = null }: ShellProps) {
+function Shell({
+  collapsed,
+  onCollapsedChange,
+  onOpenHeadCommit = vi.fn(),
+  commands = createSidebarCommands(),
+}: ShellProps) {
   const workspace = useWorkspaceActions({
     onOpenTerminal: openTerminal,
     repoPath: REPO,
@@ -60,7 +66,7 @@ function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn(), reque
         width={240}
         collapsed={collapsed}
         onCollapsedChange={onCollapsedChange}
-        request={request}
+        commands={commands}
       />
       {workspace.modals}
     </>
@@ -81,7 +87,9 @@ const openToolbox = () => userEvent.click(screen.getByRole('button', { name: 'To
 
 describe('NavPane asked to open a section', () => {
   it.each(['tidy-up', 'restack', 'branch-review'] as const)('opens Branches for %s, not Tags', async (action) => {
-    renderWithDialogs(<Shell collapsed={false} onCollapsedChange={vi.fn()} request={{ action, n: 1 }} />)
+    const commands = createSidebarCommands()
+    renderWithDialogs(<Shell collapsed={false} onCollapsedChange={vi.fn()} commands={commands} />)
+    act(() => commands.run(action))
     // Hidden from the accessibility tree while the action's own dialog is open.
     const section = (name: RegExp) => screen.findByRole('button', { name, hidden: true })
     expect(await section(/^Branches/)).toHaveAttribute('aria-expanded', 'true')

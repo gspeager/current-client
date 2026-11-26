@@ -6,12 +6,7 @@
   gap: var(--space-xs);
 
   ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    @include patterns.panel-list;
     max-height: 40vh;
     overflow-y: auto;
   }
@@ -23,9 +18,7 @@
 }
 
 .repo-quick-list-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .repo-quick-row {
@@ -72,7 +65,7 @@
 .repo-quick-row-open {
   padding: 0 var(--space-xs);
   border: 1px solid var(--outline);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font: var(--ui-xs);
 }
 

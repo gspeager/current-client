@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import type { SidebarRequest } from '../shell/NavPane'
+import { useState } from 'react'
+import { useSidebarCommand } from '../../lib/sidebarCommands'
 import { BookOpen, Columns3, FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { BranchService, RepositoryService, WorktreeService, type WorktreeInfo } from '@current-client-bindings/app'
@@ -9,7 +9,7 @@ import { errorMessage } from '../../lib/errors'
 import { baseName, joinPath } from '../../lib/paths'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
-import { useOpenReadThrough } from '../read-through/readThrough'
+import { useOpenReadThrough } from '../../lib/readThrough'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import { shortSha } from '../../lib/text'
@@ -19,7 +19,6 @@ import './WorktreesPanel.scss'
 const NEW_BRANCH = ''
 
 interface WorktreesPanelProps {
-  request?: SidebarRequest | null
   repoPath: string
   refreshKey?: unknown
   sections: SidebarSections
@@ -39,7 +38,6 @@ function WorktreesPanel({
   onOpenRepository,
   onWorktreesChanged,
   onOpenBoard,
-  request = null,
 }: WorktreesPanelProps) {
   const {
     data: worktrees,
@@ -50,9 +48,7 @@ function WorktreesPanel({
   const { confirm } = useDialogs()
   const { error: actionError, setError: setActionError, fail } = useAction()
   const [showNew, setShowNew] = useState(false)
-  useEffect(() => {
-    if (request?.action === 'new-worktree') setShowNew(true)
-  }, [request])
+  useSidebarCommand('new-worktree', () => setShowNew(true))
   const [existingBranch, setExistingBranch] = useState(NEW_BRANCH)
   const [newBranchName, setNewBranchName] = useState('')
   const [parent, setParent] = useState<string | null>(null)

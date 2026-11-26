@@ -25,17 +25,6 @@
   color: var(--on-surface);
 }
 
-.dialog-note {
-  margin: 0;
-  font: var(--ui-sm);
-  color: var(--outline);
-}
-
-.dialog-error {
-  color: var(--error);
-  font: var(--ui-xs);
-}
-
 .dialog-field {
   display: flex;
   flex-direction: column;

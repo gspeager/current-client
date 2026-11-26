@@ -1,0 +1,23 @@
+.stack-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.stack-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--h-row-tree);
+}
+
+.stack-undo {
+  align-self: flex-start;
+}
+
+.stack-mark {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

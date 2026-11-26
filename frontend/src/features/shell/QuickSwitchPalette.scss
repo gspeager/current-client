@@ -41,10 +41,8 @@
 
 .quick-switch-error {
   flex-shrink: 0;
-  margin: 0;
+  @include patterns.panel-error;
   padding: var(--space-xs) var(--space-md);
-  color: var(--error);
-  font: var(--ui-xs);
 }
 
 .quick-switch-results {
@@ -63,7 +61,7 @@
 .quick-switch-section [cmdk-group-items] {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .quick-switch-section-header {
@@ -113,8 +111,7 @@
 }
 
 .quick-switch-row[data-selected='true'] {
-  background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
+  @include patterns.selected-row;
 }
 
 .quick-switch-row-icon {
@@ -124,9 +121,7 @@
 
 .quick-switch-dot {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
 }
 
 .quick-switch-dot-dirty {
@@ -206,7 +201,7 @@
 .quick-switch-hint {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .quick-switch-result-count {
@@ -224,19 +219,14 @@
 .quick-switch-scope {
   display: flex;
   padding: var(--space-xs) var(--space-md);
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: var(--border-structure);
 }
 
 .quick-switch-row-blame {
   flex-shrink: 0;
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
+  @include patterns.secondary-button;
   font: var(--ui-xs);
-  cursor: pointer;
   visibility: hidden;
 
   [cmdk-item]:hover &,

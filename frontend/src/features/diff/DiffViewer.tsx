@@ -1,12 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ClipboardCheck, FileCode, Image, List } from 'lucide-react'
-import {
-  DiffService,
-  type FileDiff,
-  type LineSelection,
-  type ReadThroughNote,
-  type ReviewThread,
-} from '@current-client-bindings/app'
+import { DiffService, type FileDiff, type ReadThroughNote, type ReviewThread } from '@current-client-bindings/app'
 import ContextMenu, { menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -21,7 +15,9 @@ import { submoduleChange } from './submoduleChange'
 import { buildDisplayRows, diffStats, isLongDiff, lineRef } from './diffRows'
 import { conflictRows, type ConflictView } from './conflictRows'
 import { formatSize } from './fileSize'
-import DiffPane, { lineKey, type DiffPaneHandle, type HunkActions } from './DiffPane'
+import DiffPane, { type DiffPaneHandle, type HunkActions } from './DiffPane'
+import { useHunkNavigation } from './useHunkNavigation'
+import { useLineSelection } from './useLineSelection'
 import ReviewThreadBlock from './ReviewThreadBlock'
 import DiffMinimap from './DiffMinimap'
 import PendingCommentBlock from '../review/PendingCommentBlock'
@@ -33,11 +29,9 @@ import { issueDraftFromLine, useNewIssue } from '../../lib/issuePanel'
 import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import { plural } from '../../lib/plural'
 import { toggled } from '../../lib/sets'
-import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { NARROW_SPLIT_WIDTH, useWindowNarrowerThan } from '../../lib/useWindowNarrowerThan'
 import './DiffViewer.scss'
-import { matchesShortcut } from '../../lib/shortcuts'
 
 // A line of the new version, or with no line, of the old one.
 export interface DiffFocus {
@@ -161,10 +155,14 @@ function DiffViewer({
   })
   useEffect(() => setLineStops(paneRef.current))
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
-  const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
-  const [currentBlock, setCurrentBlock] = useState(0)
-  const [selectedLines, setSelectedLines] = useState<Set<string>>(new Set())
-  const lastToggled = useRef<string | null>(null)
+  const { currentHunk, currentBlock, stepBlock } = useHunkNavigation({
+    diff,
+    blockStarts: blocks.blockStarts,
+    pane: paneRef,
+    handle,
+    hunkActions,
+  })
+  const lineSelection = useLineSelection(diff)
   const initialScrollApplied = useRef(false)
   const [showRawDiff, setShowRawDiff] = useState(false)
   const fileVersions = JSON.stringify([images?.before, images?.after])
@@ -199,73 +197,11 @@ function DiffViewer({
 
   useEffect(() => {
     setExpandedGroups(new Set())
-    setCurrentHunkIndex(0)
-    setCurrentBlock(0)
-    setSelectedLines(new Set())
-    lastToggled.current = null
     // What's read through keeps moving, and a note being typed stays.
     if (!takesNotes) setComposer(null)
   }, [diff, takesNotes])
 
-  const stepBlock = (step: number) => {
-    const index = Math.min(blocks.blockStarts.length - 1, Math.max(0, currentBlock + step))
-    setCurrentBlock(index)
-    handle.current?.revealBlock(index)
-  }
-
-  // Shift-click selects every changed line between the last one toggled and this one.
-  const toggleLine = (key: string, range: boolean) => {
-    const order = diff.hunks.flatMap((h) => h.lines.map(lineKey).filter((k): k is string => k !== null))
-    const from = lastToggled.current ? order.indexOf(lastToggled.current) : -1
-    const to = order.indexOf(key)
-    setSelectedLines((prev) => {
-      if (!range || from === -1) return toggled(prev, key)
-      return new Set([...prev, ...order.slice(Math.min(from, to), Math.max(from, to) + 1)])
-    })
-    lastToggled.current = key
-  }
-
-  const selectionByHunk = useMemo(() => {
-    const byHunk = new Map<string, LineSelection>()
-    if (selectedLines.size === 0) return byHunk
-    for (const h of diff.hunks) {
-      const chosen = h.lines.filter((l) => selectedLines.has(lineKey(l) ?? ''))
-      byHunk.set(h.raw, {
-        added: chosen.filter((l) => l.kind === 'added').map((l) => l.newLine),
-        removed: chosen.filter((l) => l.kind === 'removed').map((l) => l.oldLine),
-      })
-    }
-    return byHunk
-  }, [diff, selectedLines])
   const canSelectLines = !diff.conflicted && Boolean(hunkActions.onStageHunk ?? hunkActions.onUnstageHunk)
-
-  useWindowKeydown((e) => {
-    // S, U and D act on the current hunk while focus is in the diff.
-    if (!e.metaKey && !e.ctrlKey && !e.altKey && paneRef.current?.contains(document.activeElement)) {
-      const hunk = diff.hunks[currentHunkIndex]
-      const key = e.key.toLowerCase()
-      if (hunk && key === 's') hunkActions.onStageHunk?.(hunk.raw)
-      if (hunk && key === 'u') hunkActions.onUnstageHunk?.(hunk.raw)
-      if (hunk && key === 'd') hunkActions.onDiscardHunk?.(hunk.raw)
-    }
-    const forward = matchesShortcut(e, 'F7') || matchesShortcut(e, 'alt+ArrowDown')
-    const back = matchesShortcut(e, 'shift+F7') || matchesShortcut(e, 'alt+ArrowUp')
-    if (!forward && !back) return
-    if (diff.conflicted) {
-      if (blocks.blockStarts.length === 0) return
-      e.preventDefault()
-      stepBlock(forward ? 1 : -1)
-      return
-    }
-    const total = diff.hunks.length
-    if (total === 0) return
-    e.preventDefault()
-    setCurrentHunkIndex((i) => {
-      const next = forward ? Math.min(total - 1, i + 1) : Math.max(0, i - 1)
-      handle.current?.revealHunk(next)
-      return next
-    })
-  })
 
   const toggleGroup = (index: number) => setExpandedGroups((prev) => toggled(prev, index))
 
@@ -469,12 +405,14 @@ function DiffViewer({
           path={path}
           expandedGroups={expandedGroups}
           onToggleGroup={toggleGroup}
-          currentHunkIndex={currentHunkIndex}
+          currentHunkIndex={currentHunk}
           scrollRef={paneRef}
           handle={handle}
           onScrollTopChange={onScrollTopChange}
           lineSelect={
-            canSelectLines ? { selected: selectedLines, onToggle: toggleLine, byHunk: selectionByHunk } : undefined
+            canSelectLines
+              ? { selected: lineSelection.selected, onToggle: lineSelection.toggle, byHunk: lineSelection.byHunk }
+              : undefined
           }
           blocksByLine={blocksByLine}
           lineComment={

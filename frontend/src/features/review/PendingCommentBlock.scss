@@ -1,7 +1,7 @@
 // Sits between diff rows like a thread, in the warning color: not sent yet.
 .pending-comment {
   grid-column: 1 / -1;
-  margin: 2px var(--space-sm);
+  margin: var(--space-2xs) var(--space-sm);
   padding: 0 var(--space-sm) var(--space-sm);
   background: var(--surface);
   border: var(--border-structure);
@@ -23,7 +23,7 @@
 .pending-comment-remove {
   display: inline-flex;
   margin-left: auto;
-  padding: 2px;
+  padding: var(--space-2xs);
   background: none;
   border: none;
   border-radius: var(--radius);

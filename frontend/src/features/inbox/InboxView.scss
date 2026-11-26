@@ -1,21 +1,11 @@
 @use '../../styles/patterns';
 
-// A panel in the inspector's slot, over the right of the body: beside a
-// view's own detail pane it would leave a commit list no room for subjects.
-// A row opens its target in the panel's place.
-.inbox-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  background: color-mix(in srgb, var(--surface-lowest) 60%, transparent);
-}
-
 .inbox {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 4;
+  z-index: var(--z-drawer);
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -44,9 +34,7 @@
 
 .inbox-summary,
 .inbox-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .inbox-error {
@@ -77,7 +65,7 @@
 .inbox-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .inbox-group-label {
@@ -140,9 +128,7 @@
 }
 
 .inbox-rows {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   display: flex;
   flex-direction: column;
 }
@@ -257,9 +243,7 @@
   position: absolute;
   top: calc(50% - 3px);
   left: 2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
   background: var(--secondary);
 }
 

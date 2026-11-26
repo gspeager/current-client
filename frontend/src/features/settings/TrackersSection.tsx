@@ -10,6 +10,7 @@ import {
   useIntegrationAction,
   type IntegrationAction,
 } from './IntegrationControls'
+import './TrackersSection.scss'
 
 const KIND_LABELS: Record<string, string> = { 'jira-cloud': 'Jira Cloud', 'jira-data-center': 'Jira Data Center' }
 

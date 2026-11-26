@@ -95,9 +95,7 @@
 }
 
 .status-bar-host-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
   border: 1px solid var(--on-surface-variant);
 
   .status-bar-host-busy & {

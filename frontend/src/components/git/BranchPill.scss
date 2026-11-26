@@ -3,7 +3,7 @@
 .branch-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   height: var(--h-chip);
   padding: 0 var(--space-sm);
   border-radius: var(--radius-full);
@@ -22,9 +22,7 @@
 
 .branch-pill-dot,
 .branch-pill-dirty {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
   flex-shrink: 0;
 }
 

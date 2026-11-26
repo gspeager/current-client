@@ -9,6 +9,7 @@ import { primaryRemoteName } from '../../lib/remotes'
 import { useDialogs } from '../../lib/useDialogs'
 import { useLaneColors } from '../../lib/laneColor'
 import RestackDialog from './RestackDialog'
+import './StackSection.scss'
 
 interface StackSectionProps {
   repoPath: string

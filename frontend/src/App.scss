@@ -1,3 +1,5 @@
+@use './styles/patterns';
+
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -50,20 +52,14 @@
 .app-inline-error {
   button {
     margin-left: var(--space-xs);
-    background: none;
-    border: none;
+    @include patterns.link-button;
     color: var(--on-surface);
-    text-decoration: underline;
-    cursor: pointer;
-    font: inherit;
   }
 }
 
 .app-terminal-error {
-  margin: 0;
+  @include patterns.panel-error;
   padding: var(--space-xs) var(--space-md);
-  color: var(--error);
-  font: var(--ui-xs);
 }
 
 // Off screen until the keyboard reaches it.
@@ -71,7 +67,7 @@
   position: absolute;
   top: var(--space-xs);
   left: var(--space-xs);
-  z-index: 100;
+  z-index: var(--z-modal);
   height: var(--h-field);
   padding: 0 var(--space-md);
   background: var(--surface-high);
@@ -84,15 +80,6 @@
   &:focus-visible {
     transform: none;
   }
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 // Windows High Contrast drops backgrounds and box-shadows, which carry selection
@@ -121,4 +108,14 @@
   .commit-row-graph svg {
     forced-color-adjust: none;
   }
+}
+
+// A panel in the inspector's slot, over the right of the body: beside a
+// view's own detail pane it would leave a commit list no room for subjects.
+// A row opens its target in the panel's place.
+.inbox-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-scrim);
+  background: color-mix(in srgb, var(--surface-lowest) 60%, transparent);
 }

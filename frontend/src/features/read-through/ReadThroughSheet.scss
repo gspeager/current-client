@@ -89,13 +89,8 @@
 .read-through-button {
   flex-shrink: 0;
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
+  @include patterns.secondary-button;
   font: var(--ui-xs);
-  cursor: pointer;
 
   &:hover:not(:disabled) {
     color: var(--on-surface);
@@ -121,9 +116,7 @@
 }
 
 .read-through-note-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
 }
 
 .read-through-note {
@@ -159,10 +152,6 @@
   white-space: pre-wrap;
 }
 
-.second-look-rule {
-  margin-top: var(--space-md);
-}
-
 .second-look-label {
   display: flex;
   align-items: baseline;
@@ -170,47 +159,6 @@
   margin: 0 0 var(--space-xs);
   color: var(--on-surface);
   font: var(--ui-sm);
-}
-
-.second-look-reason {
-  color: var(--outline);
-  font: var(--ui-xs);
-}
-
-.second-look-finding {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding: var(--space-xs) var(--space-sm);
-  background: none;
-  border: none;
-  border-top: var(--border-structure);
-  text-align: left;
-
-  &:not(:disabled) {
-    cursor: pointer;
-  }
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container);
-  }
-}
-
-.second-look-message {
-  color: var(--on-surface);
-  font: var(--ui-sm);
-  overflow-wrap: anywhere;
-}
-
-.second-look-where {
-  color: var(--on-surface-variant);
-  font: var(--data-sm);
-}
-
-.second-look-left-out {
-  padding: var(--space-xs) var(--space-sm);
-  color: var(--outline);
-  font: var(--ui-xs);
 }
 
 .read-through-again {
@@ -222,46 +170,8 @@
   font: var(--ui-xs);
 }
 
-.change-structure-summary {
-  margin: 0;
-  color: var(--on-surface-variant);
-  font: var(--ui-sm);
-}
-
 .change-structure .structure-graph {
   max-height: 50vh;
-}
-
-.change-structure-list li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-sm);
-  color: var(--outline);
-  font: var(--ui-sm);
-}
-
-.change-structure-place {
-  padding: 0;
-  background: none;
-  border: none;
-  color: var(--on-surface);
-  font: var(--data-sm);
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.change-structure-facts {
-  color: var(--outline);
-  font: var(--data-sm);
-}
-
-.change-structure-mark {
-  color: var(--on-surface);
-  font: var(--data-sm);
 }
 
 .read-through-area {

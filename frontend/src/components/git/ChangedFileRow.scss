@@ -1,8 +1,8 @@
+@use '../../styles/patterns';
+
 .changed-file-list {
-  margin: 0;
-  padding: 0;
+  @include patterns.list-reset;
   overflow: hidden;
-  list-style: none;
   background: var(--surface);
   border-radius: var(--radius);
 
@@ -31,8 +31,7 @@
 
 .changed-file-selected,
 .changed-file-tickable-selected {
-  background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
+  @include patterns.selected-row;
 }
 
 .changed-file-path {

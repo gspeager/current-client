@@ -4,6 +4,7 @@ import { SettingsService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SettingsRow from './SettingsRow'
+import './IdentityColorSettings.scss'
 
 function IdentityColorSettings() {
   const {

@@ -6,10 +6,8 @@
 
 .tidy-list {
   max-height: 45vh;
-  margin: 0;
-  padding: 0;
+  @include patterns.list-reset;
   overflow-y: auto;
-  list-style: none;
 }
 
 .tidy-row {
@@ -20,7 +18,7 @@
 
 .tidy-row-dragging {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-raised);
   box-shadow: inset 2px 0 0 0 var(--outline);
 }
 

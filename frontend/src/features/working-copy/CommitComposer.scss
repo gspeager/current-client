@@ -30,13 +30,7 @@
 
 .commit-composer-type-select,
 .commit-composer-type-scope {
-  height: var(--h-field);
-  padding: 0 var(--space-xs);
-  background: var(--surface);
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface);
-  font: var(--data-sm);
+  @include patterns.text-field;
 
   &:focus {
     outline: none;
@@ -160,7 +154,7 @@
   justify-content: center;
   min-width: 14px;
   height: 14px;
-  padding: 0 3px;
+  padding: 0 var(--space-2xs);
   background: var(--primary);
   border-radius: var(--radius-full);
   color: var(--on-primary-container);
@@ -171,7 +165,7 @@
   position: absolute;
   right: 0;
   bottom: calc(100% + var(--space-xs));
-  z-index: 10;
+  z-index: var(--z-menu);
   min-width: 200px;
   padding: var(--space-xs);
   background: var(--surface);
@@ -180,7 +174,7 @@
   box-shadow: var(--elev-modal);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .commit-composer-coauthors-option {
@@ -215,7 +209,7 @@
 .commit-composer-coauthor-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: var(--h-micro);
   padding: 0 var(--space-xs);
   background: var(--surface-container);
@@ -274,9 +268,7 @@
 }
 
 .commit-composer-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }
 
 // The one primary action while a merge, rebase, cherry-pick or revert is in progress.

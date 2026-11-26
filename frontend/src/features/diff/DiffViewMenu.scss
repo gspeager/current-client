@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .diff-view-menu {
   position: relative;
   flex-shrink: 0;
@@ -8,14 +10,9 @@
   align-items: center;
   gap: var(--space-xs);
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
+  @include patterns.secondary-button;
   font: var(--ui-xs);
   list-style: none;
-  cursor: pointer;
 
   &::-webkit-details-marker {
     display: none;
@@ -31,7 +28,7 @@
   position: absolute;
   top: calc(100% + var(--space-xs));
   right: 0;
-  z-index: 20;
+  z-index: var(--z-menu);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);

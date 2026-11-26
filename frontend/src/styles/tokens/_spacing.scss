@@ -1,6 +1,7 @@
 // design-system.md §5.
 .current-client {
-  // §5.1 4px base scale
+  // §5.1 4px base scale, and half a unit for the tightest gaps
+  --space-2xs: 2px;
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
@@ -16,7 +17,9 @@
   --h-action: 32px; // Primary actions
   --h-commit-row: 38px; // History rows, toolbars — CommitGraph.rowHeight must match
 
+  // Chrome and two-line rows, not controls.
   --h-title-bar: 44px;
+  --h-row-double: 44px; // Two-line rows, card headers, the overview strip
   --h-repo-tab-bar: 40px;
   --h-tab-bar: 34px;
   --h-status-bar: 26px;

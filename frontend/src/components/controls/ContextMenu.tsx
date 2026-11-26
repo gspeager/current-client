@@ -119,8 +119,6 @@ function ContextMenu({ state, onClose }: ContextMenuProps) {
       style={{
         left: position.left,
         top: position.top,
-        maxHeight: 'calc(100vh - 16px)',
-        overflowY: 'auto',
         visibility: position.visible ? 'visible' : 'hidden',
       }}
     >

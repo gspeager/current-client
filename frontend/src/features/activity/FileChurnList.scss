@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 @use './card';
 
 .file-churn {
@@ -11,7 +13,7 @@
 .file-churn-heading {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .file-churn-title {
@@ -35,12 +37,7 @@
 }
 
 .file-churn-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  @include patterns.panel-list;
 }
 
 .file-churn-row {
@@ -72,14 +69,14 @@
   min-width: 0;
   height: 8px;
   background: var(--surface-container);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 
 .file-churn-bar {
   display: block;
   height: 100%;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 .file-churn-count {

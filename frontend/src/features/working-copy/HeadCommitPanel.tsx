@@ -1,5 +1,5 @@
 import { GitCommitVertical } from 'lucide-react'
-import { useHeadCommit } from './useHeadCommit'
+import { useHeadCommit } from '../history/useHeadCommit'
 import { shortSha } from '../../lib/text'
 import './HeadCommitPanel.scss'
 

@@ -104,7 +104,7 @@
 .commit-detail-signature {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2xs);
   font: var(--ui-xs);
 }
 
@@ -171,15 +171,11 @@
 }
 
 .commit-detail-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .commit-detail-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }
 
 .commit-detail-actions {
@@ -195,13 +191,7 @@
   align-items: center;
   gap: var(--space-xs);
   height: var(--h-field);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
-  font: var(--ui-sm);
-  cursor: pointer;
+  @include patterns.secondary-button;
 
   &:hover {
     background: var(--surface-container);
@@ -222,10 +212,10 @@
   left: 0;
   right: 0;
   top: calc(100% + var(--space-xs));
-  z-index: 10;
+  z-index: var(--z-menu);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
   padding: var(--space-xs);
   background: var(--surface);
   border: var(--border-structure);

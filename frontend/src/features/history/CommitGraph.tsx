@@ -1,5 +1,6 @@
 import { useLaneColors } from '../../lib/laneColor'
 import { GRAPH_LINE, graphShapes, LANE_WIDTH, type GraphRow, type GraphShape } from './graphShapes'
+import './CommitGraph.scss'
 
 interface CommitGraphProps extends GraphRow {
   laneCount: number
@@ -34,7 +35,7 @@ function CommitGraph({ laneCount, ...row }: CommitGraphProps) {
   const { laneColor } = useLaneColors()
   const { node, rowHeight, laneWidth = LANE_WIDTH } = row
   return (
-    <svg width={Math.max(laneCount, node.lane + 1) * laneWidth} height={rowHeight} style={{ display: 'block' }}>
+    <svg width={Math.max(laneCount, node.lane + 1) * laneWidth} height={rowHeight} className="commit-graph">
       {graphShapes(row, laneColor).map(shapeElement)}
     </svg>
   )

@@ -83,14 +83,6 @@
   padding: var(--space-xs) 0 0 var(--space-sm);
 }
 
-.terminal-pane {
-  height: 100%;
-
-  &[hidden] {
-    display: none;
-  }
-}
-
 .terminal-panel-tabs[hidden],
 .terminal-panel-body[hidden] {
   display: none;
