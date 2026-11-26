@@ -2,7 +2,6 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -183,12 +182,12 @@ func validateTidy(plan TidyPlan, steps []TidyStep) error {
 		known[commit.SHA] = true
 	}
 	if len(steps) != len(known) {
-		return errors.New("the steps don't match the branch's commits")
+		return &gitexec.AppError{Message: "The steps don't match the branch's commits."}
 	}
 	seen, kept := map[string]bool{}, 0
 	for _, step := range steps {
 		if !known[step.SHA] || seen[step.SHA] {
-			return errors.New("the steps don't match the branch's commits")
+			return &gitexec.AppError{Message: "The steps don't match the branch's commits."}
 		}
 		seen[step.SHA] = true
 		switch step.Action {
@@ -196,18 +195,18 @@ func validateTidy(plan TidyPlan, steps []TidyStep) error {
 			kept++
 		case TidySquash, TidyFixup:
 			if kept == 0 {
-				return errors.New("the first commit kept has nothing to fold into")
+				return &gitexec.AppError{Message: "The first commit kept has nothing to fold into."}
 			}
 		case TidyDrop:
 		default:
 			return fmt.Errorf("unknown action: %s", step.Action)
 		}
 		if step.Action == TidyReword && strings.TrimSpace(step.Message) == "" {
-			return errors.New("a reworded commit needs a message")
+			return &gitexec.AppError{Message: "A reworded commit needs a message."}
 		}
 	}
 	if kept == 0 {
-		return errors.New("at least one commit has to stay")
+		return &gitexec.AppError{Message: "At least one commit has to stay."}
 	}
 	return nil
 }
@@ -351,13 +350,13 @@ func RunTidy(ctx context.Context, repoPath, expectedHead string, steps []TidySte
 		return err
 	}
 	if plan.Head != expectedHead {
-		return errors.New("the branch has moved since this was opened. Open it again")
+		return &gitexec.AppError{Message: "The branch has moved since this was opened. Open it again."}
 	}
 	if plan.HasMerges {
-		return errors.New("these commits include a merge, which a rewrite would flatten")
+		return &gitexec.AppError{Message: "These commits include a merge, which a rewrite would flatten."}
 	}
 	if plan.Dirty {
-		return errors.New("commit or stash the changes in the working tree first")
+		return &gitexec.AppError{Message: "Commit or stash the changes in the working tree first."}
 	}
 	if err := validateTidy(plan, steps); err != nil {
 		return err

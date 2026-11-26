@@ -25,16 +25,19 @@ func snapshotLimit() int {
 	return configOrDefault().SnapshotLimit
 }
 
+// A snapshot of a large working tree can take a while; past this, the action goes ahead without it.
+const snapshotTimeout = time.Minute
+
 // snapshotBefore never stands in the way of the action: if the snapshot fails,
 // the action still runs, as it did before snapshots existed.
 func snapshotBefore(repoPath, action string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
 	defer cancel()
 	_, _ = snapshot.Take(ctx, repoPath, action, snapshotLimit())
 }
 
 func snapshotTip(repoPath, action, branch, tip string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
 	defer cancel()
 	_ = snapshot.TakeTip(ctx, repoPath, action, branch, tip, snapshotLimit())
 }

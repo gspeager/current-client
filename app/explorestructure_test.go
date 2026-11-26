@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -34,7 +35,7 @@ func structureRepo(t *testing.T) string {
 
 func structureOf(t *testing.T, repo, path string, comparison *ExploreComparison) (StructureInfo, []string) {
 	t.Helper()
-	info, err := new(ExploreService).Structure(repo, path, comparison)
+	info, err := new(ExploreService).Structure(context.Background(), repo, path, comparison)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +103,7 @@ func TestStructureComparedWithAnotherPoint(t *testing.T) {
 			t.Errorf("since %v: %q", since, all)
 		}
 	}
-	if _, err := new(ExploreService).Structure(repo, "", &ExploreComparison{Kind: "commit", Ref: "nowhere"}); err == nil {
+	if _, err := new(ExploreService).Structure(context.Background(), repo, "", &ExploreComparison{Kind: "commit", Ref: "nowhere"}); err == nil {
 		t.Error("a point that isn't there has a structure")
 	}
 	// A moved HEAD is another structure.
@@ -143,7 +144,7 @@ func TestStructureInASparsePartialCloneFetchesNothing(t *testing.T) {
 		t.Errorf("with nothing checked out: %+v", info)
 	}
 	gittest.Run(t, clone, "config", "core.sparseCheckout", "true")
-	if _, err := new(ExploreService).Structure(clone, "", nil); !errors.Is(err, errSparsePartial) {
+	if _, err := new(ExploreService).Structure(context.Background(), clone, "", nil); !errors.Is(err, errSparsePartial) {
 		t.Errorf("err = %v", err)
 	}
 	if after := missing(); after != before {
@@ -154,7 +155,7 @@ func TestStructureInASparsePartialCloneFetchesNothing(t *testing.T) {
 func TestStructureOfABranchWithNoBase(t *testing.T) {
 	repo := structureRepo(t)
 	gittest.Run(t, repo, "branch", "-m", "main", "trunk-of-ours")
-	if _, err := new(ExploreService).Structure(repo, "", &ExploreComparison{Kind: "branch", Ref: "trunk-of-ours"}); !errors.Is(err, errNoBase) {
+	if _, err := new(ExploreService).Structure(context.Background(), repo, "", &ExploreComparison{Kind: "branch", Ref: "trunk-of-ours"}); !errors.Is(err, errNoBase) {
 		t.Errorf("err = %v", err)
 	}
 }
@@ -162,7 +163,7 @@ func TestStructureOfABranchWithNoBase(t *testing.T) {
 func TestStructureBeforeTheFirstCommit(t *testing.T) {
 	repo := t.TempDir()
 	gittest.Run(t, repo, "init", "-q")
-	info, err := new(ExploreService).Structure(repo, "", nil)
+	info, err := new(ExploreService).Structure(context.Background(), repo, "", nil)
 	if err != nil || info.Nodes == nil || len(info.Nodes) != 0 {
 		t.Error(info, errors.Join(err))
 	}
@@ -170,7 +171,7 @@ func TestStructureBeforeTheFirstCommit(t *testing.T) {
 
 func shapeOf(t *testing.T, info ReadThroughInfo) ChangeStructureInfo {
 	t.Helper()
-	shape, err := new(ReadThroughService).Structure(info)
+	shape, err := new(ReadThroughService).Structure(context.Background(), info)
 	if err != nil {
 		t.Fatal(err)
 	}

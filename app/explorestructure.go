@@ -97,8 +97,7 @@ var (
 
 // Structure is what's inside a folder or a file, "" for the whole repository, with what
 // uses it and what it uses, compared with another point when one is given.
-func (s *ExploreService) Structure(repoPath, path string, comparison *ExploreComparison) (StructureInfo, error) {
-	ctx := context.Background()
+func (s *ExploreService) Structure(ctx context.Context, repoPath, path string, comparison *ExploreComparison) (StructureInfo, error) {
 	info := StructureInfo{Crumbs: []StructureCrumb{}, Nodes: []StructureNode{}, Rest: []StructureNode{}, Links: []StructureLink{}}
 	if noCommits(ctx, repoPath) {
 		return info, nil

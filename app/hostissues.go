@@ -4,11 +4,11 @@ package app
 
 import (
 	"context"
-	"errors"
 	"regexp"
 	"strconv"
 	"time"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostcontent"
 )
@@ -89,7 +89,7 @@ func issueSourceFor(repoPath, key string) (issueSource, error) {
 	if _, err := strconv.Atoi(key); err != nil {
 		provider, site, ok := jiraFor(repoPath)
 		if !ok {
-			return issueSource{}, errors.New("integration is off for this repository's issue tracker")
+			return issueSource{}, &gitexec.AppError{Message: "Integration is off for this repository's issue tracker."}
 		}
 		return trackerSource(provider, site), nil
 	}
@@ -99,7 +99,7 @@ func issueSourceFor(repoPath, key string) (issueSource, error) {
 	}
 	src := issueSourceOf(info)
 	if src.tracker == nil {
-		return issueSource{}, errors.New("no issue tracker for this host yet")
+		return issueSource{}, &gitexec.AppError{Message: "No issue tracker for this host yet."}
 	}
 	return src, nil
 }

@@ -72,7 +72,7 @@ func (s *HostService) MergeOptions(repoPath string, number int) (hostapi.MergeOp
 	if err != nil {
 		return hostapi.MergeOptions{}, err
 	}
-	merger, err := capability[hostapi.Merger](info, "this host can't merge from the app")
+	merger, err := capability[hostapi.Merger](info, "This host can't merge from the app.")
 	if err != nil {
 		return hostapi.MergeOptions{}, err
 	}
@@ -89,7 +89,7 @@ func (s *HostService) MergeChange(repoPath string, number int, method string, de
 	if err != nil {
 		return MergeResult{}, err
 	}
-	merger, err := capability[hostapi.Merger](info, "this host can't merge from the app")
+	merger, err := capability[hostapi.Merger](info, "This host can't merge from the app.")
 	if err != nil {
 		return MergeResult{}, err
 	}

@@ -105,8 +105,8 @@ func currentUser(ctx context.Context, provider hostapi.Provider, info HostInfo, 
 // remote for the change numbers Git publishes, and the open changes from
 // each host that is on. A failed host request is returned so the panel can
 // show it; the last answer stays in the cache.
-func (s *HostService) Refresh(repoPath string) error {
-	ctx, cancel := hostContext()
+func (s *HostService) Refresh(ctx context.Context, repoPath string) error {
+	ctx, cancel := context.WithTimeout(ctx, hostTimeout)
 	defer cancel()
 	return refreshHostChanges(ctx, repoPath)
 }

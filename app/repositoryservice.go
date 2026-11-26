@@ -41,11 +41,14 @@ func opened(repo *repository.Repository, err error) (string, error) {
 // deleteHeadsUnlessOpen is best effort: the folder may be gone or unreadable,
 // and that mustn't keep a repository on the recent list. A refresh fetches the
 // heads of a repository that's opened again.
+// Deleting a closed repository's fetched heads is one update-ref.
+const refCleanupTimeout = 30 * time.Second
+
 func deleteHeadsUnlessOpen(path string, tabs []string) {
 	if slices.Contains(tabs, path) {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), refCleanupTimeout)
 	defer cancel()
 	// Worktrees share their refs, so another's tab may still be showing these.
 	for _, tab := range tabs {
@@ -105,7 +108,7 @@ func (s *RepositoryService) RemoveRecentRepository(path string) error {
 	deleteHeadsUnlessOpen(path, tabs)
 	// Only here, not when the list's limit evicts it: this is the user's own choice.
 	if !slices.Contains(tabs, path) {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), refCleanupTimeout)
 		defer cancel()
 		// Worktrees share refs, so the repository is still in use through another.
 		if worktrees, err := git.ListWorktrees(ctx, path); err == nil && len(worktrees) <= 1 {

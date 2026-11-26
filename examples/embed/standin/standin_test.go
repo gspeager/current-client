@@ -96,7 +96,7 @@ func TestAnExampleProjectOnTheStandInHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := &app.HostService{}
-	if err := hosts.Refresh(repo); err != nil {
+	if err := hosts.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	list, err := hosts.Changes(repo)

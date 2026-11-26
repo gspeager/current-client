@@ -155,7 +155,7 @@ func (s *StackService) AddLayer(repoPath, branch, parent string) error {
 	}
 	for at, seen := parent, 0; at != ""; at, seen = parentOf[at], seen+1 {
 		if at == branch || seen > len(links) {
-			return errors.New("a branch can't be stacked on itself or on a branch above it")
+			return &gitexec.AppError{Message: "A branch can't be stacked on itself or on a branch above it."}
 		}
 	}
 	base, err := git.MergeBase(context.Background(), repoPath, parent, branch)
@@ -273,7 +273,7 @@ func saveUndo(repoPath string, links []git.StackLink, result git.RestackResult) 
 func (s *StackService) UndoRestack(repoPath string) error {
 	undo, ok := configOrDefault().StackUndo[repoPath]
 	if !ok {
-		return errors.New("there's no restack to undo")
+		return &gitexec.AppError{Message: "There's no restack to undo."}
 	}
 	moves := mapSlice(undo.Moves, func(move config.StackMove) git.StackMove { return git.StackMove(move) })
 	// The layer a restack stopped on may have gained work since. Recover keeps it.
@@ -321,7 +321,7 @@ func (s *StackService) PushAll(ctx context.Context, repoPath, root, remote strin
 		}
 	}
 	if len(branches) == 0 {
-		return errors.New("this stack has no branches to push")
+		return &gitexec.AppError{Message: "This stack has no branches to push."}
 	}
 	return git.PushStack(ctx, repoPath, remote, branches)
 }

@@ -3,8 +3,7 @@
 package app
 
 import (
-	"errors"
-
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/github"
 	"github.com/gspeager/current-client/core/hostapi/gitlab"
@@ -15,7 +14,7 @@ import (
 func capability[T any](info HostInfo, cannot string) (T, error) {
 	found, ok := providerFor(info).(T)
 	if !ok {
-		return found, errors.New(cannot)
+		return found, &gitexec.AppError{Message: cannot}
 	}
 	return found, nil
 }

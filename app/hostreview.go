@@ -4,10 +4,9 @@ package app
 
 import (
 	"context"
-	"errors"
 	"strconv"
-	"time"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
@@ -64,9 +63,9 @@ func (s *HostService) reviewWrite(repoPath string, number int, verdict bool, wri
 	provider := providerFor(info)
 	reviewer, ok := provider.(hostapi.Reviewer)
 	if !ok {
-		return ReviewThreads{}, errors.New("this host takes no reviews from the app")
+		return ReviewThreads{}, &gitexec.AppError{Message: "This host takes no reviews from the app."}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), slowHostTimeout)
 	defer cancel()
 	if err := write(ctx, reviewer, info, change); err != nil {
 		return ReviewThreads{}, err

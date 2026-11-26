@@ -105,7 +105,7 @@ func markTodoDone(repoPath, todoID string) error {
 	if err != nil {
 		return err
 	}
-	list, err := capability[hostapi.TodoList](info, "this host keeps no to-do list")
+	list, err := capability[hostapi.TodoList](info, "This host keeps no to-do list.")
 	if err != nil {
 		return err
 	}

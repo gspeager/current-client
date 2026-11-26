@@ -5,13 +5,13 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostlink"
 	"github.com/gspeager/current-client/internal/config"
@@ -116,7 +116,7 @@ func (s *HostService) SetEnabled(hostname string, enabled bool) error {
 
 func switchHost(hostname string, enabled bool) error {
 	if _, managed := policy.Host(hostname); managed {
-		return fmt.Errorf("integration for %s is managed by organization policy", hostname)
+		return &gitexec.AppError{Message: "Integration for " + hostname + " is managed by organization policy."}
 	}
 	if !enabled {
 		hostClient.Forget(hostname)
@@ -143,7 +143,7 @@ func (s *HostService) Dismiss(hostname string) error {
 func (s *HostService) Add(hostname, provider string) error {
 	hostname = strings.ToLower(strings.TrimSpace(hostname))
 	if hostname == "" || strings.ContainsAny(hostname, "/ \t") {
-		return fmt.Errorf("enter a hostname, such as gitlab.example.com")
+		return &gitexec.AppError{Message: "Enter a hostname, such as gitlab.example.com."}
 	}
 	if provider == "" {
 		provider = string(hostlink.DefaultStyle(hostname))
@@ -153,7 +153,9 @@ func (s *HostService) Add(hostname, provider string) error {
 
 func (s *HostService) Remove(hostname string) error {
 	if configOrDefault().Hosts[hostname].HasToken {
-		if err := hostCredentials.Remove(context.Background(), hostname); err != nil {
+		ctx, cancel := hostContext()
+		defer cancel()
+		if err := hostCredentials.Remove(ctx, hostname); err != nil {
 			return err
 		}
 	}
@@ -171,13 +173,13 @@ func (s *HostService) SetHost(hostname, provider, apiURL string) error {
 	switch hostlink.Style(provider) {
 	case "", hostlink.GitHub, hostlink.GitLab:
 	default:
-		return fmt.Errorf("unknown provider %q", provider)
+		return &gitexec.AppError{Message: "Unknown provider.", Detail: provider}
 	}
 	apiURL = strings.TrimRight(strings.TrimSpace(apiURL), "/")
 	if apiURL != "" {
 		u, err := url.Parse(apiURL)
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-			return fmt.Errorf("API address must be an http(s) URL: %q", apiURL)
+			return &gitexec.AppError{Message: "The API address must be an http(s) URL.", Detail: apiURL}
 		}
 	}
 	hostClient.Forget(hostname)
@@ -187,14 +189,18 @@ func (s *HostService) SetHost(hostname, provider, apiURL string) error {
 // SaveToken hands a pasted API token to Git's credential helper under its
 // own key (see hostapi.GitCredentials) and records only that one exists.
 func (s *HostService) SaveToken(hostname, token string) error {
-	if err := hostCredentials.Save(context.Background(), hostname, token); err != nil {
+	ctx, cancel := hostContext()
+	defer cancel()
+	if err := hostCredentials.Save(ctx, hostname, token); err != nil {
 		return err
 	}
 	return setHostFlag(hostname, func(host *config.HostConfig) { host.HasToken = true })
 }
 
 func (s *HostService) RemoveToken(hostname string) error {
-	if err := hostCredentials.Remove(context.Background(), hostname); err != nil {
+	ctx, cancel := hostContext()
+	defer cancel()
+	if err := hostCredentials.Remove(ctx, hostname); err != nil {
 		return err
 	}
 	return setHostFlag(hostname, func(host *config.HostConfig) { host.HasToken = false })
@@ -202,10 +208,13 @@ func (s *HostService) RemoveToken(hostname string) error {
 
 // TestConnection goes through the same client and rules as every other
 // request: the provider where one exists, else the host's user endpoint.
+// A connection test answers quickly or says it couldn't.
+const connectionTestTimeout = 15 * time.Second
+
 func (s *HostService) TestConnection(hostname string) (string, error) {
 	hosts := configOrDefault().Hosts
 	info := infoFor(hostByName(hostname), hosts)
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), connectionTestTimeout)
 	defer cancel()
 	var name string
 	var err error
@@ -225,7 +234,7 @@ func (s *HostService) TestConnection(hostname string) (string, error) {
 		}
 	}
 	if errors.Is(err, hostapi.ErrNotEnabled) {
-		return "", fmt.Errorf("integration for %s is off", hostname)
+		return "", &gitexec.AppError{Message: "Integration for " + hostname + " is off."}
 	}
 	if err != nil {
 		return "", err

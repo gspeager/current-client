@@ -4,12 +4,12 @@ package app
 
 import (
 	"context"
-	"errors"
 	"path/filepath"
 	"strings"
 
 	"github.com/gspeager/current-client/core/changelog"
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
@@ -92,7 +92,7 @@ func releasePublisher(repoPath string) (git.Remote, HostInfo, hostapi.ReleasePub
 	}
 	publisher, ok := providerFor(info).(hostapi.ReleasePublisher)
 	if !ok {
-		return git.Remote{}, HostInfo{}, nil, errors.New("this host has no releases the app can publish")
+		return git.Remote{}, HostInfo{}, nil, &gitexec.AppError{Message: "This host has no releases the app can publish."}
 	}
 	return remote, info, publisher, nil
 }

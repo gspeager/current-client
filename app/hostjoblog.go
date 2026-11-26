@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // JobLog is the end of a CI job's log, or all of it up to the cap, with
@@ -43,7 +42,7 @@ func (s *HostService) JobLog(repoPath string, jobID int64, full bool) (JobLog, e
 	if cached, _, ok := cacheJobLog.get(info.Hostname, repoPath, key); ok {
 		return cached, nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), slowHostTimeout)
 	defer cancel()
 	limit := jobLogTailBytes
 	if full {

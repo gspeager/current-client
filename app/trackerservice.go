@@ -1,9 +1,9 @@
 package app
 
 import (
-	"errors"
 	"slices"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostlink"
 	"github.com/gspeager/current-client/internal/config"
 	"github.com/gspeager/current-client/internal/policy"
@@ -53,7 +53,7 @@ type TrackerLinks struct {
 	Reading bool `json:"reading"`
 }
 
-var errTrackerKind = errors.New("choose Jira Cloud or Jira Data Center")
+var errTrackerKind = &gitexec.AppError{Message: "Choose Jira Cloud or Jira Data Center."}
 
 func (s *TrackerService) List() TrackerList {
 	cfg := configOrDefault()
@@ -99,7 +99,7 @@ func (s *TrackerService) Add(site, kind string, keys []string) (TrackerInfo, err
 	added := config.TrackerConfig{Site: site, Kind: kind, Keys: hostlink.ProjectKeys(keys)}
 	err = updateConfigErr(func(cfg *config.Config) error {
 		if trackerIndex(cfg, site) >= 0 {
-			return errors.New(site + " is already listed")
+			return &gitexec.AppError{Message: site + " is already listed."}
 		}
 		cfg.Trackers = append(cfg.Trackers, added)
 		return nil
@@ -210,7 +210,7 @@ func updateTracker(site string, change func(*config.Config, int)) error {
 	return updateConfigErr(func(cfg *config.Config) error {
 		i := trackerIndex(cfg, site)
 		if i < 0 {
-			return errors.New(site + " isn't listed")
+			return &gitexec.AppError{Message: site + " isn't listed."}
 		}
 		change(cfg, i)
 		return nil

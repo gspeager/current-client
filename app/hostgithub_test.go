@@ -3,6 +3,7 @@
 package app
 
 import (
+	"context"
 	"testing"
 
 	"github.com/gspeager/current-client/core/hostapi"
@@ -38,7 +39,7 @@ func TestGitHubRefreshFillsChangesCIReviewsAndRules(t *testing.T) {
 	swapHostClient(t, transport)
 	var s HostService
 
-	if err := s.Refresh(repo); err != nil {
+	if err := s.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	changes, err := s.BranchChanges(repo)

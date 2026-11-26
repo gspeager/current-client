@@ -224,7 +224,7 @@ func TestClosedChangesFilesCommitsAndThreadsAreAskedOnceUntilARefresh(t *testing
 	}, hits: map[string]int{}}
 	swapHostClient(t, transport)
 	var s HostService
-	if err := s.Refresh(repo); err != nil {
+	if err := s.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.ChangeFiles(repo, 3); err == nil {
@@ -253,7 +253,7 @@ func TestClosedChangesFilesCommitsAndThreadsAreAskedOnceUntilARefresh(t *testing
 			t.Fatalf("%s asked %d times, want once; hits = %v", key, transport.hits[key], transport.hits)
 		}
 	}
-	if err := s.Refresh(repo); err != nil {
+	if err := s.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.ClosedChanges(repo); err != nil || transport.hits[closed] != 2 {

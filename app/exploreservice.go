@@ -24,8 +24,7 @@ type MapFileInfo struct {
 
 // Files is every file at rev, a tag or HEAD, with its lines. Before the first
 // commit there are none.
-func (s *ExploreService) Files(repoPath, rev string) ([]MapFileInfo, error) {
-	ctx := context.Background()
+func (s *ExploreService) Files(ctx context.Context, repoPath, rev string) ([]MapFileInfo, error) {
 	if rev == "HEAD" && noCommits(ctx, repoPath) {
 		return []MapFileInfo{}, nil
 	}
@@ -61,8 +60,7 @@ type MapActivity struct {
 	Limit int `json:"limit"`
 }
 
-func (s *ExploreService) Activity(repoPath string) (MapActivity, error) {
-	ctx := context.Background()
+func (s *ExploreService) Activity(ctx context.Context, repoPath string) (MapActivity, error) {
 	if noCommits(ctx, repoPath) {
 		return MapActivity{Files: map[string]MapActivityInfo{}}, nil
 	}
@@ -111,8 +109,7 @@ type MapChangesInfo struct {
 	Predicted bool            `json:"predicted"`
 }
 
-func (s *ExploreService) Changes(repoPath string, comparison ExploreComparison) (MapChangesInfo, error) {
-	ctx := context.Background()
+func (s *ExploreService) Changes(ctx context.Context, repoPath string, comparison ExploreComparison) (MapChangesInfo, error) {
 	changes := MapChangesInfo{Files: []MapChangeInfo{}, Predicted: true}
 	if noCommits(ctx, repoPath) {
 		return changes, nil

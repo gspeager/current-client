@@ -278,7 +278,7 @@ func changeKind(info HostInfo) string {
 // remotes in every repository the app knows.
 func deleteFetchedHeads(hostname string) {
 	cfg := configOrDefault()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := hostContext()
 	defer cancel()
 	seen := map[string]bool{}
 	for _, repoPath := range append(append([]string(nil), cfg.OpenTabs...), cfg.RecentRepositories...) {

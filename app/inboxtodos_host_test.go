@@ -3,6 +3,7 @@
 package app
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -51,7 +52,7 @@ func TestRefreshBringsTheHostsToDosForOpenRepositories(t *testing.T) {
 	}, hits: map[string]int{}}
 	swapHostClient(t, transport)
 	var s HostService
-	if err := s.Refresh(repo); err != nil {
+	if err := s.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	if transport.hits[todos] != 1 {
@@ -109,7 +110,7 @@ func TestGitHubToDosNeedAClassicToken(t *testing.T) {
 	}, hits: map[string]int{}}
 	swapHostClient(t, transport)
 	var s HostService
-	if err := s.Refresh(repo); err != nil {
+	if err := s.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	if transport.hits["/api/v3/notifications?per_page=50"] != 1 {
@@ -134,7 +135,7 @@ func TestToDosAreNeverAskedWithTheHostOff(t *testing.T) {
 	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
 	swapHostClient(t, hostapitest.Forbid(t))
 	var s HostService
-	if err := s.Refresh(repo); err != nil {
+	if err := s.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	repos := (&InboxService{}).Rows([]string{repo}, true)

@@ -3,6 +3,7 @@
 package app
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ func TestReachFollowsTheDeployedCommit(t *testing.T) {
 	swapHostClient(t, transport)
 	var s HostService
 
-	s.Refresh(repo)
+	s.Refresh(context.Background(), repo)
 	if n := transport.hits[api+"/deployments?order_by=id&per_page=100&sort=desc"]; n != 1 {
 		t.Fatalf("deployments asked %d times on a refresh, want once", n)
 	}
@@ -51,7 +52,7 @@ func TestReachFollowsTheDeployedCommit(t *testing.T) {
 	}
 
 	transport.routes[api+"/deployments?order_by=id&per_page=100&sort=desc"] = deployments(second)
-	s.Refresh(repo)
+	s.Refresh(context.Background(), repo)
 	if reach, _ := s.Reach(repo, []string{second}); reach[second][0].State != "in" {
 		t.Fatalf("once deployed past it: %+v", reach[second])
 	}

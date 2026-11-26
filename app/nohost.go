@@ -4,9 +4,9 @@ package app
 
 import (
 	"context"
-	"errors"
 	"time"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -30,7 +30,9 @@ func forgetTracker(string, bool) {}
 
 func hostInboxRows(string) ([]InboxRow, bool, *time.Time, string) { return nil, false, nil, "" }
 
-func markTodoDone(string, string) error { return errors.New("host integration is off") }
+func markTodoDone(string, string) error {
+	return &gitexec.AppError{Message: "Host integration is off."}
+}
 
 func standupHost(*StandupRepo, time.Time) {}
 
