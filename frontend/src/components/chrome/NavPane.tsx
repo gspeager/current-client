@@ -54,6 +54,22 @@ export interface SidebarRequest {
   n: number
 }
 
+// Every action, so a new one can't fall into another section.
+const SECTION_OF: Record<SidebarRequest['action'], SectionId> = {
+  'new-branch': 'branches',
+  'clean-up': 'branches',
+  'branch-review': 'branches',
+  'conflict-grid': 'branches',
+  'tidy-up': 'branches',
+  restack: 'branches',
+  'new-tag': 'tags',
+  'publish-release': 'tags',
+  'new-stash': 'stash',
+  'show-stash': 'stash',
+  'new-worktree': 'worktrees',
+  'new-remote': 'remotes',
+}
+
 interface NavPaneProps {
   repoPath: string
   repoVersion: number
@@ -193,16 +209,7 @@ function NavPane({
 
   useEffect(() => {
     if (!request) return
-    const owner: Partial<Record<SidebarRequest['action'], SectionId>> = {
-      'new-branch': 'branches',
-      'clean-up': 'branches',
-      'conflict-grid': 'branches',
-      'new-stash': 'stash',
-      'show-stash': 'stash',
-      'new-worktree': 'worktrees',
-      'new-remote': 'remotes',
-    }
-    showSection(owner[request.action] ?? 'tags')
+    showSection(SECTION_OF[request.action])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request])
 
