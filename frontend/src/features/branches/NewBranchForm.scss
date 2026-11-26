@@ -1,0 +1,17 @@
+.branch-sidebar-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.branch-sidebar-new-prefix {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.branch-sidebar-new-result-name {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}

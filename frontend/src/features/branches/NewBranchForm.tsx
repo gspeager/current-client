@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toBranchName } from '../../lib/branchName'
 import IssuePicker from './IssuePicker'
+import './NewBranchForm.scss'
 
 export type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
 

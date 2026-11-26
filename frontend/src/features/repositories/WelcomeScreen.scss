@@ -44,15 +44,6 @@
   font: var(--data-sm);
 }
 
-.app-welcome-status-error {
-  color: var(--error);
-}
-
-.app-welcome-git-actions {
-  display: flex;
-  gap: var(--space-sm);
-}
-
 // The form sits on the same centre line as the name above it.
 .app-welcome .repo-switcher {
   align-items: center;

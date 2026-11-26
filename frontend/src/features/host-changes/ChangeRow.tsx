@@ -5,6 +5,7 @@ import type { Change } from '@current-client-bindings/core/hostapi'
 import ChangeMarker from '../../components/git/ChangeMarker'
 import ReviewSummary from '../../components/git/ReviewSummary'
 import { relativeTime } from '../../lib/relativeTime'
+import './ChangeRow.scss'
 
 interface ChangeRowProps {
   identity?: IdentityInfo

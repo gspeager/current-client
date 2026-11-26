@@ -18,6 +18,7 @@ import { operationBadge } from '../../lib/conflictWords'
 import { relativeTime } from '../../lib/relativeTime'
 import type { ReferenceCards } from '../../lib/useReferenceCards'
 import ConflictsBadge from './ConflictsBadge'
+import './BranchRow.scss'
 
 interface BranchRowProps {
   repoPath: string

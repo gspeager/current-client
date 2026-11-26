@@ -3,6 +3,7 @@ import { GitService } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SettingsRow from './SettingsRow'
+import './GitSettingsSection.scss'
 
 interface GitSettingsSectionProps {
   repoPath: string

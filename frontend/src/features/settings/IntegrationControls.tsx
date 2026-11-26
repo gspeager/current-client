@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import Switch from '../../components/forms/Switch'
 import { errorMessage } from '../../lib/errors'
 import { useAction } from '../../lib/useAction'
+import './IntegrationControls.scss'
 
 export function useIntegrationAction(reload: () => void, onChanged?: () => void) {
   const { error: actionError, setError: setActionError, fail } = useAction()

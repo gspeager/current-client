@@ -34,6 +34,7 @@ import {
 import { languageForPath, tokenizeLine } from './syntaxHighlight'
 import { selectedRows, useDiffWindow } from './useDiffWindow'
 import { diffLineWords } from './wordDiff'
+import './DiffPane.scss'
 
 type Side = 'left' | 'right'
 

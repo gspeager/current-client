@@ -36,7 +36,12 @@ interface ShellProps {
 // The sidebar with its Workspace actions wired the way App wires them.
 const openTerminal = vi.fn()
 
-function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn(), commands = createSidebarCommands() }: ShellProps) {
+function Shell({
+  collapsed,
+  onCollapsedChange,
+  onOpenHeadCommit = vi.fn(),
+  commands = createSidebarCommands(),
+}: ShellProps) {
   const workspace = useWorkspaceActions({
     onOpenTerminal: openTerminal,
     repoPath: REPO,

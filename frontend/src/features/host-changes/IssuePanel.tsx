@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import IssueDetail from './IssueDetail'
+import './IssuePanel.scss'
 
 interface IssuePanelProps {
   repoPath: string

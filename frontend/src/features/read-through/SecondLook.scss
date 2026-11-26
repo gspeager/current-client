@@ -1,0 +1,44 @@
+.second-look-rule {
+  margin-top: var(--space-md);
+}
+
+.second-look-reason {
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.second-look-finding {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  background: none;
+  border: none;
+  border-top: var(--border-structure);
+  text-align: left;
+
+  &:not(:disabled) {
+    cursor: pointer;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+}
+
+.second-look-message {
+  color: var(--on-surface);
+  font: var(--ui-sm);
+  overflow-wrap: anywhere;
+}
+
+.second-look-where {
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.second-look-left-out {
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--outline);
+  font: var(--ui-xs);
+}

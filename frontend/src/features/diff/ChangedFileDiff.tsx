@@ -7,6 +7,7 @@ import type { ImageSources } from './ImageDiff'
 import type { LineNotes } from '../review/ReviewNoteBlock'
 import { useAsyncData } from '../../lib/useAsyncData'
 import type { ReviewThreadsView } from '../../lib/useReviewThreads'
+import './ChangedFileDiff.scss'
 
 interface ChangedFileDiffProps {
   file: ChangedFile

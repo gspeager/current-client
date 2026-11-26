@@ -1,0 +1,40 @@
+.settings-group[hidden] {
+  display: none;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+// Rows in a group are separated by the in-panel divider from design-system.md §6.
+.settings-group-rows {
+  display: flex;
+  flex-direction: column;
+
+  > .settings-row + .settings-row {
+    border-top: 1px solid var(--surface-highest);
+  }
+}
+
+.settings-row-stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.settings-row-label {
+  color: var(--on-surface);
+  font: var(--ui-md);
+}
+
+.settings-row-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+  min-width: 0;
+
+  .settings-row-stacked & {
+    align-items: stretch;
+  }
+}

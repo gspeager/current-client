@@ -82,15 +82,6 @@
   }
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 // Windows High Contrast drops backgrounds and box-shadows, which carry selection
 // and the lane and status dots here.
 @media (forced-colors: active) {
@@ -114,4 +105,14 @@
   .commit-row-graph svg {
     forced-color-adjust: none;
   }
+}
+
+// A panel in the inspector's slot, over the right of the body: beside a
+// view's own detail pane it would leave a commit list no room for subjects.
+// A row opens its target in the panel's place.
+.inbox-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-scrim);
+  background: color-mix(in srgb, var(--surface-lowest) 60%, transparent);
 }

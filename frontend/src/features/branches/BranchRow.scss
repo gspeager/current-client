@@ -1,0 +1,24 @@
+.branch-row-current {
+  cursor: default;
+}
+
+// The time is for the checked-out branch and the row under the pointer; the
+// rest of the list keeps to the name and counts.
+.branch-row-time {
+  display: none;
+}
+
+.branch-row-ahead {
+  color: var(--tertiary);
+}
+
+.branch-row-behind {
+  color: var(--warning);
+}
+
+// Git won't check out a branch that's already checked out in another worktree.
+.branch-row-worktree {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

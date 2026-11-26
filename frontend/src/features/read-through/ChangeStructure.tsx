@@ -8,6 +8,7 @@ import type {
 } from '@current-client-bindings/app'
 import StructureGraph from '../explore/StructureGraph'
 import { counted } from '../explore/structureWords'
+import './ChangeStructure.scss'
 
 // More than this many links between folders, or folders to draw, and a change is a
 // restructure, listed rather than drawn.

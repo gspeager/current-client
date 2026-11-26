@@ -1,6 +1,7 @@
 import { hostUserName, useNameIdentities } from '../../lib/useNameIdentities'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import { ReviewState, type Review } from '@current-client-bindings/core/hostapi'
+import './ChangeReviewers.scss'
 
 const REVIEW_STATE_LABELS: Partial<Record<ReviewState, string>> = {
   [ReviewState.ReviewApproved]: 'Approved',

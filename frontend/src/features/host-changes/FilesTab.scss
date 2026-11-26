@@ -1,0 +1,17 @@
+.host-change-files-hint {
+  margin: 0 0 var(--space-sm);
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.host-change-file-path {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  font: var(--data-sm);
+}
+
+.host-change-file-from {
+  flex-shrink: 0;
+  color: var(--outline);
+}

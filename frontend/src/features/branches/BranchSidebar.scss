@@ -62,13 +62,6 @@
   color: var(--outline);
 }
 
-.branch-sidebar-new {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-xs);
-}
-
 .branch-sidebar-new-kind {
   @include patterns.text-field;
 }
@@ -93,20 +86,9 @@
   }
 }
 
-.branch-sidebar-new-prefix {
-  flex-shrink: 0;
-  color: var(--outline);
-  font: var(--data-sm);
-}
-
 .branch-sidebar-new-result {
   @include patterns.panel-hint;
   overflow-wrap: anywhere;
-}
-
-.branch-sidebar-new-result-name {
-  color: var(--on-surface);
-  font: var(--data-sm);
 }
 
 .branch-sidebar-hint {
@@ -207,10 +189,6 @@
   }
 }
 
-.branch-row-current {
-  cursor: default;
-}
-
 .branch-row-blocked {
   opacity: 0.75;
   cursor: default;
@@ -225,12 +203,6 @@
   padding-right: var(--space-xs);
   color: var(--outline);
   font: var(--data-sm);
-}
-
-// The time is for the checked-out branch and the row under the pointer; the
-// rest of the list keeps to the name and counts.
-.branch-row-time {
-  display: none;
 }
 
 .branch-row:hover .branch-row-time,
@@ -253,27 +225,10 @@
   }
 }
 
-.branch-row-remote {
-  color: var(--on-surface-variant);
-}
-
-.branch-row-remote-icon {
-  flex-shrink: 0;
-  color: var(--outline);
-}
-
 .branch-row-remote-name {
   min-width: 0;
   @include patterns.truncate;
   font: var(--data-md);
-}
-
-.branch-row-ahead {
-  color: var(--tertiary);
-}
-
-.branch-row-behind {
-  color: var(--warning);
 }
 
 .branch-row-head {
@@ -293,26 +248,6 @@
   border-radius: var(--radius-sm);
   color: var(--error);
   font: var(--ui-xs);
-}
-
-// Git won't check out a branch that's already checked out in another worktree.
-.branch-row-worktree {
-  flex-shrink: 0;
-  color: var(--outline);
-  font: var(--ui-xs);
-}
-
-.stack-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.stack-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-height: var(--h-row-tree);
 }
 
 .stack-base {
@@ -337,17 +272,6 @@
     color: var(--outline);
     cursor: default;
   }
-}
-
-.stack-undo {
-  align-self: flex-start;
-}
-
-.stack-mark {
-  flex-shrink: 0;
-  margin-left: auto;
-  color: var(--outline);
-  font: var(--ui-xs);
 }
 
 .stack-mark-behind {

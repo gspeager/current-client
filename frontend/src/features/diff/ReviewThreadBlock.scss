@@ -89,19 +89,3 @@
   @include patterns.panel-error;
   padding: 0 var(--space-sm) var(--space-sm);
 }
-
-.review-threads-outdated {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  max-height: 40%;
-  overflow-y: auto;
-  gap: var(--space-xs);
-  padding: var(--space-sm);
-  border-top: var(--border-structure);
-}
-
-.review-threads-outdated-label {
-  color: var(--outline);
-  font: var(--ui-xs);
-}

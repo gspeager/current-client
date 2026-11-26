@@ -20,6 +20,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
 import { shortSha } from '../../lib/text'
 import { localDate } from '../../lib/relativeTime'
+import './ReleaseEditor.scss'
 
 // A commit's kind is what the type filter toggles: breaking changes of any type
 // together, then each type, then commits that don't follow the format.

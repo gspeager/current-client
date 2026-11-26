@@ -4,6 +4,7 @@ import { useReviewActions } from '../review/useReviewActions'
 import { useReviewDraft } from '../../lib/reviewDraft'
 import { useAsyncData } from '../../lib/useAsyncData'
 import useTabPlaceholder, { type TabProps } from './useTabPlaceholder'
+import './ThreadsTab.scss'
 
 function ThreadsTab({ repoPath, number, onLoaded }: TabProps) {
   const actions = useReviewActions(repoPath, number)
