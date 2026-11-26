@@ -37,6 +37,7 @@ import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { NARROW_SPLIT_WIDTH, useWindowNarrowerThan } from '../../lib/useWindowNarrowerThan'
 import './DiffViewer.scss'
+import { matchesShortcut } from '../../lib/shortcuts'
 
 // A line of the new version, or with no line, of the old one.
 export interface DiffFocus {
@@ -247,8 +248,8 @@ function DiffViewer({
       if (hunk && key === 'u') hunkActions.onUnstageHunk?.(hunk.raw)
       if (hunk && key === 'd') hunkActions.onDiscardHunk?.(hunk.raw)
     }
-    const forward = e.key === 'F7' ? !e.shiftKey : e.altKey && e.key === 'ArrowDown'
-    const back = e.key === 'F7' ? e.shiftKey : e.altKey && e.key === 'ArrowUp'
+    const forward = matchesShortcut(e, 'F7') || matchesShortcut(e, 'alt+ArrowDown')
+    const back = matchesShortcut(e, 'shift+F7') || matchesShortcut(e, 'alt+ArrowUp')
     if (!forward && !back) return
     if (diff.conflicted) {
       if (blocks.blockStarts.length === 0) return

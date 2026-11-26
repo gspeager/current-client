@@ -5,6 +5,7 @@ import SegmentedControl from '../../components/controls/SegmentedControl'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { imageMimeType } from './imageFiles'
 import './ImageDiff.scss'
+import { formatSize } from './fileSize'
 
 export interface ImageSources {
   repoPath: string
@@ -18,10 +19,6 @@ interface ImageDiffProps extends ImageSources {
   path: string
   // Reloads the images in place when it changes, such as after the file changes on disk.
   refreshKey?: unknown
-}
-
-function formatSize(bytes: number): string {
-  return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`
 }
 
 // Base64 carries 3 bytes in every 4 characters, less the padding.

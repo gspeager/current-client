@@ -1,4 +1,5 @@
 import type { ReadThroughFile } from '@current-client-bindings/app'
+import { baseName } from '../../lib/paths'
 
 export interface FileGroup {
   folder: string
@@ -18,9 +19,8 @@ function folderOf({ path, kind }: ReadThroughFile): string {
   return folders.join('/')
 }
 
-const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 const stemOf = (path: string) =>
-  nameOf(path)
+  baseName(path)
     .replace(TEST_NAME, '')
     .replace(/\.[^.]*$/, '')
 
@@ -69,7 +69,7 @@ export function totalsByStatus(files: ReadThroughFile[]): Total[] {
 }
 
 export function totalsByType(files: ReadThroughFile[]): Total[] {
-  const type = (path: string) => /[^.](\.[^.]+)$/.exec(nameOf(path))?.[1] ?? nameOf(path)
+  const type = (path: string) => /[^.](\.[^.]+)$/.exec(baseName(path))?.[1] ?? baseName(path)
   return totals(files.map((f) => type(f.path))).sort((a, b) => b.files - a.files || a.label.localeCompare(b.label))
 }
 

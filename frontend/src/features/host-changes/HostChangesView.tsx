@@ -62,6 +62,7 @@ import './HostChangesView.scss'
 import { hostLogo } from '../../components/git/hostLogos'
 import ChangeStateLabel from './ChangeStateLabel'
 import { shortSha } from '../../lib/text'
+import { changeNoun } from '../../lib/changeNoun'
 
 type Filter = 'open' | 'mine' | 'review' | 'closed'
 type DetailTab = 'overview' | 'checks' | 'threads' | 'files' | 'commits'
@@ -150,7 +151,7 @@ function HostChangesView({
 
   if (!list?.enabled) return null
 
-  const kind = list.prefix === '!' ? 'merge request' : 'pull request'
+  const kind = changeNoun(list.provider)
   const open = list.changes ?? []
   const mine = open.filter((c) => c.author.username === list.me)
   const toReview = open.filter((c) => reviewRequestedOf(c.reviews, list.me))
@@ -897,10 +898,6 @@ function CommitsTab({ repoPath, number, onLoaded }: TabProps) {
       ))}
     </ul>
   )
-}
-
-export function changesLabelFor(provider: string): string {
-  return provider === 'gitlab' ? 'Merge requests' : 'Pull requests'
 }
 
 export type { ChangeList }

@@ -88,3 +88,18 @@ export function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null
   return !!el?.matches?.('input, textarea, select, [contenteditable], .xterm-helper-textarea')
 }
+
+// Whether a key event is one of the keys strings above, such as "mod+shift+K"
+// or "alt+ArrowDown": the same modifiers, no others. mod is Command or Ctrl.
+export function matchesShortcut(
+  e: KeyboardEvent | { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean },
+  keys: string,
+): boolean {
+  const parts = keys.split('+')
+  const key = parts.pop() ?? ''
+  const mods = new Set(parts)
+  const mod = mods.has('mod') ? e.metaKey || e.ctrlKey : !e.metaKey && (mods.has('ctrl') ? e.ctrlKey : !e.ctrlKey)
+  return (
+    mod && e.shiftKey === mods.has('shift') && e.altKey === mods.has('alt') && e.key.toLowerCase() === key.toLowerCase()
+  )
+}

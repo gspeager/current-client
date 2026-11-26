@@ -60,7 +60,7 @@ import { DensityContext } from './lib/density'
 import { LaneSlotsContext, LaneThemeContext, assignLaneSlots, toLaneThemeName } from './lib/laneColor'
 import { useAsyncData } from './lib/useAsyncData'
 import { useWindowKeydown } from './lib/useWindowKeydown'
-import { isTypingTarget } from './lib/shortcuts'
+import { isTypingTarget, matchesShortcut } from './lib/shortcuts'
 import { NARROW_SIDEBAR_WIDTH, useWindowNarrowerThan } from './lib/useWindowNarrowerThan'
 import { cyclePanes, focusMain, focusMainSoon } from './lib/panes'
 import ShortcutSheet from './components/chrome/ShortcutSheet'
@@ -73,7 +73,8 @@ import { DIVERGED, useRemoteSync } from './features/remotes/useRemoteSync'
 import { useRepositoryLifecycle } from './features/repositories/useRepositoryLifecycle'
 import { useRepoVersion } from './features/repositories/useRepoVersion'
 import { useResizableWidth } from './lib/useResizableWidth'
-import HostChangesView, { changesLabelFor } from './features/host-changes/HostChangesView'
+import HostChangesView from './features/host-changes/HostChangesView'
+import { changeNoun, changesLabelFor } from './lib/changeNoun'
 import HostNoticeBanner from './components/chrome/HostNoticeBanner'
 import CreateChangeDialog from './features/host-changes/CreateChangeDialog'
 import IssuePanel from './features/host-changes/IssuePanel'
@@ -325,18 +326,16 @@ function App({
       setShortcutsOpen(true)
       return
     }
-    if (!(e.metaKey || e.ctrlKey) || e.altKey) return
-    if (e.shiftKey) {
-      if (e.key.toLowerCase() !== 'z') return
+    if (matchesShortcut(e, 'mod+shift+Z')) {
       e.preventDefault()
       undoAction?.run()
       return
     }
-    if (e.key.toLowerCase() === 'b') {
+    if (matchesShortcut(e, 'mod+B')) {
       e.preventDefault()
       setNavCollapsed(!navCollapsed)
     }
-    const view = viewTabs[Number(e.key) - 1]
+    const view = matchesShortcut(e, `mod+${e.key}`) && /^[1-9]$/.test(e.key) ? viewTabs[Number(e.key) - 1] : undefined
     if (view && repo.repoPath) {
       e.preventDefault()
       changeTab(view)
@@ -672,7 +671,7 @@ function App({
   const focus = commitFocus?.repoPath === repo.repoPath ? commitFocus : null
   const repoPath = repo.repoPath
   const createIssue = issueActions.create
-  const changeKind = integration?.host.provider === 'gitlab' ? 'merge request' : 'pull request'
+  const changeKind = changeNoun(integration?.host.provider ?? '')
   const paletteActions: PaletteAction[] = [
     {
       id: 'keyboard-shortcuts',
