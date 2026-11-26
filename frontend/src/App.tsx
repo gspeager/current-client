@@ -198,8 +198,7 @@ function App({
   } = useTabMemory(repo.repoPath, localBranches ? (currentBranch ?? '') : null, !!operation)
   useEffect(() => {
     if (localBranches) forgetBranchesExcept(localBranches.map((b) => b.name))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localBranches])
+  }, [localBranches, forgetBranchesExcept])
   const notesState = useNotesState(viewPath, repoVersion)
   const { data: conventional } = useAsyncData(
     () => (viewPath ? HistoryService.FollowsConventionalCommits(viewPath) : null),
@@ -340,12 +339,14 @@ function App({
 
   // The initial activeRepoPath is handled by useRepositoryLifecycle; later changes open or focus a tab.
   const hostRepoSeen = useRef(activeRepoPath)
+  const openHostRepo = useEventCallback((path: string) => {
+    if (path !== repo.repoPath) repo.openRecent(path)
+  })
   useEffect(() => {
     if (activeRepoPath === hostRepoSeen.current) return
     hostRepoSeen.current = activeRepoPath
-    if (activeRepoPath && activeRepoPath !== repo.repoPath) repo.openRecent(activeRepoPath)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRepoPath])
+    if (activeRepoPath) openHostRepo(activeRepoPath)
+  }, [activeRepoPath, openHostRepo])
 
   const reportActiveRepo = useEventCallback((path: string | null) => onActiveRepoChange?.(path))
   useEffect(() => reportActiveRepo(repo.repoPath), [repo.repoPath, reportActiveRepo])
@@ -401,16 +402,13 @@ function App({
     setInboxTarget(target)
     if (target.path !== repo.repoPath) repo.openRecent(target.path)
   }
-  useEffect(() => {
-    if (!inboxTarget || inboxTarget.path !== repo.repoPath) return
-    const target = inboxTarget
-    setInboxTarget(null)
+  const openInboxTarget = useEventCallback((target: InboxTarget) => {
     switch (target.kind) {
       case 'changes':
         setActiveTab('working-copy')
         break
       case 'branch':
-        void openRevision(repo.repoPath, target.branch, target.branch)
+        void openRevision(target.path, target.branch, target.branch)
         break
       case 'change':
         openChange(target.number)
@@ -430,8 +428,12 @@ function App({
         requestSidebar('clean-up')
         break
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inboxTarget, repo.repoPath])
+  })
+  useEffect(() => {
+    if (!inboxTarget || inboxTarget.path !== repo.repoPath) return
+    setInboxTarget(null)
+    openInboxTarget(inboxTarget)
+  }, [inboxTarget, repo.repoPath, openInboxTarget])
 
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined

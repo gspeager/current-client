@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, Columns2, ExternalLink, PanelLeftClose, PanelLeftOpen, Rows2, Users } from 'lucide-react'
+import { useEventCallback } from 'usehooks-ts'
 import { type ConflictStateInfo, DiffService, type LineSelection } from '@current-client-bindings/app'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
 import WaveMark from '../../components/chrome/WaveMark'
@@ -135,8 +136,7 @@ function ChangesView({
   }
 
   const previousLists = useRef<SectionPaths | null>(null)
-  useEffect(() => {
-    if (!files) return
+  const followStatus = useEventCallback(() => {
     const lists = {
       conflicted: conflicted.map((f) => f.path),
       unstaged: unstaged.map((f) => f.path),
@@ -148,8 +148,10 @@ function ChangesView({
     if (next === current) return
     if (next) openFile(next.path, next.section)
     else selectPath(null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files])
+  })
+  useEffect(() => {
+    if (files) followStatus()
+  }, [files, followStatus])
 
   // Large files load only after an explicit request, and only for that file.
   // Every status reload (file watcher, staging, hunk actions) also refreshes the open diff.

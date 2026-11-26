@@ -15,7 +15,7 @@ import {
   type LucideIcon,
   X,
 } from 'lucide-react'
-import { useOnClickOutside } from 'usehooks-ts'
+import { useEventCallback, useOnClickOutside } from 'usehooks-ts'
 import BranchPill from '../../components/git/BranchPill'
 import ContextMenu, { type ContextMenuItem, type ContextMenuState } from '../../components/controls/ContextMenu'
 import FileHistoryPanel from '../history/FileHistoryPanel'
@@ -164,19 +164,20 @@ function HeaderBar({
       if (!opened) setGoingTo(null)
     })
   }
-  useEffect(() => {
-    if (!goingTo || goingTo.path !== repoPath) return
-    const { target } = goingTo
-    setGoingTo(null)
+  const openTarget = useEventCallback((path: string, target: ElsewhereTarget) => {
     if (target.kind === 'file') setFileHistoryPath(target.path)
     if (target.kind === 'note') onOpenNote?.(target.note)
     if (target.kind === 'commit') {
-      HistoryService.GetCommitPosition(repoPath, target.sha)
+      HistoryService.GetCommitPosition(path, target.sha)
         .then((position) => onOpenCommit(target.sha, position))
         .catch(ignoreDecorativeFailure)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goingTo, repoPath])
+  })
+  useEffect(() => {
+    if (!goingTo || goingTo.path !== repoPath) return
+    setGoingTo(null)
+    openTarget(goingTo.path, goingTo.target)
+  }, [goingTo, repoPath, openTarget])
   const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)

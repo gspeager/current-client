@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import Checkbox from '../../components/forms/Checkbox'
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import { GitCommitVertical, UserPlus, X } from 'lucide-react'
+import { useEventCallback } from 'usehooks-ts'
 import {
   CommitService,
   ConflictService,
@@ -101,25 +102,27 @@ function CommitComposer({
 
   // The message git prepared for the operation's commit, unless a draft is already there.
   const preparedMessage = conflict?.message ?? ''
-  useEffect(() => {
-    if (!preparedMessage || initialMessage !== '') return
-    const split = splitMessage(preparedMessage)
+  const seedPrepared = useEventCallback((message: string) => {
+    if (initialMessage !== '') return
+    const split = splitMessage(message)
     setMessage(split.subject, split.body)
-    // Seeded once per operation; the draft takes over from there.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preparedMessage])
+  })
+  // Seeded once per operation; the draft takes over from there.
+  useEffect(() => {
+    if (preparedMessage) seedPrepared(preparedMessage)
+  }, [preparedMessage, seedPrepared])
 
   // After a squash merge, start the message with the squashed commits, unless a draft is already there.
-  useEffect(() => {
+  const seedSquashed = useEventCallback((path: string) => {
     if (initialMessage !== '' || conflict) return
-    CommitService.GetSquashedSubjects(repoPath)
+    CommitService.GetSquashedSubjects(path)
       .then((subjects) => {
         if (subjects?.length) setMessage('', subjects.map((s) => `- ${s}`).join('\n'))
       })
       .catch(ignoreDecorativeFailure)
-    // Checked once when the composer opens; the draft takes over from there.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoPath])
+  })
+  // Checked once when the composer opens; the draft takes over from there.
+  useEffect(() => seedSquashed(repoPath), [repoPath, seedSquashed])
 
   const setMessage = (nextSubject: string, nextBody: string) => {
     setSubject(nextSubject)

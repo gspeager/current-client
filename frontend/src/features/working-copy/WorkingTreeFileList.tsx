@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { arrowIntoList, useRovingRows } from '../../lib/useRovingRows'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useEventCallback } from 'usehooks-ts'
 import { fileRowHeight, useDensity } from '../../lib/density'
 import { ChevronDown, ChevronRight, FileDown, Folder, FolderTree, List, RefreshCw, Search } from 'lucide-react'
 import { PatchService, type FileStatus } from '@current-client-bindings/app'
@@ -194,14 +195,17 @@ function WorkingTreeFileList({
   useEffect(() => rowVirtualizer.measure(), [rowVirtualizer, fileHeight])
 
   // A selection made elsewhere, such as the first file on opening, stays in view.
+  const rowOf = useEventCallback((path: string) =>
+    listRows.findIndex((row) => row.kind === 'file' && row.file.path === path),
+  )
+  const hasRows = listRows.length > 0
   useEffect(() => {
-    if (!selectedPath) return
-    const index = listRows.findIndex((row) => row.kind === 'file' && row.file.path === selectedPath)
+    if (!selectedPath || !hasRows) return
+    const index = rowOf(selectedPath)
     if (index < 0) return
     const frame = requestAnimationFrame(() => rowVirtualizer.scrollToIndex(index, { align: 'center' }))
     return () => cancelAnimationFrame(frame)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPath, listRows.length > 0])
+  }, [selectedPath, hasRows, rowOf, rowVirtualizer])
 
   const runPatchExport = (exportPatch: Promise<void>) => {
     setPatchError(null)

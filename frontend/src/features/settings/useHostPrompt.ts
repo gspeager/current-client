@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import { HostService } from '@current-client-bindings/app'
 import { useDialogs } from '../../lib/useDialogs'
 import { providerLabel } from './IntegrationsSection'
@@ -8,6 +9,7 @@ import { providerLabel } from './IntegrationsSection'
 // contacted until the answer is Enable, and "Not now" is remembered.
 export function useHostPrompt(repoPath: string | null, onChanged: () => void) {
   const dialogs = useDialogs()
+  const changed = useEventCallback(onChanged)
   useEffect(() => {
     if (!repoPath) return
     let cancelled = false
@@ -23,12 +25,11 @@ export function useHostPrompt(repoPath: string | null, onChanged: () => void) {
           cancelLabel: 'Not now',
         })
         await (enable ? HostService.SetEnabled(host.hostname, true) : HostService.Dismiss(host.hostname))
-        onChanged()
+        changed()
       })
       .catch(() => undefined)
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoPath, dialogs])
+  }, [repoPath, dialogs, changed])
 }
