@@ -18,7 +18,7 @@
   // on them.
   .current-client[data-platform='mac'] & {
     padding-left: 92px;
-    padding-top: 8px;
+    padding-top: var(--space-sm);
   }
 }
 
@@ -57,7 +57,7 @@
   right: -8px;
   min-width: 14px;
   height: 14px;
-  padding: 0 3px;
+  padding: 0 var(--space-2xs);
   border-radius: var(--radius-full);
   background: var(--secondary);
   color: var(--on-secondary);
@@ -144,7 +144,7 @@
 
 .header-bar-repo-sep {
   flex-shrink: 0;
-  margin: 0 2px;
+  margin: 0 var(--space-2xs);
   font: var(--data-md);
   color: var(--outline);
 }
@@ -164,7 +164,7 @@
 
 .header-bar-breadcrumb-anchor {
   position: fixed;
-  z-index: 10;
+  z-index: var(--z-menu);
 }
 
 .header-bar-sync {
@@ -263,11 +263,11 @@
     position: absolute;
     top: 100%;
     right: 0;
-    z-index: 10;
+    z-index: var(--z-menu);
     width: 480px;
     padding: var(--space-xs) var(--space-sm);
     background: var(--surface-container);
-    border: 1px solid var(--outline-variant);
+    border: var(--border-structure);
     border-radius: var(--radius);
     white-space: normal;
   }

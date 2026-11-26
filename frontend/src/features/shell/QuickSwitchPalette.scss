@@ -63,7 +63,7 @@
 .quick-switch-section [cmdk-group-items] {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .quick-switch-section-header {
@@ -206,7 +206,7 @@
 .quick-switch-hint {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .quick-switch-result-count {
@@ -224,7 +224,7 @@
 .quick-switch-scope {
   display: flex;
   padding: var(--space-xs) var(--space-md);
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: var(--border-structure);
 }
 
 .quick-switch-row-blame {
@@ -232,7 +232,7 @@
   height: var(--h-chip);
   padding: 0 var(--space-sm);
   background: none;
-  border: 1px solid var(--outline-variant);
+  border: var(--border-structure);
   border-radius: var(--radius);
   color: var(--on-surface-variant);
   font: var(--ui-xs);

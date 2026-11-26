@@ -140,7 +140,7 @@
 .changes-diff-staged-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   flex-shrink: 0;
   height: var(--h-chip);
   padding: 0 var(--space-sm);
@@ -160,7 +160,7 @@
     height: var(--h-chip);
     padding: 0 var(--space-sm);
     background: none;
-    border: 1px solid var(--outline-variant);
+    border: var(--border-structure);
     border-radius: var(--radius);
     color: var(--on-surface);
     font: var(--ui-xs);

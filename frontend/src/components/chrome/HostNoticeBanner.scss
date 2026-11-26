@@ -33,7 +33,7 @@
 .host-notice-dismiss {
   display: inline-flex;
   margin-left: auto;
-  padding: 2px;
+  padding: var(--space-2xs);
   background: none;
   border: none;
   color: var(--outline);

@@ -10,4 +10,15 @@
   --glow-action: 0 0 12px rgba(76, 215, 246, 0.35);
   --glow-node: 0 0 12px rgba(76, 215, 246, 0.5);
   --keycap-shadow: 0 1px 0 0 var(--outline-variant);
+
+  // Stacking, lowest first. A popover can open from a modal, so it sits above one.
+  --z-raised: 1; // Above its siblings in a component
+  --z-sticky: 2; // A sticky header over raised content
+  --z-scrim: 3; // Behind a drawer
+  --z-drawer: 4; // The Inbox
+  --z-overlay: 5; // Over the view: the issue inspector, the overview's tip
+  --z-menu: 20; // A menu or panel opened from a control
+  --z-modal: 100;
+  --z-popover: 200; // Hover cards, context menus
+  --z-tooltip: 1000;
 }

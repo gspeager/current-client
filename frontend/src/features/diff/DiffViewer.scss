@@ -149,10 +149,10 @@
   align-items: center;
   justify-content: space-between;
   grid-column: 1 / -1;
-  gap: 8px;
+  gap: var(--space-sm);
   height: var(--row-height);
   line-height: var(--row-height);
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   color: var(--outline);
   background: var(--surface-low);
   white-space: pre;
@@ -208,7 +208,7 @@
 .diff-hunk-actions {
   flex: 0 0 auto;
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .diff-stage-hunk,
@@ -313,13 +313,13 @@
   }
 
   &-split-left {
-    border-right: 1px solid var(--outline-variant);
+    border-right: var(--border-structure);
   }
 }
 
 .diff-line-number {
   text-align: right;
-  padding-right: 6px;
+  padding-right: var(--space-xs);
   color: var(--code-linenum);
   user-select: none;
 }
@@ -329,7 +329,7 @@
 .diff-line-select {
   align-self: start;
   height: var(--row-height);
-  padding: 0 6px 0 0;
+  padding: 0 var(--space-xs) 0 0;
   background: none;
   border: none;
   color: var(--code-linenum);
@@ -350,7 +350,7 @@
 }
 
 .diff-content {
-  padding-right: 8px;
+  padding-right: var(--space-sm);
   // Wrapped lines hang under the first, so they don't read as unindented code.
   padding-left: 2ch;
   text-indent: -2ch;
@@ -393,7 +393,7 @@
   width: 100%;
   height: var(--row-height);
   line-height: var(--row-height);
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   border: none;
   color: var(--outline);
   background: var(--surface-low);
@@ -508,7 +508,7 @@
     overflow: auto;
 
     & + .diff-side {
-      border-left: 1px solid var(--outline-variant);
+      border-left: var(--border-structure);
     }
   }
 
@@ -547,13 +547,13 @@
 // grid underneath is untouched.
 .diff-line-comment {
   position: absolute;
-  top: 1px;
-  left: 1px;
+  top: 0;
+  left: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: var(--h-micro);
+  height: var(--h-micro);
   padding: 0;
   background: var(--surface);
   border: var(--border-structure);

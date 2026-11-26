@@ -71,7 +71,7 @@
   position: absolute;
   top: var(--space-xs);
   left: var(--space-xs);
-  z-index: 100;
+  z-index: var(--z-modal);
   height: var(--h-field);
   padding: 0 var(--space-md);
   background: var(--surface-high);

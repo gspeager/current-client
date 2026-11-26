@@ -104,7 +104,7 @@
 .commit-detail-signature {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2xs);
   font: var(--ui-xs);
 }
 
@@ -222,10 +222,10 @@
   left: 0;
   right: 0;
   top: calc(100% + var(--space-xs));
-  z-index: 10;
+  z-index: var(--z-menu);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
   padding: var(--space-xs);
   background: var(--surface);
   border: var(--border-structure);
