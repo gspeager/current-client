@@ -122,13 +122,58 @@ describe('HistoryView', () => {
       expect((await saved(dialog)).filter((text) => /^Commit \d/.test(text))).toHaveLength(450)
     })
 
+    it('sets the Filters menu from what is typed in the box', async () => {
+      vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+      renderHistory()
+      await screen.findByRole('row', { name: /Initial commit/ })
+      await userEvent.type(screen.getByRole('searchbox'), 'author:"Ada Lovelace" since:7d initial')
+
+      await vi.waitFor(() =>
+        expect(HistoryService.GetHistory).toHaveBeenLastCalledWith(
+          REPO,
+          expect.any(Number),
+          0,
+          expect.objectContaining({
+            author: 'Ada Lovelace',
+            since: expect.stringMatching(/^\d{4}-\d{2}-\d{2} 00:00:00$/),
+          }),
+        ),
+      )
+      expect(screen.getByRole('textbox', { name: 'Author filter' })).toHaveValue('Ada Lovelace')
+      expect(screen.getByRole('combobox', { name: 'Date filter' })).toHaveValue('7d')
+      expect(screen.getByLabelText('Filters, 2 on')).toBeInTheDocument()
+      expect(screen.getByRole('row', { name: /Initial commit/ })).toBeInTheDocument()
+    })
+
+    it('shows a typed type in the menu where the repository has no Conventional Commits', async () => {
+      vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+      renderHistory()
+      await screen.findByRole('row', { name: /Initial commit/ })
+      expect(screen.queryByRole('combobox', { name: 'Type filter' })).toBeNull()
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'type:fix' } })
+      expect(await screen.findByRole('combobox', { name: 'Type filter' })).toBeInTheDocument()
+      expect(screen.getByLabelText('Filters, 1 on')).toBeInTheDocument()
+    })
+
+    it('writes a change in the Filters menu into the box', async () => {
+      vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+      renderHistory()
+      await screen.findByRole('row', { name: /Initial commit/ })
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'login' } })
+      fireEvent.change(screen.getByRole('textbox', { name: 'Author filter' }), { target: { value: 'Ada Lovelace' } })
+      fireEvent.change(screen.getByRole('combobox', { name: 'Date filter' }), { target: { value: '30d' } })
+      expect(screen.getByRole('searchbox')).toHaveValue('login author:"Ada Lovelace" since:30d')
+      fireEvent.change(screen.getByRole('combobox', { name: 'Date filter' }), { target: { value: '' } })
+      expect(screen.getByRole('searchbox')).toHaveValue('login author:"Ada Lovelace"')
+    })
+
     it('says what narrows the list, without who when names are left out', async () => {
       vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
       renderHistory({ firstParent: true })
       await screen.findByRole('row', { name: /Initial commit/ })
       fireEvent.change(screen.getByRole('textbox', { name: 'Author filter' }), { target: { value: 'ada' } })
       fireEvent.click(screen.getByRole('checkbox', { name: 'Hide merges' }))
-      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Lovelace' } })
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'author:ada Lovelace' } })
       await screen.findByRole('row', { name: /Initial commit/ })
       const named = await saved(await opened())
       expect(named).toContain(

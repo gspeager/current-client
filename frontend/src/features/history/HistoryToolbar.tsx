@@ -1,12 +1,11 @@
 import { arrowIntoList } from '../../lib/useRovingRows'
-import { useState } from 'react'
 import { Check, Copy, ImageDown, Search, SlidersHorizontal } from 'lucide-react'
 import type { HistoryFilterInfo } from '@current-client-bindings/app'
 import Checkbox from '../../components/forms/Checkbox'
 import { BREAKING_FILTER, COMMIT_TYPES } from '../../lib/conventionalCommit'
-import { sinceDaysAgo } from '../../lib/relativeTime'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
 import { ALL_BRANCHES } from './branchFilter'
+import type { FilterKey } from './typedFilters'
 import './HistoryToolbar.scss'
 
 interface HistoryToolbarProps {
@@ -17,12 +16,17 @@ interface HistoryToolbarProps {
   branches: string[]
   filter: HistoryFilterInfo
   onFilterChange: (filter: HistoryFilterInfo) => void
+  // As typed in the box, which the menu writes to.
+  typed: Record<FilterKey, string>
+  onTypedChange: (key: FilterKey, value: string) => void
   showTypeFilter: boolean
   onCopyAsciiGraph: () => void
   // Not given while there's nothing to save.
   onSaveImage?: () => void
   copied: boolean
 }
+
+const SINCE_PRESETS = ['today', '7d', '30d', '90d']
 
 // Search and the branch select stay in the bar at every width; the rest of the
 // filters live in one menu, whose badge counts the ones in effect.
@@ -34,16 +38,18 @@ function HistoryToolbar({
   branches,
   filter,
   onFilterChange,
+  typed,
+  onTypedChange,
   showTypeFilter,
   onCopyAsciiGraph,
   onSaveImage,
   copied,
 }: HistoryToolbarProps) {
-  const [sinceDays, setSinceDays] = useState(0)
   const filtersRef = useDismissibleDetails()
-  const active = [filter.since !== '', showTypeFilter && filter.type !== '', filter.author !== '', hideMerges].filter(
+  const active = [typed.since !== '', typed.until !== '', typed.type !== '', typed.author !== '', hideMerges].filter(
     Boolean,
   ).length
+  const since = SINCE_PRESETS.includes(typed.since.toLowerCase()) ? typed.since.toLowerCase() : typed.since && 'custom'
 
   return (
     <div className="history-toolbar">
@@ -53,7 +59,7 @@ function HistoryToolbar({
           className="history-toolbar-search"
           type="search"
           placeholder="Search commits…"
-          title="Search by subject, author or hash"
+          title="Search by subject, author or hash. Filter with author:, type:, since: and until:, such as author:maya since:7d"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           onKeyDown={arrowIntoList}
@@ -91,28 +97,27 @@ function HistoryToolbar({
             <span>Time</span>
             <select
               className="history-toolbar-filter"
-              value={sinceDays}
-              onChange={(e) => {
-                const days = Number(e.target.value)
-                setSinceDays(days)
-                onFilterChange({ ...filter, since: sinceDaysAgo(days) })
-              }}
+              value={since}
+              onChange={(e) => onTypedChange('since', e.target.value)}
               aria-label="Date filter"
             >
-              <option value={0}>All time</option>
-              <option value={1}>Today</option>
-              <option value={7}>Past 7 days</option>
-              <option value={30}>Past 30 days</option>
-              <option value={90}>Past 90 days</option>
+              <option value="">All time</option>
+              <option value="today">Today</option>
+              <option value="7d">Past 7 days</option>
+              <option value="30d">Past 30 days</option>
+              <option value="90d">Past 90 days</option>
+              {since === 'custom' && <option value="custom">Since {typed.since}</option>}
             </select>
           </label>
-          {showTypeFilter && (
+          {(showTypeFilter || typed.type !== '') && (
             <label className="history-toolbar-filters-row">
               <span>Type</span>
               <select
                 className="history-toolbar-filter"
                 value={filter.type}
-                onChange={(e) => onFilterChange({ ...filter, type: e.target.value })}
+                onChange={(e) =>
+                  onTypedChange('type', e.target.value === BREAKING_FILTER ? 'breaking' : e.target.value)
+                }
                 aria-label="Type filter"
               >
                 <option value="">All types</option>
@@ -131,9 +136,20 @@ function HistoryToolbar({
               className="history-toolbar-author-input"
               type="text"
               placeholder="Any author"
-              value={filter.author}
-              onChange={(e) => onFilterChange({ ...filter, author: e.target.value })}
+              value={typed.author}
+              onChange={(e) => onTypedChange('author', e.target.value)}
               aria-label="Author filter"
+            />
+          </label>
+          <label className="history-toolbar-filters-row">
+            <span>Until</span>
+            <input
+              className="history-toolbar-author-input"
+              type="text"
+              placeholder="Any date"
+              value={typed.until}
+              onChange={(e) => onTypedChange('until', e.target.value)}
+              aria-label="Until filter"
             />
           </label>
           <div className="history-toolbar-filters-row">
