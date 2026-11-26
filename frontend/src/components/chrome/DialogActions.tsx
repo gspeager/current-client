@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import './dialog.scss'
 
 interface DialogActionsProps {
   onCancel: () => void

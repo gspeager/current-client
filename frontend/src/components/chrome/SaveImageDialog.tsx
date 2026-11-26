@@ -8,6 +8,7 @@ import { localDate } from '../../lib/relativeTime'
 import SegmentedControl from '../controls/SegmentedControl'
 import DialogError from './DialogError'
 import Modal from './Modal'
+import './dialog.scss'
 
 interface SaveImageDialogProps {
   // The file name's start; the date and extension follow it.

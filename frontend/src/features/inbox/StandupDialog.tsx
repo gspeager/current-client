@@ -8,6 +8,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import DialogError from '../../components/chrome/DialogError'
 import '../../components/git/HostMarkdown.scss'
+import '../../components/chrome/dialog.scss'
 import './StandupDialog.scss'
 
 interface StandupDialogProps {

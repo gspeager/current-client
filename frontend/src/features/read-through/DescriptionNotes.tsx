@@ -6,6 +6,7 @@ import { toggled } from '../../lib/sets'
 import { useNotes } from '../notes/notes'
 import { noteWhere } from '../review/ReviewNoteBlock'
 import { notesText } from './notesText'
+import '../../components/chrome/dialog.scss'
 import './DescriptionNotes.scss'
 
 interface DescriptionNotesProps {

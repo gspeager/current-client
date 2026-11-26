@@ -4,6 +4,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import type { SignIn, SignInOptions } from '../../lib/signIn'
 import Modal from './Modal'
 import DialogActions from './DialogActions'
+import './dialog.scss'
 
 function SignInDialog({ options, onSettle }: { options: SignInOptions; onSettle: (value: SignIn | null) => void }) {
   const [username, setUsername] = useState('')

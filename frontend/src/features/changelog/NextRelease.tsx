@@ -24,6 +24,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import { useDialogs } from '../../lib/useDialogs'
 import { shortSha } from '../../lib/text'
 import { useAction } from '../../lib/useAction'
+import '../../components/chrome/dialog.scss'
 import './NextRelease.scss'
 
 interface NextReleaseProps {

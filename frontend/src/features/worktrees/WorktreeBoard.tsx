@@ -17,6 +17,7 @@ import { describeResult, explainResult } from '../tasks/taskResult'
 import type { useTasks } from '../tasks/useTasks'
 import { useOpenReadThrough } from '../../lib/readThrough'
 import { useBoard } from './useBoard'
+import '../../components/chrome/dialog.scss'
 import './WorktreeBoard.scss'
 
 const UNPREDICTED: Record<string, string> = {
