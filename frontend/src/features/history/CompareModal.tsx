@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CompareService, DiffService } from '@current-client-bindings/app'
-import ChangedFilesBrowser from '../../components/git/ChangedFilesBrowser'
+import ChangedFilesBrowser from '../diff/ChangedFilesBrowser'
 import RefSelect, { useRefGroups } from '../../components/git/RefSelect'
 import { useAsyncData } from '../../lib/useAsyncData'
 import DiffSheet from '../../components/chrome/DiffSheet'

@@ -1,8 +1,8 @@
 import { FolderGit2, GitBranch } from 'lucide-react'
-import SegmentedControl from '../controls/SegmentedControl'
-import BranchSwitcher from '../../features/branches/BranchSwitcher'
-import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
-import RepoQuickList from '../../features/repositories/RepoQuickList'
+import SegmentedControl from '../../components/controls/SegmentedControl'
+import BranchSwitcher from '../branches/BranchSwitcher'
+import type { useRepositoryLifecycle } from '../repositories/useRepositoryLifecycle'
+import RepoQuickList from '../repositories/RepoQuickList'
 import './BreadcrumbPanel.scss'
 
 export type PanelView = 'repo' | 'branch'

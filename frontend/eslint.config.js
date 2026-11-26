@@ -24,4 +24,20 @@ export default tseslint.config(
       'react-hooks/exhaustive-deps': ['warn', { additionalHooks: '^useAsyncData$' }],
     },
   },
+  {
+    files: ['src/components/**', 'src/lib/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/features/**'],
+              message: 'components/ and lib/ are shared; features import them, not the other way.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 )

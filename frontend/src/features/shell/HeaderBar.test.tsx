@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, RemoteService, RepositoryService } from '@current-client-bindings/app'
-import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
+import type { useRepositoryLifecycle } from '../repositories/useRepositoryLifecycle'
 import HeaderBar from './HeaderBar'
 import { renderWithDialogs } from '../../test/render'
 import { REPO } from '../../test/factories'

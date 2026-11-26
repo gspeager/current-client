@@ -1,0 +1,18 @@
+// design-system.md: a CI result is an icon in its status color, never color
+// alone, and never HEAD's cyan.
+.ci-icon {
+  flex-shrink: 0;
+  color: var(--outline);
+
+  &.ci-icon-success {
+    color: var(--tertiary);
+  }
+
+  &.ci-icon-failed {
+    color: var(--error);
+  }
+
+  &.ci-icon-canceled {
+    color: var(--warning);
+  }
+}

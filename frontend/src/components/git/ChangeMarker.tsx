@@ -3,7 +3,7 @@ import type { BranchChange } from '@current-client-bindings/app'
 import { openWebPage } from '../../lib/hostPages'
 import { relativeTime } from '../../lib/relativeTime'
 import HoverCard from '../chrome/HoverCard'
-import { CIIcon, ciLabel } from './CIMark'
+import { CIIcon, ciLabel } from './CIIcon'
 import './ChangeMarker.scss'
 
 interface ChangeMarkerProps {

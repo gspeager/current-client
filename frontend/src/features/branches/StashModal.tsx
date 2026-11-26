@@ -1,5 +1,5 @@
 import { DiffService, StashService, type ChangedFile, type StashInfo } from '@current-client-bindings/app'
-import ChangedFilesBrowser from '../../components/git/ChangedFilesBrowser'
+import ChangedFilesBrowser from '../diff/ChangedFilesBrowser'
 import DiffSheet from '../../components/chrome/DiffSheet'
 import { EMPTY_TREE_SHA } from '../diff/diffMapping'
 import { useAsyncData } from '../../lib/useAsyncData'

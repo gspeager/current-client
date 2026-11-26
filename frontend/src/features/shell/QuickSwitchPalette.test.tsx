@@ -16,13 +16,13 @@ import {
   UndoService,
   type UndoPlanInfo,
 } from '@current-client-bindings/app'
-import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
-import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
+import type { useRepositoryLifecycle } from '../repositories/useRepositoryLifecycle'
+import type { useWorkingTree } from '../working-copy/useWorkingTree'
 import NavPane from './NavPane'
 import QuickSwitchPalette from './QuickSwitchPalette'
 import { useWorkspaceActions } from './useWorkspaceActions'
-import { NotesContext } from '../../features/notes/notes'
-import { settingsGroups } from '../../features/settings/SettingsPanel'
+import { NotesContext } from '../notes/notes'
+import { settingsGroups } from '../settings/SettingsPanel'
 import { Launcher } from '@current-client-bindings/internal/platform'
 import { renderWithDialogs } from '../../test/render'
 import { REPO } from '../../test/factories'

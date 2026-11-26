@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { SidebarRequest } from '../../components/chrome/NavPane'
+import type { SidebarRequest } from '../shell/NavPane'
 import { BookOpen, Columns3, FolderGit2, FolderOpen, Plus, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { BranchService, RepositoryService, WorktreeService, type WorktreeInfo } from '@current-client-bindings/app'
