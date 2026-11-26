@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ChangedFile, FileDiff } from '@current-client-bindings/app'
-import ChangedFileRow from '../history/ChangedFileRow'
+import ChangedFileRow from '../../components/git/ChangedFileRow'
 import { useReviewThreads } from '../../lib/useReviewThreads'
 import type { ImageSources } from './ImageDiff'
 import ChangedFileDiff from './ChangedFileDiff'

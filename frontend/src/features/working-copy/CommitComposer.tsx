@@ -197,23 +197,14 @@ function CommitComposer({
 
   const stillConflicted = conflict?.conflictedPaths.length ?? 0
   const nothingToCommit = !conflict && changedCount === 0 && stagedCount === 0 && !amend && !allowEmpty
-  const blockReason = nothingToCommit
-    ? 'Nothing to commit.'
-    : conflict
-      ? stillConflicted > 0
-        ? `${plural(stillConflicted, 'file')} still conflicted.`
-        : needsIdentity
-          ? 'Set a name and email to commit.'
-          : subject.trim() === ''
-            ? 'Enter a commit message.'
-            : null
-      : needsIdentity
-        ? 'Set a name and email to commit.'
-        : !amend && !allowEmpty && stagedCount === 0
-          ? 'Stage files to commit.'
-          : subject.trim() === ''
-            ? 'Enter a commit message.'
-            : null
+  const blockReason = (() => {
+    if (nothingToCommit) return 'Nothing to commit.'
+    if (conflict && stillConflicted > 0) return `${plural(stillConflicted, 'file')} still conflicted.`
+    if (needsIdentity) return 'Set a name and email to commit.'
+    if (!conflict && !amend && !allowEmpty && stagedCount === 0) return 'Stage files to commit.'
+    if (subject.trim() === '') return 'Enter a commit message.'
+    return null
+  })()
 
   const onMessageKeyDown = (e: KeyboardEvent) => {
     if (matchesShortcut(e, 'mod+Enter') && blockReason === null) {

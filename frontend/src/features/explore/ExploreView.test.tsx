@@ -13,7 +13,7 @@ import {
   TagService,
   type MapChangeInfo,
 } from '@current-client-bindings/app'
-import { ReadThroughContext } from '../read-through/readThrough'
+import { ReadThroughContext } from '../../lib/readThrough'
 import { decodeBase64 } from '../../lib/base64'
 import ExploreView from './ExploreView'
 import { renderWithDialogs } from '../../test/render'

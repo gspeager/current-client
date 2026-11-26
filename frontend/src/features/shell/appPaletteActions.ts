@@ -27,9 +27,9 @@ import {
   Tag,
 } from 'lucide-react'
 import { BranchService } from '@current-client-bindings/app'
+import type { SidebarCommand } from '../../lib/sidebarCommands'
 import type { AppTab } from '../repositories/TabBar'
 import type { useTasks } from '../tasks/useTasks'
-import type { SidebarRequest } from './NavPane'
 import type { PaletteAction } from './paletteActions'
 
 interface AppPaletteOptions {
@@ -44,7 +44,7 @@ interface AppPaletteOptions {
   tasks: ReturnType<typeof useTasks>
   viewShortcut: (tab: AppTab) => string
   changeTab: (tab: AppTab) => void
-  requestSidebar: (action: SidebarRequest['action']) => void
+  requestSidebar: (command: SidebarCommand) => void
   createIssue: (() => void) | undefined
   requestCreateChange: ((branch: string) => void) | undefined
   openShortcuts: () => void
