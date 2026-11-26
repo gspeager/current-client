@@ -1,12 +1,16 @@
 import { createRef } from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  BranchService,
   GitService,
   HistoryService,
   HostService,
+  RemoteService,
   RepositoryService,
   SettingsService,
+  StatusService,
+  WorktreeService,
   type OpenTabsInfo,
   type Settings,
 } from '@current-client-bindings/app'
@@ -117,27 +121,26 @@ describe('CurrentClientApp embedding', () => {
     const github = [{ hostname: 'github.com', provider: 'github', enabled: false, dismissed: false, managed: false }]
 
     it('opens no dialog, tells the host one waits, and asks once shown', async () => {
-      stubStartup(['/repos/app'], '/repos/app')
+      stubStartup([])
       vi.mocked(HostService.Detect).mockResolvedValue(github as never)
       const onNeedsAttention = vi.fn()
-      const { rerender } = render(
+      const host = (active: boolean, repoPath: string | null) => (
         <>
           <button type="button">The host's own view</button>
-          <CurrentClientApp active={false} onNeedsAttention={onNeedsAttention} />
-        </>,
+          <CurrentClientApp active={active} activeRepoPath={repoPath} onNeedsAttention={onNeedsAttention} />
+        </>
       )
+      const { rerender } = render(host(true, null))
+      await screen.findByText('Current Client', { selector: 'h1' })
+      // Hidden again, the host opens a repository on github.com.
+      rerender(host(false, '/repos/app'))
 
       await waitFor(() => expect(onNeedsAttention).toHaveBeenCalled())
       expect(screen.queryByRole('alertdialog', { hidden: true })).toBeNull()
       expect(document.body.style.pointerEvents).not.toBe('none')
       expect(screen.getByRole('button', { name: "The host's own view" }).closest('[aria-hidden]')).toBeNull()
 
-      rerender(
-        <>
-          <button type="button">The host's own view</button>
-          <CurrentClientApp active onNeedsAttention={onNeedsAttention} />
-        </>,
-      )
+      rerender(host(true, '/repos/app'))
       expect(await screen.findByRole('alertdialog', { name: 'Turn on GitHub integration?' })).toBeInTheDocument()
     })
 
@@ -150,6 +153,49 @@ describe('CurrentClientApp embedding', () => {
       await waitFor(() => expect(HostService.Detect).toHaveBeenCalled())
       await new Promise((resolve) => setTimeout(resolve, 50))
       expect(screen.queryByRole('alertdialog')).toBeNull()
+    })
+  })
+
+  describe('hidden from the start', () => {
+    afterEach(() => vi.useRealTimers())
+
+    it('reads nothing for the screen, but restores, reports and fetches, then loads when first shown', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      stubStartup(['/repos/app', '/repos/site'], '/repos/app')
+      vi.mocked(SettingsService.GetSettings).mockResolvedValue({
+        theme: 'dark',
+        autoFetchIntervalMinutes: 5,
+      } as Settings)
+      vi.mocked(RemoteService.FetchAll).mockResolvedValue()
+      vi.mocked(BranchService.ListLocal).mockResolvedValue([])
+      const onActiveRepoChange = vi.fn()
+      const app = (active: boolean) => <CurrentClientApp active={active} onActiveRepoChange={onActiveRepoChange} />
+      const { rerender } = render(app(false))
+
+      await waitFor(() => expect(onActiveRepoChange).toHaveBeenLastCalledWith('/repos/app'))
+      await act(() => vi.advanceTimersByTimeAsync(5 * 60 * 1000))
+      expect(RemoteService.FetchAll).toHaveBeenCalledWith('/repos/app', null)
+      for (const read of [
+        StatusService.GetStatus,
+        BranchService.ListLocal,
+        BranchService.CurrentBranchStatus,
+        WorktreeService.List,
+        RepositoryService.GetTabSummaries,
+        RemoteService.LastFetchTime,
+      ]) {
+        expect(read).not.toHaveBeenCalled()
+      }
+
+      rerender(app(true))
+      await waitFor(() => expect(BranchService.ListLocal).toHaveBeenCalledWith('/repos/app'))
+      await waitFor(() => expect(RepositoryService.GetTabSummaries).toHaveBeenCalledWith(['/repos/site']))
+      expect(StatusService.GetStatus).toHaveBeenCalledWith('/repos/app')
+
+      const reads = vi.mocked(BranchService.ListLocal).mock.calls.length
+      rerender(app(false))
+      rerender(app(true))
+      await act(() => vi.advanceTimersByTimeAsync(100))
+      expect(vi.mocked(BranchService.ListLocal).mock.calls.length).toBe(reads)
     })
   })
 })
