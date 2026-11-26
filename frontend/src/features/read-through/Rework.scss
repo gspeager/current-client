@@ -1,0 +1,97 @@
+@use '../../styles/patterns';
+
+.rework-about {
+  margin: var(--space-xs) 0 0;
+  color: var(--on-surface-variant);
+  font: var(--ui-sm);
+}
+
+.rework-label {
+  margin: var(--space-md) 0 var(--space-xs);
+  color: var(--outline);
+  font: var(--ui-xs);
+  font-weight: 500;
+}
+
+// A commit with nothing rewritten keeps its place as a baseline.
+.rework-commits {
+  @include patterns.list-reset;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2xs);
+  height: var(--h-row-double);
+  border-bottom: var(--border-structure);
+}
+
+.rework-commit {
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+  max-width: 14px;
+  height: 100%;
+}
+
+.rework-commit-bar {
+  width: 100%;
+  min-height: 1px;
+  background: var(--warning);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+}
+
+.rework-file {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(80px, 200px) 40px 64px;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: var(--h-row-tree);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-top: var(--border-structure);
+  text-align: left;
+
+  &:not(:disabled) {
+    cursor: pointer;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container);
+  }
+}
+
+.rework-path {
+  color: var(--on-surface);
+  font: var(--data-sm);
+}
+
+.rework-bar {
+  display: flex;
+  height: 8px;
+}
+
+.rework-kept {
+  background: var(--outline-variant);
+}
+
+.rework-rewritten {
+  background: var(--warning);
+}
+
+.rework-count {
+  color: var(--warning);
+  font: var(--data-sm);
+  text-align: right;
+}
+
+.rework-touches {
+  display: flex;
+  gap: var(--space-2xs);
+}
+
+.rework-touch {
+  width: 6px;
+  height: 6px;
+  background: var(--outline);
+  border-radius: var(--radius-xs);
+}

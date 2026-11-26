@@ -15,6 +15,7 @@ import (
 	"github.com/gspeager/current-client/core/diff"
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/readthrough"
+	"github.com/gspeager/current-client/core/rework"
 	"github.com/gspeager/current-client/internal/notes"
 	"github.com/gspeager/current-client/internal/structure"
 )
@@ -351,6 +352,11 @@ type ChangeReason struct {
 	// kind, "renamed", or "few" lines in all.
 	Why   string `json:"why"`
 	Count int    `json:"count"`
+}
+
+// Rework reads the range's commits; uncommitted changes have no steps to compare.
+func (s *ReadThroughService) Rework(ctx context.Context, info ReadThroughInfo) (rework.Report, error) {
+	return rework.Range(ctx, info.Path, info.Base, info.Head)
 }
 
 func (s *ReadThroughService) Structure(ctx context.Context, info ReadThroughInfo) (ChangeStructureInfo, error) {

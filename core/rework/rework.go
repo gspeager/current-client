@@ -18,31 +18,31 @@ import (
 const MostCommits = 300
 
 type Commit struct {
-	SHA     string
-	Subject string
-	Written int
+	SHA     string `json:"sha"`
+	Subject string `json:"subject"`
+	Written int    `json:"written"`
 	// Rewritten is the lines this commit changed or removed that an earlier
 	// commit in the range wrote.
-	Rewritten int
+	Rewritten int `json:"rewritten"`
 }
 
 type File struct {
 	// Path is the file's name at the range's end, or its last name when it's gone.
-	Path      string
-	Written   int
-	Rewritten int
-	Commits   int
+	Path      string `json:"path"`
+	Written   int    `json:"written"`
+	Rewritten int    `json:"rewritten"`
+	Commits   int    `json:"commits"`
 }
 
 type Report struct {
-	Written   int
-	Rewritten int
+	Written   int `json:"written"`
+	Rewritten int `json:"rewritten"`
 	// Commits are oldest first.
-	Commits []Commit
+	Commits []Commit `json:"commits"`
 	// Files are the ones with rework, the most first.
-	Files []File
+	Files []File `json:"files"`
 	// Capped means only the newest MostCommits were read.
-	Capped bool
+	Capped bool `json:"capped"`
 }
 
 type fileDiff struct {

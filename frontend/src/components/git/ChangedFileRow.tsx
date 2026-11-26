@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import type { KeyboardEvent, MouseEvent } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { isMenuKey } from '../controls/ContextMenu'
 import type { ChangedFile as ChangedFileInfo } from '@current-client-bindings/app'
 import Checkbox from '../forms/Checkbox'
@@ -23,6 +24,8 @@ interface ChangedFileRowProps {
   onRead?: (read: boolean) => void
   // Why it's marked as changed again.
   again?: string
+  // Lines the range wrote and then changed again.
+  rewritten?: number
 }
 
 function ChangedFileRow({
@@ -35,6 +38,7 @@ function ChangedFileRow({
   read = false,
   onRead,
   again,
+  rewritten,
 }: ChangedFileRowProps) {
   const path = relativeTo && file.path.startsWith(`${relativeTo}/`) ? file.path.slice(relativeTo.length + 1) : file.path
   return (
@@ -54,6 +58,13 @@ function ChangedFileRow({
         {again && (
           <span className="changed-file-again" title={again}>
             again
+          </span>
+        )}
+        {!!rewritten && (
+          <span className="changed-file-rewritten" title={`${rewritten} lines rewritten along the way`}>
+            <RotateCcw size={11} strokeWidth={2} aria-hidden="true" />
+            {rewritten}
+            <span className="visually-hidden"> lines rewritten</span>
           </span>
         )}
         <ThreadCount count={threads} />
