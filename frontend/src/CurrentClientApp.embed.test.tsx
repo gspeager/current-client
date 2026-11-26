@@ -182,6 +182,7 @@ describe('CurrentClientApp embedding', () => {
         WorktreeService.List,
         RepositoryService.GetTabSummaries,
         RemoteService.LastFetchTime,
+        RepositoryService.GetRepoSummaries,
       ]) {
         expect(read).not.toHaveBeenCalled()
       }
