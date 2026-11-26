@@ -30,7 +30,9 @@ func forgetTracker(string, bool) {}
 
 func hostInboxRows(string) ([]InboxRow, bool, *time.Time, string) { return nil, false, nil, "" }
 
-func markTodoDone(string, string) error { return &gitexec.AppError{Message: "Host integration is off."} }
+func markTodoDone(string, string) error {
+	return &gitexec.AppError{Message: "Host integration is off."}
+}
 
 func standupHost(*StandupRepo, time.Time) {}
 
