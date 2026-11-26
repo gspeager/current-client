@@ -8,6 +8,7 @@ import {
   BranchService,
   HistoryService,
   PatchService,
+  PlatformService,
   RemoteService,
   ReflogService,
   TagService,
@@ -22,6 +23,7 @@ import QuickSwitchPalette from './QuickSwitchPalette'
 import { useWorkspaceActions } from './useWorkspaceActions'
 import { NotesContext } from '../../features/notes/notes'
 import { settingsGroups } from '../../features/settings/SettingsPanel'
+import { Launcher } from '@current-client-bindings/internal/platform'
 
 const REPO = '/repos/app'
 
@@ -181,6 +183,19 @@ describe('QuickSwitchPalette features', () => {
     await userEvent.type(screen.getByRole('combobox'), 'jira')
     await userEvent.click(await within(palette()).findByRole('option', { name: 'Settings: Integrations' }))
     expect(onOpenSettings).toHaveBeenCalledWith('Integrations')
+  })
+
+  it('installs the terminal command from Settings, where it says where it writes', async () => {
+    vi.mocked(PlatformService.TerminalCommand).mockResolvedValue(
+      new Launcher({ path: '/Users/me/.local/bin/current-client' }),
+    )
+    const onOpenSettings = vi.fn()
+    renderPalette(undefined, { onOpenSettings })
+
+    await userEvent.type(screen.getByRole('combobox'), 'launcher')
+    await userEvent.click(await within(palette()).findByRole('option', { name: 'Install terminal command' }))
+    expect(onOpenSettings).toHaveBeenCalledWith('Tools and folders')
+    expect(PlatformService.InstallTerminalCommand).not.toHaveBeenCalled()
   })
 
   it('lists tags once typed for and opens the tagged commit', async () => {

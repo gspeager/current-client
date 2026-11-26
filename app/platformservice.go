@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -168,4 +169,59 @@ func (s *PlatformService) SetDarkTitleBar(ctx context.Context, dark bool) {
 	if window, ok := ctx.Value(application.WindowKey).(application.Window); ok {
 		application.InvokeAsync(func() { setDarkTitleBar(window, dark) })
 	}
+}
+
+var errEmbedded = &gitexec.AppError{Message: "The terminal command is only for Current Client on its own."}
+
+// TerminalCommand is the command that opens a path in the app from a terminal.
+// It's empty in an app that embeds Current Client.
+func (s *PlatformService) TerminalCommand() (platform.Launcher, error) {
+	if embedded {
+		return platform.Launcher{}, nil
+	}
+	return launcherAction(platform.LauncherStatus)
+}
+
+func (s *PlatformService) InstallTerminalCommand() (platform.Launcher, error) {
+	launcher, err := launcherAction(platform.InstallLauncher)
+	var taken *fs.PathError
+	if errors.As(err, &taken) && errors.Is(err, platform.ErrNotOurs) {
+		return launcher, &gitexec.AppError{Message: taken.Path + " is already there, and isn't Current Client's command."}
+	}
+	if err != nil && !errors.As(err, new(*gitexec.AppError)) {
+		return launcher, &gitexec.AppError{Message: "The terminal command couldn't be written.", Detail: err.Error()}
+	}
+	return launcher, err
+}
+
+func (s *PlatformService) RemoveTerminalCommand() (platform.Launcher, error) {
+	launcher, err := launcherAction(platform.RemoveLauncher)
+	if err != nil && !errors.As(err, new(*gitexec.AppError)) {
+		return launcher, &gitexec.AppError{Message: "The terminal command couldn't be removed.", Detail: err.Error()}
+	}
+	return launcher, err
+}
+
+func launcherAction(action func(target string) (platform.Launcher, error)) (platform.Launcher, error) {
+	if embedded {
+		return platform.Launcher{}, errEmbedded
+	}
+	target, err := launcherTarget()
+	if err != nil {
+		return platform.Launcher{}, err
+	}
+	return action(target)
+}
+
+// An AppImage is mounted somewhere new on every start, so the command opens the
+// AppImage file itself.
+func launcherTarget() (string, error) {
+	if appImage := os.Getenv("APPIMAGE"); appImage != "" {
+		return appImage, nil
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.EvalSymlinks(executable)
 }
