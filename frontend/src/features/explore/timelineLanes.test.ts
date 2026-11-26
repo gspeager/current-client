@@ -149,4 +149,13 @@ describe('timeTicks', () => {
     const days = timeTicks(new Date(2026, 10, 23).getTime(), new Date(2026, 10, 30).getTime(), 1000)
     expect(days.map(({ time }) => new Date(time).getDate())).toEqual([23, 24, 25, 26, 27, 28, 29, 30])
   })
+
+  it('names midnight by its date among hours', () => {
+    const ticks = timeTicks(new Date(2026, 10, 26, 22).getTime(), new Date(2026, 10, 27, 2).getTime(), 1000)
+    const midnight = new Date(2026, 10, 27)
+    expect(ticks.find(({ time }) => time === midnight.getTime())?.label).toBe(
+      midnight.toLocaleString(undefined, { month: 'short', day: 'numeric' }),
+    )
+    expect(ticks[0].label).not.toBe(ticks[2].label)
+  })
 })

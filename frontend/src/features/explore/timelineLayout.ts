@@ -84,13 +84,17 @@ export function timeTicks(start: number, end: number, width: number): { time: nu
       if (at.getTime() >= start) times.push(at.getTime())
     }
   }
-  const options: Intl.DateTimeFormatOptions =
+  // Within a day, midnight is named by its date.
+  const label = (date: Date): Intl.DateTimeFormatOptions =>
     step === undefined
       ? { month: 'short', year: 'numeric' }
-      : step < DAY
+      : step < DAY && date.getHours() > 0
         ? { hour: 'numeric', minute: '2-digit' }
         : { month: 'short', day: 'numeric' }
-  return times.map((time) => ({ time, label: new Date(time).toLocaleString(undefined, options) }))
+  return times.map((time) => {
+    const date = new Date(time)
+    return { time, label: date.toLocaleString(undefined, label(date)) }
+  })
 }
 
 export const laneName = (lane: Lane) => (lane.path === null ? 'Other folders' : lane.path || 'Top folder')
