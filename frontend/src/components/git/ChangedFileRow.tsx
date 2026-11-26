@@ -1,11 +1,11 @@
 import type { KeyboardEvent, MouseEvent } from 'react'
-import { isMenuKey } from '../../components/controls/ContextMenu'
+import { isMenuKey } from '../controls/ContextMenu'
 import type { ChangedFile as ChangedFileInfo } from '@current-client-bindings/app'
-import Checkbox from '../../components/forms/Checkbox'
-import DiffStat from '../../components/git/DiffStat'
-import PathText from '../../components/git/PathText'
-import StatusBadge from '../../components/git/StatusBadge'
-import ThreadCount from '../../components/git/ThreadCount'
+import Checkbox from '../forms/Checkbox'
+import DiffStat from './DiffStat'
+import PathText from './PathText'
+import StatusBadge from './StatusBadge'
+import ThreadCount from './ThreadCount'
 import './ChangedFileRow.scss'
 
 interface ChangedFileRowProps {

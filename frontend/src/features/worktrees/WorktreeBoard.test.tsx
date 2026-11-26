@@ -6,7 +6,7 @@ import {
   type BoardTask,
   type TaskResultInfo,
 } from '@current-client-bindings/app'
-import { ReadThroughContext } from '../read-through/readThrough'
+import { ReadThroughContext } from '../../lib/readThrough'
 import { nextRead } from './useBoard'
 import WorktreeBoard from './WorktreeBoard'
 

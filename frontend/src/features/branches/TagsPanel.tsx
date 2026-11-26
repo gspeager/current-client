@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ChevronDown, ChevronRight, CloudOff, Copy, PackagePlus, Plus, StickyNote, Tag, Upload, X } from 'lucide-react'
 import { NoteMark, noteMenuLabel, useNotes } from '../notes/notes'
 import { HostService, type TagInfo, type TagMessageInfo, TagService } from '@current-client-bindings/app'
@@ -12,7 +12,7 @@ import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import './TagsPanel.scss'
 import { useHostLinks } from '../../lib/useHostLinks'
-import type { SidebarRequest } from '../shell/NavPane'
+import { useSidebarCommand } from '../../lib/sidebarCommands'
 import { openWebPage, tagPage } from '../../lib/hostPages'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
@@ -24,10 +24,9 @@ interface TagsPanelProps {
   repoPath: string
   sections: SidebarSections
   onTagChanged?: () => void
-  request?: SidebarRequest | null
 }
 
-function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPanelProps) {
+function TagsPanel({ repoPath, sections, onTagChanged }: TagsPanelProps) {
   const hostLinks = useHostLinks(repoPath)
   useClockTick()
   const {
@@ -53,17 +52,17 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
   )
 
   // Publish release from the palette takes the newest tag, which is listed first.
-  useEffect(() => {
-    if (!request) return
-    if (request.action === 'new-tag') setShowNewTag(true)
-    if (request.action === 'publish-release') {
+  useSidebarCommand('new-tag', () => setShowNewTag(true))
+  useSidebarCommand(
+    'publish-release',
+    () => {
       const newest = tags?.[0]
       if (!newest) setActionError('No tag to publish a release from')
       else if (!canPublish) setActionError('Publishing a release needs the host integration on with write scope')
       else setReleaseTag(newest.name)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request])
+    },
+    tags !== null && canPublish !== null,
+  )
 
   const createTag = () => {
     setActionError(null)

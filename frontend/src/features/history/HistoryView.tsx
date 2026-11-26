@@ -6,17 +6,8 @@ import CommitDetailPanel from './CommitDetailPanel'
 import CommitFileDiff from './CommitFileDiff'
 import CommitRow from './CommitRow'
 import WorkingChangesRow from './WorkingChangesRow'
-import { useDebounceValue } from 'usehooks-ts'
 import HistoryToolbar from './HistoryToolbar'
-import {
-  FILTER_KEYS,
-  describeSince,
-  typedFilters,
-  typedText,
-  typedValues,
-  withTyped,
-  type FilterKey,
-} from './typedFilters'
+import { describeSince, typedText } from './typedFilters'
 import { buildAsciiGraph } from './asciiGraph'
 import { ancestorShas } from './commitAncestry'
 import { identityKey } from './identityKey'
@@ -36,9 +27,12 @@ import { useRovingRows } from '../../lib/useRovingRows'
 import { useResizableWidth } from '../../lib/useResizableWidth'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
 import ResizeHandle from '../../components/chrome/ResizeHandle'
-import { EMPTY_HISTORY_FILTER, useCommitHistory } from './useCommitHistory'
+import { useCommitHistory } from './useCommitHistory'
+import { useHistoryFilter } from './useHistoryFilter'
+import { useHistoryScroll } from './useHistoryScroll'
+import { useNewCommitFlash } from './useNewCommitFlash'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
-import { useHeadCommit } from '../working-copy/useHeadCommit'
+import { useHeadCommit } from './useHeadCommit'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useHostLinks } from '../../lib/useHostLinks'
 import { useBranchChanges } from '../../lib/useBranchChanges'
@@ -49,7 +43,7 @@ import { useReviewThreads } from '../../lib/useReviewThreads'
 import { useIdentities } from './useIdentities'
 import { useRefBadges } from './useRefBadges'
 import { commitRowHeight, useDensity } from '../../lib/density'
-import { ALL_BRANCHES, isBranchName } from './branchFilter'
+import { ALL_BRANCHES } from './branchFilter'
 import OverviewStrip from './OverviewStrip'
 import './HistoryView.scss'
 
@@ -78,8 +72,6 @@ interface HistoryViewProps {
   currentBranch?: string
 }
 
-const NEW_COMMIT_FLASH_MS = 400
-
 function HistoryView({
   repoPath,
   conventional = false,
@@ -98,7 +90,20 @@ function HistoryView({
   onSelectedShaChange,
   currentBranch,
 }: HistoryViewProps) {
-  const [filter, setFilter] = useState({ ...EMPTY_HISTORY_FILTER, ref: initialRef ?? defaultRef, firstParent })
+  const { data: localBranches } = useAsyncData(() => BranchService.ListLocal(repoPath), [repoPath])
+  const branches = useMemo(() => localBranches?.map((b) => b.name), [localBranches])
+  const upstreams = useMemo(
+    () => Object.fromEntries((localBranches ?? []).filter((b) => b.upstream).map((b) => [b.name, b.upstream])),
+    [localBranches],
+  )
+  const { filter, changeFilter, search, setSearch, typed, setTyped } = useHistoryFilter({
+    initialRef,
+    defaultRef,
+    firstParent,
+    branches,
+    onRefChange,
+    onFirstParentChange,
+  })
   const { commits, loading, done, error, loadMore, loadThrough } = useCommitHistory(
     repoPath,
     filter,
@@ -146,21 +151,6 @@ function HistoryView({
   const [selectedSha, setSelectedSha] = useState<string | null>(initialSelectedSha)
   // The commit whose Checks a job click asked for.
   const [checksFor, setChecksFor] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  // The box's typed filters set the same filter as the menu, once typing pauses.
-  const [typedSearch] = useDebounceValue(search, 300)
-  useEffect(() => {
-    const typed = typedFilters(typedSearch)
-    if (FILTER_KEYS.some((key) => typed[key] !== filter[key])) setFilter((prev) => ({ ...prev, ...typed }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typedSearch])
-  // The menu writes its filter into the box too.
-  const setTyped = (key: FilterKey, value: string) => {
-    const box = withTyped(search, key, value)
-    setSearch(box)
-    setFilter((prev) => ({ ...prev, ...typedFilters(box) }))
-  }
-  const typed = typedValues(search)
   const [hideMerges, setHideMerges] = useState(false)
   const [focusedSha, setFocusedSha] = useState<string | null>(null)
   // One highlight at a time: an author (by mailmapped email) or a lane.
@@ -174,51 +164,8 @@ function HistoryView({
     width: number
     color: GraphPictureOptions['color']
   } | null>(null)
-  const [newShas, setNewShas] = useState<Set<string>>(new Set())
-  const hasComputedNewShas = useRef(false)
+  const newShas = useNewCommitFlash(commits, previousTopSha, onTopShaChange)
   const parentRef = useRef<HTMLDivElement>(null)
-
-  // Only the first load counts; no overlap with previousTopSha (a rebase or
-  // first open) flashes nothing.
-  useEffect(() => {
-    if (commits.length === 0 || hasComputedNewShas.current) return
-    hasComputedNewShas.current = true
-    if (previousTopSha) {
-      const priorIndex = commits.findIndex((c) => c.sha === previousTopSha)
-      if (priorIndex > 0) {
-        setNewShas(new Set(commits.slice(0, priorIndex).map((c) => c.sha)))
-      }
-    }
-    onTopShaChange?.(commits[0].sha)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [commits])
-
-  useEffect(() => {
-    if (newShas.size === 0) return
-    const timeout = setTimeout(() => setNewShas(new Set()), NEW_COMMIT_FLASH_MS)
-    return () => clearTimeout(timeout)
-  }, [newShas])
-
-  const { data: localBranches } = useAsyncData(() => BranchService.ListLocal(repoPath), [repoPath])
-  const branches = useMemo(() => localBranches?.map((b) => b.name), [localBranches])
-  const upstreams = useMemo(
-    () => Object.fromEntries((localBranches ?? []).filter((b) => b.upstream).map((b) => [b.name, b.upstream])),
-    [localBranches],
-  )
-
-  // A saved branch that's since been deleted, or belongs to another repository.
-  useEffect(() => {
-    if (branches && !initialRef && isBranchName(filter.ref) && !branches.includes(filter.ref)) {
-      setFilter((prev) => ({ ...prev, ref: ALL_BRANCHES }))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branches])
-
-  const changeFilter = (next: typeof filter) => {
-    if (next.ref !== filter.ref) onRefChange?.(next.ref)
-    if (next.firstParent !== filter.firstParent) onFirstParentChange?.(next.firstParent)
-    setFilter(next)
-  }
 
   const inspectorWidth = useResizableWidth('pane-width-history-detail', 340, 280, 640, 'grow-left')
   const closeDetail = () => {
@@ -298,44 +245,23 @@ function HistoryView({
     virtualItems.flatMap((row) => (row.index < offset ? [] : [rows[row.index - offset].commit.sha])),
   )
 
-  useEffect(() => {
-    const last = virtualItems[virtualItems.length - 1]
-    if (last && last.index >= commits.length - 20) loadMore()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [virtualItems, commits.length, done])
-
-  // initialLoadThrough guarantees the commit is loaded, not visible.
-  const hasScrolledToInitial = useRef(false)
-  useEffect(() => {
-    if (hasScrolledToInitial.current || !initialSelectedSha) return
-    const index = rows.findIndex((r) => r.commit.sha === initialSelectedSha)
-    if (index === -1) return
-    hasScrolledToInitial.current = true
-    virtualizer.scrollToIndex(index + offset, { align: 'center' })
-  }, [rows, offset, initialSelectedSha, virtualizer])
-
   // As many as a picture can hold, for the dialog to offer.
   useEffect(() => {
     if (saving) loadThrough(MOST_ROWS - 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saving, loading])
 
-  // A jump from the overview strip waits for its row to load. A row the search or
-  // Hide merges has taken out lands on the next one still shown.
-  const [jumpRow, setJumpRow] = useState<number | null>(null)
-  useEffect(() => {
-    if (jumpRow === null) return
-    if (jumpRow >= commits.length && !done) {
-      loadThrough(jumpRow)
-      return
-    }
-    setJumpRow(null)
-    const positions = new Map(commits.map((commit, index) => [commit.sha, index]))
-    const shown = rows.findIndex((row) => (positions.get(row.commit.sha) ?? 0) >= jumpRow)
-    const target = shown === -1 ? rows.length - 1 : shown
-    if (target >= 0) virtualizer.scrollToIndex(target + offset, { align: 'start' })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jumpRow, commits.length, done, loading])
+  const jumpTo = useHistoryScroll({
+    virtualizer,
+    rows,
+    offset,
+    commits,
+    loading,
+    done,
+    loadMore,
+    loadThrough,
+    initialSelectedSha,
+  })
 
   const { data: overview } = useAsyncData(
     () => HistoryService.GetHistoryOverview(repoPath, filter),
@@ -488,7 +414,7 @@ function HistoryView({
                 days={overview.days}
                 markers={[...overview.markers, ...searchMarkers]}
                 visible={visibleRange}
-                onJump={setJumpRow}
+                onJump={jumpTo}
               />
             )}
 
