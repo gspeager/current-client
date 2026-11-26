@@ -14,6 +14,7 @@ import {
   Package,
   Search,
   Settings as SettingsIcon,
+  SquareTerminal,
   StickyNote,
   Tag,
   type LucideIcon,
@@ -22,6 +23,7 @@ import {
   BranchService,
   HistoryService,
   HostService,
+  PlatformService,
   StashService,
   type NoteInfo,
   RemoteService,
@@ -93,7 +95,7 @@ interface RepoResult {
 const SETTINGS_HINTS: Record<string, string> = {
   Appearance: 'Theme, lane colors',
   Git: 'Git executable, Conventional Commits',
-  'Tools and folders': 'Editor, default repository location',
+  'Tools and folders': 'Editor, default repository location, terminal command',
   Diff: 'Ignore whitespace',
   Network: 'Background fetch, prune on fetch',
   Integrations: 'Hosts, issue trackers, tokens',
@@ -104,7 +106,7 @@ const SETTINGS_HINTS: Record<string, string> = {
 const SETTINGS_KEYWORDS: Record<string, string> = {
   Appearance: 'dark light system',
   Git: 'path',
-  'Tools and folders': 'terminal folder',
+  'Tools and folders': 'terminal folder command path launcher',
   Network: 'auto-fetch',
   Integrations: 'github gitlab jira token releases url',
   'Identity colors': 'initials avatar',
@@ -278,6 +280,7 @@ function QuickSwitchPalette({
   const blameQuery = q.startsWith('blame') ? q.replace(/^blame\s*/, '') : null
   const blameResults =
     blameQuery !== null && onBlameFile ? files.filter((p) => matches(p, blameQuery)).slice(0, MAX_FILE_RESULTS) : []
+  const launcher = useAsyncData(() => PlatformService.TerminalCommand().catch(() => null), []).data
   const notes = useNotes()
   const noteResults = q
     ? notes.notes.filter((note) => matches(note.text, q) || matches(note.target, q) || matches(note.subject, q))
@@ -299,6 +302,18 @@ function QuickSwitchPalette({
       run: onSearchFiles,
     },
     ...workspaceActions.filter((a) => !a.disabled).map((a) => ({ ...a, section: 'Tools' as const })),
+    ...(launcher?.path && !launcher.byPackage
+      ? [
+          {
+            id: 'terminal-command',
+            label: launcher.installed ? 'Remove terminal command' : 'Install terminal command',
+            section: 'Settings' as const,
+            icon: SquareTerminal,
+            keywords: ['path', 'launcher', 'command line', 'shell'],
+            run: () => onOpenSettings('Tools and folders'),
+          },
+        ]
+      : []),
     {
       id: 'open-settings',
       label: 'Open Settings',

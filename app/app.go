@@ -72,7 +72,12 @@ func Startup() (width, height int) {
 // tabs, window size) apart from Current Client's. Call it before Startup.
 func SetSettingsFolder(name string) {
 	config.SetDirName(name)
+	embedded = true
 }
+
+// An embedding app's binary isn't Current Client's, so it offers no terminal
+// command for it.
+var embedded bool
 
 // TitleBarTheme is the theme to create the window with: the saved theme, and
 // never SystemDefault, whose own updates would undo SetDarkTitleBar.

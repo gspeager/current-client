@@ -10,6 +10,7 @@ import { LANE_THEME_NAMES, LANE_THEMES, toLaneThemeName, type LaneThemeName } fr
 import type { useSettings } from './useSettings'
 import DiagnosticsSection from './DiagnosticsSection'
 import GitSettingsSection from './GitSettingsSection'
+import TerminalCommandRow from './TerminalCommandRow'
 import UpdateSection from './UpdateSection'
 import IdentityColorSettings from './IdentityColorSettings'
 import IdentitySettings from './IdentitySettings'
@@ -280,6 +281,7 @@ function SettingsPanel({
                 fallback="Not set"
                 onChoose={choosePath(SettingsService.PickDefaultRepoLocation, setDefaultRepoLocation, () => undefined)}
               />
+              <TerminalCommandRow />
             </SettingsGroup>
 
             <SettingsGroup title="Diff">
