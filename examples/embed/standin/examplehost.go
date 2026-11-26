@@ -25,7 +25,8 @@ var errMadeUp = errors.New("the stand-in host only lists its made-up pull reques
 // ExampleRemote and registers its provider. The host is off until turned on.
 func RegisterExampleHost() {
 	app.RegisterRemoteHost(func(remoteURL string) (string, string, bool) {
-		local := !strings.Contains(remoteURL, "://") || strings.HasPrefix(remoteURL, "file://")
+		// A path or file:// address; git@host:example.git is a real host's.
+		local := strings.HasPrefix(remoteURL, "file://") || filepath.IsAbs(remoteURL) || strings.HasPrefix(remoteURL, ".")
 		return ExampleHost, ExampleProject, local && filepath.Base(strings.TrimSuffix(remoteURL, "/")) == ExampleRemote
 	})
 	app.RegisterProvider(ExampleHost, func(*hostapi.Client, hostapi.Host) hostapi.Provider { return madeUp{} })

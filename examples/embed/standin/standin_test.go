@@ -80,6 +80,18 @@ func TestAnExampleProjectOnTheStandInHost(t *testing.T) {
 		}
 	}
 	RegisterExampleHost()
+	other := filepath.Join(dir, "elsewhere")
+	for _, args := range [][]string{
+		{"init", "-q", other},
+		{"-C", other, "remote", "add", "origin", "git@github.com:team/" + ExampleRemote},
+	} {
+		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %s", args, out)
+		}
+	}
+	if found, _ := (&app.HostService{}).Detect(other); len(found) != 1 || found[0].Hostname != "github.com" {
+		t.Fatalf("a real host's remote of the same name: %+v", found)
+	}
 	if err := app.SetHostEnabled(ExampleHost, true); err != nil {
 		t.Fatal(err)
 	}
