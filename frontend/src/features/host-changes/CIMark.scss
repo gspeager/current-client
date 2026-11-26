@@ -24,9 +24,7 @@
 }
 
 .ci-jobs-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   display: flex;
   flex-direction: column;
 }
@@ -137,9 +135,7 @@
 
 .ci-jobs-hint,
 .ci-jobs-error {
-  margin: 0;
-  font: var(--ui-sm);
-  color: var(--outline);
+  @include patterns.panel-hint;
 }
 
 .ci-jobs-error {

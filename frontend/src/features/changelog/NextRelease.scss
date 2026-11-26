@@ -112,12 +112,7 @@
 }
 
 .next-release-checks {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.panel-list;
 }
 
 // One row per check: icon, label, what it found, and when a host fact was read.

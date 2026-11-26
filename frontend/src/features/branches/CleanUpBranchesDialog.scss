@@ -5,9 +5,7 @@
 }
 
 .clean-up-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   max-height: 320px;
   overflow-y: auto;
 }

@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 @use '../../styles/tokens/typography';
 
 .activity-calendar {
@@ -68,9 +70,7 @@
 }
 
 .activity-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .activity-grid {

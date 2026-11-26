@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .conflict-grid-panel {
   width: min(1100px, 92vw);
 }
@@ -17,10 +19,8 @@
 .conflict-grid-files {
   width: 100%;
   max-height: 20vh;
-  margin: 0;
-  padding: 0;
+  @include patterns.list-reset;
   overflow-y: auto;
-  list-style: none;
 
   button {
     display: flex;

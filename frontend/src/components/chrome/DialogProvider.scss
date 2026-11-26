@@ -26,9 +26,7 @@
 }
 
 .dialog-note {
-  margin: 0;
-  font: var(--ui-sm);
-  color: var(--outline);
+  @include patterns.panel-hint;
 }
 
 .dialog-error {

@@ -60,9 +60,7 @@
 }
 
 .search-lines {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  @include patterns.list-reset;
 }
 
 .search-line {

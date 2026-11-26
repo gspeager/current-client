@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 // A thread sits between diff rows; it spans the whole grid and takes the
 // height it needs, like a hunk header, so the 20px row grid around it holds.
 .review-thread {
@@ -84,10 +86,8 @@
 }
 
 .review-thread-error {
-  margin: 0;
+  @include patterns.panel-error;
   padding: 0 var(--space-sm) var(--space-sm);
-  color: var(--error);
-  font: var(--ui-xs);
 }
 
 .review-threads-outdated {

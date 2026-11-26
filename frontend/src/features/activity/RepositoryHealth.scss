@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 @use './card';
 
 .repo-health {
@@ -42,9 +44,7 @@
 }
 
 .repo-health-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .repo-health-row {

@@ -31,13 +31,7 @@
   flex-shrink: 0;
   gap: var(--space-xs);
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
-  font: var(--ui-sm);
-  cursor: pointer;
+  @include patterns.secondary-button;
 
   &:hover {
     background: var(--surface-container);

@@ -21,14 +21,7 @@
 }
 
 .submodule-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  height: var(--h-row-tree);
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
+  @include patterns.sidebar-row;
 
   &:hover {
     background: var(--surface-container);

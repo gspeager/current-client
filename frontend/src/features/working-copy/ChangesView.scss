@@ -36,10 +36,8 @@
 }
 
 .changes-empty {
-  margin: 0;
+  @include patterns.panel-hint;
   padding: var(--space-sm);
-  color: var(--outline);
-  font: var(--ui-sm);
 }
 
 .changes-diff {
@@ -75,9 +73,6 @@
 // The folder gives way, from its start, so the filename stays whole.
 .changes-diff-path-dir {
   flex: 0 1000 auto;
-  min-width: 0;
-  direction: rtl;
-  @include patterns.truncate;
   color: var(--outline);
 }
 

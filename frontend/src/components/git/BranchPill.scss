@@ -22,9 +22,7 @@
 
 .branch-pill-dot,
 .branch-pill-dirty {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
   flex-shrink: 0;
 }
 
