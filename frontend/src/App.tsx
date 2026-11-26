@@ -1,80 +1,47 @@
-import { DiffWrapContext } from './features/diff/diffWrap'
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
 import { useEventCallback } from 'usehooks-ts'
-import {
-  BookOpen,
-  Broom,
-  ChartColumn,
-  CircleDot,
-  ClipboardCheck,
-  ClipboardList,
-  Cloud,
-  Columns3,
-  FileDiff,
-  FolderGit2,
-  Keyboard,
-  Map as MapIcon,
-  Package,
-  GitBranchPlus,
-  GitPullRequest,
-  GitCommitVertical,
-  Grid3x3,
-  Inbox,
-  PackagePlus,
-  Settings,
-  Tag,
-  Layers,
-  ListChecks,
-  ListOrdered,
-  Play,
-  StickyNote,
-  Table,
-} from 'lucide-react'
 import {
   BranchService,
   GitService,
   HistoryService,
-  type HostNotice,
-  HostService,
-  TrackerService,
-  PlatformService,
-  type PushResult,
   InboxService,
   type NoteInfo,
+  type PushResult,
 } from '@current-client-bindings/app'
 import ConflictBanner from './features/branches/ConflictBanner'
-import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './features/shell/HeaderBar'
-import GitOutput from './components/chrome/GitOutput'
 import KeepAlive from './components/chrome/KeepAlive'
 import NavPane, { type SidebarRequest } from './features/shell/NavPane'
-import type { PaletteAction } from './features/shell/paletteActions'
-import RepoSwitcher from './features/repositories/RepoSwitcher'
 import ResizeHandle from './components/chrome/ResizeHandle'
 import SettingsPanel, { settingsGroups } from './features/settings/SettingsPanel'
 import StatusBar from './components/chrome/StatusBar'
 import TabBar, { type AppTab } from './features/repositories/TabBar'
+import WelcomeScreen from './features/repositories/WelcomeScreen'
+import AppProviders from './features/shell/AppProviders'
+import { appPaletteActions } from './features/shell/appPaletteActions'
+import { useNavigation } from './features/shell/useNavigation'
 import { useWorkspaceActions } from './features/shell/useWorkspaceActions'
 import type { ActionResult } from './lib/actionResult'
-import { DensityContext } from './lib/density'
-import { LaneSlotsContext, LaneThemeContext, assignLaneSlots, toLaneThemeName } from './lib/laneColor'
+import { assignLaneSlots } from './lib/laneColor'
 import { useAsyncData } from './lib/useAsyncData'
+import { usePerRepository } from './lib/usePerRepository'
 import { useWindowKeydown } from './lib/useWindowKeydown'
 import { isTypingTarget, matchesShortcut } from './lib/shortcuts'
 import { NARROW_SIDEBAR_WIDTH, useWindowNarrowerThan } from './lib/useWindowNarrowerThan'
 import { cyclePanes, focusMain, focusMainSoon } from './lib/panes'
 import ShortcutSheet from './components/chrome/ShortcutSheet'
-import WaveMark from './components/chrome/WaveMark'
 import { useAutoFetch } from './features/remotes/useAutoFetch'
 import { useConflictState } from './features/branches/useConflictState'
 import { useFileWatcher } from './features/repositories/useFileWatcher'
 import { useLastFetchTime } from './features/remotes/useLastFetchTime'
-import { DIVERGED, useRemoteSync } from './features/remotes/useRemoteSync'
+import SyncNotices from './features/remotes/SyncNotices'
+import { useRemoteSync } from './features/remotes/useRemoteSync'
 import { useRepositoryLifecycle } from './features/repositories/useRepositoryLifecycle'
 import { useRepoVersion } from './features/repositories/useRepoVersion'
 import { useResizableWidth } from './lib/useResizableWidth'
 import HostChangesView from './features/host-changes/HostChangesView'
-import { changeNoun, changesLabelFor } from './lib/changeNoun'
+import { useHostState } from './features/host-changes/useHostState'
+import { changeNoun } from './lib/changeNoun'
 import HostNoticeBanner from './components/chrome/HostNoticeBanner'
 import CreateChangeDialog from './features/host-changes/CreateChangeDialog'
 import IssuePanel from './features/host-changes/IssuePanel'
@@ -82,9 +49,8 @@ import IssuesView from './features/issues/IssuesView'
 import NewIssueDialog from './features/host-changes/NewIssueDialog'
 import InboxView, { type InboxTarget } from './features/inbox/InboxView'
 import StandupDialog from './features/inbox/StandupDialog'
-import { IssuePanelContext, type IssueDraft } from './lib/issuePanel'
+import type { IssueDraft } from './lib/issuePanel'
 import { useHostPrompt } from './features/settings/useHostPrompt'
-import { useHostIndicator } from './lib/useHostIndicator'
 import { useHostLinks } from './lib/useHostLinks'
 import { openWebPage } from './lib/hostPages'
 import { useBranchChanges } from './lib/useBranchChanges'
@@ -104,21 +70,12 @@ import ChangesView from './features/working-copy/ChangesView'
 import HistoryView from './features/history/HistoryView'
 import ExploreView from './features/explore/ExploreView'
 import ReadThroughSheet from './features/read-through/ReadThroughSheet'
-import { openingOf, ReadThroughContext, type ReadThroughOpening } from './features/read-through/readThrough'
-import { OpenCommitContext } from './lib/openCommit'
+import { openingOf, type ReadThroughOpening } from './features/read-through/readThrough'
 import { useCurrentClientRoot } from './lib/currentClientRoot'
 import NotesDialogs from './features/notes/NotesDialogs'
-import { NotesContext, targetOf, useNotesState } from './features/notes/notes'
+import { targetOf, useNotesState } from './features/notes/notes'
 import { refFromSaved, savedFromRef } from './features/history/branchFilter'
 import './App.scss'
-
-// Each request remounts History so its initial selection, deep load, and scroll apply again.
-interface CommitFocus {
-  repoPath: string | null
-  position: number | null
-  ref: string | null
-  request: number
-}
 
 export interface CurrentClientAppHandle {
   // Selects a commit on the current branch in History.
@@ -165,20 +122,7 @@ function App({
     setSettingsOpen(true)
   }
   const [standupOpen, setStandupOpen] = useState(false)
-  // Bumped when a host switch may have changed, so the status bar's indicator follows.
-  const [hostsVersion, setHostsVersion] = useState(0)
-  const [changeFocus, setChangeFocus] = useState<number | null>(null)
-  const [hostNotices, setHostNotices] = useState<HostNotice[]>([])
-  const [pushed, setPushed] = useState<PushResult | null>(null)
-  const [actionResult, setActionResult] = useState<ActionResult | null>(null)
   const [createChangeFor, setCreateChangeFor] = useState<string | null>(null)
-  const bumpHostsVersion = () => setHostsVersion((n) => n + 1)
-  // false only in a build made with the nohost tag; until known, assume the full build.
-  const { data: hostIntegrationBuilt } = useAsyncData(() => PlatformService.HostIntegrationAvailable(), [])
-  const hostIntegration = hostIntegrationBuilt !== false
-  const [commitFocus, setCommitFocus] = useState<CommitFocus | null>(null)
-  // Bumped to remount Changes on a newly requested file, as commitFocus does for History.
-  const [fileFocus, setFileFocus] = useState(0)
 
   // Hidden behind a host app's view and never shown, nothing reads the repository
   // for the screen: viewPath stays null. Restoring tabs, the fetch timer and the
@@ -188,8 +132,8 @@ function App({
   if (active && !shown) setShown(true)
   const repo = useRepositoryLifecycle(activeRepoPath, shown)
   const viewPath = shown ? repo.repoPath : null
-  const integration = useHostIndicator(viewPath ?? '', hostsVersion, hostIntegration && !!viewPath)
-  const changesLabel = integration ? changesLabelFor(integration.host.provider) : null
+  const host = useHostState(repo.repoPath, viewPath)
+  const { integration, changesLabel, issuesOn } = host
   const hostLinks = useHostLinks(viewPath ?? '')
   const { repoVersion, bumpRepoVersion, justBumped } = useRepoVersion()
   // The branch's known change, to offer a create link only while it has none.
@@ -197,21 +141,24 @@ function App({
   const { lastFetchedAt, reloadLastFetchTime } = useLastFetchTime(viewPath)
   const navWidth = useResizableWidth('pane-width-nav', 212, 180, 400)
   const settings = useSettings()
-  // A refresh may have found something changed on the checked-out branch's change.
-  const collectHostNotices = () => {
-    if (!repo.repoPath || !hostIntegration) return
-    HostService.TakeNotices(repo.repoPath)
-      .then((notices) => notices.length > 0 && setHostNotices(notices))
-      .catch(() => undefined)
-  }
+  const prefs = settings.values
+
+  // Per repository: another repository starts without them.
+  const [pushed, setPushed] = usePerRepository<PushResult | null>(repo.repoPath, null)
+  const [actionResult, setActionResult] = usePerRepository<ActionResult | null>(repo.repoPath, null)
+  const [openIssueKey, setOpenIssueKey] = usePerRepository<string | null>(repo.repoPath, null)
+  const [newIssueDraft, setNewIssueDraft] = usePerRepository<IssueDraft | null>(repo.repoPath, null)
+  const [readThrough, setReadThrough] = usePerRepository<ReadThroughOpening | null>(repo.repoPath, null)
+  const [boardOpen, setBoardOpen] = usePerRepository(repo.repoPath, false)
+  const [issueFocus, setIssueFocus] = usePerRepository<string | null>(repo.repoPath, null)
 
   const onFetched = () => {
     bumpRepoVersion()
     reloadLastFetchTime()
-    collectHostNotices()
+    host.collectNotices()
   }
 
-  const terminalsOff = hideTerminal || (settings.settings?.localCommandsOff ?? false)
+  const terminalsOff = hideTerminal || prefs.localCommandsOff
   const tasks = useTasks(terminalsOff ? null : viewPath, repoVersion)
   // A pull fetches too, so it moves "fetched … ago" as well as the branch.
   const { pull, pullMerge, pullRebase, push, forcePush, pushTags, pushSetUpstream, pullOp, pushOp } = useRemoteSync(
@@ -224,11 +171,11 @@ function App({
   // Starting another sync retires the last outcome, which may no longer hold.
   useEffect(() => {
     if (pullOp.running || pushOp.running) setActionResult(null)
-  }, [pullOp.running, pushOp.running])
+  }, [pullOp.running, pushOp.running, setActionResult])
   const workingTree = useWorkingTree(viewPath)
   const { conflictState, reloadConflictState } = useConflictState(viewPath, repoVersion)
   const operation = conflictState?.operation ?? null
-  const conventionalCommitsOn = !(settings.settings?.disableConventionalCommits ?? false)
+  const conventionalCommitsOn = !prefs.disableConventionalCommits
   // With its repository, since a tab switch renders once before the old list is cleared.
   const { data: branchList } = useAsyncData(
     () => {
@@ -258,6 +205,17 @@ function App({
     [viewPath],
     { refreshKey: repoVersion },
   )
+  const [openedInPlace, setOpenedInPlace] = useState(false)
+  const nav = useNavigation({
+    repoPath: repo.repoPath,
+    setActiveTab,
+    remember,
+    onChangeTab: () => {
+      setOpenIssueKey(null)
+      setOpenedInPlace(false)
+    },
+  })
+  const { changeTab, openCommit, openRevision, openWorkingFile, openChange } = nav
 
   const onBranchChanged = () => {
     bumpRepoVersion()
@@ -277,7 +235,7 @@ function App({
     }
   }
 
-  useAutoFetch(repo.repoPath, settings.settings?.autoFetchIntervalMinutes ?? 0, onFetched)
+  useAutoFetch(repo.repoPath, prefs.autoFetchIntervalMinutes, onFetched)
   useFileWatcher(repo.repoPath, onFileWatcherChanged)
   const terminals = useTerminals(repo.repoPath)
   const [terminalFocus, setTerminalFocus] = useState(0)
@@ -347,7 +305,7 @@ function App({
       if (closed) repo.closeTab(path)
     })
   useOpenRequests(repo)
-  useHostPrompt(hostIntegration && hostPrompt ? viewPath : null, bumpHostsVersion)
+  useHostPrompt(host.hostIntegration && hostPrompt ? viewPath : null, host.bumpHostsVersion)
 
   // Settings may have changed the git executable path.
   const closeSettings = () => {
@@ -355,34 +313,11 @@ function App({
     reloadGitVersion()
   }
 
-  const changeTab = (tab: AppTab) => {
-    setOpenIssueKey(null)
-    setOpenedInPlace(false)
-    setActiveTab(tab)
-    setCommitFocus(null)
-  }
-
-  // position is only known when the commit may be past History's first loaded page.
-  const openCommit = (sha: string, position: number | null = null, ref: string | null = null) => {
-    remember({ selectedCommitSha: sha })
-    setActiveTab('history')
-    setCommitFocus((prev) => ({ repoPath: repo.repoPath, position, ref, request: (prev?.request ?? 0) + 1 }))
-  }
-
-  // Its position, so History can load that far back.
-  const openCommitAnywhere = (sha: string) =>
-    void HistoryService.GetCommitPosition(repo.repoPath ?? '', sha)
-      .then((position) => openCommit(sha, position))
-      .catch(() => openCommit(sha))
-
-  const openRevision = (repoPath: string, rev: string, ref: string | null) =>
-    HistoryService.ResolveCommit(repoPath, rev).then((sha) => openCommit(sha, null, ref))
-
   // A failed action expands the sidebar, so its message is visible.
   const workspace = useWorkspaceActions({
     repoPath: repo.repoPath,
     hostLinks,
-    editorPath: settings.settings?.editorPath ?? '',
+    editorPath: prefs.editorPath,
     operation,
     onOpenTerminal: terminalsOff ? undefined : toggleTerminal,
     onBranchChanged,
@@ -414,33 +349,12 @@ function App({
   const reportActiveRepo = useEventCallback((path: string | null) => onActiveRepoChange?.(path))
   useEffect(() => reportActiveRepo(repo.repoPath), [repo.repoPath, reportActiveRepo])
 
-  const [openIssueKey, setOpenIssueKey] = useState<string | null>(null)
-  const [newIssueDraft, setNewIssueDraft] = useState<IssueDraft | null>(null)
   // Its files can be uncommitted ones.
   const readThroughVersion = useMemo(
     () => ({ repoVersion, files: workingTree.files }),
     [repoVersion, workingTree.files],
   )
-  const [readThrough, setReadThrough] = useState<ReadThroughOpening | null>(null)
-  const [boardOpen, setBoardOpen] = useState(false)
-  const [issueFocus, setIssueFocus] = useState<string | null>(null)
-  useEffect(() => {
-    setPushed(null)
-    setActionResult(null)
-    setOpenIssueKey(null)
-    setNewIssueDraft(null)
-    setReadThrough(null)
-    setBoardOpen(false)
-    setIssueFocus(null)
-  }, [repo.repoPath])
-  const hostOn = !!integration
-  const { data: canWriteIssues } = useAsyncData(
-    () => (hostOn && viewPath ? HostService.CanWriteIssues(viewPath) : null),
-    [hostOn, viewPath],
-  )
-  const { data: tracker } = useAsyncData(() => (viewPath ? TrackerService.Links(viewPath) : null), [viewPath], {
-    refreshKey: hostsVersion,
-  })
+  const { hostOn, canWriteIssues, tracker } = host
   const issueActions = useMemo(
     () => ({
       open: hostOn || tracker?.reading ? setOpenIssueKey : undefined,
@@ -450,11 +364,8 @@ function App({
           : undefined,
       tracker,
     }),
-    [hostOn, canWriteIssues, tracker],
+    [hostOn, canWriteIssues, tracker, setOpenIssueKey, setNewIssueDraft],
   )
-  // The Issues tab shows while the host or the tracker lists issues; its
-  // count is the cache's, read again after each refresh.
-  const issuesOn = hostIntegration && (hostOn || !!tracker?.reading)
   const viewTabs: AppTab[] = [
     'working-copy',
     'history',
@@ -464,7 +375,6 @@ function App({
     'changelog',
     ...(hideExplore ? [] : (['explore'] as const)),
   ]
-  const viewShortcut = (tab: AppTab) => `mod+${viewTabs.indexOf(tab) + 1}`
   const laneSlots = useMemo(() => assignLaneSlots((localBranches ?? []).map((b) => b.name)), [localBranches])
   const activeTab =
     (rememberedTab === 'changes' && !changesLabel) ||
@@ -472,13 +382,11 @@ function App({
     (rememberedTab === 'explore' && hideExplore)
       ? 'working-copy'
       : rememberedTab
-  const savedNavCollapsed = settings.settings?.navCollapsed ?? false
   const narrowWindow = useWindowNarrowerThan(NARROW_SIDEBAR_WIDTH)
   // Views with their own lists give the sidebar's width to their content; its
   // rail stays, and opening it there lasts until the app closes.
   const railView = activeTab !== 'working-copy' && activeTab !== 'history'
-  const [openedInPlace, setOpenedInPlace] = useState(false)
-  const navCollapsed = narrowWindow || railView ? !openedInPlace : savedNavCollapsed
+  const navCollapsed = narrowWindow || railView ? !openedInPlace : prefs.navCollapsed
   const setNavCollapsed = (collapsed: boolean) =>
     narrowWindow || railView ? setOpenedInPlace(!collapsed) : settings.setNavCollapsed(collapsed)
 
@@ -524,31 +432,8 @@ function App({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inboxTarget, repo.repoPath])
 
-  const openChange = (number: number) => {
-    setChangeFocus(number)
-    setActiveTab('changes')
-  }
-
   // With the host on, the in-app form; otherwise the host's pre-filled page.
   const requestCreateChange = integration ? (branch: string) => setCreateChangeFor(branch) : undefined
-  const [hostRefresh, setHostRefresh] = useState(0)
-  const bumpHostRefresh = () => setHostRefresh((n) => n + 1)
-  // A host the remote points at with integration off, and not locked off,
-  // shows its tabs dimmed; finding it reads the remote, nothing is asked.
-  const { data: detectedHosts } = useAsyncData(
-    () => (hostIntegration && viewPath && !hostOn ? HostService.Detect(viewPath) : null),
-    [hostIntegration, viewPath, hostOn],
-    { refreshKey: hostsVersion },
-  )
-  const offHostInfo = integration ? undefined : detectedHosts?.find((h) => !h.enabled && !h.managed)
-  const offHost = offHostInfo
-    ? { hostname: offHostInfo.hostname, changesLabel: changesLabelFor(offHostInfo.provider) }
-    : null
-  const { data: myIssues } = useAsyncData(
-    () => (issuesOn && viewPath ? HostService.MyIssues(viewPath) : null),
-    [issuesOn, viewPath],
-    { refreshKey: hostRefresh },
-  )
   // After a merge from the app whose branch is local, the sidebar opens
   // Clean up merged branches; the palette asks for its forms the same way.
   const [sidebarRequest, setSidebarRequest] = useState<SidebarRequest | null>(null)
@@ -566,7 +451,7 @@ function App({
     return () => {
       active = false
     }
-  }, [shown, inboxOpen, repo.tabs, hostRefresh])
+  }, [shown, inboxOpen, repo.tabs, host.hostRefresh])
 
   const onChangeCreated = (number: number) => {
     setCreateChangeFor(null)
@@ -591,12 +476,6 @@ function App({
     }
   }
 
-  const openWorkingFile = (path: string) => {
-    remember({ selectedFilePath: path, diffScrollTop: 0 })
-    setActiveTab('working-copy')
-    setFileFocus((n) => n + 1)
-  }
-
   // Only Abort reaches here now; the message the composer held was the aborted operation's.
   const onConflictResolved = () => {
     remember({ commitDraft: '' })
@@ -615,11 +494,11 @@ function App({
     <SettingsPanel
       settings={settings}
       repoPath={repo.repoPath}
-      hostIntegration={hostIntegration}
+      hostIntegration={host.hostIntegration}
       updateCheck={!hideUpdateCheck}
       initialGroup={settingsGroup}
       onClose={closeSettings}
-      onHostsChanged={bumpHostsVersion}
+      onHostsChanged={host.bumpHostsVersion}
     />
   )
 
@@ -630,718 +509,392 @@ function App({
   // Without a usable git nothing else works, so it takes over even with a repo open.
   if (!repo.repoPath || gitError) {
     return (
-      <div className="app-welcome">
-        <div className="app-welcome-corner">
-          {headerAccessory}
-          <button
-            type="button"
-            className="app-welcome-settings"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-            title="Settings"
-          >
-            <Settings size={18} strokeWidth={1.75} />
-          </button>
-        </div>
-        <span className="app-welcome-mark">
-          <WaveMark width={72} />
-        </span>
-        <h1>Current Client</h1>
-        {resetNotice}
-        {gitError ? (
-          <GitMissing error={gitError} onCheckAgain={reloadGitVersion} onSetPath={() => setSettingsOpen(true)} />
-        ) : gitVersion ? (
-          <p className="app-welcome-status">git {gitVersion}</p>
-        ) : (
-          <p className="app-welcome-status">Detecting Git installation…</p>
-        )}
-        {!gitError && (
-          <RepoSwitcher
-            repo={repo}
-            defaultLocation={settings.settings?.defaultRepoLocation ?? ''}
-            onOpenSettings={() => openSettings()}
-          />
-        )}
+      <WelcomeScreen
+        repo={repo}
+        gitVersion={gitVersion}
+        gitError={gitError}
+        onCheckGitAgain={reloadGitVersion}
+        defaultLocation={prefs.defaultRepoLocation}
+        onOpenSettings={() => openSettings()}
+        accessory={headerAccessory}
+        notice={resetNotice}
+      >
         {settingsPanel}
-      </div>
+      </WelcomeScreen>
     )
   }
 
   const changedCount = workingTree.files?.length ?? 0
-  const focus = commitFocus?.repoPath === repo.repoPath ? commitFocus : null
+  const focus = nav.commitFocus
   const repoPath = repo.repoPath
-  const createIssue = issueActions.create
   const changeKind = changeNoun(integration?.host.provider ?? '')
-  const paletteActions: PaletteAction[] = [
-    {
-      id: 'keyboard-shortcuts',
-      label: 'Keyboard shortcuts',
-      section: 'Views',
-      icon: Keyboard,
-      keywords: ['keys', 'help', 'hotkeys'],
-      shortcut: '?',
-      run: () => setShortcutsOpen(true),
-    },
-    {
-      id: 'view-changes',
-      label: 'Changes',
-      shortcut: viewShortcut('working-copy'),
-      section: 'Views',
-      icon: FileDiff,
-      keywords: ['working tree', 'staged', 'diff', 'commit', 'stage', 'discard', 'amend'],
-      run: () => changeTab('working-copy'),
-    },
-    {
-      id: 'view-history',
-      label: 'History',
-      shortcut: viewShortcut('history'),
-      section: 'Views',
-      icon: GitCommitVertical,
-      keywords: ['log', 'graph', 'commits', 'cherry-pick', 'revert', 'reset', 'blame', 'rebase'],
-      run: () => changeTab('history'),
-    },
-    ...(currentBranch
-      ? [
-          {
-            id: 'read-through',
-            label: `Read through ${currentBranch}`,
-            section: 'Tools' as const,
-            icon: BookOpen,
-            keywords: ['review', 'diff', 'files', 'changes', 'notes', 'read'],
-            run: () => setReadThrough({ ref: `refs/heads/${currentBranch}` }),
-          },
-        ]
-      : []),
-    ...(changesLabel
-      ? [
-          {
-            id: 'view-host-changes',
-            shortcut: viewShortcut('changes'),
-            label: changesLabel,
-            section: 'Views' as const,
-            icon: GitPullRequest,
-            keywords: ['pr', 'mr', 'pull requests', 'merge requests', 'review'],
-            run: () => changeTab('changes'),
-          },
-        ]
-      : []),
-    ...(issuesOn
-      ? [
-          {
-            id: 'view-issues',
-            shortcut: viewShortcut('issues'),
-            label: 'Issues',
-            section: 'Views' as const,
-            icon: CircleDot,
-            keywords: ['assigned', 'my issues', 'jira', 'tickets'],
-            run: () => changeTab('issues'),
-          },
-        ]
-      : []),
-    {
-      id: 'view-activity',
-      shortcut: viewShortcut('activity'),
-      label: 'Activity',
-      section: 'Views',
-      icon: ChartColumn,
-      keywords: ['stats', 'contributors', 'health'],
-      run: () => changeTab('activity'),
-    },
-    ...(hideExplore
-      ? []
-      : [
-          {
-            id: 'view-explore',
-            shortcut: viewShortcut('explore'),
-            label: 'Explore',
-            section: 'Views' as const,
-            icon: MapIcon,
-            keywords: ['code map', 'treemap', 'folders', 'files', 'structure', 'changes'],
-            run: () => changeTab('explore'),
-          },
-        ]),
-    {
-      id: 'view-releases',
-      shortcut: viewShortcut('changelog'),
-      label: 'Releases',
-      section: 'Views',
-      icon: Tag,
-      keywords: ['changelog', 'release notes', 'next release', 'version'],
-      run: () => changeTab('changelog'),
-    },
-    {
-      id: 'view-inbox',
-      label: 'Inbox',
-      section: 'Views',
-      icon: Inbox,
-      keywords: ['todo', 'to-do', 'notifications', 'waiting', 'review requests'],
-      run: () => setInboxOpen(true),
-    },
-    {
-      id: 'new-branch',
-      label: 'New branch…',
-      section: 'Create',
-      icon: GitBranchPlus,
-      keywords: ['create branch', 'from an issue'],
-      run: () => requestSidebar('new-branch'),
-    },
-    ...(createIssue
-      ? [
-          {
-            id: 'new-issue',
-            label: 'New issue…',
-            section: 'Create' as const,
-            icon: CircleDot,
-            keywords: ['create issue'],
-            run: () => createIssue(),
-          },
-        ]
-      : []),
-    ...(requestCreateChange
-      ? [
-          {
-            id: 'new-change',
-            label: `New ${changeKind}…`,
-            section: 'Create' as const,
-            icon: GitPullRequest,
-            keywords: ['pr', 'mr', 'create pull request', 'create merge request'],
-            run: () =>
-              void BranchService.CurrentBranchStatus(repoPath).then((s) => s.current && requestCreateChange(s.current)),
-          },
-        ]
-      : []),
-    {
-      id: 'new-stash',
-      label: 'Stash changes',
-      section: 'Create',
-      icon: Package,
-      keywords: ['stash', 'shelve', 'save'],
-      run: () => requestSidebar('new-stash'),
-    },
-    {
-      id: 'new-worktree',
-      label: 'Add worktree',
-      section: 'Create',
-      icon: FolderGit2,
-      keywords: ['worktree'],
-      run: () => requestSidebar('new-worktree'),
-    },
-    {
-      id: 'new-remote',
-      label: 'Add remote',
-      section: 'Create',
-      icon: Cloud,
-      keywords: ['remote', 'origin'],
-      run: () => requestSidebar('new-remote'),
-    },
-    {
-      id: 'new-tag',
-      label: 'New tag…',
-      section: 'Create',
-      icon: Tag,
-      keywords: ['create tag'],
-      run: () => requestSidebar('new-tag'),
-    },
-    {
-      id: 'release-readiness',
-      label: 'Release readiness',
-      section: 'Release',
-      icon: ClipboardCheck,
-      keywords: ['release', 'ready', 'version', 'changelog'],
-      run: () => changeTab('changelog'),
-    },
-    ...(integration
-      ? [
-          {
-            id: 'publish-release',
-            label: 'Publish release…',
-            section: 'Release' as const,
-            icon: PackagePlus,
-            keywords: ['release', 'publish'],
-            run: () => requestSidebar('publish-release'),
-          },
-        ]
-      : []),
-    {
-      id: 'standup',
-      label: 'Standup…',
-      section: 'Tools',
-      icon: ClipboardList,
-      keywords: ['what i did', 'summary', 'yesterday', 'this week'],
-      run: () => setStandupOpen(true),
-    },
-    ...(terminalsOff
-      ? []
-      : [
-          {
-            id: 'tasks-panel',
-            label: 'Tasks',
-            section: 'Tools' as const,
-            icon: ListChecks,
-            keywords: ['run', 'test', 'build', 'lint', 'make', 'npm', 'commands'],
-            run: openTasks,
-          },
-          ...(tasks.list?.tasks ?? []).map((task) => ({
-            id: `task-${task.id}`,
-            label: `Run ${task.name}`,
-            section: 'Tools' as const,
-            icon: Play,
-            keywords: [task.command, task.source],
-            run: () => {
-              openTasks()
-              void tasks.run(task)
-            },
-          })),
-        ]),
-    {
-      id: 'restack',
-      label: 'Restack current stack',
-      section: 'Tools',
-      icon: Layers,
-      keywords: ['stacked branches', 'rebase'],
-      run: () => requestSidebar('restack'),
-    },
-    {
-      id: 'tidy-up',
-      label: 'Tidy up history',
-      section: 'Tools',
-      icon: ListOrdered,
-      keywords: ['interactive rebase', 'reorder', 'squash', 'fixup', 'reword', 'drop'],
-      run: () => requestSidebar('tidy-up'),
-    },
-    {
-      id: 'notes',
-      label: 'Notes',
-      section: 'Tools',
-      icon: StickyNote,
-      keywords: ['annotations', 'private'],
-      run: () => notesState.context.openList(),
-    },
-    {
-      id: 'branch-review',
-      label: 'Branch review',
-      section: 'Tools',
-      icon: Table,
-      keywords: ['branches', 'stale', 'unpushed', 'bulk delete', 'grid'],
-      run: () => requestSidebar('branch-review'),
-    },
-    {
-      id: 'worktree-board',
-      label: 'Worktree board',
-      section: 'Tools',
-      icon: Columns3,
-      keywords: ['worktrees', 'parallel', 'agents', 'collide', 'conflict'],
-      run: () => setBoardOpen(true),
-    },
-    {
-      id: 'conflict-grid',
-      label: 'Conflict grid',
-      section: 'Tools',
-      icon: Grid3x3,
-      keywords: ['branches', 'merge', 'overlap', 'predict', 'pairs'],
-      run: () => requestSidebar('conflict-grid'),
-    },
-    {
-      id: 'clean-up-branches',
-      label: 'Clean up merged branches',
-      section: 'Tools',
-      icon: Broom,
-      keywords: ['delete merged', 'tidy', 'stale'],
-      run: () => requestSidebar('clean-up'),
-    },
-  ]
+  const paletteActions = appPaletteActions({
+    repoPath,
+    currentBranch,
+    changesLabel,
+    changeKind,
+    issuesOn,
+    hostOn,
+    hideExplore,
+    terminalsOff,
+    tasks,
+    viewShortcut: (tab) => `mod+${viewTabs.indexOf(tab) + 1}`,
+    changeTab,
+    requestSidebar,
+    createIssue: issueActions.create,
+    requestCreateChange,
+    openShortcuts: () => setShortcutsOpen(true),
+    openReadThrough: (ref) => setReadThrough({ ref }),
+    openInbox: () => setInboxOpen(true),
+    openStandup: () => setStandupOpen(true),
+    openTasks,
+    openNotes: () => notesState.context.openList(),
+    openWorktreeBoard: () => setBoardOpen(true),
+  })
 
   return (
-    <DensityContext.Provider value={settings.settings?.density === 'compact' ? 'compact' : 'comfortable'}>
-      <LaneThemeContext.Provider value={toLaneThemeName(settings.settings?.laneColorTheme)}>
-        <LaneSlotsContext.Provider value={laneSlots}>
-          <DiffWrapContext.Provider
-            value={{
-              wrap: !(settings.settings?.diffNoWrap ?? false),
-              setWrap: (wrap) => settings.setDiffNoWrap(!wrap),
+    <AppProviders
+      settings={prefs}
+      onDiffWrapChange={(wrap) => settings.setDiffNoWrap(!wrap)}
+      laneSlots={laneSlots}
+      issueActions={issueActions}
+      notes={notesState.context}
+      onReadThrough={setReadThrough}
+      onOpenCommit={nav.openCommitAnywhere}
+    >
+      <div className="app-shell">
+        <h1 className="visually-hidden">Current Client</h1>
+        <button type="button" className="app-skip-link" onClick={focusMain}>
+          Skip to content
+        </button>
+        <HeaderBar
+          onUndo={undoAction?.run}
+          onResult={setActionResult}
+          onOpenChange={openChange}
+          onShowStashes={() => requestSidebar('show-stash')}
+          repoPath={repo.repoPath}
+          repoVersion={repoVersion}
+          lastFetchedAt={lastFetchedAt}
+          pruneOnFetch={prefs.pruneOnFetch}
+          repo={repo}
+          dirty={changedCount > 0}
+          inboxOpen={inboxOpen}
+          inboxUnseen={inboxUnseen}
+          onToggleInbox={() => setInboxOpen((open) => !open)}
+          workspaceActions={workspace.actions}
+          paletteActions={paletteActions}
+          settingsGroups={settingsGroups(host.hostIntegration)}
+          onOpenSettings={openSettings}
+          onPull={pull}
+          onPullMerge={pullMerge}
+          onPullRebase={pullRebase}
+          onPush={push}
+          onForcePush={() => void forcePush()}
+          onPushTags={pushTags}
+          onPushSetUpstream={() => void pushSetUpstream()}
+          onBranchChanged={onBranchChanged}
+          onFetched={onFetched}
+          onOpenCommit={openCommit}
+          onOpenNote={openNote}
+          onCloseTab={closeRepoTab}
+          terminalsRunning={terminals.running}
+          syncing={pullOp.running || pushOp.running}
+          operation={operation}
+          defaultRepoLocation={prefs.defaultRepoLocation}
+          accessory={headerAccessory}
+        />
+        {shortcutsOpen && <ShortcutSheet onClose={() => setShortcutsOpen(false)} />}
+        <TabBar
+          active={activeTab}
+          onChange={changeTab}
+          changesLabel={changesLabel}
+          issueCount={host.issueCount}
+          hideExplore={hideExplore}
+          offHost={host.offHost}
+          onOffHost={() => openSettings('Integrations')}
+          changedCount={changedCount}
+          conflictCount={conflictState?.conflictedPaths.length ?? 0}
+        />
+
+        {conflictState && (
+          <ConflictBanner
+            repoPath={repo.repoPath}
+            state={conflictState}
+            onResolved={onConflictResolved}
+            onOpenFile={openWorkingFile}
+          />
+        )}
+
+        {settingsPanel}
+        {workspace.modals}
+        {standupOpen && <StandupDialog paths={repo.tabs} onClose={() => setStandupOpen(false)} />}
+        {newIssueDraft && repo.repoPath && (
+          <NewIssueDialog
+            repoPath={repo.repoPath}
+            draft={newIssueDraft}
+            onCreated={(issue) => {
+              setNewIssueDraft(null)
+              setOpenIssueKey(issue.key)
             }}
-          >
-            <IssuePanelContext.Provider value={issueActions}>
-              <NotesContext.Provider value={notesState.context}>
-                <ReadThroughContext.Provider value={setReadThrough}>
-                  <OpenCommitContext.Provider value={openCommitAnywhere}>
-                    <div className="app-shell">
-                      <h1 className="visually-hidden">Current Client</h1>
-                      <button type="button" className="app-skip-link" onClick={focusMain}>
-                        Skip to content
-                      </button>
-                      <HeaderBar
-                        onUndo={undoAction?.run}
-                        onResult={setActionResult}
-                        onOpenChange={openChange}
-                        onShowStashes={() => requestSidebar('show-stash')}
-                        repoPath={repo.repoPath}
-                        repoVersion={repoVersion}
-                        lastFetchedAt={lastFetchedAt}
-                        pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
-                        repo={repo}
-                        dirty={changedCount > 0}
-                        inboxOpen={inboxOpen}
-                        inboxUnseen={inboxUnseen}
-                        onToggleInbox={() => setInboxOpen((open) => !open)}
-                        workspaceActions={workspace.actions}
-                        paletteActions={paletteActions}
-                        settingsGroups={settingsGroups(hostIntegration)}
-                        onOpenSettings={openSettings}
-                        onPull={pull}
-                        onPullMerge={pullMerge}
-                        onPullRebase={pullRebase}
-                        onPush={push}
-                        onForcePush={() => void forcePush()}
-                        onPushTags={pushTags}
-                        onPushSetUpstream={() => void pushSetUpstream()}
-                        onBranchChanged={onBranchChanged}
-                        onFetched={onFetched}
-                        onOpenCommit={openCommit}
-                        onOpenNote={openNote}
-                        onCloseTab={closeRepoTab}
-                        terminalsRunning={terminals.running}
-                        syncing={pullOp.running || pushOp.running}
-                        operation={operation}
-                        defaultRepoLocation={settings.settings?.defaultRepoLocation ?? ''}
-                        accessory={headerAccessory}
-                      />
-                      {shortcutsOpen && <ShortcutSheet onClose={() => setShortcutsOpen(false)} />}
-                      <TabBar
-                        active={activeTab}
-                        onChange={changeTab}
-                        changesLabel={changesLabel}
-                        issueCount={issuesOn ? (myIssues?.issues?.length ?? 0) : null}
-                        hideExplore={hideExplore}
-                        offHost={offHost}
-                        onOffHost={() => openSettings('Integrations')}
-                        changedCount={changedCount}
-                        conflictCount={conflictState?.conflictedPaths.length ?? 0}
-                      />
+            onClose={() => setNewIssueDraft(null)}
+          />
+        )}
+        {boardOpen && repo.repoPath && (
+          <WorktreeBoard
+            repoPath={repo.repoPath}
+            onOpenRepository={(path) => void repo.openRecent(path)}
+            onOpenTerminal={terminalsOff ? undefined : (path) => void openTerminalIn(path)}
+            tasks={terminalsOff ? undefined : tasks}
+            onNewWorktree={() => {
+              setBoardOpen(false)
+              // Once closing has put the focus back, so the form can take it.
+              requestAnimationFrame(() => requestSidebar('new-worktree'))
+            }}
+            onClose={() => setBoardOpen(false)}
+          />
+        )}
+        {readThrough && repo.repoPath && (
+          <ReadThroughSheet
+            repoPath={repo.repoPath}
+            opening={readThrough}
+            refreshKey={readThroughVersion}
+            onNotesChanged={notesState.reload}
+            onClose={() => setReadThrough(null)}
+          />
+        )}
+        {createChangeFor && repo.repoPath && (
+          <CreateChangeDialog
+            repoPath={repo.repoPath}
+            branch={createChangeFor}
+            kind={changeKind}
+            onCreated={onChangeCreated}
+            onClose={() => setCreateChangeFor(null)}
+          />
+        )}
 
-                      {conflictState && (
-                        <ConflictBanner
-                          repoPath={repo.repoPath}
-                          state={conflictState}
-                          onResolved={onConflictResolved}
-                          onOpenFile={openWorkingFile}
-                        />
-                      )}
+        {resetNotice}
+        <HostNoticeBanner
+          notices={host.notices}
+          onOpenChange={openChange}
+          onOpenFile={openWorkingFile}
+          onDismiss={host.dismissNotices}
+        />
+        <SyncNotices
+          pullOp={pullOp}
+          pushOp={pushOp}
+          onPullMerge={pullMerge}
+          onPullRebase={pullRebase}
+          pushed={pushed?.createLink && !changes[pushed.upstream]?.state ? pushed : null}
+          onCreateChange={(p) => (requestCreateChange ? requestCreateChange(p.branch) : openWebPage(p.createLink))}
+          onDismissPushed={() => setPushed(null)}
+        />
 
-                      {settingsPanel}
-                      {workspace.modals}
-                      {standupOpen && <StandupDialog paths={repo.tabs} onClose={() => setStandupOpen(false)} />}
-                      {newIssueDraft && repo.repoPath && (
-                        <NewIssueDialog
-                          repoPath={repo.repoPath}
-                          draft={newIssueDraft}
-                          onCreated={(issue) => {
-                            setNewIssueDraft(null)
-                            setOpenIssueKey(issue.key)
-                          }}
-                          onClose={() => setNewIssueDraft(null)}
-                        />
-                      )}
-                      {boardOpen && repo.repoPath && (
-                        <WorktreeBoard
-                          repoPath={repo.repoPath}
-                          onOpenRepository={(path) => void repo.openRecent(path)}
-                          onOpenTerminal={terminalsOff ? undefined : (path) => void openTerminalIn(path)}
-                          tasks={terminalsOff ? undefined : tasks}
-                          onNewWorktree={() => {
-                            setBoardOpen(false)
-                            // Once closing has put the focus back, so the form can take it.
-                            requestAnimationFrame(() => requestSidebar('new-worktree'))
-                          }}
-                          onClose={() => setBoardOpen(false)}
-                        />
-                      )}
-                      {readThrough && repo.repoPath && (
-                        <ReadThroughSheet
-                          repoPath={repo.repoPath}
-                          opening={readThrough}
-                          refreshKey={readThroughVersion}
-                          onNotesChanged={notesState.reload}
-                          onClose={() => setReadThrough(null)}
-                        />
-                      )}
-                      {createChangeFor && repo.repoPath && (
-                        <CreateChangeDialog
-                          repoPath={repo.repoPath}
-                          branch={createChangeFor}
-                          kind={changeKind}
-                          onCreated={onChangeCreated}
-                          onClose={() => setCreateChangeFor(null)}
-                        />
-                      )}
+        <div className="app-body">
+          <NavPane
+            key={repo.repoPath}
+            repoPath={repo.repoPath}
+            repoVersion={repoVersion}
+            workingTree={workingTree}
+            workspaceActions={workspace.actions}
+            workspaceFeedback={workspace.feedback}
+            onDismissFeedback={workspace.dismissFeedback}
+            hostVersion={host.hostRefresh}
+            request={sidebarRequest}
+            onPushToCreate={
+              requestCreateChange
+                ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))
+                : undefined
+            }
+            conflictState={conflictState}
+            onBranchChanged={onBranchChanged}
+            onFetched={onFetched}
+            pruneOnFetch={prefs.pruneOnFetch}
+            onOpenHeadCommit={openCommit}
+            onOpenChange={openChange}
+            onOpenFile={openWorkingFile}
+            onCreateChange={requestCreateChange}
+            onOpenRepository={repo.openRecent}
+            onOpenWorktreeBoard={() => setBoardOpen(true)}
+            width={navWidth.width}
+            collapsed={navCollapsed}
+            onCollapsedChange={setNavCollapsed}
+          />
+          {!navCollapsed && <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />}
 
-                      {resetNotice}
-                      <HostNoticeBanner
-                        notices={hostNotices}
-                        onOpenChange={openChange}
-                        onOpenFile={openWorkingFile}
-                        onDismiss={() => setHostNotices([])}
-                      />
-                      {pullOp.running && (
-                        <p className="app-inline-notice">
-                          Pulling… <button onClick={pullOp.cancel}>Cancel</button>
-                        </p>
-                      )}
-                      {pushOp.running && (
-                        <p className="app-inline-notice">
-                          Pushing… <button onClick={pushOp.cancel}>Cancel</button>
-                        </p>
-                      )}
-                      {pullOp.error && (
-                        <div className="app-inline-error">
-                          Could not pull: {pullOp.error}
-                          {pullOp.error === DIVERGED && (
-                            <>
-                              <button onClick={pullMerge}>Pull (merge)</button>
-                              <button onClick={pullRebase}>Pull (rebase)</button>
-                            </>
-                          )}
-                          <GitOutput message={pullOp.error} />
-                        </div>
-                      )}
-                      {pushOp.error && (
-                        <div className="app-inline-error">
-                          Could not push: {pushOp.error}
-                          <GitOutput message={pushOp.error} />
-                        </div>
-                      )}
-                      {pushed?.createLink && !changes[pushed.upstream]?.state && (
-                        <p className="app-inline-notice" role="status">
-                          Pushed {pushed.branch}.{' '}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              requestCreateChange ? requestCreateChange(pushed.branch) : openWebPage(pushed.createLink)
-                            }
-                          >
-                            Create {pushed.kind}
-                          </button>
-                          <button type="button" onClick={() => setPushed(null)} aria-label="Dismiss">
-                            Dismiss
-                          </button>
-                        </p>
-                      )}
+          <div className="app-content">
+            <main className="app-main" data-pane="main">
+              <KeepAlive active={activeTab === 'working-copy'}>
+                <ChangesView
+                  key={`${repo.repoPath}-${memoryBranch}-${repoVersion}-${nav.fileFocus}`}
+                  repoPath={repo.repoPath}
+                  workingTree={workingTree}
+                  onPushRequested={push}
+                  onBranchChanged={onBranchChanged}
+                  onCommitted={(result) => {
+                    void tasks.runChecklist('commit')
+                    if (result) setActionResult({ text: result, undoable: true })
+                  }}
+                  defaultIgnoreWhitespace={prefs.diffIgnoreWhitespaceDefault}
+                  diffExpanded={prefs.diffExpanded}
+                  onDiffExpandedChange={settings.setDiffExpanded}
+                  initialSelectedPath={restored.selectedFilePath}
+                  onSelectedPathChange={(path) => remember({ selectedFilePath: path })}
+                  initialDiffScrollTop={restored.diffScrollTop}
+                  onDiffScrollChange={(top) => remember({ diffScrollTop: top })}
+                  initialCommitDraft={restored.commitDraft}
+                  onCommitDraftChange={(message) => remember({ commitDraft: message })}
+                  showCommitTypePicker={conventionalCommitsOn}
+                  conflict={conflictState}
+                  riskRulesOff={prefs.riskRulesOff}
+                />
+              </KeepAlive>
+              <KeepAlive active={activeTab === 'history'}>
+                <HistoryView
+                  key={`${repo.repoPath}-${repoVersion}-${focus?.request ?? 0}`}
+                  repoPath={repo.repoPath}
+                  conventional={conventional ?? false}
+                  initialSelectedSha={restored.selectedCommitSha}
+                  initialLoadThrough={focus?.position ?? null}
+                  initialRef={focus?.ref ?? null}
+                  defaultRef={refFromSaved(prefs.historyBranchFilter)}
+                  onRefChange={(ref) => settings.setHistoryBranchFilter(savedFromRef(ref))}
+                  firstParent={prefs.historyFirstParent}
+                  onFirstParentChange={settings.setHistoryFirstParent}
+                  changedFiles={changedCount}
+                  onOpenChanges={() => setActiveTab('working-copy')}
+                  onBranchChanged={onBranchChanged}
+                  previousTopSha={restored.historyTopSha}
+                  onTopShaChange={(sha) => remember({ historyTopSha: sha })}
+                  onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
+                  currentBranch={currentBranch}
+                />
+              </KeepAlive>
+              {changesLabel && (
+                <KeepAlive active={activeTab === 'changes'}>
+                  <HostChangesView
+                    key={`${repo.repoPath}-${host.hostsVersion}`}
+                    repoPath={repo.repoPath}
+                    label={changesLabel}
+                    selectedNumber={nav.changeFocus}
+                    onRefreshed={() => {
+                      host.collectNotices()
+                      host.bumpHostRefresh()
+                    }}
+                    onBranchChanged={onBranchChanged}
+                    onCreateChange={requestCreateChange}
+                    onOpenSettings={() => openSettings()}
+                    onMerged={(result) => {
+                      onBranchChanged()
+                      host.bumpHostRefresh()
+                      if (result.localBranch) requestSidebar('clean-up')
+                    }}
+                  />
+                </KeepAlive>
+              )}
+              <KeepAlive active={activeTab === 'changelog'}>
+                <ChangelogView
+                  key={repo.repoPath}
+                  repoPath={repo.repoPath}
+                  repoVersion={repoVersion}
+                  prefs={settings.settings ? prefs.changelog : null}
+                  onPrefsChange={settings.setChangelogPrefs}
+                  onOpenCommit={openCommit}
+                  changelog={conventionalCommitsOn}
+                  onTagged={onBranchChanged}
+                />
+              </KeepAlive>
+              <KeepAlive active={activeTab === 'activity'}>
+                <ActivityView
+                  key={repo.repoPath}
+                  repoPath={repo.repoPath}
+                  repoVersion={repoVersion}
+                  dirty={changedCount > 0}
+                  changedCount={changedCount}
+                  hasConflict={conflictState !== null}
+                  onStandup={() => setStandupOpen(true)}
+                />
+              </KeepAlive>
+              {!hideExplore && (
+                <KeepAlive active={activeTab === 'explore'}>
+                  <ExploreView
+                    key={repo.repoPath}
+                    repoPath={repo.repoPath}
+                    currentBranch={currentBranch ?? null}
+                    repoVersion={repoVersion}
+                    workingVersion={readThroughVersion}
+                    onOpenWorkingFile={openWorkingFile}
+                  />
+                </KeepAlive>
+              )}
+              {issuesOn && (
+                <KeepAlive active={activeTab === 'issues'}>
+                  <IssuesView
+                    key={`${repo.repoPath}-${host.hostsVersion}`}
+                    repoPath={repo.repoPath}
+                    selectedKey={issueFocus}
+                    onOpenSettings={() => openSettings()}
+                    refreshKey={host.hostRefresh}
+                    onRefreshed={host.bumpHostRefresh}
+                    onBranchChanged={onBranchChanged}
+                  />
+                </KeepAlive>
+              )}
+            </main>
+            {repo.repoPath && !terminalsOff && (
+              <TerminalPanel
+                repoPath={repo.repoPath}
+                terminals={terminals}
+                focusRequest={terminalFocus}
+                theme={prefs.theme}
+                tasks={
+                  <TasksView
+                    key={repo.repoPath}
+                    repoPath={repo.repoPath}
+                    tasks={tasks}
+                    refreshKey={readThroughVersion}
+                  />
+                }
+              />
+            )}
+            {terminals.error && <p className="app-terminal-error">{terminals.error}</p>}
+          </div>
+          {openIssueKey && (
+            <IssuePanel
+              repoPath={repo.repoPath}
+              issueKey={openIssueKey}
+              onClose={() => setOpenIssueKey(null)}
+              onBranchChanged={onBranchChanged}
+            />
+          )}
+          {inboxOpen && <div className="inbox-scrim" onClick={() => setInboxOpen(false)} />}
+          {inboxOpen && (
+            <InboxView
+              paths={repo.tabs}
+              activePath={repo.repoPath}
+              refreshKey={`${repoVersion}:${host.hostRefresh}`}
+              onGo={goFromInbox}
+              onRefreshed={host.bumpHostRefresh}
+              onClose={() => setInboxOpen(false)}
+            />
+          )}
+        </div>
 
-                      <div className="app-body">
-                        <NavPane
-                          key={repo.repoPath}
-                          repoPath={repo.repoPath}
-                          repoVersion={repoVersion}
-                          workingTree={workingTree}
-                          workspaceActions={workspace.actions}
-                          workspaceFeedback={workspace.feedback}
-                          onDismissFeedback={workspace.dismissFeedback}
-                          hostVersion={hostRefresh}
-                          request={sidebarRequest}
-                          onPushToCreate={
-                            requestCreateChange
-                              ? () => void pushSetUpstream((result) => requestCreateChange(result.branch))
-                              : undefined
-                          }
-                          conflictState={conflictState}
-                          onBranchChanged={onBranchChanged}
-                          onFetched={onFetched}
-                          pruneOnFetch={settings.settings?.pruneOnFetch ?? false}
-                          onOpenHeadCommit={openCommit}
-                          onOpenChange={openChange}
-                          onOpenFile={openWorkingFile}
-                          onCreateChange={requestCreateChange}
-                          onOpenRepository={repo.openRecent}
-                          onOpenWorktreeBoard={() => setBoardOpen(true)}
-                          width={navWidth.width}
-                          collapsed={navCollapsed}
-                          onCollapsedChange={setNavCollapsed}
-                        />
-                        {!navCollapsed && (
-                          <ResizeHandle onDragStart={navWidth.onDragStart} ariaLabel="Resize nav pane" />
-                        )}
-
-                        <div className="app-content">
-                          <main className="app-main" data-pane="main">
-                            <KeepAlive active={activeTab === 'working-copy'}>
-                              <ChangesView
-                                key={`${repo.repoPath}-${memoryBranch}-${repoVersion}-${fileFocus}`}
-                                repoPath={repo.repoPath}
-                                workingTree={workingTree}
-                                onPushRequested={push}
-                                onBranchChanged={onBranchChanged}
-                                onCommitted={(result) => {
-                                  void tasks.runChecklist('commit')
-                                  if (result) setActionResult({ text: result, undoable: true })
-                                }}
-                                defaultIgnoreWhitespace={settings.settings?.diffIgnoreWhitespaceDefault ?? false}
-                                diffExpanded={settings.settings?.diffExpanded ?? false}
-                                onDiffExpandedChange={settings.setDiffExpanded}
-                                initialSelectedPath={restored.selectedFilePath}
-                                onSelectedPathChange={(path) => remember({ selectedFilePath: path })}
-                                initialDiffScrollTop={restored.diffScrollTop}
-                                onDiffScrollChange={(top) => remember({ diffScrollTop: top })}
-                                initialCommitDraft={restored.commitDraft}
-                                onCommitDraftChange={(message) => remember({ commitDraft: message })}
-                                showCommitTypePicker={conventionalCommitsOn}
-                                conflict={conflictState}
-                                riskRulesOff={settings.settings?.riskRulesOff}
-                              />
-                            </KeepAlive>
-                            <KeepAlive active={activeTab === 'history'}>
-                              <HistoryView
-                                key={`${repo.repoPath}-${repoVersion}-${focus?.request ?? 0}`}
-                                repoPath={repo.repoPath}
-                                conventional={conventional ?? false}
-                                initialSelectedSha={restored.selectedCommitSha}
-                                initialLoadThrough={focus?.position ?? null}
-                                initialRef={focus?.ref ?? null}
-                                defaultRef={refFromSaved(settings.settings?.historyBranchFilter)}
-                                onRefChange={(ref) => settings.setHistoryBranchFilter(savedFromRef(ref))}
-                                firstParent={settings.settings?.historyFirstParent ?? false}
-                                onFirstParentChange={settings.setHistoryFirstParent}
-                                changedFiles={changedCount}
-                                onOpenChanges={() => setActiveTab('working-copy')}
-                                onBranchChanged={onBranchChanged}
-                                previousTopSha={restored.historyTopSha}
-                                onTopShaChange={(sha) => remember({ historyTopSha: sha })}
-                                onSelectedShaChange={(sha) => remember({ selectedCommitSha: sha })}
-                                currentBranch={currentBranch}
-                              />
-                            </KeepAlive>
-                            {changesLabel && (
-                              <KeepAlive active={activeTab === 'changes'}>
-                                <HostChangesView
-                                  key={`${repo.repoPath}-${hostsVersion}`}
-                                  repoPath={repo.repoPath}
-                                  label={changesLabel}
-                                  selectedNumber={changeFocus}
-                                  onRefreshed={() => {
-                                    collectHostNotices()
-                                    bumpHostRefresh()
-                                  }}
-                                  onBranchChanged={onBranchChanged}
-                                  onCreateChange={requestCreateChange}
-                                  onOpenSettings={() => openSettings()}
-                                  onMerged={(result) => {
-                                    onBranchChanged()
-                                    bumpHostRefresh()
-                                    if (result.localBranch) requestSidebar('clean-up')
-                                  }}
-                                />
-                              </KeepAlive>
-                            )}
-                            <KeepAlive active={activeTab === 'changelog'}>
-                              <ChangelogView
-                                key={repo.repoPath}
-                                repoPath={repo.repoPath}
-                                repoVersion={repoVersion}
-                                prefs={settings.settings?.changelog ?? null}
-                                onPrefsChange={settings.setChangelogPrefs}
-                                onOpenCommit={openCommit}
-                                changelog={conventionalCommitsOn}
-                                onTagged={onBranchChanged}
-                              />
-                            </KeepAlive>
-                            <KeepAlive active={activeTab === 'activity'}>
-                              <ActivityView
-                                key={repo.repoPath}
-                                repoPath={repo.repoPath}
-                                repoVersion={repoVersion}
-                                dirty={changedCount > 0}
-                                changedCount={changedCount}
-                                hasConflict={conflictState !== null}
-                                onStandup={() => setStandupOpen(true)}
-                              />
-                            </KeepAlive>
-                            {!hideExplore && (
-                              <KeepAlive active={activeTab === 'explore'}>
-                                <ExploreView
-                                  key={repo.repoPath}
-                                  repoPath={repo.repoPath}
-                                  currentBranch={currentBranch ?? null}
-                                  repoVersion={repoVersion}
-                                  workingVersion={readThroughVersion}
-                                  onOpenWorkingFile={openWorkingFile}
-                                />
-                              </KeepAlive>
-                            )}
-                            {issuesOn && (
-                              <KeepAlive active={activeTab === 'issues'}>
-                                <IssuesView
-                                  key={`${repo.repoPath}-${hostsVersion}`}
-                                  repoPath={repo.repoPath}
-                                  selectedKey={issueFocus}
-                                  onOpenSettings={() => openSettings()}
-                                  refreshKey={hostRefresh}
-                                  onRefreshed={bumpHostRefresh}
-                                  onBranchChanged={onBranchChanged}
-                                />
-                              </KeepAlive>
-                            )}
-                          </main>
-                          {repo.repoPath && !terminalsOff && (
-                            <TerminalPanel
-                              repoPath={repo.repoPath}
-                              terminals={terminals}
-                              focusRequest={terminalFocus}
-                              theme={settings.settings?.theme}
-                              tasks={
-                                <TasksView
-                                  key={repo.repoPath}
-                                  repoPath={repo.repoPath}
-                                  tasks={tasks}
-                                  refreshKey={readThroughVersion}
-                                />
-                              }
-                            />
-                          )}
-                          {terminals.error && <p className="app-terminal-error">{terminals.error}</p>}
-                        </div>
-                        {openIssueKey && (
-                          <IssuePanel
-                            repoPath={repo.repoPath}
-                            issueKey={openIssueKey}
-                            onClose={() => setOpenIssueKey(null)}
-                            onBranchChanged={onBranchChanged}
-                          />
-                        )}
-                        {inboxOpen && <div className="inbox-scrim" onClick={() => setInboxOpen(false)} />}
-                        {inboxOpen && (
-                          <InboxView
-                            paths={repo.tabs}
-                            activePath={repo.repoPath}
-                            refreshKey={`${repoVersion}:${hostRefresh}`}
-                            onGo={goFromInbox}
-                            onRefreshed={bumpHostRefresh}
-                            onClose={() => setInboxOpen(false)}
-                          />
-                        )}
-                      </div>
-
-                      <StatusBar
-                        operation={operation}
-                        result={actionResult}
-                        onUndo={undoAction?.disabled ? undefined : undoAction?.run}
-                        onOpenShortcuts={() => setShortcutsOpen(true)}
-                        onToggleTerminal={terminalsOff ? undefined : toggleTerminal}
-                        repoPath={repo.repoPath}
-                        repoVersion={repoVersion}
-                        gitVersion={gitVersion}
-                        integration={integration}
-                        lastFetchedAt={lastFetchedAt}
-                        onOpenSettings={() => openSettings()}
-                      />
-                    </div>
-                    {repo.repoPath && <NotesDialogs repoPath={repo.repoPath} state={notesState} onOpen={openNote} />}
-                  </OpenCommitContext.Provider>
-                </ReadThroughContext.Provider>
-              </NotesContext.Provider>
-            </IssuePanelContext.Provider>
-          </DiffWrapContext.Provider>
-        </LaneSlotsContext.Provider>
-      </LaneThemeContext.Provider>
-    </DensityContext.Provider>
+        <StatusBar
+          operation={operation}
+          result={actionResult}
+          onUndo={undoAction?.disabled ? undefined : undoAction?.run}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
+          onToggleTerminal={terminalsOff ? undefined : toggleTerminal}
+          repoPath={repo.repoPath}
+          repoVersion={repoVersion}
+          gitVersion={gitVersion}
+          integration={integration}
+          lastFetchedAt={lastFetchedAt}
+          onOpenSettings={() => openSettings()}
+        />
+      </div>
+      {repo.repoPath && <NotesDialogs repoPath={repo.repoPath} state={notesState} onOpen={openNote} />}
+    </AppProviders>
   )
 }
 
