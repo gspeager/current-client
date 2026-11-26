@@ -61,6 +61,8 @@ var knownErrorPatterns = []struct {
 	{stderrStream, []string{"already exists and is not an empty directory"}, "Destination folder already has files in it."},
 	{stderrStream, []string{"Please tell me who you are", "unable to auto-detect email address"}, "Set a name and email for commits first."},
 	{stderrStream, []string{"does not have any commits yet"}, "This branch has no commits yet."},
+	// Blame on a file that isn't committed.
+	{stderrStream, []string{"no such path '"}, "This file has no commits yet, so it has no blame."},
 	{stderrStream, []string{"Aborting commit due to empty commit message"}, "Commit message can't be empty."},
 	// `git commit` with nothing staged reports this on stdout, not stderr.
 	{stdoutStream, []string{"nothing to commit"}, "Nothing is staged to commit."},

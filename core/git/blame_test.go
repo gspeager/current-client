@@ -137,3 +137,13 @@ func TestBlameBeforeALinesCommit(t *testing.T) {
 		t.Fatal("an option was taken for a commit")
 	}
 }
+
+func TestBlameOnAFileWithNoCommits(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "f.txt", "one\n", "add")
+	gittest.WriteFile(t, dir, "new.txt", "two\n")
+	_, err := Blame(context.Background(), dir, "new.txt")
+	if err == nil || err.Error() != "This file has no commits yet, so it has no blame." {
+		t.Fatalf("blaming an untracked file: %v", err)
+	}
+}
