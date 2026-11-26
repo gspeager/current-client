@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .host-notice {
   display: flex;
   align-items: center;
@@ -17,13 +19,9 @@
 
 .host-notice-link {
   padding: 0;
-  background: none;
-  border: none;
+  @include patterns.link-button;
   color: inherit;
-  font: inherit;
-  text-decoration: underline;
   text-decoration-color: var(--outline);
-  cursor: pointer;
 
   &:hover {
     text-decoration-color: currentColor;

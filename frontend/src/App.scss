@@ -1,3 +1,5 @@
+@use './styles/patterns';
+
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -50,20 +52,14 @@
 .app-inline-error {
   button {
     margin-left: var(--space-xs);
-    background: none;
-    border: none;
+    @include patterns.link-button;
     color: var(--on-surface);
-    text-decoration: underline;
-    cursor: pointer;
-    font: inherit;
   }
 }
 
 .app-terminal-error {
-  margin: 0;
+  @include patterns.panel-error;
   padding: var(--space-xs) var(--space-md);
-  color: var(--error);
-  font: var(--ui-xs);
 }
 
 // Off screen until the keyboard reaches it.

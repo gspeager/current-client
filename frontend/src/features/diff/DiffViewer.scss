@@ -42,9 +42,7 @@
 
 .diff-side-header-dot {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
 }
 
 .diff-side-header-dot-base {
@@ -115,10 +113,8 @@
 }
 
 .diff-empty-state {
-  margin: 0;
+  @include patterns.panel-hint;
   padding: var(--space-lg);
-  color: var(--outline);
-  font: var(--ui-sm);
   text-align: center;
 }
 
@@ -130,13 +126,8 @@
 
 .diff-empty-state-action {
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
+  @include patterns.secondary-button;
   font: var(--ui-xs);
-  cursor: pointer;
 
   &:hover {
     background: var(--surface-container);
@@ -438,15 +429,11 @@
 
 .submodule-diff-note,
 .lfs-diff-note {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .submodule-diff-commits {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  @include patterns.list-reset;
 }
 
 .submodule-diff-commits li {

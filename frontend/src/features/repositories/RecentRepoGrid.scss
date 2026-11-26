@@ -1,9 +1,7 @@
 @use '../../styles/patterns';
 
 .repo-grid-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .repo-card-grid {
@@ -88,9 +86,7 @@
 
 .repo-card-dot {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
 }
 
 .repo-card-dot-dirty {

@@ -14,9 +14,7 @@
 }
 
 .dependency-summary-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
 }
 
 .dependency-summary-row {

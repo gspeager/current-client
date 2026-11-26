@@ -89,13 +89,8 @@
 .read-through-button {
   flex-shrink: 0;
   height: var(--h-chip);
-  padding: 0 var(--space-sm);
-  background: none;
-  border: var(--border-structure);
-  border-radius: var(--radius);
-  color: var(--on-surface-variant);
+  @include patterns.secondary-button;
   font: var(--ui-xs);
-  cursor: pointer;
 
   &:hover:not(:disabled) {
     color: var(--on-surface);
@@ -121,9 +116,7 @@
 }
 
 .read-through-note-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
 }
 
 .read-through-note {

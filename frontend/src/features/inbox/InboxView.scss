@@ -44,9 +44,7 @@
 
 .inbox-summary,
 .inbox-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .inbox-error {
@@ -140,9 +138,7 @@
 }
 
 .inbox-rows {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   display: flex;
   flex-direction: column;
 }
@@ -257,9 +253,7 @@
   position: absolute;
   top: calc(50% - 3px);
   left: 2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
   background: var(--secondary);
 }
 

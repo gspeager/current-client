@@ -9,9 +9,7 @@
 }
 
 .repo-switcher-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }
 
 .repo-switcher-primary {
@@ -87,9 +85,7 @@
   display: flex;
   gap: var(--space-xs);
   min-width: 0;
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
   white-space: nowrap;
 }
 

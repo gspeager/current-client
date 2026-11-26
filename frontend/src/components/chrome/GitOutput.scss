@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .git-output {
   margin-top: var(--space-xs);
   color: var(--on-surface-variant);
@@ -30,10 +32,6 @@
 
 .git-output-copy {
   padding: 0;
-  background: none;
-  border: none;
+  @include patterns.link-button;
   color: var(--on-surface);
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
 }

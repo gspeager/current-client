@@ -35,9 +35,7 @@
 }
 
 .branch-switcher-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }
 
 .branch-switcher-section {
@@ -85,9 +83,8 @@
 }
 
 .branch-switcher-row-current {
-  background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
   cursor: default;
+  @include patterns.selected-row;
 
   &:hover {
     background: var(--surface-container);
@@ -144,13 +141,7 @@
     justify-content: center;
     gap: var(--space-xs);
     height: var(--h-action);
-    padding: 0 var(--space-sm);
-    background: none;
-    border: var(--border-structure);
-    border-radius: var(--radius);
-    color: var(--on-surface-variant);
-    font: var(--ui-sm);
-    cursor: pointer;
+    @include patterns.secondary-button;
 
     &:hover {
       background: var(--surface-container);

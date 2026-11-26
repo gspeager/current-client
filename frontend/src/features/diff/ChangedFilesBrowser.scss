@@ -50,13 +50,9 @@
 }
 
 .changed-files-browser-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .changed-files-browser-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }

@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 // Tags and other refs are neutral 3px squares; branches are tinted pills with
 // the same lane dot the sidebar uses.
 .ref-badge {
@@ -19,10 +21,8 @@
 
 .ref-badge-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  @include patterns.dot;
   margin-right: var(--space-xs);
-  border-radius: 50%;
   background: var(--lane);
   vertical-align: 1px;
 }

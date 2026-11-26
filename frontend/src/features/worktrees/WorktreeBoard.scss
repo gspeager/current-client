@@ -80,9 +80,7 @@
 }
 
 .worktree-column-tasks {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   font: var(--ui-xs);
 
   li {
@@ -113,10 +111,8 @@
 .worktree-column-files {
   flex: 1;
   max-height: 34vh;
-  margin: 0;
-  padding: 0;
+  @include patterns.list-reset;
   overflow-y: auto;
-  list-style: none;
   color: var(--on-surface-variant);
   font: var(--data-sm);
 

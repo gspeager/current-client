@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .history-view {
   display: flex;
   flex: 1;
@@ -5,10 +7,8 @@
 }
 
 .history-empty-state {
-  margin: 0;
+  @include patterns.panel-hint;
   padding: var(--space-lg);
-  color: var(--outline);
-  font: var(--ui-sm);
   text-align: center;
 }
 
@@ -31,10 +31,8 @@
 }
 
 .history-loading {
-  margin: 0;
+  @include patterns.panel-hint;
   padding: var(--space-sm) var(--space-md);
-  color: var(--outline);
-  font: var(--ui-sm);
 }
 
 .history-footer {

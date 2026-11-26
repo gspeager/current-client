@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .blame-view {
   width: 1100px;
   height: 760px;
@@ -25,8 +27,7 @@
 }
 
 .blame-row-focused {
-  background: var(--surface-container);
-  box-shadow: inset 2px 0 0 0 var(--on-surface-variant);
+  @include patterns.selected-row;
 }
 
 .blame-row-gutter {
@@ -69,12 +70,8 @@
 
   button {
     padding: 0;
-    background: none;
-    border: none;
+    @include patterns.link-button;
     color: var(--on-surface);
-    font: inherit;
-    text-decoration: underline;
-    cursor: pointer;
   }
 }
 
@@ -96,11 +93,7 @@
 
   button {
     padding: 0;
-    background: none;
-    border: none;
+    @include patterns.link-button;
     color: var(--on-surface);
-    font: inherit;
-    text-decoration: underline;
-    cursor: pointer;
   }
 }

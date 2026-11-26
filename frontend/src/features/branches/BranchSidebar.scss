@@ -100,9 +100,7 @@
 }
 
 .branch-sidebar-new-result {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
   overflow-wrap: anywhere;
 }
 

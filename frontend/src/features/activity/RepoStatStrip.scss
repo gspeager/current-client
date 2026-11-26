@@ -63,9 +63,7 @@
 
 .repo-stat-strip-dot {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
 }
 
 .repo-stat-strip-dot-dirty {
@@ -77,9 +75,7 @@
 }
 
 .repo-stat-strip-hint {
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .repo-stat-strip-spark {

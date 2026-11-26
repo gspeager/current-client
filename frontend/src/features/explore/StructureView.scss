@@ -23,9 +23,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs) var(--space-lg);
-  margin: 0;
-  color: var(--outline);
-  font: var(--ui-sm);
+  @include patterns.panel-hint;
 }
 
 .structure-wide {

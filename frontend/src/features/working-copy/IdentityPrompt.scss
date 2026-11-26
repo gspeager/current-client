@@ -41,7 +41,5 @@
 }
 
 .identity-prompt-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }

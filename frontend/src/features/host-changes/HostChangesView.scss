@@ -46,9 +46,7 @@
 }
 
 .host-changes-error {
-  margin: 0;
-  color: var(--error);
-  font: var(--ui-xs);
+  @include patterns.panel-error;
 }
 
 .host-changes-notice {
@@ -74,9 +72,7 @@
 
 .host-changes-list {
   flex: 1;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -100,12 +96,8 @@
 
 .host-changes-privacy-link {
   padding: 0;
-  background: none;
-  border: none;
+  @include patterns.link-button;
   color: var(--secondary);
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
   @include patterns.hit-target(4px);
 
   &:hover {
@@ -338,9 +330,7 @@
 
 .host-change-files,
 .host-change-commits {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
 }
 
 .host-change-file,
@@ -420,9 +410,7 @@
 
 .host-change-flow-dot {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  @include patterns.dot;
 }
 
 .host-change-protection {
@@ -524,9 +512,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.list-reset;
 }
 
 .host-change-reviewers li {

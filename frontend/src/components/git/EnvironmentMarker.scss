@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 // A glyph, not a chip: the commit's row has no room for names, and a check
 // here would read as CI.
 .environment-marker {
@@ -20,12 +22,7 @@
 }
 
 .environment-reach {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  @include patterns.panel-list;
 
   li {
     display: flex;

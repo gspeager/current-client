@@ -6,10 +6,8 @@
 
 .recover-list {
   max-height: 55vh;
-  margin: 0;
-  padding: 0;
+  @include patterns.list-reset;
   overflow-y: auto;
-  list-style: none;
 }
 
 .recover-row {
