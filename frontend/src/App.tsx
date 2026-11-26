@@ -624,6 +624,10 @@ function App({
     />
   )
 
+  // Drawn the first time it's shown, so its views read nothing before then: the
+  // welcome screen's recent repositories too, shown while the saved tab opens.
+  if (!shown) return null
+
   // Without a usable git nothing else works, so it takes over even with a repo open.
   if (!repo.repoPath || gitError) {
     return (
@@ -947,9 +951,6 @@ function App({
       run: () => requestSidebar('clean-up'),
     },
   ]
-
-  // Drawn the first time it's shown, so its views read nothing before then.
-  if (!shown) return null
 
   return (
     <DensityContext.Provider value={settings.settings?.density === 'compact' ? 'compact' : 'comfortable'}>
