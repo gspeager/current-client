@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gspeager/current-client/core/readthrough"
 	"github.com/gspeager/current-client/internal/gittest"
 )
 
@@ -84,7 +85,7 @@ func TestReadThroughAWorktreesUncommittedChanges(t *testing.T) {
 
 	gittest.Run(t, worktree, "switch", "-q", "--detach")
 	info := openReadThrough(t, repo, ReadThroughRequest{Path: worktree, Uncommitted: true})
-	if !strings.HasPrefix(info.Key, worktreeKey) {
+	if !strings.HasPrefix(info.Key, readthrough.WorktreeKey) {
 		t.Errorf("a detached worktree's key = %q", info.Key)
 	}
 	s := new(ReadThroughService)

@@ -5,7 +5,6 @@ package app
 import (
 	"context"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
@@ -43,35 +42,8 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 		return MergeReadiness{}, err
 	}
 	_, fetchedAt, _ := cacheChanges.get(info.Hostname, repoPath, info.Project)
-	facts := []ReadinessFact{}
+	facts := mapSlice(hostapi.ChangeFacts(change), func(f hostapi.Fact) ReadinessFact { return ReadinessFact(f) })
 	add := func(label, value, level string) { facts = append(facts, ReadinessFact{label, value, level}) }
-	if change.Draft {
-		add("Draft", "marked as a draft", "warn")
-	}
-	switch change.CI {
-	case hostapi.CISuccess:
-		add("Checks", "passed", "ok")
-	case hostapi.CIFailed:
-		add("Checks", "failed", "warn")
-	case hostapi.CIRunning, hostapi.CIPending:
-		add("Checks", "still running", "warn")
-	case "":
-		add("Checks", "no result in the cache", "unknown")
-	default:
-		add("Checks", string(change.CI), "info")
-	}
-	add(reviewsFact(change.Reviews))
-	if change.UnresolvedThreads > 0 {
-		add("Threads", strconv.Itoa(change.UnresolvedThreads)+" unresolved", "warn")
-	}
-	switch {
-	case !change.ConflictsKnown:
-		add("Conflicts", "not known until the change is opened on the host", "unknown")
-	case change.HasConflicts:
-		add("Conflicts", "conflicts with "+change.TargetBranch, "warn")
-	default:
-		add("Conflicts", "none", "ok")
-	}
 	ctx := context.Background()
 	target := remote.Name + "/" + change.TargetBranch
 	if _, err := git.ResolveCommit(ctx, repoPath, change.HeadSHA); err != nil {
@@ -85,54 +57,12 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 	} else {
 		add("Base branch", "up to date with "+change.TargetBranch, "ok")
 	}
-	if cached, _, ok := cacheRules.get(info.Hostname, repoPath, "all"); ok {
-		if rule, ok := hostapi.MatchRule(cached, change.TargetBranch); ok {
-			value := "protected; the host applies its rules on merge"
-			if rule.Pattern != change.TargetBranch {
-				value += " (rule " + rule.Pattern + ")"
-			}
-			add("Protection", value, "info")
+	if rules, _, ok := cacheRules.get(info.Hostname, repoPath, "all"); ok {
+		if fact, ok := hostapi.ProtectionFact(rules, change.TargetBranch); ok {
+			facts = append(facts, ReadinessFact(fact))
 		}
 	}
 	return MergeReadiness{Facts: facts, FetchedAt: &fetchedAt}, nil
-}
-
-// Everyone involved, verdicts first as the list orders them; it needs
-// attention while changes are requested or a review still waits.
-func reviewsFact(reviews []hostapi.Review) (label, value, level string) {
-	names := map[hostapi.ReviewState][]string{}
-	for _, r := range reviews {
-		name := r.Reviewer.Name
-		if name == "" {
-			name = r.Reviewer.Username
-		}
-		names[r.State] = append(names[r.State], name)
-	}
-	var parts []string
-	for _, group := range []struct {
-		state  hostapi.ReviewState
-		prefix string
-	}{
-		{hostapi.ReviewChangesRequested, "changes requested by "},
-		{hostapi.ReviewApproved, "approved by "},
-		{hostapi.ReviewRequested, "waiting on "},
-		{hostapi.ReviewCommented, "commented by "},
-	} {
-		if len(names[group.state]) > 0 {
-			parts = append(parts, group.prefix+strings.Join(names[group.state], ", "))
-		}
-	}
-	switch {
-	case len(parts) == 0:
-		return "Reviews", "none", "info"
-	case len(names[hostapi.ReviewChangesRequested]) > 0 || len(names[hostapi.ReviewRequested]) > 0:
-		level = "warn"
-	case len(names[hostapi.ReviewApproved]) > 0:
-		level = "ok"
-	default:
-		level = "info"
-	}
-	return "Reviews", strings.Join(parts, "; "), level
 }
 
 // MergeOptions is one request, for the host's merge settings, made when

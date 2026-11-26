@@ -14,15 +14,12 @@ import (
 	"github.com/gspeager/current-client/core/board"
 	"github.com/gspeager/current-client/core/diff"
 	"github.com/gspeager/current-client/core/git"
-	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/readthrough"
 	"github.com/gspeager/current-client/internal/notes"
 	"github.com/gspeager/current-client/internal/structure"
 )
 
 type ReadThroughService struct{}
-
-const worktreeKey = "worktree:"
 
 // ReadThroughRequest is a ref by its full name, or with Path the worktree there.
 // Target is what it's compared with, the parent of a stacked branch or the
@@ -78,6 +75,29 @@ type ReadThroughFile struct {
 	NewBlob      string `json:"newBlob"`
 }
 
+// settleBase is readthrough.SettleBase for what info reads, with the stacks'
+// links from the settings.
+func (info *ReadThroughInfo) settleBase(ctx context.Context, repoPath string) (err error) {
+	info.Target, info.Base, err = readthrough.SettleBase(ctx, repoPath, info.Key, info.Name, info.Target, info.Head, linksOf(repoPath))
+	return err
+}
+
+func (info *ReadThroughInfo) resolve(ctx context.Context, repoPath string, request ReadThroughRequest) error {
+	target, err := readthrough.Resolve(ctx, repoPath, request.Ref, request.Path)
+	info.Key, info.Name, info.Head, info.CheckedOut = target.Key, target.Name, target.Head, target.CheckedOut
+	// A ref not checked out in a worktree of its own is read in repoPath.
+	if target.Path != "" {
+		info.Path = target.Path
+	}
+	return err
+}
+
+// forgetMarks drops the marks of branches and worktrees that are gone. The
+// screen opens without it, so a failure can wait for the next time.
+func forgetMarks(ctx context.Context, repoPath string) {
+	_ = readthrough.ForgetGone(ctx, repoPath)
+}
+
 func (info ReadThroughInfo) changes() readthrough.Range {
 	return readthrough.Range{Base: info.Base, Head: info.Head, Uncommitted: info.Uncommitted}
 }
@@ -122,83 +142,6 @@ func (s *ReadThroughService) Open(repoPath string, request ReadThroughRequest) (
 		}
 	})
 	return info, nil
-}
-
-// settleBase works out the target, when none was asked for, and where the head left
-// it. The target stays "" when there's nothing to compare with.
-func (info *ReadThroughInfo) settleBase(ctx context.Context, repoPath string) error {
-	branch := strings.TrimPrefix(info.Key, "refs/heads/")
-	builtOn := ""
-	for _, link := range linksOf(repoPath) {
-		if link.Branch != branch || (info.Target != "" && info.Target != link.Parent) {
-			continue
-		}
-		if _, err := git.ResolveCommit(ctx, repoPath, "refs/heads/"+link.Parent); err == nil {
-			info.Target, builtOn = link.Parent, link.ParentTip
-		}
-	}
-	if info.Target == "" {
-		target, err := git.CompareBase(ctx, repoPath)
-		if err != nil || target == "" {
-			return err
-		}
-		info.Target = target
-	}
-	target, err := git.ResolveCommit(ctx, repoPath, info.Target)
-	if err != nil {
-		return &gitexec.AppError{Message: info.Target + " doesn't exist.", Detail: err.Error()}
-	}
-	info.Base, err = readthrough.Base(ctx, repoPath, target, info.Head, builtOn)
-	if errors.Is(err, git.ErrUnrelatedHistories) {
-		return &gitexec.AppError{Message: info.Name + " and " + info.Target + " share no history."}
-	}
-	return err
-}
-
-// resolve fills in what's read and where it's checked out.
-func (info *ReadThroughInfo) resolve(ctx context.Context, repoPath string, request ReadThroughRequest) (err error) {
-	if request.Path != "" {
-		info.Path = request.Path
-		info.CheckedOut = true
-		info.Head, err = git.ResolveCommit(ctx, request.Path, "HEAD")
-		if err != nil {
-			return err
-		}
-		worktrees, err := git.ListWorktrees(ctx, request.Path)
-		if err != nil {
-			return err
-		}
-		info.Key, info.Name = worktreeKey+request.Path, filepath.Base(request.Path)
-		for _, worktree := range worktrees {
-			if !worktree.Current {
-				continue
-			}
-			info.Key = worktreeKey + worktree.Path
-			if worktree.Branch != "" {
-				info.Key, info.Name = "refs/heads/"+worktree.Branch, worktree.Branch
-			}
-		}
-		return nil
-	}
-	info.Key = request.Ref
-	info.Name = strings.TrimPrefix(strings.TrimPrefix(request.Ref, "refs/heads/"), "refs/remotes/")
-	if info.Head, err = git.ResolveCommit(ctx, repoPath, request.Ref); err != nil {
-		return err
-	}
-	branches, err := git.ListBranches(ctx, repoPath)
-	if err != nil {
-		return err
-	}
-	for _, branch := range branches {
-		if "refs/heads/"+branch.Name != request.Ref {
-			continue
-		}
-		info.CheckedOut = branch.Current
-		if _, err := os.Stat(branch.WorktreePath); !branch.Current && branch.WorktreePath != "" && err == nil {
-			info.Path, info.CheckedOut = branch.WorktreePath, true
-		}
-	}
-	return nil
 }
 
 // OfChange is a pull request as a request: the ref its head is at on this
@@ -372,34 +315,6 @@ func (s *ReadThroughService) AddNote(info ReadThroughInfo, note ReadThroughNote)
 		added.Anchor(content)
 	}
 	return notes.Set(notesKey(ctx, info.Path), added)
-}
-
-// forgetMarks drops the marks of branches and worktrees that are gone. The
-// screen opens without it, so a failure can wait for the next time.
-func forgetMarks(ctx context.Context, repoPath string) {
-	if gone, err := readThroughGone(ctx, repoPath); err == nil {
-		_ = readthrough.Forget(ctx, repoPath, gone)
-	}
-}
-
-// readThroughGone says whether what a key names has been deleted.
-func readThroughGone(ctx context.Context, repoPath string) (func(key string) bool, error) {
-	worktrees, err := git.ListWorktrees(ctx, repoPath)
-	if err != nil {
-		return nil, err
-	}
-	refs, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--format=%(refname)")
-	if err != nil {
-		return nil, err
-	}
-	present := map[string]bool{}
-	for _, ref := range strings.Split(refs.Stdout, "\n") {
-		present[ref] = true
-	}
-	for _, worktree := range worktrees {
-		present[worktreeKey+worktree.Path] = true
-	}
-	return func(key string) bool { return !present[key] }, nil
 }
 
 // ChangeStructureInfo is what a change does to the structure. Read is false where
