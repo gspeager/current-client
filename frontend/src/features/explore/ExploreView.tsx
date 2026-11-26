@@ -30,7 +30,7 @@ import { readMapColors, type MapColors } from './drawMap'
 import { inFolder, type MapItem, type MapLayout } from './mapLayout'
 import { mapPicture, type LegendEntry } from './mapPicture'
 import { readTimelineColors, timelinePicture } from './drawTimeline'
-import { spanStart, type Span } from './timelineLanes'
+import type { Span } from './timelineLanes'
 import type { TimelineLayout } from './timelineLayout'
 import { ageLegend, ageStep, commitSteps, type Step, type StepLegend } from './mapSteps'
 import './ExploreView.scss'
@@ -184,11 +184,6 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     else openCompared(item.path)
   }
 
-  const timed = useMemo(
-    (): ExploreComparison => (span ? { kind: 'since', ref: spanStart(span).toISOString() } : comparison),
-    [span, comparison],
-  )
-
   const save = () => {
     if (view === 'timeline') {
       if (!timeline || !box.current) return
@@ -281,10 +276,11 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
             releases={[...releases].reverse()}
             currentBranch={currentBranch}
             onChange={(next) => {
-              setStructureCompared(!!next)
               const picked = next && next.kind in SPANS ? (next.kind as Span) : null
               setSpan(picked)
-              if (next && !picked) setComparison(next)
+              if (picked) return
+              setStructureCompared(!!next)
+              if (next) setComparison(next)
             }}
           />
         )}
@@ -334,7 +330,8 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
       ) : view === 'timeline' ? (
         <TimelineView
           repoPath={repoPath}
-          comparison={timed}
+          comparison={comparison}
+          span={span}
           version={workingVersion}
           code={code}
           slotOf={slotOf}

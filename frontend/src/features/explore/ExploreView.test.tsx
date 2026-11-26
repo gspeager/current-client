@@ -445,6 +445,8 @@ describe('the timeline', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Changes' }))
     expect(screen.queryByRole('option', { name: 'Today' })).toBeNull()
     await waitFor(() => expect(ExploreService.Changes).toHaveBeenLastCalledWith('/repo', { kind: 'working', ref: '' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Structure' }))
+    expect(compare()).toHaveDisplayValue('Not compared')
   })
 
   it('steps through the bubbles by the keyboard and opens a commit in History', async () => {

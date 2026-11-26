@@ -12,13 +12,14 @@ import { shortSha } from '../../lib/text'
 import { useAsyncData } from '../../lib/useAsyncData'
 import FolderPath from './FolderPath'
 import TimelineChart from './TimelineChart'
-import { linesIn, timelineLanes, when, type Bubble, type Entry } from './timelineLanes'
+import { linesIn, spanStart, timelineLanes, when, type Bubble, type Entry, type Span } from './timelineLanes'
 import type { TimelineLayout } from './timelineLayout'
 
 interface TimelineViewProps {
   repoPath: string
-  // Kind "since" for a time, which only Timeline takes.
   comparison: ExploreComparison
+  // Today or this week in place of the comparison, from its start when read.
+  span: Span | null
   // Changes with uncommitted edits.
   version: unknown
   // The code at HEAD, which its folder areas come from.
@@ -38,6 +39,7 @@ interface TimelineViewProps {
 function TimelineView({
   repoPath,
   comparison,
+  span,
   version,
   code,
   slotOf,
@@ -51,8 +53,11 @@ function TimelineView({
   const openCommit = useOpenCommit()
   const [active, setActive] = useState<Entry | null>(null)
   const { data, error } = useAsyncData(
-    () => ExploreService.Timeline(repoPath, comparison).then((info) => ({ info, comparison, at: Date.now() })),
-    [repoPath, comparison],
+    () => {
+      const asked: ExploreComparison = span ? { kind: 'since', ref: spanStart(span).toISOString() } : comparison
+      return ExploreService.Timeline(repoPath, asked).then((info) => ({ info, comparison: asked, at: Date.now() }))
+    },
+    [repoPath, comparison, span],
     { refreshKey: version, keepData: true },
   )
   const { lanes, entries } = useMemo(
