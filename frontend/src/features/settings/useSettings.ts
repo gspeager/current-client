@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { PlatformService, SettingsService, type Settings } from '@current-client-bindings/app'
+import { useEffect, useMemo, useState } from 'react'
+import { PlatformService, Settings, SettingsService } from '@current-client-bindings/app'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
 import { errorMessage } from '../../lib/errors'
 
@@ -48,6 +48,9 @@ export function useSettings() {
     if (root && density) root.setAttribute('data-density', density)
   }, [root, density])
 
+  // Every setting with Go's zero value until they load, so callers need no fallbacks.
+  const values = useMemo(() => new Settings(settings ?? {}), [settings])
+
   const patch = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setSettings((prev) => (prev ? { ...prev, [key]: value } : prev))
 
@@ -74,6 +77,7 @@ export function useSettings() {
 
   return {
     settings,
+    values,
     error,
     resetNotice,
     dismissResetNotice: () => setResetNotice(''),

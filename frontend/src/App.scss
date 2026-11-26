@@ -1,5 +1,3 @@
-@use './styles/patterns';
-
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -61,59 +59,6 @@
   }
 }
 
-.app-welcome {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-lg);
-  height: 100vh;
-  height: 100dvh;
-  justify-content: center;
-  padding-bottom: 12vh;
-  color: var(--on-surface);
-
-  h1 {
-    font: var(--headline-lg);
-    letter-spacing: var(--headline-lg-tracking);
-    margin: 0;
-  }
-}
-
-.app-welcome-mark {
-  display: flex;
-  color: var(--on-surface-variant);
-  margin-bottom: calc(var(--space-sm) * -1);
-}
-
-.app-welcome-corner {
-  position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.app-welcome-settings {
-  @include patterns.icon-button;
-}
-
-.app-welcome-status {
-  margin: 0;
-  color: var(--outline);
-  font: var(--data-sm);
-}
-
-.app-welcome-status-error {
-  color: var(--error);
-}
-
-.app-welcome-git-actions {
-  display: flex;
-  gap: var(--space-sm);
-}
-
 .app-terminal-error {
   margin: 0;
   padding: var(--space-xs) var(--space-md);
@@ -139,18 +84,6 @@
   &:focus-visible {
     transform: none;
   }
-}
-
-// The form sits on the same centre line as the name above it.
-.app-welcome .repo-switcher {
-  align-items: center;
-  width: min(420px, 100%);
-  padding: 0 var(--space-lg);
-  text-align: center;
-}
-
-.app-welcome .repo-switcher-open-row {
-  justify-content: center;
 }
 
 .visually-hidden {
