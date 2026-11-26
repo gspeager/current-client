@@ -53,7 +53,7 @@ function TerminalCommandRow() {
       )}
       {data.installed && data.pathLine && (
         <p className="settings-hint">
-          Its folder isn’t on the PATH. Add this line to the shell’s startup file, such as ~/.zshrc:{' '}
+          Its folder isn’t on the PATH. Add this line to {data.startupFile}, then open a new terminal:{' '}
           <code className="settings-code">{data.pathLine}</code>
         </p>
       )}

@@ -27,9 +27,9 @@ func launcherScript(target string) string {
 
 // The folder is on the user's PATH in the registry, where installing put it. New
 // terminals read it from there.
-func onPath(dir string) (bool, string) {
+func onPath(dir string) (bool, string, string) {
 	list, _, err := userPath()
-	return err == nil && hasDir(list, dir), ""
+	return err == nil && hasDir(list, dir), "", ""
 }
 
 func addToPath(dir string) error {

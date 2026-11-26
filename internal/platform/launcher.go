@@ -2,6 +2,7 @@ package platform
 
 import (
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -12,13 +13,14 @@ import (
 // Launcher is the terminal command that opens a path in the app. Path is where it
 // is, or where installing writes it. ByPackage means a package put another
 // command at Path, so there's nothing to install. PathLine is the line to add to
-// the shell's startup file when Path's folder isn't on the PATH.
+// StartupFile, a file the login shell reads, when Path's folder isn't on the PATH.
 type Launcher struct {
-	Path      string `json:"path"`
-	Installed bool   `json:"installed"`
-	ByPackage bool   `json:"byPackage"`
-	OnPath    bool   `json:"onPath"`
-	PathLine  string `json:"pathLine"`
+	Path        string `json:"path"`
+	Installed   bool   `json:"installed"`
+	ByPackage   bool   `json:"byPackage"`
+	OnPath      bool   `json:"onPath"`
+	PathLine    string `json:"pathLine"`
+	StartupFile string `json:"startupFile"`
 }
 
 const (
@@ -38,11 +40,13 @@ func LauncherStatus(target string) (Launcher, error) {
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return Launcher{}, err
 	}
-	launcher := Launcher{Path: path, Installed: string(content) == launcherScript(target)}
 	if found, err := exec.LookPath(launcherName); err == nil && !sameFile(found, path) && !isLauncher(found) {
 		return Launcher{Path: found, ByPackage: true, Installed: true, OnPath: true}, nil
 	}
-	launcher.OnPath, launcher.PathLine = onPath(filepath.Dir(path))
+	launcher := Launcher{Path: path}
+	launcher.OnPath, launcher.PathLine, launcher.StartupFile = onPath(filepath.Dir(path))
+	// Off the PATH with no line to add, it can't be run.
+	launcher.Installed = string(content) == launcherScript(target) && (launcher.OnPath || launcher.PathLine != "")
 	return launcher, nil
 }
 
@@ -91,9 +95,16 @@ func RemoveLauncher(target string) (Launcher, error) {
 	return LauncherStatus(target)
 }
 
+// The marker is in the script's first lines, so a binary isn't read whole.
 func isLauncher(path string) bool {
-	content, err := os.ReadFile(path)
-	return err == nil && strings.Contains(string(content), launcherMarker)
+	file, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+	start := make([]byte, 256)
+	n, _ := io.ReadFull(file, start)
+	return strings.Contains(string(start[:n]), launcherMarker)
 }
 
 func sameFile(a, b string) bool {

@@ -5,6 +5,7 @@ package platform
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -29,11 +30,24 @@ func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
-func onPath(dir string) (bool, string) {
+// The app's PATH is the login shell's (UseLoginShellPath) or the desktop
+// session's, so the line goes in a file those read, not ~/.zshrc or ~/.bashrc.
+func onPath(dir string) (bool, string, string) {
 	if hasDir(os.Getenv("PATH"), dir) {
-		return true, ""
+		return true, "", ""
 	}
-	return false, `export PATH="$HOME/.local/bin:$PATH"`
+	line := `export PATH="$HOME/.local/bin:$PATH"`
+	switch filepath.Base(os.Getenv("SHELL")) {
+	case "fish":
+		return false, "fish_add_path ~/.local/bin", "~/.config/fish/config.fish"
+	case "zsh":
+		return false, line, "~/.zprofile"
+	case "bash":
+		if runtime.GOOS == "darwin" {
+			return false, line, "~/.bash_profile"
+		}
+	}
+	return false, line, "~/.profile"
 }
 
 func addToPath(string) error      { return nil }

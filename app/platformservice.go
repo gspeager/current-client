@@ -223,5 +223,8 @@ func launcherTarget() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.EvalSymlinks(executable)
+	if resolved, err := filepath.EvalSymlinks(executable); err == nil {
+		return resolved, nil
+	}
+	return executable, nil
 }

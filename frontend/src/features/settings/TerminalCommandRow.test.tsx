@@ -9,7 +9,12 @@ const path = '/Users/me/.local/bin/current-client'
 it('says where it will write, and writes only on Install', async () => {
   vi.mocked(PlatformService.TerminalCommand).mockResolvedValue(new Launcher({ path }))
   vi.mocked(PlatformService.InstallTerminalCommand).mockResolvedValue(
-    new Launcher({ path, installed: true, pathLine: 'export PATH="$HOME/.local/bin:$PATH"' }),
+    new Launcher({
+      path,
+      installed: true,
+      pathLine: 'export PATH="$HOME/.local/bin:$PATH"',
+      startupFile: '~/.zprofile',
+    }),
   )
   render(<TerminalCommandRow />)
   expect(await screen.findByText(/Install writes it here/)).toBeInTheDocument()
@@ -19,6 +24,7 @@ it('says where it will write, and writes only on Install', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Install' }))
   expect(PlatformService.InstallTerminalCommand).toHaveBeenCalledTimes(1)
   expect(await screen.findByText('export PATH="$HOME/.local/bin:$PATH"')).toBeInTheDocument()
+  expect(screen.getByText(/Add this line to ~\/\.zprofile/)).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument()
 })
 

@@ -16,6 +16,7 @@ func isolatedHome(t *testing.T, path string) string {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("PATH", path)
+	t.Setenv("SHELL", "/bin/zsh")
 	return home
 }
 
@@ -38,8 +39,12 @@ func TestInstallingTheTerminalCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !installed.Installed || installed.OnPath || installed.PathLine == "" {
+	if !installed.Installed || installed.OnPath || installed.PathLine == "" || installed.StartupFile != "~/.zprofile" {
 		t.Fatalf("installed outside the PATH: %+v", installed)
+	}
+	t.Setenv("SHELL", "/usr/bin/fish")
+	if fish, _ := LauncherStatus("/Applications/Current Client.app/Contents/MacOS/current-client"); fish.PathLine != "fish_add_path ~/.local/bin" {
+		t.Fatalf("fish's line: %+v", fish)
 	}
 	if info, _ := os.Stat(command); info.Mode().Perm()&0o100 == 0 {
 		t.Fatal("the command isn't executable")
@@ -109,7 +114,8 @@ func TestTheTerminalCommandWhereItCantBeWritten(t *testing.T) {
 
 func TestATerminalCommandAPackageInstalled(t *testing.T) {
 	packaged := t.TempDir()
-	if err := os.WriteFile(filepath.Join(packaged, "current-client"), []byte("\x7fELF"), 0o755); err != nil {
+	binary := append([]byte("\x7fELF"), make([]byte, 1<<20)...)
+	if err := os.WriteFile(filepath.Join(packaged, "current-client"), append(binary, launcherMarker...), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	isolatedHome(t, packaged+":/usr/bin:/bin")
@@ -127,7 +133,7 @@ func TestTheTerminalCommandOpensThePathAndReturns(t *testing.T) {
 	opened := filepath.Join(home, "opened")
 	app := filepath.Join(home, "it's the app")
 	// Writes what it was given once the command has returned, as an app that keeps running would.
-	script := "#!/bin/sh\nsleep 0.3\nprintf '%s|' \"$PWD\" \"$@\" > " + shellQuote(opened) + "\n"
+	script := "#!/bin/sh\nsleep 1\nprintf '%s|' \"$PWD\" \"$@\" > " + shellQuote(opened) + "\n"
 	if err := os.WriteFile(app, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +148,7 @@ func TestTheTerminalCommandOpensThePathAndReturns(t *testing.T) {
 	if out, err := cmd.CombinedOutput(); err != nil || len(out) > 0 {
 		t.Fatalf("the command: %q, %v", out, err)
 	}
-	if took := time.Since(started); took > 250*time.Millisecond {
+	if took := time.Since(started); took > 800*time.Millisecond {
 		t.Fatalf("the command waited for the app: %v", took)
 	}
 	deadline := time.Now().Add(3 * time.Second)
