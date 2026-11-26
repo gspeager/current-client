@@ -3,10 +3,9 @@
 package app
 
 import (
-	"errors"
-	"fmt"
 	"strings"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi/jira"
 	"github.com/gspeager/current-client/core/hostlink"
 	"github.com/gspeager/current-client/internal/config"
@@ -22,7 +21,7 @@ func (s *TrackerService) SetEnabled(site string, enabled bool) error {
 	}
 	name := hostlink.SiteHost(tracker.Site)
 	if _, managed := policy.Host(name); managed {
-		return fmt.Errorf("integration for %s is managed by organization policy", name)
+		return &gitexec.AppError{Message: "Integration for " + name + " is managed by organization policy."}
 	}
 	if !enabled {
 		hostClient.Forget(name)
@@ -46,7 +45,7 @@ func (s *TrackerService) SaveToken(site, email, token string) error {
 	if tracker.Kind == hostlink.JiraCloud {
 		email = strings.TrimSpace(email)
 		if email == "" || strings.ContainsAny(email, ":\n\r") {
-			return errors.New("Jira Cloud needs the account's email beside the API token")
+			return &gitexec.AppError{Message: "Jira Cloud needs the account's email beside the API token."}
 		}
 		secret = email + ":" + secret
 	}
@@ -93,7 +92,7 @@ func knownTracker(site string) (hostlink.Tracker, error) {
 			return t, nil
 		}
 	}
-	return hostlink.Tracker{}, errors.New(site + " isn't listed")
+	return hostlink.Tracker{}, &gitexec.AppError{Message: site + " isn't listed."}
 }
 
 func setTrackerAccess(site string, change func(*config.TrackerAccess)) error {

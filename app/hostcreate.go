@@ -4,7 +4,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
@@ -127,7 +127,7 @@ func (s *HostService) CreateChange(repoPath, branch string, input NewChangeInput
 	}
 	provider := providerFor(info)
 	if provider == nil {
-		return hostapi.Change{}, errors.New("no provider for this host yet")
+		return hostapi.Change{}, &gitexec.AppError{Message: "No provider for this host yet."}
 	}
 	ctx, cancel := hostContext()
 	defer cancel()

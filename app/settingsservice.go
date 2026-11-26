@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/identity"
@@ -142,7 +141,7 @@ func (s *SettingsService) PickEditorExecutable() (string, error) {
 
 func (s *SettingsService) SetAutoFetchIntervalMinutes(minutes int) error {
 	if _, managed := policy.AutoFetchMinutes(0); managed {
-		return errors.New("background fetch is managed by organization policy")
+		return &gitexec.AppError{Message: "Background fetch is managed by organization policy."}
 	}
 	return updateConfig(func(cfg *config.Config) { cfg.AutoFetchIntervalMinutes = minutes })
 }

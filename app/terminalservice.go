@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"os"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -37,7 +36,7 @@ var terminals = terminal.NewManager()
 
 type TerminalService struct{}
 
-var errLocalCommandsOff = errors.New("turned off by organization policy")
+var errLocalCommandsOff = &gitexec.AppError{Message: "Turned off by organization policy."}
 
 func (s *TerminalService) Start(repoPath string, cols, rows int) (string, error) {
 	if policy.LocalCommandsOff() {

@@ -3,13 +3,13 @@ package app
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"os"
 	"slices"
 	"time"
 
 	"github.com/gspeager/current-client/core/board"
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/internal/config"
 	"github.com/gspeager/current-client/internal/policy"
 	"github.com/gspeager/current-client/internal/tasks"
@@ -78,7 +78,7 @@ var (
 	taskResults = tasks.NewResults()
 )
 
-var errTaskNotApproved = errors.New("this command hasn't been approved")
+var errTaskNotApproved = &gitexec.AppError{Message: "This command hasn't been approved."}
 
 type TaskService struct{}
 
@@ -168,10 +168,10 @@ func (s *TaskService) Approve(repoPath, id, seen string) error {
 	cfg := configOrDefault()
 	task, ok := tasks.Find(repoPath, customTasks(cfg, repoPath), id)
 	if !ok {
-		return errors.New("this command is no longer here")
+		return &gitexec.AppError{Message: "This command is no longer here."}
 	}
 	if tasks.Fingerprint(repoPath, task) != seen {
-		return errors.New("this command changed while it was shown. Run it again to see the new version")
+		return &gitexec.AppError{Message: "This command changed while it was shown. Run it again to see the new version."}
 	}
 	return updateConfig(func(cfg *config.Config) {
 		if cfg.TaskApprovals == nil {
@@ -193,7 +193,7 @@ func (s *TaskService) Run(repoPath, id, runID string) error {
 	cfg := configOrDefault()
 	task, ok := tasks.Find(repoPath, customTasks(cfg, repoPath), id)
 	if !ok {
-		return errors.New("this command is no longer here")
+		return &gitexec.AppError{Message: "This command is no longer here."}
 	}
 	if cfg.TaskApprovals[repoPath][id] != tasks.Fingerprint(repoPath, task) {
 		return errTaskNotApproved

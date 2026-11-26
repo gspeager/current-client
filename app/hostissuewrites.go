@@ -3,10 +3,10 @@
 package app
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
@@ -32,7 +32,7 @@ func (s *HostService) CreateIssue(repoPath string, input NewIssueInput) (hostapi
 	}
 	title := strings.TrimSpace(input.Title)
 	if title == "" {
-		return hostapi.Issue{}, errors.New("an issue needs a title")
+		return hostapi.Issue{}, &gitexec.AppError{Message: "An issue needs a title."}
 	}
 	ctx, cancel := hostContext()
 	defer cancel()
@@ -52,7 +52,7 @@ func (s *HostService) CommentOnIssue(repoPath, key, body string) (IssueDetails, 
 		return IssueDetails{}, err
 	}
 	if strings.TrimSpace(body) == "" {
-		return IssueDetails{}, errors.New("a comment needs text")
+		return IssueDetails{}, &gitexec.AppError{Message: "A comment needs text."}
 	}
 	ctx, cancel := hostContext()
 	defer cancel()
@@ -103,7 +103,7 @@ func issueWriter(repoPath string) (HostInfo, hostapi.IssueWriter, error) {
 	}
 	writer, ok := issueTrackerFor(info).(hostapi.IssueWriter)
 	if !ok {
-		return HostInfo{}, nil, errors.New("issues on this tracker are changed on the tracker itself")
+		return HostInfo{}, nil, &gitexec.AppError{Message: "Issues on this tracker are changed on the tracker itself."}
 	}
 	return info, writer, nil
 }

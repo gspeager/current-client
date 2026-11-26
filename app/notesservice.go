@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/internal/notes"
 )
 
@@ -104,7 +104,7 @@ func listNotes(repoPath string) ([]NoteInfo, error) {
 // Set writes the note, or removes it when text is empty.
 func (s *NotesService) Set(repoPath, kind, target, subject, text string) error {
 	if !slices.Contains([]string{notes.KindCommit, notes.KindBranch, notes.KindTag, notes.KindFile}, kind) {
-		return fmt.Errorf("unknown kind of note: %s", kind)
+		return &gitexec.AppError{Message: "Unknown kind of note.", Detail: kind}
 	}
 	return notes.Set(notesKey(context.Background(), repoPath), notes.Note{
 		Kind:      kind,

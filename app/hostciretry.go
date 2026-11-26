@@ -4,9 +4,9 @@ package app
 
 import (
 	"context"
-	"errors"
 	"strconv"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
@@ -19,7 +19,7 @@ func (s *HostService) RetryJob(repoPath string, pipelineID, jobID int64) ([]host
 				return retrier.RetryJob(ctx, project, job)
 			}
 		}
-		return errors.New("that job isn't in the pipeline's last job list; open the checks again")
+		return &gitexec.AppError{Message: "That job isn't in the pipeline's last job list; open the checks again."}
 	})
 }
 
@@ -37,14 +37,14 @@ func retryCI(repoPath string, pipelineID int64, retry func(context.Context, host
 	if err != nil {
 		return nil, err
 	}
-	retrier, err := capability[hostapi.CIRetrier](info, "this host's CI can't be re-run from the app")
+	retrier, err := capability[hostapi.CIRetrier](info, "This host's CI can't be re-run from the app.")
 	if err != nil {
 		return nil, err
 	}
 	key := strconv.FormatInt(pipelineID, 10)
 	cached, _, ok := cacheJobs.get(info.Hostname, repoPath, key)
 	if !ok {
-		return nil, errors.New("open the pipeline's jobs first")
+		return nil, &gitexec.AppError{Message: "Open the pipeline's jobs first."}
 	}
 	ctx, cancel := hostContext()
 	defer cancel()
