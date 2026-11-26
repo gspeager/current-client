@@ -242,6 +242,7 @@ describe('QuickSwitchPalette Workspace actions', () => {
       'Reflog',
       'Bisect',
       'Apply patch…',
+      'Git hooks',
     ])
     for (const name of sidebar) expect(options).toContain(name)
     expect(options).toContain('Check integrity')

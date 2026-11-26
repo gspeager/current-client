@@ -25,6 +25,7 @@ func Services() []application.Service {
 		application.NewService(&ContributorsService{}),
 		application.NewService(&ConflictService{}),
 		application.NewService(&ReflogService{}),
+		application.NewService(&HookService{}),
 		application.NewService(&BisectService{}),
 		application.NewService(&PatchService{}),
 		application.NewService(&ActivityService{}),
