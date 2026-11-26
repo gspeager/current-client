@@ -12,7 +12,7 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
-// hostInboxRows reads the cache only: review requests waiting on the user,
+// hostInboxRows is the review requests waiting on the user,
 // their own changes with changes requested or failing CI, the issues
 // assigned to them and the host's to-dos about this project, each with the
 // age of the refresh that brought it. notice is what kept the to-dos from
@@ -45,9 +45,9 @@ func hostInboxRows(repoPath string) (rows []InboxRow, enabled bool, fetchedAt *t
 			}
 		}
 	}
-	if cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheAssigned, info.Project); ok {
+	if cached, at, ok := cacheAssigned.get(info.Hostname, repoPath, info.Project); ok {
 		fetched := at
-		for _, issue := range cached.([]hostapi.Issue) {
+		for _, issue := range cached {
 			rows = append(rows, InboxRow{ID: "assigned:" + issue.Key, Kind: "assigned", Key: issue.Key, Title: issue.Title, Detail: issueBranchState(repoPath, info, list, issue.Key), WebURL: issue.WebURL, FetchedAt: &fetched})
 		}
 	}
@@ -120,6 +120,6 @@ func refreshAssignedIssues(ctx context.Context, provider hostapi.Provider, info 
 	if err != nil {
 		return
 	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheAssigned, info.Project, issues)
-	rememberIssueTitles(info, repoPath, issues)
+	cacheAssigned.put(info.Hostname, repoPath, info.Project, issues)
+	issueSourceOf(info).remember(repoPath, issues)
 }

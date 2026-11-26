@@ -9,7 +9,7 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
-// standupHost reads the cache only: the open list a refresh brought, the
+// standupHost is built from the open list a refresh brought, the
 // Closed list if it was opened, and changes merged from the app. Opened is
 // the user's open changes updated since; the host gives no time a review
 // was left, so Reviewed is the changes updated since on which the user's

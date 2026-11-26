@@ -37,19 +37,17 @@ type ForecastReport struct {
 }
 
 const (
-	cacheForecast = "forecast"
 	// forecastCap bounds the heads fetched and merged per refresh, newest first.
 	forecastCap = 20
 )
 
-// Forecast reads the cache only.
 func (s *HostService) Forecast(repoPath string) (ForecastReport, error) {
 	_, info, ok, err := enabledHost(repoPath)
 	if err != nil || !ok {
 		return ForecastReport{}, err
 	}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheForecast, "current"); ok {
-		return cached.(ForecastReport), nil
+	if cached, _, ok := cacheForecast.get(info.Hostname, repoPath, "current"); ok {
+		return cached, nil
 	}
 	return ForecastReport{Enabled: true, Conflicts: []ForecastConflict{}}, nil
 }
@@ -125,5 +123,5 @@ func refreshForecast(ctx context.Context, info HostInfo, repoPath, remote string
 			WebURL:       change.WebURL,
 		})
 	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheForecast, "current", report)
+	cacheForecast.put(info.Hostname, repoPath, "current", report)
 }

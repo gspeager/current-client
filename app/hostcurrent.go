@@ -30,7 +30,6 @@ type CurrentChange struct {
 	FailedJobs []string      `json:"failedJobs"`
 }
 
-// CurrentChange reads the cache only.
 func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 	_, info, ok, err := enabledHost(repoPath)
 	if err != nil {
@@ -44,7 +43,7 @@ func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 	if !result.Enabled {
 		return result, nil
 	}
-	_, _, result.Checked = hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project)
+	_, _, result.Checked = cacheChanges.get(info.Hostname, repoPath, info.Project)
 	var change BranchChange
 	if current.Upstream != "" {
 		changes, err := s.BranchChanges(repoPath)
@@ -58,11 +57,11 @@ func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 		return result, nil
 	}
 	result.Change = &change
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, change.HeadSHA); ok {
-		if mark := cached.(CIMark); mark.Status != "" {
+	if cached, _, ok := cachePipeline.get(info.Hostname, repoPath, change.HeadSHA); ok {
+		if mark := cached; mark.Status != "" {
 			result.CI = &mark
-			if jobs, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheJobs, strconv.FormatInt(mark.PipelineID, 10)); ok {
-				for _, job := range jobs.([]hostapi.Job) {
+			if jobs, _, ok := cacheJobs.get(info.Hostname, repoPath, strconv.FormatInt(mark.PipelineID, 10)); ok {
+				for _, job := range jobs {
 					if job.Status == hostapi.CIFailed {
 						result.FailedJobs = append(result.FailedJobs, job.Name)
 					}
@@ -123,13 +122,13 @@ func fetchCurrentBranchJobs(ctx context.Context, provider hostapi.Provider, info
 		if change.SourceBranch != branch || change.SourceProject != "" || change.CI != hostapi.CIFailed {
 			continue
 		}
-		cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, change.HeadSHA)
+		cached, _, ok := cachePipeline.get(info.Hostname, repoPath, change.HeadSHA)
 		if !ok {
 			return
 		}
-		mark := cached.(CIMark)
+		mark := cached
 		if jobs, err := provider.Jobs(ctx, info.Project, mark.PipelineID); err == nil {
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheJobs, strconv.FormatInt(mark.PipelineID, 10), jobs)
+			cacheJobs.put(info.Hostname, repoPath, strconv.FormatInt(mark.PipelineID, 10), jobs)
 		}
 		return
 	}

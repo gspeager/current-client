@@ -26,7 +26,7 @@ func TestMyIssuesComeFromTheCacheWithTheirBranch(t *testing.T) {
 		t.Fatalf("before a refresh: on, one source not yet read, no issues; got %+v", before)
 	}
 
-	hostClient.Cache.Put(info.Hostname, repo, cacheAssigned, info.Project, []hostapi.Issue{
+	cacheAssigned.put(info.Hostname, repo, info.Project, []hostapi.Issue{
 		{Key: "12", Number: 12, Title: "Login fails"},
 		{Key: "14", Number: 14, Title: "Slow start"},
 	})

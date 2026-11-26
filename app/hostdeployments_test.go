@@ -83,13 +83,13 @@ func TestMergedWorkNotOnProductionYet(t *testing.T) {
 	remote, info, _, _ := primaryHost(repo)
 	me := hostapi.User{Username: "me"}
 	recent := time.Now().Add(-time.Hour)
-	hostClient.Cache.Put(info.Hostname, repo, cacheUser, remote.Name, me)
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{nil, false})
-	hostClient.Cache.Put(info.Hostname, repo, cacheClosed, info.Project, cachedChanges{[]hostapi.Change{
+	cacheUser.put(info.Hostname, repo, remote.Name, me)
+	cacheChanges.put(info.Hostname, repo, info.Project, cachedChanges{nil, false})
+	cacheClosed.put(info.Hostname, repo, info.Project, cachedChanges{[]hostapi.Change{
 		{Number: 7, Title: "Deployed one", Author: me, State: hostapi.ChangeMerged, MergeCommitSHA: deployed, UpdatedAt: recent},
 		{Number: 8, Title: "Waiting one", Author: me, State: hostapi.ChangeMerged, MergeCommitSHA: waiting, UpdatedAt: recent},
 	}, false})
-	hostClient.Cache.Put(info.Hostname, repo, cacheDeployments, info.Project, []hostapi.Deployment{{Environment: "production", SHA: deployed, Production: true}})
+	cacheDeployments.put(info.Hostname, repo, info.Project, []hostapi.Deployment{{Environment: "production", SHA: deployed, Production: true}})
 
 	var inbox InboxService
 	var undeployed []InboxRow

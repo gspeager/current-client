@@ -3,11 +3,22 @@
 package app
 
 import (
+	"errors"
+
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/github"
 	"github.com/gspeager/current-client/core/hostapi/gitlab"
 	"github.com/gspeager/current-client/core/hostlink"
 )
+
+// capability is the host's provider as T, or an error saying what the host can't do.
+func capability[T any](info HostInfo, cannot string) (T, error) {
+	found, ok := providerFor(info).(T)
+	if !ok {
+		return found, errors.New(cannot)
+	}
+	return found, nil
+}
 
 func issueTrackerFor(info HostInfo) hostapi.IssueTracker {
 	if tracker, ok := providerFor(info).(hostapi.IssueTracker); ok {

@@ -75,7 +75,7 @@ func (s *HostService) reviewWrite(repoPath string, number int, verdict bool, wri
 	if err != nil {
 		return ReviewThreads{}, err
 	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheThreads, strconv.Itoa(change.Number), threads)
+	cacheThreads.put(info.Hostname, repoPath, strconv.Itoa(change.Number), threads)
 	var reviews []hostapi.Review
 	if verdict {
 		reviews, _ = provider.Reviews(ctx, info.Project, change)
@@ -90,11 +90,11 @@ func (s *HostService) reviewWrite(repoPath string, number int, verdict bool, wri
 }
 
 func updateOpenChange(info HostInfo, repoPath string, number int, update func(*hostapi.Change)) {
-	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project)
+	cached, _, ok := cacheChanges.get(info.Hostname, repoPath, info.Project)
 	if !ok {
 		return
 	}
-	open := cached.(cachedChanges)
+	open := cached
 	changes := make([]hostapi.Change, len(open.changes))
 	copy(changes, open.changes)
 	for i := range changes {
@@ -102,5 +102,5 @@ func updateOpenChange(info HostInfo, repoPath string, number int, update func(*h
 			update(&changes[i])
 		}
 	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, open.truncated})
+	cacheChanges.put(info.Hostname, repoPath, info.Project, cachedChanges{changes, open.truncated})
 }

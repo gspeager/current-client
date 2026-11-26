@@ -29,11 +29,11 @@ func TestStandupHostRowsComeFromTheCacheAlone(t *testing.T) {
 		{Number: 4, Title: "Bob's, asked", Author: bob, State: hostapi.ChangeOpen, UpdatedAt: recent, Reviews: []hostapi.Review{{Reviewer: me, State: hostapi.ReviewRequested}}},
 	}
 	closed := []hostapi.Change{{Number: 5, Title: "Mine, merged", Author: me, State: hostapi.ChangeMerged, UpdatedAt: recent}}
-	hostClient.Cache.Put(info.Hostname, repo, cacheUser, remote.Name, me)
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{open, false})
-	hostClient.Cache.Put(info.Hostname, repo, cacheClosed, info.Project, cachedChanges{closed, false})
+	cacheUser.put(info.Hostname, repo, remote.Name, me)
+	cacheChanges.put(info.Hostname, repo, info.Project, cachedChanges{open, false})
+	cacheClosed.put(info.Hostname, repo, info.Project, cachedChanges{closed, false})
 	merged := hostapi.Change{Number: 6, Title: "Merged here", Author: me, State: hostapi.ChangeMerged, UpdatedAt: recent.Add(time.Hour)}
-	hostClient.Cache.Put(info.Hostname, repo, cacheMergedChange, strconv.Itoa(merged.Number), merged)
+	cacheMergedChange.put(info.Hostname, repo, strconv.Itoa(merged.Number), merged)
 
 	var inbox InboxService
 	repos, err := inbox.Standup([]string{repo}, since.Format(time.RFC3339))

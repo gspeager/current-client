@@ -70,10 +70,10 @@ func TestChangesPanelIsAbsentUntilTheHostIsOn(t *testing.T) {
 		t.Fatalf("enabled but not refreshed: %+v, %v", list, err)
 	}
 
-	hostClient.Cache.Put("gitlab.example.com", repo, cacheChanges, "group/app", cachedChanges{changes: []hostapi.Change{
+	cacheChanges.put("gitlab.example.com", repo, "group/app", cachedChanges{changes: []hostapi.Change{
 		{Number: 7, Title: "Add the thing", Description: "See [the issue](/group/app/-/issues/4) <script>x()</script>", SourceBranch: "feature", Author: hostapi.User{Username: "ada"}},
 	}, truncated: true})
-	hostClient.Cache.Put("gitlab.example.com", repo, cacheUser, "origin", hostapi.User{Username: "ada"})
+	cacheUser.put("gitlab.example.com", repo, "origin", hostapi.User{Username: "ada"})
 	list, _ = s.Changes(repo)
 	if list.FetchedAt == nil || !list.Truncated || list.Me != "ada" || len(list.Changes) != 1 {
 		t.Fatalf("after a refresh: %+v", list)
@@ -103,7 +103,7 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	hostClient.Cache.Put(hostname, repo, cacheChanges, "group/app", cachedChanges{changes: []hostapi.Change{
+	cacheChanges.put(hostname, repo, "group/app", cachedChanges{changes: []hostapi.Change{
 		{Number: 3, SourceBranch: "feature", HeadSHA: headSHA},
 		{Number: 4, SourceBranch: "fix", SourceProject: "someone/app", HeadSHA: headSHA},
 	}})
@@ -172,7 +172,7 @@ func TestChangeDependencySummariesReadsOnlyWhatIsHere(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	hostClient.Cache.Put(hostname, repo, cacheChanges, "group/app", cachedChanges{changes: []hostapi.Change{
+	cacheChanges.put(hostname, repo, "group/app", cachedChanges{changes: []hostapi.Change{
 		{Number: 3, TargetBranch: "main", HeadSHA: headSHA},
 	}})
 	files := []hostapi.ChangeFile{{Path: "package.json"}, {Path: "README.md"}}

@@ -34,7 +34,7 @@ func TestMergedBranchesNamesTheHostChangeAndFlagsNewerCommits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hostClient.Cache.Put(info.Hostname, repo, cacheRemoteRefs, "origin", git.RemoteChanges{Kind: git.MergeRequestRefs, ByBranch: map[string]int{"kept": 8}})
+	cacheRemoteRefs.put(info.Hostname, repo, "origin", git.RemoteChanges{Kind: git.MergeRequestRefs, ByBranch: map[string]int{"kept": 8}})
 	lastOpen := []hostapi.Change{{Number: 7, State: hostapi.ChangeOpen, SourceBranch: "feature"}}
 
 	refreshMergedChanges(context.Background(), providerFor(info), info, repo, "origin", lastOpen, nil)

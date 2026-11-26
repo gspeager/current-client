@@ -183,7 +183,6 @@ type MergedBranches struct {
 	Branches []MergedBranchInfo `json:"branches"`
 }
 
-// MergedBranches makes no request: the host's part comes from the cache.
 func (s *BranchService) MergedBranches(repoPath string) (MergedBranches, error) {
 	ctx := context.Background()
 	report, err := git.MergedBranches(ctx, repoPath)
@@ -254,7 +253,6 @@ type BranchReviewInfo struct {
 	Rows []BranchReviewRowInfo `json:"rows"`
 }
 
-// ReviewBranches makes no request: the host's part comes from the cache.
 func (s *BranchService) ReviewBranches(repoPath string) (BranchReviewInfo, error) {
 	review, err := git.ReviewBranches(context.Background(), repoPath)
 	if err != nil {

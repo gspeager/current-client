@@ -43,9 +43,6 @@ type ReviewThreads struct {
 	Total      int            `json:"total"`
 }
 
-const cacheThreads = "threads"
-
-// ReviewThreads reads the cache only.
 func (s *HostService) ReviewThreads(repoPath string) (ReviewThreads, error) {
 	current, err := s.CurrentChange(repoPath)
 	if err != nil || !current.Enabled {
@@ -86,8 +83,8 @@ func currentThreads(repoPath string, current CurrentChange, keep func(path strin
 		return renderThreads(info, 0, nil)
 	}
 	var threads []hostapi.Thread
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheThreads, strconv.Itoa(current.Change.Number)); ok {
-		for _, thread := range cached.([]hostapi.Thread) {
+	if cached, _, ok := cacheThreads.get(info.Hostname, repoPath, strconv.Itoa(current.Change.Number)); ok {
+		for _, thread := range cached {
 			if thread.Path == "" || keep(thread.Path) {
 				threads = append(threads, thread)
 			}
@@ -162,7 +159,7 @@ func fillCurrentBranchThreads(ctx context.Context, provider hostapi.Provider, in
 		if err != nil {
 			return
 		}
-		hostClient.Cache.Put(info.Hostname, repoPath, cacheThreads, strconv.Itoa(change.Number), threads)
+		cacheThreads.put(info.Hostname, repoPath, strconv.Itoa(change.Number), threads)
 		change.UnresolvedThreads = unresolvedCount(threads)
 		return
 	}

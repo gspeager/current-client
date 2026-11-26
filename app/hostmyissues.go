@@ -13,7 +13,6 @@ import (
 
 // cacheProjectIssues is the project's open or closed issues, keyed "open"
 // or "closed", asked when that filter is chosen and kept until a refresh.
-const cacheProjectIssues = "projectIssues"
 
 // IssueList is the Issues tab's list: the issues on the repository's host
 // and on its tracker.
@@ -57,15 +56,15 @@ func issueServices(repoPath string) []issueService {
 	return services
 }
 
-// MyIssues reads the cache only; Refresh fills it, so opening the tab asks
-// nothing until the user, or the tab's first open, refreshes.
+// MyIssues is what Refresh brought, so opening the tab asks nothing until the
+// user, or the tab's first open, refreshes.
 func (s *HostService) MyIssues(repoPath string) IssueList {
 	return listIssues(repoPath, func(svc issueService) ([]hostapi.Issue, *time.Time, error) {
-		cached, at, ok := hostClient.Cache.Get(svc.name, repoPath, cacheAssigned, svc.assignedID)
+		cached, at, ok := cacheAssigned.get(svc.name, repoPath, svc.assignedID)
 		if !ok {
 			return nil, nil, nil
 		}
-		return cached.([]hostapi.Issue), &at, nil
+		return cached, &at, nil
 	})
 }
 
@@ -91,7 +90,7 @@ func (s *HostService) ProjectIssues(repoPath string, open bool) (IssueList, erro
 			failed = err
 			return nil, nil, err
 		}
-		_, at, _ := hostClient.Cache.Get(svc.name, repoPath, cacheProjectIssues, state)
+		_, at, _ := cacheProjectIssues.get(svc.name, repoPath, state)
 		return issues, &at, nil
 	})
 	return list, failed

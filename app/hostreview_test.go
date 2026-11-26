@@ -33,7 +33,7 @@ func TestReviewWritesRefreshTheThreadsAndReviews(t *testing.T) {
 	}, hits: map[string]int{}}
 	swapHostClient(t, transport)
 	change := hostapi.Change{Number: 7, SourceBranch: "feature", TargetBranch: "main", HeadSHA: "h", State: hostapi.ChangeOpen, UnresolvedThreads: 1}
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{[]hostapi.Change{change}, false})
+	cacheChanges.put(info.Hostname, repo, info.Project, cachedChanges{[]hostapi.Change{change}, false})
 	var s HostService
 
 	if caps, err := s.ReviewCapabilities(repo); err != nil || !caps.Reply || !caps.Resolve || caps.RequestChanges {

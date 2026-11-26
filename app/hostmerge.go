@@ -4,7 +4,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -43,7 +42,7 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 	if err != nil {
 		return MergeReadiness{}, err
 	}
-	_, fetchedAt, _ := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project)
+	_, fetchedAt, _ := cacheChanges.get(info.Hostname, repoPath, info.Project)
 	facts := []ReadinessFact{}
 	add := func(label, value, level string) { facts = append(facts, ReadinessFact{label, value, level}) }
 	if change.Draft {
@@ -86,8 +85,8 @@ func (s *HostService) MergeReadiness(repoPath string, number int) (MergeReadines
 	} else {
 		add("Base branch", "up to date with "+change.TargetBranch, "ok")
 	}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRules, "all"); ok {
-		if rule, ok := hostapi.MatchRule(cached.([]hostapi.BranchRule), change.TargetBranch); ok {
+	if cached, _, ok := cacheRules.get(info.Hostname, repoPath, "all"); ok {
+		if rule, ok := hostapi.MatchRule(cached, change.TargetBranch); ok {
 			value := "protected; the host applies its rules on merge"
 			if rule.Pattern != change.TargetBranch {
 				value += " (rule " + rule.Pattern + ")"
@@ -143,9 +142,9 @@ func (s *HostService) MergeOptions(repoPath string, number int) (hostapi.MergeOp
 	if err != nil {
 		return hostapi.MergeOptions{}, err
 	}
-	merger, ok := providerFor(info).(hostapi.Merger)
-	if !ok {
-		return hostapi.MergeOptions{}, errors.New("this host can't merge from the app")
+	merger, err := capability[hostapi.Merger](info, "this host can't merge from the app")
+	if err != nil {
+		return hostapi.MergeOptions{}, err
 	}
 	ctx, cancel := hostContext()
 	defer cancel()
@@ -160,9 +159,9 @@ func (s *HostService) MergeChange(repoPath string, number int, method string, de
 	if err != nil {
 		return MergeResult{}, err
 	}
-	merger, ok := providerFor(info).(hostapi.Merger)
-	if !ok {
-		return MergeResult{}, errors.New("this host can't merge from the app")
+	merger, err := capability[hostapi.Merger](info, "this host can't merge from the app")
+	if err != nil {
+		return MergeResult{}, err
 	}
 	ctx, cancel := hostContext()
 	defer cancel()
@@ -170,16 +169,16 @@ func (s *HostService) MergeChange(repoPath string, number int, method string, de
 		return MergeResult{}, err
 	}
 	change.State = hostapi.ChangeMerged
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheMergedChange, strconv.Itoa(number), change)
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project); ok {
-		open := cached.(cachedChanges)
+	cacheMergedChange.put(info.Hostname, repoPath, strconv.Itoa(number), change)
+	if cached, _, ok := cacheChanges.get(info.Hostname, repoPath, info.Project); ok {
+		open := cached
 		kept := open.changes[:0:0]
 		for _, c := range open.changes {
 			if c.Number != number {
 				kept = append(kept, c)
 			}
 		}
-		hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{kept, open.truncated})
+		cacheChanges.put(info.Hostname, repoPath, info.Project, cachedChanges{kept, open.truncated})
 	}
 	result := MergeResult{Number: number, SourceBranch: change.SourceBranch}
 	if change.SourceProject == "" {

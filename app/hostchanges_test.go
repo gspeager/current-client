@@ -20,10 +20,10 @@ func TestBranchChangesReadOnlyTheCache(t *testing.T) {
 	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
 	var s HostService
 
-	hostClient.Cache.Put("gitlab.example.com", repo, cacheRemoteRefs, "origin", git.RemoteChanges{
+	cacheRemoteRefs.put("gitlab.example.com", repo, "origin", git.RemoteChanges{
 		Kind: git.MergeRequestRefs, ByBranch: map[string]int{"feature": 7, "older": 9},
 	})
-	hostClient.Cache.Put("gitlab.example.com", repo, cacheChanges, "group/app", cachedChanges{changes: []hostapi.Change{
+	cacheChanges.put("gitlab.example.com", repo, "group/app", cachedChanges{changes: []hostapi.Change{
 		{Number: 7, Title: "Add the thing", State: hostapi.ChangeOpen, Draft: true, SourceBranch: "feature", CI: hostapi.CIFailed, Author: hostapi.User{Name: "Ada"}, WebURL: "https://gitlab.example.com/group/app/-/merge_requests/7"},
 		{Number: 8, Title: "From a fork", State: hostapi.ChangeOpen, SourceBranch: "feature", SourceProject: "someone/app"},
 	}})

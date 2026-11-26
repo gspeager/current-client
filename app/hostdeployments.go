@@ -11,8 +11,6 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
-const cacheDeployments = "deployments"
-
 // EnvironmentInfo is an environment's latest deployment and whether its
 // commit is in this repository, which Git needs to say what it contains.
 type EnvironmentInfo struct {
@@ -45,7 +43,7 @@ func refreshDeployments(ctx context.Context, provider hostapi.Provider, info Hos
 		return
 	}
 	if deployments, err := deployer.Deployments(ctx, info.Project); err == nil {
-		hostClient.Cache.Put(info.Hostname, repoPath, cacheDeployments, info.Project, deployments)
+		cacheDeployments.put(info.Hostname, repoPath, info.Project, deployments)
 	}
 }
 
@@ -54,11 +52,11 @@ func cachedDeployments(repoPath string) ([]hostapi.Deployment, *time.Time, bool)
 	if err != nil || !ok {
 		return nil, nil, false
 	}
-	cached, at, found := hostClient.Cache.Get(info.Hostname, repoPath, cacheDeployments, info.Project)
+	cached, at, found := cacheDeployments.get(info.Hostname, repoPath, info.Project)
 	if !found {
 		return nil, nil, true
 	}
-	return cached.([]hostapi.Deployment), &at, true
+	return cached, &at, true
 }
 
 // Deployments reads the cache and Git only.

@@ -25,8 +25,8 @@ func TestReleaseReadinessHostRowsComeFromTheCache(t *testing.T) {
 	if c := checkNamed(t, r, "CI on the candidate"); c.Level != "unknown" {
 		t.Errorf("CI before a refresh = %+v", c)
 	}
-	hostClient.Cache.Put(info.Hostname, repo, cachePipeline, sha, CIMark{Status: "failed", PipelineID: 4})
-	hostClient.Cache.Put(info.Hostname, repo, cacheRules, "all", []hostapi.BranchRule{{Pattern: "ma*", NoForcePush: true, NoDelete: true}})
+	cachePipeline.put(info.Hostname, repo, sha, CIMark{Status: "failed", PipelineID: 4})
+	cacheRules.put(info.Hostname, repo, "all", []hostapi.BranchRule{{Pattern: "ma*", NoForcePush: true, NoDelete: true}})
 	r, _ = s.ReleaseReadiness(repo, "", "0.1.0", "main")
 	if c := checkNamed(t, r, "CI on the candidate"); c.Level != "warn" || c.Value != "Failed" || c.AsOf == nil {
 		t.Errorf("CI = %+v", c)

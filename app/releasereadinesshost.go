@@ -8,8 +8,8 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
-// releaseHostChecks reads the cache only: the candidate's pipeline and the
-// target's protection, as the last refresh left them.
+// releaseHostChecks is the candidate's pipeline and the target's protection,
+// as the last refresh left them.
 func releaseHostChecks(repoPath, sha, target string) []ReleaseCheck {
 	ci := ReleaseCheck{Label: "CI on the candidate"}
 	protection := ReleaseCheck{Label: "Protection on " + target}
@@ -19,8 +19,8 @@ func releaseHostChecks(repoPath, sha, target string) []ReleaseCheck {
 		protection.Level, protection.Value = "unknown", "Host integration is off"
 		return []ReleaseCheck{ci, protection}
 	}
-	if cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, sha); ok {
-		mark := cached.(CIMark)
+	if cached, at, ok := cachePipeline.get(info.Hostname, repoPath, sha); ok {
+		mark := cached
 		ci.AsOf = &at
 		switch hostapi.CIStatus(mark.Status) {
 		case hostapi.CISuccess:
@@ -35,13 +35,13 @@ func releaseHostChecks(repoPath, sha, target string) []ReleaseCheck {
 	} else {
 		ci.Level, ci.Value = "unknown", "Not fetched; refresh, or show the commit in History"
 	}
-	cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRules, "all")
+	cached, at, ok := cacheRules.get(info.Hostname, repoPath, "all")
 	switch {
 	case !ok:
 		protection.Level, protection.Value = "unknown", "Not fetched; refresh"
 	default:
 		protection.AsOf = &at
-		rule, matched := hostapi.MatchRule(cached.([]hostapi.BranchRule), target)
+		rule, matched := hostapi.MatchRule(cached, target)
 		if !matched {
 			protection.Level, protection.Value = "warn", "The last refresh found no rule for "+target
 			break

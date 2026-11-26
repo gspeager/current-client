@@ -29,9 +29,9 @@ func TestInboxHostRowsComeFromTheCacheAlone(t *testing.T) {
 		{Number: 4, Title: "Fix login", SourceBranch: "12-fix-login", Author: bob, CI: hostapi.CIFailed},
 		{Number: 5, Title: "Nothing for me", SourceBranch: "other", Author: bob},
 	}
-	hostClient.Cache.Put(info.Hostname, repo, cacheUser, remote.Name, me)
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{changes, false})
-	hostClient.Cache.Put(info.Hostname, repo, cacheAssigned, info.Project, []hostapi.Issue{{Key: "12", Number: 12, Title: "Login fails", WebURL: "https://gitlab.example.com/group/app/-/issues/12"}})
+	cacheUser.put(info.Hostname, repo, remote.Name, me)
+	cacheChanges.put(info.Hostname, repo, info.Project, cachedChanges{changes, false})
+	cacheAssigned.put(info.Hostname, repo, info.Project, []hostapi.Issue{{Key: "12", Number: 12, Title: "Login fails", WebURL: "https://gitlab.example.com/group/app/-/issues/12"}})
 
 	var inbox InboxService
 	if n := inbox.Unseen([]string{repo}); n != 4 {
@@ -51,7 +51,7 @@ func TestInboxHostRowsComeFromTheCacheAlone(t *testing.T) {
 		t.Fatalf("Unseen after the Inbox showed them = %d, want 0", n)
 	}
 	changes = append(changes, hostapi.Change{Number: 6, Title: "Another for me", SourceBranch: "six", Author: bob, Reviews: []hostapi.Review{{Reviewer: me, State: hostapi.ReviewRequested}}})
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{changes, false})
+	cacheChanges.put(info.Hostname, repo, info.Project, cachedChanges{changes, false})
 	if n := inbox.Unseen([]string{repo}); n != 1 {
 		t.Fatalf("Unseen after a refresh brought one more = %d, want 1", n)
 	}

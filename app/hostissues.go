@@ -11,7 +11,6 @@ import (
 
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostcontent"
-	"github.com/gspeager/current-client/core/hostlink"
 )
 
 // IssueInfo is what a hover card shows for an issue reference. Title is
@@ -28,11 +27,7 @@ type IssueInfo struct {
 }
 
 const (
-	cacheIssue         = "issue"
-	cacheAssigned      = "assigned"
-	cacheIssueDetails  = "issueDetails"
-	cacheIssueComments = "issueComments"
-	issueBatchCap      = 50
+	issueBatchCap = 50
 )
 
 // IssueDetails is the issue panel: the issue with its description rendered,
@@ -62,8 +57,7 @@ func (s *HostService) IssueDetails(repoPath, key string) (IssueDetails, error) {
 	issue, err := cachedFrom(src.cacheHost, repoPath, cacheIssueDetails, key, func(ctx context.Context) (hostapi.IssueDetails, error) {
 		issue, err := src.tracker.IssueDetails(ctx, src.project, key)
 		if err == nil {
-			hostClient.Cache.Put(src.cacheHost, repoPath, cacheIssue, key,
-				IssueInfo{Number: issue.Number, Key: issue.Key, Title: issue.Title, State: issue.State, Status: issue.Status, WebURL: issue.WebURL, Known: true})
+			cacheIssue.put(src.cacheHost, repoPath, key, issueInfo(issue.Issue))
 		}
 		return issue, err
 	})
@@ -97,24 +91,23 @@ func issueSourceFor(repoPath, key string) (issueSource, error) {
 		if !ok {
 			return issueSource{}, errors.New("integration is off for this repository's issue tracker")
 		}
-		return issueSource{cacheHost: hostlink.SiteHost(site.Site), webRoot: site.Site, tracker: provider}, nil
+		return trackerSource(provider, site), nil
 	}
 	_, info, err := requireHost(repoPath)
 	if err != nil {
 		return issueSource{}, err
 	}
-	tracker := issueTrackerFor(info)
-	if tracker == nil {
+	src := issueSourceOf(info)
+	if src.tracker == nil {
 		return issueSource{}, errors.New("no issue tracker for this host yet")
 	}
-	_, writable := tracker.(hostapi.IssueWriter)
-	return issueSource{cacheHost: info.Hostname, project: info.Project, webRoot: webRoot(info), tracker: tracker, writable: writable}, nil
+	return src, nil
 }
 
 // cachedFrom is cachedOrFetched for any cache host, such as a tracker's.
-func cachedFrom[T any](cacheHost, repoPath, kind, key string, fetch func(context.Context) (T, error)) (T, error) {
-	if cached, _, ok := hostClient.Cache.Get(cacheHost, repoPath, kind, key); ok {
-		return cached.(T), nil
+func cachedFrom[T any](cacheHost, repoPath string, kind cacheKind[T], key string, fetch func(context.Context) (T, error)) (T, error) {
+	if cached, _, ok := kind.get(cacheHost, repoPath, key); ok {
+		return cached, nil
 	}
 	ctx, cancel := hostContext()
 	defer cancel()
@@ -123,7 +116,7 @@ func cachedFrom[T any](cacheHost, repoPath, kind, key string, fetch func(context
 		var none T
 		return none, err
 	}
-	hostClient.Cache.Put(cacheHost, repoPath, kind, key, value)
+	kind.put(cacheHost, repoPath, key, value)
 	return value, nil
 }
 
@@ -145,56 +138,110 @@ func closedIssues(description string, tracker hostapi.IssueTracker) []string {
 	return refs
 }
 
-// IssueTitles reads the cache only: what the last fetch learned about each
-// number, keyed by number.
+// IssueTitles is what the last fetch learned about each number, by number.
 func (s *HostService) IssueTitles(repoPath string, numbers []int) (map[int]IssueInfo, error) {
-	_, info, ok, err := enabledHost(repoPath)
+	src, ok, err := hostIssueSource(repoPath)
 	if err != nil || !ok {
 		return map[int]IssueInfo{}, err
 	}
-	return cachedIssues(info, repoPath, numbers), nil
+	return byNumber(src.titles(repoPath, numberKeys(numbers))), nil
 }
 
-// FetchIssueTitles asks the host for the numbers not yet known, up to the
-// batch cap, four at a time, and remembers a missing issue as known with no
-// title so it isn't asked for again until a refresh.
+// FetchIssueTitles asks the host for the numbers not yet known, as
+// issueSource.fetchTitles does.
 func (s *HostService) FetchIssueTitles(repoPath string, numbers []int) (map[int]IssueInfo, error) {
-	_, info, ok, err := enabledHost(repoPath)
-	if err != nil || !ok {
+	src, ok, err := hostIssueSource(repoPath)
+	if err != nil || !ok || src.tracker == nil {
 		return map[int]IssueInfo{}, err
 	}
-	tracker := issueTrackerFor(info)
-	if tracker == nil {
-		return map[int]IssueInfo{}, nil
+	return byNumber(src.fetchTitles(repoPath, numberKeys(numbers))), nil
+}
+
+func hostIssueSource(repoPath string) (issueSource, bool, error) {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
+		return issueSource{}, false, err
 	}
-	var missing []int
-	seen := map[int]bool{}
-	for _, number := range numbers {
-		if seen[number] {
+	return issueSourceOf(info), true, nil
+}
+
+func issueSourceOf(info HostInfo) issueSource {
+	tracker := issueTrackerFor(info)
+	_, writable := tracker.(hostapi.IssueWriter)
+	return issueSource{cacheHost: info.Hostname, project: info.Project, webRoot: webRoot(info), tracker: tracker, writable: writable}
+}
+
+func numberKeys(numbers []int) []string {
+	return mapSlice(numbers, strconv.Itoa)
+}
+
+func byNumber(issues map[string]IssueInfo) map[int]IssueInfo {
+	numbered := map[int]IssueInfo{}
+	for key, issue := range issues {
+		if number, err := strconv.Atoi(key); err == nil {
+			numbered[number] = issue
+		}
+	}
+	return numbered
+}
+
+// titles is what the cache knows about each key, by key.
+func (src issueSource) titles(repoPath string, keys []string) map[string]IssueInfo {
+	issues := map[string]IssueInfo{}
+	for _, key := range keys {
+		if cached, _, ok := cacheIssue.get(src.cacheHost, repoPath, key); ok {
+			issues[key] = cached
+		}
+	}
+	return issues
+}
+
+// fetchTitles asks for the keys not yet known, up to the batch cap, four at a
+// time, and remembers a key the tracker hasn't as known with no title, so it
+// isn't asked for again until a refresh.
+func (src issueSource) fetchTitles(repoPath string, keys []string) map[string]IssueInfo {
+	var missing []string
+	seen := map[string]bool{}
+	for _, key := range keys {
+		if seen[key] {
 			continue
 		}
-		seen[number] = true
-		if _, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number)); !ok {
-			missing = append(missing, number)
+		seen[key] = true
+		if _, _, ok := cacheIssue.get(src.cacheHost, repoPath, key); !ok {
+			missing = append(missing, key)
 		}
 	}
-	if len(missing) > issueBatchCap {
-		missing = missing[:issueBatchCap]
-	}
+	missing = missing[:min(len(missing), issueBatchCap)]
 	ctx, cancel := hostContext()
 	defer cancel()
 	inParallel(len(missing), func(i int) {
-		number := missing[i]
-		issue, err := tracker.IssueByKey(ctx, info.Project, strconv.Itoa(number))
+		key := missing[i]
+		issue, err := src.tracker.IssueByKey(ctx, src.project, key)
 		switch {
 		case err == nil:
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number),
-				IssueInfo{Number: number, Title: issue.Title, State: issue.State, WebURL: issue.WebURL, Known: true})
+			src.remember(repoPath, []hostapi.Issue{issue})
 		case hostapi.IsNotFound(err):
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number), IssueInfo{Number: number, Known: true})
+			unknown := IssueInfo{Known: true}
+			if number, err := strconv.Atoi(key); err == nil {
+				unknown.Number = number
+			} else {
+				unknown.Key = key
+			}
+			cacheIssue.put(src.cacheHost, repoPath, key, unknown)
 		}
 	})
-	return cachedIssues(info, repoPath, numbers), nil
+	return src.titles(repoPath, keys)
+}
+
+// remember keeps each issue for hover cards. A host's key is its number.
+func (src issueSource) remember(repoPath string, issues []hostapi.Issue) {
+	for _, is := range issues {
+		cacheIssue.put(src.cacheHost, repoPath, is.Key, issueInfo(is))
+	}
+}
+
+func issueInfo(is hostapi.Issue) IssueInfo {
+	return IssueInfo{Number: is.Number, Key: is.Key, Title: is.Title, State: is.State, Status: is.Status, WebURL: is.WebURL, Known: true}
 }
 
 // AssignedIssues is the issue picker's list, asked of the host when the
@@ -221,27 +268,9 @@ func (s *HostService) AssignedIssues(repoPath string) ([]hostapi.Issue, error) {
 		if err != nil {
 			return nil, err
 		}
-		rememberIssueTitles(info, repoPath, issues)
+		issueSourceOf(info).remember(repoPath, issues)
 		return issues, nil
 	})
-}
-
-// rememberIssueTitles keeps each issue for hover cards too.
-func rememberIssueTitles(info HostInfo, repoPath string, issues []hostapi.Issue) {
-	for _, is := range issues {
-		hostClient.Cache.Put(info.Hostname, repoPath, cacheIssue, strconv.Itoa(is.Number),
-			IssueInfo{Number: is.Number, Title: is.Title, State: is.State, WebURL: is.WebURL, Known: true})
-	}
-}
-
-func cachedIssues(info HostInfo, repoPath string, numbers []int) map[int]IssueInfo {
-	issues := map[int]IssueInfo{}
-	for _, number := range numbers {
-		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheIssue, strconv.Itoa(number)); ok {
-			issues[number] = cached.(IssueInfo)
-		}
-	}
-	return issues
 }
 
 // CachedPipelineJobs is a pipeline's jobs if a click already fetched them;
@@ -251,8 +280,8 @@ func (s *HostService) CachedPipelineJobs(repoPath string, pipelineID int64) ([]h
 	if err != nil || !ok {
 		return nil, err
 	}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheJobs, strconv.FormatInt(pipelineID, 10)); ok {
-		return cached.([]hostapi.Job), nil
+	if cached, _, ok := cacheJobs.get(info.Hostname, repoPath, strconv.FormatInt(pipelineID, 10)); ok {
+		return cached, nil
 	}
 	return nil, nil
 }

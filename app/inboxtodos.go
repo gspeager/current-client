@@ -4,7 +4,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"strings"
 
@@ -14,10 +13,7 @@ import (
 // The host's to-do list is account-wide, so it is cached per host (an empty
 // repository path) by project, and only the projects open in the app are
 // kept: nothing about another repository stays in memory.
-const (
-	cacheTodos       = "todos"
-	cacheTodosNotice = "todosNotice"
-)
+const ()
 
 // refreshTodos asks for the host's to-do list once per refresh and keeps the
 // to-dos about the open repositories. A host that won't list them for this
@@ -27,11 +23,11 @@ func refreshTodos(ctx context.Context, provider hostapi.Provider, info HostInfo)
 	if !ok {
 		return
 	}
-	hostClient.Cache.ClearKind(info.Hostname, "", cacheTodos)
-	hostClient.Cache.ClearKind(info.Hostname, "", cacheTodosNotice)
+	cacheTodos.clear(info.Hostname, "")
+	cacheTodosNotice.clear(info.Hostname, "")
 	todos, err := list.Todos(ctx)
 	if err != nil {
-		hostClient.Cache.Put(info.Hostname, "", cacheTodosNotice, "", err.Error())
+		cacheTodosNotice.put(info.Hostname, "", "", err.Error())
 		return
 	}
 	open := openProjects(info)
@@ -42,7 +38,7 @@ func refreshTodos(ctx context.Context, provider hostapi.Provider, info HostInfo)
 		}
 	}
 	for _, project := range open {
-		hostClient.Cache.Put(info.Hostname, "", cacheTodos, project, byProject[project])
+		cacheTodos.put(info.Hostname, "", project, byProject[project])
 	}
 }
 
@@ -62,14 +58,13 @@ func openProjects(info HostInfo) map[string]string {
 // already says, a review request or an assignment, joins that row so it can
 // be marked done from it; the rest are rows of their own.
 func todoRows(rows []InboxRow, info HostInfo, prefix string) ([]InboxRow, string) {
-	notice, _, _ := hostClient.Cache.Get(info.Hostname, "", cacheTodosNotice, "")
-	text, _ := notice.(string)
-	cached, at, ok := hostClient.Cache.Get(info.Hostname, "", cacheTodos, info.Project)
+	text, _, _ := cacheTodosNotice.get(info.Hostname, "", "")
+	cached, at, ok := cacheTodos.get(info.Hostname, "", info.Project)
 	if !ok {
 		return rows, text
 	}
 	fetched := at
-	for _, todo := range cached.([]hostapi.Todo) {
+	for _, todo := range cached {
 		if i := rowSaying(rows, todo); i >= 0 {
 			rows[i].TodoID = todo.ID
 			// A mention on an issue you're assigned is that issue's row too,
@@ -110,23 +105,23 @@ func markTodoDone(repoPath, todoID string) error {
 	if err != nil {
 		return err
 	}
-	list, ok := providerFor(info).(hostapi.TodoList)
-	if !ok {
-		return errors.New("this host keeps no to-do list")
+	list, err := capability[hostapi.TodoList](info, "this host keeps no to-do list")
+	if err != nil {
+		return err
 	}
 	ctx, cancel := hostContext()
 	defer cancel()
 	if err := list.MarkTodoDone(ctx, todoID); err != nil {
 		return err
 	}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, "", cacheTodos, info.Project); ok {
+	if cached, _, ok := cacheTodos.get(info.Hostname, "", info.Project); ok {
 		var kept []hostapi.Todo
-		for _, todo := range cached.([]hostapi.Todo) {
+		for _, todo := range cached {
 			if todo.ID != todoID {
 				kept = append(kept, todo)
 			}
 		}
-		hostClient.Cache.Put(info.Hostname, "", cacheTodos, info.Project, kept)
+		cacheTodos.put(info.Hostname, "", info.Project, kept)
 	}
 	return nil
 }
