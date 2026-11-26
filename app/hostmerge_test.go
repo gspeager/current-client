@@ -8,20 +8,21 @@ import (
 	"testing"
 
 	"github.com/gspeager/current-client/core/hostapi"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func mergeFixture(t *testing.T) (repo, head string) {
 	t.Helper()
 	repo = enabledGitLab(t)
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "base")
-	gitIn(t, repo, "switch", "-q", "-c", "feature")
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "feature")
-	head = gitOut(t, repo, "rev-parse", "HEAD")
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/feature", head)
-	gitIn(t, repo, "branch", "-q", "--set-upstream-to=origin/feature", "feature")
-	gitIn(t, repo, "switch", "-q", "main")
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "main moved on")
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/main", gitOut(t, repo, "rev-parse", "HEAD"))
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "base")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feature")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "feature")
+	head = gittest.Output(t, repo, "rev-parse", "HEAD")
+	gittest.Run(t, repo, "update-ref", "refs/remotes/origin/feature", head)
+	gittest.Run(t, repo, "branch", "-q", "--set-upstream-to=origin/feature", "feature")
+	gittest.Run(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "main moved on")
+	gittest.Run(t, repo, "update-ref", "refs/remotes/origin/main", gittest.Output(t, repo, "rev-parse", "HEAD"))
 	return repo, head
 }
 

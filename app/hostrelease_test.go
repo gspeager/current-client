@@ -6,22 +6,24 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestReleaseDraftFromTheChangelogAtTheTag(t *testing.T) {
 	repo := enabledGitLab(t)
 	commit := func(message string) {
-		gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", message)
+		gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", message)
 	}
 	commit("feat: first")
-	gitIn(t, repo, "tag", "v0.1.0")
+	gittest.Run(t, repo, "tag", "v0.1.0")
 	commit("feat: forms")
 	commit("fix: login")
-	gitIn(t, repo, "tag", "v0.2.0")
+	gittest.Run(t, repo, "tag", "v0.2.0")
 	os.WriteFile(filepath.Join(repo, "CHANGELOG.md"), []byte("# Changelog\n\n## [0.3.0] - 2026-11-01\n\n### Added\n\n- Issues.\n\n## [0.2.0]\n\n- Old.\n"), 0o644)
-	gitIn(t, repo, "add", "CHANGELOG.md")
+	gittest.Run(t, repo, "add", "CHANGELOG.md")
 	commit("docs: changelog")
-	gitIn(t, repo, "tag", "-a", "v0.3.0", "-m", "0.3.0")
+	gittest.Run(t, repo, "tag", "-a", "v0.3.0", "-m", "0.3.0")
 	var s HostService
 
 	draft, err := s.ReleaseDraft(repo, "v0.3.0")

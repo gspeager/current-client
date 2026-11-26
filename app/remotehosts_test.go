@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gspeager/current-client/core/hostapi"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // A stand-in host with one made-up pull request, counting what it's asked.
@@ -45,10 +46,10 @@ func (h madeUpHost) BranchRules(context.Context, string, []string) ([]hostapi.Br
 func TestARemoteInAFolderOnAStandInHost(t *testing.T) {
 	useTempSettings(t)
 	remote := filepath.Join(t.TempDir(), "example.git")
-	gitIn(t, filepath.Dir(remote), "init", "-q", "--bare", remote)
+	gittest.Run(t, filepath.Dir(remote), "init", "-q", "--bare", remote)
 	repo := notesRepo(t)
-	gitIn(t, repo, "remote", "add", "origin", remote)
-	gitIn(t, repo, "push", "-q", "origin", "main", "side:feat")
+	gittest.Run(t, repo, "remote", "add", "origin", remote)
+	gittest.Run(t, repo, "push", "-q", "origin", "main", "side:feat")
 
 	asked := 0
 	RegisterProvider("current.example", func(*hostapi.Client, hostapi.Host) hostapi.Provider {

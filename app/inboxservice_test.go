@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func inboxKinds(rows []InboxRow) map[string]InboxRow {
@@ -17,28 +19,28 @@ func inboxKinds(rows []InboxRow) map[string]InboxRow {
 func TestInboxLocalRowsWithEveryHostOff(t *testing.T) {
 	useTempSettings(t)
 	remote := t.TempDir()
-	gitIn(t, remote, "init", "-q", "--bare", "-b", "main")
+	gittest.Run(t, remote, "init", "-q", "--bare", "-b", "main")
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "config", "user.name", "T")
-	gitIn(t, repo, "config", "user.email", "t@example.com")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "config", "user.name", "T")
+	gittest.Run(t, repo, "config", "user.email", "t@example.com")
 	commit := func(msg, date string) {
 		t.Helper()
 		t.Setenv("GIT_COMMITTER_DATE", date)
 		t.Setenv("GIT_AUTHOR_DATE", date)
-		gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", msg)
+		gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", msg)
 	}
 	commit("initial", "2026-10-01T10:00:00Z")
-	gitIn(t, repo, "remote", "add", "origin", remote)
-	gitIn(t, repo, "push", "-q", "-u", "origin", "main")
-	gitIn(t, repo, "switch", "-q", "-c", "feature")
+	gittest.Run(t, repo, "remote", "add", "origin", remote)
+	gittest.Run(t, repo, "push", "-q", "-u", "origin", "main")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feature")
 	commit("feature work", "2026-10-02T10:00:00Z")
-	gitIn(t, repo, "branch", "-q", "--set-upstream-to=origin/main", "feature")
-	gitIn(t, repo, "switch", "-q", "-c", "old", "main")
+	gittest.Run(t, repo, "branch", "-q", "--set-upstream-to=origin/main", "feature")
+	gittest.Run(t, repo, "switch", "-q", "-c", "old", "main")
 	commit("old work", "2025-01-01T10:00:00Z")
-	gitIn(t, repo, "switch", "-q", "-c", "done", "main")
-	gitIn(t, repo, "branch", "-q", "--set-upstream-to=origin/main", "done")
-	gitIn(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "switch", "-q", "-c", "done", "main")
+	gittest.Run(t, repo, "branch", "-q", "--set-upstream-to=origin/main", "done")
+	gittest.Run(t, repo, "switch", "-q", "main")
 	if err := os.WriteFile(filepath.Join(repo, "notes.txt"), []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}

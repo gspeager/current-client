@@ -10,6 +10,7 @@ import (
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 	"github.com/gspeager/current-client/internal/policy"
 	"github.com/gspeager/current-client/internal/tasks"
 )
@@ -151,14 +152,14 @@ func taskRepo(t *testing.T) string {
 	t.Helper()
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
 	for _, setting := range [][2]string{{"user.email", "test@example.com"}, {"user.name", "Test"}, {"core.autocrlf", "false"}} {
-		gitIn(t, repo, "config", setting[0], setting[1])
+		gittest.Run(t, repo, "config", setting[0], setting[1])
 	}
 	writeIn(t, repo, "a.txt", "a\n")
 	writeIn(t, repo, ".gitignore", "ignored.txt\n")
-	gitIn(t, repo, "add", ".")
-	gitIn(t, repo, "commit", "-qm", "first")
+	gittest.Run(t, repo, "add", ".")
+	gittest.Run(t, repo, "commit", "-qm", "first")
 	var s TaskService
 	for name, command := range map[string]string{"pass": "exit 0", "fail": "exit 3", "writes": "echo x>written.txt", "ignored": "echo x>ignored.txt"} {
 		if err := s.AddCustom(repo, name, command); err != nil {
@@ -177,7 +178,7 @@ func TestAResultIsCurrentOnlyOnTheCodeItRanOn(t *testing.T) {
 		}
 	}
 	writeIn(t, repo, "new.txt", "new\n")
-	before := gitOut(t, repo, "count-objects", "-v")
+	before := gittest.Output(t, repo, "count-objects", "-v")
 	runTask(t, repo, "custom:pass")
 	expect("after it ran", tasks.StateCurrent)
 	writeIn(t, repo, "a.txt", "edited\n")
@@ -186,11 +187,11 @@ func TestAResultIsCurrentOnlyOnTheCodeItRanOn(t *testing.T) {
 	expect("after undoing it", tasks.StateCurrent)
 	writeIn(t, repo, "ignored.txt", "x\n")
 	expect("after an ignored file changed", tasks.StateCurrent)
-	if after := gitOut(t, repo, "count-objects", "-v"); after != before {
+	if after := gittest.Output(t, repo, "count-objects", "-v"); after != before {
 		t.Errorf("objects after = %s, before = %s", after, before)
 	}
-	gitIn(t, repo, "add", "new.txt")
-	gitIn(t, repo, "commit", "-qm", "new")
+	gittest.Run(t, repo, "add", "new.txt")
+	gittest.Run(t, repo, "commit", "-qm", "new")
 	expect("after committing it", tasks.StateCurrent)
 	if err := new(TaskService).AddCustom(repo, "pass", "exit 0 "); err != nil {
 		t.Fatal(err)
@@ -275,7 +276,7 @@ func TestANewWorktreeHasTheRepositorysTasksAndNoApprovals(t *testing.T) {
 		t.Fatal(err)
 	}
 	worktree := filepath.Join(t.TempDir(), "other")
-	gitIn(t, repo, "worktree", "add", "-q", "-b", "other", worktree)
+	gittest.Run(t, repo, "worktree", "add", "-q", "-b", "other", worktree)
 
 	list, err := s.List(worktree)
 	if err != nil || len(list.Tasks) != 4 || !reflect.DeepEqual(list.OnBoard, []string{"custom:pass"}) {
@@ -308,7 +309,7 @@ func TestANewWorktreeHasTheRepositorysTasksAndNoApprovals(t *testing.T) {
 func TestTheBoardShowsTheChosenTasksResults(t *testing.T) {
 	repo := taskRepo(t)
 	worktree := filepath.Join(t.TempDir(), "other")
-	gitIn(t, repo, "worktree", "add", "-q", "-b", "other", worktree)
+	gittest.Run(t, repo, "worktree", "add", "-q", "-b", "other", worktree)
 	if err := new(TaskService).SetOnBoard(repo, []string{"custom:pass", "gone:task"}); err != nil {
 		t.Fatal(err)
 	}

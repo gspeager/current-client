@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
+	"github.com/gspeager/current-client/internal/gittest"
 	"github.com/gspeager/current-client/internal/policy"
 )
 
@@ -16,7 +17,7 @@ func jiraRepo(t *testing.T) (repo, site string) {
 	t.Helper()
 	useTempSettings(t)
 	repo = t.TempDir()
-	gitIn(t, repo, "init", "-q")
+	gittest.Run(t, repo, "init", "-q")
 	var s TrackerService
 	added, err := s.Add("https://example.atlassian.net", "jira-cloud", []string{"PROJ"})
 	if err != nil {

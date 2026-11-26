@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func linesByPath(t *testing.T, dir, rev string) map[string]FileLines {
@@ -57,10 +57,8 @@ func TestLineCounts(t *testing.T) {
 
 func commitDaysAgo(t *testing.T, dir string, daysAgo int, name string) {
 	t.Helper()
-	when := time.Now().Add(-time.Duration(daysAgo) * 24 * time.Hour).Format(time.RFC3339)
-	t.Setenv("GIT_COMMITTER_DATE", when)
-	t.Setenv("GIT_AUTHOR_DATE", when)
-	gittest.CommitFile(t, dir, name, when+name, "change "+name)
+	when := gittest.DaysAgo(daysAgo)
+	gittest.CommitAt(t, dir, name, when+name, "change "+name, when)
 }
 
 func TestFileCommitsOverPeriods(t *testing.T) {

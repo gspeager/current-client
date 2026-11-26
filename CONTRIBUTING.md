@@ -53,7 +53,7 @@ wails3 task notices:check
 wails3 task api:check
 ```
 
-Add tests with your change: Go unit tests for parsing and logic, integration tests against real temporary Git repositories (never a hosted account), and component tests for UI behavior. Tests in `core/` share their Git helpers through `core/internal/gittest`.
+Add tests with your change: Go unit tests for parsing and logic, integration tests against real temporary Git repositories (never a hosted account), and component tests for UI behavior. Tests share their Git helpers through `internal/gittest`, the one `internal/` package `core/`'s tests may import, since tests aren't built into `core/`.
 
 ## How the code is organized
 

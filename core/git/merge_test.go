@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/gspeager/current-client/core/gitexec"
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestMergeBranchFastForward(t *testing.T) {

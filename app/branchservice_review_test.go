@@ -6,12 +6,14 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestReviewBranchesFlagsAndUndo(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
 	commit := func(date, message string) {
 		cmd := exec.Command("git", "-C", repo, "-c", "user.name=Ada", "-c", "user.email=ada@example.com", "commit", "-q", "--allow-empty", "-m", message)
 		cmd.Env = append(cmd.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
@@ -21,15 +23,15 @@ func TestReviewBranchesFlagsAndUndo(t *testing.T) {
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	commit("2020-01-01T00:00:00Z", "first")
-	gitIn(t, repo, "branch", "stale-one")
+	gittest.Run(t, repo, "branch", "stale-one")
 	commit(now, "second")
-	gitIn(t, repo, "switch", "-q", "-c", "unpushed")
+	gittest.Run(t, repo, "switch", "-q", "-c", "unpushed")
 	if err := os.WriteFile(filepath.Join(repo, "new.txt"), []byte("new\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	gitIn(t, repo, "add", "new.txt")
+	gittest.Run(t, repo, "add", "new.txt")
 	commit(now, "third")
-	gitIn(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "switch", "-q", "main")
 
 	var s BranchService
 	review, err := s.ReviewBranches(repo)
@@ -57,7 +59,7 @@ func TestReviewBranchesFlagsAndUndo(t *testing.T) {
 	if err := s.CreateBranchAt(repo, "unpushed", tip); err != nil {
 		t.Fatal(err)
 	}
-	if got := gitOut(t, repo, "rev-parse", "unpushed"); got != tip {
+	if got := gittest.Output(t, repo, "rev-parse", "unpushed"); got != tip {
 		t.Fatalf("restored at %s, want %s", got, tip)
 	}
 }

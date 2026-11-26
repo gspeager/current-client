@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func exploreRepo(t *testing.T) string {
@@ -17,20 +19,20 @@ func exploreRepo(t *testing.T) string {
 	} {
 		writeIn(t, repo, name, content)
 	}
-	gitIn(t, repo, "add", "-A")
-	gitIn(t, repo, "commit", "-q", "-m", "files")
-	gitIn(t, repo, "tag", "v2")
-	gitIn(t, repo, "switch", "-q", "-c", "feat")
+	gittest.Run(t, repo, "add", "-A")
+	gittest.Run(t, repo, "commit", "-q", "-m", "files")
+	gittest.Run(t, repo, "tag", "v2")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feat")
 	writeIn(t, repo, "edited.go", "package a\n\nvar A = 2\nvar B = 3\n")
 	writeIn(t, repo, "added.go", "new here\n")
 	writeIn(t, repo, "clash.txt", "theirs\n")
-	gitIn(t, repo, "mv", "moved.go", "elsewhere.go")
-	gitIn(t, repo, "rm", "-q", "gone.go")
-	gitIn(t, repo, "add", "-A")
-	gitIn(t, repo, "commit", "-q", "-m", "feat")
-	gitIn(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "mv", "moved.go", "elsewhere.go")
+	gittest.Run(t, repo, "rm", "-q", "gone.go")
+	gittest.Run(t, repo, "add", "-A")
+	gittest.Run(t, repo, "commit", "-q", "-m", "feat")
+	gittest.Run(t, repo, "switch", "-q", "main")
 	writeIn(t, repo, "clash.txt", "ours\n")
-	gitIn(t, repo, "commit", "-q", "-a", "-m", "clash")
+	gittest.Run(t, repo, "commit", "-q", "-a", "-m", "clash")
 	return repo
 }
 
@@ -96,8 +98,8 @@ func TestExploreTheWorkingTreeAndARelease(t *testing.T) {
 	repo := exploreRepo(t)
 	writeIn(t, repo, "edited.go", "package a\n")
 	writeIn(t, repo, "untracked.go", "not tracked\n")
-	gitIn(t, repo, "rm", "-q", "gone.go")
-	gitIn(t, repo, "mv", "moved.go", "elsewhere.go")
+	gittest.Run(t, repo, "rm", "-q", "gone.go")
+	gittest.Run(t, repo, "mv", "moved.go", "elsewhere.go")
 	want := []string{"A untracked.go +1 -0", "D gone.go +0 -1", "M edited.go +0 -2", "R elsewhere.go +0 -0"}
 	if got := describeChanges(changesOf(t, repo, "working", "")); !slices.Equal(got, want) {
 		t.Errorf("working = %v", got)
@@ -113,9 +115,9 @@ func TestExploreTheWorkingTreeAndARelease(t *testing.T) {
 func TestExploreWithNothingToCompareWith(t *testing.T) {
 	useTempSettings(t)
 	repo := filepath.Join(t.TempDir(), "r")
-	gitIn(t, t.TempDir(), "init", "-q", "-b", "odd", repo)
-	gitIn(t, repo, "config", "user.name", "T")
-	gitIn(t, repo, "config", "user.email", "t@example.com")
+	gittest.Run(t, t.TempDir(), "init", "-q", "-b", "odd", repo)
+	gittest.Run(t, repo, "config", "user.name", "T")
+	gittest.Run(t, repo, "config", "user.email", "t@example.com")
 	s := new(ExploreService)
 	if files, err := s.Files(repo, "HEAD"); err != nil || len(files) != 0 {
 		t.Errorf("before the first commit, files = %v, %v", files, err)
@@ -126,7 +128,7 @@ func TestExploreWithNothingToCompareWith(t *testing.T) {
 	if changes := changesOf(t, repo, "working", ""); len(changes.Files) != 0 {
 		t.Errorf("before the first commit, changes = %+v", changes)
 	}
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "x")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "x")
 	if changes := changesOf(t, repo, "branch", "odd"); changes.Target != "" || len(changes.Files) != 0 {
 		t.Errorf("changes = %+v", changes)
 	}

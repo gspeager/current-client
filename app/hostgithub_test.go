@@ -7,6 +7,7 @@ import (
 
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // The same refresh, cache and warnings as GitLab, against GitHub-shaped
@@ -14,11 +15,11 @@ import (
 func TestGitHubRefreshFillsChangesCIReviewsAndRules(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "remote", "add", "origin", "git@github.com:owner/app.git")
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
-	gitIn(t, repo, "branch", "-q", "-u", "origin/main", "main")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@github.com:owner/app.git")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+	gittest.Run(t, repo, "branch", "-q", "-u", "origin/main", "main")
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{"github.com": {Enabled: true}}
 	}); err != nil {

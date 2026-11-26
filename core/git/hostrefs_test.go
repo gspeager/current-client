@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // repoWithChangeHead returns a repository whose remote publishes

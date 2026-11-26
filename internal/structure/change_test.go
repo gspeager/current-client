@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func describeShape(shape Shape) []string {
@@ -27,7 +29,7 @@ func describeShape(shape Shape) []string {
 
 func TestCompareChange(t *testing.T) {
 	dir := repo(t, layered)
-	runGit(t, dir, "tag", "base")
+	gittest.Run(t, dir, "tag", "base")
 	commit(t, dir, files{
 		"app/start.go":   "package app\n\nimport \"a/extra\"\n\nfunc start() { extra.X() }\n",
 		"app/run.go":     "package app\n\nimport \"a/core/deep/store\"\n\nfunc Run() { store.Open(); start() }\n",
@@ -35,8 +37,8 @@ func TestCompareChange(t *testing.T) {
 		"go.sum":         "x\n",
 		"core/text/t.go": "package text\n\n// Cut cuts.\nfunc Cut() {}\n",
 	}, "docs/only/here/a.md")
-	runGit(t, dir, "mv", "core/deep/store/s.go", "core/deep/store/store.go")
-	runGit(t, dir, "commit", "-q", "-m", "rename")
+	gittest.Run(t, dir, "mv", "core/deep/store/s.go", "core/deep/store/store.go")
+	gittest.Run(t, dir, "commit", "-q", "-m", "rename")
 	changes := []Changed{
 		{Path: "app/start.go", Status: "M", Added: 3, Removed: 3},
 		{Path: "app/run.go", Status: "M", Added: 2, Removed: 3},
@@ -58,7 +60,7 @@ func TestCompareChange(t *testing.T) {
 
 func TestCompareAChangeInNoLanguageRead(t *testing.T) {
 	dir := repo(t, files{"src/main.rs": "mod a;\n"})
-	runGit(t, dir, "tag", "base")
+	gittest.Run(t, dir, "tag", "base")
 	commit(t, dir, files{"src/a.rs": "fn a() {}\n", "lib/b.rs": "fn b() {}\n"})
 	now, then := build(t, dir, "HEAD"), build(t, dir, "base")
 	shape := CompareChange(now, then, []Changed{{Path: "src/a.rs", Status: "A", Added: 1}, {Path: "lib/b.rs", Status: "A", Added: 1}})
@@ -77,7 +79,7 @@ func TestReadFirstAFileMuchOfTheCodeUses(t *testing.T) {
 		content[fmt.Sprintf("u%d/u.go", i)] = "package u\n\nimport \"a/base\"\n\nfunc U() { base.B() }\n"
 	}
 	dir := repo(t, content)
-	runGit(t, dir, "tag", "base")
+	gittest.Run(t, dir, "tag", "base")
 	commit(t, dir, files{"base/b.go": "package base\n\n// B is b.\nfunc B() {}\n"})
 	shape := CompareChange(build(t, dir, "HEAD"), build(t, dir, "base"), []Changed{{Path: "base/b.go", Status: "M", Added: 1}})
 	if !slices.Contains(describeShape(shape), fmt.Sprintf("read first base/b.go used %d", widelyUsed)) {

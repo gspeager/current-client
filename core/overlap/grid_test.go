@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // gridRepo has a conflict between one and two, and between each and main.
@@ -33,10 +33,7 @@ func gridRepo(t *testing.T) string {
 
 func commitAt(t *testing.T, dir, name, content string, daysAgo int) {
 	t.Helper()
-	when := fmt.Sprintf("%d +0000", time.Now().AddDate(0, 0, -daysAgo).Unix())
-	t.Setenv("GIT_AUTHOR_DATE", when)
-	t.Setenv("GIT_COMMITTER_DATE", when)
-	gittest.CommitFile(t, dir, name, content, "edit "+name)
+	gittest.CommitAt(t, dir, name, content, "edit "+name, gittest.DaysAgo(daysAgo))
 }
 
 func compareAll(t *testing.T, dir string) Grid {

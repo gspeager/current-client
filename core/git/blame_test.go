@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 const blameFixture = `41198c12d1cb5a666cce78d34b6bb73cccc316f9 1 1 1

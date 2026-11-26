@@ -8,12 +8,13 @@ import (
 
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestInboxHostRowsComeFromTheCacheAlone(t *testing.T) {
 	repo := enabledGitLab(t)
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "branch", "-q", "12-fix-login")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "branch", "-q", "12-fix-login")
 	swapHostClient(t, hostapitest.Forbid(t))
 	remote, info, _, err := primaryHost(repo)
 	if err != nil {

@@ -9,18 +9,19 @@ import (
 
 	"github.com/gspeager/current-client/core/snapshot"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func recoverRepo(t *testing.T) string {
 	t.Helper()
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "config", "user.name", "T")
-	gitIn(t, repo, "config", "user.email", "t@example.com")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "config", "user.name", "T")
+	gittest.Run(t, repo, "config", "user.email", "t@example.com")
 	write(t, repo, "a.txt", "committed\n")
-	gitIn(t, repo, "add", "a.txt")
-	gitIn(t, repo, "commit", "-q", "-m", "first")
+	gittest.Run(t, repo, "add", "a.txt")
+	gittest.Run(t, repo, "commit", "-q", "-m", "first")
 	return repo
 }
 
@@ -66,7 +67,7 @@ func TestDestructiveActionsTakeASnapshotFirst(t *testing.T) {
 		if got, _ := os.ReadFile(filepath.Join(repo, "a.txt")); !strings.HasPrefix(string(got), "edit") {
 			t.Fatalf("restored %q", got)
 		}
-		gitIn(t, repo, "checkout", "--", "a.txt")
+		gittest.Run(t, repo, "checkout", "--", "a.txt")
 		if err := snapshot.DeleteAll(context.Background(), repo); err != nil {
 			t.Fatal(err)
 		}
@@ -75,7 +76,7 @@ func TestDestructiveActionsTakeASnapshotFirst(t *testing.T) {
 
 func TestSoftResetAndCleanCheckoutTakeNoSnapshot(t *testing.T) {
 	repo := recoverRepo(t)
-	gitIn(t, repo, "branch", "side")
+	gittest.Run(t, repo, "branch", "side")
 	if err := new(BranchService).CheckoutBranch(repo, "side"); err != nil {
 		t.Fatal(err)
 	}
@@ -96,11 +97,11 @@ func TestSoftResetAndCleanCheckoutTakeNoSnapshot(t *testing.T) {
 
 func TestDeletingAnUnmergedBranchKeepsItsCommits(t *testing.T) {
 	repo := recoverRepo(t)
-	gitIn(t, repo, "switch", "-q", "-c", "unmerged")
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "only here")
-	tip := gitOut(t, repo, "rev-parse", "HEAD")
-	gitIn(t, repo, "switch", "-q", "main")
-	gitIn(t, repo, "branch", "merged")
+	gittest.Run(t, repo, "switch", "-q", "-c", "unmerged")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "only here")
+	tip := gittest.Output(t, repo, "rev-parse", "HEAD")
+	gittest.Run(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "branch", "merged")
 
 	var s BranchService
 	if _, err := s.DeleteBranch(repo, "merged", false); err != nil {
@@ -121,7 +122,7 @@ func TestDeletingAnUnmergedBranchKeepsItsCommits(t *testing.T) {
 func TestRemovingALinkedWorktreeKeepsTheSharedSnapshots(t *testing.T) {
 	repo := recoverRepo(t)
 	linked := filepath.Join(t.TempDir(), "linked")
-	gitIn(t, repo, "worktree", "add", "-q", "-b", "side", linked)
+	gittest.Run(t, repo, "worktree", "add", "-q", "-b", "side", linked)
 	write(t, repo, "a.txt", "edit\n")
 	snapshotBefore(repo, "discard")
 	if err := new(RepositoryService).RemoveRecentRepository(linked); err != nil {
@@ -147,7 +148,7 @@ func TestSnapshotLimitAndRemoval(t *testing.T) {
 	if err := new(RepositoryService).RemoveRecentRepository(repo); err != nil {
 		t.Fatal(err)
 	}
-	if out := gitOut(t, repo, "for-each-ref", "refs/current-client"); out != "" {
+	if out := gittest.Output(t, repo, "for-each-ref", "refs/current-client"); out != "" {
 		t.Fatalf("removal left refs: %s", out)
 	}
 }

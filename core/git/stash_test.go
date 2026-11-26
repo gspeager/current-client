@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestParseStashList(t *testing.T) {

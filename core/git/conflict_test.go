@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/gspeager/current-client/core/gitexec"
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // initConflictRepo leaves main and "theirs" editing the same line.

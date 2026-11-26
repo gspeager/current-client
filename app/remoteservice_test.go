@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 const signedInURL = "https://deploy:s3cret@git.example.com/a.git"
@@ -60,9 +61,9 @@ func TestHostLinksPrefersOrigin(t *testing.T) {
 
 func TestListHidesASignInFromTheFrontend(t *testing.T) {
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "remote", "add", "origin", signedInURL)
-	gitIn(t, repo, "remote", "set-url", "--push", "origin", "ssh://git:s3cret@git.example.com/a.git")
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "remote", "add", "origin", signedInURL)
+	gittest.Run(t, repo, "remote", "set-url", "--push", "origin", "ssh://git:s3cret@git.example.com/a.git")
 
 	remotes, err := new(RemoteService).List(repo)
 	if err != nil {
@@ -79,21 +80,21 @@ func TestListHidesASignInFromTheFrontend(t *testing.T) {
 	if strings.Contains(string(sent), "s3cret") {
 		t.Fatalf("the frontend would receive the password: %s", sent)
 	}
-	if got := gitOut(t, repo, "remote", "get-url", "origin"); got != signedInURL {
+	if got := gittest.Output(t, repo, "remote", "get-url", "origin"); got != signedInURL {
 		t.Fatalf("Git's URL = %q, want %q", got, signedInURL)
 	}
 }
 
 func TestEditRemoteNeverGivesGitThePlaceholder(t *testing.T) {
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "remote", "add", "origin", signedInURL)
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "remote", "add", "origin", signedInURL)
 	s := new(RemoteService)
 	remotes, err := s.List(repo)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
-	gitURL := func() string { return gitOut(t, repo, "remote", "get-url", "origin") }
+	gitURL := func() string { return gittest.Output(t, repo, "remote", "get-url", "origin") }
 
 	shown := remotes[0].FetchURL
 	for _, url := range []string{shown, strings.Replace(shown, "a.git", "b.git", 1)} {
@@ -138,7 +139,7 @@ func signedInRemote(t *testing.T) (repo, bare string) {
 	if err := os.MkdirAll(filepath.Dir(bare), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	gitIn(t, root, "init", "-q", "--bare", "-b", "main", bare)
+	gittest.Run(t, root, "init", "-q", "--bare", "-b", "main", bare)
 	backendHandler := &cgi.Handler{Path: backend, Env: []string{"GIT_PROJECT_ROOT=" + root, "GIT_HTTP_EXPORT_ALL=1"}}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if user, pass, ok := r.BasicAuth(); !ok || user != "deploy" || pass != "s3cret" {
@@ -149,14 +150,14 @@ func signedInRemote(t *testing.T) (repo, bare string) {
 		backendHandler.ServeHTTP(w, r)
 	}))
 	t.Cleanup(server.Close)
-	gitIn(t, bare, "config", "http.receivepack", "true")
+	gittest.Run(t, bare, "config", "http.receivepack", "true")
 
 	repo = t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "config", "user.name", "T")
-	gitIn(t, repo, "config", "user.email", "t@example.com")
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "remote", "add", "origin", strings.Replace(server.URL, "http://", "http://deploy:s3cret@", 1)+"/group/app.git")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "config", "user.name", "T")
+	gittest.Run(t, repo, "config", "user.email", "t@example.com")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "remote", "add", "origin", strings.Replace(server.URL, "http://", "http://deploy:s3cret@", 1)+"/group/app.git")
 	return repo, bare
 }
 
@@ -178,22 +179,22 @@ func TestFetchAndPushSignInWithTheURLListHides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PushSetUpstream: %v", err)
 	}
-	if got, want := gitOut(t, bare, "rev-parse", "main"), gitOut(t, repo, "rev-parse", "HEAD"); got != want {
+	if got, want := gittest.Output(t, bare, "rev-parse", "main"), gittest.Output(t, repo, "rev-parse", "HEAD"); got != want {
 		t.Fatalf("the remote's main = %s, want %s", got, want)
 	}
 	if !strings.Contains(pushed.CreateLink, "/group/app") || strings.Contains(pushed.CreateLink, "s3cret") {
 		t.Fatalf("create link = %q, want the project without the password", pushed.CreateLink)
 	}
 
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "second")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "second")
 	if _, err := s.Push(ctx, repo, nil); err != nil {
 		t.Fatalf("Push: %v", err)
 	}
-	gitIn(t, repo, "update-ref", "-d", "refs/remotes/origin/main")
+	gittest.Run(t, repo, "update-ref", "-d", "refs/remotes/origin/main")
 	if err := s.Fetch(ctx, repo, "origin", nil); err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
-	if got, want := gitOut(t, repo, "rev-parse", "origin/main"), gitOut(t, repo, "rev-parse", "HEAD"); got != want {
+	if got, want := gittest.Output(t, repo, "rev-parse", "origin/main"), gittest.Output(t, repo, "rev-parse", "HEAD"); got != want {
 		t.Fatalf("origin/main after Fetch = %s, want %s", got, want)
 	}
 }

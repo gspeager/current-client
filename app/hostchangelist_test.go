@@ -16,6 +16,7 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // hostedRemote serves a bare repository over smart HTTP, so its URL parses
@@ -33,19 +34,19 @@ func hostedRemote(t *testing.T) (repo, hostname, remoteDir string) {
 	}
 	root := t.TempDir()
 	remoteDir = filepath.Join(root, "group", "app.git")
-	gitIn(t, root, "init", "-q", "--bare", "-b", "main", remoteDir)
-	gitIn(t, remoteDir, "config", "http.receivepack", "true")
+	gittest.Run(t, root, "init", "-q", "--bare", "-b", "main", remoteDir)
+	gittest.Run(t, remoteDir, "config", "http.receivepack", "true")
 	server := httptest.NewServer(&cgi.Handler{Path: backend, Env: []string{"GIT_PROJECT_ROOT=" + root, "GIT_HTTP_EXPORT_ALL=1", "GIT_HTTP_RECEIVE_PACK=1"}})
 	t.Cleanup(server.Close)
 	hostname = strings.TrimPrefix(server.URL, "http://")
 
 	repo = t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "config", "user.name", "T")
-	gitIn(t, repo, "config", "user.email", "t@example.com")
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "remote", "add", "origin", server.URL+"/group/app.git")
-	gitIn(t, repo, "push", "-q", "origin", "main")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "config", "user.name", "T")
+	gittest.Run(t, repo, "config", "user.email", "t@example.com")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "remote", "add", "origin", server.URL+"/group/app.git")
+	gittest.Run(t, repo, "push", "-q", "origin", "main")
 	return repo, hostname, remoteDir
 }
 
@@ -53,8 +54,8 @@ func TestChangesPanelIsAbsentUntilTheHostIsOn(t *testing.T) {
 	useTempSettings(t)
 	swapHostClient(t, hostapitest.Forbid(t))
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
 	var s HostService
 
 	list, err := s.Changes(repo)
@@ -90,12 +91,12 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	useTempSettings(t)
 	swapHostClient(t, hostapitest.Forbid(t))
 	repo, hostname, _ := hostedRemote(t)
-	gitIn(t, repo, "switch", "-q", "-c", "feature")
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "on the merge request")
-	headSHA := gitOut(t, repo, "rev-parse", "HEAD")
-	gitIn(t, repo, "push", "-q", "origin", "feature:refs/merge-requests/3/head")
-	gitIn(t, repo, "switch", "-q", "main")
-	gitIn(t, repo, "branch", "-q", "-D", "feature")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feature")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "on the merge request")
+	headSHA := gittest.Output(t, repo, "rev-parse", "HEAD")
+	gittest.Run(t, repo, "push", "-q", "origin", "feature:refs/merge-requests/3/head")
+	gittest.Run(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "branch", "-q", "-D", "feature")
 
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{hostname: {Provider: "gitlab", Enabled: true}}
@@ -112,10 +113,10 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	if err != nil || result.Branch != "feature" || result.Existed {
 		t.Fatalf("CheckoutChange = %+v, %v", result, err)
 	}
-	if got := gitOut(t, repo, "rev-parse", "--abbrev-ref", "HEAD"); got != "feature" {
+	if got := gittest.Output(t, repo, "rev-parse", "--abbrev-ref", "HEAD"); got != "feature" {
 		t.Fatalf("HEAD is %s", got)
 	}
-	if got := gitOut(t, repo, "rev-parse", "refs/current-client/hosts/origin/mr/3"); got != headSHA {
+	if got := gittest.Output(t, repo, "rev-parse", "refs/current-client/hosts/origin/mr/3"); got != headSHA {
 		t.Fatalf("fetched head = %s, want %s", got, headSHA)
 	}
 	again, err := s.CheckoutChange(context.Background(), repo, 3, nil)
@@ -123,7 +124,7 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 		t.Fatalf("second checkout = %+v, %v", again, err)
 	}
 
-	gitIn(t, repo, "push", "-q", "origin", "feature:refs/merge-requests/4/head")
+	gittest.Run(t, repo, "push", "-q", "origin", "feature:refs/merge-requests/4/head")
 	fork, err := s.CheckoutChange(context.Background(), repo, 4, nil)
 	if err != nil || fork.Branch != "someone/fix" {
 		t.Fatalf("fork checkout = %+v, %v", fork, err)
@@ -143,7 +144,7 @@ func TestCheckoutChangeFetchesTheHeadIntoItsOwnNamespace(t *testing.T) {
 	if err := s.SetEnabled(hostname, false); err != nil {
 		t.Fatal(err)
 	}
-	if out := gitOut(t, repo, "for-each-ref", "refs/current-client"); out != "" {
+	if out := gittest.Output(t, repo, "for-each-ref", "refs/current-client"); out != "" {
 		t.Fatalf("turning the host off left fetched heads:\n%s", out)
 	}
 }
@@ -156,16 +157,16 @@ func TestChangeDependencySummariesReadsOnlyWhatIsHere(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(repo, "package.json"), []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		gitIn(t, repo, "add", "package.json")
-		gitIn(t, repo, "-c", "user.name=X", "-c", "user.email=x@example.com", "commit", "-q", "-m", "deps")
+		gittest.Run(t, repo, "add", "package.json")
+		gittest.Run(t, repo, "-c", "user.name=X", "-c", "user.email=x@example.com", "commit", "-q", "-m", "deps")
 	}
 	write(`{"dependencies":{"a":"1.0.0"}}`)
-	gitIn(t, repo, "push", "-q", "origin", "main")
-	gitIn(t, repo, "fetch", "-q", "origin")
-	gitIn(t, repo, "switch", "-q", "-c", "feature")
+	gittest.Run(t, repo, "push", "-q", "origin", "main")
+	gittest.Run(t, repo, "fetch", "-q", "origin")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feature")
 	write(`{"dependencies":{"a":"1.1.0"}}`)
-	headSHA := gitOut(t, repo, "rev-parse", "HEAD")
-	gitIn(t, repo, "switch", "-q", "main")
+	headSHA := gittest.Output(t, repo, "rev-parse", "HEAD")
+	gittest.Run(t, repo, "switch", "-q", "main")
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{hostname: {Provider: "gitlab", Enabled: true}}
 	}); err != nil {
@@ -185,7 +186,7 @@ func TestChangeDependencySummariesReadsOnlyWhatIsHere(t *testing.T) {
 		t.Fatalf("with no manifest = %+v, %v", info, err)
 	}
 
-	gitIn(t, repo, "update-ref", git.HostChangeRef("origin", 3), headSHA)
+	gittest.Run(t, repo, "update-ref", git.HostChangeRef("origin", 3), headSHA)
 	info, err = s.ChangeDependencySummaries(repo, 3, files)
 	if err != nil || !info.HeadAvailable || len(info.Summaries) != 1 {
 		t.Fatalf("with a fetched head = %+v, %v", info, err)
@@ -195,7 +196,7 @@ func TestChangeDependencySummariesReadsOnlyWhatIsHere(t *testing.T) {
 		t.Fatalf("changes = %+v", changes)
 	}
 
-	gitIn(t, repo, "update-ref", git.HostChangeRef("origin", 3), "main")
+	gittest.Run(t, repo, "update-ref", git.HostChangeRef("origin", 3), "main")
 	if info, err = s.ChangeDependencySummaries(repo, 3, files); err != nil || info.HeadAvailable {
 		t.Fatalf("with a head that moved = %+v, %v", info, err)
 	}
@@ -204,8 +205,8 @@ func TestChangeDependencySummariesReadsOnlyWhatIsHere(t *testing.T) {
 func TestClosedChangesFilesCommitsAndThreadsAreAskedOnceUntilARefresh(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "remote", "add", "origin", "git@github.com:owner/app.git")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@github.com:owner/app.git")
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{"github.com": {Enabled: true}}
 	}); err != nil {

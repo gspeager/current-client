@@ -1,12 +1,15 @@
-// Package gittest runs git in temporary repositories for core's tests.
+// Package gittest runs git in temporary repositories for tests. It's the one
+// internal package core's tests may import: tests aren't built into core.
 package gittest
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Run fails the test if git does, and returns its trimmed output.
@@ -17,6 +20,18 @@ func Run(t testing.TB, dir string, args ...string) string {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// Output is Run's stdout alone, for a command whose warnings go to stderr.
+func Output(t testing.TB, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git %v: %v", args, err)
 	}
 	return strings.TrimSpace(string(out))
 }
@@ -56,4 +71,26 @@ func CommitFile(t testing.TB, dir, name, content, message string) {
 	WriteFile(t, dir, name, content)
 	Run(t, dir, "add", name)
 	Run(t, dir, "commit", "-m", message)
+}
+
+// CommitAt commits name with content, or nothing new when name is empty, with
+// the author and committer dated when, in any form Git reads.
+func CommitAt(t testing.TB, dir, name, content, message, when string) {
+	t.Helper()
+	args := []string{"commit", "-q", "--allow-empty", "-m", message}
+	if name != "" {
+		WriteFile(t, dir, name, content)
+		Run(t, dir, "add", name)
+	}
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+when, "GIT_COMMITTER_DATE="+when)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+}
+
+// DaysAgo is a date days before now, as CommitAt takes it.
+func DaysAgo(days int) string {
+	return fmt.Sprintf("%d +0000", time.Now().AddDate(0, 0, -days).Unix())
 }

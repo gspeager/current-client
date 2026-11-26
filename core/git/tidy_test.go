@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // tidyRepo has main with base, and topic with three commits on separate files.

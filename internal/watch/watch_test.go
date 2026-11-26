@@ -2,36 +2,21 @@ package watch
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
-)
 
-func runGitCommand(t *testing.T, dir string, args ...string) {
-	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %v: %v\n%s", args, err, out)
-	}
-}
+	"github.com/gspeager/current-client/internal/gittest"
+)
 
 func initWatchRepo(t *testing.T) string {
 	t.Helper()
-	dir := t.TempDir()
-	runGitCommand(t, dir, "init", "-b", "main")
-	runGitCommand(t, dir, "config", "user.email", "test@example.com")
-	runGitCommand(t, dir, "config", "user.name", "Test")
-	if err := os.WriteFile(filepath.Join(dir, "tracked.txt"), []byte("v1"), 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte("ignored/\n"), 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	runGitCommand(t, dir, "add", "tracked.txt", ".gitignore")
-	runGitCommand(t, dir, "commit", "-m", "initial")
+	dir := gittest.InitRepo(t)
+	gittest.WriteFile(t, dir, "tracked.txt", "v1")
+	gittest.WriteFile(t, dir, ".gitignore", "ignored/\n")
+	gittest.Run(t, dir, "add", "tracked.txt", ".gitignore")
+	gittest.Run(t, dir, "commit", "-m", "initial")
 	if err := os.MkdirAll(filepath.Join(dir, "ignored"), 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
@@ -174,7 +159,7 @@ func TestWatcherFiresOnExternalCommit(t *testing.T) {
 	changed := startRecording(t, &w, dir)
 	defer w.Stop()
 
-	runGitCommand(t, dir, "commit", "--allow-empty", "-m", "external commit")
+	gittest.Run(t, dir, "commit", "--allow-empty", "-m", "external commit")
 
 	fired, refChanged := waitForChange(t, changed, 5*time.Second)
 	if !fired {
@@ -199,7 +184,7 @@ func TestWatcherReportsRefChangesMadeOutsideTheApp(t *testing.T) {
 		{"branch", "feature/two"},
 		{"pack-refs", "--all"},
 	} {
-		runGitCommand(t, dir, args...)
+		gittest.Run(t, dir, args...)
 		fired, refChanged := waitForChange(t, changed, 5*time.Second)
 		if !fired || !refChanged {
 			t.Fatalf("git %v: fired=%v refChanged=%v, want a ref change", args, fired, refChanged)
@@ -209,7 +194,7 @@ func TestWatcherReportsRefChangesMadeOutsideTheApp(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "tracked.txt"), []byte("v2"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	runGitCommand(t, dir, "stash")
+	gittest.Run(t, dir, "stash")
 	if fired, refChanged := waitForChange(t, changed, 5*time.Second); !fired || !refChanged {
 		t.Fatalf("git stash: fired=%v refChanged=%v, want a ref change", fired, refChanged)
 	}
@@ -222,7 +207,7 @@ func TestWatcherKeepsWatchingHEADAfterGitReplacesIt(t *testing.T) {
 	defer w.Stop()
 
 	for i := range 3 {
-		runGitCommand(t, dir, "commit", "--allow-empty", "-m", "external commit")
+		gittest.Run(t, dir, "commit", "--allow-empty", "-m", "external commit")
 		if fired, refChanged := waitForChange(t, changed, 5*time.Second); !fired || !refChanged {
 			t.Fatalf("commit %d: fired=%v refChanged=%v, want every commit reported", i+1, fired, refChanged)
 		}
@@ -232,12 +217,12 @@ func TestWatcherKeepsWatchingHEADAfterGitReplacesIt(t *testing.T) {
 func TestWatcherInAWorktreeSeesBranchesMadeInTheMainRepository(t *testing.T) {
 	dir := initWatchRepo(t)
 	worktree := filepath.Join(t.TempDir(), "wt")
-	runGitCommand(t, dir, "worktree", "add", "-q", "-b", "side", worktree)
+	gittest.Run(t, dir, "worktree", "add", "-q", "-b", "side", worktree)
 	var w Watcher
 	changed := startRecording(t, &w, worktree)
 	defer w.Stop()
 
-	runGitCommand(t, dir, "branch", "made-elsewhere")
+	gittest.Run(t, dir, "branch", "made-elsewhere")
 
 	if fired, refChanged := waitForChange(t, changed, 5*time.Second); !fired || !refChanged {
 		t.Fatalf("fired=%v refChanged=%v, want the shared refs watched", fired, refChanged)

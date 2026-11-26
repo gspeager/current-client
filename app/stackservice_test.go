@@ -4,6 +4,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestStackServiceFollowsAStackThroughARestack(t *testing.T) {
@@ -11,8 +13,8 @@ func TestStackServiceFollowsAStackThroughARestack(t *testing.T) {
 	repo := recoverRepo(t)
 	commit := func(name string) {
 		write(t, repo, name+".txt", name+"\n")
-		gitIn(t, repo, "add", ".")
-		gitIn(t, repo, "commit", "-q", "-m", name)
+		gittest.Run(t, repo, "add", ".")
+		gittest.Run(t, repo, "commit", "-q", "-m", name)
 	}
 	rev := func(name string) string {
 		out, err := exec.Command("git", "-C", repo, "rev-parse", name).Output()
@@ -46,9 +48,9 @@ func TestStackServiceFollowsAStackThroughARestack(t *testing.T) {
 		t.Fatalf("got %+v", layers)
 	}
 
-	gitIn(t, repo, "switch", "bottom")
-	gitIn(t, repo, "commit", "--amend", "-m", "bottom amended")
-	gitIn(t, repo, "switch", "top")
+	gittest.Run(t, repo, "switch", "bottom")
+	gittest.Run(t, repo, "commit", "--amend", "-m", "bottom amended")
+	gittest.Run(t, repo, "switch", "top")
 	before := rev("top")
 	if list, _ = s.List(repo); !list.Stacks[0].NeedsRestack || !list.Stacks[0].Layers[1].Behind {
 		t.Fatalf("after an amend: %+v", list)
@@ -102,24 +104,24 @@ func TestUndoRestackKeepsItsOfferWhenItCanOnlyWaitButNotWhenABranchMoved(t *test
 		t.Fatal(err)
 	}
 	write(t, repo, "b.txt", "b\n")
-	gitIn(t, repo, "add", ".")
-	gitIn(t, repo, "commit", "-q", "-m", "bottom")
-	gitIn(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "add", ".")
+	gittest.Run(t, repo, "commit", "-q", "-m", "bottom")
+	gittest.Run(t, repo, "switch", "-q", "main")
 	write(t, repo, "m.txt", "m\n")
-	gitIn(t, repo, "add", ".")
-	gitIn(t, repo, "commit", "-q", "-m", "main moved")
-	gitIn(t, repo, "switch", "-q", "bottom")
+	gittest.Run(t, repo, "add", ".")
+	gittest.Run(t, repo, "commit", "-q", "-m", "main moved")
+	gittest.Run(t, repo, "switch", "-q", "bottom")
 	if _, err := s.Restack(repo, "bottom"); err != nil {
 		t.Fatal(err)
 	}
 
 	// A conflict in progress only has to finish.
-	gitIn(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "switch", "-q", "main")
 	write(t, repo, "m.txt", "main's\n")
-	gitIn(t, repo, "commit", "-qam", "ours")
-	gitIn(t, repo, "switch", "-q", "-c", "side", "HEAD~1")
+	gittest.Run(t, repo, "commit", "-qam", "ours")
+	gittest.Run(t, repo, "switch", "-q", "-c", "side", "HEAD~1")
 	write(t, repo, "m.txt", "side's\n")
-	gitIn(t, repo, "commit", "-qam", "theirs")
+	gittest.Run(t, repo, "commit", "-qam", "theirs")
 	if err := exec.Command("git", "-C", repo, "merge", "main").Run(); err == nil {
 		t.Fatal("wanted a conflict")
 	}
@@ -129,12 +131,12 @@ func TestUndoRestackKeepsItsOfferWhenItCanOnlyWaitButNotWhenABranchMoved(t *test
 	if list, _ := s.List(repo); !list.CanUndo {
 		t.Fatal("waiting for a conflict ended the offer")
 	}
-	gitIn(t, repo, "merge", "--abort")
+	gittest.Run(t, repo, "merge", "--abort")
 
-	gitIn(t, repo, "switch", "-q", "bottom")
+	gittest.Run(t, repo, "switch", "-q", "bottom")
 	write(t, repo, "later.txt", "later\n")
-	gitIn(t, repo, "add", ".")
-	gitIn(t, repo, "commit", "-q", "-m", "later")
+	gittest.Run(t, repo, "add", ".")
+	gittest.Run(t, repo, "commit", "-q", "-m", "later")
 	if err := s.UndoRestack(repo); err == nil {
 		t.Fatal("undid over later work")
 	}

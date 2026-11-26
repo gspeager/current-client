@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/gspeager/current-client/core/git"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestFindingInEachOpenRepository(t *testing.T) {
@@ -17,13 +18,13 @@ func TestFindingInEachOpenRepository(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(first, "src"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writeAndCommit(t, first, "src/login.go", "package src", "Fix the login redirect")
+	gittest.CommitFile(t, first, "src/login.go", "package src", "Fix the login redirect")
 	if err := os.MkdirAll(filepath.Join(first, "build"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	writeIn(t, first, "build/login.out", "ignored")
 	writeIn(t, first, "notes-login.txt", "untracked")
-	gitIn(t, first, "branch", "login-form")
+	gittest.Run(t, first, "branch", "login-form")
 	service := &SearchService{}
 	found, err := service.InRepository(context.Background(), first, "Login")
 	if err != nil {
