@@ -21,10 +21,12 @@ export type { CurrentClientAppHandle }
 export interface CurrentClientAppProps extends Omit<AppProps, 'handle'> {
   // False while a host app shows another view: Current Client stays mounted but hidden.
   active?: boolean
+  // A question is waiting for Current Client to be shown; it opens no dialog while hidden.
+  onNeedsAttention?: () => void
 }
 
 const CurrentClientApp = forwardRef<CurrentClientAppHandle, CurrentClientAppProps>(function CurrentClientApp(
-  { active = true, ...appProps },
+  { active = true, onNeedsAttention, ...appProps },
   handle,
 ) {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
@@ -40,7 +42,7 @@ const CurrentClientApp = forwardRef<CurrentClientAppHandle, CurrentClientAppProp
       data-platform={System.IsMac() ? 'mac' : undefined}
     >
       <CurrentClientRootContext.Provider value={root}>
-        <DialogProvider>
+        <DialogProvider onNeedsAttention={onNeedsAttention}>
           <ReviewDraftProvider>
             <App {...appProps} handle={handle} />
           </ReviewDraftProvider>

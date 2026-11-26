@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { restoreFocus } from '../../lib/panes'
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
@@ -93,23 +93,41 @@ function PromptDialog({ options, onSettle }: { options: PromptOptions; onSettle:
   )
 }
 
-export function DialogProvider({ children }: { children: ReactNode }) {
-  const [request, setRequest] = useState<Request | null>(null)
+interface DialogProviderProps {
+  children: ReactNode
+  // Told when a question waits because Current Client is hidden, so a host app can show it.
+  onNeedsAttention?: () => void
+}
+
+// A modal dialog in a hidden Current Client would still take the whole window's
+// clicks and focus, so while hidden, questions wait, in turn, until it's shown.
+export function DialogProvider({ children, onNeedsAttention }: DialogProviderProps) {
+  const { active } = useCurrentClientRoot()
+  const [requests, setRequests] = useState<Request[]>([])
+  const request = active ? requests[0] : undefined
+  const ask = (next: Request) => setRequests((prev) => [...prev, next])
 
   const dialogs = useMemo<Dialogs>(
     () => ({
-      confirm: (options) => new Promise((resolve) => setRequest({ kind: 'confirm', options, resolve })),
-      prompt: (options) => new Promise((resolve) => setRequest({ kind: 'prompt', options, resolve })),
-      signIn: (options) => new Promise((resolve) => setRequest({ kind: 'signIn', options, resolve })),
+      confirm: (options) => new Promise((resolve) => ask({ kind: 'confirm', options, resolve })),
+      prompt: (options) => new Promise((resolve) => ask({ kind: 'prompt', options, resolve })),
+      signIn: (options) => new Promise((resolve) => ask({ kind: 'signIn', options, resolve })),
     }),
     [],
   )
+
+  const waiting = !active && requests.length > 0
+  const attention = useRef(onNeedsAttention)
+  attention.current = onNeedsAttention
+  useEffect(() => {
+    if (waiting) attention.current?.()
+  }, [waiting, requests.length])
 
   const settle =
     <T,>(resolve: (value: T) => void) =>
     (value: T) => {
       resolve(value)
-      setRequest(null)
+      setRequests((prev) => prev.slice(1))
     }
 
   return (

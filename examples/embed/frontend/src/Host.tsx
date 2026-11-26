@@ -21,7 +21,13 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (view: View) => 
 function Host() {
   const [view, setView] = useState<View>('host')
   const [repoPath, setRepoPath] = useState<string | null>(null)
-  const toggle = <ViewToggle view={view} onChange={setView} />
+  // A hidden Current Client opens no dialog; it says when a question waits.
+  const [question, setQuestion] = useState(false)
+  const show = (next: View) => {
+    setView(next)
+    if (next === 'current-client') setQuestion(false)
+  }
+  const toggle = <ViewToggle view={view} onChange={show} />
 
   return (
     <>
@@ -32,6 +38,14 @@ function Host() {
             {toggle}
           </header>
           <p>{repoPath ? `Current Client has ${repoPath} open.` : 'No repository open in Current Client yet.'}</p>
+          {question && (
+            <p role="status">
+              Current Client has a question.{' '}
+              <button type="button" onClick={() => show('current-client')}>
+                Show it
+              </button>
+            </p>
+          )}
         </main>
       )}
       <CurrentClientApp
@@ -39,6 +53,7 @@ function Host() {
         headerAccessory={toggle}
         activeRepoPath={repoPath}
         onActiveRepoChange={setRepoPath}
+        onNeedsAttention={() => setQuestion(true)}
       />
     </>
   )
