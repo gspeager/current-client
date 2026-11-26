@@ -26,13 +26,17 @@ function Shell({ onOpenCommit }: { onOpenCommit: (sha: string, position: number)
     tabs: [APP, SITE, DOCS],
     tabSummaries: {},
     recentRepos: [],
-    openRecent: (path: string) => Promise.resolve(setRepoPath(path)),
+    // The docs folder is gone, so it can't be opened.
+    openRecent: (path: string) => Promise.resolve(path === DOCS ? undefined : (setRepoPath(path), path)),
     closeTab: vi.fn(),
     reorderTabs: vi.fn(),
   } as unknown as ReturnType<typeof useRepositoryLifecycle>
   return (
     <DialogProvider>
       <span data-testid="open">{repoPath}</span>
+      <button type="button" onClick={() => setRepoPath(DOCS)}>
+        Open docs some other way
+      </button>
       <HeaderBar
         repoPath={repoPath}
         repoVersion={0}
@@ -124,4 +128,27 @@ it('cancels a search when the query changes, and moves on past a slow repository
   fireEvent.change(palette.getByRole('combobox'), { target: { value: 'login' } })
   await vi.waitFor(() => expect(searches.some((s) => s.query === 'login')).toBe(true))
   expect(searches.filter((s) => s.query === 'log').every((s) => s.cancel.mock.calls.length === 1)).toBe(true)
+})
+
+it('forgets a result whose repository could not be opened', async () => {
+  vi.mocked(SearchService.InRepository).mockImplementation((path: string) =>
+    cancellable(
+      Promise.resolve(
+        path === DOCS
+          ? matches({ commits: [{ sha: 'fedcba9876', subject: 'Login docs', date: '' } as never] })
+          : matches({}),
+      ),
+    ),
+  )
+  vi.mocked(HistoryService.GetCommitPosition).mockResolvedValue(1)
+  const onOpenCommit = vi.fn()
+  render(<Shell onOpenCommit={onOpenCommit} />)
+  const palette = await searchOpenRepositories('login')
+  await userEvent.click(await palette.findByRole('option', { name: 'Login docs, commit in docs' }))
+  expect(screen.getByTestId('open')).toHaveTextContent(APP)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Open docs some other way' }))
+  expect(screen.getByTestId('open')).toHaveTextContent(DOCS)
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  expect(onOpenCommit).not.toHaveBeenCalled()
 })

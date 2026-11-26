@@ -159,7 +159,9 @@ function HeaderBar({
   const [goingTo, setGoingTo] = useState<{ path: string; target: ElsewhereTarget } | null>(null)
   const goElsewhere = (path: string, target: ElsewhereTarget) => {
     setGoingTo({ path, target })
-    void repo.openRecent(path)
+    void repo.openRecent(path).then((opened) => {
+      if (!opened) setGoingTo(null)
+    })
   }
   useEffect(() => {
     if (!goingTo || goingTo.path !== repoPath) return
