@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TrackerService } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import TrackersSection from './TrackersSection'
+import { renderWithDialogs } from '../../test/render'
 
 const access = { hostName: 'example.atlassian.net', enabled: false, locked: false, hasToken: false }
 const cloud = {
@@ -15,11 +15,7 @@ const cloud = {
 }
 
 function renderSection() {
-  render(
-    <DialogProvider>
-      <TrackersSection />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<TrackersSection />)
 }
 
 describe('TrackersSection', () => {

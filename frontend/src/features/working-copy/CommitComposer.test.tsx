@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   CommitService,
@@ -7,20 +7,17 @@ import {
   IdentityService,
   type CurrentUserInfo,
 } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import CommitComposer from './CommitComposer'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 function user(name: string, email: string): CurrentUserInfo {
   return { name, email, initials: '', color: '' }
 }
 
 function renderComposer(showTypePicker = false) {
-  render(
-    <DialogProvider>
-      <CommitComposer repoPath={REPO} stagedCount={1} onCommitted={vi.fn()} showTypePicker={showTypePicker} />
-    </DialogProvider>,
+  renderWithDialogs(
+    <CommitComposer repoPath={REPO} stagedCount={1} onCommitted={vi.fn()} showTypePicker={showTypePicker} />,
   )
 }
 
@@ -117,10 +114,8 @@ describe('CommitComposer after a squash merge', () => {
     vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada Lovelace', 'ada@example.com'))
     vi.mocked(CommitService.GetSquashedSubjects).mockResolvedValue(['fix: second thing', 'feat: first thing'])
     const onMessageChange = vi.fn()
-    render(
-      <DialogProvider>
-        <CommitComposer repoPath={REPO} stagedCount={2} onCommitted={vi.fn()} onMessageChange={onMessageChange} />
-      </DialogProvider>,
+    renderWithDialogs(
+      <CommitComposer repoPath={REPO} stagedCount={2} onCommitted={vi.fn()} onMessageChange={onMessageChange} />,
     )
 
     await vi.waitFor(() =>
@@ -132,10 +127,8 @@ describe('CommitComposer after a squash merge', () => {
 
   it('keeps a draft that was already there', async () => {
     vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada Lovelace', 'ada@example.com'))
-    render(
-      <DialogProvider>
-        <CommitComposer repoPath={REPO} stagedCount={2} onCommitted={vi.fn()} initialMessage="feat: my own words" />
-      </DialogProvider>,
+    renderWithDialogs(
+      <CommitComposer repoPath={REPO} stagedCount={2} onCommitted={vi.fn()} initialMessage="feat: my own words" />,
     )
 
     expect(await screen.findByDisplayValue('feat: my own words')).toBeInTheDocument()
@@ -155,10 +148,8 @@ describe('CommitComposer during a merge', () => {
 
   function renderMerging(conflict: ConflictStateInfo, onCommitted = vi.fn()) {
     vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada', 'ada@example.com'))
-    render(
-      <DialogProvider>
-        <CommitComposer repoPath={REPO} stagedCount={1} onCommitted={onCommitted} showTypePicker conflict={conflict} />
-      </DialogProvider>,
+    renderWithDialogs(
+      <CommitComposer repoPath={REPO} stagedCount={1} onCommitted={onCommitted} showTypePicker conflict={conflict} />,
     )
     return onCommitted
   }
@@ -195,11 +186,7 @@ describe('CommitComposer during a merge', () => {
 describe('CommitComposer button', () => {
   it('says what is missing instead of a helper line, and hides the scope until a type is set', async () => {
     vi.mocked(IdentityService.GetCurrentUser).mockResolvedValue(user('Ada', 'ada@example.com'))
-    render(
-      <DialogProvider>
-        <CommitComposer repoPath={REPO} stagedCount={0} onCommitted={vi.fn()} showTypePicker />
-      </DialogProvider>,
-    )
+    renderWithDialogs(<CommitComposer repoPath={REPO} stagedCount={0} onCommitted={vi.fn()} showTypePicker />)
 
     await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Stage files to commit' })).toBeDisabled())
     expect(screen.queryByText('Stage files to commit.')).not.toBeInTheDocument()

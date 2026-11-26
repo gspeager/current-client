@@ -1,9 +1,9 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskService, type TaskInfo, type TaskListInfo } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import TasksView from './TasksView'
 import { useTasks } from './useTasks'
+import { renderWithDialogs } from '../../test/render'
 
 const { handlers } = vi.hoisted(() => ({ handlers: {} as Record<string, (event: { data: unknown }) => void> }))
 
@@ -51,11 +51,7 @@ function renderTasks(info = list()) {
   vi.mocked(TaskService.Run).mockResolvedValue()
   vi.mocked(TaskService.Results).mockResolvedValue({})
   vi.mocked(TaskService.Approve).mockResolvedValue()
-  render(
-    <DialogProvider>
-      <Harness />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<Harness />)
 }
 
 const runId = () => vi.mocked(TaskService.Run).mock.lastCall![2]
@@ -254,11 +250,7 @@ describe('tasks', () => {
         </button>
       )
     }
-    render(
-      <DialogProvider>
-        <Elsewhere />
-      </DialogProvider>,
-    )
+    renderWithDialogs(<Elsewhere />)
     vi.mocked(TaskService.List).mockResolvedValue(list({ tasks: [task({ approved: false, fingerprint: 'there' })] }))
     await user.click(screen.getByRole('button', { name: 'elsewhere' }))
     const dialog = await screen.findByRole('alertdialog', { name: 'Run this command?' })

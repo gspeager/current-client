@@ -1,9 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, WorktreeService, type BranchInfo, type WorktreeInfo } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import WorktreesPanel from './WorktreesPanel'
 import { defaultSections } from '../../test/sections'
+import { renderWithDialogs } from '../../test/render'
 
 const REPO = '/projects/app'
 
@@ -35,16 +35,14 @@ function renderPanel(worktrees: WorktreeInfo[]) {
   const onOpenRepository = vi.fn()
   const onWorktreesChanged = vi.fn()
   const onOpenBoard = vi.fn()
-  render(
-    <DialogProvider>
-      <WorktreesPanel
-        sections={defaultSections()}
-        repoPath={REPO}
-        onOpenRepository={onOpenRepository}
-        onWorktreesChanged={onWorktreesChanged}
-        onOpenBoard={onOpenBoard}
-      />
-    </DialogProvider>,
+  renderWithDialogs(
+    <WorktreesPanel
+      sections={defaultSections()}
+      repoPath={REPO}
+      onOpenRepository={onOpenRepository}
+      onWorktreesChanged={onWorktreesChanged}
+      onOpenBoard={onOpenBoard}
+    />,
   )
   return { onOpenRepository, onWorktreesChanged, onOpenBoard }
 }

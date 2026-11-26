@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   ChangeDraft,
@@ -11,9 +11,9 @@ import {
   RemoteService,
 } from '@current-client-bindings/app'
 import { Change } from '@current-client-bindings/core/hostapi'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { NotesContext } from '../notes/notes'
 import CreateChangeDialog from './CreateChangeDialog'
+import { renderWithDialogs } from '../../test/render'
 
 const draft = new ChangeDraft({
   branch: 'feature',
@@ -26,16 +26,14 @@ const draft = new ChangeDraft({
 })
 
 function renderDialog(onCreated = vi.fn()) {
-  render(
-    <DialogProvider>
-      <CreateChangeDialog
-        repoPath="/repos/app"
-        branch="feature"
-        kind="merge request"
-        onCreated={onCreated}
-        onClose={vi.fn()}
-      />
-    </DialogProvider>,
+  renderWithDialogs(
+    <CreateChangeDialog
+      repoPath="/repos/app"
+      branch="feature"
+      kind="merge request"
+      onCreated={onCreated}
+      onClose={vi.fn()}
+    />,
   )
   return onCreated
 }
@@ -68,18 +66,16 @@ describe('CreateChangeDialog', () => {
     ])
     const listed = (target: string) => new NoteInfo({ kind: 'review', target, id: 'n1' })
     const notes = { notes: [listed('refs/heads/feature')], noteFor: () => undefined, edit: vi.fn(), openList: vi.fn() }
-    render(
-      <DialogProvider>
-        <NotesContext.Provider value={notes}>
-          <CreateChangeDialog
-            repoPath="/repos/app"
-            branch="feature"
-            kind="merge request"
-            onCreated={vi.fn()}
-            onClose={vi.fn()}
-          />
-        </NotesContext.Provider>
-      </DialogProvider>,
+    renderWithDialogs(
+      <NotesContext.Provider value={notes}>
+        <CreateChangeDialog
+          repoPath="/repos/app"
+          branch="feature"
+          kind="merge request"
+          onCreated={vi.fn()}
+          onClose={vi.fn()}
+        />
+      </NotesContext.Provider>,
     )
     const add = await screen.findByRole('button', { name: 'Add to description' })
     const description = screen.getByRole('textbox', { name: 'Description' })

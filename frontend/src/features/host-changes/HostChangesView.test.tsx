@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   ChangeList,
@@ -10,10 +10,9 @@ import {
 } from '@current-client-bindings/app'
 import { Change, ChangeState, CIStatus, ReviewState } from '@current-client-bindings/core/hostapi'
 import { Links } from '@current-client-bindings/core/hostlink'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import HostChangesView from './HostChangesView'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 function change(overrides: Partial<Change>): Change {
   return new Change({
@@ -68,17 +67,15 @@ function renderView({
   vi.mocked(HostService.CurrentChange).mockResolvedValue(
     new CurrentChange({ branch: 'topic', upstream: 'origin/topic', enabled: true, change: null }),
   )
-  render(
-    <DialogProvider>
-      <HostChangesView
-        repoPath={REPO}
-        label="Merge requests"
-        onBranchChanged={onBranchChanged}
-        onCreateChange={onCreateChange}
-        onOpenSettings={onOpenSettings}
-        onMerged={onMerged}
-      />
-    </DialogProvider>,
+  renderWithDialogs(
+    <HostChangesView
+      repoPath={REPO}
+      label="Merge requests"
+      onBranchChanged={onBranchChanged}
+      onCreateChange={onCreateChange}
+      onOpenSettings={onOpenSettings}
+      onMerged={onMerged}
+    />,
   )
   return { onBranchChanged, onCreateChange, onOpenSettings, onMerged }
 }

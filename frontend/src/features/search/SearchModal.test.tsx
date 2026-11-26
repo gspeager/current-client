@@ -8,8 +8,7 @@ import {
   type SearchResult,
 } from '@current-client-bindings/app'
 import SearchModal from './SearchModal'
-
-const REPO = '/repos/app'
+import { REPO, branchInfo } from '../../test/factories'
 
 // The bindings return cancellable promises; a new search cancels the last.
 function cancellable<T>(promise: Promise<T>) {
@@ -21,9 +20,7 @@ function results(result: SearchResult) {
 }
 
 function renderSearch(onOpenFileHistory = vi.fn()) {
-  vi.mocked(BranchService.ListLocal).mockResolvedValue([
-    { name: 'main', current: true, upstream: '', ahead: 0, behind: 0, lastCommitDate: '', worktreePath: '', tip: '' },
-  ])
+  vi.mocked(BranchService.ListLocal).mockResolvedValue([branchInfo({ name: 'main', current: true })])
   vi.mocked(BranchService.ListRemote).mockResolvedValue([])
   vi.mocked(TagService.ListTags).mockResolvedValue([])
   render(<SearchModal repoPath={REPO} onClose={vi.fn()} onOpenFileHistory={onOpenFileHistory} />)

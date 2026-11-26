@@ -1,10 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect } from 'react'
 import { HostService } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { ReviewDraftProvider, reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import ReviewDialog from './ReviewDialog'
+import { renderWithDialogs } from '../../test/render'
 
 function Drafts({ target }: { target: string }) {
   const { add, comments } = useReviewDraft(target)
@@ -17,13 +17,11 @@ function Drafts({ target }: { target: string }) {
 function renderDialog({ drafted = false } = {}) {
   const onSubmitted = vi.fn()
   const onClose = vi.fn()
-  render(
-    <DialogProvider>
-      <ReviewDraftProvider>
-        {drafted && <Drafts target={reviewTarget('/repos/app', 7)} />}
-        <ReviewDialog repoPath="/repos/app" number={7} prefix="!" onSubmitted={onSubmitted} onClose={onClose} />
-      </ReviewDraftProvider>
-    </DialogProvider>,
+  renderWithDialogs(
+    <ReviewDraftProvider>
+      {drafted && <Drafts target={reviewTarget('/repos/app', 7)} />}
+      <ReviewDialog repoPath="/repos/app" number={7} prefix="!" onSubmitted={onSubmitted} onClose={onClose} />
+    </ReviewDraftProvider>,
   )
   return { onSubmitted, onClose }
 }

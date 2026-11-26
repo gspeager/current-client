@@ -1,10 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, MergedBranches, RemoteService } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import CleanUpBranchesDialog from './CleanUpBranchesDialog'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 const report = new MergedBranches({
   default: 'main',
@@ -25,11 +24,7 @@ const report = new MergedBranches({
 })
 
 function renderDialog(onDeleted = vi.fn()) {
-  render(
-    <DialogProvider>
-      <CleanUpBranchesDialog repoPath={REPO} onDeleted={onDeleted} onClose={vi.fn()} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<CleanUpBranchesDialog repoPath={REPO} onDeleted={onDeleted} onClose={vi.fn()} />)
   return onDeleted
 }
 

@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SettingsService, TerminalService } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import TerminalPanel from './TerminalPanel'
 import { isTerminalToggle } from './terminalKeys'
 import { useTerminals } from './useTerminals'
+import { renderWithDialogs } from '../../test/render'
 
 const { created, handlers, FakeTerminal } = vi.hoisted(() => {
   const created: {
@@ -89,11 +89,7 @@ function Harness({ repoPath = '/repo' }: { repoPath?: string }) {
 }
 
 function renderPanel() {
-  return render(
-    <DialogProvider>
-      <Harness />
-    </DialogProvider>,
-  )
+  return renderWithDialogs(<Harness />)
 }
 
 beforeEach(() => {
@@ -236,11 +232,7 @@ describe('TerminalPanel', () => {
         </>
       )
     }
-    render(
-      <DialogProvider>
-        <WithError />
-      </DialogProvider>,
-    )
+    renderWithDialogs(<WithError />)
     await user.click(screen.getByRole('button', { name: 'open' }))
     expect(await screen.findByText(/turned off by organization policy/)).toBeInTheDocument()
   })

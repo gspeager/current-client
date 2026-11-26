@@ -1,12 +1,12 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ChangedFile, CommitInfo, HistoryService } from '@current-client-bindings/app'
 import { Copy } from 'lucide-react'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import CommitDetailPanel from './CommitDetailPanel'
 import type { CommitAction } from './useCommitActions'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
-const REPO = '/repos/app'
 const commit = new CommitInfo({
   sha: 'abc1234def5678',
   parentShas: ['0001112223334'],
@@ -32,10 +32,8 @@ function renderPanel() {
     new ChangedFile({ status: 'M', path: 'src/app.ts', added: 3, removed: 1 }),
     new ChangedFile({ status: 'A', path: 'src/new.ts', added: 10 }),
   ])
-  return render(
-    <DialogProvider>
-      <CommitDetailPanel repoPath={REPO} commit={commit} colorError={null} onColorChange={vi.fn()} actions={ACTIONS} />
-    </DialogProvider>,
+  return renderWithDialogs(
+    <CommitDetailPanel repoPath={REPO} commit={commit} colorError={null} onColorChange={vi.fn()} actions={ACTIONS} />,
   )
 }
 
@@ -91,18 +89,16 @@ describe('CommitDetailPanel', () => {
       new ChangedFile({ status: 'M', path: 'src/app.ts', added: 3, removed: 1 }),
       new ChangedFile({ status: 'A', path: 'src/new.ts', added: 10 }),
     ])
-    render(
-      <DialogProvider>
-        <CommitDetailPanel
-          repoPath={REPO}
-          commit={commit}
-          colorError={null}
-          onColorChange={vi.fn()}
-          actions={ACTIONS}
-          openedPath="src/new.ts"
-          onOpenFile={onOpenFile}
-        />
-      </DialogProvider>,
+    renderWithDialogs(
+      <CommitDetailPanel
+        repoPath={REPO}
+        commit={commit}
+        colorError={null}
+        onColorChange={vi.fn()}
+        actions={ACTIONS}
+        openedPath="src/new.ts"
+        onOpenFile={onOpenFile}
+      />,
     )
 
     await userEvent.click(await screen.findByRole('button', { name: /src\/app\.ts/ }))
@@ -116,10 +112,8 @@ describe('CommitDetailPanel', () => {
   it("says a merge's files are compared with its first parent", async () => {
     vi.mocked(HistoryService.GetChangedFiles).mockResolvedValue([new ChangedFile({ status: 'A', path: 'feature.ts' })])
     const merge = new CommitInfo({ ...commit, parentShas: ['aaaaaaa1111', 'bbbbbbb2222'], body: '' })
-    render(
-      <DialogProvider>
-        <CommitDetailPanel repoPath={REPO} commit={merge} colorError={null} onColorChange={vi.fn()} actions={ACTIONS} />
-      </DialogProvider>,
+    renderWithDialogs(
+      <CommitDetailPanel repoPath={REPO} commit={merge} colorError={null} onColorChange={vi.fn()} actions={ACTIONS} />,
     )
 
     expect(await screen.findByRole('button', { name: /feature\.ts/ })).toBeInTheDocument()

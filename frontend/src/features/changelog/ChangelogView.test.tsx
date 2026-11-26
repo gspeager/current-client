@@ -8,15 +8,14 @@ import {
   type ChangelogReleaseSection,
 } from '@current-client-bindings/app'
 import type { ChangelogPrefs } from '@current-client-bindings/internal/config'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import TabBar from '../repositories/TabBar'
 import { changelogPdfBase64 } from './changelogPdf'
 import { giveElementsLayout } from '../../test/bindings'
 import ChangelogView from './ChangelogView'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 vi.mock('./changelogPdf', () => ({ changelogPdfBase64: vi.fn() }))
-
-const REPO = '/repos/app'
 
 function entry(
   sha: string,
@@ -87,11 +86,7 @@ function renderView(
           .join('\n'),
       ) as ReturnType<typeof ChangelogService.Markdown>,
   )
-  render(
-    <DialogProvider>
-      <Harness onOpenCommit={onOpenCommit} initial={prefs} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<Harness onOpenCommit={onOpenCommit} initial={prefs} />)
 }
 
 const markdown = () => screen.getByRole('textbox', { name: 'Changelog Markdown' })

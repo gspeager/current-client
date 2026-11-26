@@ -10,8 +10,8 @@ import {
 } from '@current-client-bindings/app'
 import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { DIVERGED, useRemoteSync } from './useRemoteSync'
+import { REPO } from '../../test/factories'
 
-const REPO = '/repos/app'
 const OTHER_REPO = '/repos/site'
 const NEEDS_CREDENTIALS =
   'This remote needs credentials. Set up a credential helper, such as Git Credential Manager, for it.'

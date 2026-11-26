@@ -1,11 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RemoteService } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import RemotesPanel from './RemotesPanel'
 import { defaultSections } from '../../test/sections'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 function renderPanel(pruneOnFetch: boolean) {
   vi.mocked(RemoteService.List).mockResolvedValue([
@@ -13,10 +12,8 @@ function renderPanel(pruneOnFetch: boolean) {
     { name: 'upstream', fetchUrl: 'https://example.com/upstream.git', pushUrl: '' },
   ])
   const onFetched = vi.fn()
-  render(
-    <DialogProvider>
-      <RemotesPanel sections={defaultSections()} repoPath={REPO} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
-    </DialogProvider>,
+  renderWithDialogs(
+    <RemotesPanel sections={defaultSections()} repoPath={REPO} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />,
   )
   return onFetched
 }
@@ -49,11 +46,7 @@ describe('RemotesPanel', () => {
 
     function renderWithUrl(fetchUrl: string) {
       vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin', fetchUrl, pushUrl: fetchUrl }])
-      render(
-        <DialogProvider>
-          <RemotesPanel sections={defaultSections()} repoPath={REPO} />
-        </DialogProvider>,
-      )
+      renderWithDialogs(<RemotesPanel sections={defaultSections()} repoPath={REPO} />)
     }
 
     it.each([

@@ -18,15 +18,14 @@ import {
 } from '@current-client-bindings/app'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
-import { DialogProvider } from './DialogProvider'
 import NavPane from './NavPane'
 import QuickSwitchPalette from './QuickSwitchPalette'
 import { useWorkspaceActions } from './useWorkspaceActions'
 import { NotesContext } from '../../features/notes/notes'
 import { settingsGroups } from '../../features/settings/SettingsPanel'
 import { Launcher } from '@current-client-bindings/internal/platform'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 const repo = { recentRepos: [], tabs: [REPO], openRecent: vi.fn() } as unknown as ReturnType<
   typeof useRepositoryLifecycle
@@ -118,11 +117,7 @@ function Shell({
 }
 
 function renderPalette(onBranchChanged?: () => void, spies: ShellSpies = {}) {
-  render(
-    <DialogProvider>
-      <Shell onBranchChanged={onBranchChanged} {...spies} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<Shell onBranchChanged={onBranchChanged} {...spies} />)
 }
 
 const palette = () => screen.getByRole('dialog', { name: 'Go to anything' })

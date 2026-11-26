@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { ChangedFile, DiffService, FileContent, FileDiff, StashService } from '@current-client-bindings/app'
 import { EMPTY_TREE_SHA } from '../diff/diffMapping'
 import StashModal from './StashModal'
+import { REPO } from '../../test/factories'
 
-const REPO = '/repos/app'
 const stash = { index: 1, message: 'On main: wip', date: '2026-10-01T10:00:00Z' }
 
 describe('StashModal', () => {

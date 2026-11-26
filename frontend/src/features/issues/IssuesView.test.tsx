@@ -3,8 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { HostService, IssueDetails, IssueList } from '@current-client-bindings/app'
 import { IssuePanelContext } from '../../lib/issuePanel'
 import IssuesView from './IssuesView'
-
-const REPO = '/repos/app'
+import { REPO } from '../../test/factories'
 
 function details(key: string, title: string) {
   return new IssueDetails({

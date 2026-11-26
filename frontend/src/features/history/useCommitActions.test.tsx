@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchService, CommitInfo, CommitService } from '@current-client-bindings/app'
 import { Links } from '@current-client-bindings/core/hostlink'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { useCommitActions } from './useCommitActions'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
-const REPO = '/repos/app'
 const commit = new CommitInfo({ sha: 'abc1234def5678', subject: 'Add the thing' })
 
 // Every action as a button, with the hook's dialogs and message beside them.
@@ -27,11 +27,7 @@ function Harness({ onChanged = vi.fn(), hostLinks = null }: { onChanged?: () => 
 }
 
 function renderActions(props: { onChanged?: () => void; hostLinks?: Links | null } = {}) {
-  render(
-    <DialogProvider>
-      <Harness {...props} />
-    </DialogProvider>,
-  )
+  renderWithDialogs(<Harness {...props} />)
 }
 
 describe('useCommitActions', () => {

@@ -16,8 +16,8 @@ import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { isStagedStatus, isUnstagedStatus } from './fileStatus'
 import { giveElementsLayout } from '../../test/bindings'
 import ChangesView from './ChangesView'
-
-const REPO = '/repos/app'
+import { renderWithDialogs } from '../../test/render'
+import { REPO } from '../../test/factories'
 
 function file(path: string, overrides: Partial<FileStatus> = {}): FileStatus {
   return {
@@ -82,16 +82,14 @@ describe('ChangesView diff scroll position', () => {
       const pane = document.querySelector<HTMLElement>('.diff-pane')!
       return pane.querySelector<HTMLElement>('.diff-side') ?? pane
     }
-    render(
-      <DialogProvider>
-        <ChangesView
-          repoPath={REPO}
-          workingTree={workingTreeFor([file('a.ts'), file('b.ts')])}
-          initialSelectedPath="a.ts"
-          initialDiffScrollTop={800}
-          onDiffScrollChange={onDiffScrollChange}
-        />
-      </DialogProvider>,
+    renderWithDialogs(
+      <ChangesView
+        repoPath={REPO}
+        workingTree={workingTreeFor([file('a.ts'), file('b.ts')])}
+        initialSelectedPath="a.ts"
+        initialDiffScrollTop={800}
+        onDiffScrollChange={onDiffScrollChange}
+      />,
     )
 
     await screen.findAllByText(/in a\.ts/)
@@ -397,10 +395,8 @@ describe('ChangesView multi-select', () => {
 describe('ChangesView stashing', () => {
   function renderWithBranchChanged(files: FileStatus[]) {
     const onBranchChanged = vi.fn()
-    render(
-      <DialogProvider>
-        <ChangesView repoPath={REPO} workingTree={workingTreeFor(files)} onBranchChanged={onBranchChanged} />
-      </DialogProvider>,
+    renderWithDialogs(
+      <ChangesView repoPath={REPO} workingTree={workingTreeFor(files)} onBranchChanged={onBranchChanged} />,
     )
     return onBranchChanged
   }
@@ -497,15 +493,13 @@ describe('ChangesView expanded diff', () => {
   function renderExpandable(diffExpanded: boolean) {
     vi.mocked(DiffService.GetWorkingTreeDiff).mockResolvedValue(textDiff)
     const onDiffExpandedChange = vi.fn()
-    render(
-      <DialogProvider>
-        <ChangesView
-          repoPath={REPO}
-          workingTree={workingTreeFor([file('src/app.ts')])}
-          diffExpanded={diffExpanded}
-          onDiffExpandedChange={onDiffExpandedChange}
-        />
-      </DialogProvider>,
+    renderWithDialogs(
+      <ChangesView
+        repoPath={REPO}
+        workingTree={workingTreeFor([file('src/app.ts')])}
+        diffExpanded={diffExpanded}
+        onDiffExpandedChange={onDiffExpandedChange}
+      />,
     )
     return onDiffExpandedChange
   }
@@ -563,21 +557,19 @@ describe('ChangesView conflicts', () => {
       conflictedFile(),
       file('src/done.ts', { indexStatus: 'M', worktreeStatus: '.' }),
     ])
-    render(
-      <DialogProvider>
-        <ChangesView
-          repoPath={REPO}
-          workingTree={workingTree}
-          conflict={
-            new ConflictStateInfo({
-              operation: 'merge',
-              conflictedPaths: ['src/app.ts'],
-              ours: 'main',
-              theirs: 'feature',
-            })
-          }
-        />
-      </DialogProvider>,
+    renderWithDialogs(
+      <ChangesView
+        repoPath={REPO}
+        workingTree={workingTree}
+        conflict={
+          new ConflictStateInfo({
+            operation: 'merge',
+            conflictedPaths: ['src/app.ts'],
+            ours: 'main',
+            theirs: 'feature',
+          })
+        }
+      />,
     )
 
     expect(screen.getByRole('button', { name: 'Conflicted, 1' })).toBeInTheDocument()
@@ -651,21 +643,19 @@ describe('ChangesView conflicts', () => {
       }),
     )
     const workingTree = workingTreeFor([conflictedFile()])
-    render(
-      <DialogProvider>
-        <ChangesView
-          repoPath={REPO}
-          workingTree={workingTree}
-          conflict={
-            new ConflictStateInfo({
-              operation: 'merge',
-              conflictedPaths: ['src/app.ts'],
-              ours: 'main',
-              theirs: 'feature',
-            })
-          }
-        />
-      </DialogProvider>,
+    renderWithDialogs(
+      <ChangesView
+        repoPath={REPO}
+        workingTree={workingTree}
+        conflict={
+          new ConflictStateInfo({
+            operation: 'merge',
+            conflictedPaths: ['src/app.ts'],
+            ours: 'main',
+            theirs: 'feature',
+          })
+        }
+      />,
     )
 
     await userEvent.click(screen.getByRole('button', { name: 'src/app.ts' }))

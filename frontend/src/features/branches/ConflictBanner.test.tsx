@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConflictService, ConflictStateInfo } from '@current-client-bindings/app'
-import { DialogProvider } from '../../components/chrome/DialogProvider'
 import ConflictBanner from './ConflictBanner'
+import { renderWithDialogs } from '../../test/render'
 
 const merge = new ConflictStateInfo({
   operation: 'merge',
@@ -13,10 +13,8 @@ const merge = new ConflictStateInfo({
 })
 
 function renderBanner(state = merge, onResolved = vi.fn(), onOpenFile = vi.fn()) {
-  render(
-    <DialogProvider>
-      <ConflictBanner repoPath="/repos/app" state={state} onResolved={onResolved} onOpenFile={onOpenFile} />
-    </DialogProvider>,
+  renderWithDialogs(
+    <ConflictBanner repoPath="/repos/app" state={state} onResolved={onResolved} onOpenFile={onOpenFile} />,
   )
   return { onResolved, onOpenFile }
 }
