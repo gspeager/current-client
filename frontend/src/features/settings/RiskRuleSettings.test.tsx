@@ -22,5 +22,6 @@ describe('RiskRuleSettings', () => {
   it('has a switch for every rule', () => {
     render(<RiskRuleSettings off={[]} onChange={vi.fn()} />)
     expect(screen.getAllByRole('checkbox')).toHaveLength(RISK_RULES.length)
+    expect(screen.getByRole('checkbox', { name: 'Conflict markers' }).closest('label')).toHaveClass('switch-trailing')
   })
 })

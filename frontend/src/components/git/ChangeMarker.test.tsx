@@ -68,4 +68,14 @@ describe('ChangeMarker', () => {
     await userEvent.hover(screen.getByRole('button', { name: '#42' }))
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Turn integration on for its title and state.')
   })
+
+  it('drops the state square and quiets a pass when asked', () => {
+    render(
+      <ChangeMarker change={new BranchChange({ number: 7, prefix: '#', state: 'open', ci: 'success' })} plain quiet />,
+    )
+    const marker = screen.getByRole('button', { name: '#7 · open · CI passed' })
+    expect(marker).toHaveClass('change-marker-plain')
+    expect(marker.querySelector('.change-marker-square')).toBeNull()
+    expect(marker.querySelector('.ci-icon-success')).toHaveClass('ci-icon-quiet')
+  })
 })
