@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .submodule-diff-shas,
 .submodule-diff-sha {
   font: var(--data-sm);
@@ -26,4 +28,13 @@
 
 .submodule-diff-sha {
   color: var(--outline);
+}
+
+.submodule-diff-commits {
+  @include patterns.list-reset;
+}
+
+.submodule-diff-subject {
+  min-width: 0;
+  @include patterns.truncate;
 }

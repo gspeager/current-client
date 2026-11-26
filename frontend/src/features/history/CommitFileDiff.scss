@@ -48,14 +48,6 @@
   min-height: 0;
   padding: var(--space-md);
   overflow: auto;
-
-  .diff-view {
-    flex: 1;
-  }
-
-  .diff-viewer {
-    max-height: none;
-  }
 }
 
 .commit-file-diff-hint {

@@ -97,6 +97,7 @@ interface DiffViewerProps extends HunkActions {
   onScrollTopChange?: (top: number) => void
   // A line to bring into view; a new object asks again.
   focusLine?: DiffFocus | null
+  fill?: boolean
 }
 
 function DiffViewer({
@@ -116,6 +117,7 @@ function DiffViewer({
   conflictView = 'result',
   review,
   notes,
+  fill = false,
   ...hunkActions
 }: DiffViewerProps) {
   const [showImage, setShowImage] = useState(true)
@@ -347,7 +349,7 @@ function DiffViewer({
   const canComment = (!!notes || (!!review && !!actions?.capabilities.lineComments)) && !diff.conflicted && !sidesApart
 
   return (
-    <div className="diff-view">
+    <div className={clsx('diff-view', fill && 'diff-view-fill')}>
       {summaryToggle}
       {imageToggle}
       {review && actions && (
@@ -395,7 +397,7 @@ function DiffViewer({
           <SideHeader side={targetSide} which="target" count={diff.conflicted ? undefined : stats.added} />
         </div>
       )}
-      <div className={clsx('diff-viewer', mode !== 'split' && 'diff-viewer-unified', !wrap && 'diff-viewer-nowrap')}>
+      <div className={clsx('diff-viewer', mode !== 'split' && 'diff-viewer-unified')}>
         <DiffPane
           mode={mode}
           rows={displayRows}

@@ -48,6 +48,7 @@ function CommitFileDiff({ repoPath, commit, path, reviewThreads, onBack }: Commi
           <p className="commit-file-diff-hint">Could not load diff: {error}</p>
         ) : diff ? (
           <DiffViewer
+            fill
             diff={diff}
             path={path}
             viewMode={viewMode}

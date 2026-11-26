@@ -183,15 +183,6 @@
   }
 }
 
-// In Changes the diff takes all the height its pane has.
-.changes-diff .diff-view {
-  flex: 1;
-
-  .diff-viewer {
-    max-height: none;
-  }
-}
-
 .changes-clean .changes-clean-commit {
   color: var(--on-surface-variant);
   font: var(--ui-sm);
@@ -219,12 +210,6 @@
 @container (max-width: 520px) {
   .changes-diff-owners,
   .changes-diff-stat-hunks {
-    display: none;
-  }
-}
-
-@container (max-width: 400px) {
-  .changes-diff-header .diff-stat {
     display: none;
   }
 }
