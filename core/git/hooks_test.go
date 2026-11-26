@@ -66,7 +66,7 @@ func TestTurningAHookOffAndOn(t *testing.T) {
 	writeHook(t, dir, "commit-msg.sample", "#!/bin/sh\n")
 
 	hooks := readHooks(t, repo)
-	if hooks.Dir != filepath.Join(gittest.Run(t, repo, "rev-parse", "--path-format=absolute", "--git-common-dir"), "hooks") ||
+	if hooks.Dir != filepath.Join(repo, ".git", "hooks") ||
 		hooks.Scope != "" || hooks.Tracked || hooks.Worktrees != 1 {
 		t.Fatalf("the default directory: %+v", hooks)
 	}
@@ -182,7 +182,7 @@ func TestHooksALinkedWorktreeShares(t *testing.T) {
 func TestAHookSetInConfig(t *testing.T) {
 	repo, _ := isolatedConfigRepo(t, "[hook \"lint\"]\n\tcommand = touch '"+filepath.Join(t.TempDir(), "x")+"'\n\tevent = pre-commit\n\tevent = pre-push\n")
 	gittest.CommitFile(t, repo, "a.txt", "a", "first")
-	supported, err := configHooksSupported(context.Background(), repo)
+	supported, err := configHooksSupported(context.Background(), repo, "pre-commit")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,5 +214,34 @@ func TestAHookSetInConfig(t *testing.T) {
 	}
 	if local, _ := os.ReadFile(filepath.Join(repo, ".git", "config")); strings.Contains(string(local), "hook") {
 		t.Fatalf("turning it on again left %q", local)
+	}
+}
+
+func TestTurningOffASymlinkedHook(t *testing.T) {
+	repo, _ := isolatedConfigRepo(t, "")
+	script := writeHook(t, filepath.Join(repo, "scripts"), "pre-commit", ranScript(repo))
+	gittest.Run(t, repo, "add", ".")
+	gittest.Run(t, repo, "commit", "-q", "-m", "scripts")
+	if err := os.Symlink(filepath.Join("..", "..", "scripts", "pre-commit"), filepath.Join(repo, ".git", "hooks", "pre-commit")); err != nil {
+		t.Fatal(err)
+	}
+	hook := hookFor(t, readHooks(t, repo), "pre-commit")
+	if !hook.On || !hookRan(t, repo) {
+		t.Fatalf("a symlinked hook: %+v", hook)
+	}
+	if err := SetHookOn(context.Background(), repo, hook, false); err != nil {
+		t.Fatal(err)
+	}
+	if info, _ := os.Stat(script); info.Mode().Perm()&0o100 == 0 {
+		t.Fatal("turning off the link changed the script it points to")
+	}
+	if hookFor(t, readHooks(t, repo), "pre-commit").On || hookRan(t, repo) {
+		t.Fatal("the symlinked hook still runs")
+	}
+	if err := SetHookOn(context.Background(), repo, hookFor(t, readHooks(t, repo), "pre-commit"), true); err != nil {
+		t.Fatal(err)
+	}
+	if !hookRan(t, repo) {
+		t.Fatal("the symlinked hook doesn't run again")
 	}
 }
