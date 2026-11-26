@@ -21,8 +21,6 @@ type CIMark struct {
 }
 
 const (
-	cachePipeline = "pipeline"
-	cacheJobs     = "jobs"
 	// ciBatchCap bounds one call's fetching; ciParallel how many of those
 	// run at once against the host.
 	ciBatchCap = 50
@@ -35,8 +33,7 @@ const (
 // that fetches asks for it again: it will change, unlike a finished one.
 var ciRunningTTL = 2 * time.Minute
 
-// CIStatus is the cached pipeline result for each SHA that has one; it
-// never contacts the host.
+// CIStatus is the cached pipeline result for each SHA that has one.
 func (s *HostService) CIStatus(repoPath string, shas []string) (map[string]CIMark, error) {
 	_, info, ok, err := enabledHost(repoPath)
 	if err != nil || !ok {
@@ -68,9 +65,9 @@ func (s *HostService) FetchCIStatus(repoPath string, shas []string) (map[string]
 func unknownPipelines(info HostInfo, repoPath string, shas []string, limit int) []string {
 	var missing []string
 	for _, sha := range shas {
-		cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, sha)
+		cached, at, ok := cachePipeline.get(info.Hostname, repoPath, sha)
 		if ok {
-			status := cached.(CIMark).Status
+			status := cached.Status
 			if (status != string(hostapi.CIRunning) && status != string(hostapi.CIPending)) || time.Since(at) < ciRunningTTL {
 				continue
 			}
@@ -113,8 +110,8 @@ func (s *HostService) PipelineJobs(repoPath string, pipelineID int64) ([]hostapi
 func cachedCI(info HostInfo, repoPath string, shas []string) map[string]CIMark {
 	marks := map[string]CIMark{}
 	for _, sha := range shas {
-		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, sha); ok {
-			if mark := cached.(CIMark); mark.Status != "" {
+		if cached, _, ok := cachePipeline.get(info.Hostname, repoPath, sha); ok {
+			if mark := cached; mark.Status != "" {
 				marks[sha] = mark
 			}
 		}
@@ -135,7 +132,7 @@ func fetchPipelines(ctx context.Context, provider hostapi.Provider, info HostInf
 		if ok {
 			mark = CIMark{Status: string(pipeline.Status), PipelineID: pipeline.ID, WebURL: pipeline.WebURL}
 		}
-		hostClient.Cache.Put(info.Hostname, repoPath, cachePipeline, shas[i], mark)
+		cachePipeline.put(info.Hostname, repoPath, shas[i], mark)
 	})
 }
 
@@ -168,8 +165,8 @@ func fillChangeCI(ctx context.Context, provider hostapi.Provider, info HostInfo,
 	}
 	fetchPipelines(ctx, provider, info, repoPath, shas)
 	for i := range changes {
-		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cachePipeline, changes[i].HeadSHA); ok {
-			changes[i].CI = hostapi.CIStatus(cached.(CIMark).Status)
+		if cached, _, ok := cachePipeline.get(info.Hostname, repoPath, changes[i].HeadSHA); ok {
+			changes[i].CI = hostapi.CIStatus(cached.Status)
 		}
 	}
 }

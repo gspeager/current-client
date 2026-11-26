@@ -46,8 +46,8 @@ func TestMergeReadinessComesFromTheCacheAndGit(t *testing.T) {
 		{Number: 8, Title: "Unknown head", SourceBranch: "other", TargetBranch: "main", HeadSHA: "0123456789abcdef0123456789abcdef01234567", State: hostapi.ChangeOpen, Draft: true, HasConflicts: true, ConflictsKnown: true, UnresolvedThreads: 2, Reviews: []hostapi.Review{{Reviewer: ann, State: hostapi.ReviewCommented}, {Reviewer: bob, State: hostapi.ReviewChangesRequested}}},
 		{Number: 9, Title: "From GitHub's list", SourceBranch: "gh", TargetBranch: "main", HeadSHA: head, State: hostapi.ChangeOpen},
 	}
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{changes, false})
-	hostClient.Cache.Put(info.Hostname, repo, cacheRules, "all", []hostapi.BranchRule{{Pattern: "main", NoPush: true}})
+	cacheChanges.put(info.Hostname, repo, info.Project, cachedChanges{changes, false})
+	cacheRules.put(info.Hostname, repo, "all", []hostapi.BranchRule{{Pattern: "main", NoPush: true}})
 	var s HostService
 
 	ready, err := s.MergeReadiness(repo, 7)
@@ -105,7 +105,7 @@ func TestMergeChangeMergesOnTheHostAndMovesItToMerged(t *testing.T) {
 		{Number: 7, SourceBranch: "feature", TargetBranch: "main", HeadSHA: head, State: hostapi.ChangeOpen},
 		{Number: 8, SourceBranch: "other", TargetBranch: "main", HeadSHA: head, State: hostapi.ChangeOpen},
 	}
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, info.Project, cachedChanges{changes, false})
+	cacheChanges.put(info.Hostname, repo, info.Project, cachedChanges{changes, false})
 	var s HostService
 
 	options, err := s.MergeOptions(repo, 7)

@@ -29,11 +29,7 @@ type BranchChange struct {
 	HeadSHA           string `json:"headSha"`
 }
 
-const (
-	cacheRemoteRefs = "ls-remote"
-	cacheChanges    = "changes"
-	cacheUser       = "user"
-)
+const ()
 
 type cachedChanges struct {
 	changes   []hostapi.Change
@@ -53,8 +49,8 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 	for _, remote := range remotes {
 		info, _ := hostInfoFor(remote, hosts)
 		prefix := changePrefix(info)
-		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRemoteRefs, remote.Name); ok {
-			refs := cached.(git.RemoteChanges)
+		if cached, _, ok := cacheRemoteRefs.get(info.Hostname, repoPath, remote.Name); ok {
+			refs := cached
 			if refs.Kind == git.MergeRequestRefs {
 				prefix = "!"
 			}
@@ -62,8 +58,8 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 				changes[remote.Name+"/"+branch] = BranchChange{Number: number, Prefix: prefix}
 			}
 		}
-		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project); ok {
-			for _, change := range cached.(cachedChanges).changes {
+		if cached, _, ok := cacheChanges.get(info.Hostname, repoPath, info.Project); ok {
+			for _, change := range cached.changes {
 				if change.SourceProject != "" && change.SourceProject != info.Project {
 					continue
 				}
@@ -90,14 +86,14 @@ func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, e
 
 // currentUser is the token's user, asked of the host once per remote.
 func currentUser(ctx context.Context, provider hostapi.Provider, info HostInfo, repoPath, remote string) (hostapi.User, error) {
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheUser, remote); ok {
-		return cached.(hostapi.User), nil
+	if cached, _, ok := cacheUser.get(info.Hostname, repoPath, remote); ok {
+		return cached, nil
 	}
 	user, err := provider.CurrentUser(ctx)
 	if err != nil {
 		return hostapi.User{}, err
 	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheUser, remote, user)
+	cacheUser.put(info.Hostname, repoPath, remote, user)
 	return user, nil
 }
 
@@ -122,7 +118,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 	for _, remote := range remotes {
 		info, _ := hostInfoFor(remote, hosts)
 		if refs, err := git.ListRemoteChanges(ctx, repoPath, remote.Name); err == nil {
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheRemoteRefs, remote.Name, refs)
+			cacheRemoteRefs.put(info.Hostname, repoPath, remote.Name, refs)
 		}
 		if !info.Enabled {
 			continue
@@ -134,19 +130,17 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 		before := snapshotCurrentBranch(info, repoPath)
 		// Pipelines are asked for again after a refresh; the heads of open
 		// changes first, since the list endpoint carries no CI result.
-		for _, kind := range []string{cachePipeline, cacheJobs, cacheIssue, cacheAssigned, cacheProjectIssues, cacheThreads, cacheClosed, cacheFiles, cacheCommits} {
-			hostClient.Cache.ClearKind(info.Hostname, repoPath, kind)
-		}
+		clearKinds(info.Hostname, repoPath, cachePipeline, cacheJobs, cacheIssue, cacheAssigned, cacheProjectIssues, cacheThreads, cacheClosed, cacheFiles, cacheCommits)
 		var lastOpen []hostapi.Change
-		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project); ok {
-			lastOpen = cached.(cachedChanges).changes
+		if cached, _, ok := cacheChanges.get(info.Hostname, repoPath, info.Project); ok {
+			lastOpen = cached.changes
 		}
 		if changes, truncated, err := provider.OpenChanges(ctx, info.Project); err == nil {
 			fillChangeCI(ctx, provider, info, repoPath, changes)
 			fillChangeReviews(ctx, provider, info, changes)
 			refreshMergedChanges(ctx, provider, info, repoPath, remote.Name, lastOpen, changes)
 			fillCurrentBranchThreads(ctx, provider, info, repoPath, remote.Name, changes)
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cachedChanges{changes, truncated})
+			cacheChanges.put(info.Hostname, repoPath, info.Project, cachedChanges{changes, truncated})
 			fetchCurrentBranchJobs(ctx, provider, info, repoPath, remote.Name, changes)
 			refreshBranchRules(ctx, provider, info, repoPath, remote.Name)
 			refreshDeployments(ctx, provider, info, repoPath)
@@ -158,7 +152,7 @@ func refreshHostChanges(ctx context.Context, repoPath string) error {
 			refreshBranchTipCI(ctx, provider, info, repoPath)
 			refreshForecast(ctx, info, repoPath, remote.Name, changes)
 			if notices := noticesSince(before, info, repoPath); len(notices) > 0 {
-				hostClient.Cache.Put(info.Hostname, repoPath, cacheNotices, "current", notices)
+				cacheNotices.put(info.Hostname, repoPath, "current", notices)
 			}
 		} else {
 			return err

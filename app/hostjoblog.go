@@ -22,7 +22,6 @@ const (
 	jobLogTailLines = 50
 	jobLogTailBytes = 64 << 10
 	jobLogFullBytes = 2 << 20
-	cacheJobLog     = "joblog"
 )
 
 // JobLog fetches a job's log when asked, never in advance: the last
@@ -41,8 +40,8 @@ func (s *HostService) JobLog(repoPath string, jobID int64, full bool) (JobLog, e
 	if full {
 		key += ":full"
 	}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheJobLog, key); ok {
-		return cached.(JobLog), nil
+	if cached, _, ok := cacheJobLog.get(info.Hostname, repoPath, key); ok {
+		return cached, nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -58,7 +57,7 @@ func (s *HostService) JobLog(repoPath string, jobID int64, full bool) (JobLog, e
 	if !full {
 		log.Text, log.Truncated = tailLines(log.Text, jobLogTailLines, truncated)
 	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheJobLog, key, log)
+	cacheJobLog.put(info.Hostname, repoPath, key, log)
 	return log, nil
 }
 

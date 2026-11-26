@@ -30,74 +30,33 @@ func trackerAssigned(repoPath string, provider *jira.Provider, site hostlink.Tra
 	return cachedFrom(name, repoPath, cacheAssigned, trackerAssignedID, func(ctx context.Context) ([]hostapi.Issue, error) {
 		issues, err := provider.AssignedIssues(ctx, "", "")
 		if err == nil {
-			rememberTrackerIssues(name, repoPath, issues)
+			trackerSource(provider, site).remember(repoPath, issues)
 		}
 		return issues, err
 	})
 }
 
-func rememberTrackerIssues(cacheHost, repoPath string, issues []hostapi.Issue) {
-	for _, is := range issues {
-		hostClient.Cache.Put(cacheHost, repoPath, cacheIssue, is.Key, IssueInfo{Key: is.Key, Title: is.Title, State: is.State, Status: is.Status, WebURL: is.WebURL, Known: true})
-	}
-}
-
-// TrackerIssueTitles reads the cache only: what the last fetch learned
-// about each tracker key, keyed by key.
+// TrackerIssueTitles is what the last fetch learned about each tracker key, by key.
 func (s *HostService) TrackerIssueTitles(repoPath string, keys []string) map[string]IssueInfo {
 	_, site, ok := jiraFor(repoPath)
 	if !ok {
 		return map[string]IssueInfo{}
 	}
-	return cachedTrackerIssues(hostlink.SiteHost(site.Site), repoPath, keys)
+	return issueSource{cacheHost: hostlink.SiteHost(site.Site)}.titles(repoPath, keys)
 }
 
-// FetchTrackerIssueTitles asks the tracker for the keys not yet known, up to
-// the batch cap, four at a time, as FetchIssueTitles does for a host; a key
-// the tracker hasn't is remembered as known with no title.
+// FetchTrackerIssueTitles asks the tracker for the keys not yet known, as
+// issueSource.fetchTitles does.
 func (s *HostService) FetchTrackerIssueTitles(repoPath string, keys []string) map[string]IssueInfo {
 	provider, site, ok := jiraFor(repoPath)
 	if !ok {
 		return map[string]IssueInfo{}
 	}
-	name := hostlink.SiteHost(site.Site)
-	var missing []string
-	seen := map[string]bool{}
-	for _, key := range keys {
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		if _, _, ok := hostClient.Cache.Get(name, repoPath, cacheIssue, key); !ok {
-			missing = append(missing, key)
-		}
-	}
-	if len(missing) > issueBatchCap {
-		missing = missing[:issueBatchCap]
-	}
-	ctx, cancel := hostContext()
-	defer cancel()
-	inParallel(len(missing), func(i int) {
-		key := missing[i]
-		issue, err := provider.IssueByKey(ctx, "", key)
-		switch {
-		case err == nil:
-			rememberTrackerIssues(name, repoPath, []hostapi.Issue{issue})
-		case hostapi.IsNotFound(err):
-			hostClient.Cache.Put(name, repoPath, cacheIssue, key, IssueInfo{Key: key, Known: true})
-		}
-	})
-	return cachedTrackerIssues(name, repoPath, keys)
+	return trackerSource(provider, site).fetchTitles(repoPath, keys)
 }
 
-func cachedTrackerIssues(cacheHost, repoPath string, keys []string) map[string]IssueInfo {
-	issues := map[string]IssueInfo{}
-	for _, key := range keys {
-		if cached, _, ok := hostClient.Cache.Get(cacheHost, repoPath, cacheIssue, key); ok {
-			issues[key] = cached.(IssueInfo)
-		}
-	}
-	return issues
+func trackerSource(provider *jira.Provider, site hostlink.Tracker) issueSource {
+	return issueSource{cacheHost: hostlink.SiteHost(site.Site), webRoot: site.Site, tracker: provider}
 }
 
 // refreshTracker is the tracker's share of a refresh: what was cached is
@@ -108,28 +67,26 @@ func refreshTracker(ctx context.Context, repoPath string) {
 		return
 	}
 	name := hostlink.SiteHost(site.Site)
-	for _, kind := range []string{cacheIssue, cacheIssueDetails, cacheIssueComments, cacheAssigned, cacheProjectIssues} {
-		hostClient.Cache.ClearKind(name, repoPath, kind)
-	}
+	clearKinds(name, repoPath, cacheIssue, cacheIssueDetails, cacheIssueComments, cacheAssigned, cacheProjectIssues)
 	if issues, err := provider.AssignedIssues(ctx, "", ""); err == nil {
-		hostClient.Cache.Put(name, repoPath, cacheAssigned, trackerAssignedID, issues)
-		rememberTrackerIssues(name, repoPath, issues)
+		cacheAssigned.put(name, repoPath, trackerAssignedID, issues)
+		trackerSource(provider, site).remember(repoPath, issues)
 	}
 }
 
-// trackerInboxRows reads the cache only: the tracker's issues assigned to
-// the user, as of the refresh that brought them.
+// trackerInboxRows is the tracker's issues assigned to the user, as of the
+// refresh that brought them.
 func trackerInboxRows(repoPath string) []InboxRow {
 	_, site, ok := jiraFor(repoPath)
 	if !ok {
 		return nil
 	}
-	cached, at, ok := hostClient.Cache.Get(hostlink.SiteHost(site.Site), repoPath, cacheAssigned, trackerAssignedID)
+	cached, at, ok := cacheAssigned.get(hostlink.SiteHost(site.Site), repoPath, trackerAssignedID)
 	if !ok {
 		return nil
 	}
 	var rows []InboxRow
-	for _, issue := range cached.([]hostapi.Issue) {
+	for _, issue := range cached {
 		fetched := at
 		rows = append(rows, InboxRow{ID: "assigned:" + issue.Key, Kind: "assigned", Key: issue.Key, Title: issue.Title, WebURL: issue.WebURL, FetchedAt: &fetched})
 	}

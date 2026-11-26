@@ -4,7 +4,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -51,11 +50,7 @@ type CheckoutResult struct {
 	Existed bool   `json:"existed"`
 }
 
-const (
-	cacheClosed  = "closed"
-	cacheFiles   = "files"
-	cacheCommits = "commits"
-)
+const ()
 
 func (s *HostService) Changes(repoPath string) (ChangeList, error) {
 	list, info, _, err := changeList(repoPath)
@@ -73,14 +68,14 @@ func (s *HostService) ClosedChanges(repoPath string) (ChangeList, error) {
 	if err != nil || !list.Enabled {
 		return list, err
 	}
-	if _, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheClosed, info.Project); !ok {
+	if _, _, ok := cacheClosed.get(info.Hostname, repoPath, info.Project); !ok {
 		ctx, cancel := hostContext()
 		defer cancel()
 		changes, truncated, err := provider.ClosedChanges(ctx, info.Project)
 		if err != nil {
 			return ChangeList{}, err
 		}
-		hostClient.Cache.Put(info.Hostname, repoPath, cacheClosed, info.Project, cachedChanges{changes, truncated})
+		cacheClosed.put(info.Hostname, repoPath, info.Project, cachedChanges{changes, truncated})
 	}
 	fillChangeList(&list, info, repoPath, cacheClosed)
 	return list, nil
@@ -96,15 +91,15 @@ func changeList(repoPath string) (ChangeList, HostInfo, hostapi.Provider, error)
 		return ChangeList{}, info, nil, nil
 	}
 	list := ChangeList{Host: info.Hostname, Provider: info.Provider, Project: info.Project, Enabled: true, Prefix: changePrefix(info), Changes: []hostapi.Change{}}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheUser, remote.Name); ok {
-		list.Me = cached.(hostapi.User).Username
+	if cached, _, ok := cacheUser.get(info.Hostname, repoPath, remote.Name); ok {
+		list.Me = cached.Username
 	}
 	return list, info, provider, nil
 }
 
-func fillChangeList(list *ChangeList, info HostInfo, repoPath, kind string) {
-	if cached, at, ok := hostClient.Cache.Get(info.Hostname, repoPath, kind, info.Project); ok {
-		entry := cached.(cachedChanges)
+func fillChangeList(list *ChangeList, info HostInfo, repoPath string, kind cacheKind[cachedChanges]) {
+	if cached, at, ok := kind.get(info.Hostname, repoPath, info.Project); ok {
+		entry := cached
 		list.Changes, list.Truncated, list.FetchedAt = entry.changes, entry.truncated, &at
 	}
 }
@@ -181,7 +176,7 @@ func (s *HostService) ChangeCommits(repoPath string, number int) ([]hostapi.Chan
 
 // cachedOrFetched reads one cached value, or asks the host for it once and
 // keeps the answer until a refresh clears its kind.
-func cachedOrFetched[T any](info HostInfo, repoPath, kind, key string, fetch func(context.Context, hostapi.Provider) (T, error)) (T, error) {
+func cachedOrFetched[T any](info HostInfo, repoPath string, kind cacheKind[T], key string, fetch func(context.Context, hostapi.Provider) (T, error)) (T, error) {
 	provider := providerFor(info)
 	if provider == nil {
 		var none T
@@ -277,58 +272,6 @@ func changeKind(info HostInfo) string {
 		return "merge request"
 	}
 	return "pull request"
-}
-
-var errHostOff = errors.New("integration is off for this repository's host")
-
-func hostContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 30*time.Second)
-}
-
-func primaryHost(repoPath string) (git.Remote, HostInfo, bool, error) {
-	remotes, err := git.ListRemotes(context.Background(), repoPath)
-	if err != nil || len(remotes) == 0 {
-		return git.Remote{}, HostInfo{}, false, err
-	}
-	remote := primaryRemote(remotes)
-	info, ok := hostInfoFor(remote, configOrDefault().Hosts)
-	return remote, info, ok, nil
-}
-
-// enabledHost is primaryHost with ok false unless the host's integration is on.
-func enabledHost(repoPath string) (git.Remote, HostInfo, bool, error) {
-	remote, info, ok, err := primaryHost(repoPath)
-	return remote, info, ok && info.Enabled, err
-}
-
-// requireHost is enabledHost for a call that fails, with errHostOff, when the host is off.
-func requireHost(repoPath string) (git.Remote, HostInfo, error) {
-	remote, info, ok, err := enabledHost(repoPath)
-	if err == nil && !ok {
-		err = errHostOff
-	}
-	return remote, info, err
-}
-
-func webRoot(info HostInfo) string {
-	return "https://" + info.Hostname + "/"
-}
-
-func cachedChange(repoPath string, number int) (git.Remote, HostInfo, hostapi.Change, error) {
-	remote, info, err := requireHost(repoPath)
-	if err != nil {
-		return remote, info, hostapi.Change{}, err
-	}
-	for _, kind := range []string{cacheChanges, cacheClosed} {
-		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, kind, info.Project); ok {
-			for _, change := range cached.(cachedChanges).changes {
-				if change.Number == number {
-					return remote, info, change, nil
-				}
-			}
-		}
-	}
-	return remote, info, hostapi.Change{}, fmt.Errorf("%s%d isn't in the last refresh; refresh and try again", changePrefix(info), number)
 }
 
 // deleteFetchedHeads removes refs/current-client/ heads for the host's

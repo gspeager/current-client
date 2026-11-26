@@ -142,10 +142,10 @@ func (s *HostService) CreateChange(repoPath, branch string, input NewChangeInput
 		return hostapi.Change{}, err
 	}
 	cached := cachedChanges{}
-	if existing, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project); ok {
-		cached = existing.(cachedChanges)
+	if existing, _, ok := cacheChanges.get(info.Hostname, repoPath, info.Project); ok {
+		cached = existing
 	}
 	cached.changes = append([]hostapi.Change{change}, cached.changes...)
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheChanges, info.Project, cached)
+	cacheChanges.put(info.Hostname, repoPath, info.Project, cached)
 	return change, nil
 }

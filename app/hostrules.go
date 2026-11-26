@@ -9,8 +9,6 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 )
 
-const cacheRules = "rules"
-
 // refreshBranchRules asks for the host's protection rules, naming the local
 // branches' upstreams for a host whose endpoint takes a branch. A failed
 // request keeps the last answer.
@@ -26,22 +24,22 @@ func refreshBranchRules(ctx context.Context, provider hostapi.Provider, info Hos
 		}
 	}
 	if rules, err := provider.BranchRules(ctx, info.Project, names); err == nil {
-		hostClient.Cache.Put(info.Hostname, repoPath, cacheRules, "all", rules)
+		cacheRules.put(info.Hostname, repoPath, "all", rules)
 	}
 }
 
-// protectionOf reads the cache only: the rule for a branch on the
-// repository's host, when the host is on and a refresh brought rules.
+// protectionOf is the rule for a branch on the repository's host, when the
+// host is on and a refresh brought rules.
 func protectionOf(repoPath, remote, branch string) (*PushWarning, error) {
 	primary, info, ok, err := enabledHost(repoPath)
 	if err != nil || !ok || primary.Name != remote {
 		return nil, err
 	}
-	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRules, "all")
+	cached, _, ok := cacheRules.get(info.Hostname, repoPath, "all")
 	if !ok {
 		return nil, nil
 	}
-	rule, ok := hostapi.MatchRule(cached.([]hostapi.BranchRule), branch)
+	rule, ok := hostapi.MatchRule(cached, branch)
 	if !ok {
 		return nil, nil
 	}

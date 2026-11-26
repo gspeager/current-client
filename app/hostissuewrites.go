@@ -40,7 +40,7 @@ func (s *HostService) CreateIssue(repoPath string, input NewIssueInput) (hostapi
 	if err != nil {
 		return hostapi.Issue{}, err
 	}
-	rememberIssueTitles(info, repoPath, []hostapi.Issue{issue})
+	issueSourceOf(info).remember(repoPath, []hostapi.Issue{issue})
 	return issue, nil
 }
 
@@ -60,9 +60,9 @@ func (s *HostService) CommentOnIssue(repoPath, key, body string) (IssueDetails, 
 	if err != nil {
 		return IssueDetails{}, err
 	}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheIssueComments, key); ok {
-		notes := append(append([]hostapi.Note{}, cached.([]hostapi.Note)...), note)
-		hostClient.Cache.Put(info.Hostname, repoPath, cacheIssueComments, key, notes)
+	if cached, _, ok := cacheIssueComments.get(info.Hostname, repoPath, key); ok {
+		notes := append(append([]hostapi.Note{}, cached...), note)
+		cacheIssueComments.put(info.Hostname, repoPath, key, notes)
 	}
 	return s.IssueDetails(repoPath, key)
 }
@@ -80,17 +80,17 @@ func (s *HostService) SetIssueState(repoPath, key string, open bool) (IssueDetai
 	if err != nil {
 		return IssueDetails{}, err
 	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheIssueDetails, key, issue)
-	rememberIssueTitles(info, repoPath, []hostapi.Issue{issue.Issue})
+	cacheIssueDetails.put(info.Hostname, repoPath, key, issue)
+	issueSourceOf(info).remember(repoPath, []hostapi.Issue{issue.Issue})
 	if !open {
-		if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheAssigned, info.Project); ok {
+		if cached, _, ok := cacheAssigned.get(info.Hostname, repoPath, info.Project); ok {
 			var still []hostapi.Issue
-			for _, is := range cached.([]hostapi.Issue) {
+			for _, is := range cached {
 				if strconv.Itoa(is.Number) != key {
 					still = append(still, is)
 				}
 			}
-			hostClient.Cache.Put(info.Hostname, repoPath, cacheAssigned, info.Project, still)
+			cacheAssigned.put(info.Hostname, repoPath, info.Project, still)
 		}
 	}
 	return s.IssueDetails(repoPath, key)

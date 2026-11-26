@@ -13,7 +13,6 @@ import (
 
 // A change the host reports as merged or closed never changes again, so
 // one is asked for once and kept for the session.
-const cacheMergedChange = "merged"
 
 // refreshMergedChanges asks the host about the changes of local branches
 // that are no longer open: one request per such branch the first time, none
@@ -41,8 +40,8 @@ func refreshMergedChanges(ctx context.Context, provider hostapi.Provider, info H
 			candidates[change.Number] = true
 		}
 	}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheRemoteRefs, remote); ok {
-		for branch, number := range cached.(git.RemoteChanges).ByBranch {
+	if cached, _, ok := cacheRemoteRefs.get(info.Hostname, repoPath, remote); ok {
+		for branch, number := range cached.ByBranch {
 			if upstreams[branch] {
 				candidates[number] = true
 			}
@@ -50,29 +49,29 @@ func refreshMergedChanges(ctx context.Context, provider hostapi.Provider, info H
 	}
 	for number := range candidates {
 		id := strconv.Itoa(number)
-		if _, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheMergedChange, id); ok || isOpen[number] {
+		if _, _, ok := cacheMergedChange.get(info.Hostname, repoPath, id); ok || isOpen[number] {
 			continue
 		}
 		change, err := provider.Change(ctx, info.Project, number)
 		if err != nil || change.State == hostapi.ChangeOpen {
 			continue
 		}
-		hostClient.Cache.Put(info.Hostname, repoPath, cacheMergedChange, id, change)
+		cacheMergedChange.put(info.Hostname, repoPath, id, change)
 	}
 }
 
-// openChangesByBranch reads the cache only: each branch's open change, such as "!12".
+// openChangesByBranch is each branch's open change, such as "!12".
 func openChangesByBranch(repoPath string) map[string]string {
 	_, info, ok, err := enabledHost(repoPath)
 	if err != nil || !ok {
 		return nil
 	}
-	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheChanges, info.Project)
+	cached, _, ok := cacheChanges.get(info.Hostname, repoPath, info.Project)
 	if !ok {
 		return nil
 	}
 	open := map[string]string{}
-	for _, change := range cached.(cachedChanges).changes {
+	for _, change := range cached.changes {
 		if change.SourceProject == "" {
 			open[change.SourceBranch] = changePrefix(info) + strconv.Itoa(change.Number)
 		}
@@ -80,15 +79,14 @@ func openChangesByBranch(repoPath string) map[string]string {
 	return open
 }
 
-// mergedOnHost reads the cache only.
 func mergedOnHost(repoPath string) map[string]hostMergedChange {
 	remote, info, ok, err := enabledHost(repoPath)
 	if err != nil || !ok {
 		return nil
 	}
 	merged := map[string]hostMergedChange{}
-	for _, value := range hostClient.Cache.Values(info.Hostname, repoPath, cacheMergedChange) {
-		change := value.(hostapi.Change)
+	for _, value := range cacheMergedChange.entries(info.Hostname, repoPath) {
+		change := value
 		if change.State != hostapi.ChangeMerged || change.SourceProject != "" {
 			continue
 		}
@@ -103,8 +101,8 @@ func finishedChanges(info HostInfo, repoPath string) []hostapi.Change {
 	var closed ChangeList
 	fillChangeList(&closed, info, repoPath, cacheClosed)
 	changes := append([]hostapi.Change{}, closed.Changes...)
-	for _, value := range hostClient.Cache.Entries(info.Hostname, repoPath, cacheMergedChange) {
-		changes = append(changes, value.(hostapi.Change))
+	for _, value := range cacheMergedChange.entries(info.Hostname, repoPath) {
+		changes = append(changes, value)
 	}
 	return changes
 }

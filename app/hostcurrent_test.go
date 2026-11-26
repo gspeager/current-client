@@ -36,11 +36,11 @@ func TestCurrentChangeReadsTheCheckedOutBranchFromTheCache(t *testing.T) {
 		t.Fatalf("enabled, nothing cached: %+v", none)
 	}
 
-	hostClient.Cache.Put("gitlab.example.com", repo, cacheChanges, "group/app", cachedChanges{changes: []hostapi.Change{
+	cacheChanges.put("gitlab.example.com", repo, "group/app", cachedChanges{changes: []hostapi.Change{
 		{Number: 7, Title: "Add the thing", State: hostapi.ChangeOpen, SourceBranch: "feature", TargetBranch: "main", HeadSHA: "abc", CI: hostapi.CIFailed},
 	}})
-	hostClient.Cache.Put("gitlab.example.com", repo, cachePipeline, "abc", CIMark{Status: "failed", PipelineID: 12, WebURL: "https://gitlab.example.com/p/12"})
-	hostClient.Cache.Put("gitlab.example.com", repo, cacheJobs, "12", []hostapi.Job{{Name: "test", Status: hostapi.CIFailed}, {Name: "build", Status: hostapi.CISuccess}})
+	cachePipeline.put("gitlab.example.com", repo, "abc", CIMark{Status: "failed", PipelineID: 12, WebURL: "https://gitlab.example.com/p/12"})
+	cacheJobs.put("gitlab.example.com", repo, "12", []hostapi.Job{{Name: "test", Status: hostapi.CIFailed}, {Name: "build", Status: hostapi.CISuccess}})
 
 	got, err := s.CurrentChange(repo)
 	if err != nil || got.Change == nil || got.Change.Number != 7 || got.Change.TargetBranch != "main" {

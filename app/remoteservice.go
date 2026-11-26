@@ -259,7 +259,7 @@ type PushWarning struct {
 	NoDelete       bool   `json:"noDelete"`
 }
 
-// PushWarning reads the cache only and is nil when the host is off, has
+// PushWarning is nil when the host is off, has
 // shown no rules, or none covers the branch. remoteBranch is "origin/main";
 // empty means the current branch's upstream.
 func (s *RemoteService) PushWarning(repoPath, remoteBranch string) (*PushWarning, error) {

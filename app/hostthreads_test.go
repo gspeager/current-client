@@ -50,19 +50,19 @@ func TestReviewThreadsOfTheCheckedOutBranchAreFetchedOnRefreshAndReadFromTheCach
 	changes := []hostapi.Change{{Number: 7, SourceBranch: "feature", TargetBranch: "main", HeadSHA: "abc", State: hostapi.ChangeOpen}}
 	provider := gitlab.New(hostClient, hostapi.Host{Name: info.Hostname, API: info.APIURL})
 	fillCurrentBranchThreads(context.Background(), provider, info, repo, "origin", changes)
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, "group/app", cachedChanges{changes: changes})
+	cacheChanges.put(info.Hostname, repo, "group/app", cachedChanges{changes: changes})
 	if changes[0].UnresolvedThreads != 3 {
 		t.Fatalf("UnresolvedThreads = %d, want 3", changes[0].UnresolvedThreads)
 	}
 
-	fetched, _, ok := hostClient.Cache.Get(info.Hostname, repo, cacheThreads, "7")
+	fetched, _, ok := cacheThreads.get(info.Hostname, repo, "7")
 	if !ok {
 		t.Fatal("threads weren't cached")
 	}
 	// The read half runs against a transport that refuses every request.
 	swapHostClient(t, hostapitest.Forbid(t))
-	hostClient.Cache.Put(info.Hostname, repo, cacheChanges, "group/app", cachedChanges{changes: changes})
-	hostClient.Cache.Put(info.Hostname, repo, cacheThreads, "7", fetched)
+	cacheChanges.put(info.Hostname, repo, "group/app", cachedChanges{changes: changes})
+	cacheThreads.put(info.Hostname, repo, "7", fetched)
 	threads, err := s.ReviewThreads(repo)
 	if err != nil || !threads.Enabled || threads.Number != 7 || len(threads.Threads) != 4 || threads.Total != 3 {
 		t.Fatalf("ReviewThreads = %+v, %v", threads, err)
@@ -119,8 +119,8 @@ func TestReviewThreadsAtKeepOnlyFilesThatMatchTheChangeHead(t *testing.T) {
 	info := infoFor(hostByName("gitlab.example.com"), configOrDefault().Hosts)
 	put := func(headSHA string) {
 		changes := []hostapi.Change{{Number: 7, SourceBranch: "feature", TargetBranch: "main", HeadSHA: headSHA, State: hostapi.ChangeOpen}}
-		hostClient.Cache.Put(info.Hostname, repo, cacheChanges, "group/app", cachedChanges{changes: changes})
-		hostClient.Cache.Put(info.Hostname, repo, cacheThreads, "7", []hostapi.Thread{
+		cacheChanges.put(info.Hostname, repo, "group/app", cachedChanges{changes: changes})
+		cacheThreads.put(info.Hostname, repo, "7", []hostapi.Thread{
 			{ID: "a", Path: "a.go", Line: 1},
 			{ID: "b", Path: "b.go", Line: 1},
 			{ID: "all"},

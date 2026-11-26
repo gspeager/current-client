@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 	"github.com/gspeager/current-client/internal/config"
 )
@@ -57,8 +56,8 @@ func TestRefreshBringsTheHostsToDosForOpenRepositories(t *testing.T) {
 	if transport.hits[todos] != 1 {
 		t.Fatalf("to-dos asked %d times on refresh, want once", transport.hits[todos])
 	}
-	for _, value := range hostClient.Cache.Values("gitlab.example.com", "", cacheTodos) {
-		for _, todo := range value.([]hostapi.Todo) {
+	for _, todos := range cacheTodos.entries("gitlab.example.com", "") {
+		for _, todo := range todos {
 			if todo.Project != "group/app" {
 				t.Errorf("a to-do about another repository was kept: %+v", todo)
 			}

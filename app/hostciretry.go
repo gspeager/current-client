@@ -37,31 +37,31 @@ func retryCI(repoPath string, pipelineID int64, retry func(context.Context, host
 	if err != nil {
 		return nil, err
 	}
-	retrier, ok := providerFor(info).(hostapi.CIRetrier)
-	if !ok {
-		return nil, errors.New("this host's CI can't be re-run from the app")
+	retrier, err := capability[hostapi.CIRetrier](info, "this host's CI can't be re-run from the app")
+	if err != nil {
+		return nil, err
 	}
 	key := strconv.FormatInt(pipelineID, 10)
-	cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheJobs, key)
+	cached, _, ok := cacheJobs.get(info.Hostname, repoPath, key)
 	if !ok {
 		return nil, errors.New("open the pipeline's jobs first")
 	}
 	ctx, cancel := hostContext()
 	defer cancel()
-	if err := retry(ctx, retrier, info.Project, cached.([]hostapi.Job)); err != nil {
+	if err := retry(ctx, retrier, info.Project, cached); err != nil {
 		return nil, err
 	}
-	for sha, value := range hostClient.Cache.Entries(info.Hostname, repoPath, cachePipeline) {
-		if mark := value.(CIMark); mark.PipelineID == pipelineID {
+	for sha, value := range cachePipeline.entries(info.Hostname, repoPath) {
+		if mark := value; mark.PipelineID == pipelineID {
 			mark.Status = string(hostapi.CIRunning)
-			hostClient.Cache.Put(info.Hostname, repoPath, cachePipeline, sha, mark)
+			cachePipeline.put(info.Hostname, repoPath, sha, mark)
 		}
 	}
 	jobs, err := providerFor(info).Jobs(ctx, info.Project, pipelineID)
 	if err != nil {
-		hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheJobs)
+		cacheJobs.clear(info.Hostname, repoPath)
 		return nil, err
 	}
-	hostClient.Cache.Put(info.Hostname, repoPath, cacheJobs, key, jobs)
+	cacheJobs.put(info.Hostname, repoPath, key, jobs)
 	return jobs, nil
 }

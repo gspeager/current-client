@@ -20,8 +20,6 @@ type HostNotice struct {
 	Path   string `json:"path"`
 }
 
-const cacheNotices = "notices"
-
 // branchSnapshot is what the last refresh knew about the checked-out
 // branch's change, taken before a refresh so the next answer can be
 // compared with it.
@@ -40,8 +38,8 @@ func snapshotCurrentBranch(info HostInfo, repoPath string) branchSnapshot {
 		return branchSnapshot{}
 	}
 	snap := branchSnapshot{number: current.Change.Number, state: hostapi.ChangeState(current.Change.State), ci: current.Change.CI, notes: map[string]int{}, hasShape: true}
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheThreads, strconv.Itoa(snap.number)); ok {
-		for _, thread := range cached.([]hostapi.Thread) {
+	if cached, _, ok := cacheThreads.get(info.Hostname, repoPath, strconv.Itoa(snap.number)); ok {
+		for _, thread := range cached {
 			snap.notes[thread.ID] = len(thread.Notes)
 		}
 	}
@@ -66,8 +64,8 @@ func noticesSince(before branchSnapshot, info HostInfo, repoPath string) []HostN
 	var notices []HostNotice
 
 	newNotes, firstPath := 0, ""
-	if cached, _, ok := hostClient.Cache.Get(info.Hostname, repoPath, cacheThreads, strconv.Itoa(after.Number)); ok {
-		for _, thread := range cached.([]hostapi.Thread) {
+	if cached, _, ok := cacheThreads.get(info.Hostname, repoPath, strconv.Itoa(after.Number)); ok {
+		for _, thread := range cached {
 			if added := len(thread.Notes) - before.notes[thread.ID]; added > 0 {
 				newNotes += added
 				if firstPath == "" {
@@ -107,10 +105,10 @@ func (s *HostService) TakeNotices(repoPath string) ([]HostNotice, error) {
 	if err != nil || !ok {
 		return []HostNotice{}, err
 	}
-	cached, _, found := hostClient.Cache.Get(info.Hostname, repoPath, cacheNotices, "current")
+	cached, _, found := cacheNotices.get(info.Hostname, repoPath, "current")
 	if !found {
 		return []HostNotice{}, nil
 	}
-	hostClient.Cache.ClearKind(info.Hostname, repoPath, cacheNotices)
-	return cached.([]HostNotice), nil
+	cacheNotices.clear(info.Hostname, repoPath)
+	return cached, nil
 }
