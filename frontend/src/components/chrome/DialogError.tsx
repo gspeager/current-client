@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
+import GitOutput from './GitOutput'
 
 function DialogError({ children }: { children: ReactNode }) {
   if (!children) return null
   return (
-    <p className="dialog-error" role="alert">
+    <div className="dialog-error" role="alert">
       {children}
-    </p>
+      {typeof children === 'string' && <GitOutput message={children} />}
+    </div>
   )
 }
 

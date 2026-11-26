@@ -115,10 +115,15 @@ func (e *Executor) Run(ctx context.Context, cmd Command) (Result, error) {
 func (e *Executor) RunChecked(ctx context.Context, cmd Command) (Result, error) {
 	result, err := e.Run(ctx, cmd)
 	if err != nil {
-		return Result{}, WrapRunError(err)
+		// One of the app's own, such as ErrCommandLineToolsMissing, stays itself.
+		var appErr *AppError
+		if errors.As(err, &appErr) {
+			return Result{}, appErr
+		}
+		return Result{}, withCommand(WrapRunError(err), cmd.Args, 0)
 	}
 	if result.ExitCode != 0 {
-		return Result{}, WrapResult(result)
+		return Result{}, withCommand(WrapResult(result), cmd.Args, result.ExitCode)
 	}
 	return result, nil
 }

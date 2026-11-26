@@ -3,12 +3,18 @@ package gitexec
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strings"
 )
 
+// AppError is a failure to show. Detail is what Git said, and Command the git
+// command that failed with ExitCode, as a shell would quote it, all with secrets
+// redacted. Message is matched by its exact text, so it stays one sentence.
 type AppError struct {
-	Message string
-	Detail  string
+	Message  string
+	Detail   string
+	Command  string
+	ExitCode int
 }
 
 func (e *AppError) Error() string {
@@ -89,10 +95,11 @@ func WrapResult(result Result) *AppError {
 		}
 		for _, substr := range pattern.substrings {
 			if strings.Contains(text, substr) {
-				return &AppError{Message: pattern.message, Detail: text}
+				return &AppError{Message: pattern.message, Detail: RedactSecrets(text)}
 			}
 		}
 	}
+	stderr = RedactSecrets(stderr)
 	if reason := gitReason(stderr); reason != "" {
 		return &AppError{Message: "Git command failed: " + reason, Detail: stderr}
 	}
@@ -120,6 +127,27 @@ func gitReason(stderr string) string {
 		return firstError
 	}
 	return firstOther
+}
+
+// withCommand copies err, since a wrapped one can be a shared value.
+func withCommand(err *AppError, args []string, exitCode int) *AppError {
+	failed := *err
+	failed.Command = commandLine(redactArgs(args))
+	failed.ExitCode = exitCode
+	return &failed
+}
+
+var plainArg = regexp.MustCompile(`^[\w@%+=:,./-]+$`)
+
+func commandLine(args []string) string {
+	quoted := []string{"git"}
+	for _, arg := range args {
+		if !plainArg.MatchString(arg) {
+			arg = "'" + strings.ReplaceAll(arg, "'", `'\''`) + "'"
+		}
+		quoted = append(quoted, arg)
+	}
+	return strings.Join(quoted, " ")
 }
 
 func WrapRunError(err error) *AppError {

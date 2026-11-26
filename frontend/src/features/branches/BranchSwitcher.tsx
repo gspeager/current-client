@@ -14,6 +14,7 @@ import { useFetchAll } from '../remotes/useFetchAll'
 import BranchPill from '../../components/git/BranchPill'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useActionError } from '../../lib/useActionError'
+import GitOutput from '../../components/chrome/GitOutput'
 import './BranchSwitcher.scss'
 
 interface BranchSwitcherProps {
@@ -125,7 +126,12 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
       </div>
 
       {error && <p className="branch-switcher-error">{error}</p>}
-      {fetchAllOp.error && <p className="branch-switcher-error">Could not fetch: {fetchAllOp.error}</p>}
+      {fetchAllOp.error && (
+        <div className="branch-switcher-error">
+          Could not fetch: {fetchAllOp.error}
+          <GitOutput message={fetchAllOp.error} />
+        </div>
+      )}
       {deleteRemote.error && <p className="branch-switcher-error">Could not delete on remote: {deleteRemote.error}</p>}
 
       {current && (
