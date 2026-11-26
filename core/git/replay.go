@@ -76,7 +76,7 @@ func replayToTip(ctx context.Context, repoPath, onto string, commits []string) (
 }
 
 func treeOf(ctx context.Context, repoPath, rev string) (string, error) {
-	result, err := runResult(ctx, repoPath, "rev-parse", "--verify", rev+"^{tree}")
+	result, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--verify", rev+"^{tree}")
 	if err != nil {
 		return "", err
 	}
@@ -86,18 +86,7 @@ func treeOf(ctx context.Context, repoPath, rev string) (string, error) {
 // The identity is fixed so this works before the user has set one. The commit is
 // a stepping stone for the next merge, and nothing refers to it.
 func commitTree(ctx context.Context, repoPath, tree, parent string) (string, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
-		Dir:  repoPath,
-		Args: []string{"commit-tree", tree, "-p", parent, "-m", "replay"},
-		Env: []string{
-			"GIT_AUTHOR_NAME=replay", "GIT_AUTHOR_EMAIL=replay@localhost",
-			"GIT_COMMITTER_NAME=replay", "GIT_COMMITTER_EMAIL=replay@localhost",
-		},
-	})
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(result.Stdout), nil
+	return gitexec.OutputIn(ctx, repoPath, gitexec.Identity("replay@localhost"), "commit-tree", tree, "-p", parent, "-m", "replay")
 }
 
 type PreviewCommit struct {
@@ -173,7 +162,7 @@ func PreviewRebase(ctx context.Context, repoPath, onto string) (RebasePreview, e
 // previewCommits lists what a rebase of revs would pick, oldest first, with
 // their outcome not yet known.
 func previewCommits(ctx context.Context, repoPath string, revs ...string) ([]string, []PreviewCommit, error) {
-	result, err := runResult(ctx, repoPath, append([]string{"log", "--reverse", "--no-merges", "--format=%H%x00%s"}, revs...)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append([]string{"log", "--reverse", "--no-merges", "--format=%H%x00%s"}, revs...)...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -196,6 +185,6 @@ func applyReplay(commits []PreviewCommit, steps []ReplayStep) {
 }
 
 func isAncestor(ctx context.Context, repoPath, ancestor, of string) bool {
-	_, err := runResult(ctx, repoPath, "merge-base", "--is-ancestor", ancestor, of)
+	_, err := gitexec.RunIn(ctx, repoPath, "merge-base", "--is-ancestor", ancestor, of)
 	return err == nil
 }

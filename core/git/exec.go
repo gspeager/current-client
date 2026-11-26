@@ -11,10 +11,6 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-func runResult(ctx context.Context, repoPath string, args ...string) (gitexec.Result, error) {
-	return gitexec.RunIn(ctx, repoPath, args...)
-}
-
 // GitDir resolves the real .git directory, which isn't "<repoPath>/.git" for
 // a worktree.
 func GitDir(ctx context.Context, repoPath string) (string, error) {
@@ -47,7 +43,7 @@ func gitDirs(ctx context.Context, repoPath string) (repoDirs, error) {
 		dirCache.Delete(repoPath)
 	}
 	dirs, err, _ := flights.Do("dirs\x00"+repoPath, func() (any, error) {
-		result, err := runResult(ctx, repoPath, "rev-parse", "--git-dir", "--git-common-dir")
+		result, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--git-dir", "--git-common-dir")
 		if err != nil {
 			return repoDirs{}, err
 		}
@@ -76,6 +72,34 @@ func sinceMidnight(day time.Time) string {
 // hasNoCommits tells a HEAD-based command that failed because the repository
 // is empty apart from one that failed for a real reason.
 func hasNoCommits(ctx context.Context, repoPath string) bool {
-	_, err := runResult(ctx, repoPath, "rev-parse", "--verify", "--quiet", "HEAD")
+	_, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--verify", "--quiet", "HEAD")
 	return err != nil
+}
+
+// runStoppable runs a command that can stop on conflicts. A stop that leaves
+// the operation in progress isn't a failure: the conflict banner finishes it.
+func runStoppable(ctx context.Context, cmd gitexec.Command) (gitexec.Result, error) {
+	result, err := gitexec.Run(ctx, cmd)
+	if err != nil {
+		return gitexec.Result{}, gitexec.WrapRunError(err)
+	}
+	if result.ExitCode == 0 {
+		return result, nil
+	}
+	if strings.Contains(result.Stdout, "CONFLICT (") {
+		if state, err := DetectConflictState(ctx, cmd.Dir); err == nil && state.Operation != ConflictNone {
+			return result, nil
+		}
+	}
+	return gitexec.Result{}, gitexec.WrapResult(result)
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
 }

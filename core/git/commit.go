@@ -28,7 +28,7 @@ func Commit(ctx context.Context, repoPath, message string, opts CommitOptions) e
 	} else {
 		args = append(args, "--no-gpg-sign")
 	}
-	_, err := runResult(ctx, repoPath, args...)
+	_, err := gitexec.RunIn(ctx, repoPath, args...)
 	return err
 }
 
@@ -37,7 +37,7 @@ func GPGSignDefault(ctx context.Context, repoPath string) bool {
 }
 
 func LastCommitMessage(ctx context.Context, repoPath string) (string, error) {
-	result, err := runResult(ctx, repoPath, "log", "-1", "--pretty=%B")
+	result, err := gitexec.RunIn(ctx, repoPath, "log", "-1", "--pretty=%B")
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +45,7 @@ func LastCommitMessage(ctx context.Context, repoPath string) (string, error) {
 }
 
 func UndoLastCommit(ctx context.Context, repoPath string) error {
-	_, err := runResult(ctx, repoPath, "reset", "--soft", "HEAD~1")
+	_, err := gitexec.RunIn(ctx, repoPath, "reset", "--soft", "HEAD~1")
 	return err
 }
 
@@ -60,7 +60,7 @@ const (
 )
 
 func RecentAuthors(ctx context.Context, repoPath string) ([]Author, error) {
-	result, err := runResult(ctx, repoPath, "log", "-n", strconv.Itoa(recentAuthorScanLimit), "--format=%aN%x1f%aE")
+	result, err := gitexec.RunIn(ctx, repoPath, "log", "-n", strconv.Itoa(recentAuthorScanLimit), "--format=%aN%x1f%aE")
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func RecentAuthors(ctx context.Context, repoPath string) ([]Author, error) {
 // IsLastCommitPushed treats a branch without an upstream as unpushed; that's
 // the common case, so the upstream lookup's failure isn't surfaced.
 func IsLastCommitPushed(ctx context.Context, repoPath string) (bool, error) {
-	upstream, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	upstream, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: []string{"rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"},
 	})

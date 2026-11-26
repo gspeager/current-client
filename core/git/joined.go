@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // Joined is where a commit arrived on a branch's own line of history, the
@@ -28,12 +30,12 @@ func JoinedInto(ctx context.Context, repoPath, into string, commits []string) ([
 	if len(commits) == 0 {
 		return joined, nil
 	}
-	resolved, err := runResult(ctx, repoPath, append([]string{"rev-parse"}, commits...)...)
+	resolved, err := gitexec.RunIn(ctx, repoPath, append([]string{"rev-parse"}, commits...)...)
 	if err != nil {
 		return nil, err
 	}
 	shas := strings.Fields(resolved.Stdout)
-	result, err := runResult(ctx, repoPath, "log", "--topo-order", "--format=%H %P %ct", into, "--")
+	result, err := gitexec.RunIn(ctx, repoPath, "log", "--topo-order", "--format=%H %P %ct", into, "--")
 	if err != nil {
 		return nil, err
 	}

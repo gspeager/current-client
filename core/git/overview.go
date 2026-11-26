@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // OverviewDay is a day's commits among those History lists. FirstRow is the
@@ -71,7 +73,7 @@ func overviewCommits(ctx context.Context, repoPath string, filter HistoryFilter)
 		}
 		return commits, nil
 	}
-	result, err := runResult(ctx, repoPath, append([]string{"log", "--format=%H %at"}, filterArgs(filter)...)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append([]string{"log", "--format=%H %at"}, filterArgs(filter)...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +126,7 @@ func overviewMarkers(ctx context.Context, repoPath string, commits []overviewCom
 			markers = append(markers, OverviewMarker{OverviewHead, "HEAD", at})
 		}
 	}
-	result, err := runResult(ctx, repoPath, "for-each-ref", "refs/heads", "refs/tags", "refs/stash",
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "refs/heads", "refs/tags", "refs/stash",
 		"--format=%(refname)%00%(objectname)%00%(*objectname)%00%(authordate:unix)")
 	if err != nil {
 		return nil, err

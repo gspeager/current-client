@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type Status struct {
@@ -32,7 +34,7 @@ func parseSubmoduleField(field string) *SubmoduleStatus {
 
 // GetStatus lists each untracked file, rather than one entry for a new folder.
 func GetStatus(ctx context.Context, repoPath string) ([]Status, error) {
-	result, err := runResult(ctx, repoPath, "status", "--porcelain=v2", "-z", "--untracked-files=all")
+	result, err := gitexec.RunIn(ctx, repoPath, "status", "--porcelain=v2", "-z", "--untracked-files=all")
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +53,7 @@ type StatusSummary struct {
 }
 
 func SummarizeStatus(ctx context.Context, repoPath string) (StatusSummary, error) {
-	result, err := runResult(ctx, repoPath, "status", "--porcelain=v2", "--branch", "-z", "--untracked-files=all")
+	result, err := gitexec.RunIn(ctx, repoPath, "status", "--porcelain=v2", "--branch", "-z", "--untracked-files=all")
 	if err != nil {
 		return StatusSummary{}, err
 	}

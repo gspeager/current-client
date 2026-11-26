@@ -251,7 +251,7 @@ func (s state) writeTree(ctx context.Context, path string, env []string) (tree s
 	if len(s.statuses) > 0 || s.head == "" {
 		return snapshot.WriteTree(ctx, path, env, s.statuses)
 	}
-	tree, err = run(ctx, path, nil, "rev-parse", s.head+"^{tree}")
+	tree, err = gitexec.OutputIn(ctx, path, nil, "rev-parse", s.head+"^{tree}")
 	return tree, 0, err
 }
 
@@ -280,7 +280,7 @@ func Differing(ctx context.Context, path string, env []string, from, to string) 
 
 func changes(ctx context.Context, path string, env []string, head, tree string) ([]git.TreeChange, error) {
 	if head == "" {
-		empty, err := run(ctx, path, env, "hash-object", "-t", "tree", "-w", "--stdin")
+		empty, err := gitexec.OutputIn(ctx, path, env, "hash-object", "-t", "tree", "-w", "--stdin")
 		if err != nil {
 			return nil, err
 		}
@@ -290,18 +290,10 @@ func changes(ctx context.Context, path string, env []string, head, tree string) 
 }
 
 // The same work is the same commit, so what it conflicts with is known already.
-var identity = []string{
-	"GIT_AUTHOR_NAME=Current Client", "GIT_AUTHOR_EMAIL=board@localhost", "GIT_AUTHOR_DATE=1700000000 +0000",
-	"GIT_COMMITTER_NAME=Current Client", "GIT_COMMITTER_EMAIL=board@localhost", "GIT_COMMITTER_DATE=1700000000 +0000",
-}
+var identity = append(gitexec.Identity("board@localhost"), "GIT_AUTHOR_DATE=1700000000 +0000", "GIT_COMMITTER_DATE=1700000000 +0000")
 
 func commit(ctx context.Context, path string, env []string, tree, head string) (string, error) {
-	return run(ctx, path, append(append([]string{}, env...), identity...), "commit-tree", tree, "-p", head, "-m", "work")
-}
-
-func run(ctx context.Context, path string, env []string, args ...string) (string, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: path, Env: env, Args: args})
-	return strings.TrimSpace(result.Stdout), err
+	return gitexec.OutputIn(ctx, path, append(append([]string{}, env...), identity...), "commit-tree", tree, "-p", head, "-m", "work")
 }
 
 func (b *Board) predict(ctx context.Context, repoPath string, env, tips []string) error {

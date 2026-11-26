@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type HistoryEntry struct {
@@ -113,7 +115,7 @@ func CommitPosition(ctx context.Context, repoPath, sha string) (int, error) {
 
 // CountCommits takes rev-list arguments, such as "a..b" or "b", "^a", "^c".
 func CountCommits(ctx context.Context, repoPath string, revs ...string) (int, error) {
-	result, err := runResult(ctx, repoPath, append([]string{"rev-list", "--count"}, revs...)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append([]string{"rev-list", "--count"}, revs...)...)
 	if err != nil {
 		return 0, err
 	}
@@ -130,7 +132,7 @@ func FileHistory(ctx context.Context, repoPath, path string, limit, skip int) ([
 
 // An empty repository has no history rather than an error.
 func logHistory(ctx context.Context, repoPath string, args ...string) ([]HistoryEntry, error) {
-	result, err := runResult(ctx, repoPath, append([]string{"log", "-z", "--pretty=format:" + historyFormat}, args...)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append([]string{"log", "-z", "--pretty=format:" + historyFormat}, args...)...)
 	if err != nil {
 		if hasNoCommits(ctx, repoPath) {
 			return nil, nil
@@ -225,7 +227,7 @@ func filterArgs(filter HistoryFilter) []string {
 // parser, and dropping it after git paged would leave pages short.
 func typedHistory(ctx context.Context, repoPath string, limit, skip int, filter HistoryFilter) ([]HistoryEntry, error) {
 	args := []string{"log", "-z", "-E", "-i", "--format=%H\x1f%s\x1f%b", "--grep=" + typeGrep(filter.Type)}
-	result, err := runResult(ctx, repoPath, append(args, filterArgs(filter)...)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append(args, filterArgs(filter)...)...)
 	if err != nil {
 		if hasNoCommits(ctx, repoPath) {
 			return nil, nil
@@ -295,7 +297,7 @@ func revRange(ctx context.Context, repoPath, from, to string) (string, error) {
 // The ^{commit} suffix also keeps a ref that starts with "-" from reading as
 // an option.
 func ResolveCommit(ctx context.Context, repoPath, ref string) (string, error) {
-	result, err := runResult(ctx, repoPath, "rev-parse", "--verify", "--quiet", ref+"^{commit}")
+	result, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--verify", "--quiet", ref+"^{commit}")
 	if err != nil {
 		return "", fmt.Errorf("%s is not a commit", ref)
 	}

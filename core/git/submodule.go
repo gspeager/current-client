@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type Submodule struct {
@@ -26,7 +28,7 @@ func ListSubmodules(ctx context.Context, repoPath string) ([]Submodule, error) {
 	if _, err := os.Stat(filepath.Join(repoPath, ".gitmodules")); errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
-	result, err := runResult(ctx, repoPath, "submodule", "status", "--recursive")
+	result, err := gitexec.RunIn(ctx, repoPath, "submodule", "status", "--recursive")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +65,7 @@ func parseSubmoduleStatus(output string) []Submodule {
 // repository records, fetching them as needed. No paths means all of them.
 func UpdateSubmodules(ctx context.Context, repoPath string, paths []string) error {
 	args := append([]string{"submodule", "update", "--init", "--recursive", "--"}, paths...)
-	_, err := runResult(ctx, repoPath, args...)
+	_, err := gitexec.RunIn(ctx, repoPath, args...)
 	return err
 }
 
@@ -78,7 +80,7 @@ type SubmoduleCommit struct {
 // SubmoduleCommits lists what changed between two commits of the submodule
 // at path. It needs the submodule initialised, with both commits fetched.
 func SubmoduleCommits(ctx context.Context, repoPath, path, from, to string) ([]SubmoduleCommit, error) {
-	result, err := runResult(ctx, filepath.Join(repoPath, filepath.FromSlash(path)),
+	result, err := gitexec.RunIn(ctx, filepath.Join(repoPath, filepath.FromSlash(path)),
 		"log", "--left-right", "--format=%m%x09%h%x09%s", from+"..."+to)
 	if err != nil {
 		return nil, err

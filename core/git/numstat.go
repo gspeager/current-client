@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type NumstatEntry struct {
@@ -39,7 +41,7 @@ func RefRangeNumstat(ctx context.Context, repoPath, fromRef, toRef string) ([]Nu
 // numstat runs the diff command in args with -M, so a renamed-and-edited file
 // counts as a small edit rather than a full delete plus a full add.
 func numstat(ctx context.Context, repoPath string, args ...string) ([]NumstatEntry, error) {
-	result, err := runResult(ctx, repoPath, append([]string{args[0], "-M", "--numstat", "-z"}, args[1:]...)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append([]string{args[0], "-M", "--numstat", "-z"}, args[1:]...)...)
 	if err != nil {
 		return nil, err
 	}

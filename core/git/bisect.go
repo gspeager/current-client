@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type BisectStatus struct {
@@ -24,7 +26,7 @@ var (
 )
 
 func BisectStart(ctx context.Context, repoPath, badRev, goodRev string) (BisectStatus, error) {
-	result, err := runResult(ctx, repoPath, "bisect", "start", badRev, goodRev)
+	result, err := gitexec.RunIn(ctx, repoPath, "bisect", "start", badRev, goodRev)
 	if err != nil {
 		return BisectStatus{}, err
 	}
@@ -33,7 +35,7 @@ func BisectStart(ctx context.Context, repoPath, badRev, goodRev string) (BisectS
 
 // BisectMark runs `git bisect <verdict>`; verdict is "good", "bad", or "skip".
 func BisectMark(ctx context.Context, repoPath, verdict string) (BisectStatus, error) {
-	result, err := runResult(ctx, repoPath, "bisect", verdict)
+	result, err := gitexec.RunIn(ctx, repoPath, "bisect", verdict)
 	if err != nil {
 		return BisectStatus{}, err
 	}
@@ -41,7 +43,7 @@ func BisectMark(ctx context.Context, repoPath, verdict string) (BisectStatus, er
 }
 
 func BisectReset(ctx context.Context, repoPath string) error {
-	_, err := runResult(ctx, repoPath, "bisect", "reset")
+	_, err := gitexec.RunIn(ctx, repoPath, "bisect", "reset")
 	return err
 }
 

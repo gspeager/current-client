@@ -38,7 +38,7 @@ type ConfigReport struct {
 // InspectConfig only reads. It looks for a signing program and key rather than
 // signing anything, since that can prompt for a passphrase or a hardware key.
 func InspectConfig(ctx context.Context, repoPath string) (ConfigReport, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: []string{"config", "--list", "-z", "--show-scope", "--show-origin"},
 	})

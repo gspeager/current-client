@@ -5,10 +5,12 @@ import (
 	"context"
 	"os"
 	"regexp"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 func FormatPatch(ctx context.Context, repoPath, sha string) (string, error) {
-	result, err := runResult(ctx, repoPath, "format-patch", "-1", sha, "--stdout")
+	result, err := gitexec.RunIn(ctx, repoPath, "format-patch", "-1", sha, "--stdout")
 	if err != nil {
 		return "", err
 	}
@@ -16,7 +18,7 @@ func FormatPatch(ctx context.Context, repoPath, sha string) (string, error) {
 }
 
 func ApplyPatch(ctx context.Context, repoPath, patchPath string) error {
-	_, err := runResult(ctx, repoPath, "am", patchPath)
+	_, err := gitexec.RunIn(ctx, repoPath, "am", patchPath)
 	return err
 }
 
@@ -32,7 +34,7 @@ func ImportPatch(ctx context.Context, repoPath, patchPath string) (asCommits boo
 	if mailbox {
 		return true, ApplyPatch(ctx, repoPath, patchPath)
 	}
-	_, err = runResult(ctx, repoPath, "apply", patchPath)
+	_, err = gitexec.RunIn(ctx, repoPath, "apply", patchPath)
 	return false, err
 }
 
@@ -66,7 +68,7 @@ func DiffPatchForPaths(ctx context.Context, repoPath string, paths []string) (st
 }
 
 func diffPatch(ctx context.Context, repoPath string, pathspec ...string) (string, error) {
-	result, err := runResult(ctx, repoPath, append([]string{"diff", "HEAD", "--binary"}, pathspec...)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append([]string{"diff", "HEAD", "--binary"}, pathspec...)...)
 	if err != nil {
 		return "", err
 	}

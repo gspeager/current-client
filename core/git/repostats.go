@@ -2,10 +2,11 @@ package git
 
 import (
 	"context"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type RepoStats struct {
@@ -39,7 +40,7 @@ func ComputeRepoStats(ctx context.Context, repoPath string) (RepoStats, error) {
 	stats.FileCount = len(files)
 
 	// The root commits; a repository that merged in another history has several.
-	roots, err := runResult(ctx, repoPath, append([]string{"log", "--max-parents=0", "--format=%at"}, allRefs...)...)
+	roots, err := gitexec.RunIn(ctx, repoPath, append([]string{"log", "--max-parents=0", "--format=%at"}, allRefs...)...)
 	if err != nil {
 		return stats, err
 	}
@@ -83,26 +84,4 @@ func oldestTime(unixTimes string) (time.Time, bool) {
 		}
 	}
 	return time.Unix(oldest, 0), found
-}
-
-// trackedFiles is cached until the index changes, as Activity's stats and
-// language breakdown both list them.
-func trackedFiles(ctx context.Context, repoPath string) ([]string, error) {
-	gitDir, err := GitDir(ctx, repoPath)
-	if err != nil {
-		return nil, err
-	}
-	return cachedByRefs(ctx, repoPath, "tracked-files", func() ([]string, error) {
-		result, err := runResult(ctx, repoPath, "ls-files")
-		if err != nil {
-			return nil, err
-		}
-		var files []string
-		for _, line := range strings.Split(result.Stdout, "\n") {
-			if line = strings.TrimSpace(line); line != "" {
-				files = append(files, line)
-			}
-		}
-		return files, nil
-	}, filepath.Join(gitDir, "index"))
 }

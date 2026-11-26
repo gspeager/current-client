@@ -53,21 +53,10 @@ type Snapshot struct {
 	Skipped int
 }
 
-func run(ctx context.Context, repoPath string, env []string, args ...string) (string, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: repoPath, Args: args, Env: env})
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(result.Stdout), nil
-}
-
-var identity = []string{
-	"GIT_AUTHOR_NAME=Current Client", "GIT_AUTHOR_EMAIL=snapshot@localhost",
-	"GIT_COMMITTER_NAME=Current Client", "GIT_COMMITTER_EMAIL=snapshot@localhost",
-}
+var identity = gitexec.Identity("snapshot@localhost")
 
 func currentBranch(ctx context.Context, repoPath string) string {
-	branch, _ := run(ctx, repoPath, nil, "symbolic-ref", "--short", "-q", "HEAD")
+	branch, _ := gitexec.OutputIn(ctx, repoPath, nil, "symbolic-ref", "--short", "-q", "HEAD")
 	return branch
 }
 
@@ -75,7 +64,7 @@ func currentBranch(ctx context.Context, repoPath string) string {
 // copy, so a command can change it and the real one is untouched.
 func CopyIndex(ctx context.Context, repoPath, dir string) ([]string, error) {
 	index := filepath.Join(dir, "index")
-	if real, err := run(ctx, repoPath, nil, "rev-parse", "--git-path", "index"); err == nil {
+	if real, err := gitexec.OutputIn(ctx, repoPath, nil, "rev-parse", "--git-path", "index"); err == nil {
 		if !filepath.IsAbs(real) {
 			real = filepath.Join(repoPath, real)
 		}
@@ -133,10 +122,10 @@ func WriteTree(ctx context.Context, repoPath string, env []string, statuses []gi
 		}
 		kept += info.Size()
 	}
-	if _, err := run(ctx, repoPath, env, args...); err != nil {
+	if _, err := gitexec.OutputIn(ctx, repoPath, env, args...); err != nil {
 		return "", 0, err
 	}
-	tree, err = run(ctx, repoPath, env, "write-tree")
+	tree, err = gitexec.OutputIn(ctx, repoPath, env, "write-tree")
 	return tree, skipped, err
 }
 
@@ -153,7 +142,7 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 	}
 	head, headErr := git.ResolveCommit(ctx, repoPath, "HEAD")
 	if headErr == nil {
-		if headTree, err := run(ctx, repoPath, nil, "rev-parse", head+"^{tree}"); err == nil && headTree == tree {
+		if headTree, err := gitexec.OutputIn(ctx, repoPath, nil, "rev-parse", head+"^{tree}"); err == nil && headTree == tree {
 			return false, nil
 		}
 	}
@@ -162,7 +151,7 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 		return false, err
 	}
 	if len(existing) > 0 && existing[0].Kind == KindTree {
-		if newest, err := run(ctx, repoPath, nil, "rev-parse", existing[0].SHA+"^{tree}"); err == nil && newest == tree {
+		if newest, err := gitexec.OutputIn(ctx, repoPath, nil, "rev-parse", existing[0].SHA+"^{tree}"); err == nil && newest == tree {
 			return false, nil
 		}
 	}
@@ -170,7 +159,7 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 	if headErr == nil {
 		commit = append(commit, "-p", head)
 	}
-	sha, err := run(ctx, repoPath, identity, commit...)
+	sha, err := gitexec.OutputIn(ctx, repoPath, identity, commit...)
 	if err != nil {
 		return false, err
 	}
@@ -180,11 +169,11 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 // TakeTip keeps branch's commits at tip reachable. Its snapshot adds nothing but a
 // commit on top, which holds what the action and branch were.
 func TakeTip(ctx context.Context, repoPath, action, branch, tip string, limit int) error {
-	tree, err := run(ctx, repoPath, nil, "rev-parse", tip+"^{tree}")
+	tree, err := gitexec.OutputIn(ctx, repoPath, nil, "rev-parse", tip+"^{tree}")
 	if err != nil {
 		return err
 	}
-	sha, err := run(ctx, repoPath, identity, "commit-tree", tree, "-p", tip, "-m", action, "-m", metadata(KindTip, branch, 0))
+	sha, err := gitexec.OutputIn(ctx, repoPath, identity, "commit-tree", tree, "-p", tip, "-m", action, "-m", metadata(KindTip, branch, 0))
 	if err != nil {
 		return err
 	}
@@ -197,7 +186,7 @@ func metadata(kind, branch string, skipped int) string {
 
 func save(ctx context.Context, repoPath, sha string, limit int) error {
 	id := strconv.FormatInt(time.Now().UnixNano(), 10)
-	if _, err := run(ctx, repoPath, nil, "update-ref", refPrefix+id, sha); err != nil {
+	if _, err := gitexec.OutputIn(ctx, repoPath, nil, "update-ref", refPrefix+id, sha); err != nil {
 		return err
 	}
 	return Prune(ctx, repoPath, limit)
@@ -216,7 +205,7 @@ func Prune(ctx context.Context, repoPath string, limit int) error {
 }
 
 func Delete(ctx context.Context, repoPath, id string) error {
-	_, err := run(ctx, repoPath, nil, "update-ref", "-d", refPrefix+id)
+	_, err := gitexec.OutputIn(ctx, repoPath, nil, "update-ref", "-d", refPrefix+id)
 	return err
 }
 
@@ -239,7 +228,7 @@ func deleteEach(ctx context.Context, repoPath string, snapshots []Snapshot) erro
 
 // List returns them newest first.
 func List(ctx context.Context, repoPath string) ([]Snapshot, error) {
-	output, err := run(ctx, repoPath, nil, "for-each-ref", strings.TrimSuffix(refPrefix, "/"),
+	output, err := gitexec.OutputIn(ctx, repoPath, nil, "for-each-ref", strings.TrimSuffix(refPrefix, "/"),
 		"--format=%(refname)%00%(objectname)%00%(parent)%00%(committerdate:unix)%00%(subject)%00%(body)%01")
 	if err != nil {
 		return nil, err
@@ -314,7 +303,7 @@ func Restore(ctx context.Context, repoPath, id string, paths []string, limit int
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(repoPath, file.Path)), 0o755); err != nil {
 			return err
 		}
-		if _, err := run(ctx, repoPath, nil, "restore", "--source="+sha, "--worktree", "--", ":(literal)"+file.Path); err != nil {
+		if _, err := gitexec.OutputIn(ctx, repoPath, nil, "restore", "--source="+sha, "--worktree", "--", ":(literal)"+file.Path); err != nil {
 			return err
 		}
 	}

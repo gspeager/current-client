@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type ReflogEntry struct {
@@ -29,7 +31,7 @@ func Reflog(ctx context.Context, repoPath string, limit int) ([]ReflogEntry, err
 		args = append(args, "-n", strconv.Itoa(limit))
 	}
 	args = append(args, "HEAD")
-	result, err := runResult(ctx, repoPath, args...)
+	result, err := gitexec.RunIn(ctx, repoPath, args...)
 	if err != nil {
 		if hasNoCommits(ctx, repoPath) {
 			return nil, nil

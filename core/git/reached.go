@@ -33,7 +33,7 @@ func Reached(ctx context.Context, repoPath, tip string, commits []string) (map[s
 	if len(present) == 0 {
 		return reached, nil
 	}
-	dates, err := runResult(ctx, repoPath, append([]string{"log", "--no-walk=unsorted", "--format=%ct"}, present...)...)
+	dates, err := gitexec.RunIn(ctx, repoPath, append([]string{"log", "--no-walk=unsorted", "--format=%ct"}, present...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func Reached(ctx context.Context, repoPath, tip string, commits []string) (map[s
 			oldest = t
 		}
 	}
-	walk, err := runResult(ctx, repoPath, "rev-list", "--since="+strconv.FormatInt(oldest-reachSlack, 10), ids[tip])
+	walk, err := gitexec.RunIn(ctx, repoPath, "rev-list", "--since="+strconv.FormatInt(oldest-reachSlack, 10), ids[tip])
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func commitIDs(ctx context.Context, repoPath string, revs []string) (map[string]
 		}
 		input.WriteString(rev + "^{commit}\n")
 	}
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	result, err := gitexec.RunChecked(ctx, gitexec.Command{
 		Dir:   repoPath,
 		Args:  []string{"cat-file", "--batch-check=%(objectname)"},
 		Stdin: strings.NewReader(input.String()),

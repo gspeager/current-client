@@ -254,7 +254,7 @@ func checkedOutElsewhere(worktrees []Worktree, branch string) string {
 }
 
 func headBranch(ctx context.Context, repoPath string) (string, error) {
-	head, err := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "HEAD")
+	head, err := gitexec.RunIn(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "HEAD")
 	if err != nil {
 		return "", err
 	}
@@ -392,7 +392,7 @@ func UndoRestack(ctx context.Context, repoPath string, moves []StackMove) error 
 			}
 			continue
 		}
-		if _, err := runResult(ctx, repoPath, "update-ref", "refs/heads/"+move.Branch, move.Before, tips[move.Branch]); err != nil {
+		if _, err := gitexec.RunIn(ctx, repoPath, "update-ref", "refs/heads/"+move.Branch, move.Before, tips[move.Branch]); err != nil {
 			return err
 		}
 	}
@@ -407,16 +407,16 @@ func PushStack(ctx context.Context, repoPath, remote string, branches []string) 
 		args = append(args, "refs/heads/"+branch+":refs/heads/"+branch)
 	}
 	atomic := append([]string{args[0], "--atomic"}, args[1:]...)
-	_, err := runResult(ctx, repoPath, atomic...)
+	_, err := gitexec.RunIn(ctx, repoPath, atomic...)
 	if err != nil && strings.Contains(err.Error(), "--atomic") {
-		_, err = runResult(ctx, repoPath, args...)
+		_, err = gitexec.RunIn(ctx, repoPath, args...)
 	}
 	if err != nil {
 		return err
 	}
 	// Only where there's none: a layer tracking somewhere else keeps tracking it.
 	for _, branch := range branches {
-		if _, err := runResult(ctx, repoPath, "rev-parse", "--abbrev-ref", branch+"@{upstream}"); err != nil {
+		if _, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--abbrev-ref", branch+"@{upstream}"); err != nil {
 			if err := SetUpstream(ctx, repoPath, branch, remote+"/"+branch); err != nil {
 				return err
 			}

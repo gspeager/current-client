@@ -24,7 +24,7 @@ var stashIndexPattern = regexp.MustCompile(`^stash@\{(\d+)\}$`)
 
 func ListStashes(ctx context.Context, repoPath string) ([]Stash, error) {
 	stashes, err := cachedByRefs(ctx, repoPath, "stashes", func() ([]Stash, error) {
-		result, err := runResult(ctx, repoPath, "stash", "list", "--format=%gd%x09%s%x09%at")
+		result, err := gitexec.RunIn(ctx, repoPath, "stash", "list", "--format=%gd%x09%s%x09%at")
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +81,7 @@ func StashPush(ctx context.Context, repoPath string, opts StashOptions) error {
 		args = append(args, "-m", opts.Message)
 	}
 	if len(opts.Paths) == 0 {
-		_, err := runResult(ctx, repoPath, args...)
+		_, err := gitexec.RunIn(ctx, repoPath, args...)
 		return err
 	}
 	return stashPaths(ctx, repoPath, append(append(args, "--"), opts.Paths...), opts)
@@ -101,7 +101,7 @@ func stashPaths(ctx context.Context, repoPath string, args []string, opts StashO
 	}
 	defer os.RemoveAll(tmp)
 	withIndex := func(args ...string) error {
-		_, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+		_, err := gitexec.RunChecked(ctx, gitexec.Command{
 			Dir:  repoPath,
 			Args: args,
 			Env:  []string{"GIT_INDEX_FILE=" + filepath.Join(tmp, "index")},
@@ -109,10 +109,10 @@ func stashPaths(ctx context.Context, repoPath string, args []string, opts StashO
 		return err
 	}
 
-	staged, err := runResult(ctx, repoPath, "write-tree")
+	staged, err := gitexec.RunIn(ctx, repoPath, "write-tree")
 	if err != nil || withIndex("read-tree", "HEAD") != nil ||
 		withIndex(append([]string{"reset", "-q", strings.TrimSpace(staged.Stdout), "--"}, opts.Paths...)...) != nil {
-		_, err := runResult(ctx, repoPath, args...)
+		_, err := gitexec.RunIn(ctx, repoPath, args...)
 		return err
 	}
 	if err := withIndex(args...); err != nil {
@@ -121,22 +121,22 @@ func stashPaths(ctx context.Context, repoPath string, args []string, opts StashO
 	if opts.KeepIndex {
 		return nil
 	}
-	_, err = runResult(ctx, repoPath, append([]string{"reset", "-q", "--"}, opts.Paths...)...)
+	_, err = gitexec.RunIn(ctx, repoPath, append([]string{"reset", "-q", "--"}, opts.Paths...)...)
 	return err
 }
 
 func StashApply(ctx context.Context, repoPath string, index int) error {
-	_, err := runResult(ctx, repoPath, "stash", "apply", stashRef(index))
+	_, err := gitexec.RunIn(ctx, repoPath, "stash", "apply", stashRef(index))
 	return err
 }
 
 func StashPop(ctx context.Context, repoPath string, index int) error {
-	_, err := runResult(ctx, repoPath, "stash", "pop", stashRef(index))
+	_, err := gitexec.RunIn(ctx, repoPath, "stash", "pop", stashRef(index))
 	return err
 }
 
 func StashDrop(ctx context.Context, repoPath string, index int) error {
-	_, err := runResult(ctx, repoPath, "stash", "drop", stashRef(index))
+	_, err := gitexec.RunIn(ctx, repoPath, "stash", "drop", stashRef(index))
 	return err
 }
 

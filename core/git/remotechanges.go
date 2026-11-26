@@ -4,6 +4,8 @@ import (
 	"context"
 	"strconv"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // ChangeRefKind is the namespace a host publishes pull request / merge
@@ -35,7 +37,7 @@ type RemoteChanges struct {
 // so where any merge ref exists one is required too; GitLab keeps merge refs
 // after closing, so they are ignored there.
 func ListRemoteChanges(ctx context.Context, repoPath, remote string) (RemoteChanges, error) {
-	result, err := runResult(ctx, repoPath, "ls-remote", "--refs", remote,
+	result, err := gitexec.RunIn(ctx, repoPath, "ls-remote", "--refs", remote,
 		"refs/heads/*", "refs/pull/*", "refs/merge-requests/*")
 	if err != nil {
 		return RemoteChanges{}, err

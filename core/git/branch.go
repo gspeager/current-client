@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type Branch struct {
@@ -34,7 +36,7 @@ type branchList struct {
 
 func listBranches(ctx context.Context, repoPath string) (branchList, error) {
 	return cachedByRefs(ctx, repoPath, "branches", func() (branchList, error) {
-		result, err := runResult(ctx, repoPath, "branch",
+		result, err := gitexec.RunIn(ctx, repoPath, "branch",
 			"--format=%(HEAD)%09%(refname:short)%09%(upstream:short)%09%(upstream:track)%09%(committerdate:iso-strict)%09%(objectname)%09%(worktreepath)")
 		if err != nil {
 			return branchList{}, err
@@ -121,22 +123,22 @@ func parseUpstreamTrack(track string) (ahead, behind int) {
 }
 
 func CreateBranch(ctx context.Context, repoPath, name string) error {
-	_, err := runResult(ctx, repoPath, "branch", name)
+	_, err := gitexec.RunIn(ctx, repoPath, "branch", name)
 	return err
 }
 
 func CreateBranchAt(ctx context.Context, repoPath, name, startPoint string) error {
-	_, err := runResult(ctx, repoPath, "branch", name, startPoint)
+	_, err := gitexec.RunIn(ctx, repoPath, "branch", name, startPoint)
 	return err
 }
 
 func CheckoutCommit(ctx context.Context, repoPath, sha string) error {
-	_, err := runResult(ctx, repoPath, "switch", "--detach", sha)
+	_, err := gitexec.RunIn(ctx, repoPath, "switch", "--detach", sha)
 	return err
 }
 
 func CheckoutBranch(ctx context.Context, repoPath, name string) error {
-	_, err := runResult(ctx, repoPath, "checkout", name)
+	_, err := gitexec.RunIn(ctx, repoPath, "checkout", name)
 	return err
 }
 
@@ -144,17 +146,17 @@ func CheckoutBranch(ctx context.Context, repoPath, name string) error {
 // as "origin/feature". The full ref keeps a local branch of the same name from
 // being picked instead.
 func SetUpstream(ctx context.Context, repoPath, branch, remoteBranch string) error {
-	_, err := runResult(ctx, repoPath, "branch", "--set-upstream-to=refs/remotes/"+remoteBranch, branch)
+	_, err := gitexec.RunIn(ctx, repoPath, "branch", "--set-upstream-to=refs/remotes/"+remoteBranch, branch)
 	return err
 }
 
 func UnsetUpstream(ctx context.Context, repoPath, branch string) error {
-	_, err := runResult(ctx, repoPath, "branch", "--unset-upstream", branch)
+	_, err := gitexec.RunIn(ctx, repoPath, "branch", "--unset-upstream", branch)
 	return err
 }
 
 func RenameBranch(ctx context.Context, repoPath, oldName, newName string) error {
-	_, err := runResult(ctx, repoPath, "branch", "-m", oldName, newName)
+	_, err := gitexec.RunIn(ctx, repoPath, "branch", "-m", oldName, newName)
 	return err
 }
 
@@ -163,7 +165,7 @@ func DeleteBranch(ctx context.Context, repoPath, name string, force bool) error 
 	if force {
 		flag = "-D"
 	}
-	_, err := runResult(ctx, repoPath, "branch", flag, name)
+	_, err := gitexec.RunIn(ctx, repoPath, "branch", flag, name)
 	return err
 }
 
@@ -186,7 +188,7 @@ func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, er
 	if b, ok := list.current(); ok {
 		// git branch lists a detached HEAD, or one mid-rebase, as "(HEAD detached at …)".
 		if strings.HasPrefix(b.Name, "(") {
-			sha, err := runResult(ctx, repoPath, "rev-parse", "--short", "HEAD")
+			sha, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--short", "HEAD")
 			if err != nil {
 				return BranchStatus{Current: "HEAD"}, err
 			}
@@ -207,7 +209,7 @@ func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, er
 
 func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
 	branches, err := cachedByRefs(ctx, repoPath, "remote-branches", func() ([]string, error) {
-		result, err := runResult(ctx, repoPath, "branch", "-r", "--format=%(refname)%09%(refname:short)")
+		result, err := gitexec.RunIn(ctx, repoPath, "branch", "-r", "--format=%(refname)%09%(refname:short)")
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +220,7 @@ func ListRemote(ctx context.Context, repoPath string) ([]string, error) {
 
 // for-each-ref, not branch, so a detached HEAD isn't listed as "(HEAD detached at …)".
 func BranchesContaining(ctx context.Context, repoPath, sha string) ([]string, error) {
-	result, err := runResult(ctx, repoPath, "for-each-ref", "refs/heads", "--contains", sha, "--format=%(refname:short)")
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "refs/heads", "--contains", sha, "--format=%(refname:short)")
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +267,7 @@ func CompareBase(ctx context.Context, repoPath string) (string, error) {
 // a repo that was never cloned.
 func originHead(ctx context.Context, repoPath string) string {
 	head, _ := cachedByRefs(ctx, repoPath, "origin-head", func() (string, error) {
-		result, err := runResult(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+		result, err := gitexec.RunIn(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
 		if err != nil {
 			return "", nil
 		}
@@ -286,7 +288,7 @@ func defaultBranch(branches []Branch, remoteHead string) string {
 // CommitReachable says whether any ref still leads to sha. A commit a rebase
 // replaced is unreachable, though the object lingers until Git collects it.
 func CommitReachable(ctx context.Context, repoPath, sha string) bool {
-	result, err := runResult(ctx, repoPath, "for-each-ref", "--count=1", "--contains="+sha, "refs/heads", "refs/remotes", "refs/tags")
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--count=1", "--contains="+sha, "refs/heads", "refs/remotes", "refs/tags")
 	if err != nil {
 		return false
 	}
@@ -299,7 +301,7 @@ func CommitReachable(ctx context.Context, repoPath, sha string) bool {
 // CommitOnAnotherRef says whether any branch, remote branch or tag besides except
 // leads to sha.
 func CommitOnAnotherRef(ctx context.Context, repoPath, sha, except string) bool {
-	result, err := runResult(ctx, repoPath, "for-each-ref", "--format=%(refname)", "--contains="+sha, "refs/heads", "refs/remotes", "refs/tags")
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--format=%(refname)", "--contains="+sha, "refs/heads", "refs/remotes", "refs/tags")
 	if err != nil {
 		return false
 	}

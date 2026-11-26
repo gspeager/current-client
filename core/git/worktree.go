@@ -33,7 +33,7 @@ func ListWorktrees(ctx context.Context, repoPath string) ([]Worktree, error) {
 	if main, ok := onlyWorktree(ctx, repoPath); ok {
 		return []Worktree{main}, nil
 	}
-	result, err := runResult(ctx, repoPath, "worktree", "list", "--porcelain")
+	result, err := gitexec.RunIn(ctx, repoPath, "worktree", "list", "--porcelain")
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func AddWorktree(ctx context.Context, repoPath, path, branch string, create bool
 	} else {
 		args = append(args, path, branch)
 	}
-	_, err := runResult(ctx, repoPath, args...)
+	_, err := gitexec.RunIn(ctx, repoPath, args...)
 	return err
 }
 
@@ -136,7 +136,7 @@ func RemoveWorktree(ctx context.Context, repoPath, path string, force bool) erro
 	if force {
 		args = append(args, "--force")
 	}
-	_, err := runResult(ctx, repoPath, append(args, path)...)
+	_, err := gitexec.RunIn(ctx, repoPath, append(args, path)...)
 	return err
 }
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"strconv"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type RefKind int
@@ -24,7 +26,7 @@ type Ref struct {
 
 // ListRefs resolves annotated tags to the commit they point at.
 func ListRefs(ctx context.Context, repoPath string) ([]Ref, error) {
-	result, err := runResult(ctx, repoPath, "for-each-ref",
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref",
 		"--format=%(objectname)%09%(*objectname)%09%(committerdate:unix)%09%(refname)",
 		"refs/heads", "refs/remotes", "refs/tags")
 	if err != nil {

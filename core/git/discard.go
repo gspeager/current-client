@@ -1,6 +1,10 @@
 package git
 
-import "context"
+import (
+	"context"
+
+	"github.com/gspeager/current-client/core/gitexec"
+)
 
 func DiscardFile(ctx context.Context, repoPath, path string) error {
 	return DiscardFiles(ctx, repoPath, []string{path})
@@ -31,12 +35,12 @@ func DiscardFiles(ctx context.Context, repoPath string, paths []string) error {
 	}
 
 	if len(toClean) > 0 {
-		if _, err := runResult(ctx, repoPath, append([]string{"clean", "-f", "--"}, toClean...)...); err != nil {
+		if _, err := gitexec.RunIn(ctx, repoPath, append([]string{"clean", "-f", "--"}, toClean...)...); err != nil {
 			return err
 		}
 	}
 	if len(toRestore) > 0 {
-		if _, err := runResult(ctx, repoPath, append([]string{"restore", "--"}, toRestore...)...); err != nil {
+		if _, err := gitexec.RunIn(ctx, repoPath, append([]string{"restore", "--"}, toRestore...)...); err != nil {
 			return err
 		}
 	}

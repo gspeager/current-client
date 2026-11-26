@@ -126,7 +126,7 @@ func run(ctx context.Context, action string, key credential) error {
 }
 
 func credentialCommand(ctx context.Context, action string, key credential) (gitexec.Result, error) {
-	return gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	return gitexec.Run(ctx, gitexec.Command{
 		Args:  []string{"credential", action},
 		Stdin: strings.NewReader(key.input()),
 	})

@@ -24,7 +24,7 @@ func GlobalUser(ctx context.Context) UserIdentity {
 // wins when several scopes set one.
 func userIdentity(ctx context.Context, repoPath string, scope ...string) UserIdentity {
 	args := append([]string{"config", "-z"}, scope...)
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: append(args, "--get-regexp", `^user\.(name|email)$`),
 	})
@@ -53,16 +53,16 @@ func SetRepoUser(ctx context.Context, repoPath, name, email string) error {
 }
 
 func setUser(ctx context.Context, repoPath, scope, name, email string) error {
-	if _, err := runResult(ctx, repoPath, "config", scope, "user.name", name); err != nil {
+	if _, err := gitexec.RunIn(ctx, repoPath, "config", scope, "user.name", name); err != nil {
 		return err
 	}
-	_, err := runResult(ctx, repoPath, "config", scope, "user.email", email)
+	_, err := gitexec.RunIn(ctx, repoPath, "config", scope, "user.email", email)
 	return err
 }
 
 // configValue returns "" for an unset key rather than an error.
 func configValue(ctx context.Context, repoPath string, args ...string) string {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: append([]string{"config", "--get"}, args...),
 	})

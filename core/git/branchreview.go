@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // BranchReviewRow is a local branch with what's needed to judge it. Ahead and
@@ -58,7 +60,7 @@ func ReviewBranches(ctx context.Context, repoPath string) (BranchReview, error) 
 }
 
 func branchAuthors(ctx context.Context, repoPath string) (map[string][2]string, error) {
-	result, err := runResult(ctx, repoPath, "for-each-ref", "refs/heads", "--format=%(refname:short)%00%(authorname)%00%(authoremail:trim)")
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "refs/heads", "--format=%(refname:short)%00%(authorname)%00%(authoremail:trim)")
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +76,7 @@ func branchAuthors(ctx context.Context, repoPath string) (map[string][2]string, 
 // fillBaseCounts asks for all of them at once on Git 2.41 or newer, which added
 // ahead-behind to for-each-ref, and one branch at a time before it.
 func fillBaseCounts(ctx context.Context, repoPath, base string, rows []BranchReviewRow) error {
-	result, err := runResult(ctx, repoPath, "for-each-ref", "refs/heads", "--format=%(refname:short)%00%(ahead-behind:"+base+")")
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "refs/heads", "--format=%(refname:short)%00%(ahead-behind:"+base+")")
 	if err == nil {
 		counts := map[string][2]int{}
 		for _, line := range strings.Split(result.Stdout, "\n") {
@@ -99,7 +101,7 @@ func fillBaseCounts(ctx context.Context, repoPath, base string, rows []BranchRev
 
 // AheadBehind counts the commits only commit has, and those only base has.
 func AheadBehind(ctx context.Context, repoPath, commit, base string) (ahead, behind int, err error) {
-	result, err := runResult(ctx, repoPath, "rev-list", "--left-right", "--count", commit+"..."+base)
+	result, err := gitexec.RunIn(ctx, repoPath, "rev-list", "--left-right", "--count", commit+"..."+base)
 	if err != nil {
 		return 0, 0, err
 	}

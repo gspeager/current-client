@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -11,7 +12,7 @@ import (
 // watcher never descends into ignored directories like node_modules.
 func WatchedPaths(ctx context.Context, repoPath string) ([]string, error) {
 	// The exclude patterns only apply to --others: a tracked file is listed even if ignored.
-	result, err := runResult(ctx, repoPath, "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+	result, err := gitexec.RunIn(ctx, repoPath, "ls-files", "-z", "--cached", "--others", "--exclude-standard")
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +27,7 @@ func WatchedPaths(ctx context.Context, repoPath string) ([]string, error) {
 
 // FindTracked lists up to limit tracked files whose path holds query, ignoring case.
 func FindTracked(ctx context.Context, repoPath, query string, limit int) ([]string, error) {
-	result, err := runResult(ctx, repoPath, "ls-files", "-z", "--cached")
+	result, err := gitexec.RunIn(ctx, repoPath, "ls-files", "-z", "--cached")
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ type TreeFile struct {
 }
 
 func TreeFiles(ctx context.Context, repoPath string, env []string, rev string) ([]TreeFile, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	result, err := gitexec.RunChecked(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Env:  env,
 		Args: []string{"ls-tree", "-r", "-z", "--full-tree", rev},
@@ -65,4 +66,26 @@ func TreeFiles(ctx context.Context, repoPath string, env []string, rev string) (
 		}
 	}
 	return files, nil
+}
+
+// trackedFiles is cached until the index changes, as Activity's stats and
+// language breakdown both list them.
+func trackedFiles(ctx context.Context, repoPath string) ([]string, error) {
+	gitDir, err := GitDir(ctx, repoPath)
+	if err != nil {
+		return nil, err
+	}
+	return cachedByRefs(ctx, repoPath, "tracked-files", func() ([]string, error) {
+		result, err := gitexec.RunIn(ctx, repoPath, "ls-files")
+		if err != nil {
+			return nil, err
+		}
+		var files []string
+		for _, line := range strings.Split(result.Stdout, "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				files = append(files, line)
+			}
+		}
+		return files, nil
+	}, filepath.Join(gitDir, "index"))
 }

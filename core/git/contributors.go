@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type ContributorStat struct {
@@ -37,7 +39,7 @@ func contributors(ctx context.Context, repoPath, since, until string) ([]Contrib
 		args = append(args, "--until="+until)
 	}
 	args = append(args, "HEAD")
-	result, err := runResult(ctx, repoPath, args...)
+	result, err := gitexec.RunIn(ctx, repoPath, args...)
 	if err != nil {
 		if hasNoCommits(ctx, repoPath) {
 			return nil, nil

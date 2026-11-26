@@ -48,7 +48,7 @@ func Grep(ctx context.Context, repoPath string, opts GrepOptions) (matches []Gre
 	} else {
 		args = append(args, opts.Rev)
 	}
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: append(args, "--")})
+	result, err := gitexec.Run(ctx, gitexec.Command{Dir: repoPath, Args: append(args, "--")})
 	if err != nil {
 		return nil, false, gitexec.WrapRunError(err)
 	}

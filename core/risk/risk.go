@@ -112,7 +112,7 @@ type change struct {
 }
 
 func (c change) run(ctx context.Context, stdin string, args ...string) (string, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	result, err := gitexec.RunChecked(ctx, gitexec.Command{
 		Dir:   c.repoPath,
 		Env:   c.env,
 		Args:  args,

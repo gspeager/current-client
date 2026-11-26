@@ -83,7 +83,7 @@ func isUntracked(ctx context.Context, repoPath, path string) bool {
 // untrackedDiff shows a file git doesn't track yet as entirely added. git
 // diff --no-index exits 1 when there are differences, so that isn't failure.
 func untrackedDiff(ctx context.Context, repoPath, path string) (FileDiff, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: []string{"diff", "--no-color", "--no-index", "--", "/dev/null", path},
 	})
@@ -127,7 +127,7 @@ func GetRangeDiff(ctx context.Context, repoPath string, env []string, from, to, 
 	if origPath != "" {
 		args = append(args, origPath)
 	}
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{Dir: repoPath, Env: env, Args: args})
+	result, err := gitexec.RunChecked(ctx, gitexec.Command{Dir: repoPath, Env: env, Args: args})
 	if err != nil {
 		return FileDiff{}, err
 	}
@@ -193,7 +193,7 @@ func applyHunk(ctx context.Context, repoPath, path, hunkText string, opts applyO
 	}
 	args = append(args, "-")
 
-	_, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	_, err := gitexec.RunChecked(ctx, gitexec.Command{
 		Dir:   repoPath,
 		Args:  args,
 		Stdin: strings.NewReader(patch),
