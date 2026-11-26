@@ -5,6 +5,7 @@ import { errorMessage } from '../../lib/errors'
 import { openWebPage } from '../../lib/hostPages'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SettingsRow from './SettingsRow'
+import './settings.scss'
 import './UpdateSection.scss'
 
 // The one request the app makes to a vendor: a check of github.com for a newer

@@ -3,6 +3,7 @@ import { PlatformService } from '@current-client-bindings/app'
 import Switch from '../../components/forms/Switch'
 import { errorMessage, recentErrorsNewestFirst } from '../../lib/errors'
 import SettingsRow from './SettingsRow'
+import './settings.scss'
 
 function DiagnosticsSection() {
   const [copied, setCopied] = useState(false)

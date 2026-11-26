@@ -21,6 +21,7 @@ import Modal from '../../components/chrome/Modal'
 import PathSettingRow from './PathSettingRow'
 import RiskRuleSettings from './RiskRuleSettings'
 import SettingsRow, { SettingsGroup, SettingsSectionContext } from './SettingsRow'
+import './settings.scss'
 import './SettingsPanel.scss'
 
 const LANE_THEME_LABELS: Record<LaneThemeName, string> = {

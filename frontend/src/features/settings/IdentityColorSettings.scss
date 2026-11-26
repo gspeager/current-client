@@ -1,6 +1,29 @@
+@use '../../styles/patterns';
+
 .settings-identity-swatch {
   flex-shrink: 0;
   width: var(--space-md);
   height: var(--space-md);
   border-radius: 50%; // Same circle as the identity badge it previews.
+}
+
+.settings-identity-list {
+  display: flex;
+  flex-direction: column;
+  @include patterns.list-reset;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    height: var(--h-row-table);
+  }
+}
+
+.settings-identity-key {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
 }

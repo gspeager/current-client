@@ -2,3 +2,14 @@
 .settings-field-text {
   font: var(--ui-sm);
 }
+
+.settings-identity-fields {
+  display: flex;
+  gap: var(--space-sm);
+
+  .settings-field {
+    flex: 1;
+    min-width: 0;
+    font: var(--data-sm);
+  }
+}

@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { createContext, useContext, type ReactNode } from 'react'
+import './settings.scss'
 import './SettingsRow.scss'
 
 interface SettingsGroupProps {
