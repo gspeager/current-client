@@ -8,17 +8,18 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestCurrentChangeReadsTheCheckedOutBranchFromTheCache(t *testing.T) {
 	useTempSettings(t)
 	swapHostClient(t, hostapitest.Forbid(t))
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "feature")
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/feature", "HEAD")
-	gitIn(t, repo, "branch", "--set-upstream-to=origin/feature", "feature")
+	gittest.Run(t, repo, "init", "-q", "-b", "feature")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gittest.Run(t, repo, "update-ref", "refs/remotes/origin/feature", "HEAD")
+	gittest.Run(t, repo, "branch", "--set-upstream-to=origin/feature", "feature")
 	var s HostService
 
 	off, err := s.CurrentChange(repo)
@@ -55,9 +56,9 @@ func TestCurrentChangeOffersAChangeOnlyForCommitsBeyondTheDefaultBranch(t *testi
 	useTempSettings(t)
 	swapHostClient(t, hostapitest.Forbid(t))
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{"gitlab.example.com": {Provider: "gitlab", Enabled: true}}
 	}); err != nil {
@@ -76,11 +77,11 @@ func TestCurrentChangeOffersAChangeOnlyForCommitsBeyondTheDefaultBranch(t *testi
 	if proposable() {
 		t.Fatal("main offers a change to itself")
 	}
-	gitIn(t, repo, "switch", "-q", "-c", "feature")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feature")
 	if proposable() {
 		t.Fatal("a branch with no commits of its own offers a change")
 	}
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "second")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "second")
 	if !proposable() {
 		t.Fatal("a branch with a commit beyond main offers no change")
 	}

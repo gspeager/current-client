@@ -9,14 +9,15 @@ import (
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestBranchChangesReadOnlyTheCache(t *testing.T) {
 	useTempSettings(t)
 	swapHostClient(t, hostapitest.Forbid(t))
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
 	var s HostService
 
 	hostClient.Cache.Put("gitlab.example.com", repo, cacheRemoteRefs, "origin", git.RemoteChanges{
@@ -49,13 +50,13 @@ func TestFetchRefreshesChangeNumbersFromGit(t *testing.T) {
 	useTempSettings(t)
 	swapHostClient(t, hostapitest.Forbid(t))
 	remoteDir := t.TempDir() + "/remote.git"
-	gitIn(t, t.TempDir(), "init", "-q", "--bare", "-b", "main", remoteDir)
+	gittest.Run(t, t.TempDir(), "init", "-q", "--bare", "-b", "main", remoteDir)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "remote", "add", "origin", remoteDir)
-	gitIn(t, repo, "push", "-q", "origin", "main")
-	gitIn(t, repo, "push", "-q", "origin", "main:refs/heads/feature", "main:refs/pull/3/head", "main:refs/pull/3/merge")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "remote", "add", "origin", remoteDir)
+	gittest.Run(t, repo, "push", "-q", "origin", "main")
+	gittest.Run(t, repo, "push", "-q", "origin", "main:refs/heads/feature", "main:refs/pull/3/head", "main:refs/pull/3/merge")
 
 	var remotes RemoteService
 	if err := remotes.FetchAll(context.Background(), repo, nil); err != nil {

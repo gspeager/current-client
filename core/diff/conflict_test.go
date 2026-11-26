@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // Captured from `git diff` on a real merge conflict (git 2.x, 2026-09-24).

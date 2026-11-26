@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func checkNamed(t *testing.T, r ReleaseReadiness, label string) ReleaseCheck {
@@ -21,19 +23,19 @@ func checkNamed(t *testing.T, r ReleaseReadiness, label string) ReleaseCheck {
 func TestReleaseReadinessReportsEachItemWithItsEvidence(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
+	gittest.Run(t, repo, "init", "-q")
 	write := func(name, text string) {
 		os.MkdirAll(filepath.Dir(filepath.Join(repo, name)), 0o755)
 		os.WriteFile(filepath.Join(repo, name), []byte(text), 0o644)
-		gitIn(t, repo, "add", name)
+		gittest.Run(t, repo, "add", name)
 	}
 	commit := func(message string) {
-		gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", message)
+		gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", message)
 	}
 	write("build/config.yml", "version: 0.4.0\n")
 	write("build/app.xml", "<v>0.4.0.0</v>\n")
 	commit("chore: release 0.4.0")
-	gitIn(t, repo, "tag", "-a", "v0.4.0", "-m", "0.4.0")
+	gittest.Run(t, repo, "tag", "-a", "v0.4.0", "-m", "0.4.0")
 	commit("feat: issues")
 	write("build/config.yml", "version: 0.5.0\n")
 	write("CHANGELOG.md", "# Changelog\n\n## [Unreleased]\n\n- Issues.\n")
@@ -86,9 +88,9 @@ func TestReleaseReadinessReportsEachItemWithItsEvidence(t *testing.T) {
 		t.Errorf("dirty tree = %+v", c)
 	}
 
-	gitIn(t, repo, "add", "CHANGELOG.md")
+	gittest.Run(t, repo, "add", "CHANGELOG.md")
 	commit("docs: 0.5.0")
-	gitIn(t, repo, "tag", "-a", "v0.5.0", "-m", "0.5.0")
+	gittest.Run(t, repo, "tag", "-a", "v0.5.0", "-m", "0.5.0")
 	commit("feat: more after the tag")
 	r, _ = s.ReleaseReadiness(repo, "v0.4.0", "", "")
 	if r.Version != "0.4.0" {

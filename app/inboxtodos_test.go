@@ -9,14 +9,15 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func enabledGitHub(t *testing.T) (repo string) {
 	t.Helper()
 	useTempSettings(t)
 	repo = t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "remote", "add", "origin", "git@github.example.com:Owner/App.git")
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@github.example.com:Owner/App.git")
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{"github.example.com": {Enabled: true, Provider: "github"}}
 	}); err != nil {
@@ -130,8 +131,8 @@ func TestGitHubToDosNeedAClassicToken(t *testing.T) {
 func TestToDosAreNeverAskedWithTheHostOff(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
 	swapHostClient(t, hostapitest.Forbid(t))
 	var s HostService
 	if err := s.Refresh(repo); err != nil {

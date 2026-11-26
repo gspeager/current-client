@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // threeLayers makes main <- bottom <- middle <- top, with one commit each.

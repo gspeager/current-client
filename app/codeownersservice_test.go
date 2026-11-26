@@ -5,14 +5,16 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestCodeownersOwnersAndSuggestedReviewers(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "config", "user.email", "t@example.com")
-	gitIn(t, repo, "config", "user.name", "T")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "config", "user.email", "t@example.com")
+	gittest.Run(t, repo, "config", "user.name", "T")
 	write := func(rel, content string) {
 		t.Helper()
 		path := filepath.Join(repo, filepath.FromSlash(rel))
@@ -25,14 +27,14 @@ func TestCodeownersOwnersAndSuggestedReviewers(t *testing.T) {
 	}
 	write(".github/CODEOWNERS", "src/ @alice\ndocs/ @bob @alice\n")
 	write("README.md", "hi")
-	gitIn(t, repo, "add", ".")
-	gitIn(t, repo, "commit", "-q", "-m", "initial")
-	gitIn(t, repo, "checkout", "-q", "-b", "feature")
+	gittest.Run(t, repo, "add", ".")
+	gittest.Run(t, repo, "commit", "-q", "-m", "initial")
+	gittest.Run(t, repo, "checkout", "-q", "-b", "feature")
 	write("docs/guide.md", "guide")
 	write("src/a.go", "package a")
 	write("other.txt", "x")
-	gitIn(t, repo, "add", ".")
-	gitIn(t, repo, "commit", "-q", "-m", "feature")
+	gittest.Run(t, repo, "add", ".")
+	gittest.Run(t, repo, "commit", "-q", "-m", "feature")
 
 	svc := &CodeownersService{}
 	owners, err := svc.Owners(repo, []string{"src/a.go", "other.txt", "docs/guide.md"})
@@ -60,7 +62,7 @@ func TestCodeownersOwnersAndSuggestedReviewers(t *testing.T) {
 func TestCodeownersWithoutAFile(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
 	svc := &CodeownersService{}
 	owners, err := svc.Owners(repo, []string{"a"})
 	if err != nil || len(owners) != 0 {

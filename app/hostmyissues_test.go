@@ -7,12 +7,13 @@ import (
 
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestMyIssuesComeFromTheCacheWithTheirBranch(t *testing.T) {
 	repo := enabledGitLab(t)
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "branch", "-q", "12-fix-login")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "branch", "-q", "12-fix-login")
 	swapHostClient(t, hostapitest.Forbid(t))
 	_, info, _, err := primaryHost(repo)
 	if err != nil {
@@ -40,7 +41,7 @@ func TestMyIssuesComeFromTheCacheWithTheirBranch(t *testing.T) {
 
 func TestMyIssuesIsOffWithNoHostOrTracker(t *testing.T) {
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
+	gittest.Run(t, repo, "init", "-q")
 	var host HostService
 	if list := host.MyIssues(repo); list.Enabled || len(list.Issues) != 0 {
 		t.Fatalf("no host, no tracker: off and empty, got %+v", list)
@@ -49,7 +50,7 @@ func TestMyIssuesIsOffWithNoHostOrTracker(t *testing.T) {
 
 func TestProjectIssuesAskOncePerStateUntilARefresh(t *testing.T) {
 	repo := enabledGitLab(t)
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
 	closed := "/api/v4/projects/group%2Fapp/issues?order_by=updated_at&per_page=50&state=closed"
 	transport := &routeTransport{routes: map[string]string{
 		closed: `[{"iid": 7, "title": "Old one", "state": "closed"}]`,

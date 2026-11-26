@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // Git quotes a non-ASCII name, as "caf\303\251.txt", unless asked for -z.

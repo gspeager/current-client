@@ -5,14 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func commitOnDate(t *testing.T, dir, file, date string) {
 	t.Helper()
-	gittest.WriteFile(t, dir, file, date)
-	gittest.Run(t, dir, "add", file)
-	commitAt(t, dir, "commit on "+date, date+"T12:00:00")
+	gittest.CommitAt(t, dir, file, date, "commit on "+date, date+"T12:00:00")
 }
 
 func TestCommitActivityCountsPerDayAndFillsGaps(t *testing.T) {

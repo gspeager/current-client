@@ -4,12 +4,14 @@ import (
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestStandupListsOwnCommitsOnEveryBranchSince(t *testing.T) {
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "config", "user.email", "Ada@Example.com")
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "config", "user.email", "Ada@Example.com")
 	commit := func(email, date, message string) {
 		cmd := exec.Command("git", "-C", repo, "-c", "user.name=X", "-c", "user.email="+email, "commit", "-q", "--allow-empty", "-m", message)
 		cmd.Env = append(cmd.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
@@ -20,11 +22,11 @@ func TestStandupListsOwnCommitsOnEveryBranchSince(t *testing.T) {
 	commit("ada@example.com", "2026-10-20T09:00:00Z", "old work")
 	commit("ada@example.com", "2026-10-25T09:00:00Z", "feat: forms")
 	commit("bob@example.com", "2026-10-25T10:00:00Z", "bob's work")
-	gitIn(t, repo, "switch", "-q", "-c", "side")
+	gittest.Run(t, repo, "switch", "-q", "-c", "side")
 	commit("ada@example.com", "2026-10-25T11:00:00Z", "fix: on a side branch")
 	commit("ada@example.com", "2026-10-25T12:00:00Z", "only on a fetched head")
-	gitIn(t, repo, "update-ref", "refs/current-client/hosts/origin/mr/1", "HEAD")
-	gitIn(t, repo, "reset", "-q", "--hard", "HEAD~1")
+	gittest.Run(t, repo, "update-ref", "refs/current-client/hosts/origin/mr/1", "HEAD")
+	gittest.Run(t, repo, "reset", "-q", "--hard", "HEAD~1")
 
 	var inbox InboxService
 	repos, err := inbox.Standup([]string{repo}, time.Date(2026, 10, 24, 0, 0, 0, 0, time.UTC).Format(time.RFC3339))

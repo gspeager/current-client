@@ -7,22 +7,23 @@ import (
 	"testing"
 
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func notesRepo(t *testing.T) string {
 	t.Helper()
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "config", "user.name", "T")
-	gitIn(t, repo, "config", "user.email", "t@example.com")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "config", "user.name", "T")
+	gittest.Run(t, repo, "config", "user.email", "t@example.com")
 	if err := os.WriteFile(filepath.Join(repo, "a.txt"), []byte("a\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	gitIn(t, repo, "add", "a.txt")
-	gitIn(t, repo, "commit", "-q", "-m", "first")
-	gitIn(t, repo, "branch", "side")
-	gitIn(t, repo, "tag", "v1")
+	gittest.Run(t, repo, "add", "a.txt")
+	gittest.Run(t, repo, "commit", "-q", "-m", "first")
+	gittest.Run(t, repo, "branch", "side")
+	gittest.Run(t, repo, "tag", "v1")
 	return repo
 }
 
@@ -42,7 +43,7 @@ func noteOn(t *testing.T, repo, kind, target string) *NoteInfo {
 
 func TestNotesAddEditAndRemoveOnEachKind(t *testing.T) {
 	repo := notesRepo(t)
-	head := gitOut(t, repo, "rev-parse", "HEAD")
+	head := gittest.Output(t, repo, "rev-parse", "HEAD")
 	var s NotesService
 	targets := map[string]string{"commit": head, "branch": "side", "tag": "v1", "file": "a.txt"}
 	for kind, target := range targets {
@@ -74,24 +75,24 @@ func TestNotesAddEditAndRemoveOnEachKind(t *testing.T) {
 func TestNotesGoStaleRatherThanBeingLost(t *testing.T) {
 	repo := notesRepo(t)
 	var s NotesService
-	gitIn(t, repo, "switch", "-q", "-c", "work")
+	gittest.Run(t, repo, "switch", "-q", "-c", "work")
 	if err := os.WriteFile(filepath.Join(repo, "b.txt"), []byte("b\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	gitIn(t, repo, "add", "b.txt")
-	gitIn(t, repo, "commit", "-q", "-m", "to rewrite")
-	rewritten := gitOut(t, repo, "rev-parse", "HEAD")
+	gittest.Run(t, repo, "add", "b.txt")
+	gittest.Run(t, repo, "commit", "-q", "-m", "to rewrite")
+	rewritten := gittest.Output(t, repo, "rev-parse", "HEAD")
 	for kind, target := range map[string]string{"commit": rewritten, "branch": "side", "tag": "v1", "file": "b.txt"} {
 		if err := s.Set(repo, kind, target, "to rewrite", "keep me"); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	gitIn(t, repo, "commit", "-q", "--amend", "-m", "rewritten")
-	gitIn(t, repo, "branch", "-q", "-D", "side")
-	gitIn(t, repo, "tag", "-d", "v1")
-	gitIn(t, repo, "rm", "-q", "b.txt")
-	gitIn(t, repo, "commit", "-q", "-m", "remove")
+	gittest.Run(t, repo, "commit", "-q", "--amend", "-m", "rewritten")
+	gittest.Run(t, repo, "branch", "-q", "-D", "side")
+	gittest.Run(t, repo, "tag", "-d", "v1")
+	gittest.Run(t, repo, "rm", "-q", "b.txt")
+	gittest.Run(t, repo, "commit", "-q", "-m", "remove")
 	// The amended commit stays in the reflog, which doesn't count as reachable.
 
 	for kind, target := range map[string]string{"commit": rewritten, "branch": "side", "tag": "v1", "file": "b.txt"} {
@@ -107,9 +108,9 @@ func TestNotesGoStaleRatherThanBeingLost(t *testing.T) {
 
 func TestANoteOnADetachedCommitIsntStale(t *testing.T) {
 	repo := notesRepo(t)
-	gitIn(t, repo, "switch", "-q", "--detach")
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "detached")
-	head := gitOut(t, repo, "rev-parse", "HEAD")
+	gittest.Run(t, repo, "switch", "-q", "--detach")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "detached")
+	head := gittest.Output(t, repo, "rev-parse", "HEAD")
 	if err := new(NotesService).Set(repo, "commit", head, "detached", "here"); err != nil {
 		t.Fatal(err)
 	}
@@ -126,12 +127,12 @@ func TestNotesNeverReachTheRepositoryOrItsRemote(t *testing.T) {
 		t.Fatal(err)
 	}
 	bare := t.TempDir()
-	gitIn(t, bare, "init", "-q", "--bare", "-b", "main")
-	gitIn(t, repo, "remote", "add", "origin", bare)
-	gitIn(t, repo, "push", "-q", "origin", "--mirror")
+	gittest.Run(t, bare, "init", "-q", "--bare", "-b", "main")
+	gittest.Run(t, repo, "remote", "add", "origin", bare)
+	gittest.Run(t, repo, "push", "-q", "origin", "--mirror")
 	clone := t.TempDir()
-	gitIn(t, clone, "clone", "-q", bare, ".")
-	gitIn(t, repo, "fetch", "-q", "origin")
+	gittest.Run(t, clone, "clone", "-q", bare, ".")
+	gittest.Run(t, repo, "fetch", "-q", "origin")
 
 	for _, dir := range []string{repo, bare, clone} {
 		err := filepath.WalkDir(dir, func(path string, entry os.DirEntry, err error) error {
@@ -167,7 +168,7 @@ func TestNotesNeverReachTheRepositoryOrItsRemote(t *testing.T) {
 func TestWorktreesShareNotes(t *testing.T) {
 	repo := notesRepo(t)
 	linked := filepath.Join(t.TempDir(), "linked")
-	gitIn(t, repo, "worktree", "add", "-q", linked, "side")
+	gittest.Run(t, repo, "worktree", "add", "-q", linked, "side")
 	var s NotesService
 	if err := s.Set(repo, "branch", "main", "", "shared"); err != nil {
 		t.Fatal(err)

@@ -6,19 +6,21 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func readThroughRepo(t *testing.T) string {
 	t.Helper()
 	repo := notesRepo(t)
-	gitIn(t, repo, "switch", "-q", "side")
+	gittest.Run(t, repo, "switch", "-q", "side")
 	writeIn(t, repo, "b.txt", "b\n")
-	gitIn(t, repo, "add", "b.txt")
-	gitIn(t, repo, "commit", "-q", "-m", "b")
-	gitIn(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "add", "b.txt")
+	gittest.Run(t, repo, "commit", "-q", "-m", "b")
+	gittest.Run(t, repo, "switch", "-q", "main")
 	writeIn(t, repo, "main.txt", "main\n")
-	gitIn(t, repo, "add", "main.txt")
-	gitIn(t, repo, "commit", "-q", "-m", "main moves on")
+	gittest.Run(t, repo, "add", "main.txt")
+	gittest.Run(t, repo, "commit", "-q", "-m", "main moves on")
 	return repo
 }
 
@@ -62,7 +64,7 @@ func TestReadThroughABranchAgainstItsMergeBase(t *testing.T) {
 func TestReadThroughAWorktreesUncommittedChanges(t *testing.T) {
 	repo := readThroughRepo(t)
 	worktree := filepath.Join(t.TempDir(), "linked")
-	gitIn(t, repo, "worktree", "add", "-q", worktree, "side")
+	gittest.Run(t, repo, "worktree", "add", "-q", worktree, "side")
 	writeIn(t, worktree, "new.txt", "new\n")
 
 	for _, request := range []ReadThroughRequest{{Path: worktree}, {Ref: "refs/heads/side"}} {
@@ -80,7 +82,7 @@ func TestReadThroughAWorktreesUncommittedChanges(t *testing.T) {
 		t.Errorf("committed only = %v", pathsOf(info))
 	}
 
-	gitIn(t, worktree, "switch", "-q", "--detach")
+	gittest.Run(t, worktree, "switch", "-q", "--detach")
 	info := openReadThrough(t, repo, ReadThroughRequest{Path: worktree, Uncommitted: true})
 	if !strings.HasPrefix(info.Key, worktreeKey) {
 		t.Errorf("a detached worktree's key = %q", info.Key)
@@ -95,24 +97,24 @@ func TestReadThroughAWorktreesUncommittedChanges(t *testing.T) {
 	if err := new(WorktreeService).Remove(repo, worktree, true); err != nil {
 		t.Fatal(err)
 	}
-	if refs := gitOut(t, repo, "for-each-ref", "refs/current-client/read"); refs != "" {
+	if refs := gittest.Output(t, repo, "for-each-ref", "refs/current-client/read"); refs != "" {
 		t.Errorf("a removed worktree's marks are still there: %s", refs)
 	}
 }
 
 func TestReadThroughAStackedBranchAgainstItsParent(t *testing.T) {
 	repo := readThroughRepo(t)
-	gitIn(t, repo, "switch", "-q", "-c", "layer", "side")
+	gittest.Run(t, repo, "switch", "-q", "-c", "layer", "side")
 	writeIn(t, repo, "c.txt", "c\n")
-	gitIn(t, repo, "add", "c.txt")
-	gitIn(t, repo, "commit", "-q", "-m", "c")
+	gittest.Run(t, repo, "add", "c.txt")
+	gittest.Run(t, repo, "commit", "-q", "-m", "c")
 	if err := new(StackService).AddLayer(repo, "layer", "side"); err != nil {
 		t.Fatal(err)
 	}
 	if info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/layer"}); info.Target != "side" || !slices.Equal(pathsOf(info), []string{"c.txt"}) {
 		t.Errorf("info = %+v", info)
 	}
-	gitIn(t, repo, "branch", "-q", "-D", "side")
+	gittest.Run(t, repo, "branch", "-q", "-D", "side")
 	if info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/layer"}); info.Target != "main" || len(info.Files) != 2 {
 		t.Errorf("with its parent deleted, info = %+v", info)
 	}
@@ -134,7 +136,7 @@ func TestReadThroughMarksFollowTheirBranch(t *testing.T) {
 	if _, err := new(BranchService).DeleteBranch(repo, "renamed", true); err != nil {
 		t.Fatal(err)
 	}
-	if refs := gitOut(t, repo, "for-each-ref", "refs/current-client/read"); refs != "" {
+	if refs := gittest.Output(t, repo, "for-each-ref", "refs/current-client/read"); refs != "" {
 		t.Errorf("a deleted branch's marks are still there: %s", refs)
 	}
 }
@@ -148,7 +150,7 @@ func TestRemovingARepositoryRemovesItsMarks(t *testing.T) {
 	if err := new(RepositoryService).RemoveRecentRepository(repo); err != nil {
 		t.Fatal(err)
 	}
-	if refs := gitOut(t, repo, "for-each-ref", "refs/current-client"); refs != "" {
+	if refs := gittest.Output(t, repo, "for-each-ref", "refs/current-client"); refs != "" {
 		t.Errorf("refs = %s", refs)
 	}
 }
@@ -156,16 +158,16 @@ func TestRemovingARepositoryRemovesItsMarks(t *testing.T) {
 func TestRefOfAChangeOnThisComputer(t *testing.T) {
 	repo := readThroughRepo(t)
 	s := new(ReadThroughService)
-	side := gitOut(t, repo, "rev-parse", "side")
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/feature", side)
+	side := gittest.Output(t, repo, "rev-parse", "side")
+	gittest.Run(t, repo, "update-ref", "refs/remotes/origin/feature", side)
 	if request, _ := s.OfChange(repo, "feature", "main", side); request.Target != "main" {
 		t.Errorf("target = %q", request.Target)
 	}
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/main", gitOut(t, repo, "rev-parse", "main"))
+	gittest.Run(t, repo, "update-ref", "refs/remotes/origin/main", gittest.Output(t, repo, "rev-parse", "main"))
 	if request, _ := s.OfChange(repo, "feature", "main", side); request.Target != "origin/main" {
 		t.Errorf("target with a remote = %q", request.Target)
 	}
-	gitIn(t, repo, "update-ref", "refs/current-client/hosts/origin/mr/7", side)
+	gittest.Run(t, repo, "update-ref", "refs/current-client/hosts/origin/mr/7", side)
 	for _, c := range []struct{ branch, sha, want string }{
 		{"feature", side, "refs/remotes/origin/feature"},
 		{"unknown", side, "refs/heads/side"},
@@ -176,16 +178,16 @@ func TestRefOfAChangeOnThisComputer(t *testing.T) {
 			t.Errorf("OfChange(%q, %q) = %q, %v", c.branch, c.sha, ref.Ref, err)
 		}
 	}
-	gitIn(t, repo, "switch", "-q", "side")
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "ahead")
+	gittest.Run(t, repo, "switch", "-q", "side")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "ahead")
 	if ref, _ := s.OfChange(repo, "feature", "main", side); ref.Ref != "refs/remotes/origin/feature" {
 		t.Errorf("with the branch ahead, ref = %q", ref.Ref)
 	}
-	gitIn(t, repo, "update-ref", "-d", "refs/remotes/origin/feature")
+	gittest.Run(t, repo, "update-ref", "-d", "refs/remotes/origin/feature")
 	if ref, _ := s.OfChange(repo, "feature", "main", side); ref.Ref != "refs/current-client/hosts/origin/mr/7" {
 		t.Errorf("with only a fetched head, ref = %q", ref.Ref)
 	}
-	gitIn(t, repo, "update-ref", "-d", "refs/current-client/hosts/origin/mr/7")
+	gittest.Run(t, repo, "update-ref", "-d", "refs/current-client/hosts/origin/mr/7")
 	if ref, _ := s.OfChange(repo, "side", "main", side); ref.Ref != "refs/heads/side" {
 		t.Errorf("with only a branch ahead of it, ref = %q", ref.Ref)
 	}
@@ -202,10 +204,10 @@ func reviewNotes(t *testing.T, info ReadThroughInfo) []ReadThroughNote {
 
 func TestReadThroughNotes(t *testing.T) {
 	repo := readThroughRepo(t)
-	gitIn(t, repo, "switch", "-q", "side")
+	gittest.Run(t, repo, "switch", "-q", "side")
 	writeIn(t, repo, "b.txt", "first\nsecond\nthird\n")
 	writeIn(t, repo, "a.txt", "replaced\n")
-	gitIn(t, repo, "commit", "-q", "-a", "-m", "more")
+	gittest.Run(t, repo, "commit", "-q", "-a", "-m", "more")
 	s := new(ReadThroughService)
 	request := ReadThroughRequest{Ref: "refs/heads/side", Uncommitted: true}
 	info := openReadThrough(t, repo, request)
@@ -234,7 +236,7 @@ func TestReadThroughNotes(t *testing.T) {
 	if list := reviewNotes(t, committed); list[2].Outdated {
 		t.Errorf("without the edit, notes = %+v", list)
 	}
-	gitIn(t, repo, "checkout", "-q", ".")
+	gittest.Run(t, repo, "checkout", "-q", ".")
 
 	notesService := new(NotesService)
 	if err := notesService.EditReview(repo, list[2].ID, "because"); err != nil {
@@ -247,7 +249,7 @@ func TestReadThroughNotes(t *testing.T) {
 		t.Errorf("after editing, notes = %+v", list)
 	}
 
-	gitIn(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "switch", "-q", "main")
 	if err := new(BranchService).RenameBranch(repo, "side", "renamed"); err != nil {
 		t.Fatal(err)
 	}
@@ -268,7 +270,7 @@ func TestReadThroughNotes(t *testing.T) {
 func TestReadThroughFindings(t *testing.T) {
 	repo := readThroughRepo(t)
 	worktree := filepath.Join(t.TempDir(), "linked")
-	gitIn(t, repo, "worktree", "add", "-q", worktree, "side")
+	gittest.Run(t, repo, "worktree", "add", "-q", worktree, "side")
 	writeIn(t, worktree, "AGENTS.md", "x\n")
 	s := new(ReadThroughService)
 	rulesOf := func(info ReadThroughInfo) []string {
@@ -280,11 +282,11 @@ func TestReadThroughFindings(t *testing.T) {
 		return mapSlice(report.Findings, func(finding RiskFindingInfo) string { return finding.Rule })
 	}
 	uncommitted := openReadThrough(t, repo, ReadThroughRequest{Path: worktree, Uncommitted: true})
-	objects := gitOut(t, repo, "count-objects")
+	objects := gittest.Output(t, repo, "count-objects")
 	if rules := rulesOf(uncommitted); !slices.Equal(rules, []string{"agent-instructions"}) {
 		t.Errorf("uncommitted = %v", rules)
 	}
-	if after := gitOut(t, repo, "count-objects"); after != objects {
+	if after := gittest.Output(t, repo, "count-objects"); after != objects {
 		t.Errorf("objects went from %s to %s", objects, after)
 	}
 	if rules := rulesOf(openReadThrough(t, repo, ReadThroughRequest{Path: worktree})); len(rules) != 0 {
@@ -309,9 +311,9 @@ func TestReadThroughSinceLastRead(t *testing.T) {
 	if err := s.SetRead(info, info.Files, true); err != nil {
 		t.Fatal(err)
 	}
-	gitIn(t, repo, "switch", "-q", "side")
+	gittest.Run(t, repo, "switch", "-q", "side")
 	writeIn(t, repo, "b.txt", "b\nmore\n")
-	gitIn(t, repo, "commit", "-q", "-a", "-m", "more")
+	gittest.Run(t, repo, "commit", "-q", "-a", "-m", "more")
 	info = openReadThrough(t, repo, request)
 	if f := info.Files[0]; info.Marked != 1 || f.Read || !f.Again || f.SinceAdded != 1 || f.SinceRemoved != 0 {
 		t.Errorf("info = %+v", info)
@@ -321,8 +323,8 @@ func TestReadThroughSinceLastRead(t *testing.T) {
 		t.Errorf("diff = %+v, %v", diff, err)
 	}
 
-	gitIn(t, repo, "rm", "-q", "b.txt")
-	gitIn(t, repo, "commit", "-q", "-m", "gone")
+	gittest.Run(t, repo, "rm", "-q", "b.txt")
+	gittest.Run(t, repo, "commit", "-q", "-m", "gone")
 	info = openReadThrough(t, repo, request)
 	if len(info.Files) != 1 || !info.Files[0].Gone || info.Files[0].Status != "D" {
 		t.Fatalf("info = %+v", info)

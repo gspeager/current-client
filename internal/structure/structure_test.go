@@ -4,30 +4,19 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 type files map[string]string
 
-func runGit(t *testing.T, dir string, args ...string) {
-	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %v: %v\n%s", args, err, out)
-	}
-}
-
 func repo(t *testing.T, content files) string {
 	t.Helper()
-	dir := t.TempDir()
-	runGit(t, dir, "init", "-q", "-b", "main")
-	runGit(t, dir, "config", "user.email", "test@example.com")
-	runGit(t, dir, "config", "user.name", "Test")
+	dir := gittest.InitRepo(t)
 	commit(t, dir, content)
 	return dir
 }
@@ -44,10 +33,10 @@ func commit(t *testing.T, dir string, content files, removed ...string) {
 		}
 	}
 	for _, name := range removed {
-		runGit(t, dir, "rm", "-q", name)
+		gittest.Run(t, dir, "rm", "-q", name)
 	}
-	runGit(t, dir, "add", "-A")
-	runGit(t, dir, "commit", "-q", "-m", "files")
+	gittest.Run(t, dir, "add", "-A")
+	gittest.Run(t, dir, "commit", "-q", "-m", "files")
 }
 
 func build(t *testing.T, dir, rev string) *Graph {
@@ -279,7 +268,7 @@ func TestLevels(t *testing.T) {
 
 func TestALevelComparedWithAnotherPoint(t *testing.T) {
 	dir := repo(t, layered)
-	runGit(t, dir, "tag", "then")
+	gittest.Run(t, dir, "tag", "then")
 	commit(t, dir, files{
 		"app/start.go":   "package app\n\nimport \"a/extra\"\n\nfunc start() { extra.X() }\n",
 		"extra/x.go":     "package extra\n\nfunc X() {}\n",

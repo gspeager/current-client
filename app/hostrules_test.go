@@ -8,15 +8,16 @@ import (
 
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestPushWarningComesFromTheCachedRulesOnly(t *testing.T) {
 	repo := enabledGitLab(t)
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
 	for _, name := range []string{"main", "release/1.0", "feature"} {
-		gitIn(t, repo, "update-ref", "refs/remotes/origin/"+name, "HEAD")
+		gittest.Run(t, repo, "update-ref", "refs/remotes/origin/"+name, "HEAD")
 	}
-	gitIn(t, repo, "branch", "-q", "-u", "origin/main", "main")
+	gittest.Run(t, repo, "branch", "-q", "-u", "origin/main", "main")
 	api := "/api/v4/projects/group%2Fapp"
 	transport := &routeTransport{routes: map[string]string{
 		api + "/merge_requests?per_page=100&state=opened": `[]`,

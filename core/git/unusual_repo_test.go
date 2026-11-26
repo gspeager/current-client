@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestEmptyRepositoryReadsAsEmptyRatherThanFailing(t *testing.T) {

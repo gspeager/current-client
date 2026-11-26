@@ -12,6 +12,7 @@ import (
 
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // routeTransport answers by URL path, counting requests per path.
@@ -46,8 +47,8 @@ func enabledGitLab(t *testing.T) (repo string) {
 	t.Helper()
 	useTempSettings(t)
 	repo = t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{"gitlab.example.com": {Enabled: true}}
 	}); err != nil {
@@ -116,8 +117,8 @@ func TestCIStatusIsEmptyWhileTheHostIsOff(t *testing.T) {
 	useTempSettings(t)
 	swapHostClient(t, hostapitest.Forbid(t))
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
-	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gittest.Run(t, repo, "init", "-q")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
 	var s HostService
 	marks, err := s.FetchCIStatus(repo, []string{"aaa"})
 	if err != nil || len(marks) != 0 {
@@ -156,8 +157,8 @@ func TestFetchCIStatusAsksAgainForAStaleRunningResult(t *testing.T) {
 
 func TestRefreshAsksForTheBranchTipsPipelines(t *testing.T) {
 	repo := enabledGitLab(t)
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	tip := gitOut(t, repo, "rev-parse", "HEAD")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	tip := gittest.Output(t, repo, "rev-parse", "HEAD")
 	api := "/api/v4/projects/group%2Fapp"
 	pipelines := api + "/pipelines?per_page=1&sha=" + tip
 	transport := &routeTransport{routes: map[string]string{

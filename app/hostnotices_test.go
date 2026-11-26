@@ -8,17 +8,18 @@ import (
 	"github.com/gspeager/current-client/core/hostapi"
 	"github.com/gspeager/current-client/core/hostapi/hostapitest"
 	"github.com/gspeager/current-client/internal/config"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestNoticesNameWhatARefreshChangedOnTheBranch(t *testing.T) {
 	useTempSettings(t)
 	swapHostClient(t, hostapitest.Forbid(t))
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "feature")
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/feature", "HEAD")
-	gitIn(t, repo, "branch", "--set-upstream-to=origin/feature", "feature")
+	gittest.Run(t, repo, "init", "-q", "-b", "feature")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@gitlab.example.com:group/app.git")
+	gittest.Run(t, repo, "update-ref", "refs/remotes/origin/feature", "HEAD")
+	gittest.Run(t, repo, "branch", "--set-upstream-to=origin/feature", "feature")
 	if err := updateConfig(func(cfg *config.Config) {
 		cfg.Hosts = map[string]config.HostConfig{"gitlab.example.com": {Provider: "gitlab", Enabled: true}}
 	}); err != nil {

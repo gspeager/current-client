@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/gspeager/current-client/core/gitexec"
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // Each case is a commit and then a change to it, checked when staged and as a

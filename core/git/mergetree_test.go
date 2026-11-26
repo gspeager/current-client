@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gspeager/current-client/core/gitexec"
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestMergeConflicts(t *testing.T) {

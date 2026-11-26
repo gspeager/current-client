@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func structureRepo(t *testing.T) string {
@@ -24,9 +26,9 @@ func structureRepo(t *testing.T) string {
 		}
 		writeIn(t, repo, name, content)
 	}
-	gitIn(t, repo, "add", "-A")
-	gitIn(t, repo, "commit", "-q", "-m", "code")
-	gitIn(t, repo, "tag", "v9")
+	gittest.Run(t, repo, "add", "-A")
+	gittest.Run(t, repo, "commit", "-q", "-m", "code")
+	gittest.Run(t, repo, "tag", "v9")
 	return repo
 }
 
@@ -70,7 +72,7 @@ func TestStructure(t *testing.T) {
 
 func TestStructureComparedWithAnotherPoint(t *testing.T) {
 	repo := structureRepo(t)
-	before := gitOut(t, repo, "count-objects", "-v")
+	before := gittest.Output(t, repo, "count-objects", "-v")
 	// Uncommitted, and untracked.
 	writeIn(t, repo, "core/other.go", "package core\n\nimport \"a/text\"\n\nfunc o() { text.Cut() }\n")
 	if err := os.Mkdir(filepath.Join(repo, "text"), 0o755); err != nil {
@@ -83,18 +85,18 @@ func TestStructureComparedWithAnotherPoint(t *testing.T) {
 	if !info.Compared || info.Count.Changed != 2 {
 		t.Errorf("info = %+v", info)
 	}
-	if after := gitOut(t, repo, "count-objects", "-v"); after != before {
+	if after := gittest.Output(t, repo, "count-objects", "-v"); after != before {
 		t.Errorf("objects after = %s, before = %s", after, before)
 	}
 
-	gitIn(t, repo, "switch", "-q", "-c", "feat")
-	gitIn(t, repo, "add", "-A")
-	gitIn(t, repo, "commit", "-q", "-m", "feat")
-	gitIn(t, repo, "switch", "-q", "main")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feat")
+	gittest.Run(t, repo, "add", "-A")
+	gittest.Run(t, repo, "commit", "-q", "-m", "feat")
+	gittest.Run(t, repo, "switch", "-q", "main")
 	if info, all = structureOf(t, repo, "", &ExploreComparison{Kind: "branch", Ref: "feat"}); info.Target != "main" || !slices.Contains(all, "core > text added") {
 		t.Errorf("a branch, against %q: %q", info.Target, all)
 	}
-	gitIn(t, repo, "merge", "-q", "feat")
+	gittest.Run(t, repo, "merge", "-q", "feat")
 	for _, since := range []ExploreComparison{{Kind: "release", Ref: "v9"}, {Kind: "commit", Ref: "HEAD~1"}} {
 		if _, all = structureOf(t, repo, "", &since); !slices.Contains(all, "core > text added") {
 			t.Errorf("since %v: %q", since, all)
@@ -104,7 +106,7 @@ func TestStructureComparedWithAnotherPoint(t *testing.T) {
 		t.Error("a point that isn't there has a structure")
 	}
 	// A moved HEAD is another structure.
-	gitIn(t, repo, "reset", "-q", "--hard", "v9")
+	gittest.Run(t, repo, "reset", "-q", "--hard", "v9")
 	if _, all = structureOf(t, repo, "", nil); slices.Contains(all, "core > text") {
 		t.Errorf("after moving back: %q", all)
 	}
@@ -113,11 +115,11 @@ func TestStructureComparedWithAnotherPoint(t *testing.T) {
 func TestStructureInAPartialCloneFetchesNothing(t *testing.T) {
 	origin := structureRepo(t)
 	writeIn(t, origin, "core/other.go", "package core\n\nvar later = 1\n")
-	gitIn(t, origin, "commit", "-qam", "later")
-	gitIn(t, origin, "config", "uploadpack.allowFilter", "true")
+	gittest.Run(t, origin, "commit", "-qam", "later")
+	gittest.Run(t, origin, "config", "uploadpack.allowFilter", "true")
 	clone := filepath.Join(t.TempDir(), "clone")
-	gitIn(t, origin, "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(origin), clone)
-	missing := func() string { return gitOut(t, clone, "rev-list", "--objects", "--all", "--missing=print") }
+	gittest.Run(t, origin, "clone", "-q", "--filter=blob:none", "file://"+filepath.ToSlash(origin), clone)
+	missing := func() string { return gittest.Output(t, clone, "rev-list", "--objects", "--all", "--missing=print") }
 	before := missing()
 	for _, comparison := range []*ExploreComparison{nil, {Kind: "working"}, {Kind: "release", Ref: "v9"}} {
 		info, _ := structureOf(t, clone, "", comparison)
@@ -132,15 +134,15 @@ func TestStructureInAPartialCloneFetchesNothing(t *testing.T) {
 
 func TestStructureInASparsePartialCloneFetchesNothing(t *testing.T) {
 	origin := structureRepo(t)
-	gitIn(t, origin, "config", "uploadpack.allowFilter", "true")
+	gittest.Run(t, origin, "config", "uploadpack.allowFilter", "true")
 	clone := filepath.Join(t.TempDir(), "clone")
-	gitIn(t, origin, "clone", "-q", "--filter=blob:none", "--no-checkout", "file://"+filepath.ToSlash(origin), clone)
-	missing := func() string { return gitOut(t, clone, "rev-list", "--objects", "--all", "--missing=print") }
+	gittest.Run(t, origin, "clone", "-q", "--filter=blob:none", "--no-checkout", "file://"+filepath.ToSlash(origin), clone)
+	missing := func() string { return gittest.Output(t, clone, "rev-list", "--objects", "--all", "--missing=print") }
 	before := missing()
 	if info, _ := structureOf(t, clone, "", nil); len(info.Nodes) == 0 {
 		t.Errorf("with nothing checked out: %+v", info)
 	}
-	gitIn(t, clone, "config", "core.sparseCheckout", "true")
+	gittest.Run(t, clone, "config", "core.sparseCheckout", "true")
 	if _, err := new(ExploreService).Structure(clone, "", nil); !errors.Is(err, errSparsePartial) {
 		t.Errorf("err = %v", err)
 	}
@@ -151,7 +153,7 @@ func TestStructureInASparsePartialCloneFetchesNothing(t *testing.T) {
 
 func TestStructureOfABranchWithNoBase(t *testing.T) {
 	repo := structureRepo(t)
-	gitIn(t, repo, "branch", "-m", "main", "trunk-of-ours")
+	gittest.Run(t, repo, "branch", "-m", "main", "trunk-of-ours")
 	if _, err := new(ExploreService).Structure(repo, "", &ExploreComparison{Kind: "branch", Ref: "trunk-of-ours"}); !errors.Is(err, errNoBase) {
 		t.Errorf("err = %v", err)
 	}
@@ -159,7 +161,7 @@ func TestStructureOfABranchWithNoBase(t *testing.T) {
 
 func TestStructureBeforeTheFirstCommit(t *testing.T) {
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q")
+	gittest.Run(t, repo, "init", "-q")
 	info, err := new(ExploreService).Structure(repo, "", nil)
 	if err != nil || info.Nodes == nil || len(info.Nodes) != 0 {
 		t.Error(info, errors.Join(err))
@@ -177,14 +179,14 @@ func shapeOf(t *testing.T, info ReadThroughInfo) ChangeStructureInfo {
 
 func TestAChangesStructure(t *testing.T) {
 	repo := structureRepo(t)
-	gitIn(t, repo, "switch", "-q", "-c", "feat")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feat")
 	if err := os.Mkdir(filepath.Join(repo, "text"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	writeIn(t, repo, "text/t.go", "package text\n\nfunc Cut() {}\n")
 	writeIn(t, repo, "app/run.go", "package app\n\nimport \"a/text\"\n\nfunc Run() { text.Cut() }\n")
-	gitIn(t, repo, "add", "-A")
-	gitIn(t, repo, "commit", "-q", "-m", "text")
+	gittest.Run(t, repo, "add", "-A")
+	gittest.Run(t, repo, "commit", "-q", "-m", "text")
 	info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/feat"})
 	// One listed only as gone, with no status of its own.
 	info.Files = append(info.Files, ReadThroughFile{Path: "gone/g.go", Gone: true})
@@ -196,14 +198,14 @@ func TestAChangesStructure(t *testing.T) {
 	}
 
 	// A worktree's uncommitted changes, with nothing left behind.
-	gitIn(t, repo, "switch", "-q", "main")
-	before := gitOut(t, repo, "count-objects", "-v")
+	gittest.Run(t, repo, "switch", "-q", "main")
+	before := gittest.Output(t, repo, "count-objects", "-v")
 	writeIn(t, repo, "core/other.go", "package core\n\nimport \"a/app\"\n\nfunc o() { app.Run() }\n")
 	shape = shapeOf(t, openReadThrough(t, repo, ReadThroughRequest{Path: repo, Uncommitted: true}))
 	if links := mapSlice(shape.Links, func(l ChangeLink) string { return l.From + ">" + l.To + " " + l.State }); !slices.Equal(links, []string{"core>app added"}) {
 		t.Errorf("uncommitted links = %q", links)
 	}
-	if after := gitOut(t, repo, "count-objects", "-v"); after != before {
+	if after := gittest.Output(t, repo, "count-objects", "-v"); after != before {
 		t.Errorf("objects after = %s, before = %s", after, before)
 	}
 }

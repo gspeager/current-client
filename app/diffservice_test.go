@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestGetFileContentReadsEachVersion(t *testing.T) {
@@ -95,13 +97,13 @@ func TestStagedAndCommitDiffsHoldBackALargeFileUntilForced(t *testing.T) {
 
 func TestGetDependencySummaryComparesTwoVersions(t *testing.T) {
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
 	commit := func(name, content string) {
 		if err := os.WriteFile(filepath.Join(repo, name), []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		gitIn(t, repo, "add", name)
-		gitIn(t, repo, "-c", "user.name=X", "-c", "user.email=x@example.com", "commit", "-q", "-m", name)
+		gittest.Run(t, repo, "add", name)
+		gittest.Run(t, repo, "-c", "user.name=X", "-c", "user.email=x@example.com", "commit", "-q", "-m", name)
 	}
 	commit("go.sum", "a v1.0.0 h1:x=\n")
 	commit("README.md", "hello\n")

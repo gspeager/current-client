@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func initGrepRepo(t *testing.T) string {

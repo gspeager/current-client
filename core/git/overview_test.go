@@ -2,23 +2,11 @@ package git
 
 import (
 	"context"
-	"os"
-	"os/exec"
 	"testing"
 	"time"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
-
-func commitAt(t *testing.T, dir, message, date string) {
-	t.Helper()
-	cmd := exec.Command("git", "commit", "-q", "--allow-empty", "-m", message)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+date, "GIT_COMMITTER_DATE="+date)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("%v: %s", err, out)
-	}
-}
 
 func dayStrings(days []OverviewDay) []string {
 	var out []string
@@ -31,13 +19,13 @@ func dayStrings(days []OverviewDay) []string {
 func TestOverviewFollowsTheFilterAndGivesRows(t *testing.T) {
 	dir := gittest.InitRepo(t)
 	gittest.Run(t, dir, "branch", "-M", "main")
-	commitAt(t, dir, "one", "2026-01-10T12:00:00")
-	commitAt(t, dir, "two", "2026-01-10T13:00:00")
+	gittest.CommitAt(t, dir, "", "", "one", "2026-01-10T12:00:00")
+	gittest.CommitAt(t, dir, "", "", "two", "2026-01-10T13:00:00")
 	gittest.Run(t, dir, "tag", "-a", "v1", "-m", "v1")
 	gittest.Run(t, dir, "switch", "-q", "-c", "side")
-	commitAt(t, dir, "side", "2026-02-01T12:00:00")
+	gittest.CommitAt(t, dir, "", "", "side", "2026-02-01T12:00:00")
 	gittest.Run(t, dir, "switch", "-q", "main")
-	commitAt(t, dir, "three", "2026-03-01T12:00:00")
+	gittest.CommitAt(t, dir, "", "", "three", "2026-03-01T12:00:00")
 	gittest.Run(t, dir, "merge", "-q", "--no-ff", "-m", "merge", "side")
 	ctx := context.Background()
 
@@ -95,8 +83,8 @@ func TestOverviewOfTypedHistoryAndNoCommits(t *testing.T) {
 	if err != nil || len(empty.Days) != 0 {
 		t.Fatalf("no commits = %+v, %v", empty, err)
 	}
-	commitAt(t, dir, "feat: wanted", "2026-01-10T12:00:00")
-	commitAt(t, dir, "chore: not wanted", "2026-01-11T12:00:00")
+	gittest.CommitAt(t, dir, "", "", "feat: wanted", "2026-01-10T12:00:00")
+	gittest.CommitAt(t, dir, "", "", "chore: not wanted", "2026-01-11T12:00:00")
 	typed, err := Overview(context.Background(), dir, HistoryFilter{Type: "feat"})
 	if err != nil {
 		t.Fatal(err)

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
 	"github.com/gspeager/current-client/core/overlap"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 // boardRepo is main with worktrees one and two, each on a branch of its name.

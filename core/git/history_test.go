@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gspeager/current-client/core/internal/gittest"
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestParseHistoryFixture(t *testing.T) {
@@ -224,7 +224,7 @@ func TestHistoryFilterBySinceUntil(t *testing.T) {
 	dir := gittest.InitRepo(t)
 	gittest.WriteFile(t, dir, "file.txt", "v1")
 	gittest.Run(t, dir, "add", "file.txt")
-	commitAt(t, dir, "old commit", "2020-01-01T00:00:00")
+	gittest.CommitAt(t, dir, "", "", "old commit", "2020-01-01T00:00:00")
 	gittest.CommitFile(t, dir, "file.txt", "v2", "recent commit")
 
 	got, err := History(context.Background(), dir, 0, 0, HistoryFilter{Since: "2024-01-01"})

@@ -6,6 +6,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/gspeager/current-client/internal/gittest"
 )
 
 func TestCreateLinkInFindsTheHostsLink(t *testing.T) {
@@ -25,27 +27,27 @@ func TestCreateLinkInFindsTheHostsLink(t *testing.T) {
 func TestCreateChangeLinkUsesTheUpstreamProjectForAFork(t *testing.T) {
 	useTempSettings(t)
 	repo := t.TempDir()
-	gitIn(t, repo, "init", "-q", "-b", "main")
-	gitIn(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
-	gitIn(t, repo, "remote", "add", "origin", "git@github.com:someone/repo.git")
-	gitIn(t, repo, "switch", "-q", "-c", "fix")
-	gitIn(t, repo, "update-ref", "refs/remotes/origin/fix", "HEAD")
-	gitIn(t, repo, "branch", "--set-upstream-to=origin/fix", "fix")
+	gittest.Run(t, repo, "init", "-q", "-b", "main")
+	gittest.Run(t, repo, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "first")
+	gittest.Run(t, repo, "remote", "add", "origin", "git@github.com:someone/repo.git")
+	gittest.Run(t, repo, "switch", "-q", "-c", "fix")
+	gittest.Run(t, repo, "update-ref", "refs/remotes/origin/fix", "HEAD")
+	gittest.Run(t, repo, "branch", "--set-upstream-to=origin/fix", "fix")
 	var s RemoteService
 
 	link, err := s.CreateChangeLink(repo, "fix")
 	if err != nil || link != "https://github.com/someone/repo/compare/main...fix?expand=1" {
 		t.Fatalf("plain link = %q, %v", link, err)
 	}
-	gitIn(t, repo, "remote", "add", "upstream", "https://github.com/owner/repo.git")
+	gittest.Run(t, repo, "remote", "add", "upstream", "https://github.com/owner/repo.git")
 	link, _ = s.CreateChangeLink(repo, "fix")
 	if link != "https://github.com/owner/repo/compare/main...someone:fix?expand=1" {
 		t.Fatalf("fork link = %q", link)
 	}
 
 	local := t.TempDir()
-	gitIn(t, local, "init", "-q")
-	gitIn(t, local, "remote", "add", "origin", "/srv/git/repo.git")
+	gittest.Run(t, local, "init", "-q")
+	gittest.Run(t, local, "remote", "add", "origin", "/srv/git/repo.git")
 	if link, err := s.CreateChangeLink(local, "fix"); err != nil || link != "" {
 		t.Fatalf("a local remote gave %q, %v", link, err)
 	}
@@ -54,8 +56,8 @@ func TestCreateChangeLinkUsesTheUpstreamProjectForAFork(t *testing.T) {
 func TestPushSetUpstreamReportsWhereToCreateTheChange(t *testing.T) {
 	useTempSettings(t)
 	repo, hostname, _ := hostedRemote(t)
-	gitIn(t, repo, "switch", "-q", "-c", "feature")
-	gitIn(t, repo, "commit", "-q", "--allow-empty", "-m", "work")
+	gittest.Run(t, repo, "switch", "-q", "-c", "feature")
+	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "work")
 	var s RemoteService
 
 	result, err := s.PushSetUpstream(context.Background(), repo, "origin", "feature", nil)
