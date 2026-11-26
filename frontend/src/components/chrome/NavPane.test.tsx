@@ -11,7 +11,7 @@ import {
 } from '@current-client-bindings/app'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import { DialogProvider } from './DialogProvider'
-import NavPane from './NavPane'
+import NavPane, { type SidebarRequest } from './NavPane'
 import { useWorkspaceActions } from './useWorkspaceActions'
 
 const REPO = '/repos/app'
@@ -29,12 +29,13 @@ interface ShellProps {
   collapsed: boolean
   onCollapsedChange: (next: boolean) => void
   onOpenHeadCommit?: (sha: string) => void
+  request?: SidebarRequest | null
 }
 
 // The sidebar with its Workspace actions wired the way App wires them.
 const openTerminal = vi.fn()
 
-function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn() }: ShellProps) {
+function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn(), request = null }: ShellProps) {
   const workspace = useWorkspaceActions({
     onOpenTerminal: openTerminal,
     repoPath: REPO,
@@ -59,6 +60,7 @@ function Shell({ collapsed, onCollapsedChange, onOpenHeadCommit = vi.fn() }: She
         width={240}
         collapsed={collapsed}
         onCollapsedChange={onCollapsedChange}
+        request={request}
       />
       {workspace.modals}
     </>
@@ -76,6 +78,20 @@ function renderNav(collapsed: boolean, onCollapsedChange = vi.fn(), onOpenHeadCo
 }
 
 const openToolbox = () => userEvent.click(screen.getByRole('button', { name: 'Toolbox' }))
+
+describe('NavPane asked to open a section', () => {
+  it.each(['tidy-up', 'restack', 'branch-review'] as const)('opens Branches for %s, not Tags', async (action) => {
+    render(
+      <DialogProvider>
+        <Shell collapsed={false} onCollapsedChange={vi.fn()} request={{ action, n: 1 }} />
+      </DialogProvider>,
+    )
+    // Hidden from the accessibility tree while the action's own dialog is open.
+    const section = (name: RegExp) => screen.findByRole('button', { name, hidden: true })
+    expect(await section(/^Branches/)).toHaveAttribute('aria-expanded', 'true')
+    expect(await section(/^Tags/)).toHaveAttribute('aria-expanded', 'false')
+  })
+})
 
 describe('NavPane collapsed rail', () => {
   it('runs workspace actions from the Toolbox menu', async () => {
