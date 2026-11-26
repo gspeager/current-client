@@ -2,8 +2,9 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BranchChange, CIMark as CIMarkInfo, HostService, PlatformService } from '@current-client-bindings/app'
 import { CIStatus, Job } from '@current-client-bindings/core/hostapi'
-import CIMark, { ciLabel, formatDuration, PipelineJobList } from './CIMark'
-import ChangeMarker from './ChangeMarker'
+import CIMark, { formatDuration, PipelineJobList } from './CIMark'
+import { ciLabel } from '../../components/git/CIIcon'
+import ChangeMarker from '../../components/git/ChangeMarker'
 
 describe('CIMark', () => {
   it('shows the status and lists the jobs on click, fetched only then', async () => {

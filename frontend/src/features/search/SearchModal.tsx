@@ -11,7 +11,7 @@ import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { matchRanges, type SearchFlags } from './matchRanges'
 import SegmentedControl from '../../components/controls/SegmentedControl'
-import { useSearchElsewhere } from '../../components/chrome/useSearchElsewhere'
+import { useSearchElsewhere } from '../../lib/useSearchElsewhere'
 import { baseName } from '../../lib/paths'
 import './SearchModal.scss'
 

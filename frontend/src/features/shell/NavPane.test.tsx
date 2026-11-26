@@ -9,8 +9,8 @@ import {
   UndoService,
   type UndoPlanInfo,
 } from '@current-client-bindings/app'
-import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
-import { DialogProvider } from './DialogProvider'
+import type { useWorkingTree } from '../working-copy/useWorkingTree'
+import { DialogProvider } from '../../components/chrome/DialogProvider'
 import NavPane, { type SidebarRequest } from './NavPane'
 import { useWorkspaceActions } from './useWorkspaceActions'
 import { renderWithDialogs } from '../../test/render'

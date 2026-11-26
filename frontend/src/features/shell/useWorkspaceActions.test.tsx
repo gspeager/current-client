@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { Links } from '@current-client-bindings/core/hostlink'
-import { DialogProvider } from './DialogProvider'
+import { DialogProvider } from '../../components/chrome/DialogProvider'
 import { useWorkspaceActions } from './useWorkspaceActions'
 
 const wrapper = ({ children }: { children: ReactNode }) => <DialogProvider>{children}</DialogProvider>

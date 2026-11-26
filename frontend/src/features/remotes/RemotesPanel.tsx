@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { SidebarRequest } from '../../components/chrome/NavPane'
+import type { SidebarRequest } from '../shell/NavPane'
 import { Cloud, Pencil, Plus, RefreshCw, X } from 'lucide-react'
 import { RowActionButtons, useRowMenu, type RowAction } from '../../components/controls/RowActions'
 import { RemoteService, type RemoteInfo } from '@current-client-bindings/app'
