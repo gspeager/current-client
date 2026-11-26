@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useDebounceValue } from 'usehooks-ts'
+import { useDebounceValue, useEventCallback } from 'usehooks-ts'
 import type { HistoryFilterInfo } from '@current-client-bindings/app'
 import { ALL_BRANCHES, isBranchName } from './branchFilter'
 import { FILTER_KEYS, typedFilters, typedValues, withTyped, type FilterKey } from './typedFilters'
@@ -35,17 +35,18 @@ export function useHistoryFilter({
   const [typedSearch] = useDebounceValue(search, 300)
   useEffect(() => {
     const typed = typedFilters(typedSearch)
-    if (FILTER_KEYS.some((key) => typed[key] !== filter[key])) setFilter((prev) => ({ ...prev, ...typed }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setFilter((prev) => (FILTER_KEYS.some((key) => typed[key] !== prev[key]) ? { ...prev, ...typed } : prev))
   }, [typedSearch])
 
   // A saved branch that's since been deleted, or belongs to another repository.
-  useEffect(() => {
-    if (branches && !initialRef && isBranchName(filter.ref) && !branches.includes(filter.ref)) {
+  const dropMissingBranch = useEventCallback((branches: string[]) => {
+    if (!initialRef && isBranchName(filter.ref) && !branches.includes(filter.ref)) {
       setFilter((prev) => ({ ...prev, ref: ALL_BRANCHES }))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branches])
+  })
+  useEffect(() => {
+    if (branches) dropMissingBranch(branches)
+  }, [branches, dropMissingBranch])
 
   const changeFilter = (next: HistoryFilterInfo) => {
     if (next.ref !== filter.ref) onRefChange?.(next.ref)

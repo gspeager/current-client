@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import type { CommitInfo } from '@current-client-bindings/app'
 
 const NEW_COMMIT_FLASH_MS = 400
@@ -13,6 +14,7 @@ export function useNewCommitFlash(
 ) {
   const [newShas, setNewShas] = useState<Set<string>>(new Set())
   const computed = useRef(false)
+  const reportTopSha = useEventCallback((sha: string) => onTopShaChange?.(sha))
 
   useEffect(() => {
     if (commits.length === 0 || computed.current) return
@@ -21,9 +23,8 @@ export function useNewCommitFlash(
       const priorIndex = commits.findIndex((c) => c.sha === previousTopSha)
       if (priorIndex > 0) setNewShas(new Set(commits.slice(0, priorIndex).map((c) => c.sha)))
     }
-    onTopShaChange?.(commits[0].sha)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [commits])
+    reportTopSha(commits[0].sha)
+  }, [commits, previousTopSha, reportTopSha])
 
   useEffect(() => {
     if (newShas.size === 0) return
