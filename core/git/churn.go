@@ -2,8 +2,6 @@ package git
 
 import (
 	"context"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -19,29 +17,15 @@ type FileChurn struct {
 // branch's files from being double-counted.
 func ComputeFileChurn(ctx context.Context, repoPath string, days, limit int) ([]FileChurn, error) {
 	since := sinceMidnight(time.Now().AddDate(0, 0, -days))
-	result, err := gitexec.RunIn(ctx, repoPath, append([]string{"log", "--since=" + since, "--format=", "--name-only"}, allRefs...)...)
+	// -z, so a name Git would quote comes as it is.
+	result, err := gitexec.RunIn(ctx, repoPath, append([]string{"log", "--since=" + since, "--format=", "--name-only", "-z"}, allRefs...)...)
 	if err != nil {
 		return nil, err
 	}
-
-	counts := make(map[string]int)
-	var order []string
-	for _, line := range strings.Split(result.Stdout, "\n") {
-		path := strings.TrimSpace(line)
-		if path == "" {
-			continue
-		}
-		if counts[path] == 0 {
-			order = append(order, path)
-		}
-		counts[path]++
+	churn := []FileChurn{}
+	for _, r := range rank(nulFields(result.Stdout)) {
+		churn = append(churn, FileChurn{Path: r.key, Changes: r.count})
 	}
-
-	churn := make([]FileChurn, len(order))
-	for i, path := range order {
-		churn[i] = FileChurn{Path: path, Changes: counts[path]}
-	}
-	sort.SliceStable(churn, func(i, j int) bool { return churn[i].Changes > churn[j].Changes })
 
 	if len(churn) > limit {
 		churn = churn[:limit]

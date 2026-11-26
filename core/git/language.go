@@ -1,9 +1,9 @@
 package git
 
 import (
+	"cmp"
 	"context"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -22,24 +22,14 @@ func LanguageBreakdown(ctx context.Context, repoPath string, limit int) ([]Langu
 		return nil, err
 	}
 
-	counts := make(map[string]int)
-	var order []string
-	for _, path := range files {
-		ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(path), "."))
-		if ext == "" {
-			ext = otherExtensionLabel
-		}
-		if counts[ext] == 0 {
-			order = append(order, ext)
-		}
-		counts[ext]++
+	exts := make([]string, len(files))
+	for i, path := range files {
+		exts[i] = cmp.Or(strings.ToLower(strings.TrimPrefix(filepath.Ext(path), ".")), otherExtensionLabel)
 	}
-
-	stats := make([]LanguageStat, len(order))
-	for i, ext := range order {
-		stats[i] = LanguageStat{Extension: ext, Count: counts[ext]}
+	stats := []LanguageStat{}
+	for _, r := range rank(exts) {
+		stats = append(stats, LanguageStat{Extension: r.key, Count: r.count})
 	}
-	sort.SliceStable(stats, func(i, j int) bool { return stats[i].Count > stats[j].Count })
 
 	if len(stats) <= limit {
 		return stats, nil

@@ -3,11 +3,12 @@ package risk
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/gspeager/current-client/core/diff"
 )
 
 type addedLine struct {
@@ -66,8 +67,6 @@ func (c change) lines(ctx context.Context) (changedLines, error) {
 	return lines, nil
 }
 
-var hunkHeader = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
-
 // parseLines calls each with every line of a -U0 diff, under its file's new name
 // unless it's deleted. other is given the lines between diffs, which git log
 // writes.
@@ -81,14 +80,13 @@ func parseLines(output string, each func(line addedLine, added bool), other func
 	}
 	// Counting a hunk's lines keeps an added "++ x", which the diff shows as
 	// "+++ x", or a removed "-- x", from reading as a file header.
-	const none = "/dev/null"
 	oldPath, newPath := "", ""
 	oldLine, oldLeft, newLine, newLeft := 0, 0, 0, 0
 	for line := range strings.SplitSeq(output, "\n") {
 		switch {
 		case oldLeft > 0 && strings.HasPrefix(line, "-"):
 			file := newPath
-			if file == none {
+			if file == "" {
 				file = oldPath
 			}
 			each(addedLine{file, oldLine, strings.TrimSuffix(line[1:], "\r")}, false)
@@ -99,11 +97,11 @@ func parseLines(output string, each func(line addedLine, added bool), other func
 			newLine++
 			newLeft--
 		case strings.HasPrefix(line, "--- "):
-			oldPath = diffPath(strings.TrimPrefix(line, "--- "), "a/")
+			oldPath = diff.HeaderPath(strings.TrimPrefix(line, "--- "))
 		case strings.HasPrefix(line, "+++ "):
-			newPath = diffPath(strings.TrimPrefix(line, "+++ "), "b/")
+			newPath = diff.HeaderPath(strings.TrimPrefix(line, "+++ "))
 		case strings.HasPrefix(line, "@@ "):
-			if match := hunkHeader.FindStringSubmatch(line); match != nil {
+			if match := diff.HunkHeader.FindStringSubmatch(line); match != nil {
 				oldLine, _ = strconv.Atoi(match[1])
 				oldLeft = count(match[2])
 				newLine, _ = strconv.Atoi(match[3])
@@ -113,18 +111,6 @@ func parseLines(output string, each func(line addedLine, added bool), other func
 			other(line)
 		}
 	}
-}
-
-// Git quotes a name with special characters, in C style, which Go can read.
-func diffPath(field, prefix string) string {
-	// Git ends a name holding a space with a tab.
-	field = strings.TrimSuffix(field, "\t")
-	if strings.HasPrefix(field, `"`) {
-		if unquoted, err := strconv.Unquote(field); err == nil {
-			field = unquoted
-		}
-	}
-	return strings.TrimPrefix(field, prefix)
 }
 
 func scanLines(lines []addedLine, secrets, markers bool) (findings []Finding, values map[string]bool) {

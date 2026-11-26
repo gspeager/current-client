@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -102,4 +103,54 @@ func fileExists(path string) bool {
 func dirExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
+}
+
+// HeadBranch is the checked-out branch's short name; it fails on a detached HEAD.
+func HeadBranch(ctx context.Context, repoPath string) (string, error) {
+	return gitexec.OutputIn(ctx, repoPath, nil, "symbolic-ref", "--quiet", "--short", "HEAD")
+}
+
+// lines are output's lines, trimmed, without empty ones.
+func lines(output string) []string {
+	var kept []string
+	for line := range strings.SplitSeq(output, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			kept = append(kept, line)
+		}
+	}
+	return kept
+}
+
+// nulFields are -z output's fields, without empty ones.
+func nulFields(output string) []string {
+	var kept []string
+	for field := range strings.SplitSeq(output, "\x00") {
+		if field != "" {
+			kept = append(kept, field)
+		}
+	}
+	return kept
+}
+
+type ranked struct {
+	key   string
+	count int
+}
+
+// rank counts each key, most first and ties in the order first seen.
+func rank(keys []string) []ranked {
+	counts := map[string]int{}
+	var order []string
+	for _, key := range keys {
+		if counts[key] == 0 {
+			order = append(order, key)
+		}
+		counts[key]++
+	}
+	ranks := make([]ranked, len(order))
+	for i, key := range order {
+		ranks[i] = ranked{key, counts[key]}
+	}
+	slices.SortStableFunc(ranks, func(a, b ranked) int { return b.count - a.count })
+	return ranks
 }

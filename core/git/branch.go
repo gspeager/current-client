@@ -200,7 +200,7 @@ func CurrentBranchStatus(ctx context.Context, repoPath string) (BranchStatus, er
 		return BranchStatus{Current: b.Name, Upstream: b.Upstream, Ahead: b.Ahead, Behind: b.Behind}, nil
 	}
 	// An unborn branch has no row yet.
-	unborn, err := headBranch(ctx, repoPath)
+	unborn, err := HeadBranch(ctx, repoPath)
 	if err != nil {
 		return BranchStatus{}, err
 	}

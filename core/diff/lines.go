@@ -42,7 +42,7 @@ func applyLines(ctx context.Context, repoPath, path, hunkText string, sel LineSe
 // applied in reverse (to the new side), the other way round.
 func partialHunk(hunkText string, sel LineSelection, reverse bool) (string, error) {
 	lines := strings.Split(strings.TrimSuffix(hunkText, "\n"), "\n")
-	m := hunkHeaderPattern.FindStringSubmatch(lines[0])
+	m := HunkHeader.FindStringSubmatch(lines[0])
 	if m == nil {
 		return "", fmt.Errorf("not a hunk: %q", lines[0])
 	}

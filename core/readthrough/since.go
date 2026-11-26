@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"slices"
-	"strings"
 
 	"github.com/gspeager/current-client/core/diff"
 	"github.com/gspeager/current-client/core/git"
@@ -234,11 +233,8 @@ func (m marker) versions(tree string) (map[string]git.FileVersion, error) {
 
 func parseVersions(output string) map[string]git.FileVersion {
 	versions := map[string]git.FileVersion{}
-	for entry := range strings.SplitSeq(output, "\x00") {
-		header, path, ok := strings.Cut(entry, "\t")
-		if fields := strings.Fields(header); ok && len(fields) == 3 {
-			versions[path] = git.FileVersion{Mode: fields[0], Blob: fields[2]}
-		}
+	for _, entry := range git.ParseTree(output) {
+		versions[entry.Path] = git.FileVersion{Mode: entry.Mode, Blob: entry.Blob}
 	}
 	return versions
 }

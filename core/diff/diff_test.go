@@ -691,3 +691,19 @@ func TestParseCombinedDiffSaysWhichSideHasEachLine(t *testing.T) {
 		}
 	}
 }
+
+func TestANonASCIINameInADiff(t *testing.T) {
+	dir := gittest.InitRepo(t)
+	gittest.CommitFile(t, dir, "café.txt", "one\n", "add")
+	gittest.WriteFile(t, dir, "café.txt", "one\ntwo\n")
+	fd, err := GetWorkingTreeDiff(context.Background(), dir, "café.txt", false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fd.OldPath != "café.txt" || fd.NewPath != "café.txt" {
+		t.Fatalf("paths: %q, %q", fd.OldPath, fd.NewPath)
+	}
+	if HeaderPath(`"a/tab\there.txt"`) != "tab\there.txt" || HeaderPath("/dev/null") != "" || HeaderPath("b/x y\t") != "x y" {
+		t.Fatal("HeaderPath")
+	}
+}

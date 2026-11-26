@@ -35,6 +35,7 @@ All notable changes to Current Client are listed here. The format follows [Keep 
 
 ### Fixed
 
+- **A file named with accents or other non-ASCII letters shows its real name** in diffs, in Activity's most-changed files and in the language breakdown, instead of Git's quoted form, such as `"caf\303\251.txt"`. ([#478](https://github.com/gspeager/current-client/issues/478))
 - **Tidy up history, Restack and Branch review from Go to anything open Branches in the sidebar,** not Tags. ([#472](https://github.com/gspeager/current-client/issues/472))
 - **An app embedding Current Client no longer freezes while Current Client is hidden.** A question Current Client asks, such as whether to turn on a host's integration, waits until it's shown instead of opening a dialog nobody can see that still took every click. `onNeedsAttention` tells the host app a question is waiting, and `hostPrompt={false}` leaves the host question to an app that asks in its own words. ([#431](https://github.com/gspeager/current-client/issues/431))
 - **Very large diffs open without freezing.** A long diff draws only the lines on screen. A 50,000-line diff that took several seconds to open, and more than half a second for each step of scrolling, now opens in a fraction of a second and scrolls smoothly. ([#369](https://github.com/gspeager/current-client/issues/369))

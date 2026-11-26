@@ -59,13 +59,30 @@ func TreeFiles(ctx context.Context, repoPath string, env []string, rev string) (
 		return nil, err
 	}
 	var files []TreeFile
-	for entry := range strings.SplitSeq(result.Stdout, "\x00") {
-		header, path, ok := strings.Cut(entry, "\t")
-		if fields := strings.Fields(header); ok && len(fields) == 3 && strings.HasPrefix(fields[0], "100") {
-			files = append(files, TreeFile{Path: path, Blob: fields[2]})
+	for _, entry := range ParseTree(result.Stdout) {
+		if strings.HasPrefix(entry.Mode, "100") {
+			files = append(files, TreeFile{Path: entry.Path, Blob: entry.Blob})
 		}
 	}
 	return files, nil
+}
+
+// TreeEntry is one line of git ls-tree -z: a file, link or submodule and its object.
+type TreeEntry struct {
+	Mode string
+	Blob string
+	Path string
+}
+
+func ParseTree(output string) []TreeEntry {
+	var entries []TreeEntry
+	for line := range strings.SplitSeq(output, "\x00") {
+		header, path, ok := strings.Cut(line, "\t")
+		if fields := strings.Fields(header); ok && len(fields) == 3 {
+			entries = append(entries, TreeEntry{Mode: fields[0], Blob: fields[2], Path: path})
+		}
+	}
+	return entries
 }
 
 // trackedFiles is cached until the index changes, as Activity's stats and
@@ -76,16 +93,11 @@ func trackedFiles(ctx context.Context, repoPath string) ([]string, error) {
 		return nil, err
 	}
 	return cachedByRefs(ctx, repoPath, "tracked-files", func() ([]string, error) {
-		result, err := gitexec.RunIn(ctx, repoPath, "ls-files")
+		// -z, so a name Git would quote comes as it is.
+		result, err := gitexec.RunIn(ctx, repoPath, "ls-files", "-z")
 		if err != nil {
 			return nil, err
 		}
-		var files []string
-		for _, line := range strings.Split(result.Stdout, "\n") {
-			if line = strings.TrimSpace(line); line != "" {
-				files = append(files, line)
-			}
-		}
-		return files, nil
+		return nulFields(result.Stdout), nil
 	}, filepath.Join(gitDir, "index"))
 }
