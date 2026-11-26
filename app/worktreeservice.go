@@ -51,21 +51,22 @@ func (s *WorktreeService) Remove(repoPath, path string, force bool) error {
 	return nil
 }
 
-// BoardInfo is every worktree side by side. Unpredicted is "", "git" where Git is
-// too old to predict collisions, or "partial" in a partial clone, where it would fetch.
+// BoardInfo is every worktree side by side.
 type BoardInfo struct {
-	Base        string             `json:"base"`
-	Columns     []BoardColumn      `json:"columns"`
-	Collisions  []GridConflictInfo `json:"collisions"`
-	Unchecked   [][2]int           `json:"unchecked"`
-	Unpredicted string             `json:"unpredicted"`
-	More        int                `json:"more"`
+	Base       string             `json:"base"`
+	Columns    []BoardColumn      `json:"columns"`
+	Collisions []GridConflictInfo `json:"collisions"`
+	Unchecked  [][2]int           `json:"unchecked"`
+	// Unpredicted is "", "git" where Git is too old to predict collisions, or
+	// "partial" in a partial clone, where predicting would fetch.
+	Unpredicted string `json:"unpredicted"`
+	More        int    `json:"more"`
 }
 
 type BoardColumn struct {
 	Worktree WorktreeInfo `json:"worktree"`
 	Changed  int          `json:"changed"`
-	// The first of what's changed, with the ones that collide first.
+	// Files is the first mostBoardFiles changed files, colliding ones first.
 	Files   []BoardFile `json:"files"`
 	Added   int         `json:"added"`
 	Removed int         `json:"removed"`
@@ -73,9 +74,9 @@ type BoardColumn struct {
 	Ahead   int         `json:"ahead"`
 	Behind  int         `json:"behind"`
 	Problem string      `json:"problem"`
-	// Whether something is running in its terminal.
+	// Running is whether something is running in the worktree's terminal.
 	Running bool `json:"running"`
-	// The ones chosen to show, where this worktree has them.
+	// Tasks is the tasks chosen for the board that this worktree has.
 	Tasks []BoardTask `json:"tasks"`
 }
 
@@ -128,7 +129,8 @@ func (s *WorktreeService) Board(repoPath string) (BoardInfo, error) {
 	return info, nil
 }
 
-// What a column has room for. It's all sent again on every read.
+// mostBoardFiles is what a column has room for. Every read sends the files
+// again, so the cap also bounds each read's size.
 const mostBoardFiles = 100
 
 func boardColumn(c board.Column, colliding map[string]bool) BoardColumn {

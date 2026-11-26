@@ -14,7 +14,7 @@ const font = (
   load: async () => (await load()).default,
 })
 
-// As the app bundles them, by the letters each part holds.
+// The parts each font is split into, as the app bundles them, by the letters they hold.
 const LATIN_EXT = { needs: /[Ā-ʺḀ-ỿ]/, range: 'U+0100-02BA,U+1E00-1EFF' }
 const CYRILLIC = { needs: /[Ѐ-ӿ]/, range: 'U+0400-04FF' }
 const GREEK = { needs: /[Ͱ-Ͽ]/, range: 'U+0370-03FF' }

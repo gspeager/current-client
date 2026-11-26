@@ -12,16 +12,17 @@ import (
 )
 
 // ReadinessFact is one thing that bears on whether a change can merge, from
-// the cache or Git alone. Level is ok, warn, info, or unknown when the fact
-// isn't in the cache, which is said rather than guessed.
+// the cache or Git alone.
 type ReadinessFact struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
+	// Level is ok, warn, info, or unknown when the fact isn't in the cache,
+	// which is said rather than guessed.
 	Level string `json:"level"`
 }
 
-// MergeReadiness is what the last refresh knows about merging a change;
-// FetchedAt is that refresh's time.
+// MergeReadiness is what the last refresh knows about merging a change, as of
+// FetchedAt.
 type MergeReadiness struct {
 	Facts     []ReadinessFact `json:"facts"`
 	FetchedAt *time.Time      `json:"fetchedAt"`

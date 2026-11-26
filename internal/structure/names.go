@@ -160,8 +160,9 @@ func linkCSharp(l *linker, files []int32) {
 	}
 }
 
-// linkSeen matches each name to the one or two files that define it where this one
-// can see it. Two are a partial type.
+// linkSeen links each name to the one or two files that define it where this one
+// can see it. Two are a partial type's halves; with more, which is meant is unknown
+// and none is linked.
 func (l *linker) linkSeen(from int32, defined map[string][]int32, sees func(to int32) bool) {
 	for _, name := range l.facts[from].uses {
 		// An attribute is named without its ending.
@@ -182,8 +183,8 @@ func (l *linker) linkSeen(from int32, defined map[string][]int32, sees func(to i
 	}
 }
 
-// nearest answers with the closest folder above a file that holds one that matches,
-// or "" for none.
+// nearest finds, for a file, the closest folder above it that holds a file matches
+// accepts, such as a .csproj, or "" for none.
 func (l *linker) nearest(matches func(p string) bool) func(file string) string {
 	holders := map[string]bool{}
 	for _, p := range l.files {

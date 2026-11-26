@@ -8,7 +8,7 @@ import './StructureGraph.scss'
 interface StructureGraphProps {
   label: string
   nodes: StructureNode[]
-  // The ones drawn.
+  // Only the links to draw, as drawnOf picks them.
   links: StructureLink[]
   // Commits by path, for a file's card.
   commitsOf: (path: string) => number | undefined
@@ -25,9 +25,10 @@ const ARROWS: Record<string, Arrow> = {
   ArrowUp: 'up',
   ArrowDown: 'down',
 }
-// A side's label gives way to what happened to it.
+// The most characters of a label: a card's, a side's, and a side's beside its new or
+// removed word.
 const LABEL_CHARACTERS = { card: 22, side: 21, marked: 13 }
-// Text is 12px, and no smaller than 9.6.
+// The least the graph is scaled to fit: its 12px text is drawn no smaller than 9.6px.
 const SMALLEST = 0.8
 
 const colorOf = (node: StructureNode | undefined) => `var(--folder-${node && node.slot > 0 ? node.slot : 'other'}-2)`

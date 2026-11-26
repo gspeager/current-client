@@ -143,7 +143,7 @@ func cached(pairs [][2]string, mergeMissing func(missing [][2]string) ([][]strin
 	return files, nil
 }
 
-// known is what the cache answers, and the indexes of the pairs it doesn't.
+// known returns the cache's answers, and the indexes of the pairs it has none for.
 func known(pairs [][2]string) (files [][]string, missing []int) {
 	files = make([][]string, len(pairs))
 	cache.Lock()

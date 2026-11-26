@@ -19,7 +19,7 @@ type RiskFindingInfo struct {
 
 type RiskReportInfo struct {
 	Findings []RiskFindingInfo `json:"findings"`
-	// How many of a rule's findings aren't listed.
+	// LeftOut counts, by rule, the findings that aren't listed.
 	LeftOut        map[string]int `json:"leftOut"`
 	CommitsNotRead bool           `json:"commitsNotRead"`
 }

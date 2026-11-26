@@ -122,7 +122,7 @@ const SETTINGS_KEYWORDS: Record<string, string> = {
 }
 
 const MAX_FILE_RESULTS = 20
-// At rest the palette shows where you can go, not an inventory: this many
+// At rest the palette shows where to go, not an inventory: this many
 // local branches, the recent repositories and the actions.
 const MAX_IDLE_BRANCHES = 4
 const MAX_COMMIT_RESULTS = 10

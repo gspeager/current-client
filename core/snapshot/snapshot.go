@@ -32,10 +32,11 @@ const (
 	// An untracked file this large is left out, so a build output or a data file
 	// doesn't land in the object store on every checkout.
 	largestUntracked = 10 << 20
-	// A folder of unignored output shouldn't either, and listing what's left out
-	// is limited by the command line's length.
+	// Untracked files past this many bytes in all are left out too, so a folder of
+	// unignored output doesn't land there either.
 	mostUntrackedBytes = 100 << 20
-	mostLeftOut        = 500
+	// Each file left out is an argument, and the command line's length is limited.
+	mostLeftOut = 500
 )
 
 // ErrNotFound means the snapshot has been pruned.

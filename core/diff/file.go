@@ -42,8 +42,7 @@ func RevisionFileSize(ctx context.Context, repoPath, rev, path string) (size int
 	return size, err == nil
 }
 
-// ReadWorkingFile reads path from the working tree. path must stay inside
-// the repository.
+// ReadWorkingFile's path must stay inside the repository.
 func ReadWorkingFile(repoPath, path string, maxBytes int64) (data []byte, found bool, err error) {
 	local := filepath.FromSlash(path)
 	if !filepath.IsLocal(local) {

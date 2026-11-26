@@ -11,13 +11,14 @@ import (
 )
 
 // HostNotice is one thing a refresh found changed on the checked-out
-// branch's change. Kind is "threads", "ci" or "state"; Path is the file of
-// the first new thread, for the threads kind.
+// branch's change.
 type HostNotice struct {
+	// Kind is "threads", "ci" or "state".
 	Kind   string `json:"kind"`
 	Text   string `json:"text"`
 	Number int    `json:"number"`
-	Path   string `json:"path"`
+	// Path is the file of the first new thread, for the threads kind.
+	Path string `json:"path"`
 }
 
 // branchSnapshot is what the last refresh knew about the checked-out

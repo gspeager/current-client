@@ -4,7 +4,7 @@ import type { ReadThroughRequest } from '@current-client-bindings/app'
 export type ReadThroughTarget = Pick<ReadThroughRequest, 'ref' | 'path' | 'target' | 'uncommitted'>
 
 export interface ReadThroughOpening extends Partial<ReadThroughTarget> {
-  // Instead of the ref's name, for one of the app's own.
+  // Shown in place of the ref's name, for one of the app's own refs.
   name?: string
   // A file to open at, and a line of its new version.
   at?: { path: string; line: number }

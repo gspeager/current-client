@@ -62,7 +62,7 @@ interface CommitRowProps {
   row: Row
   index: number
   count: number
-  // Nothing above it to fold into.
+  // False when no kept commit is above it to fold into.
   canFold: boolean
   outcome?: { outcome: string; files: string[] }
   onChange: (patch: Partial<Row>) => void

@@ -14,7 +14,7 @@ interface ChangeRowProps {
   prefix: string
   selected: boolean
   onSelect: () => void
-  // The signed-in username, so a request for review reads as yours or someone else's.
+  // The signed-in username, so a review request reads as the user's or someone else's.
   me: string
   displayName: (name: string) => string
 }

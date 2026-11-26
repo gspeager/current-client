@@ -38,7 +38,7 @@ function latest(run: Run, result: TaskResultInfo | undefined) {
     : undefined
 }
 
-// A result says more than the run's own end, once it's read.
+// Once the saved result is read, it's shown in place of the run's own end, as it says more.
 function TaskStatus({ run, result }: { run: Run; result?: TaskResultInfo }) {
   if (result) {
     return (

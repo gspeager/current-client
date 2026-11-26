@@ -10,10 +10,10 @@ import DialogError from './DialogError'
 import Modal from './Modal'
 
 interface SaveImageDialogProps {
-  // Of the file, before the date.
+  // The file name's start; the date and extension follow it.
   name: string
   picture: () => Picture
-  // What else there is to choose.
+  // Further options, shown after the format choice.
   children?: ReactNode
   onClose: () => void
 }

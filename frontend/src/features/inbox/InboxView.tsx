@@ -87,8 +87,8 @@ function targetOf(path: string, row: InboxRow): InboxTarget {
   }
 }
 
-// Three questions, in the order they matter: what waits on you, what is
-// yours in flight, and what could be tidied.
+// Three questions, in the order they matter: what waits on the user, what of
+// theirs is in flight, and what could be tidied.
 const GROUPS: { name: string; kinds: string[] }[] = [
   { name: 'Waiting', kinds: ['review', 'changes-requested', 'ci-failed', 'todo'] },
   { name: 'In progress', kinds: ['dirty', 'operation', 'conflict', 'unpushed', 'assigned', 'undeployed'] },
@@ -139,7 +139,7 @@ function describe(row: InboxRow): { subject: string; reason: string } {
   }
 }
 
-// Everything waiting on you across the open repositories: local facts from
+// Everything waiting on the user across the open repositories: local facts from
 // Git, host facts from the last refresh's cache, each row a jump to it.
 function InboxView({ paths, activePath = null, refreshKey, onGo, onRefreshed, onClose }: InboxViewProps) {
   const setRows = useRovingRows('.inbox-row')

@@ -12,9 +12,9 @@ type Outcome struct {
 	ExitCode int
 	Duration time.Duration
 	At       time.Time
-	// The worktree's tree, "" when it couldn't be worked out.
+	// The worktree's tree when it started, "" when it couldn't be worked out.
 	Tree string
-	// The files that differ from when it started, so it ran on no one state.
+	// Files that changed while it ran, so it didn't run on any one state of the code.
 	Changed []string
 }
 
@@ -72,7 +72,7 @@ func (r *Results) Any(worktree string) bool {
 	return false
 }
 
-// What a result is worth now.
+// An outcome's State against the worktree and command now.
 const (
 	StateCurrent  = "current"
 	StateOutdated = "outdated"
@@ -97,8 +97,8 @@ func (o Outcome) State(tree, command string) string {
 	return StateOutdated
 }
 
-// MergeCustom is the repository's own commands and those kept under one worktree's
-// path, as all of them were before.
+// MergeCustom adds to the repository's own commands those kept under a worktree's
+// path, where older settings kept them all; the repository's win on a name.
 func MergeCustom(repository, worktree []Custom) []Custom {
 	merged := slices.Clone(repository)
 	for _, item := range worktree {

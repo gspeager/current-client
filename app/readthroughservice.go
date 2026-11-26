@@ -21,32 +21,32 @@ import (
 
 type ReadThroughService struct{}
 
-// ReadThroughRequest is a ref by its full name, or with Path the worktree there.
-// Target is what it's compared with, the parent of a stacked branch or the
-// default branch when it's "". Uncommitted asks for uncommitted changes too,
-// where the ref is checked out.
 type ReadThroughRequest struct {
-	Ref         string `json:"ref"`
-	Path        string `json:"path"`
-	Target      string `json:"target"`
-	Uncommitted bool   `json:"uncommitted"`
+	// Ref is a ref's full name; with Path set, the worktree at Path is read instead.
+	Ref  string `json:"ref"`
+	Path string `json:"path"`
+	// Target is what the ref is compared with. "" picks a stacked branch's parent
+	// or the default branch.
+	Target string `json:"target"`
+	// Uncommitted includes uncommitted changes, where the ref is checked out.
+	Uncommitted bool `json:"uncommitted"`
 }
 
-// ReadThroughInfo.Key names what's read, for its marks and notes. Path is the
-// working tree its commands run in, and CheckedOut whether the ref is what's
-// checked out there.
 type ReadThroughInfo struct {
-	Key         string            `json:"key"`
-	Name        string            `json:"name"`
-	Path        string            `json:"path"`
-	Target      string            `json:"target"`
-	Base        string            `json:"base"`
-	Head        string            `json:"head"`
+	// Key names the marks and notes of what's read.
+	Key  string `json:"key"`
+	Name string `json:"name"`
+	// Path is the working tree the read through's commands run in.
+	Path   string `json:"path"`
+	Target string `json:"target"`
+	Base   string `json:"base"`
+	Head   string `json:"head"`
+	// CheckedOut is whether the ref is what's checked out at Path.
 	CheckedOut  bool              `json:"checkedOut"`
 	Uncommitted bool              `json:"uncommitted"`
 	Files       []ReadThroughFile `json:"files"`
 	Skipped     int               `json:"skipped"`
-	// How many files have been read at some time.
+	// Marked counts the files that have been read at some time.
 	Marked int `json:"marked"`
 }
 
@@ -57,26 +57,26 @@ type ReadThroughFile struct {
 	Added    int    `json:"added"`
 	Removed  int    `json:"removed"`
 	Binary   bool   `json:"binary"`
-	// "", "test", "generated" or "lockfile".
+	// Kind is "", "test", "generated" or "lockfile".
 	Kind string `json:"kind"`
 	Read bool   `json:"read"`
-	// Changed since it was read, by SinceAdded and SinceRemoved lines. Gone means the
-	// change no longer holds it, and Conflict that the new base's changes are among
-	// those lines.
-	Again        bool   `json:"again"`
-	Gone         bool   `json:"gone"`
-	SinceAdded   int    `json:"sinceAdded"`
-	SinceRemoved int    `json:"sinceRemoved"`
-	SinceBinary  bool   `json:"sinceBinary"`
-	Conflict     bool   `json:"conflict"`
-	OldMode      string `json:"oldMode"`
-	OldBlob      string `json:"oldBlob"`
-	NewMode      string `json:"newMode"`
-	NewBlob      string `json:"newBlob"`
+	// Again means the file changed since it was read, by SinceAdded and
+	// SinceRemoved lines.
+	Again bool `json:"again"`
+	// Gone means the file was read and the change no longer holds it.
+	Gone         bool `json:"gone"`
+	SinceAdded   int  `json:"sinceAdded"`
+	SinceRemoved int  `json:"sinceRemoved"`
+	SinceBinary  bool `json:"sinceBinary"`
+	// Conflict means the new base's changes are among the Since lines.
+	Conflict bool   `json:"conflict"`
+	OldMode  string `json:"oldMode"`
+	OldBlob  string `json:"oldBlob"`
+	NewMode  string `json:"newMode"`
+	NewBlob  string `json:"newBlob"`
 }
 
-// settleBase is readthrough.SettleBase for what info reads, with the stacks'
-// links from the settings.
+// settleBase passes readthrough.SettleBase the stack links from the settings.
 func (info *ReadThroughInfo) settleBase(ctx context.Context, repoPath string) (err error) {
 	info.Target, info.Base, err = readthrough.SettleBase(ctx, repoPath, info.Key, info.Name, info.Target, info.Head, linksOf(repoPath))
 	return err
@@ -143,8 +143,9 @@ func (s *ReadThroughService) Open(ctx context.Context, repoPath string, request 
 	return info, nil
 }
 
-// OfChange is a pull request as a request: the ref its head is at on this
-// computer, "" when it isn't here, against its target as of the last fetch.
+// OfChange turns a pull request into a request for the local ref at its head,
+// compared with its target as of the last fetch. Ref is "" when the head isn't
+// on this computer.
 func (s *ReadThroughService) OfChange(repoPath, sourceBranch, targetBranch, headSHA string) (ReadThroughRequest, error) {
 	ctx := context.Background()
 	ref, err := git.RefAt(ctx, repoPath, headSHA, sourceBranch)
@@ -173,7 +174,6 @@ func (s *ReadThroughService) FileDiff(info ReadThroughInfo, origPath, path strin
 	return toFileDiff(fd), nil
 }
 
-// SinceDiff is a file's diff from what was read of it.
 func (s *ReadThroughService) SinceDiff(info ReadThroughInfo, path string, force, ignoreWhitespace bool) (FileDiff, error) {
 	ctx := context.Background()
 	if large, size := info.isLarge(ctx, path, force); large {
@@ -196,13 +196,12 @@ func (info ReadThroughInfo) isLarge(ctx context.Context, path string, force bool
 	return largestVersion(ctx, info.Path, path, force, info.Base)
 }
 
-// Findings is what the risk report's rules find over the range.
 func (s *ReadThroughService) Findings(info ReadThroughInfo) (RiskReportInfo, error) {
 	return riskReportInfo(readthrough.Findings(context.Background(), info.Path, info.changes(), configOrDefault().RiskRulesOff))
 }
 
-// SetRead marks the files as read, or as not. They're as Open listed them. One
-// that's gone is forgotten, as there's nothing left to have read.
+// SetRead takes files as Open listed them. A gone file is always unmarked, as
+// there's nothing left of it to have read.
 func (s *ReadThroughService) SetRead(info ReadThroughInfo, files []ReadThroughFile, read bool) error {
 	var kept, gone []readthrough.File
 	for _, f := range files {
@@ -226,9 +225,8 @@ func (s *ReadThroughService) SetRead(info ReadThroughInfo, files []ReadThroughFi
 	return errors.Join(set(kept, read), set(gone, false))
 }
 
-// ReadThroughNote is on a line of the new version, a line of the old one, or the
-// whole file. Outdated means that line has changed since, so Line and OldLine are
-// where it was.
+// ReadThroughNote is on a line of the new version (Line), a line of the old one
+// (OldLine), or the whole file when both are 0.
 type ReadThroughNote struct {
 	ID       string `json:"id"`
 	Path     string `json:"path"`
@@ -237,10 +235,12 @@ type ReadThroughNote struct {
 	OldLine  int    `json:"oldLine"`
 	LineText string `json:"lineText"`
 	Text     string `json:"text"`
-	Outdated bool   `json:"outdated"`
+	// Outdated means the noted line has changed since, so Line and OldLine are
+	// where it was.
+	Outdated bool `json:"outdated"`
 }
 
-// Notes lists what was noted while reading, in the order of the files.
+// Notes is in the order of the files.
 func (s *ReadThroughService) Notes(info ReadThroughInfo) ([]ReadThroughNote, error) {
 	ctx := context.Background()
 	stored, err := notes.List(notesKey(ctx, info.Path))
@@ -274,7 +274,7 @@ func (s *ReadThroughService) Notes(info ReadThroughInfo) ([]ReadThroughNote, err
 	return list, nil
 }
 
-// contentFor is the version of the file the note is on, nil when it's gone.
+// contentFor is nil when the version the note is on is gone or too large.
 func (info ReadThroughInfo) contentFor(ctx context.Context, note notes.Note) ([]byte, error) {
 	var data []byte
 	var err error
@@ -292,7 +292,7 @@ func (info ReadThroughInfo) contentFor(ctx context.Context, note notes.Note) ([]
 	return data, err
 }
 
-// AddNote keeps a note with the line it's written on.
+// AddNote anchors the note to its line's text, so it can find the line again.
 func (s *ReadThroughService) AddNote(info ReadThroughInfo, note ReadThroughNote) error {
 	ctx := context.Background()
 	added := notes.Note{
@@ -316,22 +316,21 @@ func (s *ReadThroughService) AddNote(info ReadThroughInfo, note ReadThroughNote)
 	return notes.Set(notesKey(ctx, info.Path), added)
 }
 
-// ChangeStructureInfo is what a change does to the structure. Read is false where
-// links couldn't be read: no language read, or a partial clone, where the base's
-// files would be fetched. Then there are only areas.
 type ChangeStructureInfo struct {
 	Areas     []ChangeArea   `json:"areas"`
 	Links     []ChangeLink   `json:"links"`
 	ReadFirst []ChangeReason `json:"readFirst"`
 	Skim      []ChangeReason `json:"skim"`
-	Read      bool           `json:"read"`
-	Partial   bool           `json:"partial"`
-	Languages []string       `json:"languages"`
+	// Read is false where links couldn't be read: no language is read, or a
+	// partial clone would fetch the base's files. Then there are only Areas.
+	Read      bool     `json:"read"`
+	Partial   bool     `json:"partial"`
+	Languages []string `json:"languages"`
 }
 
-// ChangeArea.State is "added" or "removed" for a folder that's new or gone.
 type ChangeArea struct {
-	Path    string   `json:"path"`
+	Path string `json:"path"`
+	// State is "added" or "removed" for a folder that's new or gone.
 	State   string   `json:"state"`
 	Files   []string `json:"files"`
 	Added   int      `json:"added"`
@@ -345,19 +344,19 @@ type ChangeLink struct {
 	State string `json:"state"`
 }
 
-// ChangeReason.Why is "used", by Count of the change's areas or of all files, a
-// file's kind, "renamed", or "few" lines in all.
 type ChangeReason struct {
 	Path   string `json:"path"`
 	Folder bool   `json:"folder"`
-	Why    string `json:"why"`
-	Count  int    `json:"count"`
+	// Why is "used" (by Count of the change's areas or of all files), a file's
+	// kind, "renamed", or "few" lines in all.
+	Why   string `json:"why"`
+	Count int    `json:"count"`
 }
 
 func (s *ReadThroughService) Structure(ctx context.Context, info ReadThroughInfo) (ChangeStructureInfo, error) {
 	var changes []structure.Changed
 	for _, f := range info.Files {
-		// Listed only to say it changed since it was read.
+		// A gone file is listed only to say it changed since it was read.
 		if !f.Gone {
 			changes = append(changes, structure.Changed{Path: f.Path, OrigPath: f.OrigPath, Status: f.Status, Added: f.Added, Removed: f.Removed})
 		}

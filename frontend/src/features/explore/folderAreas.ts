@@ -1,5 +1,5 @@
 import { dirName } from '../../lib/paths'
-// The folders that have a color of their own, and which. Slot 0 is every other's.
+// A folder with a color of its own, and its slot. Slot 0 is every other folder's.
 export interface FolderArea {
   path: string
   // Only the files directly in it: its folders are areas themselves.

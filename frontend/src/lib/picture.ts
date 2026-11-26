@@ -24,22 +24,22 @@ interface Stroke {
 
 export interface Painter {
   rect: (x: number, y: number, width: number, height: number, fill: string, radius?: number) => void
-  // A line inside the rectangle's edge.
+  // An outline drawn inside the rectangle's edge.
   frame: (x: number, y: number, width: number, height: number, color: string, line: number) => void
   line: (x0: number, y0: number, x1: number, y1: number, color: string, width?: number) => void
   path: (d: string, style: Stroke) => void
   circle: (x: number, y: number, radius: number, style: Stroke) => void
   text: (x: number, baseline: number, text: string, style: TextStyle) => void
-  // Draws from a point, and fainter with an opacity.
+  // Runs draw with the origin moved to x, y and everything drawn at opacity.
   within: (x: number, y: number, opacity: number, draw: () => void) => void
 }
 
 export const TEXT_SIZE = 12
-// The data face is monospaced, save for what it doesn't have: Chinese, Japanese and
-// Korean, and emoji.
+// The data face's character width, in ems. It's monospaced except for what it lacks:
+// Chinese, Japanese, Korean and emoji, which are measured.
 const CHARACTER = 0.6
 const WIDE = /[\u2e80-\uffff]/
-// What the other comes to, about, where there's nothing to measure with.
+// A rough character width, in ems, for the UI face or wide text when no canvas can measure.
 const ABOUT = 0.52
 
 const FACES: Record<Face, { name: string; stack: string }> = {
@@ -61,7 +61,7 @@ export function textWidth(text: string, style: Omit<TextStyle, 'color'>): number
   return measuring.measureText(text).width
 }
 
-// A character of two halves, cut between them.
+// Half of a surrogate pair, left at the end or the start of a cut.
 const HALF_AFTER = /[\ud800-\udbff]$/
 const HALF_BEFORE = /^[\udc00-\udfff]/
 
@@ -192,7 +192,7 @@ function svgPainter(out: string[]): Painter {
 export interface PictureFont {
   face: Face
   weight: number
-  // Nothing for the basic letters, which are always there.
+  // Absent for the basic Latin part, which is always embedded.
   needs?: RegExp
   range?: string
   load: () => Promise<string>
@@ -218,7 +218,7 @@ ${body}
 `
 }
 
-// What browsers will draw, with room to spare.
+// The largest canvas side and area browsers will draw, with room to spare.
 const LONGEST_SIDE = 16000
 const MOST_PIXELS = 64_000_000
 

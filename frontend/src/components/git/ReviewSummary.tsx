@@ -29,8 +29,8 @@ export function reviewRequestedOf(reviews: Review[] | null, username: string): b
 }
 
 // One line for a change card: a request for changes outweighs approvals,
-// which outweigh reviews still waiting. A review waiting on you reads as a
-// request; one waiting on others names them.
+// which outweigh reviews still waiting. A review waiting on the user reads as
+// a request; one waiting on others names them.
 function ReviewSummary({
   reviews,
   open,

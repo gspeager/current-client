@@ -18,9 +18,9 @@ type EnvironmentInfo struct {
 	Fetched bool `json:"fetched"`
 }
 
-// Deployments is the environments as the last refresh found them. Enabled
-// is false, with nothing else, while the host is off.
+// Deployments is the environments as the last refresh found them.
 type Deployments struct {
+	// Enabled is false, with nothing else set, while the host is off.
 	Enabled      bool              `json:"enabled"`
 	FetchedAt    *time.Time        `json:"fetchedAt"`
 	Environments []EnvironmentInfo `json:"environments"`

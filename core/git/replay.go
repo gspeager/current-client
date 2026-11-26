@@ -96,12 +96,12 @@ type PreviewCommit struct {
 	Files   []string
 }
 
-// Predicted is false when Git is too old to replay commits in memory, so a
-// commit's Outcome says nothing.
 type RebasePreview struct {
-	Current       string
-	Onto          string
-	Commits       []PreviewCommit
+	Current string
+	Onto    string
+	Commits []PreviewCommit
+	// False when Git is too old to replay commits in memory, so a commit's
+	// Outcome says nothing.
 	Predicted     bool
 	DroppedMerges int
 	ForcePush     bool

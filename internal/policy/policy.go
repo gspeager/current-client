@@ -13,13 +13,13 @@ import (
 )
 
 // Policy locks a networked feature off, forces it on, or, where a switch is
-// absent, leaves it to the user. Hosts are keyed by hostname, as Settings
-// shows them.
+// absent, leaves it to the user.
 type Policy struct {
+	// By hostname, as Settings shows them.
 	Hosts     map[string]Switch `json:"hosts"`
 	AutoFetch *AutoFetch        `json:"autoFetch"`
 	Tracker   *Tracker          `json:"tracker"`
-	// LocalCommands off removes the terminal panel and task runner.
+	// Off removes the terminal panel and task runner.
 	LocalCommands *Switch `json:"localCommands"`
 }
 
@@ -35,9 +35,9 @@ type Switch struct {
 	Enabled *bool `json:"enabled"`
 }
 
-// AutoFetch forced on without an interval fetches every five minutes.
 type AutoFetch struct {
 	Switch
+	// Zero with the switch forced on is defaultIntervalMinutes.
 	IntervalMinutes int `json:"intervalMinutes"`
 }
 

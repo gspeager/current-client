@@ -38,12 +38,12 @@ func opened(repo *repository.Repository, err error) (string, error) {
 	return repo.Path, nil
 }
 
-// deleteHeadsUnlessOpen is best effort: the folder may be gone or unreadable,
-// and that mustn't keep a repository on the recent list. A refresh fetches the
-// heads of a repository that's opened again.
 // Deleting a closed repository's fetched heads is one update-ref.
 const refCleanupTimeout = 30 * time.Second
 
+// deleteHeadsUnlessOpen is best effort: the folder may be gone or unreadable,
+// and that mustn't keep a repository on the recent list. A refresh fetches the
+// heads of a repository that's opened again.
 func deleteHeadsUnlessOpen(path string, tabs []string) {
 	if slices.Contains(tabs, path) {
 		return

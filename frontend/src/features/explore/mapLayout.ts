@@ -3,7 +3,7 @@ import type { Step } from './mapSteps'
 
 export interface MapItem {
   path: string
-  // What the tile is sized by.
+  // The tile's area is in proportion to it.
   size: number
   slot: number
   step: Step
@@ -50,7 +50,8 @@ export const HEADER = 20
 const HEADER_MIN_WIDTH = 56
 const HEADER_MIN_HEIGHT = 44
 const ROOMY = 36
-// Pixels a tile. Under this, whole gaps would leave more ground than tiles.
+// Square pixels per child. A folder more crowded than this gets 0.4px gaps, since
+// whole-pixel gaps would cover more of it than its tiles do.
 const CROWDED = 60
 
 export const inFolder = (path: string, folder: string) => folder === '' || path.startsWith(`${folder}/`)
@@ -101,7 +102,7 @@ export function layoutMap(items: MapItem[], root: string, width: number, height:
   if (top.children!.length === 0) return layout
   const joined: Node = { ...top, children: top.children!.map(joinLone) }
   const sized = hierarchy(joined)
-    // Every file is seen, an empty one too.
+    // An empty file still gets a tile.
     .sum((node) => (node.item ? Math.max(1, node.item.size) : 0))
     .sort((a, b) => b.value! - a.value! || a.data.name.localeCompare(b.data.name))
   const placed = treemap<Node>()
@@ -131,14 +132,15 @@ export function tileAt(layout: MapLayout, x: number, y: number): number {
   return layout.tiles.findIndex((tile) => contains(tile, x, y))
 }
 
-// The folder whose name is there.
+// The folder whose name header is at x, y.
 export function headerAt(layout: MapLayout, x: number, y: number): FolderBox | undefined {
   return layout.folders.find((folder) => folder.header && contains({ ...folder, y1: folder.y0 + HEADER }, x, y))
 }
 
 export type Direction = 'left' | 'right' | 'up' | 'down'
 
-// The nearest tile that way, straight ahead before to a side.
+// The index of the nearest tile in direction, preferring tiles straight ahead over
+// ones off to the side; from itself when there is none.
 export function neighbor(layout: MapLayout, from: number, direction: Direction): number {
   const start = layout.tiles[from]
   const across = direction === 'left' || direction === 'right'

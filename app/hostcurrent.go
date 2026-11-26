@@ -11,12 +11,12 @@ import (
 )
 
 // CurrentChange is the checked-out branch's merge request / pull request,
-// for the section at the top of the Branches sidebar. Change is nil when
-// the branch has none that the cache knows; Enabled false hides the section.
+// for the section at the top of the Branches sidebar.
 type CurrentChange struct {
 	Branch   string `json:"branch"`
 	Upstream string `json:"upstream"`
-	Enabled  bool   `json:"enabled"`
+	// Enabled false hides the section.
+	Enabled bool `json:"enabled"`
 	// Proposable is false on the default branch and on a branch with no
 	// commits beyond it, where there is nothing to open a change for.
 	Proposable bool `json:"proposable"`
@@ -24,7 +24,8 @@ type CurrentChange struct {
 	// isn't known yet.
 	Checked bool `json:"checked"`
 	// Kind is the host's word, "pull request" or "merge request".
-	Kind       string        `json:"kind"`
+	Kind string `json:"kind"`
+	// Change is nil when the branch has none that the cache knows.
 	Change     *BranchChange `json:"change"`
 	CI         *CIMark       `json:"ci"`
 	FailedJobs []string      `json:"failedJobs"`

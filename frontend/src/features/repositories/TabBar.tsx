@@ -15,7 +15,7 @@ interface TabBarProps {
   changedCount?: number
   // Files still conflicted in a merge; shown instead of the changed count.
   conflictCount?: number
-  // Issues assigned to you while a host or tracker lists them; null hides the tab.
+  // Issues assigned to the user while a host or tracker lists them; null hides the tab.
   issueCount?: number | null
   // A host a remote points at whose integration is off (and not locked off):
   // its tabs show dimmed and open its settings, so the features can be found.

@@ -9,19 +9,37 @@ import (
 )
 
 const (
-	// More cards than this can't be followed, and the rest are listed.
+	// Cards drawn on a level, the most connected first. More can't be followed, so
+	// the rest go to Level.Rest as a list.
 	mostCards = 14
-	mostSide  = 6
-	// Lines drawn until all of them are asked for.
+	// Outside places drawn on each side; the rest are counted in MoreUsedBy and
+	// MoreUses.
+	mostSide = 6
+	// Links drawn before only the main ones are, until all of them are asked for.
 	mostMain = 20
-	// A side's groups are opened while there are no more than this.
+	// Groups on a side. The largest is opened into its parts only while the side
+	// stays within this.
 	mostGroups = 7
+	// The largest group is opened only while it holds at least this many tenths of
+	// the side's files; a smaller one is already a small part of the picture.
+	openShare = 3
+	// Parts an opened group may become once any of them is a file, so a side doesn't
+	// fill with single files.
+	mostOpenedWithFiles = 3
+	// One per folder color, --folder-1 to --folder-8.
+	cardColors = 8
+	// A place outside the level is named in words, as a Wide, when the level has more
+	// than fewCards cards, more than fewCards of them have to do with it, and they
+	// are at least wideShare tenths of all. Drawn, it would link to nearly every card
+	// and hide the rest.
+	fewCards  = 3
+	wideShare = 4
 )
 
 // View is a graph, and another point it's compared with.
 type View struct {
 	paths []string
-	// Whether each is there now, and then.
+	// Whether each path is there now, and at the point compared with.
 	now, then []bool
 	links     []viewLink
 	compared  bool
@@ -33,7 +51,7 @@ type viewLink struct {
 	now, then bool
 }
 
-// NewView compares with then when it's given.
+// NewView compares now with then; then is nil for no comparison.
 func NewView(now, then *Graph) *View {
 	v := &View{compared: then != nil, docs: now.Docs}
 	if then == nil {
@@ -99,15 +117,15 @@ type Node struct {
 	Folder bool
 	// The files there now.
 	Files []string
-	// Added or removed since the point compared with.
+	// Added, Removed or "" against the point compared with.
 	State string
 	Doc   string
-	// Which of the colors a card's lines have, from 1.
+	// A card's color, 1 to cardColors; 0 for a place outside the level.
 	Slot int
 }
 
-// Link is between nodes by index. Main ones are drawn when there are too many to
-// follow.
+// Link is between nodes by index. When there are more than mostMain, only the Main
+// ones are drawn.
 type Link struct {
 	From, To int
 	Count    int
@@ -115,7 +133,8 @@ type Link struct {
 	State    string
 }
 
-// Wide is a place so many of a level's cards share that it's said in words.
+// Wide is a place outside the level that so many of its cards have to do with that
+// it's named in words instead of drawn.
 type Wide struct {
 	Path   string
 	Label  string
@@ -133,7 +152,7 @@ type Level struct {
 	Crumbs []Crumb
 	Doc    string
 	Folder bool
-	// Every file in it now.
+	// Every file in the level now.
 	Files []string
 	Nodes []Node
 	// Cards there was no room for, the most connected first.
@@ -154,7 +173,7 @@ func (v *View) within(dir string) (from, to int) {
 		return from, from + 1
 	}
 	from = sort.SearchStrings(v.paths, dir+"/")
-	// "0" comes after "/".
+	// '0' follows '/', so dir+"0" sorts after every path under dir.
 	return from, sort.SearchStrings(v.paths, dir+"0")
 }
 
@@ -170,7 +189,8 @@ func under(p, dir string) (rest string, ok bool) {
 	return strings.CutPrefix(p, dir+"/")
 }
 
-// child is what directly in dir holds p.
+// child is the folder directly in dir that holds p, or p itself when it's directly
+// in dir or outside it.
 func child(p, dir string) string {
 	rest, ok := under(p, dir)
 	if !ok {
@@ -182,7 +202,7 @@ func child(p, dir string) string {
 	return p
 }
 
-// step goes past folders that hold only one folder.
+// step goes down through folders that hold only one folder.
 func (v *View) step(dir string) string {
 	for !v.isFile(dir) {
 		from, to := v.within(dir)
@@ -223,7 +243,7 @@ func (v *View) crumbs(dir string) []Crumb {
 	return crumbs
 }
 
-// count is how many links there are now and were then.
+// count is how many links there are now and at the point compared with.
 type count struct{ now, then int }
 
 func (c *count) add(l viewLink) {
@@ -247,8 +267,8 @@ func (v *View) state(now, then int) string {
 	return Removed
 }
 
-// Level is what's inside a folder, or a file by itself, with what uses it and what it
-// uses. A path that isn't there has no cards.
+// Level is the cards inside a folder, or a file by itself, with the places outside
+// that use them and that they use. A path that isn't there has no cards.
 func (v *View) Level(dir string) Level {
 	dir = v.step(dir)
 	from, to := v.within(dir)
@@ -322,7 +342,7 @@ func (v *View) Level(dir string) Level {
 			level.Rest = append(level.Rest, card)
 			continue
 		}
-		card.Slot = rank%8 + 1
+		card.Slot = rank%cardColors + 1
 		at[i] = len(level.Nodes)
 		level.Nodes = append(level.Nodes, card)
 	}
@@ -381,15 +401,16 @@ func (v *View) node(p, dir string, from, to int) Node {
 	return node
 }
 
-// sideGroup is a place outside the level, and the cards it has to do with.
+// sideGroup is a place outside the level, and the cards that use it or that it uses.
 type sideGroup struct {
 	path  string
 	cards map[int]*count
 	total int
 }
 
-// group gathers files outside dir by where they are: first by what stands beside dir
-// or beside something above it, then opening the largest while there are few.
+// group gathers files outside dir by place: first by the folder or file that holds
+// them beside dir or beside a folder above it. Then the largest group is opened into
+// its parts while it holds a large share of the files and the side stays small.
 func (v *View) group(files map[int32]map[int]*count, dir string) []sideGroup {
 	groups := map[string][]int32{}
 	for file := range files {
@@ -403,7 +424,7 @@ func (v *View) group(files map[int32]map[int]*count, dir string) []sideGroup {
 				largest = p
 			}
 		}
-		if largest == "" || len(groups[largest])*10 < len(files)*3 {
+		if largest == "" || len(groups[largest])*10 < len(files)*openShare {
 			break
 		}
 		opened := map[string][]int32{}
@@ -415,7 +436,7 @@ func (v *View) group(files map[int32]map[int]*count, dir string) []sideGroup {
 			}
 			opened[p] = append(opened[p], file)
 		}
-		if len(groups)-1+len(opened) > mostGroups || (names > 0 && len(opened) > 3) {
+		if len(groups)-1+len(opened) > mostGroups || (names > 0 && len(opened) > mostOpenedWithFiles) {
 			break
 		}
 		delete(groups, largest)
@@ -451,10 +472,11 @@ func (v *View) beside(file, dir string) string {
 	return v.step(strings.Join(parts[:k+1], "/"))
 }
 
-// widely takes out what most cards have to do with.
+// widely splits off the groups so many of the level's cards have to do with that
+// they're named instead of drawn.
 func widely(groups []sideGroup, cards int) (wide []Wide, rest []sideGroup) {
 	for _, g := range groups {
-		if cards > 3 && len(g.cards) > 3 && len(g.cards)*10 >= cards*4 {
+		if cards > fewCards && len(g.cards) > fewCards && len(g.cards)*10 >= cards*wideShare {
 			wide = append(wide, Wide{Path: g.path, Cards: len(g.cards)})
 		} else {
 			rest = append(rest, g)
@@ -499,8 +521,8 @@ func (v *View) addSide(level *Level, groups []sideGroup, side string, at map[int
 	return more
 }
 
-// chooseMain keeps what changed, each node's strongest link each way, and then the
-// strongest of the rest, up to the limit.
+// chooseMain marks up to mostMain links as Main: those that changed, then each
+// node's strongest link in and out, then the strongest of the rest.
 func chooseMain(links []Link) {
 	if len(links) <= mostMain {
 		for i := range links {

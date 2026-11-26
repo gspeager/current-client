@@ -21,7 +21,7 @@ interface CleanUpBranchesDialogProps {
   onClose: () => void
 }
 
-// Merged right now, but kept on purpose by most teams, so never ticked for you.
+// Merged right now, but kept on purpose by most teams, so never ticked by default.
 const LONG_LIVED = new Set(['develop', 'dev', 'staging', 'production', 'release'])
 
 // Local branches whose work is already merged: found with Git alone, which

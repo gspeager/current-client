@@ -2,7 +2,7 @@ import type { BranchInfo, ExploreComparison, TagInfo } from '@current-client-bin
 import { useDialogs } from '../../lib/useDialogs'
 
 interface ComparisonSelectProps {
-  // Null where nothing is compared, which is only a choice with none.
+  // Null for nothing compared, an option only when `none` labels it.
   value: ExploreComparison | null
   none?: string
   branches: BranchInfo[]

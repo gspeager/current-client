@@ -16,11 +16,12 @@ const (
 
 // Tracker is an issue tracker beside the code host, such as a team's Jira
 // site. Its links are built from the address the user entered; nothing is
-// asked of it. Keys limits which project keys link; empty links any.
+// asked of it.
 type Tracker struct {
 	Site string      `json:"site"`
 	Kind TrackerKind `json:"kind"`
-	Keys []string    `json:"keys"`
+	// Keys limits which project keys link; empty links any.
+	Keys []string `json:"keys"`
 }
 
 var (

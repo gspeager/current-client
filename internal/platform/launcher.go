@@ -10,16 +10,17 @@ import (
 	"strings"
 )
 
-// Launcher is the terminal command that opens a path in the app. Path is where it
-// is, or where installing writes it. ByPackage means a package put another
-// command at Path, so there's nothing to install. PathLine is the line to add to
-// StartupFile, a file the login shell reads, when Path's folder isn't on the PATH.
+// Launcher is the terminal command that opens a path in the app.
 type Launcher struct {
-	Path        string `json:"path"`
-	Installed   bool   `json:"installed"`
-	ByPackage   bool   `json:"byPackage"`
-	OnPath      bool   `json:"onPath"`
-	PathLine    string `json:"pathLine"`
+	// Where the command is, or where installing writes it.
+	Path      string `json:"path"`
+	Installed bool   `json:"installed"`
+	// A package put another command at Path, so there's nothing to install.
+	ByPackage bool `json:"byPackage"`
+	OnPath    bool `json:"onPath"`
+	// The line to add to StartupFile when Path's folder isn't on the PATH.
+	PathLine string `json:"pathLine"`
+	// A file the login shell reads.
 	StartupFile string `json:"startupFile"`
 }
 

@@ -18,7 +18,7 @@ interface CodeMapProps {
   // The folder that fills the map.
   root: string
   label: string
-  // A tile in words, with nothing left to its color.
+  // A tile in words, so nothing rests on its color alone.
   describe: (item: MapItem) => string
   onOpen: (item: MapItem) => void
   onMenu?: (e: MouseEvent | KeyboardEvent, item: MapItem) => void
@@ -62,7 +62,8 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
 
   const layout = useMemo(() => layoutMap(items, root, size.width, size.height), [items, root, size])
   const index = useMemo(() => layout.tiles.findIndex((tile) => tile.item.path === active), [layout, active])
-  // The place is kept while focus is elsewhere, such as in what was opened from it.
+  // The active tile stays chosen while focus is elsewhere, such as in what was opened
+  // from it, and is only highlighted while the map is focused or pointed at.
   const tile = focused || pointed ? layout.tiles[index] : undefined
 
   // The handlers are new each time the view draws, and only these changing matters.
@@ -89,7 +90,7 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
     draw()
     const observer = new MutationObserver(draw)
     if (themed) observer.observe(themed, { attributes: true, attributeFilter: ['data-theme'] })
-    // Text drawn before its font has loaded is in another.
+    // Text drawn before its font has loaded is in a fallback, so it's drawn again.
     let current = true
     void document.fonts?.ready.then(() => current && draw())
     return () => {

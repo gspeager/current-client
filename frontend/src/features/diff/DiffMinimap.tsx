@@ -11,7 +11,7 @@ interface DiffMinimapProps {
 
 type Mark = { top: number; height: number; kind: 'added' | 'removed' }
 
-// About what the strip can show; a long diff's rows share them.
+// About as many marks as the strip can show; past this, rows share a slot.
 const SLOTS = 1000
 
 function marksFor(rows: DisplayRow[]): Mark[] {

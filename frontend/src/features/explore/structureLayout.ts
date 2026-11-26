@@ -16,16 +16,16 @@ export interface Point {
 export interface StructureLayout {
   width: number
   height: number
-  // By node.
+  // One per node, in the same order.
   boxes: Box[]
-  // By link, from what uses to what it uses.
+  // One per link, drawn from the user to what it uses.
   lines: Point[][]
-  // Where the cards nothing is drawn to begin, below the rest.
+  // The y where cards without a line start, below the rest; null when there are none.
   othersAt: number | null
 }
 
-// What's drawn: the main links or all of them, every card, and what's outside where a
-// line goes to it.
+// The links to draw, the main ones or all, with every card and each outside node one
+// of those links reaches. Links are renumbered to the nodes kept.
 export function drawnOf(
   nodes: StructureNode[],
   links: StructureLink[],
@@ -52,9 +52,10 @@ const sizeOf = (node: StructureNode) => (node.side === 'card' ? CARD : SIDE)
 
 type Graph = InstanceType<typeof dagre.graphlib.Graph>
 
-// Each card one column past the furthest it's used by, with what outside uses them
-// first and what they use outside last. One nothing here uses stands next to what it
-// uses. The lines are already without cycles, and dagre has a node of its own.
+// A dagre ranker: each card goes one column past the furthest card that uses it, with
+// outside users in the first column and outside dependencies in the last. A card no
+// card uses moves next to the first one it uses. The links have no cycles, and nodes
+// dagre adds of its own aren't in nodes.
 function rankCards(nodes: StructureNode[]) {
   return (graph: Graph) => {
     const ids = graph.nodes().filter((id) => nodes[Number(id)])
@@ -152,7 +153,7 @@ export function layoutStructure(nodes: StructureNode[], links: StructureLink[]):
   }
 }
 
-// A stop of a line: a column, and how far down it is there.
+// Where a line crosses a column, and its y there.
 interface Stop {
   column: number
   y: number
@@ -180,7 +181,7 @@ function route(links: StructureLink[], boxes: Box[], placed: Box[], passing: Poi
     return [{ column: start, y: ends[i].from }, ...each, { column: end, y: ends[i].to }]
   })
 
-  // By gap, the turns in it.
+  // The turns in each gap between columns, by the gap's index.
   const turns = new Map<number, { line: number; hop: number; from: number; to: number }[]>()
   stops.forEach((line, i) => {
     for (let hop = 0; hop < line.length - 1; hop++) {
@@ -261,7 +262,8 @@ export function linePath(points: Point[], radius = 8): string {
 
 export type Arrow = 'left' | 'right' | 'up' | 'down'
 
-// The nearest box that way, those straight ahead first.
+// The index of the nearest box in that direction, preferring boxes straight ahead over
+// ones off to the side; from itself when there is none.
 export function nextBox(boxes: Box[], from: number, way: Arrow): number {
   const center = (box: Box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 })
   const at = center(boxes[from])
@@ -279,7 +281,7 @@ export function nextBox(boxes: Box[], from: number, way: Arrow): number {
   return best
 }
 
-// Names in a folder often share their start, so the middle goes.
+// Cuts from the middle, since names in a folder often share their start.
 export function cutMiddle(name: string, most: number): string {
   if (name.length <= most) return name
   const end = Math.ceil((most - 1) / 2)

@@ -27,11 +27,11 @@ const (
 	Unchecked = ""
 )
 
-// ReleasedAt is the release's date when the feed gave it, else "".
 type Result struct {
-	State      string `json:"state"`
-	Current    string `json:"current"`
-	Latest     string `json:"latest"`
+	State   string `json:"state"`
+	Current string `json:"current"`
+	Latest  string `json:"latest"`
+	// "" when the feed didn't give the release's date.
 	ReleasedAt string `json:"releasedAt"`
 	LatestURL  string `json:"latestUrl"`
 }

@@ -41,8 +41,8 @@ func (l changedLines) newlyAdded() []addedLine {
 	return added
 }
 
-// Git writes a file over the limit as binary, so one is never held in memory. The
-// rest pin down what a setting would change.
+// core.bigFileThreshold makes Git write a file over the limit as binary, so one is
+// never held in memory. The other options pin down what a user's setting would change.
 func diffArgs(command string, args ...string) []string {
 	return append([]string{
 		"-c", "core.quotepath=off", "-c", fmt.Sprintf("core.bigFileThreshold=%d", largeFileBytes-1), command,
@@ -134,8 +134,8 @@ func scanLines(lines []addedLine, secrets, markers bool) (findings []Finding, va
 	return findings, values
 }
 
-// Hundreds of patterns a line is most of a large change's time, so the lines are
-// shared among the processors.
+// secretsInAll shares the lines among the processors: matching hundreds of
+// patterns against each line is most of a large change's time.
 func secretsInAll(lines []addedLine) [][]secretMatch {
 	rules := loadSecretRules()
 	matches := make([][]secretMatch, len(lines))

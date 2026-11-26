@@ -24,7 +24,7 @@ func ForecastCandidates(changes []Change, base, ownBranch string) (candidates []
 	return candidates[:min(len(candidates), ForecastCap)], len(candidates)
 }
 
-// ForecastBase is the branch its own open change targets, "" when it has none.
+// ForecastBase is the branch ownBranch's open change targets, "" when it has none.
 func ForecastBase(changes []Change, ownBranch string) string {
 	base := ""
 	for _, change := range changes {

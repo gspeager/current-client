@@ -344,7 +344,8 @@ func Restack(ctx context.Context, repoPath string, links []StackLink) (RestackRe
 	return result, CheckoutBranch(ctx, repoPath, start)
 }
 
-// StackMovedError is a restack that can no longer be undone, however long it waits.
+// StackMovedError refuses UndoRestack for good: a branch it would move back is
+// gone or has changed since the restack.
 type StackMovedError struct{ Message string }
 
 func (e *StackMovedError) Error() string { return e.Message }
@@ -418,7 +419,7 @@ func PushStack(ctx context.Context, repoPath, remote string, branches []string) 
 	return nil
 }
 
-// atomicRefused is a server that can't take a push of all or nothing.
+// atomicRefused says whether err is a server refusing an --atomic push.
 func atomicRefused(err error) bool {
 	var appErr *gitexec.AppError
 	return errors.As(err, &appErr) && strings.Contains(appErr.Detail, "--atomic")

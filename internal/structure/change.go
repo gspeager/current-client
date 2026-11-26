@@ -19,7 +19,7 @@ type Changed struct {
 	Removed int
 }
 
-// Area is a folder the change touches, by its own files.
+// Area is a folder whose own files, not its subfolders', the change touches.
 type Area struct {
 	Path string
 	// Added or Removed when the folder is new or gone.
@@ -37,11 +37,12 @@ type AreaLink struct {
 	State    string
 }
 
-// Reason is a folder or a file, and why it's there.
+// Reason is a folder or a file to read first or skim, and why.
 type Reason struct {
 	Path   string
 	Folder bool
-	// How many use it, or the kind of file, or "few", "renamed".
+	// "used" by Count areas or files, a file kind such as "generated", "renamed",
+	// or "few" lines, Count of them.
 	Why   string
 	Count int
 }
@@ -55,11 +56,13 @@ type Shape struct {
 }
 
 const (
-	// A change's area used by this many of its others is read first, and a file
-	// used by this many files.
+	// Areas listed to read first, and files listed apart from them, the most used
+	// first, so the list stays a starting point rather than the whole change.
 	mostReadFirst = 5
-	widelyUsed    = 10
-	// Lines, all in all, below which an area is skimmed.
+	// Files that use a changed file before it's listed to read first; fewer is an
+	// ordinary dependency, not one much of the code rests on.
+	widelyUsed = 10
+	// Lines added and removed, all in all, below which an area is skimmed.
 	fewLines = 5
 )
 
@@ -147,8 +150,8 @@ func changedLinks(now, then map[[2]string]int) []AreaLink {
 	return links
 }
 
-// readFirst is the change's areas that its others use, and files much of the code
-// uses.
+// readFirst is the change's areas that its other areas use, and its files that at
+// least widelyUsed files use.
 func readFirst(now *Graph, areas map[string]*Area, changes []Changed) []Reason {
 	users := map[string]map[string]bool{}
 	byFile := map[string]map[string]bool{}

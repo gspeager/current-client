@@ -17,7 +17,8 @@ type BlameLineInfo struct {
 	Summary     string `json:"summary"`
 	LineNo      int    `json:"lineNo"`
 	Content     string `json:"content"`
-	// Where Blame before this commit goes; empty for the commit that added the file.
+	// Previous and PreviousPath are what "Blame before this commit" opens; empty
+	// for the commit that added the file.
 	Previous     string `json:"previous"`
 	PreviousPath string `json:"previousPath"`
 }

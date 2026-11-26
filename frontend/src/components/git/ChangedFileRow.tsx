@@ -16,7 +16,7 @@ interface ChangedFileRowProps {
   onContextMenu?: (e: MouseEvent | KeyboardEvent) => void
   // Unresolved review threads on the file.
   threads?: number
-  // A folder the list already names.
+  // A folder the list already names, left off the front of the path.
   relativeTo?: string
   // With onRead, whether the file is ticked as read.
   read?: boolean

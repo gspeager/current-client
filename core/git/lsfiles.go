@@ -43,12 +43,12 @@ func FindTracked(ctx context.Context, repoPath, query string, limit int) ([]stri
 	return found, nil
 }
 
-// TreeFile is a file at a commit or tree. Symbolic links and submodules aren't.
 type TreeFile struct {
 	Path string
 	Blob string
 }
 
+// TreeFiles leaves out symbolic links and submodules.
 func TreeFiles(ctx context.Context, repoPath string, env []string, rev string) ([]TreeFile, error) {
 	result, err := gitexec.RunChecked(ctx, gitexec.Command{
 		Dir:  repoPath,

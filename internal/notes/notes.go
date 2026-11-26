@@ -25,25 +25,29 @@ const (
 	KindReview = "review"
 )
 
-// Note.Subject is the commit's subject when written, so a note still makes sense
-// after a rebase has rewritten the commit it was on.
 type Note struct {
-	Kind      string    `json:"kind"`
-	Target    string    `json:"target"`
+	Kind   string `json:"kind"`
+	Target string `json:"target"`
+	// The commit's subject when written, so a note still makes sense after a
+	// rebase has rewritten the commit it was on.
 	Subject   string    `json:"subject,omitempty"`
 	Text      string    `json:"text"`
 	UpdatedAt time.Time `json:"updatedAt"`
 
-	// Of a review note. Line is in the new version and OldLine in the old; with
-	// neither, it's on the whole file. OldPath is a renamed file's. LineText and
-	// Before are the line when written and the one before it.
-	ID       string `json:"id,omitempty"`
-	Path     string `json:"path,omitempty"`
-	OldPath  string `json:"oldPath,omitempty"`
-	Line     int    `json:"line,omitempty"`
-	OldLine  int    `json:"oldLine,omitempty"`
+	// The rest are a review note's. With neither Line nor OldLine, it's on the
+	// whole file.
+	ID   string `json:"id,omitempty"`
+	Path string `json:"path,omitempty"`
+	// A renamed file's earlier path.
+	OldPath string `json:"oldPath,omitempty"`
+	// In the new version.
+	Line int `json:"line,omitempty"`
+	// In the old version.
+	OldLine int `json:"oldLine,omitempty"`
+	// The line when written.
 	LineText string `json:"lineText,omitempty"`
-	Before   string `json:"before,omitempty"`
+	// The line before it when written.
+	Before string `json:"before,omitempty"`
 }
 
 func (n Note) sameAs(other Note) bool {

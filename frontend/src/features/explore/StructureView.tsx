@@ -49,7 +49,8 @@ function StructureView({
     [repoPath, folder, comparison],
     { refreshKey: version, keepData: true },
   )
-  // Going to another level replaces the card that had the focus.
+  // Whether a card had focus when the level changed: the card is replaced, so the
+  // new level's current card takes the focus.
   const within = useRef(false)
   const shown = level?.path
   useEffect(() => {

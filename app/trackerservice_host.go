@@ -70,8 +70,8 @@ func (s *TrackerService) RemoveToken(site string) error {
 	return setTrackerAccess(site, func(a *config.TrackerAccess) { a.HasToken = false })
 }
 
-// TestConnection is the one request Settings makes, and only while the
-// tracker is on.
+// TestConnection asks the tracker which account the saved token signs in as.
+// The host client refuses the request while the tracker is off.
 func (s *TrackerService) TestConnection(site string) (string, error) {
 	tracker, err := knownTracker(site)
 	if err != nil {

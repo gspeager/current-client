@@ -6,7 +6,7 @@ import type { RowLaneColors } from './laneOwners'
 import { pairUpstreams } from './refPills'
 
 export interface GraphPictureRow {
-  // Without a commit it's the working tree's, and text says what it holds.
+  // Absent for the working tree's row, whose text says what it holds.
   commit?: CommitInfo
   text?: string
   node?: GraphNode
@@ -23,12 +23,12 @@ export interface GraphPictureOptions {
   width: number
   rowHeight: number
   laneCount: number
-  // Leaves out who made each commit.
+  // False leaves out who made each commit.
   names: boolean
   upstreams: Record<string, string>
   laneColor: (lane: number) => string
   refColor: (ref: RefInfo) => string
-  // A color, or a token's value.
+  // Resolves a color, which may be a var(--token), to its value.
   color: (color: string) => string
 }
 

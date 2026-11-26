@@ -12,16 +12,18 @@ import (
 )
 
 const (
-	// 780 pairs, about a second for branches that left the default one recently.
+	// 40 branches make 780 pairs, about a second for branches that left the default
+	// one recently.
 	mostBranches = 40
-	// 66 pairs, for Git 2.38 and 2.39, where each is a process.
+	// 12 branches make 66 pairs, for Git 2.38 and 2.39, where each pair is a process.
 	mostBranchesOneByOne = 12
-	// Branches looked at for ones that aren't merged.
+	// The newest branches checked for being merged, before mostBranches is taken.
 	mostCandidates = 3 * mostBranches
-	// Merging branches years apart takes seconds a pair. After this long, for each of
-	// what's merged and what conflicts, nothing more is started.
+	// Merging branches years apart takes seconds a pair. After this long, nothing
+	// more is started, once for the merged check and once for the conflicts.
 	gridTime = 4 * time.Second
-	// Merges a process, so what's started ends soon after.
+	// Merges a process, few enough that the batches started before gridTime end
+	// soon after it.
 	gridBatch = 5
 )
 
@@ -30,24 +32,26 @@ const (
 type Grid struct {
 	Branches  []git.Branch
 	Conflicts []GridConflict
-	// The pairs, and branches that may be merged, there was no time for. Comparing
-	// again goes on with them.
-	Unchecked   [][2]int
+	// Unchecked are the pairs there was no time to merge. Comparing again goes on
+	// with them.
+	Unchecked [][2]int
+	// MaybeMerged counts the branches there was no time to check for being merged.
 	MaybeMerged int
-	// How many older branches there was no room for.
+	// Older counts the older branches there was no room for.
 	Older int
-	// The ones that share no history with the others, such as gh-pages.
+	// Unrelated are the branches that share no history with the others, such as gh-pages.
 	Unrelated []string
 }
 
-// GridConflict is a pair of branches or commits, by index, the first the smaller.
+// GridConflict is a pair of branches or commits by index, with A < B.
 type GridConflict struct {
 	A, B  int
 	Files []string
 }
 
-// By two commits, which never change their answer: a base and a tip merged into it
-// or not, and a commit and one it shares no history with.
+// Both are keyed by a pair of commits, whose answer never changes: mergedInto by a
+// base and a tip, to whether the tip is merged into it, and unrelated by two
+// commits that share no history.
 var mergedInto, unrelated sync.Map
 
 // Compare merges every pair of branches that isn't merged yet. It returns
@@ -83,8 +87,8 @@ func compare(ctx context.Context, repoPath string, most time.Duration) (Grid, er
 			if err != nil {
 				return Grid{}, err
 			}
-			// There's no default branch to say which to leave out, or each shares
-			// history with it and some pair of them doesn't.
+			// No branch is newly found unrelated: there's no default branch to say which
+			// to leave out, or each shares history with it while some pair doesn't.
 			if !apart {
 				mergeSome = git.MergeConflictsPairs
 			}
@@ -98,14 +102,14 @@ func compare(ctx context.Context, repoPath string, most time.Duration) (Grid, er
 // branch among them.
 type candidates struct {
 	branches []git.Branch
-	// The default branch, or "", and its tip.
+	// def is the default branch, or "", and anchor its tip.
 	def         string
 	anchor      string
 	maybeMerged int
 	older       int
 }
 
-// unmergedBranches takes one there was no time to check as not merged.
+// unmergedBranches keeps a branch there was no time to check, as if it weren't merged.
 func unmergedBranches(ctx context.Context, repoPath string, most time.Duration) (candidates, error) {
 	branches, err := git.ListBranches(ctx, repoPath)
 	if err != nil {
@@ -139,8 +143,8 @@ func unmergedBranches(ctx context.Context, repoPath string, most time.Duration) 
 	return found, nil
 }
 
-// newest is as many as the limit, with the one named keep in place of the last when
-// it's older, and how many that leaves.
+// newest keeps the first limit branches, with the one named keep in place of the
+// last when keep is older, and counts the branches left out.
 func newest(branches []git.Branch, limit int, keep string) (kept []git.Branch, older int) {
 	if len(branches) <= limit {
 		return slices.Clone(branches), 0
@@ -190,7 +194,8 @@ func (c candidates) grid(limit int) Grid {
 	return grid
 }
 
-// findUnrelated says whether there are more than were known.
+// findUnrelated records the branches that share no history with the default
+// branch, and says whether any was new.
 func (c candidates) findUnrelated(ctx context.Context, repoPath string) (more bool, err error) {
 	if c.anchor == "" {
 		return false, nil
@@ -208,9 +213,9 @@ func (c candidates) findUnrelated(ctx context.Context, repoPath string) (more bo
 	return more, nil
 }
 
-// Between merges every pair of commits, some of which may only be where env says. A
-// pair sharing no history has nothing to conflict. unchecked are the pairs there was
-// no time for.
+// Between merges every pair of commits, some of which may only be in the object
+// directories env names. A pair sharing no history has nothing to conflict.
+// unchecked are the pairs there was no time for.
 func Between(ctx context.Context, repoPath string, env, commits []string) (conflicts []GridConflict, unchecked [][2]int, err error) {
 	return between(commits, time.Now().Add(gridTime), func(pairs [][2]string) ([][]string, error) {
 		return git.MergeConflictsIn(ctx, repoPath, env, pairs)
@@ -266,8 +271,8 @@ func between(tips []string, until time.Time, mergeSome func(pairs [][2]string) (
 	return conflicts, unchecked, nil
 }
 
-// inBatches does some at a time, starting nothing after until or a failure, and
-// returns what it didn't start.
+// inBatches runs do over gridBatch items at a time, starting nothing after until or
+// a failure, and returns the items it didn't start.
 func inBatches[T any](items []T, until time.Time, do func(batch []T) error) (left []T, err error) {
 	var mu sync.Mutex
 	var wg sync.WaitGroup

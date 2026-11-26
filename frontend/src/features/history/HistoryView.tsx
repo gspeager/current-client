@@ -343,7 +343,8 @@ function HistoryView({
       })),
   ]
 
-  // What narrows the list. A search may be for a person.
+  // The list's filters in words. Without names, an author or a search, which may be a
+  // person's name, is described rather than quoted.
   const describeList = (names: boolean) =>
     [
       filter.ref === ALL_BRANCHES ? 'all branches' : filter.ref || currentBranch || 'HEAD',

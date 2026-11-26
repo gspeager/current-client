@@ -133,8 +133,9 @@ func branchMatches(ctx context.Context, repoPath string, has func(...string) boo
 	return found[:min(len(found), mostBranchMatches)], nil
 }
 
-// The name a remote branch is checked out as, as the frontend's localNameFor:
-// after the longest remote name it starts with, else after its first slash.
+// localNameOf is the name a remote branch is checked out as, as the frontend's
+// localNameFor: what follows the longest remote name it starts with, else what
+// follows its first slash.
 func localNameOf(name string, remotes []git.Remote) string {
 	longest := ""
 	for _, r := range remotes {

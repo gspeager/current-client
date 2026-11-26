@@ -66,8 +66,8 @@ func Findings(ctx context.Context, repoPath string, r Range, off []string) (risk
 	return risk.CheckRange(ctx, repoPath, risk.Range{From: r.Base, To: tree, Head: r.Head, Env: env}, off)
 }
 
-// Base is where head left target. A branch built on another is compared with the
-// commit it was built on, which an amended parent no longer holds.
+// Base is the merge base of target and head, or builtOn when head is a branch
+// built on another: an amended parent no longer holds the commit it was built on.
 func Base(ctx context.Context, repoPath, target, head, builtOn string) (string, error) {
 	base, err := git.MergeBase(ctx, repoPath, target, head)
 	if err != nil {
@@ -99,8 +99,8 @@ func FileDiff(ctx context.Context, repoPath string, r Range, origPath, path stri
 	if err != nil {
 		return diff.FileDiff{}, err
 	}
-	// So an untracked file is compared as a tracked one is. A deleted one has
-	// nothing to add, and an ignored one was never listed.
+	// Intent to add makes an untracked file diff as a tracked one does. A deleted
+	// file has nothing to add, and an ignored one was never listed.
 	_, _ = gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Env:  env,

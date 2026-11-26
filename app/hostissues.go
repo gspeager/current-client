@@ -13,13 +13,13 @@ import (
 	"github.com/gspeager/current-client/core/hostcontent"
 )
 
-// IssueInfo is what a hover card shows for an issue reference. Title is
-// empty, with Known true, for a number the host has no issue for.
+// IssueInfo is what a hover card shows for an issue reference.
 type IssueInfo struct {
 	Number int    `json:"number"`
 	Key    string `json:"key"`
-	Title  string `json:"title"`
-	State  string `json:"state"`
+	// Title is empty, with Known true, for a number the host has no issue for.
+	Title string `json:"title"`
+	State string `json:"state"`
 	// Status is the tracker's own name for the state, where it has one.
 	Status string `json:"status"`
 	WebURL string `json:"webUrl"`
@@ -169,7 +169,7 @@ func byNumber(issues map[string]IssueInfo) map[int]IssueInfo {
 	return numbered
 }
 
-// titles is what the cache knows about each key, by key.
+// titles reads the cache only.
 func (src issueSource) titles(repoPath string, keys []string) map[string]IssueInfo {
 	issues := map[string]IssueInfo{}
 	for _, key := range keys {

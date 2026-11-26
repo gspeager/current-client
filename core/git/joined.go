@@ -10,12 +10,12 @@ import (
 )
 
 // Joined is where a commit arrived on a branch's own line of history, the
-// line its first parents trace. At is the commit on that line that brought
-// it there: the commit itself when it was made on the line or fast-forwarded
-// onto it (OnLine), else the merge commit. At is "" when the branch doesn't
-// include the commit.
+// line its first parents trace.
 type Joined struct {
-	At     string
+	// The commit on that line that brought it there: the commit itself when
+	// OnLine, else the merge commit. "" when the branch doesn't include it.
+	At string
+	// The commit was made on the line or fast-forwarded onto it.
 	OnLine bool
 	Date   time.Time
 }

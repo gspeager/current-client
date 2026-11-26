@@ -33,7 +33,7 @@ const (
 
 var identity = gitexec.Identity("read@localhost")
 
-// Marking reads the last mark and replaces it.
+// marking serialises writes, as each one reads the last mark and replaces it.
 var marking sync.Mutex
 
 func markRef(key string) string {
@@ -47,7 +47,6 @@ type Mark struct {
 	Base git.FileVersion
 }
 
-// Marks is what has been read under key, by path.
 func Marks(ctx context.Context, repoPath, key string) (map[string]Mark, error) {
 	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
@@ -113,8 +112,8 @@ func SetRead(ctx context.Context, repoPath, key string, r Range, files []File, r
 	return err
 }
 
-// keepUnchanged writes the working tree's content, which listing it doesn't, and
-// leaves out the files that aren't as they were listed.
+// keepUnchanged writes the working tree's blobs, which listing the files doesn't,
+// and leaves out the files that have changed since they were listed.
 func keepUnchanged(ctx context.Context, repoPath string, r Range, files []File) ([]File, error) {
 	tree, _, err := snapshot.WorkingTree(ctx, repoPath, nil)
 	if err != nil {
@@ -181,7 +180,6 @@ func (m marker) run(input string, args ...string) (string, error) {
 	return strings.TrimSpace(result.Stdout), err
 }
 
-// Forget removes the marks whose key is gone.
 func Forget(ctx context.Context, repoPath string, gone func(key string) bool) error {
 	marks, err := allMarks(ctx, repoPath)
 	if err != nil {
@@ -211,7 +209,6 @@ func allMarks(ctx context.Context, repoPath string) (map[string]string, error) {
 	return marks, nil
 }
 
-// Rename moves a mark to a renamed branch's key.
 func Rename(ctx context.Context, repoPath, oldKey, newKey string) error {
 	marking.Lock()
 	defer marking.Unlock()

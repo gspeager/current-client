@@ -26,9 +26,9 @@ type ChangelogMarkdownOptions struct {
 	Dates   bool `json:"dates"`
 }
 
-// Tag is empty for the commits after the newest tag; the frontend supplies
-// that section's version.
 type ChangelogReleaseSection struct {
+	// Tag is empty for the commits after the newest tag; the frontend supplies
+	// that section's version.
 	Tag              string           `json:"tag"`
 	Version          string           `json:"version"`
 	Date             string           `json:"date"`

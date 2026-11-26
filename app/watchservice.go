@@ -15,11 +15,11 @@ type WatchService struct {
 	watcher watch.Watcher
 }
 
-// FilesChangedEvent.RefChanged is false for plain working-tree edits, so the
-// frontend can skip reloading history.
 type FilesChangedEvent struct {
-	RepoPath   string `json:"repoPath"`
-	RefChanged bool   `json:"refChanged"`
+	RepoPath string `json:"repoPath"`
+	// RefChanged is false for plain working-tree edits, so the frontend can
+	// skip reloading history.
+	RefChanged bool `json:"refChanged"`
 }
 
 // Start replaces any previous watch; only one repository is watched at a time.

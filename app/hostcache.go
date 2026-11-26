@@ -25,7 +25,6 @@ func (k cacheKind[T]) put(host, repo, id string, value T) {
 	hostClient.Cache.Put(host, repo, string(k), id, value)
 }
 
-// entries is every value of the kind, by id.
 func (k cacheKind[T]) entries(host, repo string) map[string]T {
 	typed := map[string]T{}
 	for id, value := range hostClient.Cache.Entries(host, repo, string(k)) {

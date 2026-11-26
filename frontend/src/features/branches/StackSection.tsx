@@ -16,7 +16,7 @@ interface StackSectionProps {
   list: StackListInfo
   current: string | null
   inOperation: boolean
-  // Set from elsewhere, such as Go to anything.
+  // The root whose Restack dialog is open; also set from elsewhere, such as Go to anything.
   restack: string | null
   onRestackChange: (root: string | null) => void
   onCheckout: (branch: string) => void

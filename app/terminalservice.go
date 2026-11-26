@@ -21,9 +21,9 @@ func init() {
 	application.RegisterEvent[TerminalExitEvent](terminalExitEvent)
 }
 
-// TerminalOutputEvent.Data is base64, since a chunk can end inside a character.
 type TerminalOutputEvent struct {
-	ID   string `json:"id"`
+	ID string `json:"id"`
+	// Data is base64, since a chunk can end inside a character.
 	Data string `json:"data"`
 }
 

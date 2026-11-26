@@ -165,16 +165,17 @@ func (s *BranchService) CurrentBranchStatus(repoPath string) (BranchStatusInfo, 
 }
 
 // MergedBranchInfo is a local branch whose work is already in Base, found
-// with Git alone, or merged on the host as change Number when the cache
-// knows that. Newer means the branch has commits past what was merged.
+// with Git alone, or merged on the host when the cache knows that.
 type MergedBranchInfo struct {
 	Name     string `json:"name"`
 	Current  bool   `json:"current"`
 	Upstream string `json:"upstream"`
 	Tip      string `json:"tip"`
-	Newer    bool   `json:"newer"`
-	Number   int    `json:"number"`
-	Prefix   string `json:"prefix"`
+	// Newer means the branch has commits past what was merged.
+	Newer bool `json:"newer"`
+	// Number is the host's change that merged it, 0 when Git alone found it.
+	Number int    `json:"number"`
+	Prefix string `json:"prefix"`
 }
 
 type MergedBranches struct {
@@ -226,8 +227,6 @@ func (s *BranchService) MergedBranches(repoPath string) (MergedBranches, error) 
 	return result, nil
 }
 
-// BranchReviewRowInfo.Deletable is false for the current branch, the default
-// branch and a branch checked out in a worktree.
 type BranchReviewRowInfo struct {
 	Name           string       `json:"name"`
 	Current        bool         `json:"current"`
@@ -245,7 +244,9 @@ type BranchReviewRowInfo struct {
 	AuthorName     string       `json:"authorName"`
 	AuthorEmail    string       `json:"authorEmail"`
 	Author         IdentityInfo `json:"author"`
-	Deletable      bool         `json:"deletable"`
+	// Deletable is false for the current branch, the default branch and a
+	// branch checked out in a worktree.
+	Deletable bool `json:"deletable"`
 }
 
 type BranchReviewInfo struct {

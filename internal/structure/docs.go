@@ -81,7 +81,8 @@ func readTSConfig(src string) *facts {
 	return f
 }
 
-// The first line of prose: not a heading, a badge, a list or markup.
+// readmeDoc is the first sentence of the first paragraph of prose, skipping
+// headings, badges, lists and markup.
 func readmeDoc(src string) string {
 	var paragraph []string
 	for line := range strings.Lines(src) {
@@ -98,6 +99,8 @@ func readmeDoc(src string) string {
 
 var markdownLink = regexp.MustCompile(`\[([^\]]*)\]\([^)]*\)`)
 
+// Runes of a folder's description; a longer one is cut with an ellipsis so it fits
+// on a card.
 const longestDoc = 160
 
 func firstSentence(text string) string {

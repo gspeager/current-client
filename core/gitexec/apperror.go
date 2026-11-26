@@ -7,12 +7,13 @@ import (
 	"strings"
 )
 
-// AppError is a failure to show. Detail is what Git said, and Command the git
-// command that failed with ExitCode, as a shell would quote it, all with secrets
-// redacted. Message is matched by its exact text, so it stays one sentence.
+// AppError is a failure to show the user. Detail and Command have secrets redacted.
 type AppError struct {
-	Message  string
-	Detail   string
+	// Matched by its exact text, so it stays one sentence.
+	Message string
+	// What Git said.
+	Detail string
+	// The git command that failed, as a shell would quote it.
 	Command  string
 	ExitCode int
 }

@@ -67,7 +67,7 @@ func todoRows(rows []InboxRow, info HostInfo, prefix string) ([]InboxRow, string
 	for _, todo := range cached {
 		if i := rowSaying(rows, todo); i >= 0 {
 			rows[i].TodoID = todo.ID
-			// A mention on an issue you're assigned is that issue's row too,
+			// A mention on an issue the user is assigned is that issue's row too,
 			// with why the host listed it beside what the row already says.
 			if rows[i].Kind == "assigned" && todo.Reason != hostapi.TodoAssigned {
 				rows[i].Detail = strings.TrimPrefix(rows[i].Detail+", "+todo.Reason, ", ")

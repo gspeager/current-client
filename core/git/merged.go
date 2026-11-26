@@ -7,18 +7,17 @@ import (
 	"github.com/gspeager/current-client/core/gitexec"
 )
 
-// MergedBranch is a local branch whose work is already in Base. Newer means
-// the branch has commits past its upstream, which is what was merged.
 type MergedBranch struct {
 	Branch
+	// The branch has commits past its upstream, which is what was merged.
 	Newer bool
 }
 
-// MergedReport lists the branches with an upstream that add nothing to Base,
-// the default branch's upstream when it has one. A squash or a rebase merge
-// is found as well as a merge commit: merging the branch in again would
-// change nothing.
+// MergedReport lists the branches with an upstream that add nothing to Base.
+// A squash or a rebase merge is found as well as a merge commit: merging the
+// branch in again would change nothing.
 type MergedReport struct {
+	// The default branch's upstream when it has one.
 	Base     string
 	Branches []MergedBranch
 }
@@ -84,9 +83,10 @@ func MergedBranches(ctx context.Context, repoPath string) (MergedReport, error) 
 	return report, nil
 }
 
-// mergedWithoutFetching is MergedInto where nobody started a Git operation. In a partial
-// clone a merge would fetch, so there only a tip in base's history counts, and a
-// squash or rebase merge isn't found. Tips are branches, or their commits.
+// mergedWithoutFetching is MergedInto for reads the user didn't start, which
+// mustn't fetch. In a partial clone a merge would fetch objects, so there only a
+// tip already in base's history counts, and a squash or rebase merge isn't found.
+// A tip is a branch name or its commit.
 func mergedWithoutFetching(ctx context.Context, repoPath, base string, tips []string) ([]bool, error) {
 	if !PartialClone(ctx, repoPath) {
 		return MergedInto(ctx, repoPath, base, tips)

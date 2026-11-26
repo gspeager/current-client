@@ -19,19 +19,20 @@ import (
 )
 
 // ChangeList is the merge request / pull request panel's data for the
-// repository's primary remote, read from the cache. Enabled is false, and
-// the rest empty, when the host is off or has no provider; the panel is then
-// absent. FetchedAt is nil before the first refresh.
+// repository's primary remote, read from the cache.
 type ChangeList struct {
-	Host      string           `json:"host"`
-	Provider  string           `json:"provider"`
-	Project   string           `json:"project"`
+	Host     string `json:"host"`
+	Provider string `json:"provider"`
+	Project  string `json:"project"`
+	// Enabled is false, and the rest empty, when the host is off or has no
+	// provider; the panel is then absent.
 	Enabled   bool             `json:"enabled"`
 	Prefix    string           `json:"prefix"`
 	Me        string           `json:"me"`
 	Changes   []hostapi.Change `json:"changes"`
 	Truncated bool             `json:"truncated"`
-	FetchedAt *time.Time       `json:"fetchedAt"`
+	// FetchedAt is nil before the first refresh.
+	FetchedAt *time.Time `json:"fetchedAt"`
 }
 
 type ChangeDetails struct {
@@ -116,10 +117,10 @@ func (s *HostService) ChangeFiles(repoPath string, number int) ([]hostapi.Change
 	})
 }
 
-// ChangeDependencyInfo.HeadAvailable is false when the change's head isn't on
-// this computer as the last refresh saw it, so there's nothing to compare.
 type ChangeDependencyInfo struct {
-	HasManifests  bool                             `json:"hasManifests"`
+	HasManifests bool `json:"hasManifests"`
+	// HeadAvailable is false when the change's head isn't on this computer as
+	// the last refresh saw it, so there's nothing to compare.
 	HeadAvailable bool                             `json:"headAvailable"`
 	Summaries     map[string]DependencySummaryInfo `json:"summaries"`
 }

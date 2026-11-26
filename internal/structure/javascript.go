@@ -83,7 +83,7 @@ func withoutJSComments(src string) string {
 type alias struct {
 	from string
 	to   []string
-	// Where the import has to be.
+	// The folder an importing file must be in for the alias to apply.
 	within string
 }
 
@@ -133,7 +133,7 @@ func (l *linker) jsAliased(aliases []alias, from, name string) (int32, bool) {
 			continue
 		}
 		rest, ok := strings.CutPrefix(name, a.from)
-		// A base's own name is empty, and stands for any.
+		// A base alias has an empty from, which every name starts with.
 		if !ok || (rest != "" && a.from != "" && !strings.HasPrefix(rest, "/") && !strings.HasSuffix(a.from, "/")) {
 			continue
 		}

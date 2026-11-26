@@ -53,9 +53,8 @@ func ForcePushUpstream(ctx context.Context, repoPath string) error {
 	return err
 }
 
-// DeleteRemoteBranch deletes branch on remote. The full ref keeps a tag of
-// the same name from being deleted instead; git drops the matching
-// remote-tracking branch itself.
+// DeleteRemoteBranch pushes the full ref, so a tag of the same name isn't
+// deleted instead; git drops the matching remote-tracking branch itself.
 func DeleteRemoteBranch(ctx context.Context, repoPath, remote, branch string) error {
 	_, err := gitexec.RunIn(ctx, repoPath, "push", remote, "--delete", "refs/heads/"+branch)
 	return err

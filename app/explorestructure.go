@@ -10,9 +10,7 @@ import (
 	"github.com/gspeager/current-client/internal/structure"
 )
 
-// StructureInfo is a level of the code's structure. Compared is whether it's compared
-// with another point, whose target is a branch's. Partial is true where that point
-// would have to be fetched, so it isn't.
+// StructureInfo is a level of the code's structure.
 type StructureInfo struct {
 	Path   string           `json:"path"`
 	Crumbs []StructureCrumb `json:"crumbs"`
@@ -20,7 +18,7 @@ type StructureInfo struct {
 	Folder bool             `json:"folder"`
 	Count  StructureCount   `json:"count"`
 	Nodes  []StructureNode  `json:"nodes"`
-	// Cards there was no room for.
+	// Rest is the cards there was no room for.
 	Rest         []StructureNode `json:"rest"`
 	Links        []StructureLink `json:"links"`
 	Cards        int             `json:"cards"`
@@ -29,11 +27,15 @@ type StructureInfo struct {
 	MoreUsedBy   int             `json:"moreUsedBy"`
 	MoreUses     int             `json:"moreUses"`
 	Languages    []string        `json:"languages"`
-	// Files of code in a language that isn't read.
-	Unread   int    `json:"unread"`
-	Compared bool   `json:"compared"`
-	Target   string `json:"target"`
-	Partial  bool   `json:"partial"`
+	// Unread counts the files of code in a language that isn't read.
+	Unread int `json:"unread"`
+	// Compared is whether the level is compared with another point.
+	Compared bool `json:"compared"`
+	// Target is the branch's target when the point compared with is a branch's.
+	Target string `json:"target"`
+	// Partial means the point compared with would have to be fetched, so it
+	// isn't compared.
+	Partial bool `json:"partial"`
 }
 
 type StructureCrumb struct {
@@ -47,21 +49,21 @@ type StructureCount struct {
 	Changed int `json:"changed"`
 }
 
-// StructureNode.Side is "card", "used-by" or "uses". State is "added" or "removed"
-// since the point compared with.
 type StructureNode struct {
-	Path   string         `json:"path"`
-	Label  string         `json:"label"`
+	Path  string `json:"path"`
+	Label string `json:"label"`
+	// Side is "card", "used-by" or "uses".
 	Side   string         `json:"side"`
 	Folder bool           `json:"folder"`
 	Count  StructureCount `json:"count"`
-	State  string         `json:"state"`
-	Doc    string         `json:"doc"`
-	Slot   int            `json:"slot"`
+	// State is "added" or "removed" since the point compared with.
+	State string `json:"state"`
+	Doc   string `json:"doc"`
+	Slot  int    `json:"slot"`
 }
 
-// StructureLink is between nodes by index, the first using the second.
 type StructureLink struct {
+	// From uses To; both are indexes into Nodes.
 	From  int    `json:"from"`
 	To    int    `json:"to"`
 	Count int    `json:"count"`
@@ -76,7 +78,8 @@ type StructureWide struct {
 	Cards  int    `json:"cards"`
 }
 
-// structureView is the last one read, as a level after another is of the same code.
+// structureView is the code Structure last read, kept because the next level
+// opened is usually of the same code.
 type structureView struct {
 	key     string
 	view    *structure.View

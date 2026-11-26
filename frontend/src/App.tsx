@@ -350,7 +350,7 @@ function App({
   const reportActiveRepo = useEventCallback((path: string | null) => onActiveRepoChange?.(path))
   useEffect(() => reportActiveRepo(repo.repoPath), [repo.repoPath, reportActiveRepo])
 
-  // Its files can be uncommitted ones.
+  // A read-through can include uncommitted files, so it also changes with the working tree.
   const readThroughVersion = useMemo(
     () => ({ repoVersion, files: workingTree.files }),
     [repoVersion, workingTree.files],
@@ -476,7 +476,7 @@ function App({
     }
   }
 
-  // Only Abort reaches here now; the message the composer held was the aborted operation's.
+  // Only Abort reaches here; the message the composer held was the aborted operation's.
   const onConflictResolved = () => {
     remember({ commitDraft: '' })
     reloadConflictState()

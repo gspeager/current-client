@@ -10,7 +10,7 @@ export interface NoteTarget {
   kind: NoteKind
   target: string
   subject?: string
-  // Of a review note, as its target can hold many.
+  // Set for a review note, since one target can hold many.
   id?: string
 }
 

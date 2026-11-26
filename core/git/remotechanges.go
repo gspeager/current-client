@@ -20,14 +20,13 @@ const (
 	MergeRequestRefs ChangeRefKind = "merge-requests"
 )
 
-// RemoteChanges maps each remote branch to the number of its pull request /
-// merge request. On PullRefs hosts that is the open one; on GitLab, Git
-// alone can't tell a closed merge request whose branch was kept from an
-// open one, so it is the newest whose head is still the branch tip and the
-// state has to come from the API. Kind is empty, and ByBranch empty, for a
-// host that publishes no such refs (Bitbucket).
+// RemoteChanges is empty for a host that publishes no change refs (Bitbucket).
 type RemoteChanges struct {
-	Kind     ChangeRefKind
+	Kind ChangeRefKind
+	// Each remote branch's pull request / merge request number. On PullRefs
+	// hosts that is the open one; on GitLab, Git alone can't tell a closed merge
+	// request whose branch was kept from an open one, so it is the newest whose
+	// head is still the branch tip and the state has to come from the API.
 	ByBranch map[string]int
 }
 
