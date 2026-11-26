@@ -171,7 +171,7 @@ func (s *RemoteService) createChangeLink(ctx context.Context, repoPath, branch s
 		return "", "", err
 	}
 	primary := primaryRemote(remotes)
-	host, ok := hostlink.Resolve(ctx, remoteURL(primary))
+	host, ok := resolveRemote(ctx, remoteURL(primary))
 	if !ok {
 		return "", "", nil
 	}
@@ -186,7 +186,7 @@ func (s *RemoteService) createChangeLink(ctx context.Context, repoPath, branch s
 		if r.Name != "upstream" || r.Name == primary.Name {
 			continue
 		}
-		if upstream, ok := hostlink.Resolve(ctx, remoteURL(r)); ok && upstream.Hostname() == host.Hostname() {
+		if upstream, ok := resolveRemote(ctx, remoteURL(r)); ok && upstream.Hostname() == host.Hostname() {
 			return host.NewChangeFromFork(upstream, branch, base), kind, nil
 		}
 	}
@@ -325,7 +325,7 @@ func hostLinksFor(remotes []git.Remote, hosts map[string]config.HostConfig) *hos
 	if len(remotes) == 0 {
 		return nil
 	}
-	host, ok := hostlink.Resolve(context.Background(), remoteURL(primaryRemote(remotes)))
+	host, ok := resolveRemote(context.Background(), remoteURL(primaryRemote(remotes)))
 	if !ok {
 		return nil
 	}

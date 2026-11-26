@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/gspeager/current-client/app"
+	"github.com/gspeager/current-client/examples/embed/standin"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -15,6 +16,8 @@ var assets embed.FS
 
 func main() {
 	app.SetSettingsFolder("current-client-embed-example")
+	// A repository whose remote is a folder named example.git is on the stand-in host.
+	standin.RegisterExampleHost()
 	width, height := app.Startup()
 	if width <= 0 || height <= 0 {
 		width, height = 1000, 618

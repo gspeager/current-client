@@ -248,7 +248,7 @@ func setHostFlag(hostname string, set func(*config.HostConfig)) error {
 }
 
 func hostInfoFor(remote git.Remote, hosts map[string]config.HostConfig) (HostInfo, bool) {
-	detected, ok := hostlink.Resolve(context.Background(), remoteURL(remote))
+	detected, ok := resolveRemote(context.Background(), remoteURL(remote))
 	if !ok {
 		return HostInfo{}, false
 	}

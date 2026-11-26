@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -57,5 +58,37 @@ func TestPolicyLockOffRefusesIt(t *testing.T) {
 	defer server.Close()
 	if _, err := TurnOnAndCheck(context.Background(), hostapi.Host{Name: "current.example", API: server.URL + "/api"}); err == nil {
 		t.Fatal("a host the policy locks off was turned on")
+	}
+}
+
+func TestAnExampleProjectOnTheStandInHost(t *testing.T) {
+	dir := settingsIn(t)
+	if err := app.UsePolicyFile(filepath.Join(dir, "none.json")); err != nil {
+		t.Fatal(err)
+	}
+	remote := filepath.Join(dir, ExampleRemote)
+	repo := filepath.Join(dir, "app")
+	for _, args := range [][]string{
+		{"init", "-q", "--bare", remote},
+		{"init", "-q", "-b", "main", repo},
+		{"-C", repo, "-c", "user.name=E", "-c", "user.email=e@example.com", "commit", "-q", "--allow-empty", "-m", "first"},
+		{"-C", repo, "remote", "add", "origin", remote},
+		{"-C", repo, "push", "-q", "origin", "main", "main:feature"},
+	} {
+		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %s", args, out)
+		}
+	}
+	RegisterExampleHost()
+	if err := app.SetHostEnabled(ExampleHost, true); err != nil {
+		t.Fatal(err)
+	}
+	hosts := &app.HostService{}
+	if err := hosts.Refresh(repo); err != nil {
+		t.Fatal(err)
+	}
+	list, err := hosts.Changes(repo)
+	if err != nil || !list.Enabled || list.Host != ExampleHost || len(list.Changes) != 1 || list.Changes[0].Title != exampleChange.Title {
+		t.Fatalf("the example's pull requests: %+v, %v", list, err)
 	}
 }
