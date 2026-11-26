@@ -2,7 +2,9 @@
 
 .context-menu {
   position: fixed;
-  z-index: 200;
+  max-height: calc(100vh - 2 * var(--space-sm));
+  overflow-y: auto;
+  z-index: var(--z-popover);
   min-width: 180px;
   padding: var(--space-xs);
   background: var(--surface);

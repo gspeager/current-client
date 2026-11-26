@@ -8,7 +8,7 @@
 
 .contributors-header {
   @include card.card-header;
-  min-height: 44px;
+  min-height: var(--h-row-double);
 }
 
 .contributors-title {
@@ -84,7 +84,7 @@
   display: block;
   height: 4px;
   background: var(--surface-high);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 
   > span {

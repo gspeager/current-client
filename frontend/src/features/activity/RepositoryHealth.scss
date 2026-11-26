@@ -6,7 +6,7 @@
 
 .repo-health-header {
   @include card.card-header;
-  min-height: 44px;
+  min-height: var(--h-row-double);
 }
 
 .repo-health-title {
@@ -17,7 +17,7 @@
 
 .repo-health-badge {
   flex-shrink: 0;
-  padding: 2px var(--space-sm);
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--radius);
   font: var(--ui-xs);
   white-space: nowrap;
@@ -63,7 +63,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
   min-width: 0;
 }
 

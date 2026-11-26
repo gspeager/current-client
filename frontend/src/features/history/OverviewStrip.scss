@@ -1,7 +1,7 @@
 .overview-strip {
   position: relative;
   flex-shrink: 0;
-  height: 44px;
+  height: var(--h-row-double);
   border-bottom: var(--border-structure);
   cursor: pointer;
 
@@ -26,7 +26,7 @@
 .overview-strip-tip {
   position: absolute;
   top: 100%;
-  z-index: 5;
+  z-index: var(--z-overlay);
   padding: var(--space-xs) var(--space-sm);
   background: var(--surface-highest);
   border-radius: var(--radius);

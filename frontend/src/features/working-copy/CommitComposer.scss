@@ -160,7 +160,7 @@
   justify-content: center;
   min-width: 14px;
   height: 14px;
-  padding: 0 3px;
+  padding: 0 var(--space-2xs);
   background: var(--primary);
   border-radius: var(--radius-full);
   color: var(--on-primary-container);
@@ -171,7 +171,7 @@
   position: absolute;
   right: 0;
   bottom: calc(100% + var(--space-xs));
-  z-index: 10;
+  z-index: var(--z-menu);
   min-width: 200px;
   padding: var(--space-xs);
   background: var(--surface);
@@ -180,7 +180,7 @@
   box-shadow: var(--elev-modal);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .commit-composer-coauthors-option {
@@ -215,7 +215,7 @@
 .commit-composer-coauthor-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: var(--h-micro);
   padding: 0 var(--space-xs);
   background: var(--surface-container);

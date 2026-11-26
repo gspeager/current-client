@@ -1,6 +1,6 @@
 .title-tooltip {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-tooltip);
   // Near the window's edge, shrink-to-fit would collapse it to the space left.
   width: max-content;
   max-width: 320px;

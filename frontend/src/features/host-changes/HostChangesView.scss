@@ -118,7 +118,7 @@
 .host-change-row {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
   width: 100%;
   padding: var(--space-sm);
   background: none;
@@ -213,7 +213,7 @@
   align-items: center;
   gap: var(--space-xs);
   padding: 0 var(--space-xs);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--secondary);
   color: var(--secondary);
   font: var(--ui-xs);
@@ -249,7 +249,7 @@
   font: var(--ui-sm);
 
   dt {
-    margin-bottom: 2px;
+    margin-bottom: var(--space-2xs);
     color: var(--on-surface-variant);
     @include patterns.eyebrow;
   }

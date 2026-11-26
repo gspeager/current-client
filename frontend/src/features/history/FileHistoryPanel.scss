@@ -19,15 +19,15 @@
   border-right: var(--border-structure);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .file-history-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 96px;
   align-items: center;
-  gap: 2px var(--space-xs);
-  height: 44px;
+  gap: var(--space-2xs) var(--space-xs);
+  height: var(--h-row-double);
   padding: var(--space-xs) var(--space-sm);
   background: none;
   border: none;

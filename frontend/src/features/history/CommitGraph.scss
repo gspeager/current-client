@@ -1,0 +1,4 @@
+// Inline by default, an svg would leave a descender gap under the row.
+.commit-graph {
+  display: block;
+}

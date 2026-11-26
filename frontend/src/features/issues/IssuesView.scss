@@ -34,8 +34,8 @@
 .issues-row-status {
   margin-right: auto;
   padding: 0 var(--space-xs);
-  border: 1px solid var(--outline-variant);
-  border-radius: 3px;
+  border: var(--border-structure);
+  border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
   font: var(--ui-xs);
 }

@@ -1,7 +1,7 @@
 .diff-minimap {
   position: relative;
   flex: 0 0 10px;
-  margin-left: 2px;
+  margin-left: var(--space-2xs);
   border-radius: var(--radius-xs);
   background: var(--surface-low);
   cursor: pointer;

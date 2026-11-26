@@ -83,7 +83,7 @@
 .current-change-state {
   padding: 0 var(--space-xs);
   border: 1px solid var(--secondary);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--secondary);
   font: var(--ui-xs);
 
@@ -157,7 +157,7 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 
   li {
     display: flex;
@@ -168,7 +168,7 @@
 
 .current-change-conflict-icon {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: var(--space-2xs);
   color: var(--error);
 }
 

@@ -152,7 +152,7 @@
   position: absolute;
   top: calc(100% + var(--space-xs));
   left: 0;
-  z-index: 10;
+  z-index: var(--z-menu);
   min-width: 200px;
   max-height: 320px;
   overflow-y: auto;

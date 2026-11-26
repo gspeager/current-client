@@ -52,7 +52,7 @@ function SidebarSection({
       </div>
       {pinned && (
         <div
-          style={{ display: 'contents' }}
+          className="sidebar-section-pinned"
           onKeyDown={(e) => {
             if (e.key === 'Escape') onPinnedEscape?.()
           }}

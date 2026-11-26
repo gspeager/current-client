@@ -43,7 +43,7 @@
 .branch-switcher-section {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .branch-switcher-section-header {

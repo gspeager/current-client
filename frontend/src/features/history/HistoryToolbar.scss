@@ -98,7 +98,7 @@
   position: absolute;
   top: calc(100% + var(--space-xs));
   right: 0;
-  z-index: 20;
+  z-index: var(--z-menu);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);

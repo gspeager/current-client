@@ -48,3 +48,8 @@
   display: flex;
   align-items: center;
 }
+
+// The pinned form only catches Escape; it adds no box of its own.
+.sidebar-section-pinned {
+  display: contents;
+}

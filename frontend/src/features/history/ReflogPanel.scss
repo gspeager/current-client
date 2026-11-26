@@ -25,7 +25,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .reflog-row {
@@ -97,7 +97,7 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: var(--h-chip);
   padding: 0 var(--space-sm);
   opacity: 0;
