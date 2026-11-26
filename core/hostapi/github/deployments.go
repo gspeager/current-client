@@ -34,8 +34,8 @@ type deploymentStatus struct {
 // the state there rather than on the deployment.
 func (p *Provider) Deployments(ctx context.Context, project string) ([]hostapi.Deployment, error) {
 	var page []deployment
-	if err := p.client.GetJSON(ctx, p.host, repoPath(project, "deployments"), url.Values{"per_page": {"100"}}, &page); err != nil {
-		return nil, hostapi.WithScope(err, scope)
+	if err := p.get(ctx, scope, repoPath(project, "deployments"), url.Values{"per_page": {"100"}}, &page); err != nil {
+		return nil, err
 	}
 	var out []hostapi.Deployment
 	seen := map[string]bool{}
@@ -61,8 +61,8 @@ func (p *Provider) Deployments(ctx context.Context, project string) ([]hostapi.D
 		if len(out) < deploymentStatusCap {
 			var statuses []deploymentStatus
 			path := repoPath(project, "deployments", strconv.FormatInt(d.ID, 10), "statuses")
-			if err := p.client.GetJSON(ctx, p.host, path, url.Values{"per_page": {"1"}}, &statuses); err != nil {
-				return nil, hostapi.WithScope(err, scope)
+			if err := p.get(ctx, scope, path, url.Values{"per_page": {"1"}}, &statuses); err != nil {
+				return nil, err
 			}
 			if len(statuses) > 0 {
 				item.Status = deploymentState(statuses[0].State)

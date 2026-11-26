@@ -20,12 +20,12 @@ func (p *Provider) ReviewCapabilities() hostapi.ReviewCapabilities {
 
 func (p *Provider) Reply(ctx context.Context, project string, number int, threadID, body string) error {
 	path := projectPath(project, "merge_requests", strconv.Itoa(number), "discussions", url.PathEscape(threadID), "notes")
-	return hostapi.WithScope(p.client.PostJSON(ctx, p.host, path, map[string]string{"body": body}, nil), writeScope)
+	return p.post(ctx, writeScope, path, map[string]string{"body": body}, nil)
 }
 
 func (p *Provider) ResolveThread(ctx context.Context, project string, number int, threadID string, resolved bool) error {
 	path := projectPath(project, "merge_requests", strconv.Itoa(number), "discussions", url.PathEscape(threadID))
-	return hostapi.WithScope(p.client.RequestJSON(ctx, p.host, http.MethodPut, path, map[string]bool{"resolved": resolved}, nil), writeScope)
+	return p.send(ctx, writeScope, http.MethodPut, path, map[string]bool{"resolved": resolved}, nil)
 }
 
 type diffRefs struct {
@@ -49,8 +49,8 @@ func (p *Provider) diffRefs(ctx context.Context, project string, number int, hea
 	var mr struct {
 		DiffRefs diffRefs `json:"diff_refs"`
 	}
-	if err := p.client.GetJSON(ctx, p.host, projectPath(project, "merge_requests", strconv.Itoa(number)), nil, &mr); err != nil {
-		return diffRefs{}, hostapi.WithScope(err, readScope)
+	if err := p.get(ctx, readScope, projectPath(project, "merge_requests", strconv.Itoa(number)), nil, &mr); err != nil {
+		return diffRefs{}, err
 	}
 	if headSHA != "" && mr.DiffRefs.HeadSHA != headSHA {
 		return diffRefs{}, fmt.Errorf("%s moved since the last refresh; refresh and look again", p.host.Name)
@@ -73,7 +73,7 @@ func (p *Provider) comment(ctx context.Context, project string, number int, refs
 		position["old_line"] = c.OldLine
 	}
 	path := projectPath(project, "merge_requests", strconv.Itoa(number), "discussions")
-	return hostapi.WithScope(p.client.PostJSON(ctx, p.host, path, map[string]any{"body": c.Body, "position": position}, nil), writeScope)
+	return p.post(ctx, writeScope, path, map[string]any{"body": c.Body, "position": position}, nil)
 }
 
 // SubmitReview has no single request on GitLab: each drafted comment is a
@@ -95,13 +95,13 @@ func (p *Provider) SubmitReview(ctx context.Context, project string, number int,
 	}
 	if review.Summary != "" {
 		path := projectPath(project, "merge_requests", strconv.Itoa(number), "notes")
-		if err := p.client.PostJSON(ctx, p.host, path, map[string]string{"body": review.Summary}, nil); err != nil {
-			return hostapi.WithScope(err, writeScope)
+		if err := p.post(ctx, writeScope, path, map[string]string{"body": review.Summary}, nil); err != nil {
+			return err
 		}
 	}
 	if review.Verdict == hostapi.ReviewApprove {
 		path := projectPath(project, "merge_requests", strconv.Itoa(number), "approve")
-		return hostapi.WithScope(p.client.PostJSON(ctx, p.host, path, map[string]any{}, nil), writeScope)
+		return p.post(ctx, writeScope, path, map[string]any{}, nil)
 	}
 	return nil
 }

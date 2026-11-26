@@ -39,11 +39,11 @@ type notification struct {
 func (p *Provider) Todos(ctx context.Context) ([]hostapi.Todo, error) {
 	var page []notification
 	query := url.Values{"per_page": {"50"}}
-	if err := p.client.GetJSON(ctx, p.host, "/notifications", query, &page); err != nil {
+	if err := p.get(ctx, notificationsScope, "/notifications", query, &page); err != nil {
 		if hostapi.StatusOf(err) == http.StatusForbidden {
 			return nil, fmt.Errorf("%w: %s's notifications need a classic token with the notifications scope", hostapi.ErrTodosUnavailable, p.host.Name)
 		}
-		return nil, hostapi.WithScope(err, notificationsScope)
+		return nil, err
 	}
 	todos := make([]hostapi.Todo, 0, len(page))
 	for _, n := range page {
@@ -53,7 +53,7 @@ func (p *Provider) Todos(ctx context.Context) ([]hostapi.Todo, error) {
 }
 
 func (p *Provider) MarkTodoDone(ctx context.Context, id string) error {
-	return hostapi.WithScope(p.client.RequestJSON(ctx, p.host, http.MethodPatch, "/notifications/threads/"+url.PathEscape(id), map[string]any{}, nil), notificationsScope)
+	return p.send(ctx, notificationsScope, http.MethodPatch, "/notifications/threads/"+url.PathEscape(id), map[string]any{}, nil)
 }
 
 // toTodo reads the number from the subject's API address, its last segment,

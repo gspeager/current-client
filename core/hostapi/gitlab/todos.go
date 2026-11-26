@@ -33,8 +33,8 @@ type todo struct {
 func (p *Provider) Todos(ctx context.Context) ([]hostapi.Todo, error) {
 	var page []todo
 	query := url.Values{"state": {"pending"}, "per_page": {"100"}}
-	if err := p.client.GetJSON(ctx, p.host, "/todos", query, &page); err != nil {
-		return nil, hostapi.WithScope(err, readScope)
+	if err := p.get(ctx, readScope, "/todos", query, &page); err != nil {
+		return nil, err
 	}
 	todos := make([]hostapi.Todo, 0, len(page))
 	for _, td := range page {
@@ -54,7 +54,7 @@ func (p *Provider) Todos(ctx context.Context) ([]hostapi.Todo, error) {
 }
 
 func (p *Provider) MarkTodoDone(ctx context.Context, id string) error {
-	return hostapi.WithScope(p.client.PostJSON(ctx, p.host, "/todos/"+url.PathEscape(id)+"/mark_as_done", map[string]any{}, nil), writeScope)
+	return p.post(ctx, writeScope, "/todos/"+url.PathEscape(id)+"/mark_as_done", map[string]any{}, nil)
 }
 
 func todoReason(action string) string {
