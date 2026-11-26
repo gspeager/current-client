@@ -79,7 +79,7 @@ function Rework({ report, error, uncommitted, listed, onOpen }: ReworkProps) {
           )
         })}
         {report.files.length > files.length && (
-          <li className="second-look-left-out">{plural(report.files.length - files.length, 'more file')}</li>
+          <li className="rework-left-out">{plural(report.files.length - files.length, 'more file')}</li>
         )}
       </ul>
       {report.capped && (
