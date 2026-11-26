@@ -1,0 +1,106 @@
+// What the settings sections share.
+@use '../../styles/patterns';
+
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.settings-hint {
+  margin: 0;
+  max-width: 80ch;
+  color: var(--outline);
+  font: var(--ui-xs);
+}
+
+.settings-warning {
+  color: var(--warning);
+  font: var(--ui-xs);
+}
+
+.settings-error {
+  @include patterns.panel-error;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.settings-field {
+  height: var(--h-field);
+  padding: 0 var(--space-sm);
+  background: var(--surface);
+  border: var(--border-structure);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  height: var(--h-field);
+  @include patterns.secondary-button;
+}
+
+.settings-button-small {
+  height: var(--h-chip);
+  padding: 0 var(--space-xs);
+  font: var(--ui-xs);
+}
+
+.settings-path {
+  max-width: 100%;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.settings-host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-container);
+  border-radius: var(--radius);
+}
+
+.settings-host-project,
+.settings-host-api {
+  font: var(--data-sm);
+}
+
+.settings-host-fields {
+  display: grid;
+  grid-template-columns: fit-content(160px) minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.settings-host-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+
+  .settings-field {
+    width: 100%;
+  }
+}
+
+.settings-code {
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  user-select: all;
+}
+
+.settings-subheading {
+  margin: 0;
+  color: var(--on-surface);
+  font: var(--title-sm);
+}

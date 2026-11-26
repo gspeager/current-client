@@ -3,6 +3,7 @@ import { GitService } from '@current-client-bindings/app'
 import PathText from '../../components/git/PathText'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SettingsRow from './SettingsRow'
+import './settings.scss'
 import './GitSettingsSection.scss'
 
 interface GitSettingsSectionProps {
@@ -56,7 +57,7 @@ function GitSettingsSection({ repoPath, refreshKey }: GitSettingsSectionProps) {
                     <td title={entry.value}>{entry.value}</td>
                     <td>{entry.scope}</td>
                     <td>
-                      <PathText path={entry.origin} />
+                      <PathText path={entry.origin} className="settings-git-origin" />
                     </td>
                   </tr>
                 ))}

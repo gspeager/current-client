@@ -31,6 +31,7 @@ function BreadcrumbPanel({
   return (
     <div className="breadcrumb-panel">
       <SegmentedControl
+        fill
         value={view}
         onChange={onViewChange}
         options={[

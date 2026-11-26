@@ -102,3 +102,17 @@
 .header-bar-tab-dot:not(.header-bar-tab-dot-dirty, .header-bar-tab-dot-unavailable) {
   display: none;
 }
+
+// In a narrow header the branch and counts give way before the name does.
+@container (max-width: 1560px) {
+  .header-bar-tab-sep,
+  .header-bar-tab-branch {
+    display: none;
+  }
+}
+
+@container (max-width: 1240px) {
+  .header-bar-tab-meta {
+    display: none;
+  }
+}

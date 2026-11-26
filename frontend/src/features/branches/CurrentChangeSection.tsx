@@ -129,7 +129,7 @@ function CurrentChangeSection({
   return (
     <section className="current-change" aria-label={`${kind} for ${data.branch}`}>
       <div className="current-change-title">
-        <ChangeMarker change={change} />
+        <ChangeMarker change={change} plain />
         <span className="current-change-title-text" title={change.title}>
           {change.title}
         </span>

@@ -15,4 +15,8 @@
   &.ci-icon-canceled {
     color: var(--warning);
   }
+
+  &.ci-icon-quiet.ci-icon-success {
+    color: var(--outline);
+  }
 }

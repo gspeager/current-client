@@ -6,6 +6,7 @@ import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import DialogError from '../../components/chrome/DialogError'
 import { useAction } from '../../lib/useAction'
 import DialogActions from '../../components/chrome/DialogActions'
+import '../../components/chrome/dialog.scss'
 import './ReviewDialog.scss'
 
 interface ReviewDialogProps {

@@ -8,6 +8,7 @@ import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import DialogError from '../../components/chrome/DialogError'
+import '../../components/chrome/dialog.scss'
 import './CleanUpBranchesDialog.scss'
 
 export interface DeletedBranch {

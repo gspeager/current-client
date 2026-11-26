@@ -1,0 +1,21 @@
+@use '../../styles/patterns';
+
+.submodule-diff,
+.lfs-diff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+}
+
+.submodule-diff-summary,
+.lfs-diff-summary {
+  margin: 0;
+  color: var(--on-surface);
+  font: var(--ui-sm);
+}
+
+.submodule-diff-note,
+.lfs-diff-note {
+  @include patterns.panel-hint;
+}

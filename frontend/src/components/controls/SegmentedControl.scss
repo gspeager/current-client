@@ -30,3 +30,12 @@
   color: var(--on-surface);
   font-weight: 600;
 }
+
+.segmented-control-fill {
+  align-self: stretch;
+
+  .segmented-control-option {
+    flex: 1;
+    justify-content: center;
+  }
+}

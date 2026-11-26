@@ -8,6 +8,17 @@
   color: var(--on-surface);
 }
 
+.repo-switcher-centered {
+  align-items: center;
+  width: min(420px, 100%);
+  padding: 0 var(--space-lg);
+  text-align: center;
+
+  .repo-switcher-open-row {
+    justify-content: center;
+  }
+}
+
 .repo-switcher-error {
   @include patterns.panel-error;
 }
@@ -129,8 +140,7 @@
   color: var(--outline);
   font: var(--ui-xs);
 
-  .path-text {
-    min-width: 0;
+  .repo-switcher-default-location {
     color: var(--on-surface-variant);
     font: var(--data-sm);
   }

@@ -574,7 +574,12 @@ function DiffPane(props: DiffPaneProps) {
 
   return (
     <div
-      className={clsx('diff-pane', `diff-pane-${sidesApart ? 'sides' : mode}`, windowed && 'diff-pane-long')}
+      className={clsx(
+        'diff-pane',
+        `diff-pane-${sidesApart ? 'sides' : mode}`,
+        windowed && 'diff-pane-long',
+        !wrap && 'diff-pane-nowrap',
+      )}
       ref={scrollRef}
       tabIndex={0}
       style={longest ? ({ '--longest-line': `${longest}ch` } as CSSProperties) : undefined}

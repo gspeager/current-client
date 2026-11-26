@@ -12,6 +12,12 @@
   }
 }
 
+.switch-trailing {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+}
+
 .switch-track {
   position: relative;
   width: 36px;

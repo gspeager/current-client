@@ -7,7 +7,7 @@ import type { SignIn, SignInOptions } from '../../lib/signIn'
 import Modal from './Modal'
 import SignInDialog from './SignInDialog'
 import DialogActions from './DialogActions'
-import './DialogProvider.scss'
+import './dialog.scss'
 
 type Request =
   | { kind: 'confirm'; options: ConfirmOptions; resolve: (confirmed: boolean) => void }

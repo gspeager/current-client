@@ -29,6 +29,8 @@ function ChangeRow({ change, prefix, selected, onSelect, me, identity, displayNa
     >
       <span className="host-change-row-head">
         <ChangeMarker
+          plain
+          quiet
           change={
             new BranchChange({ number: change.number, prefix, state: change.state, draft: change.draft, ci: change.ci })
           }

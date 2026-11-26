@@ -383,6 +383,7 @@ function ChangesView({
               <p className="changes-empty">Could not load diff: {diffError}</p>
             ) : diff ? (
               <DiffViewer
+                fill
                 diff={diff}
                 path={selectedPath}
                 viewMode={viewMode}

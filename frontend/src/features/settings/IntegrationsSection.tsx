@@ -9,6 +9,7 @@ import {
   useIntegrationAction,
   type IntegrationAction,
 } from './IntegrationControls'
+import './settings.scss'
 import './IntegrationsSection.scss'
 
 const PROVIDER_LABELS: Record<string, string> = { github: 'GitHub', gitlab: 'GitLab' }

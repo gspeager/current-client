@@ -430,6 +430,7 @@ function BranchSidebar({
             {stackList && stackList.stacks.length > 0 && (
               <div className="branch-sidebar-group">
                 <SidebarSection
+                  variant="subgroup"
                   label="Stacks"
                   count={stackList.stacks.length}
                   open={sections.isOpen('branches-stacks', true)}
@@ -454,6 +455,7 @@ function BranchSidebar({
             )}
             <div className="branch-sidebar-group">
               <SidebarSection
+                variant="subgroup"
                 label="Local branches"
                 count={localBranches.length}
                 open={localOpen}
@@ -464,6 +466,7 @@ function BranchSidebar({
             </div>
             <div className="branch-sidebar-group">
               <SidebarSection
+                variant="subgroup"
                 label="Remote branches"
                 count={remoteBranches === null ? undefined : remoteList.length}
                 open={remoteOpen}

@@ -5,6 +5,7 @@ import RefSelect from '../../components/git/RefSelect'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import DialogActions from '../../components/chrome/DialogActions'
+import '../../components/chrome/dialog.scss'
 
 interface SetUpstreamDialogProps {
   repoPath: string

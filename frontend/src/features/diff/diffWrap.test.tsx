@@ -38,13 +38,13 @@ describe('diff word wrap', () => {
   it('wraps lines by default, with no saved choice', () => {
     const { container } = render(<DiffViewer diff={diff} path="a.ts" viewMode="split" />)
 
-    expect(container.querySelector('.diff-viewer')).not.toHaveClass('diff-viewer-nowrap')
+    expect(container.querySelector('.diff-pane')).not.toHaveClass('diff-pane-nowrap')
   })
 
   it('keeps each line on one row when wrapping is off', () => {
     const { container } = renderWithWrap(false)
 
-    expect(container.querySelector('.diff-viewer')).toHaveClass('diff-viewer-nowrap')
+    expect(container.querySelector('.diff-pane')).toHaveClass('diff-pane-nowrap')
     expect(screen.getByRole('checkbox', { name: 'Wrap lines' })).not.toBeChecked()
   })
 

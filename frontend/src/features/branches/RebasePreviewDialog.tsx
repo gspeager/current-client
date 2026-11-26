@@ -4,6 +4,7 @@ import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { shortSha } from '../../lib/text'
 import DialogError from '../../components/chrome/DialogError'
+import '../../components/chrome/dialog.scss'
 import './RebasePreviewDialog.scss'
 
 const OUTCOME_LABEL: Record<string, string> = {

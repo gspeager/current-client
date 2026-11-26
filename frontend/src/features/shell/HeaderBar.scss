@@ -246,24 +246,6 @@
   color: var(--error);
   font: var(--ui-xs);
   white-space: nowrap;
-
-  .git-output {
-    margin: 0;
-  }
-
-  // Open, it falls below the header, which keeps its height.
-  .git-output-body {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: var(--z-menu);
-    width: 480px;
-    padding: var(--space-xs) var(--space-sm);
-    background: var(--surface-container);
-    border: var(--border-structure);
-    border-radius: var(--radius);
-    white-space: normal;
-  }
 }
 
 .header-bar-quick-switch {
@@ -296,19 +278,6 @@
 }
 
 // Words make way before repository names do; icons and keycaps stay.
-@container (max-width: 1560px) {
-  .header-bar-tab-sep,
-  .header-bar-tab-branch {
-    display: none;
-  }
-}
-
-@container (max-width: 1240px) {
-  .header-bar-tab-meta {
-    display: none;
-  }
-}
-
 @container (max-width: 1060px) {
   .header-bar-quick-switch-label,
   .header-bar-inbox-label {

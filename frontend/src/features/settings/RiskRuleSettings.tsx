@@ -1,6 +1,7 @@
 import Switch from '../../components/forms/Switch'
 import { RISK_RULES } from '../../lib/riskRules'
 import SettingsRow from './SettingsRow'
+import './RiskRuleSettings.scss'
 
 interface RiskRuleSettingsProps {
   off: string[]
@@ -17,6 +18,7 @@ function RiskRuleSettings({ off, onChange }: RiskRuleSettingsProps) {
       <div className="settings-risk-rules">
         {RISK_RULES.map((rule) => (
           <Switch
+            trailing
             key={rule.id}
             label={rule.label}
             checked={!off.includes(rule.id)}

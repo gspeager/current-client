@@ -5,6 +5,7 @@ import { errorMessage } from '../../lib/errors'
 import { targetOf, type NoteKind, type NoteTarget, type useNotesState } from './notes'
 import { shortSha } from '../../lib/text'
 import DialogError from '../../components/chrome/DialogError'
+import '../../components/chrome/dialog.scss'
 import './NotesDialogs.scss'
 
 export function noteLabel(note: {

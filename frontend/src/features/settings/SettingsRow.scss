@@ -1,3 +1,24 @@
+@use '../../styles/patterns';
+
+.settings-group-title {
+  margin: 0;
+  @include patterns.eyebrow;
+  color: var(--outline);
+}
+
+.settings-row {
+  display: grid;
+  // The control column takes what it needs, up to half the row, so a long path can't squeeze the label.
+  grid-template-columns: minmax(0, 1fr) fit-content(50%);
+  align-items: center;
+  gap: var(--space-xs) var(--space-lg);
+  padding: var(--space-sm) 0;
+
+  > .settings-error {
+    grid-column: 1 / -1;
+  }
+}
+
 .settings-group[hidden] {
   display: none;
 }

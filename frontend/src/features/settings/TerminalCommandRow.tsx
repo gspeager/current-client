@@ -6,6 +6,7 @@ import PathText from '../../components/git/PathText'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SettingsRow from './SettingsRow'
 import { useAction } from '../../lib/useAction'
+import './settings.scss'
 
 // Writes nothing until Install is clicked, and says where first.
 function TerminalCommandRow() {

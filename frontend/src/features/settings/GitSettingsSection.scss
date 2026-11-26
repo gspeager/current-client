@@ -1,6 +1,42 @@
+@use '../../styles/patterns';
+
 .settings-git-config {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
+}
+
+.settings-git-flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  @include patterns.list-reset;
+  overflow-wrap: anywhere;
+}
+
+.settings-git-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+
+  th {
+    height: var(--h-row-table);
+    color: var(--outline);
+    font: var(--ui-xs);
+    text-align: left;
+  }
+
+  td {
+    height: var(--h-row-table);
+    padding-right: var(--space-sm);
+    border-top: var(--border-structure);
+    color: var(--on-surface-variant);
+    font: var(--data-sm);
+    @include patterns.truncate;
+  }
+}
+
+.settings-git-origin {
+  display: block;
 }

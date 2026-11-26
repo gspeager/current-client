@@ -11,6 +11,7 @@ import { DraftErrorModal } from './CreateChangeDialog'
 import DialogError from '../../components/chrome/DialogError'
 import { useAction } from '../../lib/useAction'
 import DialogActions from '../../components/chrome/DialogActions'
+import '../../components/chrome/dialog.scss'
 import './CreateChangeDialog.scss'
 
 interface PublishReleaseDialogProps {

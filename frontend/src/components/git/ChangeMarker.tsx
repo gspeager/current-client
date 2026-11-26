@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { MouseEvent } from 'react'
 import type { BranchChange } from '@current-client-bindings/app'
 import { openWebPage } from '../../lib/hostPages'
@@ -8,6 +9,10 @@ import './ChangeMarker.scss'
 
 interface ChangeMarkerProps {
   change: BranchChange | undefined
+  // No state square or left inset, where the state is said beside it.
+  plain?: boolean
+  // Passing CI in outline, for a list.
+  quiet?: boolean
 }
 
 const STATE_LABELS: Record<string, string> = { open: 'open', merged: 'merged', closed: 'closed' }
@@ -15,7 +20,7 @@ const STATE_LABELS: Record<string, string> = { open: 'open', merged: 'merged', c
 // The square marker for a branch's merge request / pull request: number,
 // state and CI result when the host is on, the number alone when only Git
 // supplied it. Read from the cache; nothing here makes a request.
-function ChangeMarker({ change }: ChangeMarkerProps) {
+function ChangeMarker({ change, plain = false, quiet = false }: ChangeMarkerProps) {
   if (!change) return null
   const number = `${change.prefix}${change.number}`
   const state = change.draft ? 'draft' : (STATE_LABELS[change.state] ?? '')
@@ -28,14 +33,14 @@ function ChangeMarker({ change }: ChangeMarkerProps) {
     <HoverCard card={<ChangeCard change={change} number={number} state={state} />}>
       <button
         type="button"
-        className={change.webUrl ? 'change-marker' : 'change-marker change-marker-static'}
+        className={clsx('change-marker', !change.webUrl && 'change-marker-static', plain && 'change-marker-plain')}
         data-state={state || 'unknown'}
         aria-label={title}
         onClick={open}
       >
-        <span className="change-marker-square" />
+        {!plain && <span className="change-marker-square" />}
         <span className="change-marker-number">{number}</span>
-        {change.ci && <CIIcon status={change.ci} size={12} />}
+        {change.ci && <CIIcon status={change.ci} size={12} quiet={quiet} />}
       </button>
     </HoverCard>
   )

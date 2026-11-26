@@ -6,6 +6,7 @@ import DependencySummary from '../diff/DependencySummary'
 import StatusBadge from '../../components/git/StatusBadge'
 import { useAsyncData } from '../../lib/useAsyncData'
 import useTabPlaceholder, { type TabProps } from './useTabPlaceholder'
+import './changeRows.scss'
 import './FilesTab.scss'
 
 const FILE_LETTER: Record<string, string> = { added: 'A', deleted: 'D', renamed: 'R', modified: 'M' }

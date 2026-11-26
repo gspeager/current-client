@@ -1,3 +1,5 @@
+@use '../../styles/patterns';
+
 .stack-section {
   display: flex;
   flex-direction: column;
@@ -20,4 +22,32 @@
   margin-left: auto;
   color: var(--outline);
   font: var(--ui-xs);
+}
+
+.stack-base {
+  flex: 1;
+  min-width: 0;
+  @include patterns.truncate;
+  color: var(--outline);
+  font: var(--data-sm);
+}
+
+.stack-action {
+  @include patterns.micro-button;
+
+  flex-shrink: 0;
+  color: var(--on-surface-variant);
+
+  &:hover:not(:disabled) {
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    color: var(--outline);
+    cursor: default;
+  }
+}
+
+.stack-mark-behind {
+  color: var(--warning);
 }

@@ -183,6 +183,7 @@ function IssuesView({
         {activeKey && (
           <div className="issues-pane">
             <IssueDetail
+              flush
               key={activeKey}
               repoPath={repoPath}
               issueKey={activeKey}

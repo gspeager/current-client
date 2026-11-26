@@ -9,6 +9,7 @@ import DescriptionNotes from '../read-through/DescriptionNotes'
 import DialogError from '../../components/chrome/DialogError'
 import { useAction } from '../../lib/useAction'
 import DialogActions from '../../components/chrome/DialogActions'
+import '../../components/chrome/dialog.scss'
 import './CreateChangeDialog.scss'
 
 interface CreateChangeDialogProps {

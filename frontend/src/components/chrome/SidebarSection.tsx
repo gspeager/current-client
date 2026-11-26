@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import './SidebarSection.scss'
@@ -15,6 +16,8 @@ interface SidebarSectionProps {
   pinned?: ReactNode
   // Esc in a pinned form closes it.
   onPinnedEscape?: () => void
+  // Flush: no space under the header. Subgroup: flush, with a quieter label, for a section inside a section.
+  variant?: 'flush' | 'subgroup'
   children: ReactNode
 }
 
@@ -27,11 +30,12 @@ function SidebarSection({
   actions,
   pinned,
   onPinnedEscape,
+  variant,
   children,
 }: SidebarSectionProps) {
   return (
     <>
-      <div className="sidebar-section-header">
+      <div className={clsx('sidebar-section-header', variant && `sidebar-section-header-${variant}`)}>
         <button
           type="button"
           className="sidebar-section-toggle"

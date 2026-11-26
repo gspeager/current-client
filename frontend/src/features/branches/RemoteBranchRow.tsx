@@ -3,6 +3,7 @@ import { Cloud } from 'lucide-react'
 import type { OverlapInfo } from '@current-client-bindings/app'
 import { rowKeyDown } from '../../components/controls/ContextMenu'
 import ConflictsBadge from './ConflictsBadge'
+import './BranchRow.scss'
 import './RemoteBranchRow.scss'
 
 interface RemoteBranchRowProps {

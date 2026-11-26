@@ -445,10 +445,10 @@ function FilterMenu({ label, items, mono = false, isShown, onToggle }: FilterMen
         <span className="changelog-count">{shown === items.length ? 'All' : `${shown} of ${items.length}`}</span>
         <ChevronDown size={14} strokeWidth={1.5} />
       </summary>
-      <div className={clsx('changelog-filter-menu', mono && 'changelog-filter-menu-mono')}>
+      <div className="changelog-filter-menu">
         {items.map(([item, count]) => (
           <span key={item} className="changelog-filter-option">
-            <Checkbox checked={isShown(item)} onChange={(on) => onToggle(item, on)} label={item} />
+            <Checkbox checked={isShown(item)} onChange={(on) => onToggle(item, on)} label={item} mono={mono} />
             <span className="changelog-count">{count}</span>
           </span>
         ))}

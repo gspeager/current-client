@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import './Switch.scss'
 
 interface SwitchProps {
@@ -6,11 +7,13 @@ interface SwitchProps {
   label?: string
   ariaLabel?: string
   disabled?: boolean
+  // The label first and the toggle at the far end, like a settings row's control.
+  trailing?: boolean
 }
 
-function Switch({ checked, onChange, label, ariaLabel, disabled = false }: SwitchProps) {
+function Switch({ checked, onChange, label, ariaLabel, disabled = false, trailing = false }: SwitchProps) {
   return (
-    <label className="switch">
+    <label className={clsx('switch', trailing && 'switch-trailing')}>
       <input
         type="checkbox"
         checked={checked}

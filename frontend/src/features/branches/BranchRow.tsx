@@ -84,6 +84,7 @@ function BranchRow({
       onKeyDown={rowKeyDown(checkout, onMenu)}
     >
       <BranchPill
+        bare
         name={b.name}
         color={color}
         current={b.current}
@@ -94,8 +95,8 @@ function BranchRow({
       <NoteMark kind="branch" target={b.name} />
       {conflict && b.current && <span className="branch-row-mode">{operationBadge(conflict.operation)}</span>}
       {incoming && !b.current && <span className="branch-row-mode branch-row-mode-incoming">incoming</span>}
-      {!b.current && <ChangeMarker change={change} />}
-      {!change && <CIMark repoPath={repoPath} mark={ciMark} />}
+      {!b.current && <ChangeMarker change={change} quiet />}
+      {!change && ciMark?.status !== 'success' && <CIMark repoPath={repoPath} mark={ciMark} />}
       {!incoming && <ConflictsBadge overlap={overlap} />}
       {!b.current && b.worktreePath && (
         <span className="branch-row-worktree" title={`Checked out in the worktree at ${b.worktreePath}`}>

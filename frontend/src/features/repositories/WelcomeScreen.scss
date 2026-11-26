@@ -43,15 +43,3 @@
   color: var(--outline);
   font: var(--data-sm);
 }
-
-// The form sits on the same centre line as the name above it.
-.app-welcome .repo-switcher {
-  align-items: center;
-  width: min(420px, 100%);
-  padding: 0 var(--space-lg);
-  text-align: center;
-}
-
-.app-welcome .repo-switcher-open-row {
-  justify-content: center;
-}

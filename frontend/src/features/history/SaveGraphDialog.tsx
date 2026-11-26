@@ -5,6 +5,7 @@ import { withHeading } from '../../lib/picture'
 import { plural } from '../../lib/plural'
 import { localDate } from '../../lib/relativeTime'
 import { graphPicture, type GraphPictureOptions, type GraphPictureRow } from './graphPicture'
+import '../../components/chrome/dialog.scss'
 
 // More would be a file too large to open.
 export const MOST_ROWS = 500
