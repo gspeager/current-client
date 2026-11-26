@@ -47,6 +47,10 @@ func notesKey(ctx context.Context, repoPath string) string {
 }
 
 func (s *NotesService) List(repoPath string) ([]NoteInfo, error) {
+	return listNotes(repoPath)
+}
+
+func listNotes(repoPath string) ([]NoteInfo, error) {
 	ctx := context.Background()
 	stored, err := notes.List(notesKey(ctx, repoPath))
 	if err != nil {

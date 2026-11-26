@@ -104,22 +104,6 @@ func issueSourceFor(repoPath, key string) (issueSource, error) {
 	return src, nil
 }
 
-// cachedFrom is cachedOrFetched for any cache host, such as a tracker's.
-func cachedFrom[T any](cacheHost, repoPath string, kind cacheKind[T], key string, fetch func(context.Context) (T, error)) (T, error) {
-	if cached, _, ok := kind.get(cacheHost, repoPath, key); ok {
-		return cached, nil
-	}
-	ctx, cancel := hostContext()
-	defer cancel()
-	value, err := fetch(ctx)
-	if err != nil {
-		var none T
-		return none, err
-	}
-	kind.put(cacheHost, repoPath, key, value)
-	return value, nil
-}
-
 var closingWords = `(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+`
 
 // closedIssues is the references a description says the change closes,
@@ -271,17 +255,4 @@ func (s *HostService) AssignedIssues(repoPath string) ([]hostapi.Issue, error) {
 		issueSourceOf(info).remember(repoPath, issues)
 		return issues, nil
 	})
-}
-
-// CachedPipelineJobs is a pipeline's jobs if a click already fetched them;
-// a hover card reads this and never fetches.
-func (s *HostService) CachedPipelineJobs(repoPath string, pipelineID int64) ([]hostapi.Job, error) {
-	_, info, ok, err := enabledHost(repoPath)
-	if err != nil || !ok {
-		return nil, err
-	}
-	if cached, _, ok := cacheJobs.get(info.Hostname, repoPath, strconv.FormatInt(pipelineID, 10)); ok {
-		return cached, nil
-	}
-	return nil, nil
 }

@@ -5,7 +5,6 @@ package app
 import (
 	"context"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
@@ -136,21 +135,6 @@ func fetchPipelines(ctx context.Context, provider hostapi.Provider, info HostInf
 	})
 }
 
-func inParallel(count int, request func(i int)) {
-	var wg sync.WaitGroup
-	slots := make(chan struct{}, ciParallel)
-	for i := range count {
-		wg.Add(1)
-		slots <- struct{}{}
-		go func() {
-			defer wg.Done()
-			defer func() { <-slots }()
-			request(i)
-		}()
-	}
-	wg.Wait()
-}
-
 // fillChangeCI gives each open change the CI result of its head, which the
 // list endpoint doesn't carry, through the same per-SHA cache.
 func fillChangeCI(ctx context.Context, provider hostapi.Provider, info HostInfo, repoPath string, changes []hostapi.Change) {
@@ -180,4 +164,17 @@ func fillChangeReviews(ctx context.Context, provider hostapi.Provider, info Host
 			changes[i].Reviews = reviews
 		}
 	})
+}
+
+// CachedPipelineJobs is a pipeline's jobs if a click already fetched them;
+// a hover card reads this and never fetches.
+func (s *HostService) CachedPipelineJobs(repoPath string, pipelineID int64) ([]hostapi.Job, error) {
+	_, info, ok, err := enabledHost(repoPath)
+	if err != nil || !ok {
+		return nil, err
+	}
+	if cached, _, ok := cacheJobs.get(info.Hostname, repoPath, strconv.FormatInt(pipelineID, 10)); ok {
+		return cached, nil
+	}
+	return nil, nil
 }

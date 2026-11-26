@@ -77,21 +77,3 @@ func updateConfigErr(update func(*config.Config) error) error {
 	}
 	return config.Save(path, cfg)
 }
-
-func SaveWindowSize(width, height int) {
-	if width <= 0 || height <= 0 {
-		return
-	}
-	_ = updateConfig(func(cfg *config.Config) {
-		cfg.WindowWidth = width
-		cfg.WindowHeight = height
-	})
-}
-
-func mapSlice[T, U any](in []T, convert func(T) U) []U {
-	out := make([]U, len(in))
-	for i, v := range in {
-		out[i] = convert(v)
-	}
-	return out
-}

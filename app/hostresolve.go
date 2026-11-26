@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gspeager/current-client/core/git"
@@ -62,4 +63,19 @@ func cachedChange(repoPath string, number int) (git.Remote, HostInfo, hostapi.Ch
 		}
 	}
 	return remote, info, hostapi.Change{}, fmt.Errorf("%s%d isn't in the last refresh; refresh and try again", changePrefix(info), number)
+}
+
+func inParallel(count int, request func(i int)) {
+	var wg sync.WaitGroup
+	slots := make(chan struct{}, ciParallel)
+	for i := range count {
+		wg.Add(1)
+		slots <- struct{}{}
+		go func() {
+			defer wg.Done()
+			defer func() { <-slots }()
+			request(i)
+		}()
+	}
+	wg.Wait()
 }

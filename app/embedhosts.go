@@ -56,7 +56,7 @@ func EnabledHosts() []string {
 // prompt, as Settings does: refused while policy.json fixes it, and turning
 // it off drops everything held from it.
 func SetHostEnabled(hostname string, enabled bool) error {
-	return (&HostService{}).SetEnabled(hostname, enabled)
+	return switchHost(hostname, enabled)
 }
 
 var (
