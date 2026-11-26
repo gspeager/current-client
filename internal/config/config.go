@@ -9,10 +9,9 @@ import (
 
 const CurrentVersion = 1
 
-// ChangelogPrefs.Types is nil until the type filter is first changed, and the
-// settings service then supplies defaults; an empty list means every type is
-// filtered out.
 type ChangelogPrefs struct {
+	// Nil until the type filter is first changed, and the settings service then
+	// supplies defaults; an empty list means every type is filtered out.
 	Types          []string `json:"types"`
 	AuthorNames    bool     `json:"authorNames,omitempty"`
 	Dates          bool     `json:"dates,omitempty"`
@@ -21,17 +20,18 @@ type ChangelogPrefs struct {
 }
 
 // HostConfig is the user's choice for one Git host, keyed by hostname (with
-// its port when the remote has one). Empty Provider means the type detected
-// from the remote URL; empty APIURL means the address derived from the type.
-// Enabled is the only thing that lets the app contact the host's API.
-// HasToken records that an API token was saved with Git's credential
-// helper; the token itself is never written here.
+// its port when the remote has one).
 type HostConfig struct {
+	// Empty means the type detected from the remote URL.
 	Provider string `json:"provider,omitempty"`
-	APIURL   string `json:"apiUrl,omitempty"`
-	Enabled  bool   `json:"enabled,omitempty"`
-	HasToken bool   `json:"hasToken,omitempty"`
-	// Dismissed remembers "Not now" on the first-use prompt.
+	// Empty means the address derived from the type.
+	APIURL string `json:"apiUrl,omitempty"`
+	// The only thing that lets the app contact the host's API.
+	Enabled bool `json:"enabled,omitempty"`
+	// An API token was saved with Git's credential helper; the token itself is
+	// never written here.
+	HasToken bool `json:"hasToken,omitempty"`
+	// "Not now" on the first-use prompt.
 	Dismissed bool `json:"dismissed,omitempty"`
 }
 
@@ -40,11 +40,11 @@ type CustomTask struct {
 	Command string `json:"command"`
 }
 
-// StackLink is one layer of a stack. Git stores no branch's base, and amending the
-// layer below breaks the ancestry, so ParentTip remembers what it was built on.
 type StackLink struct {
-	Branch    string `json:"branch"`
-	Parent    string `json:"parent"`
+	Branch string `json:"branch"`
+	Parent string `json:"parent"`
+	// The commit Branch was built on. Git stores no branch's base, and amending
+	// the layer below breaks the ancestry.
 	ParentTip string `json:"parentTip"`
 }
 
@@ -98,15 +98,18 @@ type Config struct {
 
 	NavCollapsed bool `json:"navCollapsed,omitempty"`
 
-	// Commands. CustomTasks and BoardTasks, the ids shown on the worktree board, are by
-	// the shared Git directory, so every worktree has them; older CustomTasks are by
-	// path. Approvals, which hold what each one saw, and the checklist are by path.
-	CustomTasks   map[string][]CustomTask      `json:"customTasks,omitempty"`
-	BoardTasks    map[string][]string          `json:"boardTasks,omitempty"`
+	// By the shared Git directory, so every worktree has them; older entries are by
+	// repository path.
+	CustomTasks map[string][]CustomTask `json:"customTasks,omitempty"`
+	// The task ids shown on the worktree board, by the shared Git directory.
+	BoardTasks map[string][]string `json:"boardTasks,omitempty"`
+	// By repository path, then task id: the task's tasks.Fingerprint when it was
+	// approved.
 	TaskApprovals map[string]map[string]string `json:"taskApprovals,omitempty"`
-	TaskChecklist map[string]TaskChecklist     `json:"taskChecklist,omitempty"`
-	Stacks        map[string][]StackLink       `json:"stacks,omitempty"`
-	StackUndo     map[string]StackUndo         `json:"stackUndo,omitempty"`
+	// By repository path.
+	TaskChecklist map[string]TaskChecklist `json:"taskChecklist,omitempty"`
+	Stacks        map[string][]StackLink   `json:"stacks,omitempty"`
+	StackUndo     map[string]StackUndo     `json:"stackUndo,omitempty"`
 
 	// The terminal panel's shell on Windows: "", "git-bash" or "cmd". "" is PowerShell.
 	TerminalShell string `json:"terminalShell,omitempty"`
@@ -130,7 +133,7 @@ type Config struct {
 
 	PruneOnFetch bool `json:"pruneOnFetch,omitempty"`
 
-	// Zero keeps the Changelog tab and commit type picker on.
+	// Hides the Changelog tab and the commit type picker.
 	DisableConventionalCommits bool `json:"disableConventionalCommits,omitempty"`
 
 	Changelog *ChangelogPrefs `json:"changelog,omitempty"`

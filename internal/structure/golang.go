@@ -13,7 +13,7 @@ func init() {
 	register(&language{name: "Go", read: readGo, link: linkGo}, ".go")
 }
 
-// readGo uses Go's own parser. A file it can't read in full says what it could.
+// readGo keeps what Go's parser read of a file it couldn't parse in full.
 func readGo(src string) *facts {
 	file, _ := parser.ParseFile(token.NewFileSet(), "", src, parser.ParseComments)
 	if file == nil || file.Name == nil {
@@ -43,7 +43,7 @@ func readGo(src string) *facts {
 			}
 		}
 	}
-	// The parser leaves out what the file itself declares.
+	// file.Unresolved is the identifiers the file doesn't declare itself.
 	unresolved := map[*ast.Ident]bool{}
 	for _, ident := range file.Unresolved { //nolint:staticcheck
 		unresolved[ident] = true
@@ -148,7 +148,8 @@ func linkGo(l *linker, files []int32) {
 					found = true
 				}
 			}
-			// Imported for what it does, or for something not read here.
+			// No name used from it is known, as for an import for its side effects:
+			// the link goes to the package's first file.
 			if !found {
 				l.add(i, target.files[0])
 			}
@@ -156,7 +157,9 @@ func linkGo(l *linker, files []int32) {
 	}
 }
 
-// A name in a few files is one for each platform. In many it's no one of them.
+// Files in one package that may define the same name, as one per platform behind
+// build tags. A name defined in more is too common to say which is meant, so it
+// links to none.
 const mostDefining = 4
 
 func linkNamed(l *linker, from int32, defining []int32) {

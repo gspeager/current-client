@@ -28,9 +28,9 @@ type Task struct {
 	Source  string
 	Name    string
 	Command string
-	// File is what the command comes from, relative to the repository.
+	// The file the command comes from, relative to the repository.
 	File string
-	// Note is what approving should know beyond the command itself.
+	// What to know before approving, beyond the command itself.
 	Note string
 }
 

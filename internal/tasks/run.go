@@ -13,11 +13,12 @@ import (
 	"github.com/gspeager/current-client/internal/terminal"
 )
 
-// The callbacks run on the run's goroutines.
 type Options struct {
-	Env      []string
+	Env []string
+	// Runs on the run's goroutine.
 	OnOutput func(data []byte)
-	OnDone   func(result Result)
+	// Runs on the run's goroutine.
+	OnDone func(result Result)
 }
 
 type Result struct {

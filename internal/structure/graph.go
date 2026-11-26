@@ -20,29 +20,30 @@ import (
 
 // Graph is a repository's files at one point, and which use which.
 type Graph struct {
-	// By path.
+	// Sorted by path.
 	Files []string
-	// Each pair once: the first file uses the second.
+	// Indexes into Files, each pair once: the first file uses the second.
 	Links [][2]int32
-	// The languages read, with the most files first, and how many files are code in
-	// one that isn't.
+	// The languages read, the one with the most files first.
 	Languages []string
-	Unread    int
-	// A folder's own words for itself.
+	// Files of code in a language that isn't read.
+	Unread int
+	// A folder's description from its package comment, package.json or README.
 	Docs map[string]string
 	// Every folder that holds a file, of any kind.
 	Folders map[string]bool
-	// Of the files read, where Git isn't asked for all of them.
+	// Line counts of the files read, for a partial clone, where Git can't count
+	// every file without fetching it.
 	Lines map[string]int
 }
 
-// facts are what one file says by itself, whatever the others are, so they're kept by
-// its content.
+// facts are what one file says without the others, so they're kept by its content.
 type facts struct {
 	imports []imported
-	// Names other files can use, and names used that aren't the file's own.
+	// Names other files can use.
 	defines []string
-	uses    []string
+	// Names used that aren't the file's own.
+	uses []string
 	// Go's "package.Name".
 	selected []string
 	// A Go package, a C# namespace.
@@ -52,10 +53,12 @@ type facts struct {
 	sees  []string
 	doc   string
 	lines int
-	// A module's name, a workspace package's, a tsconfig's paths.
-	module  string
+	// A go.mod's module or a package.json's name.
+	module string
+	// A tsconfig's paths.
 	aliases []alias
-	base    string
+	// A tsconfig's baseUrl or the folder of a package.json's source.
+	base string
 }
 
 type imported struct {
@@ -122,11 +125,13 @@ func (l *linker) find(paths ...string) (int32, bool) {
 }
 
 const (
-	// Files a process, so what's held at once stays small.
+	// Blobs asked of one git process, so the content held at once stays small.
 	filesAtOnce = 300
-	// Larger is data.
+	// Bytes; a larger file is taken for data, not code, and not read.
 	largestRead = 2 << 20
-	mostFacts   = 120_000
+	// Files' facts kept across builds. Past this the cache starts over, so it stays
+	// bounded however many points are read.
+	mostFacts = 120_000
 )
 
 var kept = struct {
@@ -190,7 +195,7 @@ func Build(ctx context.Context, repoPath string, env []string, rev string) (*Gra
 	return graph, nil
 }
 
-// readerFor is what reads a file, nil for one that says nothing here.
+// readerFor is nil for a file that says nothing about the structure.
 func readerFor(file string) func(src string) *facts {
 	if lang := languageOf(file); lang != nil {
 		return lang.read
@@ -263,8 +268,8 @@ func readFacts(ctx context.Context, repoPath string, env []string, files []git.T
 	return known, nil
 }
 
-// sorted keeps names apart from the source they were read from, so keeping a file's
-// facts doesn't keep its content.
+// sorted interns the names, copying them out of the source they were sliced from, so
+// keeping a file's facts doesn't keep its content.
 func sorted(names map[string]bool) []string {
 	list := make([]string, 0, len(names))
 	for name := range names {

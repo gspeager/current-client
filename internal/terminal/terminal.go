@@ -25,7 +25,6 @@ const (
 	mostUnacknowledged = 2 << 20
 )
 
-// OnOutput and OnExit run on the session's goroutines.
 type Options struct {
 	Dir  string
 	Name string
@@ -33,10 +32,12 @@ type Options struct {
 	Env  []string
 	Cols int
 	Rows int
-	// Hold keeps output back until Attach, for a view that can't listen yet.
-	Hold     bool
+	// Keeps output back until Attach, for a view that can't listen yet.
+	Hold bool
+	// Runs on the session's goroutine.
 	OnOutput func(data []byte)
-	OnExit   func(code int)
+	// Runs on the session's goroutine.
+	OnExit func(code int)
 }
 
 type session struct {
