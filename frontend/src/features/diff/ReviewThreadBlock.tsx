@@ -4,9 +4,9 @@ import type { ReviewThread } from '@current-client-bindings/app'
 import HostMarkdown from '../../components/git/HostMarkdown'
 import ReviewComposer from '../review/ReviewComposer'
 import type { ThreadActions } from '../review/useReviewActions'
-import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
+import { useAction } from '../../lib/useAction'
 import './ReviewThreadBlock.scss'
 
 interface ReviewThreadBlockProps {
@@ -24,16 +24,10 @@ interface ReviewThreadBlockProps {
 function ReviewThreadBlock({ thread, where, actions }: ReviewThreadBlockProps) {
   const [open, setOpen] = useState(!thread.resolved)
   const [replying, setReplying] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { run, running: busy, error } = useAction()
   const resolve = () => {
     if (!actions) return
-    setBusy(true)
-    setError(null)
-    actions
-      .resolve(thread.id, !thread.resolved)
-      .catch((err: unknown) => setError(errorMessage(err)))
-      .finally(() => setBusy(false))
+    void run(() => actions.resolve(thread.id, !thread.resolved))
   }
   const first = thread.notes?.[0]
   const title = `${thread.resolved ? 'Resolved' : 'Unresolved'} thread${first ? ` by ${first.author}` : ''}${where ? ` at ${where}` : ''}`

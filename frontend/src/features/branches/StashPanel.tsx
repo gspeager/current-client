@@ -11,7 +11,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import StashModal from './StashModal'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 import './StashPanel.scss'
 
 interface StashPanelProps {
@@ -32,7 +32,7 @@ function StashPanel({ repoPath, dirty, refreshKey, sections, onStashChanged, req
     reload: loadStashes,
   } = useAsyncData(() => StashService.ListStash(repoPath), [repoPath], { refreshKey })
   const { confirm } = useDialogs()
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   const error = loadError ?? actionError
   const [newMessage, setNewMessage] = useState('')
   const [includeUntracked, setIncludeUntracked] = useState(false)

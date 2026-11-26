@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { HostService } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
-import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { reviewTarget, useReviewDraft } from '../../lib/reviewDraft'
 import DialogError from '../../components/chrome/DialogError'
+import { useAction } from '../../lib/useAction'
+import DialogActions from '../../components/chrome/DialogActions'
 import './ReviewDialog.scss'
 
 interface ReviewDialogProps {
@@ -41,8 +42,7 @@ function ReviewDialog({ repoPath, number, prefix, onSubmitted, onClose }: Review
   )
   const [verdict, setVerdict] = useState<Verdict | null>(null)
   const [summary, setSummary] = useState('')
-  const [running, setRunning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { run, running, error } = useAction()
   useEffect(() => {
     if (capabilities) setVerdict((v) => v ?? (capabilities.approve ? 'approve' : 'comment'))
   }, [capabilities])
@@ -53,19 +53,14 @@ function ReviewDialog({ repoPath, number, prefix, onSubmitted, onClose }: Review
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
-    setRunning(true)
-    setError(null)
     const comments = draft.comments.map(({ path, line, oldLine, body }) => ({ path, line, oldLine, body }))
-    HostService.SubmitReview(repoPath, number, { verdict: chosen, summary: summary.trim(), comments })
-      .then(() => {
+    void run(() =>
+      HostService.SubmitReview(repoPath, number, { verdict: chosen, summary: summary.trim(), comments }).then(() => {
         draft.clear(target)
         draft.wrote()
         onSubmitted()
-      })
-      .catch((err: unknown) => {
-        setError(errorMessage(err))
-        setRunning(false)
-      })
+      }),
+    )
   }
 
   return (
@@ -110,14 +105,9 @@ function ReviewDialog({ repoPath, number, prefix, onSubmitted, onClose }: Review
             : `${draft.comments.length} drafted ${draft.comments.length === 1 ? 'comment is' : 'comments are'} sent with the review.`}
         </p>
         <DialogError>{error}</DialogError>
-        <div className="dialog-actions">
-          <button type="button" className="dialog-button" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="dialog-button dialog-button-primary" disabled={!canSubmit}>
-            {running ? 'Submitting…' : 'Submit review'}
-          </button>
-        </div>
+        <DialogActions onCancel={onClose} disabled={!canSubmit}>
+          {running ? 'Submitting…' : 'Submit review'}
+        </DialogActions>
       </form>
     </Modal>
   )

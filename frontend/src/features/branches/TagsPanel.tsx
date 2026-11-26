@@ -18,7 +18,7 @@ import SidebarSection from '../../components/chrome/SidebarSection'
 import PublishReleaseDialog from '../host-changes/PublishReleaseDialog'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import { hostLogo } from '../../components/git/hostLogos'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 
 interface TagsPanelProps {
   repoPath: string
@@ -38,7 +38,7 @@ function TagsPanel({ repoPath, sections, onTagChanged, request = null }: TagsPan
   const { confirm, signIn } = useDialogs()
   const { copy } = useCopyToClipboard()
   const rowMenu = useRowMenu()
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   const error = loadError ?? actionError
   const [newName, setNewName] = useState('')
   const [newMessage, setNewMessage] = useState('')

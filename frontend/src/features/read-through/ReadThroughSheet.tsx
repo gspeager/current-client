@@ -21,7 +21,7 @@ import ReviewComposer from '../review/ReviewComposer'
 import ReviewNoteBlock, { noteWhere } from '../review/ReviewNoteBlock'
 import { plural } from '../../lib/plural'
 import { useCopyToClipboard } from '../../lib/useCopyToClipboard'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useRovingRows } from '../../lib/useRovingRows'
 import ChangeStructure from './ChangeStructure'
@@ -72,7 +72,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     { refreshKey, keepData: true },
   )
   const refGroups = useRefGroups(repoPath)
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   // Null is the overview.
   const [path, setPath] = useState<string | null>(opening.at?.path ?? null)
   const [focusLine, setFocusLine] = useState<DiffFocus | null>(opening.at?.line ? { line: opening.at.line } : null)

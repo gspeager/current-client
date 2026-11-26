@@ -6,6 +6,7 @@ import { DialogContext, type ConfirmOptions, type Dialogs, type PromptOptions } 
 import type { SignIn, SignInOptions } from '../../lib/signIn'
 import Modal from './Modal'
 import SignInDialog from './SignInDialog'
+import DialogActions from './DialogActions'
 import './DialogProvider.scss'
 
 type Request =
@@ -80,14 +81,9 @@ function PromptDialog({ options, onSettle }: { options: PromptOptions; onSettle:
             Will be saved as <span className="dialog-result">{result}</span>
           </p>
         )}
-        <div className="dialog-actions">
-          <button type="button" className="dialog-button" onClick={() => onSettle(null)}>
-            Cancel
-          </button>
-          <button type="submit" className="dialog-button dialog-button-primary" disabled={!canSubmit}>
-            {options.confirmLabel}
-          </button>
-        </div>
+        <DialogActions onCancel={() => onSettle(null)} disabled={!canSubmit}>
+          {options.confirmLabel}
+        </DialogActions>
       </form>
     </Modal>
   )

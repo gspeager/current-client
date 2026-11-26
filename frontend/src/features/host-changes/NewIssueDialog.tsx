@@ -2,9 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { HostService } from '@current-client-bindings/app'
 import type { Issue } from '@current-client-bindings/core/hostapi'
 import Modal from '../../components/chrome/Modal'
-import { errorMessage } from '../../lib/errors'
 import type { IssueDraft } from '../../lib/issuePanel'
 import DialogError from '../../components/chrome/DialogError'
+import { useAction } from '../../lib/useAction'
+import DialogActions from '../../components/chrome/DialogActions'
 import './CreateChangeDialog.scss'
 
 interface NewIssueDialogProps {
@@ -27,19 +28,17 @@ function NewIssueDialog({ repoPath, draft, onCreated, onClose }: NewIssueDialogP
   const [title, setTitle] = useState(draft?.title ?? '')
   const [description, setDescription] = useState(draft?.description ?? '')
   const [labels, setLabels] = useState('')
-  const [running, setRunning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { run, running, error } = useAction()
   const canSubmit = title.trim() !== '' && !running
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
-    setRunning(true)
-    setError(null)
-    HostService.CreateIssue(repoPath, { title: title.trim(), description, labels: splitLabels(labels) })
-      .then((issue) => onCreated(issue))
-      .catch((err: unknown) => setError(errorMessage(err)))
-      .finally(() => setRunning(false))
+    void run(() =>
+      HostService.CreateIssue(repoPath, { title: title.trim(), description, labels: splitLabels(labels) }).then(
+        (issue) => onCreated(issue),
+      ),
+    )
   }
 
   return (
@@ -68,14 +67,9 @@ function NewIssueDialog({ repoPath, draft, onCreated, onClose }: NewIssueDialogP
           />
         </label>
         <DialogError>{error}</DialogError>
-        <div className="dialog-actions">
-          <button type="button" className="dialog-button" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="dialog-button dialog-button-primary" disabled={!canSubmit}>
-            {running ? 'Creating…' : 'Create issue'}
-          </button>
-        </div>
+        <DialogActions onCancel={onClose} disabled={!canSubmit}>
+          {running ? 'Creating…' : 'Create issue'}
+        </DialogActions>
       </form>
     </Modal>
   )

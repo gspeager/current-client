@@ -22,7 +22,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useClockTick } from '../../lib/useClockTick'
 import { useDialogs } from '../../lib/useDialogs'
 import { shortSha } from '../../lib/text'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 import './NextRelease.scss'
 
 interface NextReleaseProps {
@@ -61,7 +61,7 @@ function NextRelease({ repoPath, repoVersion, onTagged }: NextReleaseProps) {
   useEffect(() => setCheckedAt(data ? new Date() : null), [data])
   const [editing, setEditing] = useState(false)
   const [publishing, setPublishing] = useState(false)
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
 
   if (!data) {
     return (
