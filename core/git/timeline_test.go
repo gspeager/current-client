@@ -86,8 +86,11 @@ func TestRangeCommitLinesFirstParentAndSince(t *testing.T) {
 	gittest.Run(t, dir, "merge", "-q", "--no-ff", "-m", "merge side", "side")
 
 	commits, _ := rangeLines(t, dir, "", "HEAD", time.Now().Add(-24*time.Hour), 10)
-	if len(commits) != 1 || commits[0].Subject != "new" {
-		t.Errorf("since a day ago = %+v", commits)
+	if len(commits) != 2 || commits[0].Subject != "merge side" || commits[1].Subject != "new" {
+		t.Fatalf("since a day ago = %+v", commits)
+	}
+	if files := commits[0].Files; len(files) != 1 || files[0].Path != "side.txt" || files[0].Added != 1 {
+		t.Errorf("the merge brought = %+v", files)
 	}
 }
 

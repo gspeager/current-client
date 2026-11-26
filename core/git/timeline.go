@@ -19,15 +19,16 @@ type CommitLines struct {
 }
 
 // RangeCommitLines reads the commits from..to on to's first parents, newest
-// first, with each file's lines. from "" reads back to the first commit, and a
-// non-zero since stops at commits made before it. Merges are left out. It reads
+// first, with each file's lines. A merge counts what it brought, against its first
+// parent, and the merged branch's own commits aren't read. from "" reads back to
+// the first commit, and a non-zero since stops at commits made before it. It reads
 // at most most, and more says the range goes further back.
 func RangeCommitLines(ctx context.Context, repoPath, from, to string, since time.Time, most int) (commits []CommitLines, more bool, err error) {
 	rev, err := revRange(ctx, repoPath, from, to)
 	if err != nil {
 		return nil, false, err
 	}
-	args := []string{"-c", "log.showRoot=true", "log", "--first-parent", "--no-merges", "-M", "--numstat", "-z",
+	args := []string{"-c", "log.showRoot=true", "log", "--first-parent", "-m", "-M", "--numstat", "-z",
 		"--no-ext-diff", "--no-textconv", "--no-show-signature", "--no-relative",
 		"--max-count=" + strconv.Itoa(most+1), "--format=%x01%H%x1f%ct%x1f%s"}
 	if !since.IsZero() {
