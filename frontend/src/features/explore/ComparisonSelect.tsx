@@ -5,6 +5,8 @@ interface ComparisonSelectProps {
   // Null for nothing compared, an option only when `none` labels it.
   value: ExploreComparison | null
   none?: string
+  // Today and This week as well, as kinds "today" and "week".
+  spans?: boolean
   branches: BranchInfo[]
   // The newest first.
   releases: TagInfo[]
@@ -14,9 +16,9 @@ interface ComparisonSelectProps {
 
 const OTHER = 'other'
 
-function ComparisonSelect({ value, none, branches, releases, currentBranch, onChange }: ComparisonSelectProps) {
+function ComparisonSelect({ value, none, spans, branches, releases, currentBranch, onChange }: ComparisonSelectProps) {
   const { prompt } = useDialogs()
-  const picked = !value ? '' : value.kind === 'working' ? 'working' : `${value.kind}:${value.ref}`
+  const picked = !value ? '' : value.ref ? `${value.kind}:${value.ref}` : value.kind
   const pick = async (choice: string) => {
     if (choice === OTHER) {
       const ref = await prompt({
@@ -33,6 +35,12 @@ function ComparisonSelect({ value, none, branches, releases, currentBranch, onCh
   return (
     <select className="explore-select" aria-label="Compare" value={picked} onChange={(e) => void pick(e.target.value)}>
       {none && <option value="">{none}</option>}
+      {spans && (
+        <>
+          <option value="today">Today</option>
+          <option value="week">This week</option>
+        </>
+      )}
       <option value="working">Uncommitted changes</option>
       <optgroup label="A branch and its base">
         {branches.map(({ name }) => (

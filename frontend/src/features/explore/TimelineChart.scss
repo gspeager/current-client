@@ -1,0 +1,97 @@
+@use '../../styles/patterns';
+
+.timeline-chart {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden auto;
+}
+
+.timeline-plot-box {
+  position: relative;
+}
+
+.timeline-plot {
+  position: absolute;
+  inset: 0;
+  user-select: none;
+
+  // The active bubble's ring stands in for the outline every focusable element gets.
+  &[tabindex][role]:focus-visible {
+    outline: none;
+  }
+
+  &:focus-visible .timeline-active {
+    box-shadow:
+      0 0 0 2px var(--surface-lowest),
+      0 0 0 4px var(--primary);
+  }
+}
+
+.timeline-plot-pointing {
+  cursor: pointer;
+}
+
+.timeline-canvas {
+  display: block;
+}
+
+.timeline-active {
+  position: absolute;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px var(--surface-lowest),
+    0 0 0 3px var(--on-surface);
+  pointer-events: none;
+}
+
+.timeline-lanes {
+  @include patterns.list-reset;
+
+  li {
+    position: absolute;
+    left: 0;
+    display: flex;
+    max-width: 100%;
+  }
+}
+
+.timeline-lane {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  height: var(--h-chip);
+  padding: 0 var(--space-xs) 0 var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--on-surface);
+    text-decoration: underline;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.timeline-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+@for $slot from 1 through 8 {
+  .timeline-dot-#{$slot} {
+    background: var(--folder-#{$slot}-2);
+  }
+}
+
+.timeline-dot-other {
+  background: var(--folder-other-2);
+}

@@ -22,11 +22,16 @@ import { useFileTools } from '../history/useFileTools'
 import { useOpenReadThrough } from '../../lib/readThrough'
 import CodeMap from './CodeMap'
 import ComparisonSelect from './ComparisonSelect'
+import FolderPath from './FolderPath'
 import StructureView from './StructureView'
+import TimelineView from './TimelineView'
 import { folderAreas, slotFinder, type FolderArea } from './folderAreas'
 import { readMapColors, type MapColors } from './drawMap'
 import { inFolder, type MapItem, type MapLayout } from './mapLayout'
 import { mapPicture, type LegendEntry } from './mapPicture'
+import { readTimelineColors, timelinePicture } from './drawTimeline'
+import { spanStart, type Span } from './timelineLanes'
+import type { TimelineLayout } from './timelineLayout'
 import { ageLegend, ageStep, commitSteps, type Step, type StepLegend } from './mapSteps'
 import './ExploreView.scss'
 
@@ -61,10 +66,13 @@ interface ExploreViewProps {
 
 // Explore's modes share what's being compared and the folder that fills the view.
 function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onOpenWorkingFile }: ExploreViewProps) {
-  const [view, setView] = useState<'code' | 'changes' | 'structure'>('code')
+  const [view, setView] = useState<'code' | 'changes' | 'structure' | 'timeline'>('code')
   const [structureCompared, setStructureCompared] = useState(false)
   const [folder, setFolder] = useState('')
   const [comparison, setComparison] = useState<ExploreComparison>({ kind: 'working', ref: '' })
+  // Today or this week, which only Timeline offers, in place of the comparison.
+  const [span, setSpan] = useState<Span | null>(null)
+  const [timeline, setTimeline] = useState<TimelineLayout | null>(null)
   const [coloring, setColoring] = useState<'commits' | 'age'>('commits')
   const [period, setPeriod] = useState(1)
   const [shown, setShown] = useState({ test: true, generated: true, lockfile: false, binary: false })
@@ -110,10 +118,11 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     { refreshKey: workingVersion, keepData: true },
   )
 
-  const areas = useMemo(() => folderAreas((now ?? []).filter((f) => f.kind !== 'lockfile')), [now])
+  const code = useMemo(() => (now ?? []).filter((f) => f.kind !== 'lockfile'), [now])
+  const areas = useMemo(() => folderAreas(code), [code])
   const slotOf = useMemo(() => slotFinder(areas), [areas])
   const listed = useCallback(
-    (file: { kind: string; binary: boolean }) =>
+    (file: { kind: string; binary?: boolean }) =>
       (!file.binary || shown.binary) && (file.kind === '' || shown[file.kind as keyof typeof shown]),
     [shown],
   )
@@ -175,7 +184,22 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     else openCompared(item.path)
   }
 
+  const timed = useMemo(
+    (): ExploreComparison => (span ? { kind: 'since', ref: spanStart(span).toISOString() } : comparison),
+    [span, comparison],
+  )
+
   const save = () => {
+    if (view === 'timeline') {
+      if (!timeline || !box.current) return
+      const colors = readTimelineColors(box.current)
+      setSaving({
+        picture: timelinePicture(timeline, colors),
+        about: ['Timeline', folder, span ? SPANS[span] : comparisonName(comparison)].filter(Boolean).join(', '),
+        colors: { ground: colors.ground, name: colors.name, muted: colors.muted },
+      })
+      return
+    }
     if (!layout.current || !box.current) return
     const colors = readMapColors(box.current)
     const about =
@@ -201,7 +225,6 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
     view === 'changes' ? [] : atRelease ? [] : coloring === 'commits' ? steps.legend : ageLegend
   const failure = view === 'code' ? (error ?? (atRelease ? thenError : null)) : changesError
   const loading = view === 'code' ? (atRelease ? !then : !now) : !changes
-  const crumbs = root === '' ? [] : root.split('/').map((_, i, names) => names.slice(0, i + 1).join('/'))
   const total = within.reduce((sum, item) => sum + item.size, 0)
 
   return (
@@ -215,6 +238,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
             { value: 'code', label: 'Code' },
             { value: 'changes', label: 'Changes' },
             { value: 'structure', label: 'Structure' },
+            { value: 'timeline', label: 'Timeline' },
           ]}
         />
         {view === 'code' ? (
@@ -244,14 +268,23 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
           </>
         ) : (
           <ComparisonSelect
-            value={view === 'structure' && !structureCompared ? null : comparison}
+            value={
+              view === 'structure' && !structureCompared
+                ? null
+                : view === 'timeline' && span
+                  ? { kind: span, ref: '' }
+                  : comparison
+            }
             none={view === 'structure' ? 'Not compared' : undefined}
+            spans={view === 'timeline'}
             branches={branches ?? []}
             releases={[...releases].reverse()}
             currentBranch={currentBranch}
             onChange={(next) => {
               setStructureCompared(!!next)
-              if (next) setComparison(next)
+              const picked = next && next.kind in SPANS ? (next.kind as Span) : null
+              setSpan(picked)
+              if (next && !picked) setComparison(next)
             }}
           />
         )}
@@ -269,12 +302,14 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
                 onChange={(lockfile) => setShown({ ...shown, lockfile })}
                 label="Lockfiles"
               />
-              <Checkbox checked={shown.binary} onChange={(binary) => setShown({ ...shown, binary })} label="Binary" />
+              {view !== 'timeline' && (
+                <Checkbox checked={shown.binary} onChange={(binary) => setShown({ ...shown, binary })} label="Binary" />
+              )}
             </div>
             <button
               type="button"
               className="explore-save"
-              disabled={!!failure || loading || items.length === 0}
+              disabled={view === 'timeline' ? !timeline : !!failure || loading || items.length === 0}
               onClick={save}
               aria-label="Save as image"
               title="Save as image"
@@ -296,25 +331,24 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
           onBlame={tools.openBlame}
           onDiff={openCompared}
         />
+      ) : view === 'timeline' ? (
+        <TimelineView
+          repoPath={repoPath}
+          comparison={timed}
+          version={workingVersion}
+          code={code}
+          slotOf={slotOf}
+          listed={listed}
+          tags={releases}
+          folder={folder}
+          onFolder={setFolder}
+          onOpenWorkingFile={onOpenWorkingFile}
+          onLayout={setTimeline}
+        />
       ) : (
         <>
           <div className="explore-toolbar">
-            <nav className="explore-path" aria-label="Folder">
-              <button type="button" className="explore-crumb" disabled={root === ''} onClick={() => setFolder('')}>
-                All
-              </button>
-              {crumbs.map((path) => (
-                <button
-                  key={path}
-                  type="button"
-                  className="explore-crumb"
-                  disabled={path === root}
-                  onClick={() => setFolder(path)}
-                >
-                  {baseName(path)}
-                </button>
-              ))}
-            </nav>
+            <FolderPath folder={root} onFolder={setFolder} />
             <span className="explore-total">
               {within.length.toLocaleString()} {within.length === 1 ? 'file' : 'files'} · {total.toLocaleString()}{' '}
               {view === 'code' ? 'lines' : 'lines changed'}
@@ -390,7 +424,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
       {tools.overlays}
       {saving && (
         <SaveImageDialog
-          name={`${baseName(repoPath)}-${view === 'code' ? 'code-map' : 'changes'}`}
+          name={`${baseName(repoPath)}-${view === 'code' ? 'code-map' : view}`}
           picture={() =>
             withHeading(saving.picture, {
               title: baseName(repoPath),
@@ -422,9 +456,12 @@ function describeChange({ path, origPath, status, added, removed, binary, confli
   return `${path}, ${what.toLowerCase()}${from}, ${lines}${conflict ? ', predicted to conflict' : ''}`
 }
 
+const SPANS: Record<Span, string> = { today: 'today', week: 'this week' }
+
 function comparisonName({ kind, ref }: ExploreComparison, target?: string): string {
   if (kind === 'working') return 'uncommitted'
-  return kind === 'branch' ? `${ref} against ${target}` : `since ${ref}`
+  if (kind === 'branch') return target ? `${ref} against ${target}` : `${ref} since its base`
+  return `since ${ref}`
 }
 
 function legendEntries(areas: FolderArea[], steps: StepLegend[], changes: boolean, colors: MapColors): LegendEntry[] {
