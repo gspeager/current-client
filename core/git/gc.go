@@ -23,7 +23,7 @@ func ComputeRepoDiskUsage(ctx context.Context, repoPath string) (RepoDiskUsage, 
 }
 
 func computeRepoDiskUsage(ctx context.Context, repoPath string) (RepoDiskUsage, error) {
-	result, err := runResult(ctx, repoPath, "count-objects", "-v")
+	result, err := gitexec.RunIn(ctx, repoPath, "count-objects", "-v")
 	if err != nil {
 		return RepoDiskUsage{}, err
 	}
@@ -53,7 +53,7 @@ func computeRepoDiskUsage(ctx context.Context, repoPath string) (RepoDiskUsage, 
 // unchecked Run because fsck exits non-zero exactly when it has something to
 // report, and RunChecked would discard that output.
 func FsckCheck(ctx context.Context, repoPath string) ([]string, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"fsck", "--no-dangling"}})
+	result, err := gitexec.Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"fsck", "--no-dangling"}})
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +68,6 @@ func FsckCheck(ctx context.Context, repoPath string) ([]string, error) {
 }
 
 func RunGC(ctx context.Context, repoPath string) error {
-	_, err := runResult(ctx, repoPath, "gc", "--prune")
+	_, err := gitexec.RunIn(ctx, repoPath, "gc", "--prune")
 	return err
 }

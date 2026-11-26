@@ -60,7 +60,7 @@ func FilesAtWith(ctx context.Context, repoPath string, env []string, files []Rev
 
 // Blobs reads each object named in one process, nil where it isn't a file.
 func Blobs(ctx context.Context, repoPath string, env, names []string) ([][]byte, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	result, err := gitexec.RunChecked(ctx, gitexec.Command{
 		Dir:   repoPath,
 		Env:   env,
 		Args:  []string{"cat-file", "--batch"},

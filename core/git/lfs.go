@@ -14,7 +14,7 @@ func LFSPaths(ctx context.Context, repoPath string, paths []string) (map[string]
 	if len(paths) == 0 {
 		return lfs, nil
 	}
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	result, err := gitexec.RunChecked(ctx, gitexec.Command{
 		Dir:   repoPath,
 		Args:  []string{"check-attr", "--stdin", "-z", "filter"},
 		Stdin: strings.NewReader(strings.Join(paths, "\x00") + "\x00"),
@@ -35,6 +35,6 @@ func LFSPaths(ctx context.Context, repoPath string, paths []string) (map[string]
 // LFSInstalled reports whether the git-lfs extension is available. Without it,
 // files stored in LFS are left as small pointer files in the working tree.
 func LFSInstalled(ctx context.Context) bool {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Args: []string{"lfs", "version"}})
+	result, err := gitexec.Run(ctx, gitexec.Command{Args: []string{"lfs", "version"}})
 	return err == nil && result.ExitCode == 0
 }

@@ -109,24 +109,6 @@ func ContinueWithMessage(ctx context.Context, repoPath string, op ConflictOperat
 	return ContinueConflictOperation(ctx, repoPath, op)
 }
 
-// runStoppable runs a command that can stop on conflicts. A stop that leaves
-// the operation in progress isn't a failure: the conflict banner finishes it.
-func runStoppable(ctx context.Context, cmd gitexec.Command) (gitexec.Result, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, cmd)
-	if err != nil {
-		return gitexec.Result{}, gitexec.WrapRunError(err)
-	}
-	if result.ExitCode == 0 {
-		return result, nil
-	}
-	if strings.Contains(result.Stdout, "CONFLICT (") {
-		if state, err := DetectConflictState(ctx, cmd.Dir); err == nil && state.Operation != ConflictNone {
-			return result, nil
-		}
-	}
-	return gitexec.Result{}, gitexec.WrapResult(result)
-}
-
 func conflictOperation(dir string) ConflictOperation {
 	switch {
 	case fileExists(filepath.Join(dir, "MERGE_HEAD")):
@@ -203,7 +185,7 @@ func ConflictSides(ctx context.Context, repoPath string) (ConflictSideNames, err
 
 // commitName is a branch at rev, local first, or its short SHA.
 func commitName(ctx context.Context, repoPath, rev string) string {
-	result, err := runResult(ctx, repoPath, "for-each-ref", "--points-at="+rev, "--format=%(refname)%09%(refname:short)", "refs/heads", "refs/remotes")
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--points-at="+rev, "--format=%(refname)%09%(refname:short)", "refs/heads", "refs/remotes")
 	if err == nil {
 		for _, line := range strings.Split(result.Stdout, "\n") {
 			// origin/HEAD shortens to just "origin".
@@ -216,7 +198,7 @@ func commitName(ctx context.Context, repoPath, rev string) string {
 }
 
 func shortSHA(ctx context.Context, repoPath, rev string) string {
-	result, err := runResult(ctx, repoPath, "rev-parse", "--short", rev)
+	result, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--short", rev)
 	if err != nil {
 		return rev
 	}
@@ -245,7 +227,7 @@ func KeepConflictSide(ctx context.Context, repoPath, path string, side ConflictS
 	default:
 		return fmt.Errorf("unknown side %q", side)
 	}
-	stages, err := runResult(ctx, repoPath, "ls-files", "-u", "-z", "--", path)
+	stages, err := gitexec.RunIn(ctx, repoPath, "ls-files", "-u", "-z", "--", path)
 	if err != nil {
 		return err
 	}
@@ -257,13 +239,13 @@ func KeepConflictSide(ctx context.Context, repoPath, path string, side ConflictS
 		}
 	}
 	if !kept {
-		_, err := runResult(ctx, repoPath, "rm", "--quiet", "--", path)
+		_, err := gitexec.RunIn(ctx, repoPath, "rm", "--quiet", "--", path)
 		return err
 	}
-	if _, err := runResult(ctx, repoPath, "checkout", "--"+string(side), "--", path); err != nil {
+	if _, err := gitexec.RunIn(ctx, repoPath, "checkout", "--"+string(side), "--", path); err != nil {
 		return err
 	}
-	_, err = runResult(ctx, repoPath, "add", "--", path)
+	_, err = gitexec.RunIn(ctx, repoPath, "add", "--", path)
 	return err
 }
 
@@ -318,7 +300,7 @@ func AbortConflictOperation(ctx context.Context, repoPath string, op ConflictOpe
 	if err != nil {
 		return err
 	}
-	_, err = runResult(ctx, repoPath, args...)
+	_, err = gitexec.RunIn(ctx, repoPath, args...)
 	return err
 }
 
@@ -328,14 +310,4 @@ func conflictOpArgs(op ConflictOperation, flag string) ([]string, error) {
 		return []string{string(op), flag}, nil
 	}
 	return nil, errors.New("no conflict operation in progress")
-}
-
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && !info.IsDir()
-}
-
-func dirExists(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && info.IsDir()
 }

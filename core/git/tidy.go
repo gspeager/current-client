@@ -108,7 +108,7 @@ func tidyRange(plan TidyPlan) string {
 }
 
 func fillTidyCommits(ctx context.Context, repoPath string, plan *TidyPlan) error {
-	result, err := runResult(ctx, repoPath, "log", "--reverse", "-z", "--format=%H%x1f%P%x1f%s%x1f%B", tidyRange(*plan))
+	result, err := gitexec.RunIn(ctx, repoPath, "log", "--reverse", "-z", "--format=%H%x1f%P%x1f%s%x1f%B", tidyRange(*plan))
 	if err != nil {
 		return err
 	}
@@ -408,6 +408,6 @@ func RunTidy(ctx context.Context, repoPath, expectedHead string, steps []TidySte
 
 // FixupInto commits what's staged as a fixup of sha, for Tidy up history to fold in.
 func FixupInto(ctx context.Context, repoPath, sha string) error {
-	_, err := runResult(ctx, repoPath, "commit", "--no-edit", "--fixup="+sha)
+	_, err := gitexec.RunIn(ctx, repoPath, "commit", "--no-edit", "--fixup="+sha)
 	return err
 }

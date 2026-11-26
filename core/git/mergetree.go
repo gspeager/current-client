@@ -64,7 +64,7 @@ func MergeInMemory(ctx context.Context, repoPath string, env []string, ours, the
 }
 
 func mergeTree(ctx context.Context, repoPath string, env []string, args ...string) (MergeResult, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Env:  env,
 		Args: append([]string{"merge-tree", "--write-tree", "--name-only", "--no-messages", "-z"}, args...),
@@ -276,7 +276,7 @@ func mergeTreeBatch(ctx context.Context, repoPath string, env []string, pairs []
 	for _, pair := range pairs {
 		fmt.Fprintf(&input, "%s %s\n", pair[0], pair[1])
 	}
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:   repoPath,
 		Env:   env,
 		Args:  []string{"merge-tree", "--write-tree", "--stdin", "--name-only", "--no-messages", "-z"},
@@ -323,7 +323,7 @@ func SharingHistory(ctx context.Context, repoPath, ours string, namespaces ...st
 	if len(namespaces) == 0 {
 		namespaces = []string{"refs/heads", "refs/remotes"}
 	}
-	roots, err := runResult(ctx, repoPath, "rev-list", "--max-parents=0", ours)
+	roots, err := gitexec.RunIn(ctx, repoPath, "rev-list", "--max-parents=0", ours)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +331,7 @@ func SharingHistory(ctx context.Context, repoPath, ours string, namespaces ...st
 	for _, root := range strings.Fields(roots.Stdout) {
 		args = append(args, "--contains="+root)
 	}
-	containing, err := runResult(ctx, repoPath, append(args, namespaces...)...)
+	containing, err := gitexec.RunIn(ctx, repoPath, append(args, namespaces...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -344,6 +344,6 @@ func SharingHistory(ctx context.Context, repoPath, ours string, namespaces ...st
 
 // SparseCheckout says whether only some of HEAD's files are checked out.
 func SparseCheckout(ctx context.Context, repoPath string) bool {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"config", "--bool", "core.sparseCheckout"}})
+	result, err := gitexec.Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"config", "--bool", "core.sparseCheckout"}})
 	return err == nil && strings.TrimSpace(result.Stdout) == "true"
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"slices"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type Remote struct {
@@ -14,7 +16,7 @@ type Remote struct {
 
 func ListRemotes(ctx context.Context, repoPath string) ([]Remote, error) {
 	remotes, err := cachedByRefs(ctx, repoPath, "remotes", func() ([]Remote, error) {
-		result, err := runResult(ctx, repoPath, "remote", "-v")
+		result, err := gitexec.RunIn(ctx, repoPath, "remote", "-v")
 		if err != nil {
 			return nil, err
 		}
@@ -24,17 +26,17 @@ func ListRemotes(ctx context.Context, repoPath string) ([]Remote, error) {
 }
 
 func AddRemote(ctx context.Context, repoPath, name, url string) error {
-	_, err := runResult(ctx, repoPath, "remote", "add", name, url)
+	_, err := gitexec.RunIn(ctx, repoPath, "remote", "add", name, url)
 	return err
 }
 
 func RemoveRemote(ctx context.Context, repoPath, name string) error {
-	_, err := runResult(ctx, repoPath, "remote", "remove", name)
+	_, err := gitexec.RunIn(ctx, repoPath, "remote", "remove", name)
 	return err
 }
 
 func EditRemote(ctx context.Context, repoPath, name, url string) error {
-	_, err := runResult(ctx, repoPath, "remote", "set-url", name, url)
+	_, err := gitexec.RunIn(ctx, repoPath, "remote", "set-url", name, url)
 	return err
 }
 

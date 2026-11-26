@@ -1,6 +1,10 @@
 package git
 
-import "context"
+import (
+	"context"
+
+	"github.com/gspeager/current-client/core/gitexec"
+)
 
 type ResetMode string
 
@@ -14,6 +18,6 @@ const (
 )
 
 func Reset(ctx context.Context, repoPath, ref string, mode ResetMode) error {
-	_, err := runResult(ctx, repoPath, "reset", "--"+string(mode), ref)
+	_, err := gitexec.RunIn(ctx, repoPath, "reset", "--"+string(mode), ref)
 	return err
 }

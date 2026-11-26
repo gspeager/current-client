@@ -20,7 +20,7 @@ type HTTPConfig struct {
 // HTTPConfigFor reads `git config --get-urlmatch http <url>` from the global
 // and system configuration; repoPath may be empty.
 func HTTPConfigFor(ctx context.Context, repoPath, rawURL string) (HTTPConfig, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: []string{"config", "-z", "--get-urlmatch", "http", rawURL},
 	})

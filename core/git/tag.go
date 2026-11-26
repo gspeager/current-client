@@ -4,6 +4,8 @@ import (
 	"context"
 	"slices"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type Tag struct {
@@ -15,7 +17,7 @@ type Tag struct {
 
 func ListTags(ctx context.Context, repoPath string) ([]Tag, error) {
 	tags, err := cachedByRefs(ctx, repoPath, "tags", func() ([]Tag, error) {
-		result, err := runResult(ctx, repoPath, "for-each-ref",
+		result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref",
 			"--format=%(refname:short)%09%(objectname)%09%(*objectname)%09%(creatordate:iso-strict)",
 			"--sort=-v:refname", "--sort=-creatordate", "refs/tags")
 		if err != nil {
@@ -56,28 +58,28 @@ func CreateTag(ctx context.Context, repoPath, name, message, target string) erro
 	if target != "" {
 		args = append(args, target)
 	}
-	_, err := runResult(ctx, repoPath, args...)
+	_, err := gitexec.RunIn(ctx, repoPath, args...)
 	return err
 }
 
 func DeleteTag(ctx context.Context, repoPath, name string) error {
-	_, err := runResult(ctx, repoPath, "tag", "-d", name)
+	_, err := gitexec.RunIn(ctx, repoPath, "tag", "-d", name)
 	return err
 }
 
 func PushTag(ctx context.Context, repoPath, remote, name string) error {
-	_, err := runResult(ctx, repoPath, "push", remote, name)
+	_, err := gitexec.RunIn(ctx, repoPath, "push", remote, name)
 	return err
 }
 
 // DeleteRemoteTag uses the full ref so a branch of the same name is never deleted instead.
 func DeleteRemoteTag(ctx context.Context, repoPath, remote, name string) error {
-	_, err := runResult(ctx, repoPath, "push", remote, "--delete", "refs/tags/"+name)
+	_, err := gitexec.RunIn(ctx, repoPath, "push", remote, "--delete", "refs/tags/"+name)
 	return err
 }
 
 func TagMessage(ctx context.Context, repoPath, name string) (subject, body string, err error) {
-	result, err := runResult(ctx, repoPath, "for-each-ref", "--format=%(contents:subject)%1e%(contents:body)", "refs/tags/"+name)
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--format=%(contents:subject)%1e%(contents:body)", "refs/tags/"+name)
 	if err != nil {
 		return "", "", err
 	}
@@ -95,7 +97,7 @@ func LatestTag(ctx context.Context, repoPath, ref string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	result, err := runResult(ctx, repoPath, "describe", "--tags", "--abbrev=0", sha)
+	result, err := gitexec.RunIn(ctx, repoPath, "describe", "--tags", "--abbrev=0", sha)
 	if err != nil {
 		return "", nil
 	}
@@ -116,11 +118,11 @@ func TagsInRange(ctx context.Context, repoPath, from, to string) ([]DatedTag, er
 	if err != nil {
 		return nil, err
 	}
-	ordered, err := runResult(ctx, repoPath, "log", "--topo-order", "--decorate-refs=refs/tags/", "--format=%H %D", rev)
+	ordered, err := gitexec.RunIn(ctx, repoPath, "log", "--topo-order", "--decorate-refs=refs/tags/", "--format=%H %D", rev)
 	if err != nil {
 		return nil, err
 	}
-	dates, err := runResult(ctx, repoPath, "for-each-ref", "--format=%(refname:short)%09%(creatordate:short)", "refs/tags")
+	dates, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--format=%(refname:short)%09%(creatordate:short)", "refs/tags")
 	if err != nil {
 		return nil, err
 	}

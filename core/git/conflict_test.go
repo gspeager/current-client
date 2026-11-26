@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gspeager/current-client/core/gitexec"
 	"github.com/gspeager/current-client/core/internal/gittest"
 )
 
@@ -306,7 +307,7 @@ func initAmConflictRepo(t *testing.T) (dir, patchPath string) {
 	gittest.CommitFile(t, dir, "file.txt", "theirs\n", "theirs change")
 
 	patchPath = filepath.Join(t.TempDir(), "theirs.patch")
-	result, err := runResult(context.Background(), dir, "format-patch", "-1", "HEAD", "--stdout")
+	result, err := gitexec.RunIn(context.Background(), dir, "format-patch", "-1", "HEAD", "--stdout")
 	if err != nil {
 		t.Fatalf("format-patch: %v", err)
 	}

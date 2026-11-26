@@ -14,7 +14,7 @@ const parallelProcesses = 4
 // MergeBase is the last commit two lines of history share, "" when they
 // share none.
 func MergeBase(ctx context.Context, repoPath, a, b string) (string, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"merge-base", a, b}})
+	result, err := gitexec.Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"merge-base", a, b}})
 	if err != nil {
 		return "", gitexec.WrapRunError(err)
 	}

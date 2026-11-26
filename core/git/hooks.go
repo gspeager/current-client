@@ -61,7 +61,7 @@ var (
 // ReadHooks lists the hooks Git would run, and those turned off. It runs none.
 func ReadHooks(ctx context.Context, repoPath string) (Hooks, error) {
 	// All relative to repoPath, so they compare: --path-format=absolute needs Git 2.31.
-	result, err := runResult(ctx, repoPath, "rev-parse", "--git-path", "hooks", "--git-common-dir", "--show-cdup")
+	result, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--git-path", "hooks", "--git-common-dir", "--show-cdup")
 	if err != nil {
 		return Hooks{}, err
 	}
@@ -72,15 +72,15 @@ func ReadHooks(ctx context.Context, repoPath string) (Hooks, error) {
 	}
 	hooks := Hooks{Dir: filepath.Clean(absoluteIn(repoPath, lines[0])), Worktrees: 1}
 	common, top := absoluteIn(repoPath, lines[1]), filepath.Clean(filepath.Join(repoPath, lines[2]))
-	if scoped, err := runResult(ctx, repoPath, "config", "--show-scope", "--get", "core.hooksPath"); err == nil {
+	if scoped, err := gitexec.RunIn(ctx, repoPath, "config", "--show-scope", "--get", "core.hooksPath"); err == nil {
 		hooks.Scope, _, _ = strings.Cut(scoped.Stdout, "\t")
 	}
 	// A folder in the checkout is each worktree's own; any other is shared.
 	if inside(top, hooks.Dir) && !inside(common, hooks.Dir) {
 		rel, _ := filepath.Rel(top, hooks.Dir)
-		tracked, err := runResult(ctx, repoPath, "ls-files", "--", filepath.ToSlash(rel))
+		tracked, err := gitexec.RunIn(ctx, repoPath, "ls-files", "--", filepath.ToSlash(rel))
 		hooks.Tracked = err == nil && strings.TrimSpace(tracked.Stdout) != ""
-	} else if worktrees, err := runResult(ctx, repoPath, "worktree", "list", "--porcelain"); err == nil {
+	} else if worktrees, err := gitexec.RunIn(ctx, repoPath, "worktree", "list", "--porcelain"); err == nil {
 		hooks.Worktrees = strings.Count("\n"+worktrees.Stdout, "\nworktree ")
 	}
 	if hooks.List, err = directoryHooks(hooks.Dir); err != nil {
@@ -172,7 +172,7 @@ func managerOf(path string) string {
 // configHooks reads hook.<name>.* at every scope. supported is false for a Git
 // that doesn't run them (before 2.54).
 func configHooks(ctx context.Context, repoPath string) (hooks []Hook, supported bool, err error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: []string{"config", "--show-scope", "-z", "--get-regexp", `^hook\.`},
 	})
@@ -245,7 +245,7 @@ func configTrue(value string) bool {
 // A Git that runs config hooks lists one for its event. One without them has no
 // git hook list --show-scope (exit 129), or before 2.36 no git hook (exit 1).
 func configHooksSupported(ctx context.Context, repoPath, event string) (bool, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: []string{"hook", "list", "--show-scope", event},
 	})
@@ -324,19 +324,19 @@ func setFileHookOn(path string, on bool) error {
 func setConfigHookOn(ctx context.Context, repoPath, name string, on bool) error {
 	key := "hook." + name + ".enabled"
 	if !on {
-		_, err := runResult(ctx, repoPath, "config", "--local", key, "false")
+		_, err := gitexec.RunIn(ctx, repoPath, "config", "--local", key, "false")
 		return err
 	}
 	// It exits 5 when there's nothing to unset.
-	unset, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"config", "--local", "--unset-all", key}})
+	unset, err := gitexec.Run(ctx, gitexec.Command{Dir: repoPath, Args: []string{"config", "--local", "--unset-all", key}})
 	if err != nil {
 		return gitexec.WrapRunError(err)
 	}
 	if unset.ExitCode != 0 && unset.ExitCode != 5 {
 		return gitexec.WrapResult(unset)
 	}
-	if value, err := runResult(ctx, repoPath, "config", "--get", key); err == nil && !configTrue(strings.TrimSpace(value.Stdout)) {
-		_, err := runResult(ctx, repoPath, "config", "--local", key, "true")
+	if value, err := gitexec.RunIn(ctx, repoPath, "config", "--get", key); err == nil && !configTrue(strings.TrimSpace(value.Stdout)) {
+		_, err := gitexec.RunIn(ctx, repoPath, "config", "--local", key, "true")
 		return err
 	}
 	return nil

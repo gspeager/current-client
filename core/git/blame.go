@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/gspeager/current-client/core/gitexec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 type BlameLine struct {
@@ -38,7 +39,7 @@ func BlameAt(ctx context.Context, repoPath, path, rev string) ([]BlameLine, erro
 	if rev != "" {
 		args = append(args, rev)
 	}
-	result, err := runResult(ctx, repoPath, append(args, "--", path)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append(args, "--", path)...)
 	if err != nil {
 		return nil, err
 	}

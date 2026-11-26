@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // FileLines is a file's size at a commit. A binary file has no lines.
@@ -20,11 +22,11 @@ const largestCounted = 10 << 20
 // LineCounts is every file at rev with its number of lines, from one diff against
 // nothing. Submodules aren't files.
 func LineCounts(ctx context.Context, repoPath, rev string) ([]FileLines, error) {
-	empty, err := runResult(ctx, repoPath, "hash-object", "-t", "tree", "--stdin")
+	empty, err := gitexec.RunIn(ctx, repoPath, "hash-object", "-t", "tree", "--stdin")
 	if err != nil {
 		return nil, err
 	}
-	result, err := runResult(ctx, repoPath,
+	result, err := gitexec.RunIn(ctx, repoPath,
 		"-c", "core.bigFileThreshold="+strconv.Itoa(largestCounted),
 		"diff", "--numstat", "-z", "--no-renames", "--no-ext-diff", "--no-textconv", "--no-relative", "--ignore-submodules",
 		strings.TrimSpace(empty.Stdout), rev)
@@ -55,7 +57,7 @@ type FileActivity struct {
 // more says the history goes further back. Merges aren't counted, so a merged
 // branch's commits aren't counted twice.
 func FileCommits(ctx context.Context, repoPath, rev string, periods []int, mostCommits int) (files []FileActivity, more bool, err error) {
-	result, err := runResult(ctx, repoPath, "-c", "log.showRoot=true", "log", "--no-merges", "--no-renames", "--no-ext-diff", "--no-show-signature",
+	result, err := gitexec.RunIn(ctx, repoPath, "-c", "log.showRoot=true", "log", "--no-merges", "--no-renames", "--no-ext-diff", "--no-show-signature",
 		"--max-count="+strconv.Itoa(mostCommits+1), "--format=%x01%ct", "--name-only", "-z", rev, "--")
 	if err != nil {
 		return nil, false, err

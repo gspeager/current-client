@@ -10,24 +10,24 @@ import (
 // PushOutput returns what the remote printed, where a host puts a link to
 // create a merge request / pull request.
 func PushOutput(ctx context.Context, repoPath string) (string, error) {
-	result, err := runResult(ctx, repoPath, "push")
+	result, err := gitexec.RunIn(ctx, repoPath, "push")
 	return result.Stderr, err
 }
 
 func PushSetUpstreamOutput(ctx context.Context, repoPath, remote, branch string) (string, error) {
-	result, err := runResult(ctx, repoPath, "push", "--set-upstream", remote, branch)
+	result, err := gitexec.RunIn(ctx, repoPath, "push", "--set-upstream", remote, branch)
 	return result.Stderr, err
 }
 
 func PushTags(ctx context.Context, repoPath, remote string) error {
-	_, err := runResult(ctx, repoPath, "push", remote, "--tags")
+	_, err := gitexec.RunIn(ctx, repoPath, "push", remote, "--tags")
 	return err
 }
 
 // ForcePush uses --force-with-lease so it can't discard commits pushed by
 // someone else since the last fetch.
 func ForcePush(ctx context.Context, repoPath, remote, branch string) error {
-	_, err := runResult(ctx, repoPath, "push", "--force-with-lease", remote, branch)
+	_, err := gitexec.RunIn(ctx, repoPath, "push", "--force-with-lease", remote, branch)
 	return err
 }
 
@@ -35,11 +35,11 @@ func ForcePush(ctx context.Context, repoPath, remote, branch string) error {
 // upstream, which can have a different name from the local branch and sit on a
 // remote whose name contains slashes. Like ForcePush it uses --force-with-lease.
 func ForcePushUpstream(ctx context.Context, repoPath string) error {
-	head, err := runResult(ctx, repoPath, "symbolic-ref", "-q", "HEAD")
+	head, err := gitexec.RunIn(ctx, repoPath, "symbolic-ref", "-q", "HEAD")
 	if err != nil {
 		return &gitexec.AppError{Message: "Check out a branch to force-push it."}
 	}
-	upstream, err := runResult(ctx, repoPath, "for-each-ref",
+	upstream, err := gitexec.RunIn(ctx, repoPath, "for-each-ref",
 		"--format=%(upstream:remotename)%09%(upstream:remoteref)", strings.TrimSpace(head.Stdout))
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func ForcePushUpstream(ctx context.Context, repoPath string) error {
 	if remote == "" || remote == "." || remoteRef == "" {
 		return &gitexec.AppError{Message: "No upstream configured to force-push to."}
 	}
-	_, err = runResult(ctx, repoPath, "push", "--force-with-lease", remote, "HEAD:"+remoteRef)
+	_, err = gitexec.RunIn(ctx, repoPath, "push", "--force-with-lease", remote, "HEAD:"+remoteRef)
 	return err
 }
 
@@ -57,6 +57,6 @@ func ForcePushUpstream(ctx context.Context, repoPath string) error {
 // the same name from being deleted instead; git drops the matching
 // remote-tracking branch itself.
 func DeleteRemoteBranch(ctx context.Context, repoPath, remote, branch string) error {
-	_, err := runResult(ctx, repoPath, "push", remote, "--delete", "refs/heads/"+branch)
+	_, err := gitexec.RunIn(ctx, repoPath, "push", remote, "--delete", "refs/heads/"+branch)
 	return err
 }

@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 const appRefNamespace = "refs/current-client/"
@@ -36,7 +38,7 @@ func RefAt(ctx context.Context, repoPath, sha, branch string) (string, error) {
 	if sha == "" {
 		return "", nil
 	}
-	result, err := runResult(ctx, repoPath, "for-each-ref", "--points-at="+sha, "--format=%(refname)", "refs/heads", "refs/remotes", hostRefPrefix)
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--points-at="+sha, "--format=%(refname)", "refs/heads", "refs/remotes", hostRefPrefix)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +55,7 @@ func RefAt(ctx context.Context, repoPath, sha, branch string) (string, error) {
 		}
 	}
 	local := "refs/heads/" + branch
-	ahead, err := runResult(ctx, repoPath, "rev-list", "--max-count="+strconv.Itoa(mostAhead), local)
+	ahead, err := gitexec.RunIn(ctx, repoPath, "rev-list", "--max-count="+strconv.Itoa(mostAhead), local)
 	if err == nil && slices.Contains(strings.Fields(ahead.Stdout), sha) {
 		return local, nil
 	}
@@ -76,7 +78,7 @@ func FetchHostChangeHeads(ctx context.Context, repoPath, remote string, refs map
 	for number, remoteRef := range refs {
 		args = append(args, "+"+remoteRef+":"+HostChangeRef(remote, number))
 	}
-	_, err := runResult(ctx, repoPath, args...)
+	_, err := gitexec.RunIn(ctx, repoPath, args...)
 	return err
 }
 
@@ -84,7 +86,7 @@ func FetchHostChangeHeads(ctx context.Context, repoPath, remote string, refs map
 // when remote is empty. It also finds heads 0.5.0 and earlier fetched directly
 // under the namespace, at refs/current-client/<remote>/mr/<number>.
 func DeleteHostRefs(ctx context.Context, repoPath, remote string) error {
-	result, err := runResult(ctx, repoPath, "for-each-ref", "--format=%(refname)", appRefNamespace)
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--format=%(refname)", appRefNamespace)
 	if err != nil {
 		return err
 	}
@@ -92,7 +94,7 @@ func DeleteHostRefs(ctx context.Context, repoPath, remote string) error {
 		if !isHostRef(ref, remote) {
 			continue
 		}
-		if _, err := runResult(ctx, repoPath, "update-ref", "-d", ref); err != nil {
+		if _, err := gitexec.RunIn(ctx, repoPath, "update-ref", "-d", ref); err != nil {
 			return err
 		}
 	}

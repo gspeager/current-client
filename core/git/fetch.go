@@ -5,25 +5,27 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 func Fetch(ctx context.Context, repoPath, remote string) error {
-	_, err := runResult(ctx, repoPath, "fetch", remote)
+	_, err := gitexec.RunIn(ctx, repoPath, "fetch", remote)
 	return err
 }
 
 func FetchPrune(ctx context.Context, repoPath, remote string) error {
-	_, err := runResult(ctx, repoPath, "fetch", "--prune", remote)
+	_, err := gitexec.RunIn(ctx, repoPath, "fetch", "--prune", remote)
 	return err
 }
 
 func FetchAll(ctx context.Context, repoPath string) error {
-	_, err := runResult(ctx, repoPath, "fetch", "--all")
+	_, err := gitexec.RunIn(ctx, repoPath, "fetch", "--all")
 	return err
 }
 
 func FetchAllPrune(ctx context.Context, repoPath string) error {
-	_, err := runResult(ctx, repoPath, "fetch", "--all", "--prune")
+	_, err := gitexec.RunIn(ctx, repoPath, "fetch", "--all", "--prune")
 	return err
 }
 

@@ -3,6 +3,8 @@ package git
 import (
 	"context"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // MergedBranch is a local branch whose work is already in Base. Newer means
@@ -89,7 +91,7 @@ func mergedWithoutFetching(ctx context.Context, repoPath, base string, tips []st
 	if !PartialClone(ctx, repoPath) {
 		return MergedInto(ctx, repoPath, base, tips)
 	}
-	result, err := runResult(ctx, repoPath, "for-each-ref", "--merged="+base, "--format=%(objectname) %(refname:short)",
+	result, err := gitexec.RunIn(ctx, repoPath, "for-each-ref", "--merged="+base, "--format=%(objectname) %(refname:short)",
 		"refs/heads", "refs/remotes")
 	if err != nil {
 		return nil, err
@@ -111,7 +113,7 @@ func MergedInto(ctx context.Context, repoPath, base string, tips []string) ([]bo
 	if len(tips) == 0 {
 		return nil, nil
 	}
-	baseTree, err := runResult(ctx, repoPath, "rev-parse", "--verify", base+"^{tree}")
+	baseTree, err := gitexec.RunIn(ctx, repoPath, "rev-parse", "--verify", base+"^{tree}")
 	if err != nil {
 		return nil, err
 	}

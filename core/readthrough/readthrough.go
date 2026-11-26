@@ -101,7 +101,7 @@ func FileDiff(ctx context.Context, repoPath string, r Range, origPath, path stri
 	}
 	// So an untracked file is compared as a tracked one is. A deleted one has
 	// nothing to add, and an ignored one was never listed.
-	_, _ = gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	_, _ = gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Env:  env,
 		Args: []string{"add", "--intent-to-add", "--", ":(literal)" + path},

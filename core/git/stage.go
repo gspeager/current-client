@@ -1,6 +1,10 @@
 package git
 
-import "context"
+import (
+	"context"
+
+	"github.com/gspeager/current-client/core/gitexec"
+)
 
 func StageFile(ctx context.Context, repoPath, path string) error {
 	return StageFiles(ctx, repoPath, []string{path})
@@ -16,7 +20,7 @@ func StageFiles(ctx context.Context, repoPath string, paths []string) error {
 	if len(paths) == 0 {
 		return nil
 	}
-	_, err := runResult(ctx, repoPath, append([]string{"add", "--"}, paths...)...)
+	_, err := gitexec.RunIn(ctx, repoPath, append([]string{"add", "--"}, paths...)...)
 	return err
 }
 
@@ -24,6 +28,6 @@ func UnstageFiles(ctx context.Context, repoPath string, paths []string) error {
 	if len(paths) == 0 {
 		return nil
 	}
-	_, err := runResult(ctx, repoPath, append([]string{"reset", "--"}, paths...)...)
+	_, err := gitexec.RunIn(ctx, repoPath, append([]string{"reset", "--"}, paths...)...)
 	return err
 }

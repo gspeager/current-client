@@ -22,7 +22,7 @@ func ChangedFiles(ctx context.Context, repoPath, sha string) ([]ChangedFile, err
 	if err != nil {
 		return nil, err
 	}
-	result, err := runResult(ctx, repoPath, append([]string{"diff-tree", "--no-commit-id", "--name-status", "-r", "-z", "--root"}, trees...)...)
+	result, err := gitexec.RunIn(ctx, repoPath, append([]string{"diff-tree", "--no-commit-id", "--name-status", "-r", "-z", "--root"}, trees...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func commitTrees(ctx context.Context, repoPath, sha string) ([]string, error) {
 }
 
 func parentCount(ctx context.Context, repoPath, rev string) (int, error) {
-	result, err := runResult(ctx, repoPath, "rev-list", "--parents", "-n", "1", rev)
+	result, err := gitexec.RunIn(ctx, repoPath, "rev-list", "--parents", "-n", "1", rev)
 	if err != nil {
 		return 0, err
 	}
@@ -78,7 +78,7 @@ func TreeChangesWithoutRenames(ctx context.Context, repoPath string, env []strin
 }
 
 func treeChanges(ctx context.Context, repoPath string, env []string, renames, from, to string) ([]TreeChange, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(ctx, gitexec.Command{
+	result, err := gitexec.RunChecked(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Env:  env,
 		Args: []string{"diff", "--raw", "--numstat", "--no-abbrev", "--no-ext-diff", "--no-relative", renames, "-z", from, to},
@@ -134,7 +134,7 @@ func fileVersion(mode, blob string) FileVersion {
 // RefRangeChangedFiles compares the two tips directly (not against their
 // merge base), matching diff.GetRefDiff so the list and its diffs agree.
 func RefRangeChangedFiles(ctx context.Context, repoPath, fromRef, toRef string) ([]ChangedFile, error) {
-	result, err := runResult(ctx, repoPath, "diff", "--name-status", "-z", fromRef, toRef)
+	result, err := gitexec.RunIn(ctx, repoPath, "diff", "--name-status", "-z", fromRef, toRef)
 	if err != nil {
 		return nil, err
 	}

@@ -31,10 +31,7 @@ const (
 	baseFolder = "base/"
 )
 
-var identity = []string{
-	"GIT_AUTHOR_NAME=Current Client", "GIT_AUTHOR_EMAIL=read@localhost",
-	"GIT_COMMITTER_NAME=Current Client", "GIT_COMMITTER_EMAIL=read@localhost",
-}
+var identity = gitexec.Identity("read@localhost")
 
 // Marking reads the last mark and replaces it.
 var marking sync.Mutex
@@ -52,7 +49,7 @@ type Mark struct {
 
 // Marks is what has been read under key, by path.
 func Marks(ctx context.Context, repoPath, key string) (map[string]Mark, error) {
-	result, err := gitexec.NewExecutor("").Run(ctx, gitexec.Command{
+	result, err := gitexec.Run(ctx, gitexec.Command{
 		Dir:  repoPath,
 		Args: []string{"ls-tree", "-r", "-z", "--full-tree", markRef(key)},
 	})
@@ -175,7 +172,7 @@ func (m marker) writeTree(from string, entries map[string]git.FileVersion, idLen
 }
 
 func (m marker) run(input string, args ...string) (string, error) {
-	result, err := gitexec.NewExecutor("").RunChecked(m.ctx, gitexec.Command{
+	result, err := gitexec.RunChecked(m.ctx, gitexec.Command{
 		Dir:   m.repoPath,
 		Env:   append(append([]string{}, m.env...), identity...),
 		Args:  args,

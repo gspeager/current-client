@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/gspeager/current-client/core/gitexec"
 )
 
 // ConventionalCommit.Type is lowercased, and empty when the message doesn't
@@ -45,7 +47,7 @@ func ParseConventional(subject, body string) ConventionalCommit {
 // FollowsConventionalCommits reports whether more than half of HEAD's recent
 // non-merge commits parse.
 func FollowsConventionalCommits(ctx context.Context, repoPath string) (bool, error) {
-	result, err := runResult(ctx, repoPath, "log", "--no-merges", "-z", "--format=%s", "-n", strconv.Itoa(conventionalSampleSize))
+	result, err := gitexec.RunIn(ctx, repoPath, "log", "--no-merges", "-z", "--format=%s", "-n", strconv.Itoa(conventionalSampleSize))
 	if err != nil {
 		if hasNoCommits(ctx, repoPath) {
 			return false, nil
