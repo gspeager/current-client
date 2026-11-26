@@ -145,6 +145,16 @@ describe('HistoryView', () => {
       expect(screen.getByRole('row', { name: /Initial commit/ })).toBeInTheDocument()
     })
 
+    it('shows a typed type in the menu where the repository has no Conventional Commits', async () => {
+      vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
+      renderHistory()
+      await screen.findByRole('row', { name: /Initial commit/ })
+      expect(screen.queryByRole('combobox', { name: 'Type filter' })).toBeNull()
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'type:fix' } })
+      expect(await screen.findByRole('combobox', { name: 'Type filter' })).toBeInTheDocument()
+      expect(screen.getByLabelText('Filters, 1 on')).toBeInTheDocument()
+    })
+
     it('writes a change in the Filters menu into the box', async () => {
       vi.mocked(HistoryService.GetHistory).mockResolvedValue(history)
       renderHistory()

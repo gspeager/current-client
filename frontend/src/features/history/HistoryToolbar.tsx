@@ -46,13 +46,9 @@ function HistoryToolbar({
   copied,
 }: HistoryToolbarProps) {
   const filtersRef = useDismissibleDetails()
-  const active = [
-    typed.since !== '',
-    typed.until !== '',
-    showTypeFilter && typed.type !== '',
-    typed.author !== '',
-    hideMerges,
-  ].filter(Boolean).length
+  const active = [typed.since !== '', typed.until !== '', typed.type !== '', typed.author !== '', hideMerges].filter(
+    Boolean,
+  ).length
   const since = SINCE_PRESETS.includes(typed.since.toLowerCase()) ? typed.since.toLowerCase() : typed.since && 'custom'
 
   return (
@@ -113,7 +109,7 @@ function HistoryToolbar({
               {since === 'custom' && <option value="custom">Since {typed.since}</option>}
             </select>
           </label>
-          {showTypeFilter && (
+          {(showTypeFilter || typed.type !== '') && (
             <label className="history-toolbar-filters-row">
               <span>Type</span>
               <select
