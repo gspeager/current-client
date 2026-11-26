@@ -32,8 +32,7 @@ type branchSnapshot struct {
 }
 
 func snapshotCurrentBranch(info HostInfo, repoPath string) branchSnapshot {
-	var s HostService
-	current, err := s.CurrentChange(repoPath)
+	current, err := currentChange(repoPath)
 	if err != nil || current.Change == nil {
 		return branchSnapshot{}
 	}
@@ -54,8 +53,7 @@ func noticesSince(before branchSnapshot, info HostInfo, repoPath string) []HostN
 	if !before.hasShape {
 		return nil
 	}
-	var s HostService
-	current, err := s.CurrentChange(repoPath)
+	current, err := currentChange(repoPath)
 	if err != nil || current.Change == nil || current.Change.Number != before.number {
 		return nil
 	}

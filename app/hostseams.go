@@ -8,6 +8,8 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
+// The seams the rest of app calls into host integration through. nohost.go
+// stubs each for a build made with -tags nohost; a new seam needs a stub there.
 const hostIntegrationBuilt = true
 
 func hostServices() []application.Service {

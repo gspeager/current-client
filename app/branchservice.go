@@ -260,7 +260,7 @@ func (s *BranchService) ReviewBranches(repoPath string) (BranchReviewInfo, error
 	}
 	info := BranchReviewInfo{Base: review.Base, Rows: []BranchReviewRowInfo{}}
 	merged, open := mergedOnHost(repoPath), openChangesByBranch(repoPath)
-	cfgIdentities := (&IdentityService{}).GetIdentities(mapSlice(review.Rows, func(row git.BranchReviewRow) IdentityRef {
+	cfgIdentities := identitiesOf(mapSlice(review.Rows, func(row git.BranchReviewRow) IdentityRef {
 		return IdentityRef{Name: row.AuthorName, Email: row.AuthorEmail}
 	}))
 	now := time.Now()

@@ -111,6 +111,10 @@ func (s *HostService) Status(hostname string) HostStatusInfo {
 // SetEnabled is the one switch that lets the app contact a host. Turning a
 // host off drops everything the client holds for it.
 func (s *HostService) SetEnabled(hostname string, enabled bool) error {
+	return switchHost(hostname, enabled)
+}
+
+func switchHost(hostname string, enabled bool) error {
 	if _, managed := policy.Host(hostname); managed {
 		return fmt.Errorf("integration for %s is managed by organization policy", hostname)
 	}

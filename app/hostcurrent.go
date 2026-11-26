@@ -31,6 +31,10 @@ type CurrentChange struct {
 }
 
 func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
+	return currentChange(repoPath)
+}
+
+func currentChange(repoPath string) (CurrentChange, error) {
 	_, info, ok, err := enabledHost(repoPath)
 	if err != nil {
 		return CurrentChange{}, err
@@ -46,7 +50,7 @@ func (s *HostService) CurrentChange(repoPath string) (CurrentChange, error) {
 	_, _, result.Checked = cacheChanges.get(info.Hostname, repoPath, info.Project)
 	var change BranchChange
 	if current.Upstream != "" {
-		changes, err := s.BranchChanges(repoPath)
+		changes, err := branchChanges(repoPath)
 		if err != nil {
 			return CurrentChange{}, err
 		}

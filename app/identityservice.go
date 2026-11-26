@@ -21,6 +21,10 @@ type IdentityInfo struct {
 }
 
 func (s *IdentityService) GetIdentities(refs []IdentityRef) []IdentityInfo {
+	return identitiesOf(refs)
+}
+
+func identitiesOf(refs []IdentityRef) []IdentityInfo {
 	cfg := configOrDefault()
 	return mapSlice(refs, func(r IdentityRef) IdentityInfo {
 		return IdentityInfo{

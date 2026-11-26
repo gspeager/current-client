@@ -94,7 +94,7 @@ func (s *SearchService) InRepository(ctx context.Context, repoPath, query string
 		return matches, err
 	}
 	matches.Commits = commitInfos(commits)
-	notes, err := (&NotesService{}).List(repoPath)
+	notes, err := listNotes(repoPath)
 	if err != nil {
 		return matches, err
 	}

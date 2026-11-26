@@ -40,6 +40,10 @@ type cachedChanges struct {
 // reading only what the last fetch and refresh left in the cache: drawing
 // the sidebar or the graph never makes a request.
 func (s *HostService) BranchChanges(repoPath string) (map[string]BranchChange, error) {
+	return branchChanges(repoPath)
+}
+
+func branchChanges(repoPath string) (map[string]BranchChange, error) {
 	remotes, err := git.ListRemotes(context.Background(), repoPath)
 	if err != nil {
 		return nil, err

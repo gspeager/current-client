@@ -93,3 +93,17 @@ func TitleBarTheme() application.Theme {
 	}
 	return application.Dark
 }
+
+func mapSlice[T, U any](in []T, convert func(T) U) []U {
+	out := make([]U, len(in))
+	for i, v := range in {
+		out[i] = convert(v)
+	}
+	return out
+}
+
+func emit(name string, data any) {
+	if running := application.Get(); running != nil {
+		running.Event.Emit(name, data)
+	}
+}
