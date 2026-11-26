@@ -3,6 +3,7 @@
 package app
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -93,7 +94,7 @@ func TestRefreshBringsTheAssignedIssues(t *testing.T) {
 	if before := (&InboxService{}).Rows([]string{repo}, false)[0]; !before.HostEnabled || before.FetchedAt != nil || len(before.Rows) != 0 {
 		t.Fatalf("before the first refresh the host is on with no time and no rows: %+v", before)
 	}
-	if err := s.Refresh(repo); err != nil {
+	if err := s.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	if transport.hits[assigned] != 1 {

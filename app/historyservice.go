@@ -40,8 +40,8 @@ type HistoryFilterInfo struct {
 	FirstParent bool   `json:"firstParent"`
 }
 
-func (s *HistoryService) GetHistory(repoPath string, limit, skip int, filter HistoryFilterInfo) ([]CommitInfo, error) {
-	entries, err := git.History(context.Background(), repoPath, limit, skip, git.HistoryFilter(filter))
+func (s *HistoryService) GetHistory(ctx context.Context, repoPath string, limit, skip int, filter HistoryFilterInfo) ([]CommitInfo, error) {
+	entries, err := git.History(ctx, repoPath, limit, skip, git.HistoryFilter(filter))
 	if err != nil {
 		return nil, err
 	}

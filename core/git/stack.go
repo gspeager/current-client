@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -400,7 +401,7 @@ func PushStack(ctx context.Context, repoPath, remote string, branches []string) 
 	}
 	atomic := append([]string{args[0], "--atomic"}, args[1:]...)
 	_, err := gitexec.RunIn(ctx, repoPath, atomic...)
-	if err != nil && strings.Contains(err.Error(), "--atomic") {
+	if atomicRefused(err) {
 		_, err = gitexec.RunIn(ctx, repoPath, args...)
 	}
 	if err != nil {
@@ -415,4 +416,10 @@ func PushStack(ctx context.Context, repoPath, remote string, branches []string) 
 		}
 	}
 	return nil
+}
+
+// atomicRefused is a server that can't take a push of all or nothing.
+func atomicRefused(err error) bool {
+	var appErr *gitexec.AppError
+	return errors.As(err, &appErr) && strings.Contains(appErr.Detail, "--atomic")
 }

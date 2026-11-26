@@ -15,8 +15,15 @@ import (
 
 var errHostOff = errors.New("integration is off for this repository's host")
 
+// How long a host request may take, and one that streams or writes a lot, such
+// as a job's full log or a review with its comments.
+const (
+	hostTimeout     = 30 * time.Second
+	slowHostTimeout = time.Minute
+)
+
 func hostContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 30*time.Second)
+	return context.WithTimeout(context.Background(), hostTimeout)
 }
 
 func primaryHost(repoPath string) (git.Remote, HostInfo, bool, error) {

@@ -153,7 +153,9 @@ func (s *HostService) Add(hostname, provider string) error {
 
 func (s *HostService) Remove(hostname string) error {
 	if configOrDefault().Hosts[hostname].HasToken {
-		if err := hostCredentials.Remove(context.Background(), hostname); err != nil {
+		ctx, cancel := hostContext()
+		defer cancel()
+		if err := hostCredentials.Remove(ctx, hostname); err != nil {
 			return err
 		}
 	}
@@ -187,14 +189,18 @@ func (s *HostService) SetHost(hostname, provider, apiURL string) error {
 // SaveToken hands a pasted API token to Git's credential helper under its
 // own key (see hostapi.GitCredentials) and records only that one exists.
 func (s *HostService) SaveToken(hostname, token string) error {
-	if err := hostCredentials.Save(context.Background(), hostname, token); err != nil {
+	ctx, cancel := hostContext()
+	defer cancel()
+	if err := hostCredentials.Save(ctx, hostname, token); err != nil {
 		return err
 	}
 	return setHostFlag(hostname, func(host *config.HostConfig) { host.HasToken = true })
 }
 
 func (s *HostService) RemoveToken(hostname string) error {
-	if err := hostCredentials.Remove(context.Background(), hostname); err != nil {
+	ctx, cancel := hostContext()
+	defer cancel()
+	if err := hostCredentials.Remove(ctx, hostname); err != nil {
 		return err
 	}
 	return setHostFlag(hostname, func(host *config.HostConfig) { host.HasToken = false })
@@ -202,10 +208,13 @@ func (s *HostService) RemoveToken(hostname string) error {
 
 // TestConnection goes through the same client and rules as every other
 // request: the provider where one exists, else the host's user endpoint.
+// A connection test answers quickly or says it couldn't.
+const connectionTestTimeout = 15 * time.Second
+
 func (s *HostService) TestConnection(hostname string) (string, error) {
 	hosts := configOrDefault().Hosts
 	info := infoFor(hostByName(hostname), hosts)
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), connectionTestTimeout)
 	defer cancel()
 	var name string
 	var err error

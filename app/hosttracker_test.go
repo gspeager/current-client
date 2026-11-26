@@ -3,6 +3,7 @@
 package app
 
 import (
+	"context"
 	"net/url"
 	"os"
 	"strings"
@@ -109,7 +110,7 @@ func TestJiraIssuePanelTitlesAssignedAndInbox(t *testing.T) {
 		t.Fatalf("Inbox rows = %+v", rows)
 	}
 
-	if err := hosts.Refresh(repo); err != nil {
+	if err := hosts.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	if n := transport.hits[api+"/search/jql?"+assigned]; n != 2 {

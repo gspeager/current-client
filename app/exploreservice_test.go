@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -38,7 +39,7 @@ func exploreRepo(t *testing.T) string {
 
 func changesOf(t *testing.T, repo, kind, ref string) MapChangesInfo {
 	t.Helper()
-	changes, err := new(ExploreService).Changes(repo, ExploreComparison{Kind: kind, Ref: ref})
+	changes, err := new(ExploreService).Changes(context.Background(), repo, ExploreComparison{Kind: kind, Ref: ref})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +61,7 @@ func describeChanges(changes MapChangesInfo) []string {
 func TestExploreFilesAndActivity(t *testing.T) {
 	repo := exploreRepo(t)
 	s := new(ExploreService)
-	files, err := s.Files(repo, "HEAD")
+	files, err := s.Files(context.Background(), repo, "HEAD")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,10 +72,10 @@ func TestExploreFilesAndActivity(t *testing.T) {
 	if kinds["moved.go"] != "20 " || kinds["go.sum"] != "1 lockfile" || kinds["edited_test.go"] != "1 test" {
 		t.Errorf("files = %v", kinds)
 	}
-	if files, err := s.Files(repo, "v1"); err != nil || len(files) != 1 {
+	if files, err := s.Files(context.Background(), repo, "v1"); err != nil || len(files) != 1 {
 		t.Errorf("at v1 = %v, %v", files, err)
 	}
-	activity, err := s.Activity(repo)
+	activity, err := s.Activity(context.Background(), repo)
 	if err != nil || activity.Limit != 0 {
 		t.Fatal(activity, err)
 	}
@@ -107,7 +108,7 @@ func TestExploreTheWorkingTreeAndARelease(t *testing.T) {
 	if got := describeChanges(changesOf(t, repo, "release", "v2")); !slices.Equal(got, []string{"M clash.txt +1 -1"}) {
 		t.Errorf("release = %v", got)
 	}
-	if _, err := new(ExploreService).Changes(repo, ExploreComparison{Kind: "planet"}); err == nil {
+	if _, err := new(ExploreService).Changes(context.Background(), repo, ExploreComparison{Kind: "planet"}); err == nil {
 		t.Error("an unknown comparison should be refused")
 	}
 }
@@ -119,10 +120,10 @@ func TestExploreWithNothingToCompareWith(t *testing.T) {
 	gittest.Run(t, repo, "config", "user.name", "T")
 	gittest.Run(t, repo, "config", "user.email", "t@example.com")
 	s := new(ExploreService)
-	if files, err := s.Files(repo, "HEAD"); err != nil || len(files) != 0 {
+	if files, err := s.Files(context.Background(), repo, "HEAD"); err != nil || len(files) != 0 {
 		t.Errorf("before the first commit, files = %v, %v", files, err)
 	}
-	if activity, err := s.Activity(repo); err != nil || activity.Files == nil {
+	if activity, err := s.Activity(context.Background(), repo); err != nil || activity.Files == nil {
 		t.Errorf("before the first commit, activity = %v, %v", activity, err)
 	}
 	if changes := changesOf(t, repo, "working", ""); len(changes.Files) != 0 {

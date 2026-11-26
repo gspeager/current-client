@@ -64,7 +64,7 @@ func TestARemoteInAFolderOnAStandInHost(t *testing.T) {
 	})
 	service := &HostService{}
 
-	if err := service.Refresh(repo); err != nil {
+	if err := service.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	off, err := service.Changes(repo)
@@ -82,7 +82,7 @@ func TestARemoteInAFolderOnAStandInHost(t *testing.T) {
 	if err := SetHostEnabled("current.example", true); err != nil {
 		t.Fatal(err)
 	}
-	if err := service.Refresh(repo); err != nil {
+	if err := service.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	on, err := service.Changes(repo)

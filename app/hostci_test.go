@@ -3,6 +3,7 @@
 package app
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"strconv"
@@ -104,7 +105,7 @@ func TestFetchCIStatusAsksOncePerSHAAndRemembersNone(t *testing.T) {
 		t.Fatalf("jobs fetched %d times, want once", n)
 	}
 
-	if err := s.Refresh(repo); err == nil {
+	if err := s.Refresh(context.Background(), repo); err == nil {
 		t.Fatal("refresh against a transport without the merge request route should report the failure")
 	}
 	s.FetchCIStatus(repo, []string{"aaa"})
@@ -167,7 +168,7 @@ func TestRefreshAsksForTheBranchTipsPipelines(t *testing.T) {
 	}, hits: map[string]int{}}
 	swapHostClient(t, transport)
 	var s HostService
-	if err := s.Refresh(repo); err != nil {
+	if err := s.Refresh(context.Background(), repo); err != nil {
 		t.Fatal(err)
 	}
 	marks, _ := s.CIStatus(repo, []string{tip})

@@ -2,6 +2,7 @@ package app
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -116,16 +117,16 @@ func TestLargeRepoTiming(t *testing.T) {
 	timeIt("GetStatus (5,001 modified)", func() (int, error) { r, err := (&StatusService{}).GetStatus(dir); return len(r), err })
 	// History opens on all branches.
 	timeIt("GetHistory first page (200, all)", func() (int, error) {
-		r, err := history.GetHistory(dir, 200, 0, HistoryFilterInfo{Ref: "--all"})
+		r, err := history.GetHistory(context.Background(), dir, 200, 0, HistoryFilterInfo{Ref: "--all"})
 		firstPage = r
 		return len(r), err
 	})
 	timeIt("GetHistory first page (200, current)", func() (int, error) {
-		r, err := history.GetHistory(dir, 200, 0, HistoryFilterInfo{})
+		r, err := history.GetHistory(context.Background(), dir, 200, 0, HistoryFilterInfo{})
 		return len(r), err
 	})
 	timeIt("GetHistory page at 40,000 (all)", func() (int, error) {
-		r, err := history.GetHistory(dir, 200, 40000, HistoryFilterInfo{Ref: "--all"})
+		r, err := history.GetHistory(context.Background(), dir, 200, 40000, HistoryFilterInfo{Ref: "--all"})
 		return len(r), err
 	})
 	timeIt("ComputeGraphLayout (200)", func() (int, error) {
@@ -168,7 +169,7 @@ func TestLargeRepoTiming(t *testing.T) {
 
 	timeIt("FollowsConventionalCommits", func() (int, error) { _, err := history.FollowsConventionalCommits(dir); return 1, err })
 	timeIt("GetHistory type fix, first page", func() (int, error) {
-		r, err := history.GetHistory(dir, 200, 0, HistoryFilterInfo{Type: "fix"})
+		r, err := history.GetHistory(context.Background(), dir, 200, 0, HistoryFilterInfo{Type: "fix"})
 		return len(r), err
 	})
 	changelog := &ChangelogService{}

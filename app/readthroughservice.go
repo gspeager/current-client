@@ -82,8 +82,7 @@ func (info ReadThroughInfo) changes() readthrough.Range {
 	return readthrough.Range{Base: info.Base, Head: info.Head, Uncommitted: info.Uncommitted}
 }
 
-func (s *ReadThroughService) Open(repoPath string, request ReadThroughRequest) (ReadThroughInfo, error) {
-	ctx := context.Background()
+func (s *ReadThroughService) Open(ctx context.Context, repoPath string, request ReadThroughRequest) (ReadThroughInfo, error) {
 	info := ReadThroughInfo{Files: []ReadThroughFile{}, Path: repoPath, Target: request.Target}
 	if err := info.resolve(ctx, repoPath, request); err != nil {
 		return info, err
@@ -440,8 +439,7 @@ type ChangeReason struct {
 	Count  int    `json:"count"`
 }
 
-func (s *ReadThroughService) Structure(info ReadThroughInfo) (ChangeStructureInfo, error) {
-	ctx := context.Background()
+func (s *ReadThroughService) Structure(ctx context.Context, info ReadThroughInfo) (ChangeStructureInfo, error) {
 	var changes []structure.Changed
 	for _, f := range info.Files {
 		// Listed only to say it changed since it was read.

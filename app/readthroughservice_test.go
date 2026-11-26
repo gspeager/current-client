@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"slices"
@@ -33,7 +34,7 @@ func writeIn(t *testing.T, dir, name, content string) {
 
 func openReadThrough(t *testing.T, repo string, request ReadThroughRequest) ReadThroughInfo {
 	t.Helper()
-	info, err := new(ReadThroughService).Open(repo, request)
+	info, err := new(ReadThroughService).Open(context.Background(), repo, request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +57,7 @@ func TestReadThroughABranchAgainstItsMergeBase(t *testing.T) {
 	if info := openReadThrough(t, repo, ReadThroughRequest{Ref: "refs/heads/main", Target: "side"}); !slices.Equal(pathsOf(info), []string{"main.txt"}) {
 		t.Errorf("against a chosen target = %+v", info)
 	}
-	if _, err := new(ReadThroughService).Open(repo, ReadThroughRequest{Ref: "refs/heads/side", Target: "nowhere"}); err == nil {
+	if _, err := new(ReadThroughService).Open(context.Background(), repo, ReadThroughRequest{Ref: "refs/heads/side", Target: "nowhere"}); err == nil {
 		t.Error("a target that doesn't exist should be refused")
 	}
 }
