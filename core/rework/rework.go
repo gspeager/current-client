@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/core/gitexec"
@@ -56,35 +57,40 @@ type commitDiff struct {
 	files        []fileDiff
 }
 
+// readLimit is MostCommits, lowered by tests.
+var readLimit = MostCommits
+
 // Range reports the rework in the first-parent commits after base up to head.
 func Range(ctx context.Context, repoPath, base, head string) (Report, error) {
 	span := base + ".." + head
-	shas, err := gitexec.OutputIn(ctx, repoPath, nil, "rev-list", "--first-parent", "--no-merges", span)
+	count, err := gitexec.OutputIn(ctx, repoPath, nil, "rev-list", "--count", "--first-parent", "--no-merges", span)
 	if err != nil {
 		return Report{}, err
 	}
-	inRange := map[string]bool{}
-	for _, sha := range strings.Fields(shas) {
-		inRange[sha] = true
-	}
+	total, _ := strconv.Atoi(strings.TrimSpace(count))
 	log, err := gitexec.OutputIn(ctx, repoPath, nil, "-c", "core.quotePath=false", "log", "--first-parent",
-		"--no-merges", "--reverse", "--max-count="+strconv.Itoa(MostCommits), "-p", "-U0", "-M", "--no-color",
+		"--no-merges", "--reverse", "--max-count="+strconv.Itoa(readLimit), "-p", "-U0", "-M", "--no-color",
 		"--no-ext-diff", "--format=%x00%H%x1f%s", span)
 	if err != nil {
 		return Report{}, err
 	}
-	report := Report{Capped: len(inRange) > MostCommits}
+	commits := parseLog(log)
+	// Only commits read count as writers, so what's rewritten is never more than what's written.
+	read := map[string]bool{}
+	for _, c := range commits {
+		read[c.sha] = true
+	}
+	report := Report{Capped: total > readLimit}
+	// By each file's name now; a rename moves what was counted to the new name.
 	files := map[string]*File{}
-	// Every name a file has had since a commit in the range wrote to it.
+	// The names a commit in the range has written to.
 	written := map[string]bool{}
-	// Old name to new, in the order the range renamed them.
-	var renames [][2]string
-	for _, c := range parseLog(log) {
+	for _, c := range commits {
 		commit := Commit{SHA: c.sha, Subject: c.subject}
-		moved := map[string]int{}
+		added := map[string]int{}
 		for _, f := range c.files {
 			for _, line := range f.added {
-				moved[line]++
+				added[line]++
 			}
 		}
 		for _, f := range c.files {
@@ -93,7 +99,10 @@ func Range(ctx context.Context, repoPath, base, head string) (Report, error) {
 				path = f.oldPath
 			}
 			if f.oldPath != "" && f.newPath != "" && f.oldPath != f.newPath {
-				renames = append(renames, [2]string{f.oldPath, f.newPath})
+				if files[f.oldPath] != nil {
+					files[f.newPath] = merge(files[f.newPath], files[f.oldPath], f.newPath)
+					delete(files, f.oldPath)
+				}
 				if written[f.oldPath] {
 					written[f.newPath] = true
 				}
@@ -104,31 +113,13 @@ func Range(ctx context.Context, repoPath, base, head string) (Report, error) {
 				if err != nil {
 					return Report{}, err
 				}
-				for _, line := range lines {
-					text := strings.TrimSpace(line.Content)
-					if text == "" {
-						continue
-					}
-					if moved[text] > 0 {
-						moved[text]--
-						continue
-					}
-					if inRange[line.SHA] {
-						rewritten++
-					}
-				}
+				rewritten = countRewritten(lines, added, read)
 			}
 			if len(f.added) > 0 {
 				written[path] = true
 			}
-			file := files[path]
-			if file == nil {
-				file = &File{Path: path}
-				files[path] = file
-			}
-			file.Written += len(f.added)
-			file.Rewritten += rewritten
-			file.Commits++
+			file := merge(files[path], &File{Written: len(f.added), Rewritten: rewritten, Commits: 1}, path)
+			files[path] = file
 			commit.Written += len(f.added)
 			commit.Rewritten += rewritten
 		}
@@ -136,8 +127,69 @@ func Range(ctx context.Context, repoPath, base, head string) (Report, error) {
 		report.Rewritten += commit.Rewritten
 		report.Commits = append(report.Commits, commit)
 	}
-	report.Files = reworked(files, renames)
+	report.Files = reworked(files)
 	return report, nil
+}
+
+func merge(into, from *File, path string) *File {
+	if into == nil {
+		into = &File{Path: path}
+	}
+	into.Written += from.Written
+	into.Rewritten += from.Rewritten
+	into.Commits += from.Commits
+	return into
+}
+
+// distinctive is how many letters and digits a line needs to count as moved on
+// its own, as Git's --color-moved has it. A shorter line, such as a closing
+// brace, is moved only beside a moved line that has them.
+const distinctive = 20
+
+// countRewritten counts the deleted lines a read commit wrote that weren't
+// moved: added back in the same commit.
+func countRewritten(lines []git.BlameLine, added map[string]int, read map[string]bool) int {
+	texts := make([]string, len(lines))
+	moved := make([]bool, len(lines))
+	for i, line := range lines {
+		texts[i] = strings.TrimSpace(line.Content)
+		moved[i] = added[texts[i]] > 0 && letters(texts[i]) >= distinctive
+	}
+	// Short lines take a neighbouring moved line's part, through a run of lines.
+	for changed := true; changed; {
+		changed = false
+		for i := range lines {
+			if moved[i] || texts[i] == "" || added[texts[i]] == 0 {
+				continue
+			}
+			before := i > 0 && moved[i-1] && lines[i-1].LineNo == lines[i].LineNo-1
+			after := i+1 < len(lines) && moved[i+1] && lines[i+1].LineNo == lines[i].LineNo+1
+			if before || after {
+				moved[i], changed = true, true
+			}
+		}
+	}
+	rewritten := 0
+	for i, line := range lines {
+		switch {
+		case texts[i] == "":
+		case moved[i] && added[texts[i]] > 0:
+			added[texts[i]]--
+		case read[line.SHA]:
+			rewritten++
+		}
+	}
+	return rewritten
+}
+
+func letters(text string) int {
+	n := 0
+	for _, r := range text {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			n++
+		}
+	}
+	return n
 }
 
 // mostRanges keeps the command line short; past it the whole file is blamed.
@@ -163,31 +215,9 @@ func deletedLines(ctx context.Context, repoPath, path, rev string, spans [][2]in
 	return lines, nil
 }
 
-// reworked follows each file's later renames to its last name, merging what
-// was counted under each name.
-func reworked(files map[string]*File, renames [][2]string) []File {
-	last := func(path string) string {
-		for _, r := range renames {
-			if r[0] == path {
-				path = r[1]
-			}
-		}
-		return path
-	}
-	merged := map[string]*File{}
-	for path, f := range files {
-		name := last(path)
-		m := merged[name]
-		if m == nil {
-			m = &File{Path: name}
-			merged[name] = m
-		}
-		m.Written += f.Written
-		m.Rewritten += f.Rewritten
-		m.Commits += f.Commits
-	}
+func reworked(files map[string]*File) []File {
 	var out []File
-	for _, f := range merged {
+	for _, f := range files {
 		if f.Rewritten > 0 {
 			out = append(out, *f)
 		}
@@ -242,6 +272,8 @@ func parseLog(log string) []commitDiff {
 
 // side reads one side of a "---" or "+++" line.
 func side(path, prefix string) string {
+	// Git ends a name that has a space with a tab, for patch.
+	path = strings.TrimSuffix(path, "\t")
 	if path == "/dev/null" {
 		return ""
 	}

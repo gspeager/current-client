@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gspeager/current-client/core/git"
 	"github.com/gspeager/current-client/internal/gittest"
 )
 
@@ -61,9 +62,10 @@ func TestLinesFromBeforeTheRangeArentRework(t *testing.T) {
 
 func TestMovedLinesArentRework(t *testing.T) {
 	dir, base := repo(t)
-	gittest.CommitFile(t, dir, "a.go", lines(4, "moving"), "write")
+	block := "func movedAround() error {\n\treturn errors.New(\"distinctive enough to follow\")\n}\n"
+	gittest.CommitFile(t, dir, "a.go", block, "write")
 	gittest.WriteFile(t, dir, "a.go", "")
-	gittest.WriteFile(t, dir, "b.go", "\t"+strings.ReplaceAll(lines(4, "moving"), "\n", "\n\t"))
+	gittest.WriteFile(t, dir, "b.go", "\t"+strings.ReplaceAll(block, "\n", "\n\t"))
 	gittest.Run(t, dir, "add", "-A")
 	gittest.Run(t, dir, "commit", "-q", "-m", "move, indented")
 	if r := report(t, dir, base); r.Rewritten != 0 {
@@ -122,5 +124,74 @@ func TestDeletedSpan(t *testing.T) {
 		if !ok || start != want[0] || count != want[1] {
 			t.Errorf("%q: got %d,%d,%v", header, start, count, ok)
 		}
+	}
+}
+
+func TestShortLinesAreMovedOnlyBesideADistinctiveMovedLine(t *testing.T) {
+	line := func(n int, text string) git.BlameLine { return git.BlameLine{SHA: "w", LineNo: n, Content: text} }
+	added := func() map[string]int {
+		return map[string]int{"return errors.New(\"distinctive enough\")": 1, "}": 2, "return nil": 1}
+	}
+	read := map[string]bool{"w": true}
+	moved := []git.BlameLine{line(4, "\treturn errors.New(\"distinctive enough\")"), line(5, "}")}
+	if n := countRewritten(moved, added(), read); n != 0 {
+		t.Errorf("a brace beside a moved line: rewritten %d, want 0", n)
+	}
+	alone := []git.BlameLine{line(9, "\treturn nil"), line(10, "}")}
+	if n := countRewritten(alone, added(), read); n != 2 {
+		t.Errorf("short lines on their own: rewritten %d, want 2", n)
+	}
+}
+
+func TestAPathWithASpace(t *testing.T) {
+	dir, base := repo(t)
+	gittest.CommitFile(t, dir, "release notes.md", lines(3, "note"), "write")
+	gittest.CommitFile(t, dir, "release notes.md", lines(1, "note"), "trim")
+	r := report(t, dir, base)
+	if r.Rewritten != 2 || len(r.Files) != 1 || r.Files[0].Path != "release notes.md" {
+		t.Fatalf("got %+v", r)
+	}
+}
+
+func TestANewFileUnderARenamedFilesOldName(t *testing.T) {
+	dir, base := repo(t)
+	gittest.CommitFile(t, dir, "util.go", lines(6, "util"), "write")
+	gittest.Run(t, dir, "mv", "util.go", "text.go")
+	gittest.Run(t, dir, "commit", "-q", "-m", "rename")
+	gittest.CommitFile(t, dir, "util.go", lines(3, "fresh"), "a new util")
+	gittest.CommitFile(t, dir, "util.go", lines(1, "fresh"), "trim it")
+	r := report(t, dir, base)
+	if len(r.Files) != 1 || r.Files[0].Path != "util.go" || r.Files[0].Rewritten != 2 {
+		t.Fatalf("files %+v", r.Files)
+	}
+}
+
+func TestOnlyTheNewestCommitsAreRead(t *testing.T) {
+	readLimit = 2
+	t.Cleanup(func() { readLimit = MostCommits })
+	dir, base := repo(t)
+	gittest.CommitFile(t, dir, "a.go", lines(4, "older"), "write, unread")
+	gittest.CommitFile(t, dir, "b.go", "b\n", "read")
+	gittest.CommitFile(t, dir, "a.go", lines(1, "older"), "rewrite what an unread commit wrote")
+	r := report(t, dir, base)
+	if !r.Capped || len(r.Commits) != 2 || r.Rewritten != 0 {
+		t.Fatalf("got %+v", r)
+	}
+}
+
+func TestManyHunksBlameTheWholeFile(t *testing.T) {
+	dir, base := repo(t)
+	var before, after strings.Builder
+	for i := 0; i < 2*mostRanges+10; i++ {
+		line := strings.Repeat("y", i+1)
+		before.WriteString(line + "\n")
+		if i%2 == 0 {
+			after.WriteString(line + "\n")
+		}
+	}
+	gittest.CommitFile(t, dir, "many.txt", before.String(), "write")
+	gittest.CommitFile(t, dir, "many.txt", after.String(), "drop every other line")
+	if r := report(t, dir, base); r.Rewritten != mostRanges+5 {
+		t.Fatalf("rewritten %d, want %d", r.Rewritten, mostRanges+5)
 	}
 }
