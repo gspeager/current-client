@@ -88,14 +88,31 @@ function HoverCard({ card, children }: HoverCardProps) {
   return (
     <>
       {anchor}
-      {position &&
-        createPortal(
-          <div className="hover-card" role="tooltip" style={{ top: position.top, left: position.left }}>
-            {card}
-          </div>,
-          root ?? document.body,
-        )}
+      {position && (
+        <HoverCardPanel top={position.top} left={position.left} root={root}>
+          {card}
+        </HoverCardPanel>
+      )}
     </>
+  )
+}
+
+interface HoverCardPanelProps {
+  // Its top, or its bottom from the window's.
+  top?: number
+  bottom?: number
+  left: number
+  root: Element | null
+  children: ReactNode
+}
+
+// The card without an anchor, for a mark drawn on a canvas that places it itself.
+export function HoverCardPanel({ top, bottom, left, root, children }: HoverCardPanelProps) {
+  return createPortal(
+    <div className="hover-card" role="tooltip" style={{ top, bottom, left }}>
+      {children}
+    </div>,
+    root ?? document.body,
   )
 }
 

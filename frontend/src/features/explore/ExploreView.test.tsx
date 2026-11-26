@@ -11,11 +11,14 @@ import {
   PlatformService,
   StructureInfo,
   TagService,
+  TimelineInfo,
   type MapChangeInfo,
 } from '@current-client-bindings/app'
+import { OpenCommitContext } from '../../lib/openCommit'
 import { ReadThroughContext } from '../../lib/readThrough'
 import { decodeBase64 } from '../../lib/base64'
 import ExploreView from './ExploreView'
+import { spanStart } from './timelineLanes'
 import { renderWithDialogs } from '../../test/render'
 
 vi.mock('../../lib/pictureFonts', () => ({ PICTURE_FONTS: [] }))
@@ -277,16 +280,16 @@ describe('changes', () => {
   })
 })
 
-describe('saving', () => {
-  const save = async () => {
-    vi.mocked(PlatformService.SaveImage).mockResolvedValue(true)
-    await userEvent.click(screen.getByRole('button', { name: 'Save as image' }))
-    await userEvent.click(screen.getByRole('button', { name: 'SVG' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Save…' }))
-    const [data, filename] = vi.mocked(PlatformService.SaveImage).mock.lastCall!
-    return { svg: new TextDecoder().decode(decodeBase64(data)), filename }
-  }
+const save = async () => {
+  vi.mocked(PlatformService.SaveImage).mockResolvedValue(true)
+  await userEvent.click(screen.getByRole('button', { name: 'Save as image' }))
+  await userEvent.click(screen.getByRole('button', { name: 'SVG' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Save…' }))
+  const [data, filename] = vi.mocked(PlatformService.SaveImage).mock.lastCall!
+  return { svg: new TextDecoder().decode(decodeBase64(data)), filename }
+}
 
+describe('saving', () => {
   it('saves the map on screen, saying what colors it', async () => {
     view()
     await map()
@@ -364,5 +367,116 @@ describe('the structure', () => {
       expect(ExploreService.Structure).toHaveBeenLastCalledWith('/repo', '', { kind: 'commit', ref: 'abc123' }),
     )
     expect(screen.getByRole('combobox', { name: 'Compare' })).toHaveDisplayValue('abc123')
+  })
+})
+
+describe('the timeline', () => {
+  const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString()
+  const commit = (sha: string, hours: number, subject: string, files: [string, number][]) => ({
+    sha: sha.repeat(40),
+    time: hoursAgo(hours),
+    subject,
+    files: files.map(([path, lines]) => ({ path, lines, kind: '' })),
+  })
+  const openCommit = vi.fn()
+  const timelineView = () =>
+    renderWithDialogs(
+      <OpenCommitContext.Provider value={openCommit}>
+        <ExploreView
+          repoPath="/repo"
+          currentBranch="feat"
+          repoVersion={0}
+          workingVersion={0}
+          onOpenWorkingFile={openWorkingFile}
+        />
+      </OpenCommitContext.Provider>,
+    )
+  const toTimeline = async () => {
+    await userEvent.click(await screen.findByRole('button', { name: 'Timeline' }))
+    return screen.findByRole('listbox', { name: 'Timeline' })
+  }
+  const compare = () => screen.getByRole('combobox', { name: 'Compare' })
+  const active = () => document.getElementById('timeline-active')?.getAttribute('aria-label')
+
+  beforeEach(() => {
+    vi.mocked(ExploreService.Timeline).mockResolvedValue(
+      new TimelineInfo({
+        commits: [
+          commit('b', 1, 'Second', [
+            ['src/a.ts', 30],
+            ['docs/x.md', 4],
+          ]),
+          commit('a', 3, 'First', [['src/deep/b.ts', 12]]),
+        ],
+        now: true,
+        working: [{ path: 'docs/x.md', lines: 2, kind: '' }],
+      }),
+    )
+  })
+
+  it('has a lane for each folder area that changed, its name opening it', async () => {
+    timelineView()
+    await toTimeline()
+    const lanes = within(screen.getByRole('list', { name: 'Folders' })).getAllByRole('button')
+    expect(lanes.map((lane) => lane.textContent)).toEqual(['src', 'src/deep', 'docs'])
+    expect(screen.getByText('2 commits · 48 lines changed')).toBeInTheDocument()
+    await userEvent.click(lanes[2])
+    expect(
+      within(screen.getByRole('navigation', { name: 'Folder' })).getByRole('button', { name: 'docs' }),
+    ).toBeDisabled()
+    expect(within(screen.getByRole('list', { name: 'Folders' })).getAllByRole('button')).toHaveLength(1)
+  })
+
+  it('reads today and this week, which only it offers, and keeps the comparison for the others', async () => {
+    timelineView()
+    await toTimeline()
+    expect(ExploreService.Timeline).toHaveBeenLastCalledWith('/repo', { kind: 'working', ref: '' })
+    await userEvent.selectOptions(compare(), 'today')
+    expect(ExploreService.Timeline).toHaveBeenLastCalledWith('/repo', {
+      kind: 'since',
+      ref: spanStart('today').toISOString(),
+    })
+    await userEvent.selectOptions(compare(), 'week')
+    expect(ExploreService.Timeline).toHaveBeenLastCalledWith('/repo', {
+      kind: 'since',
+      ref: spanStart('week').toISOString(),
+    })
+    expect(compare()).toHaveDisplayValue('This week')
+    await userEvent.click(screen.getByRole('button', { name: 'Changes' }))
+    expect(screen.queryByRole('option', { name: 'Today' })).toBeNull()
+    await waitFor(() => expect(ExploreService.Changes).toHaveBeenLastCalledWith('/repo', { kind: 'working', ref: '' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Structure' }))
+    expect(compare()).toHaveDisplayValue('Not compared')
+  })
+
+  it('steps through the bubbles by the keyboard and opens a commit in History', async () => {
+    timelineView()
+    const chart = await toTimeline()
+    act(() => chart.focus())
+    expect(active()).toBe('Uncommitted changes, 2 lines in docs')
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' })
+    expect(active()).toMatch(/^Second, bbbbbbb at .+, 34 lines in 2 folders, most in src$/)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Click to open in History')
+    fireEvent.keyDown(chart, { key: 'Enter' })
+    expect(openCommit).toHaveBeenCalledWith('b'.repeat(40))
+    fireEvent.keyDown(chart, { key: 'Home' })
+    expect(active()).toMatch(/^First/)
+    fireEvent.keyDown(chart, { key: 'End' })
+    fireEvent.keyDown(chart, { key: 'Enter' })
+    expect(openWorkingFile).toHaveBeenCalledWith('docs/x.md')
+  })
+
+  it('says when the commits are capped, and saves the picture', async () => {
+    vi.mocked(ExploreService.Timeline).mockResolvedValue(
+      new TimelineInfo({ commits: [commit('c', 2, 'Only', [['src/a.ts', 5]])], limit: 5000 }),
+    )
+    timelineView()
+    await toTimeline()
+    expect(screen.getByText(/Only the latest 5,000 commits are shown/)).toBeInTheDocument()
+    const { svg, filename } = await save()
+    expect(filename).toMatch(/^repo-timeline-.*\.svg$/)
+    expect(svg).toContain('>Timeline, uncommitted</text>')
+    expect(svg).toContain('>1 commit</text>')
+    expect(svg).toContain('>src</text>')
   })
 })
