@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gspeager/current-client/internal/gittest"
 )
@@ -132,5 +133,67 @@ func TestExploreWithNothingToCompareWith(t *testing.T) {
 	gittest.Run(t, repo, "commit", "-q", "--allow-empty", "-m", "x")
 	if changes := changesOf(t, repo, "branch", "odd"); changes.Target != "" || len(changes.Files) != 0 {
 		t.Errorf("changes = %+v", changes)
+	}
+	if timeline := timelineOf(t, repo, "branch", "odd"); timeline.Target != "" || len(timeline.Commits) != 0 {
+		t.Errorf("timeline = %+v", timeline)
+	}
+}
+
+func timelineOf(t *testing.T, repo, kind, ref string) TimelineInfo {
+	t.Helper()
+	timeline, err := new(ExploreService).Timeline(context.Background(), repo, ExploreComparison{Kind: kind, Ref: ref})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return timeline
+}
+
+func describeTimeline(timeline TimelineInfo) []string {
+	return mapSlice(timeline.Commits, func(c TimelineCommitInfo) string {
+		files := mapSlice(c.Files, func(f TimelineFileInfo) string { return fmt.Sprintf("%s %d", f.Path, f.Lines) })
+		slices.Sort(files)
+		return c.Subject + ": " + strings.Join(files, ", ")
+	})
+}
+
+func TestExploreTimelineOfABranch(t *testing.T) {
+	repo := exploreRepo(t)
+	timeline := timelineOf(t, repo, "branch", "feat")
+	want := []string{"feat: added.go 1, clash.txt 2, edited.go 3, elsewhere.go 0, gone.go 1"}
+	if got := describeTimeline(timeline); !slices.Equal(got, want) || timeline.Target != "main" || timeline.Limit != 0 {
+		t.Errorf("timeline = %v, %+v", got, timeline)
+	}
+	if timeline.Now || len(timeline.Working) != 0 {
+		t.Errorf("a branch that isn't checked out has no uncommitted changes: %+v", timeline.Working)
+	}
+}
+
+func TestExploreTimelineToNow(t *testing.T) {
+	repo := exploreRepo(t)
+	writeIn(t, repo, "edited.go", "package a\n")
+	writeIn(t, repo, "untracked.go", "not tracked\n")
+
+	release := timelineOf(t, repo, "release", "v2")
+	if got := describeTimeline(release); !slices.Equal(got, []string{"clash: clash.txt 2"}) {
+		t.Errorf("since v2 = %v", got)
+	}
+	working := mapSlice(release.Working, func(f TimelineFileInfo) string { return fmt.Sprintf("%s %d", f.Path, f.Lines) })
+	slices.Sort(working)
+	if !slices.Equal(working, []string{"edited.go 2", "untracked.go 1"}) {
+		t.Errorf("uncommitted = %v", working)
+	}
+
+	all := describeTimeline(timelineOf(t, repo, "since", time.Now().Add(-time.Hour).Format(time.RFC3339)))
+	if len(all) < 2 || all[0] != "clash: clash.txt 2" || !strings.HasPrefix(all[1], "files: ") {
+		t.Errorf("in the last hour = %v", all)
+	}
+	if later := timelineOf(t, repo, "since", time.Now().Add(time.Hour).Format(time.RFC3339)); len(later.Commits) != 0 || len(later.Working) != 2 {
+		t.Errorf("a range with no commits = %+v", later)
+	}
+	if only := timelineOf(t, repo, "working", ""); len(only.Commits) != 0 || !only.Now || len(only.Working) != 2 {
+		t.Errorf("uncommitted alone = %+v", only)
+	}
+	if _, err := new(ExploreService).Timeline(context.Background(), repo, ExploreComparison{Kind: "since", Ref: "today"}); err == nil {
+		t.Error("a time that isn't one should be refused")
 	}
 }

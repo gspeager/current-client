@@ -180,3 +180,83 @@ func comparedRange(ctx context.Context, repoPath string, comparison ExploreCompa
 	}
 	return r, "", err
 }
+
+// mostTimelineCommits caps the commits a timeline reads, the newest kept.
+const mostTimelineCommits = 5000
+
+type TimelineFileInfo struct {
+	Path  string `json:"path"`
+	Lines int    `json:"lines"`
+	Kind  string `json:"kind"`
+}
+
+type TimelineCommitInfo struct {
+	SHA     string             `json:"sha"`
+	Time    string             `json:"time"`
+	Subject string             `json:"subject"`
+	Files   []TimelineFileInfo `json:"files"`
+}
+
+type TimelineInfo struct {
+	// Newest first.
+	Commits []TimelineCommitInfo `json:"commits"`
+	// Now is whether the range ends at HEAD, and so at its uncommitted changes, Working.
+	Now     bool               `json:"now"`
+	Working []TimelineFileInfo `json:"working"`
+	// Limit is the commits read when the range goes further back; 0 when it doesn't.
+	Limit  int    `json:"limit"`
+	Target string `json:"target"`
+}
+
+// Timeline is the comparison's commits with each file's lines changed. Only it
+// takes a comparison of Kind "since", HEAD's commits since Ref, an RFC 3339 time.
+func (s *ExploreService) Timeline(ctx context.Context, repoPath string, comparison ExploreComparison) (TimelineInfo, error) {
+	timeline := TimelineInfo{Commits: []TimelineCommitInfo{}, Working: []TimelineFileInfo{}}
+	if noCommits(ctx, repoPath) {
+		return timeline, nil
+	}
+	head, err := git.ResolveCommit(ctx, repoPath, "HEAD")
+	if err != nil {
+		return timeline, err
+	}
+	r := readthrough.Range{Head: head}
+	var since time.Time
+	if comparison.Kind == "since" {
+		if since, err = time.Parse(time.RFC3339, comparison.Ref); err != nil {
+			return timeline, err
+		}
+	} else if r, timeline.Target, err = comparedRange(ctx, repoPath, comparison); err != nil || (comparison.Kind == "branch" && timeline.Target == "") {
+		return timeline, err
+	}
+	if comparison.Kind != "working" {
+		commits, more, err := git.RangeCommitLines(ctx, repoPath, r.Base, r.Head, since, mostTimelineCommits)
+		if err != nil {
+			return timeline, err
+		}
+		if more {
+			timeline.Limit = mostTimelineCommits
+		}
+		for _, c := range commits {
+			timeline.Commits = append(timeline.Commits, TimelineCommitInfo{
+				SHA:     c.SHA,
+				Time:    c.Time.Format(time.RFC3339),
+				Subject: c.Subject,
+				Files: mapSlice(c.Files, func(f git.NumstatEntry) TimelineFileInfo {
+					return TimelineFileInfo{Path: f.Path, Lines: f.Added + f.Removed, Kind: string(filekind.Of(f.Path))}
+				}),
+			})
+		}
+	}
+	if r.Head != head {
+		return timeline, nil
+	}
+	files, _, err := readthrough.Files(ctx, repoPath, readthrough.Range{Base: head, Head: head, Uncommitted: true})
+	if err != nil {
+		return timeline, err
+	}
+	timeline.Now = true
+	timeline.Working = mapSlice(files, func(f readthrough.File) TimelineFileInfo {
+		return TimelineFileInfo{Path: f.Path, Lines: f.Added + f.Removed, Kind: string(f.Kind)}
+	})
+	return timeline, nil
+}
