@@ -11,6 +11,7 @@ import { useClockTick } from '../../lib/useClockTick'
 import { useDialogs } from '../../lib/useDialogs'
 import { shortSha } from '../../lib/text'
 import DialogError from '../../components/chrome/DialogError'
+import '../../components/chrome/dialog.scss'
 import './RecoverPanel.scss'
 
 const ACTION_LABEL: Record<string, string> = {

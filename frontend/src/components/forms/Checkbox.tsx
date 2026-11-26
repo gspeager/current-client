@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { Check } from 'lucide-react'
 import './Checkbox.scss'
 
@@ -7,10 +8,11 @@ interface CheckboxProps {
   label?: string
   ariaLabel?: string
   disabled?: boolean
+  mono?: boolean
   onClick?: (e: React.MouseEvent) => void
 }
 
-function Checkbox({ checked, onChange, label, ariaLabel, disabled = false, onClick }: CheckboxProps) {
+function Checkbox({ checked, onChange, label, ariaLabel, disabled = false, mono = false, onClick }: CheckboxProps) {
   return (
     <label className="checkbox" onClick={onClick}>
       <input
@@ -21,7 +23,7 @@ function Checkbox({ checked, onChange, label, ariaLabel, disabled = false, onCli
         aria-label={ariaLabel}
       />
       <span className="checkbox-box">{checked && <Check size={12} strokeWidth={3} />}</span>
-      {label && <span className="checkbox-label">{label}</span>}
+      {label && <span className={clsx('checkbox-label', mono && 'checkbox-label-mono')}>{label}</span>}
     </label>
   )
 }

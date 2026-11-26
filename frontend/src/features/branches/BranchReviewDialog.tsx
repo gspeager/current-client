@@ -12,6 +12,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import type { DeletedBranch } from './CleanUpBranchesDialog'
 import DialogError from '../../components/chrome/DialogError'
+import '../../components/chrome/dialog.scss'
 import './BranchReviewDialog.scss'
 
 type Filter = 'all' | 'merged' | 'stale' | 'unpushed'

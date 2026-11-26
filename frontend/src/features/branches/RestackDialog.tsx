@@ -4,6 +4,7 @@ import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { PreviewCommitRow } from './RebasePreviewDialog'
 import DialogError from '../../components/chrome/DialogError'
+import '../../components/chrome/dialog.scss'
 import './RebasePreviewDialog.scss'
 
 interface RestackDialogProps {

@@ -476,7 +476,7 @@ function HeaderBar({
         {fetchAllOp.error && (
           <div className="header-bar-fetch-error">
             Could not fetch: {fetchAllOp.error}
-            <GitOutput message={fetchAllOp.error} />
+            <GitOutput message={fetchAllOp.error} popover />
           </div>
         )}
       </div>

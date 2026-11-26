@@ -8,6 +8,7 @@ import PathText from '../../components/git/PathText'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import CompareModal from '../history/CompareModal'
+import '../../components/chrome/dialog.scss'
 import './ConflictGridDialog.scss'
 
 interface ConflictGridDialogProps {

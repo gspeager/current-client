@@ -8,7 +8,7 @@
   padding: 0 var(--space-sm);
   border-radius: var(--radius-full);
   background: var(--surface-container);
-  color: var(--on-surface);
+  color: var(--branch-pill-ink, var(--on-surface));
   font: var(--data-md);
   @include patterns.truncate;
 }

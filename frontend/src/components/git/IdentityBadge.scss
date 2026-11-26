@@ -19,6 +19,10 @@
   line-height: 1;
 }
 
+.identity-badge-muted {
+  filter: saturate(0.6);
+}
+
 .identity-badge-button {
   @include patterns.hit-target;
 

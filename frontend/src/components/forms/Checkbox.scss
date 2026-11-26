@@ -43,6 +43,10 @@
   white-space: nowrap;
 }
 
+.checkbox-label-mono {
+  font: var(--data-sm);
+}
+
 .checkbox:has(input:disabled) {
   opacity: 0.45;
   cursor: default;

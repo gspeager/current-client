@@ -55,7 +55,9 @@ function WelcomeScreen({
       ) : (
         <p className="app-welcome-status">Detecting Git installation…</p>
       )}
-      {!gitError && <RepoSwitcher repo={repo} defaultLocation={defaultLocation} onOpenSettings={onOpenSettings} />}
+      {!gitError && (
+        <RepoSwitcher centered repo={repo} defaultLocation={defaultLocation} onOpenSettings={onOpenSettings} />
+      )}
       {children}
     </div>
   )

@@ -64,10 +64,6 @@
   }
 }
 
-.changelog-filter-menu-mono .checkbox-label {
-  font: var(--data-sm);
-}
-
 .changelog-filter-toggle {
   color: var(--outline);
   display: inline-flex;
@@ -107,10 +103,6 @@
 
 .changelog-output-toolbar {
   flex-wrap: wrap;
-
-  .split-button {
-    --split-button-height: var(--h-field);
-  }
 }
 
 .changelog-explainer {
@@ -139,24 +131,6 @@
 .changelog-guide-body {
   padding: var(--space-lg);
   overflow-y: auto;
-}
-
-@media (max-width: 1120px) {
-  .changelog-editor {
-    grid-template-columns: minmax(0, 1fr);
-    flex-basis: auto;
-  }
-
-  .changelog-entries,
-  .changelog-output {
-    min-height: 240px;
-  }
-
-  .changelog-markdown {
-    flex: none;
-    min-height: 240px;
-    overflow: visible;
-  }
 }
 
 .changelog-section-title {

@@ -10,13 +10,4 @@
   border: var(--border-structure);
   border-radius: var(--radius-lg);
   box-shadow: var(--elev-popover);
-
-  .segmented-control {
-    align-self: stretch;
-  }
-
-  .segmented-control-option {
-    flex: 1;
-    justify-content: center;
-  }
 }

@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { LucideIcon } from 'lucide-react'
 import './SegmentedControl.scss'
 
@@ -11,11 +12,13 @@ interface SegmentedControlProps<T extends string> {
   value: T
   onChange: (value: T) => void
   options: SegmentedControlOption<T>[]
+  // As wide as its container, the options sharing the width.
+  fill?: boolean
 }
 
-function SegmentedControl<T extends string>({ value, onChange, options }: SegmentedControlProps<T>) {
+function SegmentedControl<T extends string>({ value, onChange, options, fill = false }: SegmentedControlProps<T>) {
   return (
-    <div className="segmented-control">
+    <div className={clsx('segmented-control', fill && 'segmented-control-fill')}>
       {options.map((option) => {
         const Icon = option.icon
         return (

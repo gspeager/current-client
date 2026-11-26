@@ -7,6 +7,11 @@
   margin-bottom: var(--space-xs);
 }
 
+.sidebar-section-header-flush,
+.sidebar-section-header-subgroup {
+  margin-bottom: 0;
+}
+
 .sidebar-section-toggle {
   @include patterns.hit-target(2px);
 
@@ -36,6 +41,10 @@
 .sidebar-section-label {
   @include patterns.eyebrow;
   color: var(--outline);
+}
+
+.sidebar-section-header-subgroup .sidebar-section-label {
+  @include patterns.subgroup-label;
 }
 
 .sidebar-section-count {

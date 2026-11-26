@@ -16,6 +16,24 @@
   }
 }
 
+.git-output-popover {
+  margin: 0;
+
+  // Open, it falls below its line, which keeps its height.
+  .git-output-body {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: var(--z-menu);
+    width: 480px;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--surface-container);
+    border: var(--border-structure);
+    border-radius: var(--radius);
+    white-space: normal;
+  }
+}
+
 .git-output-text {
   margin: var(--space-xs) 0;
   padding: var(--space-xs) var(--space-sm);

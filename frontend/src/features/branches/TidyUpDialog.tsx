@@ -27,6 +27,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useStableValue } from '../../lib/useStableValue'
 import { shortSha } from '../../lib/text'
 import DialogError from '../../components/chrome/DialogError'
+import '../../components/chrome/dialog.scss'
 import './TidyUpDialog.scss'
 
 interface Row {

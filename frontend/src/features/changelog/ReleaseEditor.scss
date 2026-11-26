@@ -174,3 +174,21 @@
   color: var(--outline);
   font: var(--ui-sm);
 }
+
+@media (max-width: 1120px) {
+  .changelog-editor {
+    grid-template-columns: minmax(0, 1fr);
+    flex-basis: auto;
+  }
+
+  .changelog-entries,
+  .changelog-output {
+    min-height: 240px;
+  }
+
+  .changelog-markdown {
+    flex: none;
+    min-height: 240px;
+    overflow: visible;
+  }
+}

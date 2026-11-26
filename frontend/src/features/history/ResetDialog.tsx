@@ -4,6 +4,7 @@ import type { CommitInfo } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import { shortSha } from '../../lib/text'
+import '../../components/chrome/dialog.scss'
 import './ResetDialog.scss'
 
 export type ResetMode = 'soft' | 'mixed' | 'hard'

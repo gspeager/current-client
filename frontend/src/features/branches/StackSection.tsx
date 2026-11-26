@@ -9,6 +9,7 @@ import { primaryRemoteName } from '../../lib/remotes'
 import { useDialogs } from '../../lib/useDialogs'
 import { useLaneColors } from '../../lib/laneColor'
 import RestackDialog from './RestackDialog'
+import './BranchRow.scss'
 import './StackSection.scss'
 
 interface StackSectionProps {
@@ -167,7 +168,12 @@ function StackSection({
                   }}
                   onContextMenu={onRowMenu(layer.branch)}
                 >
-                  <BranchPill name={layer.branch} color={branchColor(layer.branch, isCurrent)} current={isCurrent} />
+                  <BranchPill
+                    bare
+                    name={layer.branch}
+                    color={branchColor(layer.branch, isCurrent)}
+                    current={isCurrent}
+                  />
                   {isCurrent && <span className="branch-row-head">HEAD</span>}
                   {mark && <span className={`stack-mark stack-mark-${mark.toLowerCase()}`}>{mark}</span>}
                 </li>

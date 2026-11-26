@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState } from 'react'
 import PathText from '../../components/git/PathText'
 import Tab from '../../components/controls/Tab'
@@ -13,15 +14,17 @@ interface RepoSwitcherProps {
   // Where Clone and New put repositories, from Settings; empty means a chosen folder each time.
   defaultLocation?: string
   onOpenSettings?: () => void
+  // On the same centre line as the name above it.
+  centered?: boolean
 }
 
 // Open · Clone · New: the one place a repository is opened or created.
-function RepoSwitcher({ repo, defaultLocation = '', onOpenSettings }: RepoSwitcherProps) {
+function RepoSwitcher({ repo, defaultLocation = '', onOpenSettings, centered = false }: RepoSwitcherProps) {
   const [tab, setTab] = useState<RepoTab>('open')
   const [query, setQuery] = useState('')
 
   return (
-    <div className="repo-switcher">
+    <div className={clsx('repo-switcher', centered && 'repo-switcher-centered')}>
       <div className="repo-switcher-tabs">
         <Tab active={tab === 'open'} onClick={() => setTab('open')}>
           Open
@@ -113,7 +116,7 @@ function RepoSwitcher({ repo, defaultLocation = '', onOpenSettings }: RepoSwitch
       {(defaultLocation || repo.recentRepos.length > 0) && (
         <p className="repo-switcher-footer">
           <span>{defaultLocation ? 'Dialogs start in' : 'Dialogs start in the last folder used.'}</span>
-          {defaultLocation && <PathText path={defaultLocation} />}
+          {defaultLocation && <PathText path={defaultLocation} className="repo-switcher-default-location" />}
           {onOpenSettings && (
             <button type="button" onClick={onOpenSettings}>
               Change in Settings

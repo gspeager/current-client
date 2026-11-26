@@ -1,5 +1,6 @@
 import { TriangleAlert } from 'lucide-react'
 import type { OverlapInfo } from '@current-client-bindings/app'
+import './BranchRow.scss'
 
 function ConflictsBadge({ overlap }: { overlap?: OverlapInfo }) {
   if (!overlap) return null

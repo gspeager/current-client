@@ -1,4 +1,5 @@
 import { CircleCheck, CircleDashed, CircleMinus, CircleSlash, CircleX, Clock, type LucideIcon } from 'lucide-react'
+import clsx from 'clsx'
 import './CIIcon.scss'
 
 // One map for every place that shows a CI result, so the mark, the PR
@@ -16,7 +17,15 @@ export function ciLabel(status: string): string {
   return STATUSES[status]?.label ?? `CI ${status}`
 }
 
-export function CIIcon({ status, size = 14 }: { status: string; size?: number }) {
+// Quiet: a pass in outline, for a list where only a failure should stand out.
+export function CIIcon({ status, size = 14, quiet = false }: { status: string; size?: number; quiet?: boolean }) {
   const Icon = STATUSES[status]?.icon ?? CircleDashed
-  return <Icon className={`ci-icon ci-icon-${status}`} size={size} strokeWidth={1.75} aria-hidden="true" />
+  return (
+    <Icon
+      className={clsx('ci-icon', `ci-icon-${status}`, quiet && 'ci-icon-quiet')}
+      size={size}
+      strokeWidth={1.75}
+      aria-hidden="true"
+    />
+  )
 }
