@@ -145,6 +145,20 @@ describe('HeaderBar sync cluster', () => {
     expect(items.style.left).toBe(`${540 - 40}px`)
   })
 
+  it('shows the Git output behind a failed fetch, closed', async () => {
+    vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin' }] as never)
+    vi.mocked(RemoteService.Fetch).mockRejectedValue(
+      Object.assign(new Error('Can’t reach the remote host. Check the network connection.'), {
+        cause: { Command: 'git fetch origin', ExitCode: 128, Detail: 'fatal: unable to access' },
+      }),
+    )
+    renderHeader()
+    await userEvent.click(screen.getByRole('button', { name: 'Fetch' }))
+    expect(await screen.findByText(/Could not fetch: Can’t reach the remote host/)).toBeInTheDocument()
+    expect(screen.getByText('Show Git output').closest('details')).not.toHaveAttribute('open')
+    expect(screen.getByText(/git fetch origin/, { selector: 'pre' })).toHaveTextContent('exit 128')
+  })
+
   it('fetches origin from the button, and prunes or fetches every remote from the menu', async () => {
     vi.mocked(RemoteService.List).mockResolvedValue([{ name: 'origin' }] as never)
     vi.mocked(RemoteService.Fetch).mockResolvedValue()

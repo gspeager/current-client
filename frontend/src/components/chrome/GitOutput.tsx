@@ -9,10 +9,12 @@ function GitOutput({ message }: { message: string | null | undefined }) {
   return (
     <details className="git-output">
       <summary>Show Git output</summary>
-      <pre className="git-output-text">{text}</pre>
-      <button type="button" className="git-output-copy" onClick={() => void navigator.clipboard.writeText(text)}>
-        Copy
-      </button>
+      <div className="git-output-body">
+        <pre className="git-output-text">{text}</pre>
+        <button type="button" className="git-output-copy" onClick={() => void navigator.clipboard.writeText(text)}>
+          Copy
+        </button>
+      </div>
     </details>
   )
 }

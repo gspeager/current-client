@@ -331,10 +331,10 @@ function NavPane({
       <div className="nav-pane-footer">
         {workspaceFeedback && (
           <div className={`nav-pane-feedback nav-pane-feedback-${workspaceFeedback.kind}`} role="status">
-            <span>
+            <div>
               {workspaceFeedback.text}
               <GitOutput message={workspaceFeedback.failure} />
-            </span>
+            </div>
             <button type="button" onClick={onDismissFeedback} aria-label="Dismiss" title="Dismiss">
               <X size={14} strokeWidth={1.75} />
             </button>

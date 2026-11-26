@@ -42,6 +42,7 @@ import RepoTabChip from '../../features/repositories/RepoTabChip'
 import SearchModal from '../../features/search/SearchModal'
 import './HeaderBar.scss'
 import { useWindowKeydown } from '../../lib/useWindowKeydown'
+import GitOutput from './GitOutput'
 import { capitalize } from '../../lib/text'
 
 interface HeaderBarProps {
@@ -454,7 +455,12 @@ function HeaderBar({
           syncing,
           !!branchStatus && branchStatus.ahead > 0,
         )}
-        {fetchAllOp.error && <span className="header-bar-fetch-error">Could not fetch: {fetchAllOp.error}</span>}
+        {fetchAllOp.error && (
+          <div className="header-bar-fetch-error">
+            Could not fetch: {fetchAllOp.error}
+            <GitOutput message={fetchAllOp.error} />
+          </div>
+        )}
       </div>
       {syncMenu && <ContextMenu state={syncMenu} onClose={() => setSyncMenu(null)} />}
       {onUndo && (
