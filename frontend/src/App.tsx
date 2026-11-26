@@ -45,6 +45,7 @@ import {
 import ConflictBanner from './features/branches/ConflictBanner'
 import GitMissing from './features/repositories/GitMissing'
 import HeaderBar from './components/chrome/HeaderBar'
+import GitOutput from './components/chrome/GitOutput'
 import KeepAlive from './components/chrome/KeepAlive'
 import NavPane, { type SidebarRequest } from './components/chrome/NavPane'
 import type { PaletteAction } from './components/chrome/paletteActions'
@@ -1072,7 +1073,7 @@ function App({
                       </p>
                     )}
                     {pullOp.error && (
-                      <p className="app-inline-error">
+                      <div className="app-inline-error">
                         Could not pull: {pullOp.error}
                         {pullOp.error === DIVERGED && (
                           <>
@@ -1080,9 +1081,15 @@ function App({
                             <button onClick={pullRebase}>Pull (rebase)</button>
                           </>
                         )}
-                      </p>
+                        <GitOutput message={pullOp.error} />
+                      </div>
                     )}
-                    {pushOp.error && <p className="app-inline-error">Could not push: {pushOp.error}</p>}
+                    {pushOp.error && (
+                      <div className="app-inline-error">
+                        Could not push: {pushOp.error}
+                        <GitOutput message={pushOp.error} />
+                      </div>
+                    )}
                     {pushed?.createLink && !changes[pushed.upstream]?.state && (
                       <p className="app-inline-notice" role="status">
                         Pushed {pushed.branch}.{' '}

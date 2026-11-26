@@ -51,6 +51,8 @@ export interface WorkspaceAction {
 export interface WorkspaceFeedback {
   kind: 'error' | 'notice'
   text: string
+  // The failure's own message, for its Git output.
+  failure?: string
 }
 
 interface WorkspaceActionsOptions {
@@ -106,7 +108,8 @@ export function useWorkspaceActions({
   const run = (action: Promise<unknown>, failure: string) => {
     setFeedback(null)
     action.catch((err: unknown) => {
-      setFeedback({ repoPath, kind: 'error', text: `${failure}: ${errorMessage(err)}` })
+      const message = errorMessage(err)
+      setFeedback({ repoPath, kind: 'error', text: `${failure}: ${message}`, failure: message })
       onFailure()
     })
   }

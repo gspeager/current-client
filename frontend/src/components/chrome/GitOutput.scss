@@ -1,0 +1,39 @@
+.git-output {
+  margin-top: var(--space-xs);
+  color: var(--on-surface-variant);
+  font: var(--ui-xs);
+
+  summary {
+    cursor: pointer;
+    width: fit-content;
+
+    &:focus-visible {
+      outline: 1px solid var(--primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.git-output-text {
+  margin: var(--space-xs) 0;
+  padding: var(--space-xs) var(--space-sm);
+  max-height: 200px;
+  overflow: auto;
+  background: var(--surface-lowest);
+  border-radius: var(--radius);
+  color: var(--on-surface);
+  font: var(--data-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.git-output-copy {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--on-surface);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

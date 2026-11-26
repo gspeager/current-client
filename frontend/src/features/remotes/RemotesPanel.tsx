@@ -10,6 +10,7 @@ import PathText from '../../components/git/PathText'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import { useActionError } from '../../lib/useActionError'
+import GitOutput from '../../components/chrome/GitOutput'
 import './RemotesPanel.scss'
 
 interface RemotesPanelProps {
@@ -160,7 +161,12 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false, req
         }
       >
         {error && <p className="remotes-panel-error">{error}</p>}
-        {fetchOp.error && <p className="remotes-panel-error">Could not fetch: {fetchOp.error}</p>}
+        {fetchOp.error && (
+          <div className="remotes-panel-error">
+            Could not fetch: {fetchOp.error}
+            <GitOutput message={fetchOp.error} />
+          </div>
+        )}
         {remotes === null ? (
           <p className="remotes-panel-hint">Loading remotes…</p>
         ) : remotes.length === 0 ? (

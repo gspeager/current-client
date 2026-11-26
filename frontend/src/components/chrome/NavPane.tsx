@@ -30,6 +30,7 @@ import { useSidebarSections } from '../../lib/useSidebarSections'
 import { useRovingRows } from '../../lib/useRovingRows'
 import type { useWorkingTree } from '../../features/working-copy/useWorkingTree'
 import type { WorkspaceAction, WorkspaceFeedback, WorkspaceGroup } from './useWorkspaceActions'
+import GitOutput from './GitOutput'
 import './NavPane.scss'
 
 type SectionId = 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
@@ -329,12 +330,15 @@ function NavPane({
 
       <div className="nav-pane-footer">
         {workspaceFeedback && (
-          <p className={`nav-pane-feedback nav-pane-feedback-${workspaceFeedback.kind}`} role="status">
-            <span>{workspaceFeedback.text}</span>
+          <div className={`nav-pane-feedback nav-pane-feedback-${workspaceFeedback.kind}`} role="status">
+            <div>
+              {workspaceFeedback.text}
+              <GitOutput message={workspaceFeedback.failure} />
+            </div>
             <button type="button" onClick={onDismissFeedback} aria-label="Dismiss" title="Dismiss">
               <X size={14} strokeWidth={1.75} />
             </button>
-          </p>
+          </div>
         )}
         <SidebarSection
           label="Toolbox"
