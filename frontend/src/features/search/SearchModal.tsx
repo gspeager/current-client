@@ -10,12 +10,17 @@ import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { matchRanges, type SearchFlags } from './matchRanges'
+import SegmentedControl from '../../components/controls/SegmentedControl'
+import { useSearchElsewhere } from '../../components/chrome/useSearchElsewhere'
+import { baseName } from '../../lib/paths'
 import './SearchModal.scss'
 
 const SEARCH_DEBOUNCE_MS = 250
 
 interface SearchModalProps {
   repoPath: string
+  // The other open repositories, which a search can take in too.
+  others?: string[]
   onClose: () => void
   // A past commit's file can't open in the editor at that version, so it opens in File history.
   onOpenFileHistory: (path: string) => void
@@ -43,10 +48,13 @@ function groupByPath(matches: SearchMatch[]): [string, SearchMatch[]][] {
   return [...groups]
 }
 
-function SearchModal({ repoPath, onClose, onOpenFileHistory }: SearchModalProps) {
+function SearchModal({ repoPath, others = [], onClose, onOpenFileHistory }: SearchModalProps) {
   const [pattern, setPattern] = useState('')
   const [flags, setFlags] = useState<SearchFlags>({ ignoreCase: true, wholeWord: false, regexp: false })
-  const [rev, setRev] = useState('')
+  const [scope, setScope] = useState<'repository' | 'open'>('repository')
+  const [chosenRev, setRev] = useState('')
+  // Every open repository is searched in its working tree.
+  const rev = scope === 'open' ? '' : chosenRev
   const [openError, setOpenError] = useState<string | null>(null)
   const [query] = useDebounceValue(pattern, SEARCH_DEBOUNCE_MS)
   const refGroups = useRefGroups(repoPath)
@@ -58,16 +66,41 @@ function SearchModal({ repoPath, onClose, onOpenFileHistory }: SearchModalProps)
     return running.current
   }, [repoPath, query, rev, flags])
 
+  const elsewhere = useSearchElsewhere(
+    scope === 'open' ? others : [],
+    query && `${query}\0${JSON.stringify(flags)}`,
+    (path) => SearchService.SearchContents(path, { pattern: query, rev: '', ...flags }),
+  )
+
   const setFlag = (name: keyof SearchFlags) => (value: boolean) => setFlags((prev) => ({ ...prev, [name]: value }))
 
-  const open = (m: SearchMatch) => {
+  const open = (m: SearchMatch, path = repoPath) => {
     if (rev) {
       onOpenFileHistory(m.path)
       return
     }
     setOpenError(null)
-    PlatformService.OpenFileInEditor(repoPath, m.path, m.line).catch((err: unknown) => setOpenError(errorMessage(err)))
+    PlatformService.OpenFileInEditor(path, m.path, m.line).catch((err: unknown) => setOpenError(errorMessage(err)))
   }
+
+  const fileGroups = (matches: SearchMatch[], path = repoPath) =>
+    groupByPath(matches).map(([file, lines]) => (
+      <section key={`${path}\0${file}`} className="search-file">
+        <PathText path={file} className="search-file-path" />
+        <ul className="search-lines">
+          {lines.map((m) => (
+            <li key={m.line}>
+              <button type="button" className="search-line" onClick={() => open(m, path)}>
+                <span className="search-line-number">{m.line}</span>
+                <span className="search-line-text">
+                  <Highlighted text={m.text} pattern={query} flags={flags} />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
 
   const groups = groupByPath(data?.matches ?? [])
 
@@ -86,14 +119,26 @@ function SearchModal({ repoPath, onClose, onOpenFileHistory }: SearchModalProps)
           <Checkbox checked={!flags.ignoreCase} onChange={(v) => setFlag('ignoreCase')(!v)} label="Match case" />
           <Checkbox checked={flags.wholeWord} onChange={setFlag('wholeWord')} label="Whole word" />
           <Checkbox checked={flags.regexp} onChange={setFlag('regexp')} label="Regular expression" />
-          <RefSelect
-            groups={refGroups}
-            value={rev}
-            onChange={setRev}
-            label="Search in"
-            extraOptions={[{ value: '', label: 'Working tree' }]}
-          />
+          {scope === 'repository' && (
+            <RefSelect
+              groups={refGroups}
+              value={rev}
+              onChange={setRev}
+              label="Search in"
+              extraOptions={[{ value: '', label: 'Working tree' }]}
+            />
+          )}
         </div>
+        {others.length > 0 && (
+          <SegmentedControl
+            value={scope}
+            onChange={setScope}
+            options={[
+              { value: 'repository', label: 'This repository' },
+              { value: 'open', label: `Open repositories (${others.length + 1})` },
+            ]}
+          />
+        )}
       </div>
 
       <div className="search-results">
@@ -104,7 +149,7 @@ function SearchModal({ repoPath, onClose, onOpenFileHistory }: SearchModalProps)
         ) : !data ? (
           <p className="search-hint">Searching…</p>
         ) : groups.length === 0 ? (
-          <p className="search-hint">No matches.</p>
+          <p className="search-hint">{scope === 'open' ? `No matches in ${baseName(repoPath)}.` : 'No matches.'}</p>
         ) : (
           <>
             <p className="search-summary" role="status">
@@ -114,24 +159,23 @@ function SearchModal({ repoPath, onClose, onOpenFileHistory }: SearchModalProps)
               {loading && ' · Searching…'}
             </p>
             {openError && <p className="search-error">Could not open: {openError}</p>}
-            {groups.map(([path, matches]) => (
-              <section key={path} className="search-file">
-                <PathText path={path} className="search-file-path" />
-                <ul className="search-lines">
-                  {matches.map((m) => (
-                    <li key={m.line}>
-                      <button type="button" className="search-line" onClick={() => open(m)}>
-                        <span className="search-line-number">{m.line}</span>
-                        <span className="search-line-text">
-                          <Highlighted text={m.text} pattern={query} flags={flags} />
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+            {fileGroups(data.matches)}
+          </>
+        )}
+        {scope === 'open' &&
+          elsewhere.found
+            .filter(({ matches }) => matches.matches.length > 0)
+            .map(({ path, matches }) => (
+              <section key={path} className="search-repository" aria-label={`In ${baseName(path)}`}>
+                <h3 className="search-repository-name">
+                  In {baseName(path)} · {plural(matches.matches.length, 'match', 'matches')}
+                  {matches.truncated && ', the first only'}
+                </h3>
+                {fileGroups(matches.matches, path)}
               </section>
             ))}
-          </>
+        {scope === 'open' && query && elsewhere.waiting > 0 && (
+          <p className="search-hint">Searching {plural(elsewhere.waiting, 'more repository', 'more repositories')}…</p>
         )}
       </div>
     </Modal>

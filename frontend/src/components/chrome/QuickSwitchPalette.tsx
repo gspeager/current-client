@@ -24,7 +24,9 @@ import {
   HistoryService,
   HostService,
   PlatformService,
+  SearchService,
   StashService,
+  type BranchMatch,
   type NoteInfo,
   RemoteService,
   StatusService,
@@ -50,6 +52,8 @@ import { plural } from '../../lib/plural'
 import { PALETTE_SECTIONS, matchesAction, type PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
 import { shortSha } from '../../lib/text'
+import SegmentedControl from '../controls/SegmentedControl'
+import { useSearchElsewhere } from './useSearchElsewhere'
 import './QuickSwitchPalette.scss'
 
 interface QuickSwitchPaletteProps {
@@ -75,6 +79,8 @@ interface QuickSwitchPaletteProps {
   onSearchFiles: () => void
   onOpenCommit: (sha: string, position: number) => void
   onOpenNote?: (note: NoteInfo) => void
+  // Opens a result in another open repository, after switching to its tab.
+  onGoElsewhere?: (path: string, target: ElsewhereTarget) => void
 }
 
 interface BranchResult {
@@ -158,6 +164,13 @@ function matches(text: string, query: string): boolean {
   return text.toLowerCase().includes(query)
 }
 
+// What a result in another repository opens there.
+export type ElsewhereTarget =
+  | { kind: 'repository' }
+  | { kind: 'file'; path: string }
+  | { kind: 'commit'; sha: string }
+  | { kind: 'note'; note: NoteInfo }
+
 interface SectionProps {
   heading: string
   icon?: LucideIcon
@@ -229,6 +242,7 @@ function QuickSwitchPalette({
   onSearchFiles,
   onOpenCommit,
   onOpenNote,
+  onGoElsewhere,
 }: QuickSwitchPaletteProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
@@ -250,6 +264,11 @@ function QuickSwitchPalette({
   const [error, setError] = useState<string | null>(null)
   const q = query.trim().toLowerCase()
   const [debouncedQuery] = useDebounceValue(q, COMMIT_SEARCH_DEBOUNCE_MS)
+  const others = repo.tabs.filter((path) => path !== repoPath)
+  const [scope, setScope] = useState<'repository' | 'open'>('repository')
+  const elsewhere = useSearchElsewhere(scope === 'open' && onGoElsewhere ? others : [], debouncedQuery, (path) =>
+    SearchService.InRepository(path, debouncedQuery),
+  )
 
   const ahead = useBranchStatus(repoPath, 0)?.ahead ?? 0
   const branches = useAsyncData(() => loadBranchResults(repoPath), [repoPath]).data ?? []
@@ -337,6 +356,10 @@ function QuickSwitchPalette({
     ? settingsGroups.filter((g) => [g, SETTINGS_HINTS[g] ?? '', SETTINGS_KEYWORDS[g] ?? ''].some((t) => matches(t, q)))
     : []
   const actionResults = actions.filter((a) => matchesAction(a, q))
+  const elsewhereCount = elsewhere.found.reduce(
+    (n, { matches: m }) => n + m.files.length + m.branches.length + m.commits.length + m.notes.length,
+    0,
+  )
   const sectionActions = (section: PaletteAction['section']) => actionResults.filter((a) => a.section === section)
   const resultCount =
     branchResults.length +
@@ -420,10 +443,25 @@ function QuickSwitchPalette({
           <Kbd>ESC</Kbd>
         </div>
 
+        {onGoElsewhere && others.length > 0 && (
+          <div className="quick-switch-scope">
+            <SegmentedControl
+              value={scope}
+              onChange={setScope}
+              options={[
+                { value: 'repository', label: 'This repository' },
+                { value: 'open', label: `Open repositories (${others.length + 1})` },
+              ]}
+            />
+          </div>
+        )}
+
         {error && <p className="quick-switch-error">{error}</p>}
 
         <Command.List ref={resultsRef} className="quick-switch-results">
-          {q && resultCount === 0 && <p className="quick-switch-empty">Nothing named “{query.trim()}”.</p>}
+          {q && resultCount === 0 && elsewhereCount === 0 && elsewhere.waiting === 0 && (
+            <p className="quick-switch-empty">Nothing named “{query.trim()}”.</p>
+          )}
 
           <Section heading="Branches" icon={GitBranch} count={branchResults.length}>
             {branchResults.map((b) => (
@@ -576,6 +614,79 @@ function QuickSwitchPalette({
               </Row>
             ))}
           </Section>
+
+          {elsewhere.found.map(({ path, matches }) => {
+            const name = baseName(path)
+            const go = (target: ElsewhereTarget) => runAndClose(() => onGoElsewhere?.(path, target))
+            const switchBranch = (branch: BranchMatch) => {
+              if (branch.current) return go({ kind: 'repository' })
+              setError(null)
+              BranchService.CheckoutBranch(path, branch.checkoutName)
+                .then(() => go({ kind: 'repository' }))
+                .catch((err: unknown) => setError(errorMessage(err)))
+            }
+            const count = matches.files.length + matches.branches.length + matches.commits.length + matches.notes.length
+            return (
+              <Section key={path} heading={`In ${name}`} icon={FolderGit2} count={count}>
+                {matches.branches.map((b) => (
+                  <Row
+                    key={`${path}\0branch:${b.name}`}
+                    value={`${path}\0branch:${b.name}`}
+                    label={`${b.name}, branch in ${name}`}
+                    icon={b.remote ? Cloud : GitBranch}
+                    onSelect={() => switchBranch(b)}
+                  >
+                    <span className="quick-switch-row-name">{highlight(b.name)}</span>
+                    <span className="quick-switch-row-meta">{b.current ? `current in ${name}` : name}</span>
+                  </Row>
+                ))}
+                {matches.files.map((file) => (
+                  <Row
+                    key={`${path}\0file:${file}`}
+                    value={`${path}\0file:${file}`}
+                    label={`${file}, file in ${name}`}
+                    icon={FileText}
+                    onSelect={() => go({ kind: 'file', path: file })}
+                  >
+                    <PathText path={file} className="quick-switch-row-name" />
+                    <span className="quick-switch-row-meta">{name}</span>
+                  </Row>
+                ))}
+                {matches.commits.map((c) => (
+                  <Row
+                    key={`${path}\0commit:${c.sha}`}
+                    value={`${path}\0commit:${c.sha}`}
+                    label={`${c.subject}, commit in ${name}`}
+                    icon={GitCommitVertical}
+                    onSelect={() => go({ kind: 'commit', sha: c.sha })}
+                  >
+                    <span className="quick-switch-row-name">{highlight(c.subject)}</span>
+                    <span className="quick-switch-row-meta">
+                      <span className="quick-switch-commit-sha">{shortSha(c.sha)}</span>
+                      {name}
+                    </span>
+                  </Row>
+                ))}
+                {matches.notes.map((note) => (
+                  <Row
+                    key={`${path}\0note:${note.kind}:${note.target}:${note.id}`}
+                    value={`${path}\0note:${note.kind}:${note.target}:${note.id}`}
+                    label={`Note on ${noteLabel(note)} in ${name}: ${note.text}`}
+                    icon={StickyNote}
+                    onSelect={() => go({ kind: 'note', note })}
+                  >
+                    <span className="quick-switch-row-name">{highlight(note.text)}</span>
+                    <span className="quick-switch-row-meta">{name}</span>
+                  </Row>
+                ))}
+              </Section>
+            )
+          })}
+          {elsewhere.waiting > 0 && (
+            <p className="quick-switch-empty" role="status">
+              Searching {plural(elsewhere.waiting, 'more repository', 'more repositories')}…
+            </p>
+          )}
 
           <Section heading="Tags" icon={Tag} count={tagResults.length}>
             {tagResults.map((t) => (

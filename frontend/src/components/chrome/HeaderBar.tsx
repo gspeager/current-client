@@ -1,4 +1,4 @@
-import { UndoService, type NoteInfo } from '@current-client-bindings/app'
+import { HistoryService, UndoService, type NoteInfo } from '@current-client-bindings/app'
 import { System } from '@wailsio/runtime'
 import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import {
@@ -34,7 +34,8 @@ import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
 import type { useRepositoryLifecycle } from '../../features/repositories/useRepositoryLifecycle'
 import BreadcrumbPanel, { type PanelView } from './BreadcrumbPanel'
-import QuickSwitchPalette from './QuickSwitchPalette'
+import QuickSwitchPalette, { type ElsewhereTarget } from './QuickSwitchPalette'
+import { ignoreDecorativeFailure } from '../../lib/errors'
 import type { PaletteAction } from './paletteActions'
 import type { WorkspaceAction } from './useWorkspaceActions'
 import RepoPickerModal from '../../features/repositories/RepoPickerModal'
@@ -154,6 +155,25 @@ function HeaderBar({
       .catch(() => setUndoLabel(UNDO_LABEL))
   }
   const [fileHistoryPath, setFileHistoryPath] = useState<string | null>(null)
+  // A result from another repository opens once that repository is the open one.
+  const [goingTo, setGoingTo] = useState<{ path: string; target: ElsewhereTarget } | null>(null)
+  const goElsewhere = (path: string, target: ElsewhereTarget) => {
+    setGoingTo({ path, target })
+    void repo.openRecent(path)
+  }
+  useEffect(() => {
+    if (!goingTo || goingTo.path !== repoPath) return
+    const { target } = goingTo
+    setGoingTo(null)
+    if (target.kind === 'file') setFileHistoryPath(target.path)
+    if (target.kind === 'note') onOpenNote?.(target.note)
+    if (target.kind === 'commit') {
+      HistoryService.GetCommitPosition(repoPath, target.sha)
+        .then((position) => onOpenCommit(target.sha, position))
+        .catch(ignoreDecorativeFailure)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goingTo, repoPath])
   const [searchOpen, setSearchOpen] = useState(false)
   const [dragPath, setDragPath] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -544,6 +564,7 @@ function HeaderBar({
           onSearchFiles={() => setSearchOpen(true)}
           onOpenCommit={onOpenCommit}
           onOpenNote={onOpenNote}
+          onGoElsewhere={goElsewhere}
         />
       )}
       {fileHistoryPath && (
@@ -552,6 +573,7 @@ function HeaderBar({
       {searchOpen && (
         <SearchModal
           repoPath={repoPath}
+          others={repo.tabs.filter((path) => path !== repoPath)}
           onClose={() => setSearchOpen(false)}
           onOpenFileHistory={(path) => {
             setSearchOpen(false)
