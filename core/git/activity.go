@@ -3,7 +3,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gspeager/current-client/core/gitexec"
@@ -30,10 +29,8 @@ func CommitActivity(ctx context.Context, repoPath string, days int) ([]DayActivi
 			return nil, err
 		}
 		counts := make(map[string]int)
-		for _, line := range strings.Split(result.Stdout, "\n") {
-			if line = strings.TrimSpace(line); line != "" {
-				counts[line]++
-			}
+		for _, day := range lines(result.Stdout) {
+			counts[day]++
 		}
 		return counts, nil
 	})

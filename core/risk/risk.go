@@ -225,12 +225,7 @@ func (c change) files(ctx context.Context) ([]git.ChangedFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	var files []git.ChangedFile
-	fields := strings.Split(output, "\x00")
-	for i := 0; i+1 < len(fields); i += 2 {
-		files = append(files, git.ChangedFile{Status: fields[i], Path: fields[i+1]})
-	}
-	return files, nil
+	return git.ParseNameStatus(output)
 }
 
 // siblings names the other half of each manifest or lockfile.

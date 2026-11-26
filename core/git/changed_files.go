@@ -26,7 +26,7 @@ func ChangedFiles(ctx context.Context, repoPath, sha string) ([]ChangedFile, err
 	if err != nil {
 		return nil, err
 	}
-	return parseChangedFiles(result.Stdout)
+	return ParseNameStatus(result.Stdout)
 }
 
 // commitTrees is what diff-tree compares for a commit: the commit alone, which
@@ -138,10 +138,11 @@ func RefRangeChangedFiles(ctx context.Context, repoPath, fromRef, toRef string) 
 	if err != nil {
 		return nil, err
 	}
-	return parseChangedFiles(result.Stdout)
+	return ParseNameStatus(result.Stdout)
 }
 
-func parseChangedFiles(output string) ([]ChangedFile, error) {
+// ParseNameStatus reads git diff --name-status -z, renames and copies with both names.
+func ParseNameStatus(output string) ([]ChangedFile, error) {
 	fields := strings.Split(output, "\x00")
 	var files []ChangedFile
 	for i := 0; i < len(fields); i++ {

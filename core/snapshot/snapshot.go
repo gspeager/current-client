@@ -55,11 +55,6 @@ type Snapshot struct {
 
 var identity = gitexec.Identity("snapshot@localhost")
 
-func currentBranch(ctx context.Context, repoPath string) string {
-	branch, _ := gitexec.OutputIn(ctx, repoPath, nil, "symbolic-ref", "--short", "-q", "HEAD")
-	return branch
-}
-
 // CopyIndex copies the index into dir and returns the environment that uses the
 // copy, so a command can change it and the real one is untouched.
 func CopyIndex(ctx context.Context, repoPath, dir string) ([]string, error) {
@@ -155,7 +150,9 @@ func Take(ctx context.Context, repoPath, action string, limit int) (bool, error)
 			return false, nil
 		}
 	}
-	commit := []string{"commit-tree", tree, "-m", action, "-m", metadata(KindTree, currentBranch(ctx, repoPath), skipped)}
+	// A detached HEAD has no branch to note.
+	branch, _ := git.HeadBranch(ctx, repoPath)
+	commit := []string{"commit-tree", tree, "-m", action, "-m", metadata(KindTree, branch, skipped)}
 	if headErr == nil {
 		commit = append(commit, "-p", head)
 	}

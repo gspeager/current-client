@@ -207,7 +207,7 @@ func applyHunk(ctx context.Context, repoPath, path, hunkText string, opts applyO
 // hunk, staging a deletion). An existing empty file keeps its name.
 func patchPaths(ctx context.Context, repoPath, path, hunkText string, opts applyOptions) (oldPath, newPath string) {
 	oldPath, newPath = "a/"+path, "b/"+path
-	m := hunkHeaderPattern.FindStringSubmatch(hunkText)
+	m := HunkHeader.FindStringSubmatch(hunkText)
 	if m == nil {
 		return oldPath, newPath
 	}
@@ -241,7 +241,8 @@ func objectExists(ctx context.Context, repoPath, spec string) bool {
 	return err == nil
 }
 
-var hunkHeaderPattern = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
+// HunkHeader is a unified diff's "@@ -old,count +new,count @@" line.
+var HunkHeader = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
 
 // Git prints a conflicted file as a two-parent combined diff (`diff --cc`).
 var combinedHunkHeaderPattern = regexp.MustCompile(`^@@@ -(\d+)(?:,(\d+))? -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@@`)
@@ -319,13 +320,13 @@ func (p *diffParser) finishHunk() {
 func (p *diffParser) parseHeaderLine(line string) (handled bool, err error) {
 	switch {
 	case strings.HasPrefix(line, "--- "):
-		p.fd.OldPath = trimDiffPathPrefix(strings.TrimPrefix(line, "--- "))
+		p.fd.OldPath = HeaderPath(strings.TrimPrefix(line, "--- "))
 		return true, nil
 	case strings.HasPrefix(line, "+++ "):
-		p.fd.NewPath = trimDiffPathPrefix(strings.TrimPrefix(line, "+++ "))
+		p.fd.NewPath = HeaderPath(strings.TrimPrefix(line, "+++ "))
 		return true, nil
 	case strings.HasPrefix(line, "@@ "):
-		m := hunkHeaderPattern.FindStringSubmatch(line)
+		m := HunkHeader.FindStringSubmatch(line)
 		if m == nil {
 			return true, fmt.Errorf("malformed hunk header: %q", line)
 		}
@@ -443,16 +444,23 @@ func conflictMarkerRegion(content string) (conflictRegion, bool) {
 	return outsideConflict, false
 }
 
-// Git ends a path containing a space with a tab, to mark where it stops.
-func trimDiffPathPrefix(path string) string {
-	path = strings.TrimSuffix(path, "\t")
-	if path == "/dev/null" {
+// HeaderPath is the file a "---" or "+++" line names, without its a/ or b/: ""
+// for /dev/null. Git ends a name holding a space with a tab, and quotes one with
+// special characters, non-ASCII included, in C style, which Go can read.
+func HeaderPath(field string) string {
+	field = strings.TrimSuffix(field, "\t")
+	if strings.HasPrefix(field, `"`) {
+		if unquoted, err := strconv.Unquote(field); err == nil {
+			field = unquoted
+		}
+	}
+	if field == "/dev/null" {
 		return ""
 	}
-	if len(path) > 2 && (path[:2] == "a/" || path[:2] == "b/") {
-		return path[2:]
+	if len(field) > 2 && (field[:2] == "a/" || field[:2] == "b/") {
+		return field[2:]
 	}
-	return path
+	return field
 }
 
 func atoi(s string) int {

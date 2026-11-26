@@ -253,14 +253,6 @@ func checkedOutElsewhere(worktrees []Worktree, branch string) string {
 	return ""
 }
 
-func headBranch(ctx context.Context, repoPath string) (string, error) {
-	head, err := gitexec.RunIn(ctx, repoPath, "symbolic-ref", "--quiet", "--short", "HEAD")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(head.Stdout), nil
-}
-
 type RestackResult struct {
 	Links []StackLink
 	Moves []StackMove
@@ -303,7 +295,7 @@ func Restack(ctx context.Context, repoPath string, links []StackLink) (RestackRe
 	if dirty {
 		return result, &gitexec.AppError{Message: "Commit or stash the changes in the working tree first."}
 	}
-	start, err := headBranch(ctx, repoPath)
+	start, err := HeadBranch(ctx, repoPath)
 	if err != nil {
 		return result, &gitexec.AppError{Message: "Check out a branch to restack."}
 	}
@@ -366,7 +358,7 @@ func UndoRestack(ctx context.Context, repoPath string, moves []StackMove) error 
 	if blocked != "" {
 		return &gitexec.AppError{Message: blocked}
 	}
-	current, _ := headBranch(ctx, repoPath)
+	current, _ := HeadBranch(ctx, repoPath)
 	worktrees, err := ListWorktrees(ctx, repoPath)
 	if err != nil {
 		return err

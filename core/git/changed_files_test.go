@@ -10,7 +10,7 @@ import (
 
 func TestParseChangedFilesFixture(t *testing.T) {
 	output := "M\x00main.txt\x00A\x00new.txt\x00"
-	files, err := parseChangedFiles(output)
+	files, err := ParseNameStatus(output)
 	if err != nil {
 		t.Fatalf("parseChangedFiles: %v", err)
 	}
@@ -25,7 +25,7 @@ func TestParseChangedFilesFixture(t *testing.T) {
 
 func TestParseChangedFilesRename(t *testing.T) {
 	output := "R100\x00old.txt\x00new.txt\x00"
-	files, err := parseChangedFiles(output)
+	files, err := ParseNameStatus(output)
 	if err != nil {
 		t.Fatalf("parseChangedFiles: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestParseChangedFilesRename(t *testing.T) {
 }
 
 func TestParseChangedFilesEmpty(t *testing.T) {
-	files, err := parseChangedFiles("")
+	files, err := ParseNameStatus("")
 	if err != nil {
 		t.Fatalf("parseChangedFiles: %v", err)
 	}
