@@ -14,7 +14,7 @@ import { plural } from '../../lib/plural'
 import { shortSha } from '../../lib/text'
 import { describeResult, explainResult } from '../tasks/taskResult'
 import type { useTasks } from '../tasks/useTasks'
-import { useOpenReadThrough } from '../read-through/readThrough'
+import { useOpenReadThrough } from '../../lib/readThrough'
 import { useBoard } from './useBoard'
 import './WorktreeBoard.scss'
 

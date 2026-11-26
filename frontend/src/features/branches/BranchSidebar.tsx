@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent, useMemo } from 'react'
 import { BrushCleaning, Cloud, Ellipsis, GitBranchPlus, Pencil, Search, TriangleAlert, X, Table } from 'lucide-react'
 import {
   StackService,
@@ -12,7 +12,7 @@ import {
   RemoteService,
 } from '@current-client-bindings/app'
 import CompareModal from '../history/CompareModal'
-import { useOpenReadThrough } from '../read-through/readThrough'
+import { useOpenReadThrough } from '../../lib/readThrough'
 import ContextMenu, { menuAnchor, rowKeyDown, type ContextMenuState } from '../../components/controls/ContextMenu'
 import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { localNameFor } from './branches'
@@ -34,7 +34,7 @@ import { plural } from '../../lib/plural'
 import { useLaneColors } from '../../lib/laneColor'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
-import type { SidebarRequest } from '../shell/NavPane'
+import { useSidebarCommand } from '../../lib/sidebarCommands'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import { useDialogs } from '../../lib/useDialogs'
@@ -62,7 +62,6 @@ interface BranchSidebarProps {
   onBranchChanged?: () => void
   onCreateChange?: (branch: string) => void
   // New branch or Clean up asked for from elsewhere, such as after a merge from the app.
-  request?: SidebarRequest | null
 }
 
 type NewBranchKind = 'branch' | 'feature' | 'release' | 'hotfix'
@@ -75,7 +74,6 @@ function BranchSidebar({
   conflict = null,
   onBranchChanged,
   onCreateChange,
-  request = null,
 }: BranchSidebarProps) {
   useClockTick()
   const { branchColor } = useLaneColors()
@@ -150,24 +148,21 @@ function BranchSidebar({
   })
   const [restack, setRestack] = useState<string | null>(null)
   const stackWith = (name: string) => stackList?.stacks.find((stack) => stack.layers.some((l) => l.branch === name))
-  useEffect(() => {
-    if (request?.action === 'clean-up') setCleanUp(true)
-    if (request?.action === 'branch-review') setBranchReview(true)
-    if (request?.action === 'conflict-grid') setConflictGrid(true)
-    if (request?.action === 'tidy-up') setTidyUp(true)
-    if (request?.action === 'restack') {
-      const stack = stackWith(branchStatus?.current ?? '')
-      if (stack) {
-        if (!sections.isOpen('branches', true)) sections.toggle('branches', true)
-        if (!sections.isOpen('branches-stacks', true)) sections.toggle('branches-stacks', true)
-        setRestack(stack.root)
-      } else {
-        setActionError("The current branch isn't in a stack.")
-      }
+  useSidebarCommand('clean-up', () => setCleanUp(true))
+  useSidebarCommand('branch-review', () => setBranchReview(true))
+  useSidebarCommand('conflict-grid', () => setConflictGrid(true))
+  useSidebarCommand('tidy-up', () => setTidyUp(true))
+  useSidebarCommand('new-branch', () => setShowNewBranch(true))
+  useSidebarCommand('restack', () => {
+    const stack = stackWith(branchStatus?.current ?? '')
+    if (!stack) {
+      setActionError("The current branch isn't in a stack.")
+      return
     }
-    if (request?.action === 'new-branch') setShowNewBranch(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request])
+    if (!sections.isOpen('branches', true)) sections.toggle('branches', true)
+    if (!sections.isOpen('branches-stacks', true)) sections.toggle('branches-stacks', true)
+    setRestack(stack.root)
+  })
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 

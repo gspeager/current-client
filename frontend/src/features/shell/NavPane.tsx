@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import {
   ChevronDown,
   ChevronRight,
@@ -32,30 +33,12 @@ import type { useWorkingTree } from '../working-copy/useWorkingTree'
 import type { WorkspaceAction, WorkspaceFeedback, WorkspaceGroup } from './useWorkspaceActions'
 import GitOutput from '../../components/chrome/GitOutput'
 import './NavPane.scss'
+import { SidebarCommandsContext, type SidebarCommand, type SidebarCommands } from '../../lib/sidebarCommands'
 
 type SectionId = 'branches' | 'stash' | 'tags' | 'remotes' | 'worktrees'
 
-// Something elsewhere in the app, such as the palette, asking a sidebar
-// section to open one of its forms or dialogs; n makes each ask distinct.
-export interface SidebarRequest {
-  action:
-    | 'new-branch'
-    | 'clean-up'
-    | 'branch-review'
-    | 'conflict-grid'
-    | 'tidy-up'
-    | 'restack'
-    | 'new-tag'
-    | 'publish-release'
-    | 'new-stash'
-    | 'show-stash'
-    | 'new-worktree'
-    | 'new-remote'
-  n: number
-}
-
-// Every action, so a new one can't fall into another section.
-const SECTION_OF: Record<SidebarRequest['action'], SectionId> = {
+// Every command, so a new one can't fall into another section.
+const SECTION_OF: Record<SidebarCommand, SectionId> = {
   'new-branch': 'branches',
   'clean-up': 'branches',
   'branch-review': 'branches',
@@ -89,7 +72,7 @@ interface NavPaneProps {
   onOpenChange?: (number: number) => void
   onOpenFile?: (path: string) => void
   onCreateChange?: (branch: string) => void
-  request?: SidebarRequest | null
+  commands: SidebarCommands
   // Opens a repository (such as a worktree or submodule) as a tab.
   onOpenRepository: (path: string) => void
   onOpenWorktreeBoard: () => void
@@ -183,7 +166,7 @@ function NavPane({
   onOpenChange,
   onOpenFile,
   onCreateChange,
-  request = null,
+  commands,
 }: NavPaneProps) {
   const sections = useSidebarSections(repoPath)
   const [maintenanceOpen, setMaintenanceOpen] = useState(false)
@@ -207,11 +190,8 @@ function NavPane({
     onCollapsedChange(false)
   }
 
-  useEffect(() => {
-    if (!request) return
-    showSection(SECTION_OF[request.action])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request])
+  const revealSection = useEventCallback((command: SidebarCommand) => showSection(SECTION_OF[command]))
+  useEffect(() => commands.onReveal(revealSection), [commands, revealSection])
 
   const openToolboxMenu = (e: MouseEvent) => {
     const groups = (['open', 'tools', 'maintenance'] as const).map(group)
@@ -251,141 +231,141 @@ function NavPane({
   }
 
   return (
-    <nav className="nav-pane" data-pane="sidebar" style={{ width, minWidth: width }} aria-label="Repository">
-      <div className="nav-pane-head">
-        <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />
-        <button
-          type="button"
-          className="nav-pane-collapse"
-          onClick={() => onCollapsedChange(true)}
-          aria-label="Collapse sidebar"
-          title="Collapse sidebar"
-        >
-          <PanelLeftClose size={16} strokeWidth={1.75} />
-        </button>
-      </div>
+    <SidebarCommandsContext.Provider value={commands}>
+      <nav className="nav-pane" data-pane="sidebar" style={{ width, minWidth: width }} aria-label="Repository">
+        <div className="nav-pane-head">
+          <HeadCommitPanel repoPath={repoPath} refreshKey={repoVersion} onOpen={onOpenHeadCommit} />
+          <button
+            type="button"
+            className="nav-pane-collapse"
+            onClick={() => onCollapsedChange(true)}
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
+          >
+            <PanelLeftClose size={16} strokeWidth={1.75} />
+          </button>
+        </div>
 
-      <div className="nav-pane-scroll" ref={rovingRows}>
-        <CurrentChangeSection
-          repoPath={repoPath}
-          refreshKey={`${repoVersion}:${hostVersion}`}
-          onOpenChange={onOpenChange}
-          onOpenFile={onOpenFile}
-          onCreateChange={onCreateChange}
-          onPushToCreate={onPushToCreate}
-        />
-        <CurrentIssueSection repoPath={repoPath} refreshKey={`${repoVersion}:${hostVersion}`} />
-
-        <section className="nav-pane-section" ref={sectionRef('branches')}>
-          <BranchSidebar
+        <div className="nav-pane-scroll" ref={rovingRows}>
+          <CurrentChangeSection
             repoPath={repoPath}
-            dirty={dirty}
-            refreshKey={repoVersion}
-            sections={sections}
-            conflict={conflictState}
-            onBranchChanged={onBranchChanged}
+            refreshKey={`${repoVersion}:${hostVersion}`}
+            onOpenChange={onOpenChange}
+            onOpenFile={onOpenFile}
             onCreateChange={onCreateChange}
-            request={request}
+            onPushToCreate={onPushToCreate}
           />
-        </section>
+          <CurrentIssueSection repoPath={repoPath} refreshKey={`${repoVersion}:${hostVersion}`} />
 
-        <section className="nav-pane-section" ref={sectionRef('stash')}>
-          <StashPanel
+          <section className="nav-pane-section" ref={sectionRef('branches')}>
+            <BranchSidebar
+              repoPath={repoPath}
+              dirty={dirty}
+              refreshKey={repoVersion}
+              sections={sections}
+              conflict={conflictState}
+              onBranchChanged={onBranchChanged}
+              onCreateChange={onCreateChange}
+            />
+          </section>
+
+          <section className="nav-pane-section" ref={sectionRef('stash')}>
+            <StashPanel
+              repoPath={repoPath}
+              dirty={dirty}
+              refreshKey={repoVersion}
+              sections={sections}
+              onStashChanged={onBranchChanged}
+            />
+          </section>
+
+          <section className="nav-pane-section" ref={sectionRef('tags')}>
+            <TagsPanel repoPath={repoPath} sections={sections} onTagChanged={onBranchChanged} />
+          </section>
+
+          <section className="nav-pane-section" ref={sectionRef('remotes')}>
+            <RemotesPanel repoPath={repoPath} sections={sections} onFetched={onFetched} pruneOnFetch={pruneOnFetch} />
+          </section>
+
+          <section className="nav-pane-section" ref={sectionRef('worktrees')}>
+            <WorktreesPanel
+              repoPath={repoPath}
+              refreshKey={repoVersion}
+              sections={sections}
+              onOpenBoard={onOpenWorktreeBoard}
+              onOpenRepository={onOpenRepository}
+              onWorktreesChanged={onBranchChanged}
+            />
+          </section>
+          <SubmodulesPanel
             repoPath={repoPath}
-            dirty={dirty}
             refreshKey={repoVersion}
             sections={sections}
-            onStashChanged={onBranchChanged}
-            request={request}
-          />
-        </section>
-
-        <section className="nav-pane-section" ref={sectionRef('tags')}>
-          <TagsPanel repoPath={repoPath} sections={sections} onTagChanged={onBranchChanged} request={request} />
-        </section>
-
-        <section className="nav-pane-section" ref={sectionRef('remotes')}>
-          <RemotesPanel
-            repoPath={repoPath}
-            sections={sections}
-            onFetched={onFetched}
-            pruneOnFetch={pruneOnFetch}
-            request={request}
-          />
-        </section>
-
-        <section className="nav-pane-section" ref={sectionRef('worktrees')}>
-          <WorktreesPanel
-            repoPath={repoPath}
-            refreshKey={repoVersion}
-            sections={sections}
-            onOpenBoard={onOpenWorktreeBoard}
             onOpenRepository={onOpenRepository}
-            onWorktreesChanged={onBranchChanged}
-            request={request}
+            onSubmodulesChanged={onBranchChanged}
           />
-        </section>
-        <SubmodulesPanel
-          repoPath={repoPath}
-          refreshKey={repoVersion}
-          sections={sections}
-          onOpenRepository={onOpenRepository}
-          onSubmodulesChanged={onBranchChanged}
-        />
-        <ScrollCue />
-      </div>
+          <ScrollCue />
+        </div>
 
-      <div className="nav-pane-footer">
-        {workspaceFeedback && (
-          <div className={`nav-pane-feedback nav-pane-feedback-${workspaceFeedback.kind}`} role="status">
-            <div>
-              {workspaceFeedback.text}
-              <GitOutput message={workspaceFeedback.failure} />
+        <div className="nav-pane-footer">
+          {workspaceFeedback && (
+            <div className={`nav-pane-feedback nav-pane-feedback-${workspaceFeedback.kind}`} role="status">
+              <div>
+                {workspaceFeedback.text}
+                <GitOutput message={workspaceFeedback.failure} />
+              </div>
+              <button type="button" onClick={onDismissFeedback} aria-label="Dismiss" title="Dismiss">
+                <X size={14} strokeWidth={1.75} />
+              </button>
             </div>
-            <button type="button" onClick={onDismissFeedback} aria-label="Dismiss" title="Dismiss">
-              <X size={14} strokeWidth={1.75} />
-            </button>
-          </div>
-        )}
-        <SidebarSection
-          label="Toolbox"
-          title="Undo, recover, reflog, bisect and repository upkeep"
-          open={sections.isOpen('toolbox', false)}
-          onToggle={() => sections.toggle('toolbox', false)}
-          actions={
-            !sections.isOpen('toolbox', false) && (
-              <span className="nav-pane-toolbox-quick">
-                {group('tools')
-                  .slice(0, 4)
-                  .map(({ id, label, icon, run, disabled, reason }) => (
-                    <RailButton key={id} label={label} icon={icon} onClick={run} disabled={disabled} reason={reason} />
-                  ))}
-              </span>
-            )
-          }
-        >
-          <ToolGroup label="Open in" actions={group('open')} />
-          <ToolGroup label="Tools" actions={group('tools')}>
-            <button
-              type="button"
-              className="nav-pane-tool"
-              onClick={() => setMaintenanceOpen((open) => !open)}
-              aria-expanded={maintenanceOpen}
-              title="Check integrity, run cleanup"
-            >
-              <Wrench size={14} strokeWidth={1.75} />
-              Maintenance
-              {maintenanceOpen ? (
-                <ChevronDown size={12} strokeWidth={1.5} />
-              ) : (
-                <ChevronRight size={12} strokeWidth={1.5} />
-              )}
-            </button>
-          </ToolGroup>
-          {maintenanceOpen && <ToolGroup label="Maintenance" actions={group('maintenance')} />}
-        </SidebarSection>
-      </div>
-    </nav>
+          )}
+          <SidebarSection
+            label="Toolbox"
+            title="Undo, recover, reflog, bisect and repository upkeep"
+            open={sections.isOpen('toolbox', false)}
+            onToggle={() => sections.toggle('toolbox', false)}
+            actions={
+              !sections.isOpen('toolbox', false) && (
+                <span className="nav-pane-toolbox-quick">
+                  {group('tools')
+                    .slice(0, 4)
+                    .map(({ id, label, icon, run, disabled, reason }) => (
+                      <RailButton
+                        key={id}
+                        label={label}
+                        icon={icon}
+                        onClick={run}
+                        disabled={disabled}
+                        reason={reason}
+                      />
+                    ))}
+                </span>
+              )
+            }
+          >
+            <ToolGroup label="Open in" actions={group('open')} />
+            <ToolGroup label="Tools" actions={group('tools')}>
+              <button
+                type="button"
+                className="nav-pane-tool"
+                onClick={() => setMaintenanceOpen((open) => !open)}
+                aria-expanded={maintenanceOpen}
+                title="Check integrity, run cleanup"
+              >
+                <Wrench size={14} strokeWidth={1.75} />
+                Maintenance
+                {maintenanceOpen ? (
+                  <ChevronDown size={12} strokeWidth={1.5} />
+                ) : (
+                  <ChevronRight size={12} strokeWidth={1.5} />
+                )}
+              </button>
+            </ToolGroup>
+            {maintenanceOpen && <ToolGroup label="Maintenance" actions={group('maintenance')} />}
+          </SidebarSection>
+        </div>
+      </nav>
+    </SidebarCommandsContext.Provider>
   )
 }
 
