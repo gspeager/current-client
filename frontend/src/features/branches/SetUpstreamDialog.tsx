@@ -4,6 +4,7 @@ import Modal from '../../components/chrome/Modal'
 import RefSelect from '../../components/git/RefSelect'
 import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
+import DialogActions from '../../components/chrome/DialogActions'
 
 interface SetUpstreamDialogProps {
   repoPath: string
@@ -44,18 +45,9 @@ function SetUpstreamDialog({ repoPath, branch, upstream, onClose, onSet }: SetUp
           </label>
         )}
         {error && <p className="dialog-message dialog-error">{error}</p>}
-        <div className="dialog-actions">
-          <button type="button" className="dialog-button" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="dialog-button dialog-button-primary"
-            disabled={!selected || selected === upstream}
-          >
-            Set upstream
-          </button>
-        </div>
+        <DialogActions onCancel={onClose} disabled={!selected || selected === upstream}>
+          Set upstream
+        </DialogActions>
       </form>
     </Modal>
   )

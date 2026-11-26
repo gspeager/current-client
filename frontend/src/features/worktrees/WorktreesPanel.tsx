@@ -13,7 +13,7 @@ import { useOpenReadThrough } from '../read-through/readThrough'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
 import { shortSha } from '../../lib/text'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 import './WorktreesPanel.scss'
 
 const NEW_BRANCH = ''
@@ -48,7 +48,7 @@ function WorktreesPanel({
   } = useAsyncData(() => WorktreeService.List(repoPath), [repoPath], { refreshKey })
   const { data: branches } = useAsyncData(() => BranchService.ListLocal(repoPath), [repoPath], { refreshKey })
   const { confirm } = useDialogs()
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   const [showNew, setShowNew] = useState(false)
   useEffect(() => {
     if (request?.action === 'new-worktree') setShowNew(true)

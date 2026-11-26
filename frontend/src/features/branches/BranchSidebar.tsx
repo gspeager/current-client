@@ -47,7 +47,7 @@ import { useBranchChanges } from '../../lib/useBranchChanges'
 import { useReferenceCards } from '../../lib/useReferenceCards'
 import { branchPage, openWebPage, remoteBranchName } from '../../lib/hostPages'
 import IssuePicker from './IssuePicker'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 import './BranchSidebar.scss'
 import { changeNoun } from '../../lib/changeNoun'
 
@@ -122,7 +122,7 @@ function BranchSidebar({
   const overlapFor = new Map(overlaps.map((o) => [o.branch, o]))
   const remoteConflicts = overlaps.filter((o) => o.remote).length
   const { confirm, prompt } = useDialogs()
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail, run } = useAction()
   const error = loadError ?? actionError
   const branchesChanged = () => {
     loadBranches()
@@ -170,28 +170,21 @@ function BranchSidebar({
   const [squashed, setSquashed] = useState<string | null>(null)
   const [upstreamFor, setUpstreamFor] = useState<BranchInfo | null>(null)
 
-  const checkoutBranch = (name: string) => {
-    setActionError(null)
-    BranchService.CheckoutBranch(repoPath, name)
-      .then(branchesChanged)
-      .catch((err: unknown) => setActionError(`Could not check out ${name}: ${errorMessage(err)}`))
-  }
+  const checkoutBranch = (name: string) =>
+    void run(() => BranchService.CheckoutBranch(repoPath, name).then(branchesChanged), `Could not check out ${name}`)
 
-  const createBranch = () => {
-    setActionError(null)
-    const create =
-      newBranchKind === 'branch'
+  const createBranch = () =>
+    void run(() =>
+      (newBranchKind === 'branch'
         ? BranchService.CreateBranch(repoPath, newBranch).then(() => BranchService.CheckoutBranch(repoPath, newBranch))
         : GitFlowService.StartBranch(repoPath, newBranchKind, newBranch)
-    create
-      .then(() => {
+      ).then(() => {
         setNewBranchName('')
         setNewBranchKind('branch')
         setShowNewBranch(false)
         branchesChanged()
-      })
-      .catch(fail)
-  }
+      }),
+    )
 
   const stacksChanged = () => {
     reloadStacks()
@@ -205,22 +198,13 @@ function BranchSidebar({
       confirmLabel: 'Create',
       transform: toBranchName,
     })
-    if (!name) return
-    setActionError(null)
-    StackService.NewLayer(repoPath, name, parent).then(stacksChanged).catch(fail)
+    if (name) void run(() => StackService.NewLayer(repoPath, name, parent).then(stacksChanged))
   }
 
-  const stackCurrentOn = (parent: string) => {
-    setActionError(null)
-    StackService.AddLayer(repoPath, branchStatus?.current ?? '', parent)
-      .then(reloadStacks)
-      .catch(fail)
-  }
+  const stackCurrentOn = (parent: string) =>
+    void run(() => StackService.AddLayer(repoPath, branchStatus?.current ?? '', parent).then(reloadStacks))
 
-  const removeFromStack = (name: string) => {
-    setActionError(null)
-    StackService.RemoveLayer(repoPath, name).then(reloadStacks).catch(fail)
-  }
+  const removeFromStack = (name: string) => void run(() => StackService.RemoveLayer(repoPath, name).then(reloadStacks))
 
   const renameBranch = async (oldName: string) => {
     const newName = await prompt({
@@ -230,22 +214,18 @@ function BranchSidebar({
       confirmLabel: 'Rename',
       transform: toBranchName,
     })
-    if (!newName) return
-    setActionError(null)
-    BranchService.RenameBranch(repoPath, oldName, newName).then(loadBranches).catch(fail)
+    if (newName) void run(() => BranchService.RenameBranch(repoPath, oldName, newName).then(loadBranches))
   }
 
   // mode is '' (fast-forward when possible), 'no-ff' or 'squash'.
   const mergeBranch = (name: string, mode = '') => {
-    setActionError(null)
     setSquashed(null)
-    BranchService.MergeBranch(repoPath, name, mode)
-      .then(() => {
+    const merge = () =>
+      BranchService.MergeBranch(repoPath, name, mode).then(() => {
         if (mode === 'squash') setSquashed(name)
       })
-      .catch(fail)
-      // A failed merge leaves conflicts the banner must pick up.
-      .finally(branchesChanged)
+    // A failed merge leaves conflicts the banner must pick up.
+    void run(merge).finally(branchesChanged)
   }
 
   const mergeDefaultBranch = async (name: string) => {
@@ -263,8 +243,7 @@ function BranchSidebar({
 
   const rebaseOnto = (name: string) => {
     setRebasePreview(null)
-    setActionError(null)
-    BranchService.RebaseOnto(repoPath, name).catch(fail).finally(branchesChanged)
+    void run(() => BranchService.RebaseOnto(repoPath, name)).finally(branchesChanged)
   }
 
   const deleteBranch = (name: string, force: boolean) => {
@@ -290,23 +269,20 @@ function BranchSidebar({
       })
   }
 
-  const unsetUpstream = (name: string) => {
-    setActionError(null)
-    BranchService.UnsetUpstream(repoPath, name).then(branchesChanged).catch(fail)
-  }
+  const unsetUpstream = (name: string) =>
+    void run(() => BranchService.UnsetUpstream(repoPath, name).then(branchesChanged))
 
   const restoreDeleted = (branches: DeletedBranch[]) => {
-    setActionError(null)
     setDeleted(null)
-    Promise.all(
-      branches.map((branch) =>
-        BranchService.CreateBranchAt(repoPath, branch.name, branch.tip).catch((err: unknown) => {
-          throw new Error(`Could not restore ${branch.name}: ${errorMessage(err)}`)
-        }),
+    void run(() =>
+      Promise.all(
+        branches.map((branch) =>
+          BranchService.CreateBranchAt(repoPath, branch.name, branch.tip).catch((err: unknown) => {
+            throw new Error(`Could not restore ${branch.name}: ${errorMessage(err)}`)
+          }),
+        ),
       ),
-    )
-      .catch(fail)
-      .finally(branchesChanged)
+    ).finally(branchesChanged)
   }
 
   const cleanedUp = (branches: DeletedBranch[]) => {

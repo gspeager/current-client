@@ -3,26 +3,20 @@ import { PlatformService } from '@current-client-bindings/app'
 import type { Launcher } from '@current-client-bindings/internal/platform'
 import { System } from '@wailsio/runtime'
 import PathText from '../../components/git/PathText'
-import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import SettingsRow from './SettingsRow'
+import { useAction } from '../../lib/useAction'
 
 // Writes nothing until Install is clicked, and says where first.
 function TerminalCommandRow() {
   const { data: loaded } = useAsyncData(() => PlatformService.TerminalCommand(), [])
   const [changed, setChanged] = useState<Launcher | null>(null)
   const data = changed ?? loaded
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const { run: runAction, running: busy, error } = useAction()
   if (!data?.path) return null
 
   const run = (action: () => Promise<Launcher>) => {
-    setBusy(true)
-    setError(null)
-    action()
-      .then(setChanged)
-      .catch((err: unknown) => setError(errorMessage(err)))
-      .finally(() => setBusy(false))
+    void runAction(() => action().then(setChanged))
   }
 
   return (

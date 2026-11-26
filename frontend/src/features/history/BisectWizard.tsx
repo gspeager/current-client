@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Search, SkipForward, Target, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { BisectService, HistoryService, type BisectStatusInfo, type CommitInfo } from '@current-client-bindings/app'
-import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useClockTick } from '../../lib/useClockTick'
@@ -9,6 +8,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { EMPTY_HISTORY_FILTER } from './useCommitHistory'
 import Modal from '../../components/chrome/Modal'
 import { shortSha } from '../../lib/text'
+import { useAction } from '../../lib/useAction'
 import './BisectWizard.scss'
 
 interface BisectWizardProps {
@@ -55,8 +55,7 @@ function BisectWizard({ repoPath, onClose, onViewCommit }: BisectWizardProps) {
   const [stage, setStage] = useState<Stage>({ kind: 'loading' })
   const [badRev, setBadRev] = useState('HEAD')
   const [goodRev, setGoodRev] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const { run, running: busy, error, fail } = useAction()
   const candidateSha = stage.kind === 'testing' || stage.kind === 'done' ? stage.sha : null
 
   useEffect(() => {
@@ -72,8 +71,8 @@ function BisectWizard({ repoPath, onClose, onViewCommit }: BisectWizardProps) {
           setStage({ kind: 'testing', sha: result[0]?.sha ?? '', revisionsLeft: -1, stepsRemaining: -1 }),
         )
       })
-      .catch((err: unknown) => setError(errorMessage(err)))
-  }, [repoPath])
+      .catch(fail)
+  }, [repoPath, fail])
 
   const commit =
     useAsyncData(
@@ -86,11 +85,7 @@ function BisectWizard({ repoPath, onClose, onViewCommit }: BisectWizardProps) {
       [repoPath, candidateSha],
     ).data ?? null
 
-  const runStep = (step: Promise<unknown>) => {
-    setError(null)
-    setBusy(true)
-    step.catch((err: unknown) => setError(errorMessage(err))).finally(() => setBusy(false))
-  }
+  const runStep = (step: Promise<unknown>) => void run(() => step)
 
   const start = () => {
     if (!goodRev.trim()) return

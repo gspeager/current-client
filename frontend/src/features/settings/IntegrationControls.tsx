@@ -1,10 +1,10 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import Switch from '../../components/forms/Switch'
 import { errorMessage } from '../../lib/errors'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 
 export function useIntegrationAction(reload: () => void, onChanged?: () => void) {
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   const run = (action: Promise<unknown>) =>
     action
       .then(() => {

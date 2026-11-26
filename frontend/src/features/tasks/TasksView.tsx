@@ -4,7 +4,7 @@ import { TaskService, type TaskInfo, type TaskResultInfo } from '@current-client
 import Checkbox from '../../components/forms/Checkbox'
 import { useDialogs } from '../../lib/useDialogs'
 import type { RunStatus, useTasks } from './useTasks'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { describeResult, explainResult, STATE_LABEL } from './taskResult'
 import './TasksView.scss'
@@ -56,7 +56,7 @@ function TaskStatus({ run, result }: { run: Run; result?: TaskResultInfo }) {
 function TasksView({ repoPath, tasks, refreshKey }: TasksViewProps) {
   const { prompt } = useDialogs()
   const [selected, setSelected] = useState<string | null>(null)
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   const list = tasks.list
   const shown: TaskInfo | undefined = list?.tasks.find((task) => task.id === selected)
   const shownRun = shown && tasks.runOf(shown.id)

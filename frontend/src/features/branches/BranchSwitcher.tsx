@@ -13,7 +13,7 @@ import { useDeleteRemoteBranch } from '../remotes/useDeleteRemoteBranch'
 import { useFetchAll } from '../remotes/useFetchAll'
 import BranchPill from '../../components/git/BranchPill'
 import ContextMenu, { isMenuKey, menuAnchor, type ContextMenuState } from '../../components/controls/ContextMenu'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 import GitOutput from '../../components/chrome/GitOutput'
 import './BranchSwitcher.scss'
 
@@ -46,7 +46,7 @@ function BranchSwitcher({ repoPath, onBranchChanged, onFetched, pruneOnFetch = f
   const [filter, setFilter] = useState('')
   const { data, error: loadError, reload: load } = useAsyncData(() => loadSwitcher(repoPath), [repoPath])
   const { prompt } = useDialogs()
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   const error = loadError ?? actionError
   const localBranches = data?.local ?? []
   const remoteBranches = data?.remote ?? []

@@ -3,9 +3,10 @@ import { HostService, type MergeResult, type ReadinessFact } from '@current-clie
 import type { Change } from '@current-client-bindings/core/hostapi'
 import Modal from '../../components/chrome/Modal'
 import Switch from '../../components/forms/Switch'
-import { errorMessage } from '../../lib/errors'
 import { useAsyncData } from '../../lib/useAsyncData'
 import DialogError from '../../components/chrome/DialogError'
+import { useAction } from '../../lib/useAction'
+import DialogActions from '../../components/chrome/DialogActions'
 import './MergeChangeDialog.scss'
 
 interface MergeChangeDialogProps {
@@ -34,8 +35,7 @@ function MergeChangeDialog({ repoPath, change, prefix, host, facts, onMerged, on
   )
   const [method, setMethod] = useState<string | null>(null)
   const [deleteBranch, setDeleteBranch] = useState<boolean | null>(null)
-  const [running, setRunning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { run, running, error } = useAction()
   useEffect(() => {
     if (options) {
       setMethod((m) => m ?? options.methods[0] ?? 'merge')
@@ -49,14 +49,9 @@ function MergeChangeDialog({ repoPath, change, prefix, host, facts, onMerged, on
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!options || running) return
-    setRunning(true)
-    setError(null)
-    HostService.MergeChange(repoPath, change.number, chosen, deleteBranch ?? options.deleteBranch)
-      .then(onMerged)
-      .catch((err: unknown) => {
-        setError(errorMessage(err))
-        setRunning(false)
-      })
+    void run(() =>
+      HostService.MergeChange(repoPath, change.number, chosen, deleteBranch ?? options.deleteBranch).then(onMerged),
+    )
   }
 
   return (
@@ -112,14 +107,9 @@ function MergeChangeDialog({ repoPath, change, prefix, host, facts, onMerged, on
           </>
         )}
         <DialogError>{error}</DialogError>
-        <div className="dialog-actions">
-          <button type="button" className="dialog-button" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="dialog-button dialog-button-primary" disabled={!options || running}>
-            {running ? 'Merging…' : (METHOD_LABELS[chosen] ?? 'Merge')}
-          </button>
-        </div>
+        <DialogActions onCancel={onClose} disabled={!options || running}>
+          {running ? 'Merging…' : (METHOD_LABELS[chosen] ?? 'Merge')}
+        </DialogActions>
       </form>
     </Modal>
   )

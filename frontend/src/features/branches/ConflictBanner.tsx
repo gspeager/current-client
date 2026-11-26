@@ -1,11 +1,10 @@
-import { useState } from 'react'
 import { TriangleAlert } from 'lucide-react'
 import { ConflictService, type ConflictStateInfo } from '@current-client-bindings/app'
 import { operationNoun, operationSentence } from '../../lib/conflictWords'
-import { errorMessage } from '../../lib/errors'
 import { baseName } from '../../lib/paths'
 import { plural } from '../../lib/plural'
 import { useDialogs } from '../../lib/useDialogs'
+import { useAction } from '../../lib/useAction'
 import './ConflictBanner.scss'
 
 interface ConflictBannerProps {
@@ -18,8 +17,7 @@ interface ConflictBannerProps {
 // Status and the way out; the operation is continued from the commit composer.
 function ConflictBanner({ repoPath, state, onResolved, onOpenFile }: ConflictBannerProps) {
   const { confirm } = useDialogs()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { run, running: busy, error } = useAction()
 
   const noun = operationNoun(state.operation)
   const remaining = state.conflictedPaths.length
@@ -32,12 +30,7 @@ function ConflictBanner({ repoPath, state, onResolved, onOpenFile }: ConflictBan
       destructive: true,
     })
     if (!confirmed) return
-    setError(null)
-    setBusy(true)
-    ConflictService.Abort(repoPath)
-      .then(onResolved)
-      .catch((err: unknown) => setError(errorMessage(err)))
-      .finally(() => setBusy(false))
+    void run(() => ConflictService.Abort(repoPath).then(onResolved))
   }
 
   return (

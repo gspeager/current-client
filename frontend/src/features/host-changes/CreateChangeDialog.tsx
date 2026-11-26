@@ -2,12 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { CodeownersService, HostService, RemoteService, type ChangeDraft } from '@current-client-bindings/app'
 import Modal from '../../components/chrome/Modal'
 import Switch from '../../components/forms/Switch'
-import { errorMessage } from '../../lib/errors'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import DescriptionNotes from '../read-through/DescriptionNotes'
 import DialogError from '../../components/chrome/DialogError'
+import { useAction } from '../../lib/useAction'
+import DialogActions from '../../components/chrome/DialogActions'
 import './CreateChangeDialog.scss'
 
 interface CreateChangeDialogProps {
@@ -55,8 +56,7 @@ function CreateChangeForm({ repoPath, draft, onCreated, onClose }: CreateChangeF
   const [target, setTarget] = useState(draft.target)
   const [description, setDescription] = useState(draft.description)
   const [isDraft, setIsDraft] = useState(false)
-  const [running, setRunning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { run, running, error } = useAction()
   const kind = draft.kind
   const needsPush = !draft.hasUpstream
   // CODEOWNERS owners of what the branch changes against the target; local only.
@@ -71,20 +71,17 @@ function CreateChangeForm({ repoPath, draft, onCreated, onClose }: CreateChangeF
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!canSubmit) return
-    setRunning(true)
-    setError(null)
-    withSignIn(async (auth) => {
-      if (needsPush) await RemoteService.PushSetUpstream(repoPath, draft.remote, draft.branch, auth)
-      return HostService.CreateChange(repoPath, draft.branch, {
-        target: target.trim(),
-        title: title.trim(),
-        description,
-        draft: isDraft,
-      })
-    }, signIn)
-      .then((change) => onCreated(change.number))
-      .catch((err: unknown) => setError(errorMessage(err)))
-      .finally(() => setRunning(false))
+    void run(() =>
+      withSignIn(async (auth) => {
+        if (needsPush) await RemoteService.PushSetUpstream(repoPath, draft.remote, draft.branch, auth)
+        return HostService.CreateChange(repoPath, draft.branch, {
+          target: target.trim(),
+          title: title.trim(),
+          description,
+          draft: isDraft,
+        })
+      }, signIn).then((change) => onCreated(change.number)),
+    )
   }
 
   return (
@@ -129,14 +126,9 @@ function CreateChangeForm({ repoPath, draft, onCreated, onClose }: CreateChangeF
         />
         <Switch checked={isDraft} onChange={setIsDraft} label="Draft" />
         <DialogError>{error}</DialogError>
-        <div className="dialog-actions">
-          <button type="button" className="dialog-button" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="dialog-button dialog-button-primary" disabled={!canSubmit}>
-            {running ? 'Creating…' : needsPush ? `Push and create ${kind}` : `Create ${kind}`}
-          </button>
-        </div>
+        <DialogActions onCancel={onClose} disabled={!canSubmit}>
+          {running ? 'Creating…' : needsPush ? `Push and create ${kind}` : `Create ${kind}`}
+        </DialogActions>
       </form>
     </Modal>
   )

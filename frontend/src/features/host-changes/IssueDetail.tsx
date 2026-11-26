@@ -18,7 +18,7 @@ import { hostLogo, issueProvider } from '../../components/git/hostLogos'
 import { useHostLinks } from '../../lib/useHostLinks'
 import ChangeStateLabel from './ChangeStateLabel'
 import DialogError from '../../components/chrome/DialogError'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 
 interface IssueDetailProps {
   repoPath: string
@@ -45,7 +45,7 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
   const canWrite = !!useNewIssue()
   const [comment, setComment] = useState('')
   const [running, setRunning] = useState<'comment' | 'state' | 'branch' | null>(null)
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   const issue = data?.issue
   const writable = canWrite && !!data?.writable
   const closed = issue?.state === 'closed'

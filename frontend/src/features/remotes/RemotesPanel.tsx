@@ -9,7 +9,7 @@ import { useDialogs } from '../../lib/useDialogs'
 import PathText from '../../components/git/PathText'
 import SidebarSection from '../../components/chrome/SidebarSection'
 import type { SidebarSections } from '../../lib/useSidebarSections'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 import GitOutput from '../../components/chrome/GitOutput'
 import './RemotesPanel.scss'
 
@@ -37,7 +37,7 @@ function RemotesPanel({ repoPath, sections, onFetched, pruneOnFetch = false, req
     reload: loadRemotes,
   } = useAsyncData(() => RemoteService.List(repoPath), [repoPath])
   const { confirm, prompt } = useDialogs()
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
   const error = loadError ?? actionError
   const [newName, setNewName] = useState('')
   const [newUrl, setNewUrl] = useState('')

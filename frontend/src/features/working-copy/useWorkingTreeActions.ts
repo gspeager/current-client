@@ -1,11 +1,11 @@
 import { StashService, StatusService, type FileStatus } from '@current-client-bindings/app'
 import { useDialogs } from '../../lib/useDialogs'
-import { useActionError } from '../../lib/useActionError'
+import { useAction } from '../../lib/useAction'
 
 // onStashed refreshes what a new stash changes beyond the working tree, such as the Stash panel.
 export function useWorkingTreeActions(repoPath: string, loadStatus: () => void, onStashed?: () => void) {
   const { confirm } = useDialogs()
-  const { error: actionError, setError: setActionError, fail } = useActionError()
+  const { error: actionError, setError: setActionError, fail } = useAction()
 
   const run = (action: Promise<unknown>) => {
     setActionError(null)

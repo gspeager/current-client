@@ -3,6 +3,7 @@ import { RemoteService } from '@current-client-bindings/app'
 import { useAsyncData } from '../../lib/useAsyncData'
 import type { SignIn, SignInOptions } from '../../lib/signIn'
 import Modal from './Modal'
+import DialogActions from './DialogActions'
 
 function SignInDialog({ options, onSettle }: { options: SignInOptions; onSettle: (value: SignIn | null) => void }) {
   const [username, setUsername] = useState('')
@@ -54,14 +55,9 @@ function SignInDialog({ options, onSettle }: { options: SignInOptions; onSettle:
               : 'No Git credential helper is set up, so this is used once and not saved. Git Credential Manager can remember it.'}
           </p>
         )}
-        <div className="dialog-actions">
-          <button type="button" className="dialog-button" onClick={() => onSettle(null)}>
-            Cancel
-          </button>
-          <button type="submit" className="dialog-button dialog-button-primary" disabled={!canSubmit}>
-            Sign in
-          </button>
-        </div>
+        <DialogActions onCancel={() => onSettle(null)} disabled={!canSubmit}>
+          Sign in
+        </DialogActions>
       </form>
     </Modal>
   )

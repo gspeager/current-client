@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react'
 import { HostService, TagService, type ReleaseDraft } from '@current-client-bindings/app'
 import type { PublishedRelease } from '@current-client-bindings/core/hostapi'
 import Modal from '../../components/chrome/Modal'
-import { errorMessage } from '../../lib/errors'
 import { openWebPage } from '../../lib/hostPages'
 import { withSignIn } from '../../lib/signIn'
 import { useAsyncData } from '../../lib/useAsyncData'
@@ -10,6 +9,8 @@ import { useDialogs } from '../../lib/useDialogs'
 import { useHostLogo } from '../../components/git/hostLogos'
 import { DraftErrorModal } from './CreateChangeDialog'
 import DialogError from '../../components/chrome/DialogError'
+import { useAction } from '../../lib/useAction'
+import DialogActions from '../../components/chrome/DialogActions'
 import './CreateChangeDialog.scss'
 
 interface PublishReleaseDialogProps {
@@ -43,23 +44,19 @@ function PublishReleaseForm({
   const { signIn } = useDialogs()
   const [name, setName] = useState(draft.name)
   const [notes, setNotes] = useState(draft.notes)
-  const [running, setRunning] = useState(false)
   const HostIcon = useHostLogo(repoPath)
-  const [error, setError] = useState<string | null>(null)
+  const { run, running, error } = useAction()
   const [published, setPublished] = useState<PublishedRelease | null>(null)
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (running) return
-    setRunning(true)
-    setError(null)
-    withSignIn(async (auth) => {
-      await TagService.PushTag(repoPath, draft.remote, draft.tag, auth)
-      return HostService.PublishRelease(repoPath, { tag: draft.tag, name, notes })
-    }, signIn)
-      .then(setPublished)
-      .catch((err: unknown) => setError(errorMessage(err)))
-      .finally(() => setRunning(false))
+    void run(() =>
+      withSignIn(async (auth) => {
+        await TagService.PushTag(repoPath, draft.remote, draft.tag, auth)
+        return HostService.PublishRelease(repoPath, { tag: draft.tag, name, notes })
+      }, signIn).then(setPublished),
+    )
   }
 
   if (published) {
@@ -108,14 +105,9 @@ function PublishReleaseForm({
           />
         </label>
         <DialogError>{error}</DialogError>
-        <div className="dialog-actions">
-          <button type="button" className="dialog-button" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="dialog-button dialog-button-primary" disabled={running}>
-            {running ? 'Publishing…' : 'Publish release'}
-          </button>
-        </div>
+        <DialogActions onCancel={onClose} disabled={running}>
+          {running ? 'Publishing…' : 'Publish release'}
+        </DialogActions>
       </form>
     </Modal>
   )
