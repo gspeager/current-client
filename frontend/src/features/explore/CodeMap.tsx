@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import { useCurrentClientRoot } from '../../lib/currentClientRoot'
 import { canvasPainter } from '../../lib/picture'
 import { drawMap, readMapColors } from './drawMap'
@@ -66,15 +67,14 @@ function CodeMap({ items, root, label, describe, onOpen, onMenu, onRoot, onActiv
   // from it, and is only highlighted while the map is focused or pointed at.
   const tile = focused || pointed ? layout.tiles[index] : undefined
 
-  // The handlers are new each time the view draws, and only these changing matters.
-  /* eslint-disable react-hooks/exhaustive-deps */
+  const reportLayout = useEventCallback(onLayout)
+  const reportActive = useEventCallback(onActive)
   useEffect(() => {
-    onLayout(layout)
-  }, [layout])
+    reportLayout(layout)
+  }, [layout, reportLayout])
   useEffect(() => {
-    onActive(tile?.item ?? null)
-  }, [tile?.item])
-  /* eslint-enable react-hooks/exhaustive-deps */
+    reportActive(tile?.item ?? null)
+  }, [tile?.item, reportActive])
 
   useLayoutEffect(() => {
     const draw = () => {

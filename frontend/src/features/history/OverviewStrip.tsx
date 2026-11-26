@@ -1,5 +1,5 @@
 import { plural } from '../../lib/plural'
-import { useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import type { OverviewDayInfo, OverviewMarkerInfo } from '@current-client-bindings/app'
 import { useLaneColors } from '../../lib/laneColor'
 import './OverviewStrip.scss'
@@ -60,26 +60,28 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
     () => ({ start: Date.parse(days[0].date), end: Date.parse(days[days.length - 1].date) + DAY_MS }),
     [days],
   )
-  const x = (ms: number) => ((ms - start) / (end - start)) * width
+  const x = useCallback((ms: number) => ((ms - start) / (end - start)) * width, [start, end, width])
   const line = useMemo(() => {
     if (width <= 0) return ''
     const dayWidth = (DAY_MS / (end - start)) * width
     return activityLine(days, x, width, Math.max(MIN_POINT_SPACING, dayWidth))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, width, start, end])
+  }, [days, x, width, start, end])
 
-  const color = (marker: OverviewMarkerInfo): string => {
-    switch (marker.kind) {
-      case 'head':
-        return 'var(--primary)'
-      case 'branch':
-        return branchColor(marker.name, false)
-      case 'tag':
-        return 'var(--secondary)'
-      default:
-        return 'var(--warning)'
-    }
-  }
+  const color = useCallback(
+    (marker: OverviewMarkerInfo): string => {
+      switch (marker.kind) {
+        case 'head':
+          return 'var(--primary)'
+        case 'branch':
+          return branchColor(marker.name, false)
+        case 'tag':
+          return 'var(--secondary)'
+        default:
+          return 'var(--warning)'
+      }
+    },
+    [branchColor],
+  )
 
   const dayAt = (clientX: number, left: number) => {
     const at = start + ((clientX - left) / (width || 1)) * (end - start)
@@ -109,8 +111,7 @@ function OverviewStrip({ days, markers, visible, onJump }: OverviewStripProps) {
       if (ms >= start && ms <= end) byPixel.set(`${Math.round(x(ms))}-${color(marker)}`, marker)
     }
     return [...byPixel.values()].sort((a, b) => Number(a.kind === 'head') - Number(b.kind === 'head'))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [markers, width, start, end])
+  }, [markers, x, color, start, end])
 
   return (
     <div

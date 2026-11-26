@@ -172,7 +172,7 @@ function DiffViewer({
       images
         ? DiffService.GetDependencySummary(images.repoPath, diff.oldPath || path, path, images.before, images.after)
         : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- versions compared by value; a new diff refreshes it in place
     [images?.repoPath, path, fileVersions],
     { refreshKey: diff },
   )

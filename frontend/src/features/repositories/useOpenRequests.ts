@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import { Events } from '@wailsio/runtime'
 import { RepositoryService } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
@@ -15,8 +16,7 @@ interface OpenTarget {
 // file manager.
 export function useOpenRequests(repo: OpenTarget) {
   const { confirm } = useDialogs()
-  const latest = useRef(repo)
-  latest.current = repo
+  const openFromOutside = useEventCallback((path: string) => repo.openFromOutside(path))
 
   useEffect(() => {
     if (!repo.restored) return
@@ -37,12 +37,10 @@ export function useOpenRequests(repo: OpenTarget) {
             message: `A link asks to open ${request.path}. Git runs in a repository once it's open, and a repository's settings can run programs. Only open one that's trusted.`,
             confirmLabel: 'Open',
           }))
-        if (allowed)
-          await latest.current.openFromOutside(request.path).catch((err: unknown) => report(errorMessage(err)))
+        if (allowed) await openFromOutside(request.path).catch((err: unknown) => report(errorMessage(err)))
       }
     }
     void handle()
     return Events.On(OPEN_REQUESTED_EVENT, () => void handle())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repo.restored])
+  }, [repo.restored, confirm, openFromOutside])
 }

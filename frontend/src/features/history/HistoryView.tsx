@@ -248,8 +248,7 @@ function HistoryView({
   // As many as a picture can hold, for the dialog to offer.
   useEffect(() => {
     if (saving) loadThrough(MOST_ROWS - 1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saving, loading])
+  }, [saving, loading, loadThrough])
 
   const jumpTo = useHistoryScroll({
     virtualizer,
@@ -268,8 +267,8 @@ function HistoryView({
     [repoPath, filter],
     { keepData: true },
   )
+  const { scrollOffset, scrollRect } = virtualizer
   const visibleRange = useMemo(() => {
-    const { scrollOffset, scrollRect } = virtualizer
     if (rows.length === 0 || scrollOffset === null || !scrollRect) return null
     const first = Math.max(0, Math.floor(scrollOffset / rowHeight) - offset)
     const last = Math.min(rows.length - 1, Math.ceil((scrollOffset + scrollRect.height) / rowHeight) - offset)
@@ -278,8 +277,7 @@ function HistoryView({
       newest: Date.parse(rows[first].commit.date),
       oldest: Date.parse(rows[last].commit.date),
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, offset, virtualizer.scrollOffset, virtualizer.scrollRect])
+  }, [rows, offset, scrollOffset, scrollRect, rowHeight])
   const searchMarkers = useMemo(
     () => (query ? rows.map((row) => ({ kind: 'match', name: row.commit.subject, date: row.commit.date })) : []),
     [rows, query],

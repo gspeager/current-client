@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { HostService, type CIMark } from '@current-client-bindings/app'
+import { useStableValue } from './useStableValue'
 
 type CIMarks = Record<string, CIMark | undefined>
 
@@ -13,7 +14,7 @@ export function useCIStatus(repoPath: string, shas: string[]): CIMarks {
   const [marks, setMarks] = useState<CIMarks>({})
   const known = useRef(new Set<string>())
   const pending = useRef(new Set<string>())
-  const key = shas.join('\n')
+  const shown = useStableValue(shas)
 
   useEffect(() => {
     known.current.clear()
@@ -23,7 +24,7 @@ export function useCIStatus(repoPath: string, shas: string[]): CIMarks {
 
   useEffect(() => {
     const waiting = pending.current
-    const fresh = shas.filter((sha) => !known.current.has(sha) && !waiting.has(sha))
+    const fresh = shown.filter((sha) => !known.current.has(sha) && !waiting.has(sha))
     if (fresh.length === 0) return
     fresh.forEach((sha) => waiting.add(sha))
     const timer = window.setTimeout(() => {
@@ -40,8 +41,7 @@ export function useCIStatus(repoPath: string, shas: string[]): CIMarks {
       window.clearTimeout(timer)
       fresh.forEach((sha) => waiting.delete(sha))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoPath, key])
+  }, [repoPath, shown])
 
   return marks
 }

@@ -33,8 +33,7 @@ export function useHistoryScroll({
   useEffect(() => {
     const last = virtualItems[virtualItems.length - 1]
     if (last && last.index >= commits.length - 20) loadMore()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [virtualItems, commits.length, done])
+  }, [virtualItems, commits.length, done, loadMore])
 
   // initialLoadThrough guarantees the commit is loaded, not visible.
   const scrolledToInitial = useRef(false)
@@ -60,8 +59,7 @@ export function useHistoryScroll({
     const shown = rows.findIndex((row) => (positions.get(row.commit.sha) ?? 0) >= jumpRow)
     const target = shown === -1 ? rows.length - 1 : shown
     if (target >= 0) virtualizer.scrollToIndex(target + offset, { align: 'start' })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jumpRow, commits.length, done, loading])
+  }, [jumpRow, commits, rows, offset, done, loading, loadThrough, virtualizer])
 
   return setJumpRow
 }

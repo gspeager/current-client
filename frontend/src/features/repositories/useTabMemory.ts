@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import type { AppTab } from './TabBar'
 
 interface RepoMemory {
@@ -72,7 +73,7 @@ export function useTabMemory(repoPath: string | null, branch: string | null = ''
   }
 
   // A deleted branch's context goes with it, so a new branch of that name starts clean.
-  const forgetBranchesExcept = (branches: string[]) => {
+  const forgetBranchesExcept = useEventCallback((branches: string[]) => {
     if (!repoPath) return
     const prefix = branchKey(repoPath, '')
     for (const key of branchMemory.current.keys()) {
@@ -80,7 +81,7 @@ export function useTabMemory(repoPath: string | null, branch: string | null = ''
       const name = key.slice(prefix.length)
       if (name !== '' && name !== currentBranch && !branches.includes(name)) branchMemory.current.delete(key)
     }
-  }
+  })
 
   const restored: ViewMemory = repoPath
     ? {

@@ -519,7 +519,7 @@ function DiffPane(props: DiffPaneProps) {
 
   // Scrolling redraws the pane with the same props, so a row already built is
   // used again: highlighting and comparing words is most of its cost.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- a new cache whenever what the rows are built from changes
   const built = useMemo(() => new Map<string, ReactNode>(), [props, wrap, paneRows])
   const renderRows = (side?: Side) => {
     const elements: ReactNode[] = []

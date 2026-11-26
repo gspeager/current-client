@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import { HistoryService, type CommitInfo, type HistoryFilterInfo } from '@current-client-bindings/app'
 import { errorMessage } from '../../lib/errors'
 
@@ -43,25 +44,26 @@ export function useCommitHistory(
       })
   }
 
-  const loadMore = () => {
+  const loadMore = useEventCallback(() => {
     if (loading || done) return
     fetchPage(commits.length, PAGE_SIZE)
-  }
+  })
 
   // Loads every commit down to a row a jump has asked for.
-  const loadThrough = (row: number) => {
+  const loadThrough = useEventCallback((row: number) => {
     if (loading || done || row < commits.length) return
     fetchPage(commits.length, row - commits.length + PAGE_SIZE)
-  }
+  })
 
-  useEffect(() => {
+  const restart = useEventCallback(() => {
     generation.current++
     setCommits([])
     setDone(false)
     setError(null)
     fetchPage(0, initialLoadThrough ? initialLoadThrough + 50 : PAGE_SIZE)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoPath, filter.ref, filter.since, filter.until, filter.author, filter.type, filter.firstParent])
+  })
+  const { ref, since, until, author, type, firstParent } = filter
+  useEffect(restart, [restart, repoPath, ref, since, until, author, type, firstParent])
 
   return { commits, loading, done, error, loadMore, loadThrough }
 }

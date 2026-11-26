@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { Plus, RefreshCw } from 'lucide-react'
 import { HostService, type ListedIssue } from '@current-client-bindings/app'
@@ -65,7 +66,7 @@ function IssuesView({
     { refreshKey },
   )
 
-  const refresh = () => {
+  const refresh = useEventCallback(() => {
     setRefreshing(true)
     setRefreshError(null)
     HostService.Refresh(repoPath)
@@ -76,14 +77,13 @@ function IssuesView({
       })
       .catch((err: unknown) => setRefreshError(errorMessage(err)))
       .finally(() => setRefreshing(false))
-  }
+  })
 
   // Like the Pull requests tab, the first open refreshes once; later opens read the cache.
   const neverFetched = !!list?.enabled && list.sources.every((s) => !s.fetchedAt)
   useEffect(() => {
     if (neverFetched) refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [neverFetched, repoPath])
+  }, [neverFetched, repoPath, refresh])
 
   if (!list?.enabled) return null
 

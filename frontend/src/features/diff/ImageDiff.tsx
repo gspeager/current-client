@@ -3,6 +3,7 @@ import { Columns2, Layers, SquareSplitHorizontal } from 'lucide-react'
 import { DiffService, type FileContent, type FileSource } from '@current-client-bindings/app'
 import SegmentedControl from '../../components/controls/SegmentedControl'
 import { useAsyncData } from '../../lib/useAsyncData'
+import { useStableValue } from '../../lib/useStableValue'
 import { imageMimeType } from './imageFiles'
 import './ImageDiff.scss'
 import { formatSize } from './fileSize'
@@ -56,15 +57,15 @@ function ImageVersion({ label, content, src }: { label: string; content: FileCon
 function ImageDiff({ repoPath, path, before, after, refreshKey }: ImageDiffProps) {
   const [mode, setMode] = useState<ImageDiffMode>('side')
   const [position, setPosition] = useState(50)
+  // Callers build before/after inline.
+  const versions = useStableValue({ before, after })
   const { data, error } = useAsyncData(
     () =>
       Promise.all([
-        DiffService.GetFileContent(repoPath, path, before),
-        DiffService.GetFileContent(repoPath, path, after),
+        DiffService.GetFileContent(repoPath, path, versions.before),
+        DiffService.GetFileContent(repoPath, path, versions.after),
       ]),
-    // Callers build before/after inline, so compare their fields rather than the objects.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [repoPath, path, before.kind, before.rev, after.kind, after.rev],
+    [repoPath, path, versions],
     { refreshKey },
   )
 

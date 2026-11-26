@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useEventCallback } from 'usehooks-ts'
 import { useRovingRows } from '../../lib/useRovingRows'
 import { hostUserName, useNameIdentities } from '../../lib/useNameIdentities'
 import { Plus, RefreshCw } from 'lucide-react'
@@ -72,7 +73,7 @@ function HostChangesView({
   }, [selectedNumber])
   useClockTick()
 
-  const refresh = () => {
+  const refresh = useEventCallback(() => {
     setRefreshing(true)
     setRefreshError(null)
     HostService.Refresh(repoPath)
@@ -83,7 +84,7 @@ function HostChangesView({
       })
       .catch((err: unknown) => setRefreshError(errorMessage(err)))
       .finally(() => setRefreshing(false))
-  }
+  })
 
   const identities = useNameIdentities(
     (list?.changes ?? []).flatMap((c) => [
@@ -96,8 +97,7 @@ function HostChangesView({
   const neverFetched = list?.enabled === true && list.fetchedAt === null
   useEffect(() => {
     if (neverFetched) refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [neverFetched, repoPath])
+  }, [neverFetched, repoPath, refresh])
 
   if (!list?.enabled) return null
 

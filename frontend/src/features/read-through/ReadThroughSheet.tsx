@@ -130,13 +130,11 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   const progress = `${whole.filter((f) => f.read).length} of ${whole.length} read`
 
   // The info without its files, which every call would otherwise send back.
-  const range = info && new ReadThroughInfo({ ...info, files: [] })
+  const range = useMemo(() => info && new ReadThroughInfo({ ...info, files: [] }), [info])
   const { data: notes, reload: reloadNotes } = useAsyncData(
     () => (range ? ReadThroughService.Notes(range) : null),
-    // Where it reads from comes with info.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [info?.key],
-    { refreshKey: info, keepData: true },
+    [range],
+    { keepData: true },
   )
   const versions = useMemo(() => info?.files.map((f) => f.newBlob + f.oldBlob).join(), [info])
   // The overview lists them, so they're only read again for it.
@@ -144,13 +142,13 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   if (path === null) findingsOf.current = `${info?.head}:${versions}`
   const { data: shape, error: shapeError } = useAsyncData(
     () => (info && info.base ? ReadThroughService.Structure(info) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new info re-reads it only through findingsOf
     [info?.key, info?.base],
     { refreshKey: findingsOf.current, keepData: true },
   )
   const { data: report, error: reportError } = useAsyncData(
     () => (range && range.base ? ReadThroughService.Findings(range) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new info re-reads it only through findingsOf
     [info?.key, info?.base],
     { refreshKey: findingsOf.current, keepData: true },
   )

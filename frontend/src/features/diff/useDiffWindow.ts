@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { defaultRangeExtractor, measureElement, observeElementRect, useVirtualizer } from '@tanstack/react-virtual'
+import { useEventCallback } from 'usehooks-ts'
 
 const OVERSCAN = 30
 
@@ -89,8 +90,9 @@ export function useDiffWindow({
   // Wrapped rows take other heights at another width, so every height is worked
   // out again, with the same row kept at the top.
   const topRow = useRef<number | null>(null)
+  const scrollElement = useEventCallback(scroller)
   useLayoutEffect(() => {
-    const el = scroller()
+    const el = scrollElement()
     if (!windowed || !el) return
     setWidth(el.clientWidth)
     if (typeof ResizeObserver === 'undefined') return
@@ -103,8 +105,7 @@ export function useDiffWindow({
     })
     observer.observe(el)
     return () => observer.disconnect()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [windowed, layout])
+  }, [windowed, layout, scrollElement])
 
   // A request from before the width is known would scroll by the wrong heights.
   const waiting = useRef<{ index: number; block: 'center' | 'nearest' } | null>(null)

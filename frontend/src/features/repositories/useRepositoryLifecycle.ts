@@ -107,7 +107,7 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null, sh
         setRestored(true)
       }
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- restores the saved tabs once, on mount
   }, [])
 
   // Shown for the first time after the tabs were restored, it reads what it skipped.
@@ -115,8 +115,7 @@ export function useRepositoryLifecycle(initialRepoPath: string | null = null, sh
   useEffect(() => {
     if (shown && !wasShown.current && restored) refreshTabSummaries(tabs.filter((p) => p !== repoPath))
     wasShown.current = shown
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown])
+  }, [shown, restored, tabs, repoPath])
 
   const previousRepoPath = useRef<string | null>(null)
   useEffect(() => {

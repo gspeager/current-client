@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { HostService, type IssueInfo } from '@current-client-bindings/app'
 import type { BranchChanges } from './useBranchChanges'
 import { useTracker } from './issuePanel'
+import { useStableValue } from './useStableValue'
 
 export interface ReferenceCardInfo {
   title: string
@@ -48,7 +49,7 @@ function useTitlesOnce<K extends string | number>(
 ): Titles {
   const [titles, setTitles] = useState<Titles>({})
   const asked = useRef(new Set<K>())
-  const key = keys.join(',')
+  const wanted = useStableValue(keys)
 
   useEffect(() => {
     asked.current.clear()
@@ -56,7 +57,7 @@ function useTitlesOnce<K extends string | number>(
   }, [repoPath, resetKey])
 
   useEffect(() => {
-    const fresh = keys.filter((k) => !asked.current.has(k))
+    const fresh = wanted.filter((k) => !asked.current.has(k))
     if (fresh.length === 0) return
     const timer = window.setTimeout(() => {
       fresh.forEach((k) => asked.current.add(k))
@@ -65,8 +66,7 @@ function useTitlesOnce<K extends string | number>(
         .catch(() => fresh.forEach((k) => asked.current.delete(k)))
     }, DEBOUNCE_MS)
     return () => window.clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repoPath, key])
+  }, [repoPath, wanted, fetch])
 
   return titles
 }

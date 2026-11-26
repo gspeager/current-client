@@ -60,7 +60,7 @@ export function useAsyncData<T>(
     previousDeps.current = deps
     run(keepData || !depsChanged)
     return invalidate
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps is the caller's list, checked where it's written
   }, [...deps, refreshKey])
 
   const reload = useCallback(() => run(true), [run])

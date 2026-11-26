@@ -24,6 +24,7 @@ import Modal from '../../components/chrome/Modal'
 import { errorMessage } from '../../lib/errors'
 import { plural } from '../../lib/plural'
 import { useAsyncData } from '../../lib/useAsyncData'
+import { useStableValue } from '../../lib/useStableValue'
 import { shortSha } from '../../lib/text'
 import DialogError from '../../components/chrome/DialogError'
 import './TidyUpDialog.scss'
@@ -158,11 +159,13 @@ function TidyUpDialog({ repoPath, onDone, onClose }: TidyUpDialogProps) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const steps = rows.map((row) => ({
-    sha: row.sha,
-    action: row.action,
-    message: row.action === 'reword' ? row.message : '',
-  }))
+  const steps = useStableValue(
+    rows.map((row) => ({
+      sha: row.sha,
+      action: row.action,
+      message: row.action === 'reword' ? row.message : '',
+    })),
+  )
   const invalid = (() => {
     let kept = 0
     for (const row of rows) {
@@ -180,11 +183,9 @@ function TidyUpDialog({ repoPath, onDone, onClose }: TidyUpDialogProps) {
       )
     : false
 
-  const stepsKey = JSON.stringify(steps)
   const { data: preview } = useAsyncData(
-    () => (plan && rows.length > 0 && !invalid && !plan.hasMerges ? TidyService.Preview(repoPath, steps) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [repoPath, plan, stepsKey, invalid],
+    () => (plan && steps.length > 0 && !invalid && !plan.hasMerges ? TidyService.Preview(repoPath, steps) : null),
+    [repoPath, plan, steps, invalid],
     { keepData: true },
   )
 
