@@ -5,6 +5,7 @@ import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { shortSha } from '../../lib/text'
+import './changeRows.scss'
 import './OverviewCommits.scss'
 
 // The change's commits from what is already fetched, so opening it asks the host

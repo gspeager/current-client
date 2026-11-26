@@ -1,0 +1,33 @@
+@use '../../styles/patterns';
+
+.host-change-files,
+.host-change-commits {
+  @include patterns.list-reset;
+}
+
+.host-change-file,
+.host-change-commit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--h-row-table);
+  border-bottom: var(--border-structure);
+  font: var(--ui-sm);
+}
+
+.host-change-commit-sha {
+  flex-shrink: 0;
+  color: var(--on-surface-variant);
+  font: var(--data-sm);
+}
+
+.host-change-commit-subject {
+  @include patterns.truncate;
+  flex: 1;
+}
+
+.host-change-commit-meta {
+  flex-shrink: 0;
+  color: var(--outline);
+  font: var(--ui-xs);
+}

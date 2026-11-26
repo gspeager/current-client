@@ -241,51 +241,6 @@
   color: var(--outline);
 }
 
-.host-change-files,
-.host-change-commits {
-  @include patterns.list-reset;
-}
-
-.host-change-file,
-.host-change-commit {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  min-height: var(--h-row-table);
-  border-bottom: var(--border-structure);
-  font: var(--ui-sm);
-}
-
-.host-change-commit-sha {
-  flex-shrink: 0;
-  color: var(--on-surface-variant);
-  font: var(--data-sm);
-}
-
-.host-change-commit-subject {
-  @include patterns.truncate;
-  flex: 1;
-}
-
-.host-change-commit-meta {
-  flex-shrink: 0;
-  color: var(--outline);
-  font: var(--ui-xs);
-}
-
-// The list's filter already says what state these are in.
-.host-change-row .change-marker-square {
-  display: none;
-}
-
-.host-change-tile-ok {
-  box-shadow: inset 0 2px 0 0 var(--tertiary);
-}
-
-.host-change-tile-warn {
-  box-shadow: inset 0 2px 0 0 var(--warning);
-}
-
 .host-change-actions .host-change-button,
 .host-change-actions .host-changes-new {
   height: var(--h-field);
@@ -300,52 +255,6 @@
   margin: 0 0 var(--space-sm);
   color: var(--outline);
   @include patterns.eyebrow;
-}
-
-// The change's commits on one line, as the graph draws them.
-.host-change-overview-commits .host-change-commit {
-  position: relative;
-  padding-left: var(--space-lg);
-  border-bottom: none;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 3px;
-    width: 2px;
-    background: var(--lane, var(--surface-highest));
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--lane, var(--on-surface-variant));
-    transform: translateY(-50%);
-  }
-
-  &:first-child::before {
-    top: 50%;
-  }
-
-  &:last-child::before {
-    bottom: 50%;
-  }
-}
-
-.host-change-tile .ci-mark {
-  min-width: 0;
-  min-height: 0;
-}
-
-.host-change-row .change-marker {
-  padding-left: 0;
 }
 
 .host-change-verdict-text {
@@ -363,13 +272,6 @@
   color: var(--warning);
 }
 
-.host-change-reviewers ul {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  @include patterns.list-reset;
-}
-
 .host-change-reviewer-name {
   @include patterns.truncate;
 }
@@ -380,17 +282,6 @@
 
 .host-change-reviewer-state-changes-requested {
   color: var(--error);
-}
-
-@media (max-width: 1100px) {
-  .host-change-overview {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-md);
-  }
-}
-
-.host-change-row .ci-icon-success {
-  color: var(--outline);
 }
 
 .host-change-button-quiet {

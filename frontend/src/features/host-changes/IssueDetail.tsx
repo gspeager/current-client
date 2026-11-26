@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import IdentityBadge from '../../components/git/IdentityBadge'
 import { hostUserName, useNameIdentities } from '../../lib/useNameIdentities'
 import { useState, type FormEvent, type ReactNode } from 'react'
@@ -13,6 +14,7 @@ import { useNewIssue } from '../../lib/issuePanel'
 import { plural } from '../../lib/plural'
 import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
+import '../../components/chrome/dialog.scss'
 import './IssuePanel.scss'
 import { hostLogo, issueProvider } from '../../components/git/hostLogos'
 import { useHostLinks } from '../../lib/useHostLinks'
@@ -28,13 +30,22 @@ interface IssueDetailProps {
   onBranchChanged?: () => void
   // Beside the state in the header, such as the inspector's close button.
   headerAccessory?: ReactNode
+  // No top or right inset: the pane lines it up with a pull request's title.
+  flush?: boolean
 }
 
 // An issue, fetched the first time it opens and kept until the next refresh:
 // the Issues tab's pane and the inspector a key opens. Where the tracker
 // takes writes, it takes a comment and closes or reopens; each is one
 // request on a click, and the pane then reads the cache again.
-function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerAccessory }: IssueDetailProps) {
+function IssueDetail({
+  repoPath,
+  issueKey,
+  branch = '',
+  onBranchChanged,
+  headerAccessory,
+  flush = false,
+}: IssueDetailProps) {
   const HostIcon = hostLogo(issueProvider(issueKey, useHostLinks(repoPath)))
   const { data, error, reload } = useAsyncData(
     () => HostService.IssueDetails(repoPath, issueKey),
@@ -90,7 +101,11 @@ function IssueDetail({ repoPath, issueKey, branch = '', onBranchChanged, headerA
     repoPath,
   )
   return (
-    <article className="issue-detail" data-pane="issue-detail" aria-label={data?.reference ?? issueKey}>
+    <article
+      className={clsx('issue-detail', flush && 'issue-detail-flush')}
+      data-pane="issue-detail"
+      aria-label={data?.reference ?? issueKey}
+    >
       <header className="issue-detail-header">
         <span className="issue-detail-reference">{data?.reference ?? issueKey}</span>
         {issue?.state && <ChangeStateLabel state={issue.state} issue />}

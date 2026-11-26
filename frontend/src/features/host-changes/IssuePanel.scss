@@ -221,3 +221,15 @@
     order: -1;
   }
 }
+
+.issue-detail-flush {
+  .issue-detail-header {
+    padding-top: 0;
+    padding-right: 0;
+  }
+
+  .issue-panel-body,
+  .issue-detail-footer {
+    padding-right: 0;
+  }
+}

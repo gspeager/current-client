@@ -4,6 +4,7 @@ import { relativeTime } from '../../lib/relativeTime'
 import { useAsyncData } from '../../lib/useAsyncData'
 import { shortSha } from '../../lib/text'
 import useTabPlaceholder, { type TabProps } from './useTabPlaceholder'
+import './changeRows.scss'
 
 function CommitsTab({ repoPath, number, onLoaded }: TabProps) {
   const { data, error } = useAsyncData(() => HostService.ChangeCommits(repoPath, number), [repoPath, number])
