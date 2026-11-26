@@ -49,6 +49,7 @@ import { branchPage, openWebPage, remoteBranchName } from '../../lib/hostPages'
 import IssuePicker from './IssuePicker'
 import { useActionError } from '../../lib/useActionError'
 import './BranchSidebar.scss'
+import { changeNoun } from '../../lib/changeNoun'
 
 interface BranchSidebarProps {
   repoPath: string
@@ -365,7 +366,7 @@ function BranchSidebar({
         ...(hostLinks?.tree && b.upstream && !changes[b.upstream]?.state
           ? [
               {
-                label: `Create ${hostLinks.style === 'gitlab' ? 'merge request' : 'pull request'}…`,
+                label: `Create ${changeNoun(hostLinks.style)}…`,
                 onClick: () => void createChange(b.name),
               },
             ]

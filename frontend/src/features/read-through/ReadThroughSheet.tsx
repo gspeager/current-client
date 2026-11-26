@@ -30,6 +30,7 @@ import { groupFiles, totalsByKind, totalsByStatus, totalsByType, type Total } fr
 import { notesText } from './notesText'
 import type { ReadThroughOpening } from './readThrough'
 import './ReadThroughSheet.scss'
+import { dirName } from '../../lib/paths'
 
 // A file with the lines that changed since it was read, for one read before.
 const shownSince = (file: ReadThroughFile): ReadThroughFile =>
@@ -42,8 +43,6 @@ function againText({ gone, conflict, sinceAdded, sinceRemoved }: ReadThroughFile
     return `${since} What was read doesn't merge with the new base, so the base's own changes are among them.`
   return since
 }
-
-const dirOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf('/')))
 
 const versionOf = (file: ReadThroughFile) => `${file.newBlob}:${file.path}`
 
@@ -117,7 +116,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
     () => all.filter((f) => (since ? !f.read || tickedSince.has(versionOf(f)) : !f.gone)),
     [all, since, tickedSince],
   )
-  const inArea = listed.filter((f) => [f.path, f.origPath].some((p) => p && dirOf(p) === area))
+  const inArea = listed.filter((f) => [f.path, f.origPath].some((p) => p && dirName(p) === area))
   // A folder with nothing left listed lists everything again.
   const files = area !== null && inArea.length > 0 ? inArea : listed
   const showingArea = area !== null && inArea.length > 0
@@ -391,7 +390,7 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
                   error={shapeError}
                   onArea={(folder) => {
                     setArea(folder)
-                    const first = all.find((f) => !f.gone && dirOf(f.path) === folder)
+                    const first = all.find((f) => !f.gone && dirName(f.path) === folder)
                     if (first) openFile(first.path)
                   }}
                   onFile={(file) => openFile(file)}

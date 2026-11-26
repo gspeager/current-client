@@ -320,7 +320,7 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
                   disabled={path === root}
                   onClick={() => setFolder(path)}
                 >
-                  {path.slice(path.lastIndexOf('/') + 1)}
+                  {baseName(path)}
                 </button>
               ))}
             </nav>

@@ -1,4 +1,4 @@
-import { baseName, joinPath, tildePath } from './paths'
+import { baseName, dirName, joinPath, tildePath } from './paths'
 
 describe('baseName', () => {
   it('returns the last path segment for either separator', () => {
@@ -38,4 +38,9 @@ describe('tildePath', () => {
     expect(tildePath('/srv/acme', '/Users/sam')).toBe('/srv/acme')
     expect(tildePath('C:\\Users\\sam\\acme', '')).toBe('C:\\Users\\sam\\acme')
   })
+})
+
+it('takes the folder of a repository path', () => {
+  expect(dirName('src/lib/paths.ts')).toBe('src/lib')
+  expect(dirName('README.md')).toBe('')
 })

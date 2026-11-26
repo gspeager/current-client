@@ -55,6 +55,7 @@ import { shortSha } from '../../lib/text'
 import SegmentedControl from '../controls/SegmentedControl'
 import { useSearchElsewhere } from './useSearchElsewhere'
 import './QuickSwitchPalette.scss'
+import { changesLabelFor } from '../../lib/changeNoun'
 
 interface QuickSwitchPaletteProps {
   repoPath: string
@@ -516,7 +517,7 @@ function QuickSwitchPalette({
           </Section>
 
           <Section
-            heading={hostChanges?.prefix === '!' ? 'Merge requests' : 'Pull requests'}
+            heading={changesLabelFor(hostChanges?.provider ?? '')}
             icon={GitPullRequest}
             count={changeResults.length}
           >

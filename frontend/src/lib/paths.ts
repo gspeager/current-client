@@ -1,3 +1,8 @@
+// The folder of a repository path, "" at the top.
+export function dirName(path: string): string {
+  return path.slice(0, Math.max(0, path.lastIndexOf('/')))
+}
+
 export function baseName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path
 }

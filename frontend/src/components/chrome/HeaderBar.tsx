@@ -24,7 +24,7 @@ import type { ActionResult } from '../../lib/actionResult'
 import { useBranchStatus } from '../../lib/useBranchStatus'
 import BlameView from '../../features/history/BlameView'
 import { undoActionLabel } from '../../features/history/undoPreview'
-import { shortcutLabel, withShortcut } from '../../lib/shortcuts'
+import { matchesShortcut, shortcutLabel, withShortcut } from '../../lib/shortcuts'
 import { useCurrentUser } from '../../lib/useCurrentUser'
 import { useFetchAll } from '../../features/remotes/useFetchAll'
 import { useLaneColors } from '../../lib/laneColor'
@@ -290,32 +290,26 @@ function HeaderBar({
   const shownTabs = repo.tabs.filter((path) => !overflowTabs.includes(path))
 
   useWindowKeydown((e) => {
-    const key = e.key.toLowerCase()
-    const mod = e.metaKey || e.ctrlKey
     // Ctrl+P is the cursor-up key in a Mac text field, so only Command takes it there.
-    const quickOpenMod = System.IsMac() ? e.metaKey : e.ctrlKey
-    if (
-      (mod && !e.shiftKey && key === 'k') ||
-      (mod && e.shiftKey && key === 'p') ||
-      (quickOpenMod && !e.shiftKey && key === 'p')
-    ) {
+    const quickOpen = matchesShortcut(e, 'mod+P') && (!System.IsMac() || e.metaKey)
+    if (matchesShortcut(e, 'mod+K') || matchesShortcut(e, 'mod+shift+P') || quickOpen) {
       e.preventDefault()
       setQuickSwitchOpen((open) => !open)
     }
-    if (mod && e.shiftKey && key === 'f') {
+    if (matchesShortcut(e, 'mod+shift+F')) {
       e.preventDefault()
       setSearchOpen(true)
     }
-    if (mod && e.shiftKey && !operation && !syncing) {
-      if (key === 't') {
+    if (operation || syncing) return
+    const sync = [
+      ['mod+shift+T', () => void fetchAllOp.fetchPrimary()],
+      ['mod+shift+L', onPull],
+      ['mod+shift+K', onPush],
+    ] as const
+    for (const [keys, run] of sync) {
+      if (matchesShortcut(e, keys)) {
         e.preventDefault()
-        void fetchAllOp.fetchPrimary()
-      } else if (key === 'l') {
-        e.preventDefault()
-        onPull()
-      } else if (key === 'k') {
-        e.preventDefault()
-        onPush()
+        run()
       }
     }
   })

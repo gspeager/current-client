@@ -16,7 +16,7 @@ import { useAsyncData } from '../../lib/useAsyncData'
 import { useDialogs } from '../../lib/useDialogs'
 import { useDismissibleDetails } from '../../lib/useDismissibleDetails'
 import Kbd from '../../components/controls/Kbd'
-import { shortcutLabel } from '../../lib/shortcuts'
+import { matchesShortcut, shortcutLabel } from '../../lib/shortcuts'
 import SplitButton from '../../components/controls/SplitButton'
 import IdentityPrompt from './IdentityPrompt'
 import { capitalize } from '../../lib/text'
@@ -216,7 +216,7 @@ function CommitComposer({
             : null
 
   const onMessageKeyDown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && blockReason === null) {
+    if (matchesShortcut(e, 'mod+Enter') && blockReason === null) {
       e.preventDefault()
       if (conflict) continueOperation()
       else commit(false)

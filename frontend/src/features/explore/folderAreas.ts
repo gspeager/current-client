@@ -1,3 +1,4 @@
+import { dirName } from '../../lib/paths'
 // The folders that have a color of their own, and which. Slot 0 is every other's.
 export interface FolderArea {
   path: string
@@ -58,7 +59,7 @@ export function folderAreas(files: { path: string; lines: number }[]): FolderAre
     .map((area, i) => ({ ...area, slot: i < COLORED ? i + 1 : 0 }))
 }
 
-export const folderOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf('/')))
+export const folderOf = dirName
 
 // Answers a file's slot, by the nearest area its folder is in.
 export function slotFinder(areas: FolderArea[]): (path: string) => number {
