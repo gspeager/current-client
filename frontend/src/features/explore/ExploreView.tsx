@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { ImageDown } from 'lucide-react'
 import { useDebounceValue } from 'usehooks-ts'
 import {
@@ -112,21 +112,16 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
 
   const areas = useMemo(() => folderAreas((now ?? []).filter((f) => f.kind !== 'lockfile')), [now])
   const slotOf = useMemo(() => slotFinder(areas), [areas])
-  const listed = (file: { kind: string; binary: boolean }) =>
-    (!file.binary || shown.binary) && (file.kind === '' || shown[file.kind as keyof typeof shown])
+  const listed = useCallback(
+    (file: { kind: string; binary: boolean }) =>
+      (!file.binary || shown.binary) && (file.kind === '' || shown[file.kind as keyof typeof shown]),
+    [shown],
+  )
 
   const atRelease = settled !== 'HEAD'
-  const files = useMemo(
-    () => ((atRelease ? then?.files : now) ?? []).filter(listed),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [atRelease, then, now, shown],
-  )
-  const commitsOf = (path: string) => activity?.files[path]?.commits?.[period] ?? 0
-  const steps = useMemo(
-    () => commitSteps(files.map((f) => commitsOf(f.path))),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [files, activity, period],
-  )
+  const files = useMemo(() => ((atRelease ? then?.files : now) ?? []).filter(listed), [atRelease, then, now, listed])
+  const commitsOf = useCallback((path: string) => activity?.files[path]?.commits?.[period] ?? 0, [activity, period])
+  const steps = useMemo(() => commitSteps(files.map((f) => commitsOf(f.path))), [files, commitsOf])
   const codeItems = useMemo(() => {
     const time = Date.now()
     const stepOf = (path: string): Step => {
@@ -136,13 +131,8 @@ function ExploreView({ repoPath, currentBranch, repoVersion, workingVersion, onO
       return ageStep(last ? Date.parse(last) : undefined, time)
     }
     return files.map((f): MapItem => ({ path: f.path, size: f.lines, slot: slotOf(f.path), step: stepOf(f.path) }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files, steps, coloring, atRelease, slotOf, activity])
-  const changed = useMemo(
-    () => (changes?.files ?? []).filter(listed),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [changes, shown],
-  )
+  }, [files, steps, coloring, atRelease, slotOf, activity, commitsOf])
+  const changed = useMemo(() => (changes?.files ?? []).filter(listed), [changes, listed])
   const changeItems = useMemo(
     () =>
       changed.map((f): MapItem => ({
