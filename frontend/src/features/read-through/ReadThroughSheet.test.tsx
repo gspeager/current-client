@@ -349,6 +349,19 @@ describe('worth a second look', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Overview' }))
     await waitFor(() => expect(ReadThroughService.Findings).toHaveBeenCalledTimes(3))
   })
+
+  it('reads the rework again only for new commits', async () => {
+    const { rerender } = await opened()
+    expect(ReadThroughService.Rework).toHaveBeenCalledTimes(1)
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ files: [file('src/a.ts', { newBlob: 'n2' })] }))
+    rerender(open(1))
+    await waitFor(() => expect(ReadThroughService.Findings).toHaveBeenCalledTimes(2))
+    expect(ReadThroughService.Rework).toHaveBeenCalledTimes(1)
+    vi.mocked(ReadThroughService.Open).mockResolvedValue(info({ head: 'head2' }))
+    rerender(open(2))
+    await waitFor(() => expect(ReadThroughService.Rework).toHaveBeenCalledTimes(2))
+    expect(vi.mocked(ReadThroughService.Rework).mock.lastCall?.[0]).toMatchObject({ base: 'base', head: 'head2' })
+  })
 })
 
 describe('ticking a file', () => {
