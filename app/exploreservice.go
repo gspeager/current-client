@@ -163,6 +163,11 @@ func comparedRange(ctx context.Context, repoPath string, comparison ExploreCompa
 	if err != nil {
 		return r, "", err
 	}
+	return comparedFrom(ctx, repoPath, head, comparison)
+}
+
+// comparedFrom is comparedRange for a caller that has resolved HEAD.
+func comparedFrom(ctx context.Context, repoPath, head string, comparison ExploreComparison) (r readthrough.Range, target string, err error) {
 	r = readthrough.Range{Base: head, Head: head}
 	switch comparison.Kind {
 	case "working":
@@ -258,12 +263,10 @@ func (h *timelineHistory) read(ctx context.Context, repoPath string, r readthrou
 // takes a comparison of Kind "since", HEAD's commits since Ref, an RFC 3339 time.
 func (s *ExploreService) Timeline(ctx context.Context, repoPath string, comparison ExploreComparison) (TimelineInfo, error) {
 	timeline := TimelineInfo{Commits: []TimelineCommitInfo{}, Working: []TimelineFileInfo{}}
-	if noCommits(ctx, repoPath) {
-		return timeline, nil
-	}
 	head, err := git.ResolveCommit(ctx, repoPath, "HEAD")
+	// Before the first commit there's nothing to show.
 	if err != nil {
-		return timeline, err
+		return timeline, nil
 	}
 	r := readthrough.Range{Head: head}
 	var since time.Time
@@ -271,7 +274,7 @@ func (s *ExploreService) Timeline(ctx context.Context, repoPath string, comparis
 		if since, err = time.Parse(time.RFC3339, comparison.Ref); err != nil {
 			return timeline, err
 		}
-	} else if r, timeline.Target, err = comparedRange(ctx, repoPath, comparison); err != nil || (comparison.Kind == "branch" && timeline.Target == "") {
+	} else if r, timeline.Target, err = comparedFrom(ctx, repoPath, head, comparison); err != nil || (comparison.Kind == "branch" && timeline.Target == "") {
 		return timeline, err
 	}
 	if comparison.Kind != "working" {
