@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gspeager/current-client/core/filekind"
@@ -12,7 +15,9 @@ import (
 	"github.com/gspeager/current-client/core/readthrough"
 )
 
-type ExploreService struct{}
+type ExploreService struct {
+	history timelineHistory
+}
 
 type MapFileInfo struct {
 	Path   string `json:"path"`
@@ -158,6 +163,11 @@ func comparedRange(ctx context.Context, repoPath string, comparison ExploreCompa
 	if err != nil {
 		return r, "", err
 	}
+	return comparedFrom(ctx, repoPath, head, comparison)
+}
+
+// comparedFrom is comparedRange for a caller that has resolved HEAD.
+func comparedFrom(ctx context.Context, repoPath, head string, comparison ExploreComparison) (r readthrough.Range, target string, err error) {
 	r = readthrough.Range{Base: head, Head: head}
 	switch comparison.Kind {
 	case "working":
@@ -208,16 +218,55 @@ type TimelineInfo struct {
 	Target string `json:"target"`
 }
 
+// timelineHistory is the commits a timeline last read. A timeline is asked for
+// again whenever a file changes, and the commits between two commit IDs never do.
+type timelineHistory struct {
+	mu      sync.Mutex
+	key     string
+	commits []TimelineCommitInfo
+	limit   int
+}
+
+func (h *timelineHistory) read(ctx context.Context, repoPath string, r readthrough.Range, since time.Time) ([]TimelineCommitInfo, int, error) {
+	key := strings.Join([]string{repoPath, r.Base, r.Head, strconv.FormatInt(since.Unix(), 10)}, "\x00")
+	h.mu.Lock()
+	commits, limit, found := h.commits, h.limit, h.key == key
+	h.mu.Unlock()
+	if found {
+		return commits, limit, nil
+	}
+	read, more, err := git.RangeCommitLines(ctx, repoPath, r.Base, r.Head, since, mostTimelineCommits)
+	commits, limit = []TimelineCommitInfo{}, 0
+	if err != nil {
+		return commits, 0, err
+	}
+	if more {
+		limit = mostTimelineCommits
+	}
+	for _, c := range read {
+		commits = append(commits, TimelineCommitInfo{
+			SHA:     c.SHA,
+			Time:    c.Time.Format(time.RFC3339),
+			Subject: c.Subject,
+			Files: mapSlice(c.Files, func(f git.NumstatEntry) TimelineFileInfo {
+				return TimelineFileInfo{Path: f.Path, Lines: f.Added + f.Removed, Kind: string(filekind.Of(f.Path))}
+			}),
+		})
+	}
+	h.mu.Lock()
+	h.key, h.commits, h.limit = key, commits, limit
+	h.mu.Unlock()
+	return commits, limit, nil
+}
+
 // Timeline is the comparison's commits with each file's lines changed. Only it
 // takes a comparison of Kind "since", HEAD's commits since Ref, an RFC 3339 time.
 func (s *ExploreService) Timeline(ctx context.Context, repoPath string, comparison ExploreComparison) (TimelineInfo, error) {
 	timeline := TimelineInfo{Commits: []TimelineCommitInfo{}, Working: []TimelineFileInfo{}}
-	if noCommits(ctx, repoPath) {
-		return timeline, nil
-	}
 	head, err := git.ResolveCommit(ctx, repoPath, "HEAD")
+	// Before the first commit there's nothing to show.
 	if err != nil {
-		return timeline, err
+		return timeline, nil
 	}
 	r := readthrough.Range{Head: head}
 	var since time.Time
@@ -225,26 +274,12 @@ func (s *ExploreService) Timeline(ctx context.Context, repoPath string, comparis
 		if since, err = time.Parse(time.RFC3339, comparison.Ref); err != nil {
 			return timeline, err
 		}
-	} else if r, timeline.Target, err = comparedRange(ctx, repoPath, comparison); err != nil || (comparison.Kind == "branch" && timeline.Target == "") {
+	} else if r, timeline.Target, err = comparedFrom(ctx, repoPath, head, comparison); err != nil || (comparison.Kind == "branch" && timeline.Target == "") {
 		return timeline, err
 	}
 	if comparison.Kind != "working" {
-		commits, more, err := git.RangeCommitLines(ctx, repoPath, r.Base, r.Head, since, mostTimelineCommits)
-		if err != nil {
+		if timeline.Commits, timeline.Limit, err = s.history.read(ctx, repoPath, r, since); err != nil {
 			return timeline, err
-		}
-		if more {
-			timeline.Limit = mostTimelineCommits
-		}
-		for _, c := range commits {
-			timeline.Commits = append(timeline.Commits, TimelineCommitInfo{
-				SHA:     c.SHA,
-				Time:    c.Time.Format(time.RFC3339),
-				Subject: c.Subject,
-				Files: mapSlice(c.Files, func(f git.NumstatEntry) TimelineFileInfo {
-					return TimelineFileInfo{Path: f.Path, Lines: f.Added + f.Removed, Kind: string(filekind.Of(f.Path))}
-				}),
-			})
 		}
 	}
 	if r.Head != head {

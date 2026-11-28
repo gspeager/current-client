@@ -156,9 +156,9 @@ function ReadThroughSheet({ repoPath, opening, refreshKey, onNotesChanged, onClo
   )
   const { data: rework, error: reworkError } = useAsyncData(
     () => (range && range.base ? ReadThroughService.Rework(range) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new info re-reads it only through findingsOf
-    [info?.key, info?.base],
-    { refreshKey: findingsOf.current, keepData: true },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- commits only, so nothing else in a new info changes it
+    [info?.path, info?.base, info?.head],
+    { keepData: true },
   )
   const rewrittenIn = useMemo(() => new Map(rework?.files.map((f) => [f.path, f.rewritten])), [rework])
   const noted = () => {
