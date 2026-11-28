@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -195,5 +196,35 @@ func TestExploreTimelineToNow(t *testing.T) {
 	}
 	if _, err := new(ExploreService).Timeline(context.Background(), repo, ExploreComparison{Kind: "since", Ref: "today"}); err == nil {
 		t.Error("a time that isn't one should be refused")
+	}
+}
+
+func TestExploreTimelineReadsTheSameCommitsOnce(t *testing.T) {
+	repo := exploreRepo(t)
+	s := new(ExploreService)
+	since := ExploreComparison{Kind: "since", Ref: time.Now().Add(-time.Hour).Format(time.RFC3339)}
+	trace := filepath.Join(t.TempDir(), "trace")
+	t.Setenv("GIT_TRACE2_EVENT", trace)
+	logs := func() int {
+		t.Helper()
+		if _, err := s.Timeline(context.Background(), repo, since); err != nil {
+			t.Fatal(err)
+		}
+		events, err := os.ReadFile(trace)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.Count(string(events), `"log","--first-parent"`)
+	}
+	if n := logs(); n != 1 {
+		t.Fatalf("the first timeline read the log %d times, want 1", n)
+	}
+	writeIn(t, repo, "edited.go", "package a\n")
+	if n := logs(); n != 1 {
+		t.Fatalf("the log was read again for an uncommitted change: %d times", n)
+	}
+	gittest.Run(t, repo, "commit", "-q", "-a", "-m", "edit")
+	if n := logs(); n != 2 {
+		t.Fatalf("after a new commit the log was read %d times in all, want 2", n)
 	}
 }
